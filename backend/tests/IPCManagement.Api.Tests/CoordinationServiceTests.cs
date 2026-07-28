@@ -1,11 +1,10 @@
 using System;
-using System.Reflection;
 using FluentAssertions;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
 using Xunit;
+using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -19,7 +18,7 @@ public class CoordinationServiceTests
         var firstDishId = Guid.NewGuid();
         var secondDishId = Guid.NewGuid();
 
-        var line = new Mealquantityplanline
+        var line = new MealQuantityPlanLine
         {
             QuantityPlanLineId = GuidHelper.ToBytes(Guid.NewGuid()),
             QuantityPlanId = GuidHelper.ToBytes(Guid.NewGuid()),
@@ -43,10 +42,11 @@ public class CoordinationServiceTests
                 MenuName = "Menu ca sáng",
                 Menuitems =
                 [
-                    new Menuitem
+                    new MenuItem
                     {
                         MenuId = GuidHelper.ToBytes(menuId),
                         DishId = GuidHelper.ToBytes(secondDishId),
+                        DishSlot = "savory-canh",
                         DisplayOrder = 2,
                         Dish = new Dish
                         {
@@ -55,10 +55,11 @@ public class CoordinationServiceTests
                             DishName = "Canh rau"
                         }
                     },
-                    new Menuitem
+                    new MenuItem
                     {
                         MenuId = GuidHelper.ToBytes(menuId),
                         DishId = GuidHelper.ToBytes(firstDishId),
+                        DishSlot = "savory-main",
                         DisplayOrder = 1,
                         Dish = new Dish
                         {
@@ -69,25 +70,21 @@ public class CoordinationServiceTests
                     }
                 ]
             },
-            MenuSchedule = new Menuschedule
+            MenuSchedule = new MenuSchedule
             {
                 MenuScheduleId = GuidHelper.ToBytes(Guid.NewGuid()),
                 MenuPrice = 35000,
                 BomRatePercent = 100
             },
-            QuantityPlan = new Mealquantityplan
+            QuantityPlan = new MealQuantityPlan
             {
                 QuantityPlanId = GuidHelper.ToBytes(Guid.NewGuid()),
                 ServiceDate = new DateOnly(2026, 6, 15)
             }
         };
 
-        var method = typeof(CoordinationService).GetMethod(
-            "MapOrder",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
         // Act
-        var result = (CoordinationOrderDto)method!.Invoke(null, [line])!;
+        var result = OrderLifecyclePolicy.MapOrder(line);
 
         // Assert
         result.MenuId.Should().Be(menuId.ToString());
@@ -99,5 +96,7 @@ public class CoordinationServiceTests
             firstDishId.ToString(),
             secondDishId.ToString());
         result.Dishes.Select(dish => dish.DishName).Should().Equal("Cơm gà", "Canh rau");
+        result.Dishes.Select(dish => dish.DishSlot).Should().Equal("savory-main", "savory-canh");
+        result.Dishes.Select(dish => dish.DisplayOrder).Should().Equal(1, 2);
     }
 }

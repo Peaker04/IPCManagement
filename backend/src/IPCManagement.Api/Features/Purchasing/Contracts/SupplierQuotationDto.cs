@@ -1,0 +1,35 @@
+namespace IPCManagement.Api.Features.Purchasing.Contracts;
+
+public class SupplierQuotationDto
+{
+    public string QuotationId { get; set; } = string.Empty;
+    public string SupplierId { get; set; } = string.Empty;
+    public string SupplierName { get; set; } = string.Empty;
+    public string IngredientId { get; set; } = string.Empty;
+    public string IngredientName { get; set; } = string.Empty;
+    public decimal UnitPrice { get; set; }
+    public string EffectiveFrom { get; set; } = string.Empty;
+    public string? EffectiveTo { get; set; }
+    public string? Note { get; set; }
+    public bool IsActive { get; set; }
+    public bool IsBestPrice { get; set; }
+}
+
+public class CreateSupplierQuotationRequest
+{
+    public string SupplierId { get; set; } = string.Empty;
+    public string IngredientId { get; set; } = string.Empty;
+    public decimal UnitPrice { get; set; }
+    public string EffectiveFrom { get; set; } = string.Empty;
+    public string? EffectiveTo { get; set; }
+    public string? Note { get; set; }
+}
+
+public class UpdateSupplierQuotationRequest
+{
+    public decimal UnitPrice { get; set; }
+    public string EffectiveFrom { get; set; } = string.Empty;
+    public string? EffectiveTo { get; set; }
+    public string? Note { get; set; }
+    public bool IsActive { get; set; } = true;
+}

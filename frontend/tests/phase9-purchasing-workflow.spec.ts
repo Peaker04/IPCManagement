@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { ROUTES } from '../src/routes/routeConfig';
+import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_STAGE_LABELS } from './phase9-test-fixture';
 
 const realStackEnabled = process.env.PHASE09_REAL_STACK === '1';

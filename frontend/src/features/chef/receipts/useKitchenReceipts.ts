@@ -1,14 +1,12 @@
 import { useMemo, useState } from 'react'
-import {
-  useConfirmInventoryIssueReceiptMutation,
-  useGetKitchenIssuesPageQuery,
-} from '@/features/workflow'
+import { useConfirmInventoryIssueReceiptMutation, useGetKitchenIssuesPageQuery } from '@/api/workflowApi'
 import { countPendingKitchenReceipts } from '../chefReadiness'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
 import { filterKitchenIssues } from '../production/chefProductionModel'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
+import { toChefView } from '../chefQueryView'
 
-export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void) {
+export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void, enabled = true) {
   const scopeKey = `${scope.serviceDate}-${scope.apiShiftName}`
   const [pagination, setPagination] = useState({ scopeKey, page: 1 })
   const page = pagination.scopeKey === scopeKey ? pagination.page : 1
@@ -19,10 +17,11 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     shiftName: scope.apiShiftName,
     pageNumber: page,
     pageSize: 100,
-  })
+  }, { skip: !enabled })
+  const queryView = toChefView(query, 'phiếu xuất kho bàn giao cho bếp')
   const [confirmReceipt, confirmState] = useConfirmInventoryIssueReceiptMutation()
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
-  const response = query.currentData ?? query.data
+  const response = queryView.phase === 'ready' ? queryView.data : undefined
   const rows = useMemo(
     () => filterKitchenIssues(response?.items ?? [], scope.serviceDate, scope.activeShift),
     [response?.items, scope.serviceDate, scope.activeShift],
@@ -82,8 +81,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     allReceived: rows.length > 0 && pendingCount === 0 && !hasAdditionalPages,
     setPage,
     signOff,
-    isLoading: query.isLoading,
-    isError: query.isError,
+    queryView,
     isConfirming: confirmState.isLoading,
   }
 }

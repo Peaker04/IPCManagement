@@ -1,7 +1,6 @@
 'use client'
 
-import { Archive, CheckCircle, Loader2, Lock, LockOpen } from 'lucide-react'
-import { InlineAlert } from '@/components/common'
+import { AlertTriangle, Archive, CheckCircle, Loader2, Lock, LockOpen } from 'lucide-react'
 
 interface OrderStatusBannerProps {
   status: 'syncing' | 'draft' | 'locked' | 'DRAFT' | 'CONFIRMED' | 'ADJUSTED' | 'COMPLETED' | 'ARCHIVED' | string
@@ -9,57 +8,37 @@ interface OrderStatusBannerProps {
 
 export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
   const normalizedStatus = status.toUpperCase()
+  const presentation = status === 'syncing'
+    ? { title: 'Đang đồng bộ trạng thái đơn', detail: 'Đang lấy dữ liệu mới nhất.', tone: 'info', icon: Loader2, spin: true }
+    : normalizedStatus === 'EMPTY'
+      ? { title: 'Chưa có kế hoạch suất ăn', detail: 'Không có dữ liệu để thao tác trong ca này.', tone: 'neutral', icon: LockOpen }
+      : normalizedStatus === 'MIXED'
+        ? { title: 'Trạng thái kế hoạch chưa đồng nhất', detail: 'Tải lại hoặc xử lý kế hoạch dở dang trước khi thao tác.', tone: 'warning', icon: AlertTriangle }
+        : status === 'locked' || normalizedStatus === 'CONFIRMED'
+          ? { title: 'Ca này đã khóa', detail: 'Điều chỉnh sau chốt cần ghi lý do.', tone: 'info', icon: Lock }
+          : normalizedStatus === 'ADJUSTED'
+            ? { title: 'Ca này đã khóa và có điều chỉnh', detail: 'Số suất sau chốt đã được cập nhật.', tone: 'info', icon: Lock }
+            : normalizedStatus === 'COMPLETED'
+              ? { title: 'Ca này đã hoàn tất', detail: 'Dữ liệu đã ghi nhận vào nhật ký điều phối.', tone: 'success', icon: CheckCircle }
+              : normalizedStatus === 'ARCHIVED'
+                ? { title: 'Dữ liệu đã lưu trữ', detail: 'Chỉ dùng để tra cứu lịch sử.', tone: 'neutral', icon: Archive }
+                : normalizedStatus === 'CANCELLED'
+                  ? { title: 'Kế hoạch đã hủy', detail: 'Không thể chốt, hoàn tất hoặc điều chỉnh.', tone: 'warning', icon: Archive }
+                  : { title: 'Dữ liệu đang ở trạng thái nháp', detail: 'Kiểm tra số suất trước khi chốt đơn cả ngày.', tone: 'warning', icon: LockOpen }
+
+  const Icon = presentation.icon
+  const toneClasses = {
+    neutral: 'border-slate-200 bg-slate-50 text-slate-700',
+    info: 'border-blue-200 bg-blue-50 text-blue-800',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    warning: 'border-amber-200 bg-amber-50 text-amber-900',
+  } as const
+
   return (
-    <div className="ipc-order-status-banner border-b border-slate-200 bg-slate-50 px-5 py-3">
-      {status === 'syncing' ? (
-        <InlineAlert
-          title="Đang đồng bộ trạng thái đơn"
-          icon={<Loader2 className="size-4 animate-spin text-[var(--ipc-primary-600)]" />}
-          variant="info"
-        >
-          Hệ thống đang lấy trạng thái đơn mới nhất.
-        </InlineAlert>
-      ) : status === 'locked' || normalizedStatus === 'CONFIRMED' ? (
-        <InlineAlert
-          title="Ca này đã khóa"
-          icon={<Lock className="size-4 text-[var(--ipc-info-600)]" />}
-          variant="info"
-        >
-          Kế hoạch suất ăn đã được chốt để bếp triển khai; các điều chỉnh sau chốt cần ghi lý do.
-        </InlineAlert>
-      ) : normalizedStatus === 'ADJUSTED' ? (
-        <InlineAlert
-          title="Ca này đã khóa và có điều chỉnh"
-          icon={<Lock className="size-4 text-[var(--ipc-info-600)]" />}
-          variant="info"
-        >
-          Kế hoạch đã chốt; số suất sau chốt đã được điều chỉnh qua luồng ghi lý do.
-        </InlineAlert>
-      ) : normalizedStatus === 'COMPLETED' ? (
-        <InlineAlert
-          title="Ca này đã hoàn tất"
-          icon={<CheckCircle className="size-4 text-[var(--ipc-success-600)]" />}
-          variant="info"
-        >
-          Dữ liệu ca đã được hoàn tất và ghi nhận vào nhật ký điều phối.
-        </InlineAlert>
-      ) : normalizedStatus === 'ARCHIVED' ? (
-        <InlineAlert
-          title="Dữ liệu đã lưu trữ"
-          icon={<Archive className="size-4 text-slate-500" />}
-          variant="info"
-        >
-          Ca này đã kết thúc và chỉ nên dùng để tra cứu lịch sử.
-        </InlineAlert>
-      ) : (
-        <InlineAlert
-          title="Dữ liệu đang ở trạng thái nháp"
-          icon={<LockOpen className="size-4 text-[var(--ipc-warning)]" />}
-          variant="warning"
-        >
-          Kiểm tra menu, số suất và chênh lệch trước khi chốt đơn ca này.
-        </InlineAlert>
-      )}
+    <div className={`ipc-order-status-banner flex items-center gap-2 border-b px-4 py-2 ${toneClasses[presentation.tone as keyof typeof toneClasses]}`} role="status">
+      <Icon className={`size-4 shrink-0 ${presentation.spin ? 'animate-spin' : ''}`} aria-hidden="true" />
+      <span className="text-sm font-semibold">{presentation.title}</span>
+      <span className="text-sm opacity-80">— {presentation.detail}</span>
     </div>
   )
 }

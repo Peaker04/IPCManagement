@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { WeeklyPlanRow } from '../model/types'
 import { buildDishMaterialsPresentation, groupDishesByShift, resolveAnalyzedDish } from './dishMaterialsModel'
 
@@ -7,6 +7,8 @@ type Options = {
   scopeKey: string
   sourceLabel: string
   menuPrice: number
+  customerId: string
+  serviceDate: string
   catalogDishes: CatalogDish[]
   weeklyRowsWithBom: WeeklyPlanRow[]
   dishesById: Map<string, CatalogDish>
@@ -16,6 +18,8 @@ export function useDishMaterials({
   scopeKey,
   sourceLabel,
   menuPrice,
+  customerId,
+  serviceDate,
   catalogDishes,
   weeklyRowsWithBom,
   dishesById,
@@ -24,8 +28,12 @@ export function useDishMaterials({
   const selectedDishId = selection.scopeKey === scopeKey ? selection.dishId : ''
   const analyzedDish = resolveAnalyzedDish(catalogDishes, selectedDishId, weeklyRowsWithBom, dishesById)
   const presentation = useMemo(
-    () => buildDishMaterialsPresentation(analyzedDish, menuPrice),
-    [analyzedDish, menuPrice],
+    () => buildDishMaterialsPresentation(analyzedDish, menuPrice, {
+      customerId,
+      priceTier: menuPrice,
+      serviceDate,
+    }),
+    [analyzedDish, customerId, menuPrice, serviceDate],
   )
   const dishesByShift = useMemo(() => groupDishesByShift(catalogDishes), [catalogDishes])
   const weeklyPlanCatalogDishIds = useMemo(
@@ -43,6 +51,7 @@ export function useDishMaterials({
       weeklyPlanCatalogDishIds,
       sourceLabel,
       menuPrice,
+      serviceDate,
       isCatalogEmpty: catalogDishes.length === 0,
     },
   }

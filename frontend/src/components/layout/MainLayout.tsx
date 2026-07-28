@@ -1,11 +1,12 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '../../features/auth';
 import { store } from '../../app/store';
 import { logoutSession } from '../../features/auth/logoutSession';
-import { ROUTES } from '../../routes/routeConfig';
-import { getWorkflowContextForPath } from '../../features/workflow';
+import { ROUTES } from '@/lib/routeConfig';
+import { preloadRoute, preloadRouteData } from '../../routes/routeLoaders';
+import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig';
 import { uiCopy } from '../../lib/uiCopy';
 import {
   ChefHat,
@@ -24,31 +25,45 @@ import {
   X,
 } from 'lucide-react';
 
-type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
 
-const getStatusTone = (state: string): StatusTone => {
-  const normalized = state.toLocaleLowerCase('vi-VN');
-
-  if (normalized.includes('cảnh báo') || normalized.includes('tắc') || normalized.includes('lỗi')) {
-    return 'danger';
-  }
-
-  if (normalized.includes('chờ') || normalized.includes('thiếu') || normalized.includes('dự thảo')) {
-    return 'warning';
-  }
-
-  if (normalized.includes('đã') || normalized.includes('hoạt động')) {
-    return 'success';
-  }
-
-  if (normalized.includes('theo dõi')) {
-    return 'info';
-  }
-
-  return 'neutral';
+const preloadNavigationTarget = (path: string) => {
+  void preloadRoute(path);
+  void preloadRouteData(path);
 };
 
-const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
+const canPreloadRoutesInBackground = () => {
+  const connection = (navigator as Navigator & {
+    connection?: { effectiveType?: string; saveData?: boolean };
+  }).connection;
+
+  return !connection?.saveData && connection?.effectiveType !== 'slow-2g' && connection?.effectiveType !== '2g';
+};
+
+function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean; owner: string }) {
+  const coordinationShift = useAppSelector((state) => state.coordination.currentShift);
+  const activeShift = isCoordination ? coordinationShift : 'Ca trưa';
+
+  return (
+    <div className="ipc-header-chip">
+      <Clock3 size={16} />
+      <span>{activeShift} · {owner}</span>
+    </div>
+  );
+}
+
+const menuItems: Array<{ path: string; label: string; icon: ReactNode; requiredPermissions?: string[] }> = [
+  { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
+  { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, requiredPermissions: ['coordination.read'] },
+  { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, requiredPermissions: ['coordination.read'] },
+  { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, requiredPermissions: ['purchase.request.approve'] },
+  { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, requiredPermissions: ['purchase.read'] },
+  { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, requiredPermissions: ['warehouse.read'] },
+  { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, requiredPermissions: ['production.read'] },
+  { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, requiredPermissions: ['report.read'] },
+  { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, requiredPermissions: ['*'] },
+  { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập duyệt', icon: <Settings size={18} />, requiredPermissions: ['*'] },
+];
 
 export const MainLayout = () => {
   const dispatch = useAppDispatch();
@@ -62,25 +77,48 @@ export const MainLayout = () => {
     navigate(ROUTES.LOGIN, { replace: true });
   };
 
-  const menuItems: Array<{ path: string; label: string; icon: ReactNode; requiredPermissions?: string[] }> = [
-    { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
-    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, requiredPermissions: ['coordination.read'] },
-    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, requiredPermissions: ['coordination.read'] },
-    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, requiredPermissions: ['purchase.request.approve'] },
-    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, requiredPermissions: ['purchase.read'] },
-    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, requiredPermissions: ['warehouse.read'] },
-    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, requiredPermissions: ['production.read'] },
-    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, requiredPermissions: ['report.read'] },
-    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, requiredPermissions: ['*'] },
-    { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập duyệt', icon: <Settings size={18} />, requiredPermissions: ['*'] },
-  ];
-
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
-  const visibleMenuItems = menuItems.filter((item) => {
+  const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
     if (!item.requiredPermissions) return true;
     if (isAdmin) return true;
     return item.requiredPermissions.some((perm) => currentUser?.permissions?.includes(perm));
-  });
+  }), [currentUser?.permissions, isAdmin]);
+
+  useEffect(() => {
+    if (!canPreloadRoutesInBackground()) return;
+
+    let cancelled = false;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    let nextRouteIndex = 0;
+
+    const scheduleNextRoute = () => {
+      if (cancelled || nextRouteIndex >= visibleMenuItems.length) return;
+
+      const preloadNextRoute = () => {
+        if (cancelled) return;
+        const path = visibleMenuItems[nextRouteIndex]?.path;
+        nextRouteIndex += 1;
+        if (!path) return;
+
+        void preloadRoute(path).finally(scheduleNextRoute);
+      };
+
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(preloadNextRoute, { timeout: 1_000 });
+      } else {
+        timeoutHandle = globalThis.setTimeout(preloadNextRoute, 120);
+      }
+    };
+
+    scheduleNextRoute();
+
+    return () => {
+      cancelled = true;
+      if (idleHandle !== undefined && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
+      if (timeoutHandle !== undefined) globalThis.clearTimeout(timeoutHandle);
+    };
+  }, [visibleMenuItems]);
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 
@@ -112,8 +150,8 @@ export const MainLayout = () => {
   })();
 
   const serviceDate = serviceDateFormatter.format(new Date());
-  const activeShift = 'Ca trưa';
-  const statusTone = getStatusTone(pageContext.state);
+  const showHeaderState = location.pathname !== ROUTES.MEAL_ORDERS;
+  const statusTone = toneFromStatus(pageContext.state);
 
   return (
     <div className="ipc-app-shell ipc-redesign-shell">
@@ -153,6 +191,9 @@ export const MainLayout = () => {
               <Link
                 key={item.path}
                 to={item.path}
+                onPointerEnter={() => preloadNavigationTarget(item.path)}
+                onFocus={() => preloadNavigationTarget(item.path)}
+                onTouchStart={() => preloadNavigationTarget(item.path)}
                 onClick={() => setIsMobileNavOpen(false)}
                 aria-current={isActive ? 'page' : undefined}
                 className={[
@@ -214,14 +255,16 @@ export const MainLayout = () => {
               <CalendarDays size={16} />
               <span>{serviceDate}</span>
             </div>
-            <div className="ipc-header-chip">
-              <Clock3 size={16} />
-              <span>{activeShift} · {workflowContext.lane.owner}</span>
-            </div>
-            <div className={`ipc-status-pill is-${statusTone}`}>
-              <span className="ipc-status-dot" />
-              <span>{pageContext.state}</span>
-            </div>
+            <HeaderShiftContext
+              isCoordination={location.pathname === ROUTES.MEAL_ORDERS}
+              owner={workflowContext.lane.owner}
+            />
+            {showHeaderState && (
+              <div className={`ipc-status-pill is-${statusTone}`}>
+                <span className="ipc-status-dot" />
+                <span>{pageContext.state}</span>
+              </div>
+            )}
           </div>
         </header>
 

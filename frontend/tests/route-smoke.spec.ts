@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { ROUTES } from '../src/routes/routeConfig';
+import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 const protectedRoutes = [
@@ -154,6 +154,21 @@ async function stubProductionReportStages(page: Page) {
 
   await page.route('**/api/approvals/inbox**', async (route) => {
     await fulfillJson(route, { items: [], limit: 20, hasNext: false, nextCursor: null });
+  });
+
+  await page.route('**/api/purchase-workflow/workbench**', async (route) => {
+    await fulfillJson(route, phase09Workbench);
+  });
+
+  await page.route('**/api/purchase-orders/page**', async (route) => {
+    await fulfillJson(route, {
+      page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false },
+      orderCountByRequest: {},
+    });
+  });
+
+  await page.route('**/api/warehouses/selector**', async (route) => {
+    await fulfillJson(route, [{ warehouseId: 'wh-main', warehouseCode: 'MAIN', warehouseName: 'Kho chính' }]);
   });
 
   await page.route('**/api/workflow-reports/**', async (route) => {
@@ -1222,7 +1237,11 @@ test.describe('route smoke', () => {
 
         await expect(page.locator('.ipc-app-shell')).toBeVisible();
         await expect(page.locator('.ipc-page-title')).toHaveText(route.heading);
-        await expect(page.getByRole('navigation', { name: 'Điều hướng chính' })).toBeVisible();
+        const primaryNavigation = page.getByRole('navigation', { name: 'Điều hướng chính' });
+        if (!(await primaryNavigation.isVisible())) {
+          await page.getByRole('button', { name: 'Mở menu điều hướng' }).click();
+        }
+        await expect(primaryNavigation).toBeVisible();
         await expect(page.getByRole('link', { name: 'Tổng quan' }).first()).toBeVisible();
         await expect(page.locator('main.ipc-main')).toBeVisible();
         await expectNoPageOverflow(page);
@@ -1237,9 +1256,19 @@ test.describe('route smoke', () => {
     await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: 'Biến động giá' }).click();
     await expect(page).toHaveURL(ROUTES.REPORTS);
 
-    await expect(page.getByText('Đang xem 1–6 trên tổng 7')).toBeVisible();
-    await page.getByLabel('Trang sau').click();
-    await expect(page.getByText('Đang xem 7–7 trên tổng 7')).toBeVisible();
+    await expect(page.getByText('Đang xem 1–6 trên tổng 7 dòng giá')).toBeVisible();
+    const nextPageButton = page.getByLabel('Trang sau');
+    await nextPageButton.click();
+    await expect(page.getByText('Đang xem 7–7 trên tổng 7 dòng giá')).toBeVisible();
+    await expect(page.getByLabel('Trang trước')).toBeFocused();
+    await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('2');
+
+    await page.reload();
+    await expect(page.getByText('Đang xem 7–7 trên tổng 7 dòng giá')).toBeVisible();
+
+    await page.getByRole('combobox', { name: 'Số dòng mỗi trang' }).selectOption('20');
+    await expect.poll(() => new URL(page.url()).searchParams.get('page')).toBe('1');
+    await expect.poll(() => new URL(page.url()).searchParams.get('pageSize')).toBe('20');
   });
 
   test('reports movement loads the next server cursor page', async ({ page }) => {
@@ -1252,9 +1281,12 @@ test.describe('route smoke', () => {
     const movementTable = page.getByLabel('Bảng biến động kho');
     await expect(movementTable.getByText('Gạo tẻ trang 1')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Trang sau' }).click();
+    const nextCursorButton = page.getByRole('button', { name: 'Trang sau' });
+    await nextCursorButton.click();
     await expect(movementTable.getByText('Sườn heo trang 2')).toBeVisible();
-    await expect(page.getByText('Trang 2, tải theo cursor')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Trang trước' })).toBeFocused();
+    await expect(page.getByText('Đã tải hết dữ liệu')).toBeVisible();
+    await expect(page.getByText('Trang 2', { exact: true })).toBeVisible();
   });
 
   test('warehouse movement uses bounded server cursor pages', async ({ page }) => {
@@ -1270,7 +1302,8 @@ test.describe('route smoke', () => {
     await expect(movementTable.getByText('Gạo tẻ trang 1')).toBeVisible();
     await page.getByRole('button', { name: 'Trang sau' }).click();
     await expect(movementTable.getByText('Sườn heo trang 2')).toBeVisible();
-    await expect(page.getByText('Trang 2, tải theo cursor')).toBeVisible();
+    await expect(page.getByText('Đã tải hết dữ liệu')).toBeVisible();
+    await expect(page.getByText('Trang 2', { exact: true })).toBeVisible();
   });
 
   test('reports cover filters, export, and audit grouping with seeded workflow stages', async ({ page }) => {

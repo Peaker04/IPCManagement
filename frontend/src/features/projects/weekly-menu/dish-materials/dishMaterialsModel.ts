@@ -1,5 +1,5 @@
-import type { CatalogDish } from '../../dishCatalogApi'
-import { matchesShift } from '../model/scope'
+import type { CatalogDish } from '@/api/dishCatalogApi'
+import { matchesShift, resolveDishIngredients, type BomResolutionContext } from '../model/scope'
 import type { WeeklyPlanRow } from '../model/types'
 
 export const resolveAnalyzedDish = (
@@ -14,15 +14,17 @@ export const resolveAnalyzedDish = (
 export const buildDishMaterialsPresentation = (
   analyzedDish: CatalogDish | undefined,
   menuPrice: number,
+  bomContext?: BomResolutionContext,
 ) => {
-  const ingredients = analyzedDish?.ingredients.map((ingredient) => ({
+  const ingredients = resolveDishIngredients(analyzedDish, bomContext).map((ingredient) => ({
+    key: `${ingredient.ingredientId}|${ingredient.unitId}`,
     name: ingredient.name,
     unit: ingredient.unit,
     theoryQty: ingredient.grossQtyPerServing,
     actualQty: ingredient.grossQtyPerServing,
     supplierPrice: ingredient.referencePrice,
     cost: ingredient.grossQtyPerServing * ingredient.referencePrice,
-  })) ?? []
+  }))
   const totalTrayCost = ingredients.reduce((sum, ingredient) => sum + ingredient.cost, 0)
   const foodCostPercent = menuPrice <= 0 ? 0 : (totalTrayCost / menuPrice) * 100
   return { ingredients, totalTrayCost, foodCostPercent, grossProfit: menuPrice - totalTrayCost }

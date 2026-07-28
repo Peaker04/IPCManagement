@@ -1,16 +1,35 @@
-import type { DemandLine, MaterialDemandStaleness, WorkflowDocument } from '@/features/workflow'
+import type { DemandLine, WorkflowDocument } from '@/types/workflow'
+import type { MaterialDemandStaleness } from '@/api/workflowApi'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
+import { formatMaterialDishSource } from '../model/formatters'
 
 export type DemandApprovalPresentation = {
-  status: 'not-created' | 'pending' | 'approved' | 'rejected'
-  label: 'Chưa tạo' | 'Chờ duyệt' | 'Đã duyệt' | 'Từ chối'
+  status: 'not-created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'terminal'
+  label: 'Chưa tạo' | 'Chờ duyệt' | 'Đã duyệt' | 'Từ chối' | 'Đã hủy' | 'Đã gửi kho' | 'Đã xuất kho'
   tone: DemandLine['tone']
   actionLabel: 'Tạo nhu cầu từ KHSX' | 'Mở hàng đợi duyệt' | 'Mở thu mua' | 'Tính lại nhu cầu'
   targetId?: string
   documentCode?: string
   reason?: string
 }
+
+export const getDemandActionPresentation = (
+  approvalStatus: DemandApprovalPresentation['status'],
+  isStale = false,
+  canRegenerate = true,
+) => ({
+  primaryAction: approvalStatus === 'terminal'
+    ? 'none' as const
+    : approvalStatus === 'approved'
+    ? 'purchasing' as const
+    : approvalStatus === 'pending'
+      ? 'approval' as const
+      : 'generate' as const,
+  showGenerate: canRegenerate && (approvalStatus === 'not-created' || approvalStatus === 'rejected' || approvalStatus === 'cancelled' || (approvalStatus === 'approved' && isStale)),
+  generateIsSecondary: approvalStatus === 'approved' && isStale,
+  requiresRegenerateConfirmation: approvalStatus === 'approved',
+})
 
 export const getDemandApprovalPresentation = (
   lines: DemandLine[],
@@ -35,7 +54,10 @@ export const getDemandApprovalPresentation = (
     case 'MANAGERAPPROVED':
     case 'APPROVED':
       return { ...shared, status: 'approved', label: 'Đã duyệt', tone: 'success', actionLabel: 'Mở thu mua' }
-    case 'CANCELLED':
+    case 'SENTTOWAREHOUSE':
+      return { ...shared, status: 'terminal', label: 'Đã gửi kho', tone: 'success', actionLabel: 'Mở thu mua' }
+    case 'EXPORTED':
+      return { ...shared, status: 'terminal', label: 'Đã xuất kho', tone: 'success', actionLabel: 'Mở thu mua' }
     case 'REJECTED':
       return {
         ...shared,
@@ -44,6 +66,14 @@ export const getDemandApprovalPresentation = (
         tone: 'danger',
         actionLabel: 'Tính lại nhu cầu',
         reason: rejectionReason,
+      }
+    case 'CANCELLED':
+      return {
+        ...shared,
+        status: 'cancelled',
+        label: 'Đã hủy',
+        tone: 'neutral',
+        actionLabel: 'Tính lại nhu cầu',
       }
     default:
       return { ...shared, status: 'pending', label: 'Chờ duyệt', tone: 'warning', actionLabel: 'Mở hàng đợi duyệt' }
@@ -100,12 +130,64 @@ export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: numbe
   }
 }
 
+export const isDemandLineException = (line: DemandLine) =>
+  line.tone === 'warning' || Math.max(line.required - (line.available - line.reserved), 0) > 0
+
+export const partitionDemandLines = (lines: DemandLine[]) => ({
+  exceptionLines: lines.filter(isDemandLineException),
+  sufficientLines: lines.filter((line) => !isDemandLineException(line)),
+})
+
+const demandDishSourceKey = (line: DemandLine) =>
+  `${line.ingredientId ?? line.material.trim().toLocaleLowerCase('vi-VN')}__${line.unit.trim().toLocaleLowerCase('vi-VN')}`
+
+export const attachDemandDishSources = (
+  aggregateLines: DemandLine[],
+  detailLines: DemandLine[],
+  serviceDate: string,
+) => {
+  const sourcesByMaterial = new Map<string, Set<string>>()
+
+  detailLines.filter((line) => line.serviceDate === serviceDate).forEach((line) => {
+    const key = demandDishSourceKey(line)
+    const sources = sourcesByMaterial.get(key) ?? new Set<string>()
+    if (line.source) sources.add(line.source)
+    sourcesByMaterial.set(key, sources)
+  })
+
+  return aggregateLines.map((line) => ({
+    ...line,
+    source: formatMaterialDishSource(Array.from(sourcesByMaterial.get(demandDishSourceKey(line)) ?? [])),
+  }))
+}
+
+const demandDocumentDateTokens = (serviceDate: string) => {
+  const [year, month, day] = serviceDate.split('-')
+  if (!year || !month || !day) return []
+  return [serviceDate, `${year}${month}${day}`, `${day}/${month}/${year}`]
+}
+
+export const isDemandDocumentForDate = (document: WorkflowDocument, serviceDate: string) => {
+  const searchableText = [
+    document.id,
+    document.title,
+    document.summary,
+    ...document.lines.flatMap((line) => [line.label, line.value]),
+  ].join(' ').toLocaleLowerCase('vi-VN')
+
+  return demandDocumentDateTokens(serviceDate).some((token) => searchableText.includes(token.toLocaleLowerCase('vi-VN')))
+}
+
 export const aggregateWeekStaleness = (
   results: Array<{ serviceDate: string; staleness: MaterialDemandStaleness }>,
   expectedDateCount = results.length,
 ): MaterialDemandStaleness | undefined => {
   if (results.length === 0 || results.length < expectedDateCount) return undefined
   const staleResults = results.filter(({ staleness }) => staleness.isStale)
+  const canRegenerate = results.some(({ staleness }) => staleness.canRegenerate !== false)
+  const regenerationBlockReasons = results.flatMap(({ serviceDate, staleness }) =>
+    staleness.regenerationBlockReason ? [`${serviceDate}: ${staleness.regenerationBlockReason}`] : [],
+  )
   const generatedTimes = results
     .map(({ staleness }) => staleness.lastGeneratedAt)
     .filter((value): value is string => Boolean(value))
@@ -114,6 +196,8 @@ export const aggregateWeekStaleness = (
   return {
     hasExistingPlan: results.some(({ staleness }) => staleness.hasExistingPlan),
     isStale: staleResults.length > 0,
+    canRegenerate,
+    regenerationBlockReason: canRegenerate ? null : Array.from(new Set(regenerationBlockReasons)).join(' | ') || null,
     lastGeneratedAt: generatedTimes.at(-1) ?? null,
     reasons: Array.from(new Set(staleResults.flatMap(({ serviceDate, staleness }) =>
       staleness.reasons.map((reason) => `${serviceDate}: ${reason}`),

@@ -4,7 +4,7 @@ import { useAppDispatch } from '../../../app/hooks';
 import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
 import { normalizeUserRole, type AppRole } from '../roleUtils';
-import { ROUTES } from '../../../routes/routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 
@@ -73,20 +73,22 @@ const LoginPage = () => {
 
     try {
       const result = await login({ username, password }).unwrap();
-      if (result.success && result.data) {
+      const loginData = result.data;
+      const user = loginData?.user;
+      if (result.success && loginData?.accessToken && user?.userId && user.username && user.fullName) {
         dispatch(
           setCredentials({
             user: {
-              id: result.data.user.userId,
-              username: result.data.user.username,
-              fullName: result.data.user.fullName,
-              role: normalizeUserRole(result.data.user.roleCode, result.data.user.roleName),
-              roleCode: result.data.user.roleCode,
-              roleName: result.data.user.roleName,
-              isAdminFullAccess: result.data.user.isAdminFullAccess ?? false,
-              permissions: result.data.user.permissions ?? [],
+              id: user.userId,
+              username: user.username,
+              fullName: user.fullName,
+              role: normalizeUserRole(user.roleCode, user.roleName),
+              roleCode: user.roleCode,
+              roleName: user.roleName,
+              isAdminFullAccess: user.isAdminFullAccess ?? false,
+              permissions: [...(user.permissions ?? [])],
             },
-            token: result.data.accessToken,
+            token: loginData.accessToken,
           })
         );
         navigate(ROUTES.DASHBOARD);

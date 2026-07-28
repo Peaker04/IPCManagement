@@ -17,8 +17,8 @@ public class PurchaseRequestStatusModelTests
         using var context = new IpcManagementContext(options);
 
         var columnType = context.Model
-            .FindEntityType(typeof(Purchaserequest))!
-            .FindProperty(nameof(Purchaserequest.Status))!
+            .FindEntityType(typeof(PurchaseRequest))!
+            .FindProperty(nameof(PurchaseRequest.Status))!
             .GetColumnType();
 
         columnType.Should().Contain("PARTIALRECEIVED");

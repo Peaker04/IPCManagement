@@ -1,10 +1,10 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Reports.Contracts;
+using IPCManagement.Api.Features.Reports.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -64,7 +64,7 @@ public class WorkflowReportPaginationTests
         context.Warehouses.Add(warehouse);
         context.Units.Add(unit);
         context.Ingredients.AddRange(ingredients);
-        context.Currentstocks.AddRange(ingredientIds.Select((ingredientId, index) => new Currentstock
+        context.Currentstocks.AddRange(ingredientIds.Select((ingredientId, index) => new CurrentStock
         {
             WarehouseId = warehouseId,
             IngredientId = ingredientId,
@@ -79,7 +79,7 @@ public class WorkflowReportPaginationTests
         await context.SaveChangesAsync();
         (await context.Currentstocks.CountAsync()).Should().Be(3);
 
-        var result = await new WorkflowReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
+        var result = await new StockMovementReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
         {
             PageNumber = 1,
             PageSize = 2,

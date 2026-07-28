@@ -1,13 +1,15 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
-import { Scale, ShoppingCart } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ChevronDown, ClipboardList, PackageSearch, Scale, ShoppingCart, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { DemandSummary, DocumentRail, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport, Toolbar } from '@/components/common'
+import { DemandSummary, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { ActionGuard } from '@/routes/ActionGuard'
-import { ROUTES } from '@/routes/routeConfig'
+import { ROUTES } from '@/lib/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
 import type { WeeklyScheduleEditorWorkflow } from '../schedule/types'
 import type { WeeklyScheduleFeedback } from '../schedule/types'
 import type { MaterialDemandWorkflow } from './useMaterialDemand'
+import { getDemandActionPresentation } from './demandModel'
 
 const tableHeadClass = 'text-center'
 const tableCellClass = 'text-center'
@@ -22,14 +24,46 @@ export function MaterialDemandSection({
   servingFeedback: WeeklyScheduleFeedback | null
 }) {
   const { state, status, actions, presentation } = workflow
-  const { activeDay, dayPages, dayIndex, activeRows, activeQuickServingRows, inventoryStatus } = presentation
+  const demandView = workflow.dataState
+  const { activeDay, dayPages, dayIndex, activeRows, activeQuickServingRows, inventoryStatus, inventoryGroups } = presentation
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
   const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
+  const purchasingHref = `${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`
+  const activeShiftGroups = Array.from(new Set(activeRows.map((row) => row.shiftLabel))).map((shiftLabel) => {
+    const rows = activeRows.filter((row) => row.shiftLabel === shiftLabel)
+    return {
+      key: shiftLabel,
+      label: shiftLabel,
+      rows,
+      quickServingRow: scheduleWorkflow.presentation.getQuickServingRow(activeQuickServingRows, rows[0]),
+    }
+  })
+  const completedShiftCount = activeShiftGroups.filter((group) => group.quickServingRow?.isCompleted ?? group.rows.every((row) => row.portions > 0)).length
+  const isKhsxComplete = activeRows.length > 0 && completedShiftCount === activeShiftGroups.length
+  const actionPresentation = getDemandActionPresentation(
+    presentation.demandApprovalStatus.status,
+    presentation.activeStaleness?.isStale,
+    presentation.activeStaleness?.canRegenerate !== false,
+  )
+  const generateLabel = servingBusy
+    ? 'Đang lưu suất...'
+    : status.isGenerating
+      ? 'Đang tính nhu cầu...'
+      : status.stalenessState === 'loading'
+        ? 'Đang kiểm tra độ mới...'
+        : status.stalenessState === 'error'
+          ? 'Chưa xác minh được độ mới'
+          : presentation.demandApprovalStatus.status === 'rejected' || presentation.demandApprovalStatus.status === 'cancelled' || presentation.activeStaleness?.isStale
+            ? 'Tính lại nhu cầu'
+            : 'Tạo nhu cầu từ KHSX'
+  const handleGenerate = () => {
+    if (actionPresentation.requiresRegenerateConfirmation && !window.confirm('Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?')) return
+    void actions.generate()
+  }
   return (
     <SectionPanel
       title="KHSX, kiểm tồn kho và nhu cầu xuất"
       icon={<Scale size={18} color="var(--ipc-slate-600)" />}
-      description="Chốt số suất theo ngày, kiểm tra định mức nguyên liệu và tạo nhu cầu trước khi chuyển sang phê duyệt."
       badge={(
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <span className="text-xs font-semibold text-slate-500">Phê duyệt nhu cầu</span>
@@ -45,6 +79,67 @@ export function MaterialDemandSection({
       )}
     >
       <div className="flex flex-col gap-3">
+        <section className="ipc-demand-day-command" aria-label="Điều hướng và trạng thái ngày đang xem">
+          <div className="ipc-demand-day-object">
+            <CalendarDays size={18} aria-hidden="true" />
+            <div>
+              <span>Ngày đang xem</span>
+              <strong>{activeDay ? `${activeDay.label} ${activeDay.date}` : 'Chưa có ngày'}</strong>
+              <small>{dayPages.length > 0 ? `Ngày ${dayIndex + 1}/${dayPages.length} trong tuần vận hành` : 'Chưa có KHSX theo ngày'}</small>
+            </div>
+          </div>
+          <div className="ipc-demand-primary-actions">
+            {presentation.demandApprovalStatus.status === 'pending' && presentation.approvalHref && (
+              <ActionGuard allowedRoles={['quanly']}>
+                <Link className="ipc-button ipc-button-primary whitespace-nowrap" to={presentation.approvalHref}>{presentation.demandApprovalStatus.actionLabel}</Link>
+              </ActionGuard>
+            )}
+            {presentation.demandApprovalStatus.status === 'approved' && (
+              <Link className="ipc-button ipc-button-primary whitespace-nowrap" to={purchasingHref}><ShoppingCart size={16} />Mở thu mua</Link>
+            )}
+            {actionPresentation.showGenerate && (
+              <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
+                <button
+                  className={cn('ipc-button whitespace-nowrap', actionPresentation.generateIsSecondary ? 'ipc-button-ghost' : 'ipc-button-primary')}
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}
+                >
+                  <Scale size={16} />
+                  {generateLabel}
+                </button>
+              </ActionGuard>
+            )}
+          </div>
+          <nav className="ipc-demand-day-buttons" aria-label="Chuyển ngày KHSX">
+            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</button>
+            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</button>
+          </nav>
+        </section>
+
+        <dl className="ipc-demand-day-checkpoints" aria-label="Tóm tắt vận hành ngày đang xem">
+          <div>
+            <ClipboardList size={18} aria-hidden="true" />
+            <dt>KHSX trong ngày</dt>
+            <dd>{activeRows.length} dòng</dd>
+          </div>
+          <div className={completedShiftCount === activeShiftGroups.length && activeShiftGroups.length > 0 ? 'is-complete' : 'is-warning'}>
+            <CheckCircle2 size={18} aria-hidden="true" />
+            <dt>Số suất theo ca</dt>
+            <dd>{completedShiftCount}/{activeShiftGroups.length} ca hoàn tất</dd>
+          </div>
+          <div>
+            <PackageSearch size={18} aria-hidden="true" />
+            <dt>Nguyên liệu trong ngày</dt>
+            <dd>{status.isDemandError ? 'Chưa xác định' : `${inventoryStatus.totalCount} nguyên liệu`}</dd>
+          </div>
+          <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : 'is-complete'}>
+            <TriangleAlert size={18} aria-hidden="true" />
+            <dt>Ngoại lệ cần xử lý</dt>
+            <dd>{status.isDemandError ? 'Chưa xác định được' : inventoryStatus.shortageCount > 0 ? `Thiếu ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount} nguyên liệu` : 'Không có thiếu hụt'}</dd>
+          </div>
+        </dl>
+
         {presentation.missingBomRows.length > 0 && (
           <InlineAlert title="Một số món từ tệp chưa có định lượng BOM" variant="warning">
             Các món này vẫn được đưa vào KHSX theo tên trong tệp Excel, nhưng chưa thể tính nguyên liệu cho đến khi được gắn với món và định lượng trong danh mục.
@@ -57,8 +152,13 @@ export function MaterialDemandSection({
         )}
         {servingFeedback && <InlineAlert title={servingFeedback.title} variant={servingFeedback.variant}>{servingFeedback.message}</InlineAlert>}
         {state.feedback && <InlineAlert title={state.feedback.title} variant={state.feedback.variant}>{state.feedback.message}</InlineAlert>}
-        {presentation.staleness?.isStale && (
-          <InlineAlert title="Nhu cầu nguyên liệu đã lỗi thời, cần tính lại" variant="warning">{presentation.staleness.reasons.join(' | ')}</InlineAlert>
+        {presentation.activeStaleness?.isStale && presentation.activeStaleness.canRegenerate !== false && (
+          <InlineAlert title="Nhu cầu nguyên liệu đã lỗi thời, cần tính lại" variant="warning">{presentation.activeStaleness.reasons.join(' | ')}</InlineAlert>
+        )}
+        {presentation.activeStaleness?.canRegenerate === false && (
+          <InlineAlert title="Nhu cầu đã khóa, chỉ có thể xem" variant="info">
+            {presentation.activeStaleness.regenerationBlockReason ?? 'Nhu cầu đã có chứng từ nghiệp vụ phía sau. Hãy dùng luồng điều chỉnh riêng thay vì tính đè.'}
+          </InlineAlert>
         )}
         {status.stalenessState === 'loading' && (
           <InlineAlert title="Đang kiểm tra độ mới nhu cầu" variant="info">Đã kiểm tra {status.stalenessCompletedDateCount}/{status.stalenessExpectedDateCount} ngày trong tuần.</InlineAlert>
@@ -73,62 +173,44 @@ export function MaterialDemandSection({
           <InlineAlert title="Nhu cầu nguyên liệu đã bị từ chối" variant="danger">
             {presentation.demandApprovalStatus.reason
               ? `Lý do của quản lý: ${presentation.demandApprovalStatus.reason} Hãy cập nhật dữ liệu nguồn rồi tính lại nhu cầu.`
-              : 'Hãy xem lịch sử phê duyệt, cập nhật dữ liệu nguồn rồi tính lại nhu cầu.'}
+              : status.isApprovalHistoryError
+                ? 'Không tải được lịch sử phê duyệt nên chưa hiển thị được lý do từ chối. Hãy tải lại trước khi tính lại nhu cầu.'
+                : 'Hãy xem lịch sử phê duyệt, cập nhật dữ liệu nguồn rồi tính lại nhu cầu.'}
           </InlineAlert>
         )}
 
-        <Toolbar className="ipc-material-demand-toolbar justify-between gap-2 border-b border-slate-200 pb-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
-            <span><strong className="text-slate-800">Ngày đang xem:</strong> {activeDay ? `${activeDay.label} ${activeDay.date}` : 'Chưa có ngày'}</span>
-            <span><strong className="text-slate-800">Dòng KHSX:</strong> {activeRows.length}</span>
-            <span><strong className="text-slate-800">Nguyên liệu:</strong> {inventoryStatus.totalCount}</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {presentation.demandApprovalStatus.status === 'pending' && presentation.approvalHref && (
-              <ActionGuard allowedRoles={['quanly']}>
-                <Link className="ipc-button ipc-button-ghost whitespace-nowrap" to={presentation.approvalHref}>
-                  {presentation.demandApprovalStatus.actionLabel}
-                </Link>
-              </ActionGuard>
-            )}
-            {presentation.demandApprovalStatus.status === 'approved' && (
-              <Link className="ipc-button ipc-button-ghost whitespace-nowrap" to={`${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`}>
-                {presentation.demandApprovalStatus.actionLabel}
-              </Link>
-            )}
-          <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
-            <button className="ipc-button ipc-button-primary" type="button" onClick={() => void actions.generate()} disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}>
-              <Scale size={16} />
-              {servingBusy ? 'Đang lưu suất...' : status.isGenerating ? 'Đang tính nhu cầu...' : status.stalenessState === 'loading' ? 'Đang kiểm tra độ mới...' : status.stalenessState === 'error' ? 'Chưa xác minh được độ mới' : presentation.staleness?.isStale ? 'Tính lại nhu cầu (dữ liệu đã thay đổi)' : 'Tạo nhu cầu từ KHSX'}
-            </button>
-          </ActionGuard>
-            <Link className="ipc-button ipc-button-ghost whitespace-nowrap" to={`${ROUTES.REPORTS}?view=purchase`}><ShoppingCart size={16} />Xem kế hoạch thu mua</Link>
-          </div>
-        </Toolbar>
-
-        <TableViewport caption="Kế hoạch sản xuất sinh từ kế hoạch tuần" size="weekly" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
+        <details className="ipc-demand-khsx-disclosure" open={!isKhsxComplete}>
+          <summary>
+            <span>
+              <ClipboardList size={18} aria-hidden="true" />
+              <span><strong>KHSX nguồn trong ngày</strong><small>{activeRows.length} dòng · {completedShiftCount}/{activeShiftGroups.length} ca hoàn tất</small></span>
+            </span>
+            <span className="ipc-demand-disclosure-state">{isKhsxComplete ? 'Đã hoàn tất' : 'Cần xử lý'}<ChevronDown size={16} aria-hidden="true" /></span>
+          </summary>
+          <TableViewport caption={`Kế hoạch sản xuất ngày ${activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}`} size="weekly" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
           <table className="ipc-data-table ipc-material-demand-table table-fixed w-full">
             <thead><tr>
-              <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
-              <th style={{ width: '9%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>
-              <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Nhóm</th>
-              <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
-              <th style={{ width: '27%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món theo kế hoạch tuần</th>
+              <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Nhóm</th>
+              <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
+              <th style={{ width: '36%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món theo kế hoạch tuần</th>
               <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
-              <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>
+              <th style={{ width: '14%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>
             </tr></thead>
             <tbody>
-              {activeRows.map((row) => {
-                const quickServingRow = scheduleWorkflow.presentation.getQuickServingRow(presentation.activeQuickServingRows, row)
-                return (
-                  <tr key={row.key} className="table-row">
-                    <td className={`${tableCellClass} text-left font-semibold`}>{row.dayLabel}<div className="text-xs font-normal text-slate-500">{row.date}</div></td>
-                    <td className={tableCellClass}>{row.shiftLabel}</td>
+              {activeShiftGroups.map((group) => (
+                <Fragment key={group.key}>
+                  <tr className="ipc-demand-shift-row">
+                    <td colSpan={5}><strong>{group.label}</strong><span>{group.rows.length} dòng · {(group.quickServingRow?.isCompleted ?? group.rows.every((row) => row.portions > 0)) ? 'Đã hoàn tất số suất' : 'Chưa hoàn tất số suất'}</span></td>
+                  </tr>
+                  {group.rows.map((row) => {
+                    const quickServingRow = scheduleWorkflow.presentation.getQuickServingRow(presentation.activeQuickServingRows, row)
+                    return (
+                      <tr key={row.key} className="table-row">
                     <td className={tableCellClass}>{row.menuTypeLabel}</td>
                     <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
                     <td className={`${tableCellClass} text-left font-semibold text-slate-900`}>{row.dishName}</td>
                     <td className={tableCellClass} title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
-                      {quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
+                      {quickServingRow?.isCompleted ? <span className="font-semibold text-slate-800">{row.portions.toLocaleString('vi-VN')}</span> : quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
                         <span className="inline-flex flex-col items-center gap-0.5"><span className="font-semibold text-amber-700">Chưa chốt</span></span>
                       ) : (
                         <span className="inline-flex flex-col items-center gap-0.5"><span>{row.portions.toLocaleString('vi-VN')}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
@@ -136,13 +218,15 @@ export function MaterialDemandSection({
                     </td>
                     <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}</td>
                   </tr>
-                )
-              })}
-              {activeRows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có kế hoạch ngày để sinh KHSX.</td></tr>}
+                    )
+                  })}
+                </Fragment>
+              ))}
+              {activeRows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có kế hoạch ngày để sinh KHSX.</td></tr>}
             </tbody>
           </table>
-        </TableViewport>
-        <div className="flex min-h-[38px] flex-wrap items-center justify-between gap-3">
+          </TableViewport>
+          <div className="flex min-h-[38px] flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
           <div className="flex flex-wrap items-center gap-2">
             {activeQuickServingRows.map((row) => {
               const disabled = servingBusy || row.isCompleted || Number(row.inputValue) <= 0
@@ -155,31 +239,79 @@ export function MaterialDemandSection({
               )
             })}
           </div>
-          <div className="flex items-center justify-end gap-2">
-            <span className="mr-2 text-sm font-medium text-slate-600">{activeDay ? `${activeDay.label} ${activeDay.date} (${dayIndex + 1}/${dayPages.length})` : 'Chưa có ngày'}</span>
-            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</button>
-            <button type="button" className="ipc-button ipc-button-primary" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</button>
-          </div>
         </div>
+        </details>
 
-        {presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
-          <div className="flex flex-col gap-2">
+        {demandView.phase === 'ready' && demandView.isRefreshing && (
+          <InlineAlert title="Đang cập nhật nhu cầu nguyên liệu" variant="info">
+            Dữ liệu hiện tại vẫn được giữ trong khi hệ thống tải bản mới.
+          </InlineAlert>
+        )}
+        {demandView.phase === 'ready' && demandView.truncation && (
+          <InlineAlert title="Dữ liệu nhu cầu chưa đầy đủ" variant="warning">
+            Đang hiển thị {demandView.truncation.shown.toLocaleString('vi-VN')}
+            {demandView.truncation.total !== undefined ? `/${demandView.truncation.total.toLocaleString('vi-VN')}` : ''} dòng. Hãy thu hẹp bộ lọc trước khi ra quyết định.
+          </InlineAlert>
+        )}
+        {demandView.phase === 'uninitialized' ? (
+          <InlineAlert title="Chưa có phạm vi nhu cầu" variant="info">
+            {demandView.instruction}
+          </InlineAlert>
+        ) : demandView.phase === 'loading' ? (
+          <div className="ipc-demand-summary is-empty" role="status">Đang tải nhu cầu nguyên liệu...</div>
+        ) : demandView.phase === 'forbidden' ? (
+          <InlineAlert title="Không có quyền xem nhu cầu nguyên liệu" variant="danger">
+            {demandView.message}
+          </InlineAlert>
+        ) : demandView.phase === 'error' ? (
+          <EmptyState
+            variant="error"
+            title="Không tải được nhu cầu nguyên liệu"
+            description="Máy chủ chưa trả được dòng nhu cầu cho ngày đang xem, nên không thể kết luận là tuần này không cần mua gì. Hãy tải lại rồi mới lập đề xuất mua hoặc phiếu xuất."
+            onRetry={demandView.retry}
+            isRetrying={demandView.isRetrying}
+          />
+        ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
+          <section className="ipc-demand-inventory-section">
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold text-slate-800">Nguyên liệu ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <span className="text-xs font-medium text-slate-500">Đủ {inventoryStatus.enoughCount}, thiếu {inventoryStatus.shortageCount}, cần tính lại {inventoryStatus.staleCount}, tổng {inventoryStatus.totalCount} nguyên liệu đang hoạt động</span>
+                <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
+                <span className="text-xs font-medium text-slate-500">Phạm vi ngày đang xem: thiếu {inventoryStatus.shortageCount}/{inventoryStatus.totalCount}; đủ {inventoryStatus.enoughCount}; cần tính lại {inventoryStatus.staleCount}</span>
               </div>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>
-            {status.isFetchingAggregate && !presentation.aggregatePage ? <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div> : <DemandSummary lines={presentation.aggregateLines} />}
+            {status.isFetchingAggregate && !presentation.aggregatePage ? <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div> : (
+              <>
+                {inventoryGroups.exceptionLines.length > 0 ? (
+                  <div className="ipc-demand-exception-block">
+                    <div><TriangleAlert size={17} aria-hidden="true" /><strong>{inventoryGroups.exceptionLines.length} nguyên liệu cần xử lý trước</strong><span>Thiếu hàng hoặc dữ liệu cần tính lại</span></div>
+                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Món ăn" />
+                  </div>
+                ) : <InlineAlert title="Không có thiếu hụt trong ngày" variant="info">Tất cả nguyên liệu ngày đang xem đã đủ theo dữ liệu tồn khả dụng.</InlineAlert>}
+                {inventoryGroups.sufficientLines.length > 0 && (
+                  <details className="ipc-demand-sufficient-disclosure">
+                    <summary><span>{inventoryGroups.sufficientLines.length} nguyên liệu đã đủ</span><span>Xem chi tiết <ChevronDown size={16} aria-hidden="true" /></span></summary>
+                    <DemandSummary lines={inventoryGroups.sufficientLines} sourceLabel="Món ăn" />
+                  </details>
+                )}
+              </>
+            )}
             {presentation.aggregatePage && <PaginationBar page={presentation.aggregatePage.pageNumber} pageSize={presentation.aggregatePage.pageSize} totalItems={presentation.aggregatePage.totalCount} onPageChange={actions.setAggregatePage} />}
-          </div>
+          </section>
         ) : (
           <InlineAlert title="Chưa tính nhu cầu nguyên liệu" variant={presentation.weeklyPlanRows.length > 0 ? 'warning' : 'info'}>
             {presentation.weeklyPlanRows.length > 0 ? 'Bảng KHSX phía trên đã có dữ liệu từ thực đơn. Bấm Tạo nhu cầu từ KHSX để tính các dòng nguyên liệu; kế hoạch thu mua sẽ dựa trên nhu cầu, tồn kho và phiếu nhập đang chờ.' : 'Chưa có dòng KHSX từ thực đơn đang chọn.'}
           </InlineAlert>
         )}
-        <DocumentRail documents={presentation.documents} title="KHSX và chứng từ đầu ra" />
+        <section className="ipc-demand-document-lineage" aria-label="Dòng chứng từ ngày đang xem">
+          <DocumentRail documents={presentation.documents} title={`Dòng chứng từ ngày ${activeDay ? activeDay.date : 'đang xem'}`} />
+          {presentation.weeklyDocuments.length > presentation.documents.length && (
+            <details className="ipc-demand-weekly-documents">
+              <summary><span>Xem tất cả chứng từ trong tuần</span><span>{presentation.weeklyDocuments.length} chứng từ <ChevronDown size={16} aria-hidden="true" /></span></summary>
+              <DocumentRail documents={presentation.weeklyDocuments} title={null} />
+            </details>
+          )}
+        </section>
       </div>
     </SectionPanel>
   )

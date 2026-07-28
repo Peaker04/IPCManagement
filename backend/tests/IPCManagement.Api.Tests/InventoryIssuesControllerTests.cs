@@ -1,13 +1,13 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Controllers;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
@@ -24,7 +24,7 @@ public class InventoryIssuesControllerTests
 
         var controller = CreateController();
 
-        var result = await controller.GetAll(new InventoryIssueFilterRequestDto());
+        var result = await controller.GetAllAsync(new InventoryIssueFilterRequestDto());
 
         var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
         forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
@@ -44,7 +44,7 @@ public class InventoryIssuesControllerTests
 
         var controller = CreateController();
 
-        var result = await controller.GetAll(new InventoryIssueFilterRequestDto());
+        var result = await controller.GetAllAsync(new InventoryIssueFilterRequestDto());
 
         result.Should().BeOfType<OkObjectResult>();
     }
@@ -67,7 +67,7 @@ public class InventoryIssuesControllerTests
 
         var controller = CreateController();
 
-        var result = await controller.GetById("issue-id");
+        var result = await controller.GetByIdAsync("issue-id");
 
         var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
         forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);

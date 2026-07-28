@@ -15,27 +15,27 @@ public partial class Unit
 
     public decimal ConvertRateToBase { get; set; }
 
-    public virtual ICollection<Dishbom> Dishboms { get; set; } = new List<Dishbom>();
+    public virtual ICollection<DishBom> Dishboms { get; set; } = new List<DishBom>();
 
     public virtual ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
 
-    public virtual ICollection<Inventoryissueline> Inventoryissuelines { get; set; } = new List<Inventoryissueline>();
+    public virtual ICollection<InventoryIssueLine> Inventoryissuelines { get; set; } = new List<InventoryIssueLine>();
 
-    public virtual ICollection<Inventoryreceiptline> Inventoryreceiptlines { get; set; } = new List<Inventoryreceiptline>();
+    public virtual ICollection<InventoryReceiptLine> Inventoryreceiptlines { get; set; } = new List<InventoryReceiptLine>();
 
-    public virtual ICollection<Inventoryreturnline> Inventoryreturnlines { get; set; } = new List<Inventoryreturnline>();
+    public virtual ICollection<InventoryReturnLine> Inventoryreturnlines { get; set; } = new List<InventoryReturnLine>();
 
-    public virtual ICollection<Materialrequestline> Materialrequestlines { get; set; } = new List<Materialrequestline>();
+    public virtual ICollection<MaterialRequestLine> Materialrequestlines { get; set; } = new List<MaterialRequestLine>();
 
-    public virtual ICollection<Purchaserequestline> Purchaserequestlines { get; set; } = new List<Purchaserequestline>();
+    public virtual ICollection<PurchaseRequestLine> Purchaserequestlines { get; set; } = new List<PurchaseRequestLine>();
 
-    public virtual ICollection<Stockmovement> Stockmovements { get; set; } = new List<Stockmovement>();
+    public virtual ICollection<StockMovement> Stockmovements { get; set; } = new List<StockMovement>();
 
-    public virtual ICollection<Currentstock> Currentstocks { get; set; } = new List<Currentstock>();
+    public virtual ICollection<CurrentStock> Currentstocks { get; set; } = new List<CurrentStock>();
 
-    public virtual ICollection<Currentstocklot> Currentstocklots { get; set; } = new List<Currentstocklot>();
+    public virtual ICollection<CurrentStockLot> Currentstocklots { get; set; } = new List<CurrentStockLot>();
 
-    public virtual ICollection<Stocksnapshot> Stocksnapshots { get; set; } = new List<Stocksnapshot>();
+    public virtual ICollection<StockSnapshot> Stocksnapshots { get; set; } = new List<StockSnapshot>();
 
-    public virtual ICollection<Purchaseorderline> Purchaseorderlines { get; set; } = new List<Purchaseorderline>();
+    public virtual ICollection<PurchaseOrderLine> Purchaseorderlines { get; set; } = new List<PurchaseOrderLine>();
 }

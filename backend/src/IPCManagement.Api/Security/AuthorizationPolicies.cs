@@ -4,12 +4,15 @@ public static class AuthorizationPolicies
 {
     public const string AdminAccess = "AdminAccess";
     public const string CatalogAccess = "CatalogAccess";
+    public const string CatalogReadAccess = "CatalogReadAccess";
     public const string CoordinationAccess = "CoordinationAccess";
     public const string InventoryAccess = "InventoryAccess";
+    public const string InventoryApproveAccess = "InventoryApproveAccess";
     public const string InventoryIssueAccess = "InventoryIssueAccess";
     public const string ProductionAccess = "ProductionAccess";
     public const string DemandGenerateAccess = "DemandGenerateAccess";
     public const string PurchaseAccess = "PurchaseAccess";
+    public const string PurchaseOrderReadAccess = "PurchaseOrderReadAccess";
     public const string PurchaseGenerateAccess = "PurchaseGenerateAccess";
     public const string WarehouseAccess = "WarehouseAccess";
     public const string WarehouseCatalogAccess = "WarehouseCatalogAccess";
@@ -18,6 +21,16 @@ public static class AuthorizationPolicies
     public static readonly string[] AdminRoles =
     [
         "Admin", "ADMIN"
+    ];
+
+    /// <summary>
+    /// Duyệt kiểm kê kho: người tạo phiếu (thủ kho) không được tự duyệt, nhưng quản lý
+    /// phải duyệt được — nên hẹp hơn InventoryRoles và rộng hơn AdminRoles.
+    /// </summary>
+    public static readonly string[] InventoryApproveRoles =
+    [
+        "Admin", "ADMIN",
+        "Manager", "MANAGER", "Quản lý"
     ];
 
     public static readonly string[] CatalogRoles =
@@ -73,6 +86,17 @@ public static class AuthorizationPolicies
         "Admin", "ADMIN", "Quản trị",
         "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho"
     ];
+
+    public static readonly string[] CatalogReadRoles = CatalogRoles
+        .Concat(CoordinationRoles)
+        .Concat(ProductionRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] PurchaseOrderReadRoles = PurchaseRoles
+        .Concat(WarehouseRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 
     public const string AuthProfileRead = "auth.profile.read";
     public const string DashboardRead = "dashboard.read";
@@ -153,6 +177,7 @@ public static class AuthorizationPolicies
     [
         AuthProfileRead,
         DashboardRead,
+        CatalogRead,
         CoordinationRead,
         CoordinationOrderLock,
         CoordinationOrderAdjust,
@@ -189,6 +214,7 @@ public static class AuthorizationPolicies
     [
         AuthProfileRead,
         DashboardRead,
+        CatalogRead,
         ProductionRead,
         ReportRead
     ];

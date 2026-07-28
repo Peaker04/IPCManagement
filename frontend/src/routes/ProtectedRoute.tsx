@@ -11,7 +11,7 @@ import {
   useGetCurrentUserQuery,
 } from '../features/auth';
 import { normalizeUserRole } from '../features/auth/roleUtils';
-import { ROUTES } from './routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 
 export const ProtectedRoute = () => {
   const dispatch = useAppDispatch();
@@ -28,22 +28,28 @@ export const ProtectedRoute = () => {
       return;
     }
 
-    if (data?.success && data.data) {
+    const user = data?.data;
+    if (data?.success && user?.userId && user.username && user.fullName) {
       dispatch(
         setCredentials({
           user: {
-            id: data.data.userId,
-            username: data.data.username,
-            fullName: data.data.fullName,
-            role: normalizeUserRole(data.data.roleCode, data.data.roleName),
-            roleCode: data.data.roleCode,
-            roleName: data.data.roleName,
-            isAdminFullAccess: data.data.isAdminFullAccess ?? false,
-            permissions: data.data.permissions ?? [],
+            id: user.userId,
+            username: user.username,
+            fullName: user.fullName,
+            role: normalizeUserRole(user.roleCode, user.roleName),
+            roleCode: user.roleCode,
+            roleName: user.roleName,
+            isAdminFullAccess: user.isAdminFullAccess ?? false,
+            permissions: [...(user.permissions ?? [])],
           },
           token,
         })
       );
+      return;
+    }
+
+    if (data?.success) {
+      dispatch(logOut());
       return;
     }
 

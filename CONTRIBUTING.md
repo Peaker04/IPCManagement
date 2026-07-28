@@ -166,3 +166,57 @@ Dự án dùng **husky** để tự động kiểm tra khi commit:
 | `commit-msg` | Commit message có đúng Conventional Commits không |
 
 Nếu vi phạm quy tắc, commit sẽ **bị từ chối** và hiển thị thông báo lỗi.
+
+---
+
+## 🔒 Danh sách GIỮ NGUYÊN — đừng "dọn dẹp" những chỗ này
+
+Những thứ dưới đây **trông như dư thừa hoặc rườm rà nhưng đang gánh việc thật**, và đều có số đo kèm
+theo. Chúng là kết quả của các đợt sửa hiệu năng/UX trước, không phải code sót. Sửa vào đây là làm
+hỏng một thứ đang chạy đúng mà không ai nhận ra ngay.
+
+**Trước khi đổi bất kỳ mục nào: mở issue nêu rõ số đo hiện tại và số đo sau khi đổi.** Không có số thì
+không đổi.
+
+### Frontend
+
+| Giữ nguyên | Nó đang gánh việc gì |
+|---|---|
+| **Query gating theo tab** — **69** chỗ `skip:` trong code thật (đếm lại 27/07; con số 92 là khi tính cả file test) | Cho **0 request thừa** khi điều hướng warm. Bỏ `skip:` là mỗi lần đổi tab lại gọi lại toàn bộ query của tab khác |
+| **Route loader cache + preload trong idle slot** | Click-to-content **11–22ms**, **0 fallback mount** |
+| **Giữ panel cũ + overlay khi refetch** — `features/projects/pages/WeeklyMenuPage.tsx:441-455`, `features/workflow/pages/WarehousePage.tsx:611-616` (đã xác minh lại 27/07) | Đây là **nguồn của CLS = 0**. Cả hai chỗ đều là `min-h-[420px]` + `aria-busy` + badge "Đang cập nhật" định vị tuyệt đối. Đổi sang spinner toàn trang là vỡ chỉ số này ngay |
+| **Paging server-side** đã có | Layout ổn định với dữ liệu 5–10 năm |
+| **Discriminated union của `EmptyState`** | Ép được `onRetry` khi `variant="error"` ở mức kiểu — bỏ union là mất ràng buộc compile-time |
+| **Tile dẫn xuất** ở `WarehousePage.tsx:319-323` | Mẫu đúng: tile suy ra từ dữ liệu, không phải state song song |
+
+Mẫu **"model thuần + hook data + section view"** cũng giữ, nhưng lưu ý nó **mới phủ 6/17 sub-module
+(35%)**: weekly-menu 6/9, chef 1/6, workflow/purchasing 0/6. Chỗ chưa theo mẫu thì là nợ, không phải
+chuẩn thay thế.
+
+### Backend
+
+| Giữ nguyên | Nó đang gánh việc gì |
+|---|---|
+| **Tầng tên BE: 53/53 bảng + 523/523 cột camelCase** | Đã sạch tuyệt đối. **Không đổi tên gì ở đây** |
+| **Hướng phụ thuộc dọc** | Đã sạch sẵn: 0 service gọi controller, 0 kiểu web trong `Services/`, 0 `ApiResponse` trong `Services/` (so với 524 trong `Controllers/`), 0 service-locator, chuỗi service→service tối đa 1 hop, namespace khớp folder 246/247 |
+| **`PagedResponseDto<T>`** | 84 lượt dùng ngoài thư mục DTOs — đổi hình dạng là gãy diện rộng |
+| **`Program.cs`**: `PropertyNamingPolicy=CamelCase`, `UtcDateTimeJsonConverter`, `JsonStringEnumConverter` | Ba dòng này là hợp đồng wire-format với FE. Bỏ `UtcDateTimeJsonConverter` là mọi timestamp FE lệch 7 giờ trở lại |
+| **`InternalsVisibleTo`** trong csproj, **`Resources/Templates`** (LogicalName hard-code trong csproj) | Test và template phụ thuộc trực tiếp |
+
+### Tầng database — bổ sung 27/07/2026
+
+| Giữ nguyên | Nó đang gánh việc gì |
+|---|---|
+| **CI step `Check EF migration snapshot`** (`has-pending-model-changes`) | Bắt drift giữa model và migration |
+| **Hai CI step B13**: replay migration trên MySQL thật + so schema migration với schema model | Trước 27/07 **không migration viết tay nào từng chạy trong CI**. Xem `docs/CURRENT-STATE.md` |
+| **Chốt an toàn đầu `backend/database/IPCmanagement.sql`** (bảng `TEMPORARY` + va chạm PRIMARY KEY) | Chặn đúng thứ đã xoá sạch database chính ngày 26/07. Bỏ nó ra là mở lại đường đó |
+| **`--set-gtid-purged=OFF`** trong mọi `mysqldump` | Thiếu nó thì restore vào máy đang bật GTID sẽ hỏng |
+| **`MigrationHealthCheck` trả `Degraded`, không phải `Unhealthy`** | Cố ý: thiếu migration không làm API mất khả năng phục vụ, đừng để loadbalancer rút API khỏi vòng |
+| **`stocktakes.activeWarehouseKey`** — cột `GENERATED ... VIRTUAL` | Dùng để làm unique index có điều kiện; model EF **cố ý không map**. Đang nằm trong danh sách loại trừ của gate so schema |
+
+### Ngoại lệ đã biết, không phải lỗi
+
+`Migrations/` chứa file mà quy ước đặt tên chung không áp dụng: một số migration viết tay có
+`[Migration]` inline thay vì `.Designer.cs`. **Không dọn cho "nhất quán"** — và tuyệt đối không chạy
+`dotnet ef migrations remove` khi migration cuối thiếu `.Designer.cs` (EF sẽ reset model snapshot gần
+như rỗng). Lý do đầy đủ ở `docs/CURRENT-STATE.md`, mục "Ba cái bẫy phải nhớ khi đụng vào migration".

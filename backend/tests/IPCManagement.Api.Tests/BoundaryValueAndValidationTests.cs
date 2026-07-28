@@ -1,11 +1,13 @@
 using FluentAssertions;
 using FluentValidation;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.Ingredient;
-using IPCManagement.Api.Models.DTOs.Inventory;
-using IPCManagement.Api.Models.DTOs.Supplier;
-using IPCManagement.Api.Models.Validators;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Validators;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Validators;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Purchasing.Validators;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
@@ -57,7 +59,7 @@ public class BoundaryValueAndValidationTests
     [Fact]
     public void CreateIngredientValidator_Should_AcceptBoundaryLengths_AndZeroReferencePrice()
     {
-        var dto = new CreateIngredientDto
+        var dto = new CreateIngredientRequest
         {
             IngredientCode = new string('A', 50),
             IngredientName = new string('B', 200),
@@ -74,7 +76,7 @@ public class BoundaryValueAndValidationTests
     [Fact]
     public void CreateIngredientValidator_Should_RejectOutOfBoundaryValues()
     {
-        var dto = new CreateIngredientDto
+        var dto = new CreateIngredientRequest
         {
             IngredientCode = new string('A', 51),
             IngredientName = new string('B', 201),
@@ -87,18 +89,18 @@ public class BoundaryValueAndValidationTests
 
         result.IsValid.Should().BeFalse();
         result.Errors.Select(error => error.PropertyName).Should().Contain(
-            nameof(CreateIngredientDto.IngredientCode),
-            nameof(CreateIngredientDto.IngredientName),
-            nameof(CreateIngredientDto.ReferencePrice),
-            nameof(CreateIngredientDto.UnitId),
-            nameof(CreateIngredientDto.WarehouseId));
+            nameof(CreateIngredientRequest.IngredientCode),
+            nameof(CreateIngredientRequest.IngredientName),
+            nameof(CreateIngredientRequest.ReferencePrice),
+            nameof(CreateIngredientRequest.UnitId),
+            nameof(CreateIngredientRequest.WarehouseId));
     }
 
     [Fact]
     public void UpdateIngredientValidator_Should_ValidateOnlyProvidedOptionalFields()
     {
-        var validPatch = new UpdateIngredientDto();
-        var invalidPatch = new UpdateIngredientDto
+        var validPatch = new UpdateIngredientRequest();
+        var invalidPatch = new UpdateIngredientRequest
         {
             IngredientName = new string('N', 201),
             ReferencePrice = -1,
@@ -110,10 +112,10 @@ public class BoundaryValueAndValidationTests
         var invalidResult = new UpdateIngredientDtoValidator().Validate(invalidPatch);
 
         invalidResult.Errors.Select(error => error.PropertyName).Should().Contain(
-            nameof(UpdateIngredientDto.IngredientName),
-            nameof(UpdateIngredientDto.ReferencePrice),
-            nameof(UpdateIngredientDto.UnitId),
-            nameof(UpdateIngredientDto.WarehouseId));
+            nameof(UpdateIngredientRequest.IngredientName),
+            nameof(UpdateIngredientRequest.ReferencePrice),
+            nameof(UpdateIngredientRequest.UnitId),
+            nameof(UpdateIngredientRequest.WarehouseId));
     }
 
     [Theory]
@@ -177,7 +179,7 @@ public class BoundaryValueAndValidationTests
         string requestedQty,
         bool expectedValid)
     {
-        var dto = new CreateInventoryIssueLineDto
+        var dto = new CreateInventoryIssueLineRequest
         {
             IngredientId = Guid.NewGuid().ToString(),
             UnitId = Guid.NewGuid().ToString(),
@@ -199,7 +201,7 @@ public class BoundaryValueAndValidationTests
         string returnType,
         bool expectedValid)
     {
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = new DateOnly(2026, 7, 10),
             WarehouseId = Guid.NewGuid().ToString(),
@@ -208,7 +210,7 @@ public class BoundaryValueAndValidationTests
             Reason = "Đối chiếu cuối ca",
             Lines =
             [
-                new CreateInventoryReturnLineDto
+                new CreateInventoryReturnLineRequest
                 {
                     IngredientId = Guid.NewGuid().ToString(),
                     UnitId = Guid.NewGuid().ToString(),
@@ -229,7 +231,7 @@ public class BoundaryValueAndValidationTests
         int noteLength,
         bool expectedValid)
     {
-        var dto = new CreateSupplierQuotationDto
+        var dto = new CreateSupplierQuotationRequest
         {
             SupplierId = Guid.NewGuid().ToString(),
             IngredientId = Guid.NewGuid().ToString(),
@@ -250,7 +252,7 @@ public class BoundaryValueAndValidationTests
         string unitPrice,
         bool expectedValid)
     {
-        var dto = new UpdateSupplierQuotationDto
+        var dto = new UpdateSupplierQuotationRequest
         {
             UnitPrice = decimal.Parse(unitPrice),
             EffectiveFrom = "2026-07-10",
@@ -263,7 +265,7 @@ public class BoundaryValueAndValidationTests
         result.IsValid.Should().Be(expectedValid);
     }
 
-    private static CreateInventoryReceiptDto BuildValidReceipt()
+    private static CreateInventoryReceiptRequest BuildValidReceipt()
         => new()
         {
             ReceiptDate = DateOnly.FromDateTime(DateTime.Today),
@@ -272,7 +274,7 @@ public class BoundaryValueAndValidationTests
             Lines = [BuildValidReceiptLine()]
         };
 
-    private static CreateInventoryReceiptLineDto BuildValidReceiptLine()
+    private static CreateInventoryReceiptLineRequest BuildValidReceiptLine()
         => new()
         {
             IngredientId = Guid.NewGuid().ToString(),

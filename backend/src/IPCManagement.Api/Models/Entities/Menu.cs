@@ -17,11 +17,11 @@ public partial class Menu
 
     public bool? IsActive { get; set; }
 
-    public virtual ICollection<Mealquantityplanline> Mealquantityplanlines { get; set; } = new List<Mealquantityplanline>();
+    public virtual ICollection<MealQuantityPlanLine> Mealquantityplanlines { get; set; } = new List<MealQuantityPlanLine>();
 
-    public virtual ICollection<Menuitem> Menuitems { get; set; } = new List<Menuitem>();
+    public virtual ICollection<MenuItem> Menuitems { get; set; } = new List<MenuItem>();
 
-    public virtual ICollection<Menuschedule> Menuschedules { get; set; } = new List<Menuschedule>();
+    public virtual ICollection<MenuSchedule> Menuschedules { get; set; } = new List<MenuSchedule>();
 
-    public virtual ICollection<Productionplanline> Productionplanlines { get; set; } = new List<Productionplanline>();
+    public virtual ICollection<ProductionPlanLine> Productionplanlines { get; set; } = new List<ProductionPlanLine>();
 }

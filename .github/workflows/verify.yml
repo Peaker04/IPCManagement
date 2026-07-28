@@ -4,9 +4,17 @@ on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       mysql:
         image: mysql:8.0
@@ -23,7 +31,13 @@ jobs:
 
     env:
       ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
       ConnectionStrings__DefaultConnection: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
+      # Bắt buộc phải set: nếu thiếu, integration test sẽ FAIL trong CI thay vì pass giả.
+      # Mật khẩu dưới đây chỉ tồn tại trong service container ephemeral của lượt chạy này.
+      IPC_TEST_CONNECTION_STRING: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
+      TEST_RESULTS_DIR: ${{ github.workspace }}/.artifacts/test-results
       JwtSettings__SecretKey: CI_VERIFY_SECRET_KEY_1234567890_ABCDEF
       JwtSettings__Issuer: IPCManagementAPI
       JwtSettings__Audience: IPCManagementClient
@@ -39,6 +53,14 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.slnx') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -51,8 +73,8 @@ jobs:
       - name: Build backend
         run: npm run build:be
 
-      - name: Test backend
-        run: npm run test:be
+      - name: Check generated API contract
+        run: npm run check:api-contract
 
       - name: Install EF Core CLI
         run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.16
@@ -76,13 +98,186 @@ jobs:
             --output ./.artifacts/ipc-schema.sql \
             --no-build
 
-      - name: Smoke test generated MySQL schema
+      # Vừa smoke-test schema sinh ra, vừa dựng sẵn database cho integration test chạy thật ở bước sau.
+      - name: Apply MySQL schema (smoke test + database cho integration test)
         run: |
           mysql -h 127.0.0.1 -uroot -p123456789 -e "DROP DATABASE IF EXISTS ipcmanagement_ci; CREATE DATABASE ipcmanagement_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
           mysql -h 127.0.0.1 -uroot -p123456789 ipcmanagement_ci < ./.artifacts/ipc-schema.sql
+          mysql -h 127.0.0.1 -uroot -p123456789 -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
+
+      - name: Test backend
+        run: >
+          npm run test:be --
+          --logger "trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results/backend"
+
+      # Chạy riêng nhóm integration để log CI hiện rõ số test đã CHẠY trên MySQL thật.
+      - name: Integration test trên MySQL thật
+        id: integration
+        run: >
+          dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
+          --no-build
+          --filter "FullyQualifiedName~IPCManagement.Api.Tests.Integration"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results"
+
+      # B13 — Replay migration THẬT trên MySQL.
+      # Bước "Generate MySQL schema script" ở trên sinh schema từ MODEL, nên 36 migration
+      # viết tay chưa từng được thực thi một lần nào trong CI. Bộ test replay đã có sẵn trong
+      # repo nhưng bị khoá sau IPC_RUN_MYSQL_MIGRATION_TESTS, và biến đó chưa bao giờ được set
+      # trong CI -> test im lặng return sớm. Hai test dưới đây dựng database trắng từ baseline
+      # backend/database/IPCmanagement.sql rồi replay toàn bộ migration còn lại; chúng tự tạo
+      # database dùng-một-lần nên chạy được trên runner sạch.
+      #
+      # Hai test Migration_upgrade_* còn lại CHƯA bật được: chúng đòi một lane đã seed sẵn ở
+      # trạng thái TRƯỚC migration, CI chưa dựng được fixture đó. Xem B13 trong
+      # docs/ARCHITECTURE-REDESIGN-2026-07-26.md.
+      - name: Replay migration trên MySQL thật (B13)
+        id: migration_replay
+        env:
+          IPC_RUN_MYSQL_MIGRATION_TESTS: "1"
+        run: >
+          dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
+          --no-build
+          --filter "FullyQualifiedName~Migration_fresh_database_applies_reconciliation_schema|FullyQualifiedName~Migration_fresh_install_applies_decision_exception_and_legacy_marker_schema"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=migration-replay.trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results"
+
+      # B13 (phan 2) — schema tu MIGRATION phai bang schema tu MODEL.
+      # Buoc tren moi chi chung minh migration chay khong loi; buoc nay bat drift noi dung.
+      # Khong dung lai logic dung database: hai test fresh-install o buoc tren de lai
+      # `ipc_lane8` da qua baseline + replay toan bo migration. Neu ai doi ten database do,
+      # buoc nay do ngay thay vi so nham.
+      #
+      # Chu y ve pham vi so sanh:
+      #  - KHONG so DEFAULT: baseline co chu dich dat default SQL ma model EF khong khai,
+      #    nen so default se do vinh vien. Cung ly do nen chuan hoa bo co DEFAULT_GENERATED.
+      #  - KHONG so TEN index: MySQL tu dat ten index khoa ngoai theo thu tu tao
+      #    (customerId, customerId1, unitId3...) nen hai duong luon khac ten du phu cung cot.
+      #  - Bo qua stocktakes.activeWarehouseKey: cot GENERATED VIRTUAL do
+      #    20260726120000_AddStocktakeActiveWarehouseUnique tao de lam unique index co dieu
+      #    kien; model co y khong map no.
+      - name: Schema tu migration phai bang schema tu model (B13)
+        run: |
+          set -euo pipefail
+          MYSQL="mysql -h 127.0.0.1 -uroot -p123456789"
+          $MYSQL -e "DROP DATABASE IF EXISTS ipcmanagement_model_ci; CREATE DATABASE ipcmanagement_model_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          $MYSQL ipcmanagement_model_ci < ./.artifacts/ipc-schema.sql
+          shape () {
+            $MYSQL -N -B -e "
+              SELECT CONCAT('TBL|',table_name) FROM information_schema.tables
+               WHERE table_schema='$1' AND table_name<>'__EFMigrationsHistory'
+              UNION ALL
+              SELECT CONCAT('COL|',table_name,'|',column_name,'|',column_type,'|',is_nullable,'|',TRIM(REPLACE(extra,'DEFAULT_GENERATED','')))
+               FROM information_schema.columns
+               WHERE table_schema='$1' AND table_name<>'__EFMigrationsHistory'
+                 AND NOT (table_name='stocktakes' AND column_name='activeWarehouseKey')
+              UNION ALL
+              SELECT CONCAT('FK|',table_name,'|',column_name,'|',referenced_table_name,'|',referenced_column_name)
+               FROM information_schema.key_column_usage
+               WHERE table_schema='$1' AND referenced_table_name IS NOT NULL;" | sort
+          }
+          shape ipc_lane8               > ./.artifacts/shape-migrations.txt
+          shape ipcmanagement_model_ci  > ./.artifacts/shape-model.txt
+          echo "So dong doi chieu: migration=$(wc -l < ./.artifacts/shape-migrations.txt) model=$(wc -l < ./.artifacts/shape-model.txt)"
+          # Hai ve rong thi diff cung "khop" — phai chan truoc, khong de gate pass gia.
+          if [ ! -s ./.artifacts/shape-migrations.txt ]; then
+            echo "LOI: ipc_lane8 rong. Test replay migration o buoc tren khong chay hoac doi ten database."
+            exit 1
+          fi
+          if [ ! -s ./.artifacts/shape-model.txt ]; then
+            echo "LOI: ipcmanagement_model_ci rong. Khong nap duoc ./.artifacts/ipc-schema.sql."
+            exit 1
+          fi
+          if diff -u ./.artifacts/shape-model.txt ./.artifacts/shape-migrations.txt > ./.artifacts/shape-diff.txt; then
+            echo "OK: schema tu migration khop schema tu model."
+          else
+            echo "LOI: database cai moi bang migration KHAC voi model EF."
+            echo "  '-' = model co, duong migration thieu | '+' = duong migration co, model khong co"
+            cat ./.artifacts/shape-diff.txt
+            exit 1
+          fi
+
+      - name: Báo cáo số integration test đã chạy
+        if: always() && steps.integration.conclusion != 'skipped'
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          trx = os.path.join(os.environ["TEST_RESULTS_DIR"], "integration-tests.trx")
+          if not os.path.exists(trx):
+              print(f"LOI: khong tim thay {trx}. Integration test khong tao duoc ket qua.")
+              sys.exit(1)
+
+          namespace = "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
+          root = ET.parse(trx).getroot()
+
+          outcomes = {}
+          details = []
+          for result in root.iter(f"{namespace}UnitTestResult"):
+              outcome = result.get("outcome", "Unknown")
+              outcomes[outcome] = outcomes.get(outcome, 0) + 1
+              details.append(f"{outcome} - {result.get('testName')}")
+
+          passed = outcomes.get("Passed", 0)
+          failed = outcomes.get("Failed", 0)
+          not_executed = outcomes.get("NotExecuted", 0)
+          executed = passed + failed
+
+          lines = [
+              "### Integration test tren MySQL that",
+              "",
+              f"- Da CHAY: **{executed}** (Passed {passed} / Failed {failed})",
+              f"- Bi skip (NotExecuted): {not_executed}",
+              "",
+          ]
+          lines += [f"- {item}" for item in details]
+          report = "\n".join(lines)
+          print(report)
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as handle:
+                  handle.write(report + "\n")
+
+          if executed == 0:
+              print(
+                  "LOI: khong co integration test nao duoc thuc thi. "
+                  "Kiem tra IPC_TEST_CONNECTION_STRING va database ipcmanagement_ci."
+              )
+              sys.exit(1)
+          PY
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: .artifacts/test-results
+          retention-days: 7
+          if-no-files-found: warn
 
       - name: Lint frontend
         run: npm run lint:fe
+
+      # Cặp #1 của Phần K: xoá code chết TRƯỚC, chốt baseline SAU. Baseline
+      # (.dependency-cruiser-known-violations.json) ghi nhận 140 vi phạm đang tồn tại
+      # nên CI chỉ đỏ khi có vi phạm MỚI — không có baseline thì rào chắn bị hoãn vô
+      # thời hạn. Sửa được một vi phạm thì chạy `npm run depcruise:baseline -w frontend`
+      # để chốt lại baseline nhỏ hơn; baseline chỉ được co lại, không được phình ra.
+      - name: Luật phụ thuộc frontend (dependency-cruiser)
+        run: npm run depcruise:fe
+
+      # Vitest chạy một lượt cho toàn bộ src có thể vượt heap mặc định của Node,
+      # nên giới hạn worker và nới heap cho từng worker.
+      - name: Test frontend (unit)
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npm run test:unit -w frontend -- --maxWorkers=2
 
       - name: Build frontend
         run: npm run build:fe

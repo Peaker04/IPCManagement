@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import type { QuickServingRow } from '../schedule/types'
 import {
   aggregateWeekStaleness,
+  attachDemandDishSources,
   buildDemandApprovalHref,
   getDemandApprovalPresentation,
+  getDemandActionPresentation,
   getDemandDayIndex,
   getDemandInventoryStatus,
   getPendingQuickServingRows,
   getWeekStalenessState,
+  isDemandDocumentForDate,
+  partitionDemandLines,
 } from './demandModel'
 
 describe('material demand model', () => {
@@ -33,22 +37,24 @@ describe('material demand model', () => {
 
   it('marks the week stale when any service date is stale and keeps date-specific reasons', () => {
     expect(aggregateWeekStaleness([
-      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, lastGeneratedAt: '2026-07-20T08:00:00Z', reasons: [] } },
-      { serviceDate: '2026-07-22', staleness: { hasExistingPlan: true, isStale: true, lastGeneratedAt: '2026-07-22T09:00:00Z', reasons: ['Số suất đã thay đổi'] } },
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, canRegenerate: false, regenerationBlockReason: 'Đã có phiếu xuất kho.', lastGeneratedAt: '2026-07-20T08:00:00Z', reasons: [] } },
+      { serviceDate: '2026-07-22', staleness: { hasExistingPlan: true, isStale: true, canRegenerate: true, lastGeneratedAt: '2026-07-22T09:00:00Z', reasons: ['Số suất đã thay đổi'] } },
     ])).toEqual({
       hasExistingPlan: true,
       isStale: true,
+      canRegenerate: true,
+      regenerationBlockReason: null,
       lastGeneratedAt: '2026-07-22T09:00:00Z',
       reasons: ['2026-07-22: Số suất đã thay đổi'],
     })
     expect(aggregateWeekStaleness([
-      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, reasons: [] } },
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, canRegenerate: false, reasons: [] } },
     ], 2)).toBeUndefined()
   })
 
   it('keeps partial week staleness loading and exposes a failed day instead of treating the week as clean', () => {
     const dates = ['2026-07-20', '2026-07-21']
-    const cleanResult = { data: { data: { hasExistingPlan: true, isStale: false, reasons: [] } } }
+    const cleanResult = { data: { data: { hasExistingPlan: true, isStale: false, canRegenerate: false, reasons: [] } } }
 
     expect(getWeekStalenessState(dates, [cleanResult, { isFetching: true }])).toEqual({
       status: 'loading',
@@ -88,10 +94,69 @@ describe('material demand model', () => {
     expect(pending[0].nextServings).toBe(125)
   })
 
+  it('keeps a terminal week read-only and carries server block reasons into the UI contract', () => {
+    expect(aggregateWeekStaleness([
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: true, canRegenerate: false, regenerationBlockReason: 'Đã có đơn mua hàng.', reasons: ['Menu thay đổi'] } },
+      { serviceDate: '2026-07-21', staleness: { hasExistingPlan: true, isStale: true, canRegenerate: false, regenerationBlockReason: 'Đã có phiếu xuất kho.', reasons: ['Menu thay đổi'] } },
+    ])).toMatchObject({
+      canRegenerate: false,
+      regenerationBlockReason: '2026-07-20: Đã có đơn mua hàng. | 2026-07-21: Đã có phiếu xuất kho.',
+    })
+  })
+
+  it('puts shortages and stale demand lines before sufficient material lines', () => {
+    const lines = [
+      { id: 'enough', required: 4, available: 10, reserved: 1, tone: 'success' },
+      { id: 'short', required: 12, available: 4, reserved: 1, tone: 'danger' },
+      { id: 'stale', required: 2, available: 8, reserved: 0, tone: 'warning' },
+    ] as DemandLine[]
+
+    const groups = partitionDemandLines(lines)
+
+    expect(groups.exceptionLines.map((line) => line.id)).toEqual(['short', 'stale'])
+    expect(groups.sufficientLines.map((line) => line.id)).toEqual(['enough'])
+  })
+
+  it('replaces aggregate source counts with dish names from the active day', () => {
+    const aggregateLines = [
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: '2 dòng nhu cầu trong ngày' },
+      { ingredientId: 'ingredient-2', material: 'Tôm', unit: 'kg', source: '1 dòng nhu cầu trong ngày' },
+    ] as DemandLine[]
+    const detailLines = [
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: 'Bí đao nấu tôm', serviceDate: '2026-07-24' },
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: 'Canh bí đao', serviceDate: '2026-07-24' },
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: 'Món ngày khác', serviceDate: '2026-07-25' },
+    ] as DemandLine[]
+
+    expect(attachDemandDishSources(aggregateLines, detailLines, '2026-07-24').map((line) => line.source)).toEqual([
+      'Bí đao nấu tôm, Canh bí đao',
+      'Chưa xác định',
+    ])
+  })
+
+  it('matches document lineage to the active day across ISO, compact, and Vietnamese dates', () => {
+    const document = (id: string, value = '') => ({
+      id,
+      type: 'Đơn mua',
+      title: 'Chứng từ mua',
+      status: 'Đã tạo',
+      owner: 'Thu mua',
+      summary: '',
+      route: '/purchasing',
+      tone: 'neutral',
+      lines: value ? [{ label: 'Ngày', value }] : [],
+    }) as Parameters<typeof isDemandDocumentForDate>[0]
+
+    expect(isDemandDocumentForDate(document('MR-ANV-20260724-FULLDAY'), '2026-07-24')).toBe(true)
+    expect(isDemandDocumentForDate(document('MR-1', '24/07/2026'), '2026-07-24')).toBe(true)
+    expect(isDemandDocumentForDate(document('MR-ANV-20260725-FULLDAY'), '2026-07-24')).toBe(false)
+  })
+
   it.each([
     ['DRAFT', 'Chờ duyệt', 'warning', 'Mở hàng đợi duyệt'],
     ['MANAGERAPPROVED', 'Đã duyệt', 'success', 'Mở thu mua'],
-    ['CANCELLED', 'Từ chối', 'danger', 'Tính lại nhu cầu'],
+    ['EXPORTED', 'Đã xuất kho', 'success', 'Mở thu mua'],
+    ['CANCELLED', 'Đã hủy', 'neutral', 'Tính lại nhu cầu'],
   ] as const)('maps server demand status %s to operational approval copy', (status, label, tone, actionLabel) => {
     const presentation = getDemandApprovalPresentation([{
       materialRequestId: 'demand-42',
@@ -107,7 +172,29 @@ describe('material demand model', () => {
       tone,
       actionLabel,
     })
-    expect(presentation.reason).toBe(status === 'CANCELLED' ? 'Thiếu căn cứ mua hàng.' : undefined)
+    expect(presentation.reason).toBeUndefined()
+  })
+
+  it.each([
+    ['not-created', false, 'generate', true, false],
+    ['pending', false, 'approval', false, false],
+    ['approved', false, 'purchasing', false, false],
+    ['approved', true, 'purchasing', true, true],
+    ['rejected', false, 'generate', true, false],
+  ] as const)('keeps action hierarchy safe for %s (stale: %s)', (status, stale, primaryAction, showGenerate, generateIsSecondary) => {
+    expect(getDemandActionPresentation(status, stale)).toMatchObject({
+      primaryAction,
+      showGenerate,
+      generateIsSecondary,
+      requiresRegenerateConfirmation: status === 'approved',
+    })
+  })
+
+  it('hides regeneration when the server marks the lineage read-only', () => {
+    expect(getDemandActionPresentation('rejected', true, false)).toMatchObject({
+      showGenerate: false,
+      primaryAction: 'generate',
+    })
   })
 
   it('shows not-created state without inventing a target', () => {

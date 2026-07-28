@@ -1,12 +1,12 @@
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Features.Inventory.Contracts;
 
 namespace IPCManagement.Api.Helpers.Mappers;
 
 public static class InventoryMapper
 {
-    public static InventoryReceiptDto MapReceipt(Inventoryreceipt receipt, bool includeLines = false) => new()
+    public static InventoryReceiptDto MapReceipt(InventoryReceipt receipt, bool includeLines = false) => new()
     {
         ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
         ReceiptCode = receipt.ReceiptCode,
@@ -26,7 +26,7 @@ public static class InventoryMapper
             : new List<InventoryReceiptLineDto>()
     };
 
-    public static InventoryReceiptLineDto MapReceiptLine(Inventoryreceiptline line) => new()
+    public static InventoryReceiptLineDto MapReceiptLine(InventoryReceiptLine line) => new()
     {
         ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
@@ -41,7 +41,7 @@ public static class InventoryMapper
         ExpiredDate = line.ExpiredDate
     };
 
-    public static InventoryIssueDto MapIssue(Inventoryissue issue, bool includeLines = false) => new()
+    public static InventoryIssueDto MapIssue(InventoryIssue issue, bool includeLines = false) => new()
     {
         IssueId = GuidHelper.ToGuidString(issue.IssueId),
         IssueCode = issue.IssueCode,
@@ -61,7 +61,7 @@ public static class InventoryMapper
             : new List<InventoryIssueLineDto>()
     };
 
-    public static InventoryIssueLineDto MapIssueLine(Inventoryissueline line) => new()
+    public static InventoryIssueLineDto MapIssueLine(InventoryIssueLine line) => new()
     {
         IssueLineId = GuidHelper.ToGuidString(line.IssueLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
@@ -72,7 +72,7 @@ public static class InventoryMapper
         UnitName = line.Unit?.UnitName
     };
 
-    public static InventoryReturnDto MapReturn(Inventoryreturn inventoryReturn, bool includeLines = false) => new()
+    public static InventoryReturnDto MapReturn(InventoryReturn inventoryReturn, bool includeLines = false) => new()
     {
         ReturnId = GuidHelper.ToGuidString(inventoryReturn.ReturnId),
         ReturnCode = inventoryReturn.ReturnCode,
@@ -87,12 +87,18 @@ public static class InventoryMapper
         CreatedBy = GuidHelper.ToGuidString(inventoryReturn.CreatedBy),
         CreatedByName = inventoryReturn.CreatedByNavigation?.FullName,
         CreatedAt = inventoryReturn.CreatedAt,
+        Status = inventoryReturn.ReceivedAt.HasValue
+            ? inventoryReturn.ReturnType == "WASTE" ? "RECORDED" : "RECEIVED"
+            : "PENDING_RECEIPT",
+        ReceivedBy = inventoryReturn.ReceivedBy is null ? null : GuidHelper.ToGuidString(inventoryReturn.ReceivedBy),
+        ReceivedByName = inventoryReturn.ReceivedByNavigation?.FullName,
+        ReceivedAt = inventoryReturn.ReceivedAt,
         Lines = includeLines
             ? inventoryReturn.Inventoryreturnlines.Select(MapReturnLine).ToList()
             : new List<InventoryReturnLineDto>()
     };
 
-    public static InventoryReturnLineDto MapReturnLine(Inventoryreturnline line) => new()
+    public static InventoryReturnLineDto MapReturnLine(InventoryReturnLine line) => new()
     {
         ReturnLineId = GuidHelper.ToGuidString(line.ReturnLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),

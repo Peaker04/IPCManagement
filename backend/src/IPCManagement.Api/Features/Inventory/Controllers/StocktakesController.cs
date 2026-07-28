@@ -1,0 +1,85 @@
+using System.Threading.Tasks;
+using IPCManagement.Api.Security;
+using IPCManagement.Api.Helpers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Shared.Contracts;
+
+namespace IPCManagement.Api.Features.Inventory.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+public class StocktakesController : ControllerBase
+{
+    private readonly IStocktakeService _stocktakeService;
+
+    public StocktakesController(IStocktakeService stocktakeService)
+    {
+        _stocktakeService = stocktakeService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PagedResponseDto<StocktakeDto>>>> GetPagedAsync([FromQuery] StocktakeFilterRequestDto request)
+    {
+        var result = await _stocktakeService.GetPagedAsync(request);
+        return Ok(ApiResponse<PagedResponseDto<StocktakeDto>>.SuccessResult(result));
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> GetByIdAsync(string id)
+    {
+        var result = await _stocktakeService.GetByIdAsync(id);
+        if (result == null) return NotFound(ApiResponse<StocktakeDto>.FailResult("Không tìm thấy phiên kiểm kê."));
+        return Ok(ApiResponse<StocktakeDto>.SuccessResult(result));
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> CreateAsync([FromBody] CreateStocktakeRequest dto)
+    {
+        var userId = User.FindFirst("id")?.Value ?? string.Empty;
+        var result = await _stocktakeService.CreateAsync(dto, userId);
+        return Ok(ApiResponse<StocktakeDto>.SuccessResult(result));
+    }
+
+    [HttpPut("{id}/actual-qty")]
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> UpdateActualQtyAsync(string id, [FromBody] UpdateStocktakeLinesRequest dto)
+    {
+        var userId = User.FindFirst("id")?.Value ?? string.Empty;
+        var result = await _stocktakeService.UpdateActualQtyAsync(id, dto, userId);
+        return Ok(ApiResponse<StocktakeDto>.SuccessResult(result));
+    }
+
+    [HttpPost("{id}/submit")]
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> SubmitAsync(string id)
+    {
+        var userId = User.FindFirst("id")?.Value ?? string.Empty;
+        var result = await _stocktakeService.SubmitForApprovalAsync(id, userId);
+        return Ok(ApiResponse<StocktakeDto>.SuccessResult(result));
+    }
+
+    [HttpPost("{id}/approve")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> ApproveAsync(string id)
+    {
+        var userId = User.FindFirst("id")?.Value ?? string.Empty;
+        var result = await _stocktakeService.ApproveAsync(id, userId);
+        return Ok(ApiResponse<StocktakeDto>.SuccessResult(result));
+    }
+
+    [HttpPost("{id}/reject")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> RejectAsync(string id, [FromBody] RejectRequest dto)
+    {
+        var userId = User.FindFirst("id")?.Value ?? string.Empty;
+        var result = await _stocktakeService.RejectAsync(id, userId, dto.Reason);
+        return Ok(ApiResponse<StocktakeDto>.SuccessResult(result));
+    }
+}
+
+public class RejectRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}

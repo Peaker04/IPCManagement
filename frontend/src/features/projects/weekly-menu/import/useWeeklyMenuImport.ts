@@ -18,6 +18,7 @@ import { buildImportPresentation } from './importPresentation'
 import type { ImportDisplayDay } from './importPresentation'
 import { initialWeeklyMenuImportState, weeklyMenuImportReducer } from './importState'
 import type { ImportFeedback } from './importState'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 type UseWeeklyMenuImportOptions = {
   customers: CoordinationCustomerOption[]
@@ -48,8 +49,14 @@ export const useWeeklyMenuImport = ({
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
-  const { data: historyData } = useGetWeeklyMenuImportHistoryQuery()
-  const history = useMemo(() => historyData?.data ?? [], [historyData])
+  const historyQuery = useGetWeeklyMenuImportHistoryQuery()
+  const historyView = toLabeledQueryView(historyQuery, 'lịch sử import thực đơn tuần', {
+    instruction: 'Mở hộp thoại import để tải lịch sử import thực đơn tuần.',
+  })
+  const historyData = historyView.phase === 'ready'
+    ? historyView.data
+    : historyView.phase === 'error' ? historyQuery.currentData ?? historyQuery.data : undefined
+  const history = useMemo(() => historyData?.data ?? [], [historyData?.data])
   const selectedCustomer = customers.find((item) => item.customerId === state.draftCustomerId)
   const selectedJob = state.jobs.find((job) => job.jobId === state.selectedJobId) ?? state.jobs[0]
   const presentation = useMemo(
@@ -126,7 +133,7 @@ export const useWeeklyMenuImport = ({
       if (!response.success || !response.data) throw new Error(response.message || 'Không đọc được file thực đơn.')
       const result = response.data
       const blocking = getBlockingImportIssues(result)
-      dispatch({ type: 'update-job', jobId, changes: { status: blocking.length ? 'failed' : 'previewed', previewResult: result, warnings: result.warnings, error: blocking[0] ?? null } })
+      dispatch({ type: 'update-job', jobId, changes: { status: blocking.length ? 'failed' : 'previewed', previewResult: result, warnings: [...result.warnings], error: blocking[0] ?? null } })
       setFeedback(blocking.length ? 'File có lỗi cần sửa' : 'File đã kiểm tra xong', blocking[0] ?? `${result.customerCode}: tìm thấy ${result.detectedLayout.rowsImported} dòng món hợp lệ, bỏ qua ${result.detectedLayout.rowsSkipped} dòng không phải món.`, blocking.length ? 'danger' : result.warnings.length ? 'warning' : 'info')
       return !blocking.length
     } catch (error) {
@@ -152,7 +159,7 @@ export const useWeeklyMenuImport = ({
       const response = await commitImport({ file: job.file, customerId: job.customerId, weekStartDate: job.weekStartDate || undefined, priceTierAmount: job.priceTierAmount }).unwrap()
       if (!response.success || !response.data) throw new Error(response.message || 'Không lưu được thực đơn.')
       const result = response.data
-      dispatch({ type: 'update-job', jobId, changes: { status: 'committed', previewResult: result, warnings: result.warnings, error: null } })
+      dispatch({ type: 'update-job', jobId, changes: { status: 'committed', previewResult: result, warnings: [...result.warnings], error: null } })
       if (state.jobs.length === 1 || result.customerId === customerId) onMenuCommitted(result)
       setFeedback(result.warnings.length ? 'Đã lưu thực đơn (có cảnh báo)' : 'Đã lưu thực đơn', `${result.customerCode}: đã lưu ${result.detectedLayout.rowsImported} dòng món, bỏ qua ${result.detectedLayout.rowsSkipped} dòng không phải món.`, result.warnings.length ? 'warning' : 'info')
       if (closeOnSuccess) close()
@@ -189,9 +196,20 @@ export const useWeeklyMenuImport = ({
   }
 
   return {
-    state, customers, history, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
+    state, customers, history, historyDataState: historyView, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
     wizardStep: getImportWizardStep(state.jobs), hiddenFeedbackByDetail,
-    status: { isCustomerLoading, isCustomerError, isImporting, isPreviewing, isCommitting, isDownloadingTemplate, isSavingMapping, isCreatingCustomer, isRollingBack },
+    status: {
+      isCustomerLoading,
+      isCustomerError,
+      isHistoryError: historyView.phase === 'error' || historyView.phase === 'forbidden',
+      isImporting,
+      isPreviewing,
+      isCommitting,
+      isDownloadingTemplate,
+      isSavingMapping,
+      isCreatingCustomer,
+      isRollingBack,
+    },
     actions: {
       open, close, onOpenChange: (nextOpen: boolean) => nextOpen ? open() : close(),
       selectDraftCustomer: (value: string) => dispatch({ type: 'edit', field: 'draftCustomerId', value }),

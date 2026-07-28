@@ -1,15 +1,14 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.ProductionPlan;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using IPCManagement.Api.Features.Planning.Contracts;
+using IPCManagement.Api.Features.Planning.Controllers;
+using IPCManagement.Api.Features.Planning.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
@@ -26,13 +25,13 @@ public class WorkflowControllerContractTests
         _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
             .Returns("user-id");
         _materialDemandService.GenerateAsync(
-                Arg.Any<GenerateMaterialDemandRequestDto>(),
+                Arg.Any<GenerateMaterialDemandRequest>(),
                 "user-id",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<MaterialDemandResultDto?>(
-                new InvalidOperationException("Giá ngoài tier cố định.")));
+                new BusinessRuleException("Giá ngoài tier cố định.")));
 
-        var result = await controller.Generate(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
         {
             ServiceDate = "2026-07-10",
             Scope = "FULLDAY"
@@ -45,18 +44,44 @@ public class WorkflowControllerContractTests
     }
 
     [Fact]
+    public async Task MaterialDemandGenerate_Should_ReturnBadRequest_WhenInputIsInvalid()
+    {
+        var controller = CreateMaterialDemandController();
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
+            .Returns("user-id");
+        _materialDemandService.GenerateAsync(
+                Arg.Any<GenerateMaterialDemandRequest>(),
+                "user-id",
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<MaterialDemandResultDto?>(
+                new ArgumentException("Ngày phục vụ không hợp lệ.")));
+
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
+        {
+            ServiceDate = "20-07-2026",
+            Scope = "FULLDAY"
+        }, CancellationToken.None);
+
+        var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        var response = badRequest.Value.Should().BeAssignableTo<ApiResponse>().Subject;
+        response.Success.Should().BeFalse();
+        response.Message.Should().Be("Ngày phục vụ không hợp lệ.");
+        response.Errors.Should().BeNull();
+    }
+
+    [Fact]
     public async Task MaterialDemandGenerate_Should_ReturnNotFound_WhenNoCompletedQuantityPlan()
     {
         var controller = CreateMaterialDemandController();
         _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
             .Returns("user-id");
         _materialDemandService.GenerateAsync(
-                Arg.Any<GenerateMaterialDemandRequestDto>(),
+                Arg.Any<GenerateMaterialDemandRequest>(),
                 "user-id",
                 Arg.Any<CancellationToken>())
             .Returns((MaterialDemandResultDto?)null);
 
-        var result = await controller.Generate(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
         {
             ServiceDate = "2026-07-10",
             Scope = "FULLDAY"
@@ -82,9 +107,9 @@ public class WorkflowControllerContractTests
             .Returns(Task.FromException<MaterialDemandApprovalDto?>(
                 new ArgumentException("MaterialRequestId không hợp lệ.")));
 
-        var result = await controller.Approve(
+        var result = await controller.ApproveAsync(
             "bad-id",
-            new MaterialDemandApproveRequestDto { Reason = "approve" },
+            new MaterialDemandApproveRequest { Reason = "approve" },
             CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -106,7 +131,7 @@ public class WorkflowControllerContractTests
                 Arg.Any<CancellationToken>())
             .Returns((MaterialDemandApprovalDto?)null);
 
-        var result = await controller.Approve("missing-id", null, CancellationToken.None);
+        var result = await controller.ApproveAsync("missing-id", null, CancellationToken.None);
 
         var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
         var response = notFound.Value.Should().BeAssignableTo<ApiResponse>().Subject;
@@ -120,7 +145,7 @@ public class WorkflowControllerContractTests
         var controller = CreateProductionPlansController();
         _productionPlanService.GetByIdAsync("missing-plan").Returns((ProductionPlanDto?)null);
 
-        var result = await controller.GetById("missing-plan");
+        var result = await controller.GetByIdAsync("missing-plan");
 
         var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
         var response = notFound.Value.Should().BeAssignableTo<ApiResponse>().Subject;
@@ -141,7 +166,7 @@ public class WorkflowControllerContractTests
                 request.PageNumber == 1 && request.PageSize == 20))
             .Returns(page);
 
-        var result = await controller.GetAll(new PagedRequestDto { PageNumber = 1, PageSize = 20 });
+        var result = await controller.GetAllAsync(new PagedRequestDto { PageNumber = 1, PageSize = 20 });
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<PagedResponseDto<ProductionPlanDto>>>().Subject;
@@ -153,7 +178,7 @@ public class WorkflowControllerContractTests
     public async Task ProductionPlansSendDailyToKitchen_Should_UseCurrentUser_AndReturnSuccessMessage()
     {
         var controller = CreateProductionPlansController();
-        var request = new SendDailyProductionPlanRequestDto
+        var request = new SendDailyProductionPlanRequest
         {
             ServiceDate = "2026-07-10",
             CustomerId = "customer-id",
@@ -171,7 +196,7 @@ public class WorkflowControllerContractTests
         _productionPlanService.SendDailyToKitchenAsync(request, "sender-id", Arg.Any<CancellationToken>())
             .Returns(daily);
 
-        var result = await controller.SendDailyToKitchen(request, CancellationToken.None);
+        var result = await controller.SendDailyToKitchenAsync(request, CancellationToken.None);
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<DailyProductionPlanDto>>().Subject;

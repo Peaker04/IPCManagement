@@ -1,4 +1,4 @@
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import { calculateTotalMaterialCost } from '../model/scope'
 import type { MaterialSummary, PurchaseSummaryMaterialEntry } from '../model/types'
 
@@ -12,12 +12,19 @@ export const buildPurchaseSummaryPresentation = (
 ) => {
   const materialEntries = Object.entries(materialSummary).filter(([, data]) => data.theory > 0)
   const usesDemand = demandLines.length > 0
-  const totalItems = usesDemand ? aggregatedDemandLines.length : materialEntries.length
+  const orderedDemandLines = [...aggregatedDemandLines].sort((left, right) => {
+    const leftShortage = Math.max(left.required - (left.available - left.reserved), 0)
+    const rightShortage = Math.max(right.required - (right.available - right.reserved), 0)
+    return Number(rightShortage > 0) - Number(leftShortage > 0)
+      || rightShortage - leftShortage
+      || left.material.localeCompare(right.material, 'vi-VN')
+  })
+  const totalItems = usesDemand ? orderedDemandLines.length : materialEntries.length
   const totalPages = Math.max(1, Math.ceil(totalItems / PURCHASE_SUMMARY_PAGE_SIZE))
   const pageIndex = Math.min(Math.max(0, requestedPageIndex), totalPages - 1)
   const start = pageIndex * PURCHASE_SUMMARY_PAGE_SIZE
   const demandRows: DemandLine[] = usesDemand
-    ? aggregatedDemandLines.slice(start, start + PURCHASE_SUMMARY_PAGE_SIZE)
+    ? orderedDemandLines.slice(start, start + PURCHASE_SUMMARY_PAGE_SIZE)
     : []
   const materialRows: PurchaseSummaryMaterialEntry[] = usesDemand
     ? []

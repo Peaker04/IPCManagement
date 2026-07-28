@@ -1,6 +1,6 @@
 import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
 import type { WeeklyMenuState } from '../../../coordination/types'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import {
   formatImportDate,
   formatMenuDishName,

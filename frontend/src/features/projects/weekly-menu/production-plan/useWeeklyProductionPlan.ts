@@ -8,14 +8,9 @@ import {
 } from '../../weeklyMenuPlanning'
 import { parseDisplayDateToIso } from '../model/formatters'
 import type { WeeklyMenuScope } from '../schedule/types'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
-const useProductionPlanDay = (customerId: string, serviceDate?: string) =>
-  useGetProductionPlansQuery(
-    { customerId, serviceDate },
-    { skip: !customerId || !serviceDate },
-  )
-
-export function useWeeklyProductionPlan(scope: WeeklyMenuScope) {
+export function useWeeklyProductionPlan(scope: WeeklyMenuScope, enabled = true) {
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
   const [navigation, setNavigation] = useState({
     scopeKey,
@@ -28,23 +23,20 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope) {
     () => scope.displayDays.map((day) => parseDisplayDateToIso(day.date)).filter((date): date is string => Boolean(date)),
     [scope.displayDays],
   )
-  const day0 = useProductionPlanDay(scope.customerId, weekDates[0])
-  const day1 = useProductionPlanDay(scope.customerId, weekDates[1])
-  const day2 = useProductionPlanDay(scope.customerId, weekDates[2])
-  const day3 = useProductionPlanDay(scope.customerId, weekDates[3])
-  const day4 = useProductionPlanDay(scope.customerId, weekDates[4])
-  const day5 = useProductionPlanDay(scope.customerId, weekDates[5])
-  const weekPlans = useMemo(
-    () => [
-      ...(day0.currentData?.data ?? []),
-      ...(day1.currentData?.data ?? []),
-      ...(day2.currentData?.data ?? []),
-      ...(day3.currentData?.data ?? []),
-      ...(day4.currentData?.data ?? []),
-      ...(day5.currentData?.data ?? []),
-    ],
-    [day0.currentData, day1.currentData, day2.currentData, day3.currentData, day4.currentData, day5.currentData],
-  )
+  const weekQuery = useGetProductionPlansQuery({
+    customerId: scope.customerId,
+    dateFrom: weekDates[0],
+    dateTo: weekDates[weekDates.length - 1],
+  }, { skip: !enabled || !scope.customerId || weekDates.length === 0 })
+  const weekView = toLabeledQueryView(weekQuery, 'kế hoạch sản xuất của tuần', {
+    instruction: !scope.customerId
+      ? 'Chọn khách hàng để xem kế hoạch sản xuất.'
+      : weekDates.length === 0
+        ? 'Chọn tuần có ngày phục vụ để xem kế hoạch sản xuất.'
+        : 'Mở tab Kế hoạch sản xuất để tải dữ liệu.',
+  })
+  const weekResponse = weekView.phase === 'ready' ? weekView.data : undefined
+  const weekPlans = useMemo(() => weekResponse?.data ?? [], [weekResponse?.data])
   const selectedServiceDate = selectedDayKey
     ? parseDisplayDateToIso(scope.displayDays.find((day) => day.key === selectedDayKey)?.date)
     : undefined
@@ -65,10 +57,22 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope) {
 
   return {
     scope,
+    dataState: weekView,
     state: { selectedDayKey, selectedServiceDate, pageIndex: safePageIndex },
-    status: { isLoading: !selectedServiceDate && [day0, day1, day2, day3, day4, day5].some((query) => query.isFetching) },
+    status: {
+      isUninitialized: weekView.phase === 'uninitialized',
+      instruction: weekView.phase === 'uninitialized' ? weekView.instruction : undefined,
+      isLoading: weekView.phase === 'loading',
+      isForbidden: weekView.phase === 'forbidden',
+      forbiddenMessage: weekView.phase === 'forbidden' ? weekView.message : undefined,
+      isError: weekView.phase === 'error',
+      errorMessage: weekView.phase === 'error' ? weekView.message : undefined,
+      isRetrying: weekView.phase === 'error' ? weekView.isRetrying : false,
+      isRefreshing: weekView.phase === 'ready' && weekView.isRefreshing,
+    },
     actions: {
       selectDay,
+      retry: () => weekQuery.refetch(),
       setPage: (page: number) => setNavigation({
         scopeKey,
         selectedDayKey,

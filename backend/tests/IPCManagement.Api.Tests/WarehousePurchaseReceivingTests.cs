@@ -1,12 +1,11 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +13,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using System.ComponentModel.DataAnnotations;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Purchasing.Controllers;
+using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -37,7 +41,7 @@ public class WarehousePurchaseReceivingTests
     [Fact]
     public void Authorization_Warehouse_receipt_controller_uses_dedicated_writer_policy()
     {
-        var controllerType = typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController);
+        var controllerType = typeof(IPCManagement.Api.Features.Purchasing.Controllers.WarehousePurchaseReceiptsController);
         controllerType.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.WarehousePurchaseReceive);
@@ -45,7 +49,7 @@ public class WarehousePurchaseReceivingTests
             .Cast<RouteAttribute>()
             .Should().ContainSingle(attribute =>
                 attribute.Template == "api/warehouse/purchase-orders/{purchaseOrderId}/receipts");
-        controllerType.GetMethod("Record")!.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
+        controllerType.GetMethod("RecordAsync")!.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
             .Should().ContainSingle();
         typeof(IPurchaseReceivingService).GetMethod("RecordAsync").Should().NotBeNull();
     }
@@ -54,8 +58,8 @@ public class WarehousePurchaseReceivingTests
     public void Validation_Warehouse_receipt_contract_contains_only_actual_receipt_evidence()
     {
         var dtoAssembly = typeof(PurchaseOrderDto).Assembly;
-        var requestType = GetRequiredType(dtoAssembly, "RecordWarehousePurchaseReceiptDto");
-        var lineType = GetRequiredType(dtoAssembly, "WarehousePurchaseReceiptLineDto");
+        var requestType = GetRequiredType(dtoAssembly, "RecordWarehousePurchaseReceiptRequest");
+        var lineType = GetRequiredType(dtoAssembly, "WarehousePurchaseReceiptLineRequest");
         var requirementsType = GetRequiredType(dtoAssembly, "PurchaseReceiptEvidenceRequirementsDto");
         var resultType = GetRequiredType(dtoAssembly, "WarehousePurchaseReceiptResultDto");
 
@@ -89,7 +93,7 @@ public class WarehousePurchaseReceivingTests
     [Fact]
     public void Validation_Warehouse_receipt_line_rejects_invalid_dates_values_and_partial_package_snapshot()
     {
-        var lineType = GetRequiredType(typeof(PurchaseOrderDto).Assembly, "WarehousePurchaseReceiptLineDto");
+        var lineType = GetRequiredType(typeof(PurchaseOrderDto).Assembly, "WarehousePurchaseReceiptLineRequest");
         var line = Activator.CreateInstance(lineType)!;
         SetProperty(line, "PurchaseOrderLineId", Guid.NewGuid().ToString());
         SetProperty(line, "ActualQuantity", 0m);
@@ -121,15 +125,15 @@ public class WarehousePurchaseReceivingTests
         using var context = new IpcManagementContext(options);
         var model = context.GetService<IDesignTimeModel>().Model;
 
-        var receiptLine = model.FindEntityType(typeof(Inventoryreceiptline));
+        var receiptLine = model.FindEntityType(typeof(InventoryReceiptLine));
         receiptLine.Should().NotBeNull();
-        receiptLine!.FindProperty(nameof(Inventoryreceiptline.PackageQuantitySnapshot))!
+        receiptLine!.FindProperty(nameof(InventoryReceiptLine.PackageQuantitySnapshot))!
             .GetPrecision().Should().Be(18);
-        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackageQuantitySnapshot))!
+        receiptLine.FindProperty(nameof(InventoryReceiptLine.PackageQuantitySnapshot))!
             .GetScale().Should().Be(6);
-        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackageBaseUnitIdSnapshot))!
+        receiptLine.FindProperty(nameof(InventoryReceiptLine.PackageBaseUnitIdSnapshot))!
             .GetMaxLength().Should().Be(16);
-        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackagePolicyVersionSnapshot))!
+        receiptLine.FindProperty(nameof(InventoryReceiptLine.PackagePolicyVersionSnapshot))!
             .GetMaxLength().Should().Be(100);
         receiptLine.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckInventoryReceiptLinesPackageSnapshotComplete",
@@ -137,7 +141,7 @@ public class WarehousePurchaseReceivingTests
         receiptLine.GetForeignKeys().Should().Contain(foreignKey =>
             !foreignKey.IsRequired &&
             foreignKey.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Inventoryreceiptline.PackageBaseUnitIdSnapshot) }) &&
+                .SequenceEqual(new[] { nameof(InventoryReceiptLine.PackageBaseUnitIdSnapshot) }) &&
             foreignKey.PrincipalEntityType.ClrType == typeof(Unit));
     }
 
@@ -196,7 +200,7 @@ public class WarehousePurchaseReceivingTests
 
         var mismatchedRetry = fixture.CreateRequest("receipt-key-1", 5m);
         var mismatch = () => InvokeRecordAsync(service, mismatchedRetry, fixture.UserId);
-        await mismatch.Should().ThrowAsync<InvalidOperationException>()
+        await mismatch.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*idempotency*");
         fixture.Context.Inventoryreceipts.Should().ContainSingle();
         fixture.Context.Stockmovements.Should().ContainSingle();
@@ -264,7 +268,7 @@ public class WarehousePurchaseReceivingTests
     [Fact]
     public void SingleWriter_old_purchase_receipt_route_and_service_contract_are_retired()
     {
-        typeof(IPCManagement.Api.Controllers.PurchaseOrdersController)
+        typeof(IPCManagement.Api.Features.Purchasing.Controllers.PurchaseOrdersController)
             .GetMethod("RecordReceipt")
             .Should().BeNull();
         typeof(IPurchaseOrderService)
@@ -274,7 +278,7 @@ public class WarehousePurchaseReceivingTests
             .GetMethod("RecordReceiptAsync")
             .Should().BeNull();
 
-        var purchaseOrderReceiptPosts = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController).Assembly
+        var purchaseOrderReceiptPosts = typeof(IPCManagement.Api.Features.Purchasing.Controllers.PurchaseOrdersController).Assembly
             .GetTypes()
             .Where(type => typeof(ControllerBase).IsAssignableFrom(type))
             .SelectMany(type => type.GetMethods().Select(method => new
@@ -299,30 +303,30 @@ public class WarehousePurchaseReceivingTests
             .ToList();
 
         purchaseOrderReceiptPosts.Should().ContainSingle(route =>
-            route.Controller == typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController) &&
-            route.Method.Name == "Record");
+            route.Controller == typeof(IPCManagement.Api.Features.Purchasing.Controllers.WarehousePurchaseReceiptsController) &&
+            route.Method.Name == "RecordAsync");
     }
 
     [Fact]
     public void SingleWriter_purchase_progress_reads_and_generic_non_order_receipts_remain_separate()
     {
-        var purchaseController = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController);
-        purchaseController.GetMethod("GetList").Should().NotBeNull();
-        purchaseController.GetMethod("GetPage").Should().NotBeNull();
-        purchaseController.GetMethod("GetById").Should().NotBeNull();
+        var purchaseController = typeof(IPCManagement.Api.Features.Purchasing.Controllers.PurchaseOrdersController);
+        purchaseController.GetMethod("GetListAsync").Should().NotBeNull();
+        purchaseController.GetMethod("GetPageAsync").Should().NotBeNull();
+        purchaseController.GetMethod("GetByIdAsync").Should().NotBeNull();
         AuthorizationPolicies.PurchaseRoles.Should().Contain(["Manager", "Purchasing"]);
 
-        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptDto)
+        typeof(IPCManagement.Api.Features.Inventory.Contracts.CreateInventoryReceiptRequest)
             .GetProperty("PurchaseOrderId")
             .Should().BeNull("generic inventory receipts cannot attach to a purchase order");
-        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptFromPurchaseDto)
+        typeof(IPCManagement.Api.Features.Inventory.Contracts.CreateInventoryReceiptFromPurchaseRequest)
             .GetProperty("PurchaseOrderId")
             .Should().BeNull("legacy purchase-request receipts cannot attach to a purchase order");
     }
 
     private static Type GetRequiredType(System.Reflection.Assembly assembly, string typeName)
     {
-        var type = assembly.GetType($"IPCManagement.Api.Models.DTOs.Workflow.{typeName}");
+        var type = assembly.GetType($"IPCManagement.Api.Features.Purchasing.Contracts.{typeName}");
         type.Should().NotBeNull($"{typeName} is part of the Warehouse receiving contract");
         return type!;
     }
@@ -340,14 +344,19 @@ public class WarehousePurchaseReceivingTests
         Func<string, CancellationToken, Task>? faultInjector)
     {
         var serviceType = typeof(PurchaseOrderService).Assembly.GetType(
-            "IPCManagement.Api.Services.Workflow.PurchaseReceivingService");
+            "IPCManagement.Api.Features.Purchasing.Services.PurchaseReceivingService");
         serviceType.Should().NotBeNull("the canonical Warehouse receiving writer must exist");
-        return Activator.CreateInstance(serviceType!, context, stockLedgerService, faultInjector)!;
+        return Activator.CreateInstance(
+            serviceType!,
+            context,
+            stockLedgerService,
+            new EfTransactionRunner(context),
+            faultInjector)!;
     }
 
     private static async Task<WarehousePurchaseReceiptResultDto> InvokeRecordAsync(
         object service,
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         string userId)
     {
         var method = service.GetType().GetMethod("RecordAsync");
@@ -450,7 +459,7 @@ public class WarehousePurchaseReceivingTests
                 Unit = unit,
                 Warehouse = warehouse
             };
-            var purchaseRequest = new Purchaserequest
+            var purchaseRequest = new PurchaseRequest
             {
                 PurchaseRequestId = purchaseRequestIdBytes,
                 PurchaseRequestCode = "PR-RECEIVE",
@@ -459,7 +468,7 @@ public class WarehousePurchaseReceivingTests
                 Status = "APPROVED",
                 CreatedBy = userIdBytes
             };
-            var purchaseRequestLine = new Purchaserequestline
+            var purchaseRequestLine = new PurchaseRequestLine
             {
                 PurchaseRequestLineId = purchaseRequestLineIdBytes,
                 PurchaseRequestId = purchaseRequestIdBytes,
@@ -476,7 +485,7 @@ public class WarehousePurchaseReceivingTests
                 Supplier = supplier
             };
             purchaseRequest.Purchaserequestlines.Add(purchaseRequestLine);
-            var order = new Purchaseorder
+            var order = new PurchaseOrder
             {
                 PurchaseOrderId = purchaseOrderIdBytes,
                 PurchaseOrderCode = "PO-RECEIVE",
@@ -490,7 +499,7 @@ public class WarehousePurchaseReceivingTests
                 PurchaseRequest = purchaseRequest,
                 Supplier = supplier
             };
-            order.Purchaseorderlines.Add(new Purchaseorderline
+            order.Purchaseorderlines.Add(new PurchaseOrderLine
             {
                 PurchaseOrderLineId = purchaseOrderLineIdBytes,
                 PurchaseOrderId = purchaseOrderIdBytes,
@@ -537,8 +546,8 @@ public class WarehousePurchaseReceivingTests
                 .ConvertQuantityAsync(Arg.Any<byte[]>(), Arg.Any<byte[]>(), Arg.Any<decimal>())
                 .Returns(callInfo => Task.FromResult(callInfo.ArgAt<decimal>(2)));
             currentStockRepository
-                .When(repository => repository.Add(Arg.Any<Currentstock>()))
-                .Do(callInfo => Context.Currentstocks.Add(callInfo.Arg<Currentstock>()));
+                .When(repository => repository.Add(Arg.Any<CurrentStock>()))
+                .Do(callInfo => Context.Currentstocks.Add(callInfo.Arg<CurrentStock>()));
 
             var ledger = new StockLedgerService(
                 currentStockRepository,
@@ -547,7 +556,7 @@ public class WarehousePurchaseReceivingTests
             return CreateReceivingService(Context, ledger, faultInjector);
         }
 
-        public RecordWarehousePurchaseReceiptDto CreateRequest(string idempotencyKey, decimal quantity)
+        public RecordWarehousePurchaseReceiptRequest CreateRequest(string idempotencyKey, decimal quantity)
             => new()
             {
                 PurchaseOrderId = PurchaseOrderId,
@@ -556,7 +565,7 @@ public class WarehousePurchaseReceivingTests
                 ReceiptDate = new DateOnly(2026, 7, 22),
                 Lines =
                 [
-                    new WarehousePurchaseReceiptLineDto
+                    new WarehousePurchaseReceiptLineRequest
                     {
                         PurchaseOrderLineId = PurchaseOrderLineId,
                         ActualQuantity = quantity,

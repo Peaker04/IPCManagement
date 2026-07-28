@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import {
   formatImportDate,
   formatMenuDishName,
@@ -8,8 +8,8 @@ import {
   parseDisplayDateToIso,
   summarizeImportWarnings,
 } from './formatters'
-import type { CatalogDish } from '../../dishCatalogApi'
-import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, getQuickServingKey } from './scope'
+import type { CatalogDish } from '@/api/dishCatalogApi'
+import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, getQuickServingKey, resolveDishIngredients } from './scope'
 import type { WeeklyPlanRow } from './types'
 
 const demandLine = (overrides: Partial<DemandLine>): DemandLine => ({
@@ -70,6 +70,16 @@ describe('weekly menu pure model', () => {
     expect(getQuickServingKey('2026-07-20', 'MORNING')).toBe('2026-07-20|MORNING')
   })
 
+  it('does not merge two materials whose names differ only by Vietnamese diacritics', () => {
+    const result = aggregateDemandLinesByMaterial([
+      demandLine({ id: 'a', material: 'Bò', required: 5, unit: 'kg' }),
+      demandLine({ id: 'b', material: 'Bơ', required: 3, unit: 'kg' }),
+    ])
+
+    expect(result).toHaveLength(2)
+    expect(result.map((line) => [line.material, line.required])).toEqual([['Bò', 5], ['Bơ', 3]])
+  })
+
   it('keeps same-name ingredients separate by stable identity in BOM and demand aggregation', () => {
     const dish = {
       id: 'dish-1',
@@ -95,5 +105,23 @@ describe('weekly menu pure model', () => {
       demandLine({ id: 'b', ingredientId: 'ingredient-b', material: 'Bột', required: 6 }),
     ])
     expect(demand.map((line) => [line.id, line.required])).toHaveLength(2)
+  })
+
+  it('resolves BOM by effective date and tier, preferring the customer scope over global', () => {
+    const base = {
+      unitId: 'kg', unit: 'kg', grossQtyPerServing: 1, referencePrice: 10,
+      bomStatus: 'PUBLISHED', effectiveFrom: '2026-01-01', effectiveTo: null,
+    }
+    const dish = {
+      ingredients: [
+        { ...base, bomId: 'global-25', ingredientId: 'global', name: 'Global 25k', priceTierAmount: 25_000, customerId: null },
+        { ...base, bomId: 'customer-25', ingredientId: 'customer', name: 'Customer 25k', priceTierAmount: 25_000, customerId: 'customer-1' },
+        { ...base, bomId: 'customer-30', ingredientId: 'wrong-tier', name: 'Customer 30k', priceTierAmount: 30_000, customerId: 'customer-1' },
+        { ...base, bomId: 'expired', ingredientId: 'expired', name: 'Expired', priceTierAmount: 25_000, customerId: 'customer-1', effectiveTo: '2026-06-30' },
+      ],
+    } as CatalogDish
+
+    expect(resolveDishIngredients(dish, { customerId: 'customer-1', priceTier: 25_000, serviceDate: '2026-07-24' }).map((line) => line.ingredientId)).toEqual(['customer'])
+    expect(resolveDishIngredients(dish, { customerId: 'customer-2', priceTier: 25_000, serviceDate: '2026-07-24' }).map((line) => line.ingredientId)).toEqual(['global'])
   })
 })

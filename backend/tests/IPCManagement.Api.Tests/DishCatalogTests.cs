@@ -1,14 +1,11 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Middlewares;
-using IPCManagement.Api.Models.DTOs.Dish;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.SampleData;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
@@ -21,6 +18,12 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using Xunit;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Controllers;
+using IPCManagement.Api.Features.Catalog.Services;
+using IPCManagement.Api.Features.SampleData.Services;
+
+using IPCManagement.Api.Exceptions;
 
 namespace IPCManagement.Api.Tests;
 
@@ -47,13 +50,13 @@ public class DishCatalogTests
                 IsActive = true,
                 Menuitems =
                 [
-                    new Menuitem { DishSlot = "Món mặn", DisplayOrder = 2 },
-                    new Menuitem { DishSlot = "Món mặn", DisplayOrder = 1 },
-                    new Menuitem { DishSlot = "Canh", DisplayOrder = 3 }
+                    new MenuItem { DishSlot = "Món mặn", DisplayOrder = 2 },
+                    new MenuItem { DishSlot = "Món mặn", DisplayOrder = 1 },
+                    new MenuItem { DishSlot = "Canh", DisplayOrder = 3 }
                 ],
                 Dishboms =
                 [
-                    new Dishbom
+                    new DishBom
                     {
                         BomId = GuidHelper.ToBytes(bomId),
                         DishId = GuidHelper.ToBytes(dishId),
@@ -84,7 +87,7 @@ public class DishCatalogTests
                 ]
             }
         });
-        var service = new DishService(repository, null!, new MemoryCache(new MemoryCacheOptions()));
+        var service = new DishCatalogService(repository, null!, new MemoryCache(new MemoryCacheOptions()));
 
         var result = await service.GetCatalogAsync();
 
@@ -103,7 +106,7 @@ public class DishCatalogTests
     [Fact]
     public async Task DishesController_GetCatalog_Should_Return_ApiResponseShape()
     {
-        var service = Substitute.For<IDishService>();
+        var service = Substitute.For<IDishCatalogService>();
         service.GetCatalogAsync().Returns(new List<DishCatalogDto>
         {
             new()
@@ -114,10 +117,9 @@ public class DishCatalogTests
                 IsActive = true
             }
         });
-        var currentUserService = Substitute.For<ICurrentUserService>();
-        var controller = new DishesController(service, currentUserService);
+        var controller = new DishesController(service);
 
-        var actionResult = await controller.GetCatalog();
+        var actionResult = await controller.GetCatalogAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should()
@@ -131,7 +133,7 @@ public class DishCatalogTests
     [Fact]
     public async Task DishesController_GetBomCoverage_Should_Return_ApiResponseShape()
     {
-        var service = Substitute.For<IDishService>();
+        var service = Substitute.For<IDishCatalogDiagnosticsService>();
         service.GetBomCoverageAsync().Returns(new BomCoverageReportDto
         {
             TotalDishes = 2,
@@ -151,9 +153,9 @@ public class DishCatalogTests
                 }
             ]
         });
-        var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
+        var controller = new DishCatalogDiagnosticsController(service);
 
-        var actionResult = await controller.GetBomCoverage();
+        var actionResult = await controller.GetBomCoverageAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<BomCoverageReportDto>>().Subject;
@@ -165,7 +167,7 @@ public class DishCatalogTests
     [Fact]
     public async Task DishesController_GetBomValidation_Should_Return_ApiResponseShape()
     {
-        var service = Substitute.For<IDishService>();
+        var service = Substitute.For<IDishCatalogDiagnosticsService>();
         service.GetBomValidationAsync().Returns(new BomValidationReportDto
         {
             TotalIssues = 1,
@@ -183,9 +185,9 @@ public class DishCatalogTests
                 }
             ]
         });
-        var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
+        var controller = new DishCatalogDiagnosticsController(service);
 
-        var actionResult = await controller.GetBomValidation();
+        var actionResult = await controller.GetBomValidationAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<BomValidationReportDto>>().Subject;
@@ -197,7 +199,7 @@ public class DishCatalogTests
     [Fact]
     public async Task DishesController_GetMenuImportHistory_Should_Return_ApiResponseShape()
     {
-        var service = Substitute.For<IDishService>();
+        var service = Substitute.For<IDishCatalogDiagnosticsService>();
         service.GetMenuImportHistoryAsync().Returns(new MenuImportHistoryDto
         {
             LastImportSource = "excel",
@@ -207,9 +209,9 @@ public class DishCatalogTests
             BomCreatedOrUpdatedCount = 25,
             Warnings = ["Chưa có lịch sử cập nhật BOM; số BOM tạo/cập nhật đang là snapshot dòng hiện tại."]
         });
-        var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
+        var controller = new DishCatalogDiagnosticsController(service);
 
-        var actionResult = await controller.GetMenuImportHistory();
+        var actionResult = await controller.GetMenuImportHistoryAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<MenuImportHistoryDto>>().Subject;
@@ -221,7 +223,7 @@ public class DishCatalogTests
     [Fact]
     public async Task DishesController_GetSampleImportStatus_Should_Return_ApiResponseShape()
     {
-        var service = Substitute.For<IDishService>();
+        var service = Substitute.For<IDishCatalogDiagnosticsService>();
         service.GetSampleImportStatusAsync().Returns(new SampleImportStatusDto
         {
             OverallStatus = "incomplete",
@@ -238,9 +240,9 @@ public class DishCatalogTests
                 }
             ]
         });
-        var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
+        var controller = new DishCatalogDiagnosticsController(service);
 
-        var actionResult = await controller.GetSampleImportStatus();
+        var actionResult = await controller.GetSampleImportStatusAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<SampleImportStatusDto>>().Subject;
@@ -253,16 +255,16 @@ public class DishCatalogTests
     public async Task DishesController_AddBomLine_Should_ReturnCreated_WhenManualBomInputIsValid()
     {
         var dishId = Guid.NewGuid().ToString();
-        var service = Substitute.For<IDishService>();
-        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineDto>()).Returns(new DishCatalogBomLineDto
+        var service = Substitute.For<IDishBomService>();
+        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineRequest>()).Returns(new DishCatalogBomLineDto
         {
             BomId = Guid.NewGuid().ToString(),
             IngredientId = Guid.NewGuid().ToString(),
             GrossQtyPerServing = 0.1m
         });
-        var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
+        var controller = new DishBomController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.AddBomLine(dishId, new CreateDishBomLineDto());
+        var actionResult = await controller.AddBomLineAsync(dishId, new CreateDishBomLineRequest());
 
         var created = actionResult.Should().BeOfType<ObjectResult>().Subject;
         created.StatusCode.Should().Be(StatusCodes.Status201Created);
@@ -273,8 +275,8 @@ public class DishCatalogTests
     public async Task DishService_GetBomCoverageAsync_Should_Not_Count_LegacyUnsupportedTier_AsComplete()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        var service = new DishCatalogDiagnosticsService(fixture.Context);
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -299,8 +301,8 @@ public class DishCatalogTests
     public async Task DishService_GetBomValidationAsync_Should_Report_LegacyUnsupportedTier()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        var service = new DishCatalogDiagnosticsService(fixture.Context);
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -324,9 +326,9 @@ public class DishCatalogTests
     public async Task DishService_AddBomLineAsync_Should_Block_Overlapping_EffectiveDates_ForSameScope()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -340,7 +342,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var overlappingRequest = new CreateDishBomLineDto
+        var overlappingRequest = new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -352,7 +354,7 @@ public class DishCatalogTests
 
         var act = () => service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), overlappingRequest);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*trùng nguyên liệu, đơn vị và khoảng hiệu lực*");
     }
 
@@ -360,9 +362,9 @@ public class DishCatalogTests
     public async Task DishService_AddBomLineAsync_Should_Allow_Next_NonOverlapping_EffectivePeriod()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -376,7 +378,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineDto
+        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -394,9 +396,9 @@ public class DishCatalogTests
     public async Task DishService_AddBomLineAsync_Should_Allow_Draft_Overlap()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -411,7 +413,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineDto
+        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -430,10 +432,10 @@ public class DishCatalogTests
     public async Task DishService_UpdateBomLineAsync_Should_Create_New_Version_For_Published_QuantityChange()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomService(fixture.Context);
         var originalBomId = GuidHelper.NewId();
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = originalBomId,
             DishId = fixture.DishId,
@@ -450,7 +452,7 @@ public class DishCatalogTests
         var result = await service.UpdateBomLineAsync(
             GuidHelper.ToGuidString(fixture.DishId),
             GuidHelper.ToGuidString(originalBomId),
-            new UpdateDishBomLineDto
+            new UpdateDishBomLineRequest
             {
                 IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
                 UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -476,7 +478,7 @@ public class DishCatalogTests
     public async Task DishService_BomImport_Should_CreateCustomerTierBom_ForMultipleDishes()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomImportService(fixture.Context);
         var customerId = GuidHelper.NewId();
         var secondDishId = GuidHelper.NewId();
         var secondIngredientId = GuidHelper.NewId();
@@ -517,8 +519,8 @@ public class DishCatalogTests
             CustomerId = GuidHelper.ToGuidString(customerId)
         };
 
-        var preview = await service.PreviewBomImportAsync(ToStream(csv), request);
-        var committed = await service.CommitBomImportAsync(ToStream(csv), request, userId: null);
+        var preview = await service.PreviewAsync(ToStream(csv), request);
+        var committed = await service.CommitAsync(ToStream(csv), request, userId: null);
 
         preview.CanCommit.Should().BeTrue();
         preview.TotalRows.Should().Be(2);
@@ -540,8 +542,8 @@ public class DishCatalogTests
     public async Task DishService_BomTemplate_Should_ReturnXlsxWithBlankBomFieldsForMissingDish()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
-        var bytes = await service.BuildBomTemplateWorkbookAsync(new BomTemplateQueryDto
+        var service = new DishBomTemplateService(fixture.Context);
+        var bytes = await service.BuildAsync(new BomTemplateQueryDto
         {
             PriceTier = 25000,
             DishId = GuidHelper.ToGuidString(fixture.DishId)
@@ -589,7 +591,7 @@ public class DishCatalogTests
     public async Task DishService_BomImport_Should_PreviewAndCommitXlsxWorkbook()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomImportService(fixture.Context);
         var bytes = BomTemplateWorkbookBuilder.Build(
             34000,
             "Global",
@@ -612,8 +614,8 @@ public class DishCatalogTests
             ]);
         var request = new BomImportCommitRequestDto { PriceTier = 34000 };
 
-        var preview = await service.PreviewBomImportAsync(new MemoryStream(bytes), request);
-        var committed = await service.CommitBomImportAsync(new MemoryStream(bytes), request, userId: null);
+        var preview = await service.PreviewAsync(new MemoryStream(bytes), request);
+        var committed = await service.CommitAsync(new MemoryStream(bytes), request, userId: null);
 
         preview.CanCommit.Should().BeTrue();
         preview.TotalRows.Should().Be(1);
@@ -630,7 +632,7 @@ public class DishCatalogTests
     public async Task DishService_BomImport_Should_CreateIngredient_WhenIngredientCodeIsBlank()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
+        var service = CreateDishBomImportService(fixture.Context);
         var bytes = BomTemplateWorkbookBuilder.Build(
             25000,
             "Global",
@@ -653,8 +655,8 @@ public class DishCatalogTests
             ]);
         var request = new BomImportCommitRequestDto { PriceTier = 25000 };
 
-        var preview = await service.PreviewBomImportAsync(new MemoryStream(bytes), request);
-        var committed = await service.CommitBomImportAsync(new MemoryStream(bytes), request, userId: null);
+        var preview = await service.PreviewAsync(new MemoryStream(bytes), request);
+        var committed = await service.CommitAsync(new MemoryStream(bytes), request, userId: null);
 
         preview.CanCommit.Should().BeTrue();
         preview.WarningRows.Should().Be(1);
@@ -676,8 +678,8 @@ public class DishCatalogTests
     public async Task DishService_BomImport_Should_BlockErrorsAndKeepCommitAllOrNothing()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        var service = CreateDishBomImportService(fixture.Context);
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -698,8 +700,8 @@ public class DishCatalogTests
             ["DISH-UNKNOWN", "Món sai", "25000", "", "ING-UNKNOWN", "NL sai", "BOX", "0.10", "1", "2026-08-01", "", "PUBLISHED", "Unknown refs"]);
         var request = new BomImportCommitRequestDto { PriceTier = 25000 };
 
-        var preview = await service.PreviewBomImportAsync(ToStream(csv), request);
-        var act = async () => await service.CommitBomImportAsync(ToStream(csv), request, userId: null);
+        var preview = await service.PreviewAsync(ToStream(csv), request);
+        var act = async () => await service.CommitAsync(ToStream(csv), request, userId: null);
 
         preview.CanCommit.Should().BeFalse();
         preview.TotalRows.Should().Be(4);
@@ -709,7 +711,7 @@ public class DishCatalogTests
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("DishCode không tồn tại")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("IngredientCode không tồn tại")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("UnitCode không tồn tại")));
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*File BOM còn lỗi*");
 
         var persistedRows = await fixture.Context.Dishboms.AsNoTracking().ToListAsync();
@@ -739,8 +741,11 @@ public class DishCatalogTests
         nextCalled.Should().BeFalse();
     }
 
-    private static DishService CreateDishService(IpcManagementContext context)
-        => new(Substitute.For<IDishRepository>(), context, new MemoryCache(new MemoryCacheOptions()));
+    private static DishBomService CreateDishBomService(IpcManagementContext context)
+        => new(context, new MemoryCache(new MemoryCacheOptions()));
+
+    private static DishBomImportService CreateDishBomImportService(IpcManagementContext context)
+        => new(context, new MemoryCache(new MemoryCacheOptions()), new EfTransactionRunner(context));
 
     private static MemoryStream ToStream(string content)
         => new(Encoding.UTF8.GetBytes(content));

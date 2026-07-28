@@ -5,19 +5,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Approvals;
-using IPCManagement.Api.Models.DTOs.Coordination;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Approvals;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
-using NSubstitute;
-using IPCManagement.Api.Services.Workflow;
+using IPCManagement.Api.Features.Approvals.Contracts;
+using IPCManagement.Api.Features.Approvals.Services;
+using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
+
+using IPCManagement.Api.Exceptions;
 
 namespace IPCManagement.Api.Tests;
 
@@ -35,15 +35,14 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
 
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
-        var request = new LockOrderPlanRequestDto
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+        var request = new LockOrderPlanRequest
         {
             ServiceDate = "2026-06-15",
             Scope = "FULLDAY",
             Lines =
             [
-                new LockOrderPlanLineDto
+                new LockOrderPlanLineRequest
                 {
                     QuantityPlanLineId = GuidHelper.ToGuidString(fixture.LineId),
                     FinalServings = 140
@@ -86,10 +85,9 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
-        var request = new AdjustServingsRequestDto
+        var request = new AdjustServingsRequest
         {
             ServingsQuantity = 120,
             Reason = "Điều chỉnh trực tiếp không qua duyệt"
@@ -99,7 +97,7 @@ public class CoordinationTransactionTests
         Func<Task> act = async () => await service.AdjustServingsAsync(lineId, request, fixture.UserId);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Không thể điều chỉnh trực tiếp sau khi chốt. Hãy gửi yêu cầu duyệt điều chỉnh.");
 
         await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
@@ -125,10 +123,9 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
-        var request = new UpdateForecastServingsRequestDto
+        var request = new UpdateForecastServingsRequest
         {
             ServingsQuantity = 135,
             Reason = "Nhập tay số suất trước chốt"
@@ -169,12 +166,11 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var act = async () => await service.UpdateForecastServingsAsync(
             lineId,
-            new UpdateForecastServingsRequestDto
+            new UpdateForecastServingsRequest
             {
                 ServingsQuantity = -1,
                 Reason = "Nhập sai"
@@ -204,17 +200,16 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var lockResult = await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto
+            new LockOrderPlanRequest
             {
                 ServiceDate = "2026-06-15",
                 Scope = "FULLDAY",
                 Lines =
                 [
-                    new LockOrderPlanLineDto
+                    new LockOrderPlanLineRequest
                     {
                         QuantityPlanLineId = lineId,
                         FinalServings = 140
@@ -236,15 +231,169 @@ public class CoordinationTransactionTests
 
         var directForecastEdit = async () => await service.UpdateForecastServingsAsync(
             lineId,
-            new UpdateForecastServingsRequestDto
+            new UpdateForecastServingsRequest
             {
                 ServingsQuantity = 150,
                 Reason = "Không được sửa trực tiếp sau khóa"
             },
             fixture.UserId);
 
-        await directForecastEdit.Should().ThrowAsync<InvalidOperationException>()
+        await directForecastEdit.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
+    }
+
+    [Fact]
+    public async Task LockOrderPlanAsync_Should_Not_DowngradeCompletedPlan()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+
+        await using (var arrangeContext = new IpcManagementContext(options))
+        {
+            var plan = await arrangeContext.Mealquantityplans.SingleAsync();
+            plan.Status = OrderStatus.Completed;
+            plan.CompletedAt = DateTime.UtcNow;
+            await arrangeContext.SaveChangesAsync();
+        }
+
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+        var act = async () => await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest
+            {
+                ServiceDate = "2026-06-15",
+                Scope = "MORNING",
+                ShiftName = "MORNING",
+                Lines =
+                [
+                    new LockOrderPlanLineRequest
+                    {
+                        QuantityPlanLineId = GuidHelper.ToGuidString(fixture.LineId),
+                        FinalServings = 140
+                    }
+                ]
+            },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo.*");
+
+        await using var verifyContext = new IpcManagementContext(options);
+        var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        persistedPlan.Status.Should().Be(OrderStatus.Completed);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Draft)]
+    [InlineData(OrderStatus.Forecasted)]
+    public async Task LockOrderPlanAsync_Should_AllowEveryLegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var result = await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.LockedLineCount.Should().Be(1);
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(OrderStatus.Confirmed);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Adjusted)]
+    [InlineData(OrderStatus.Completed)]
+    [InlineData(OrderStatus.Archived)]
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task LockOrderPlanAsync_Should_RejectEveryIllegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var act = async () => await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(sourceStatus);
+    }
+
+    [Fact]
+    public async Task LockOrderPlanAsync_FullDay_Should_LockBothShiftsAndUseRequestedOrForecastServings()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var morning = SeedAdjustServingsFixture(options, false, suffix: "101", shiftName: "MORNING");
+        SeedAdjustServingsFixture(options, false, suffix: "102", shiftName: "AFTERNOON", planStatus: OrderStatus.Forecasted);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var result = await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest
+            {
+                ServiceDate = "2026-06-15",
+                Scope = "FULLDAY",
+                Lines =
+                [
+                    new LockOrderPlanLineRequest
+                    {
+                        QuantityPlanLineId = GuidHelper.ToGuidString(morning.LineId),
+                        FinalServings = 140
+                    }
+                ]
+            },
+            morning.UserId);
+
+        result.Should().NotBeNull();
+        result!.LockedLineCount.Should().Be(2);
+        result.LockedShiftNames.Should().BeEquivalentTo(["MORNING", "AFTERNOON"]);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().Select(plan => plan.Status).ToListAsync())
+            .Should().OnlyContain(status => status == OrderStatus.Confirmed);
+        var lines = await verifyContext.Mealquantityplanlines.AsNoTracking().OrderBy(line => line.ShiftName).ToListAsync();
+        lines.Single(line => line.ShiftName == "MORNING").FinalServings.Should().Be(140);
+        lines.Single(line => line.ShiftName == "AFTERNOON").FinalServings.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task LockOrderPlanAsync_Should_HandleMissingUserInvalidShiftAndMissingPlans()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        (await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            null)).Should().BeNull();
+
+        var invalidShift = async () => await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "MORNING", ShiftName = "INVALID" },
+            Guid.NewGuid().ToString());
+        await invalidShift.Should().ThrowAsync<ArgumentException>();
+
+        (await service.LockOrderPlanAsync(
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            Guid.NewGuid().ToString())).Should().BeNull();
     }
 
     [Fact]
@@ -258,11 +407,10 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var first = await service.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -274,7 +422,7 @@ public class CoordinationTransactionTests
         first.Should().NotBeNull();
 
         var duplicate = async () => await service.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -283,7 +431,7 @@ public class CoordinationTransactionTests
             },
             fixture.UserId);
 
-        await duplicate.Should().ThrowAsync<InvalidOperationException>()
+        await duplicate.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Dòng này đang có yêu cầu điều chỉnh chờ duyệt.");
 
         await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
@@ -306,11 +454,10 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -347,10 +494,9 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var coordinationService = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -364,7 +510,7 @@ public class CoordinationTransactionTests
 
         var approval = await handler.HandleAsync(
             pending!.ApprovalTargetId,
-            new ApprovalRequestDto
+            new ApprovalRequest
             {
                 Status = ApprovalDecision.Approve,
                 Reason = "Đã kiểm tra"
@@ -391,7 +537,6 @@ public class CoordinationTransactionTests
         history.TargetType.Should().Be("order-adjustment");
         history.Decision.Should().Be("APPROVE");
 
-        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
     }
 
     [Fact]
@@ -405,10 +550,9 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var coordinationService = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -422,7 +566,7 @@ public class CoordinationTransactionTests
 
         var rejection = await handler.HandleAsync(
             pending!.ApprovalTargetId,
-            new ApprovalRequestDto
+            new ApprovalRequest
             {
                 Status = ApprovalDecision.Reject,
                 Reason = "Không đủ căn cứ"
@@ -444,7 +588,6 @@ public class CoordinationTransactionTests
         persistedLine.FinalServings.Should().Be(100);
         history.Decision.Should().Be("REJECT");
         (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
-        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
     }
 
     [Fact]
@@ -458,12 +601,11 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var planId = GuidHelper.ToGuidString(fixture.PlanId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderAsync(
             planId,
-            new SignoffOrderRequestDto { Note = "Chốt số suất trước khi tạo demand" },
+            new SignoffOrderRequest { Note = "Chốt số suất trước khi tạo demand" },
             fixture.UserId);
 
         result.Should().NotBeNull();
@@ -476,12 +618,308 @@ public class CoordinationTransactionTests
 
         persistedPlan.Status.Should().Be(OrderStatus.Completed);
         audit.BusinessArea.Should().Be("Coordination");
-        audit.EntityName.Should().Be(nameof(Mealquantityplan));
-        audit.FieldName.Should().Be(nameof(Mealquantityplan.Status));
+        audit.EntityName.Should().Be(nameof(MealQuantityPlan));
+        audit.FieldName.Should().Be(nameof(MealQuantityPlan.Status));
         audit.OldValue.Should().Be(OrderStatus.Confirmed);
         audit.NewValue.Should().Be(OrderStatus.Completed);
         audit.ChangedBy.Should().Equal(GuidHelper.ParseGuidString(fixture.UserId)!);
         audit.Reason.Should().Be("Chốt số suất trước khi tạo demand");
+    }
+
+    [Fact]
+    public async Task SignoffOrderScopeAsync_Should_CompleteSelectedShiftInOneTransaction()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var result = await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequest
+            {
+                ServiceDate = "2026-06-15",
+                ShiftName = "MORNING",
+                Note = "Hoàn tất ca kiểm thử"
+            },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.AffectedPlanCount.Should().Be(1);
+        result.ShiftName.Should().Be("MORNING");
+        result.NewStatus.Should().Be(OrderStatus.Completed);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(OrderStatus.Completed);
+        (await verifyContext.Auditlogs.AsNoTracking().SingleAsync()).Reason
+            .Should().Be("Hoàn tất ca kiểm thử");
+    }
+
+    [Fact]
+    public async Task UnlockOrderPlanScopeAsync_Should_UnlockSelectedShiftInOneTransaction()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var result = await service.UnlockOrderPlanScopeAsync(
+            new CoordinationScopeActionRequest
+            {
+                ServiceDate = "2026-06-15",
+                ShiftName = "MORNING",
+                Note = "Mở khóa ca kiểm thử"
+            },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.AffectedPlanCount.Should().Be(1);
+        result.NewStatus.Should().Be(OrderStatus.Draft);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        var plan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        plan.Status.Should().Be(OrderStatus.Draft);
+        plan.ConfirmedAt.Should().BeNull();
+        (await verifyContext.Auditlogs.AsNoTracking().SingleAsync()).NewValue
+            .Should().Be(OrderStatus.Draft);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Adjusted)]
+    public async Task SignoffOrderScopeAsync_Should_AllowEveryLegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var result = await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.OldStatuses.Should().ContainSingle().Which.Should().Be(sourceStatus);
+        result.NewStatus.Should().Be(OrderStatus.Completed);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Draft)]
+    [InlineData(OrderStatus.Forecasted)]
+    [InlineData(OrderStatus.Completed)]
+    [InlineData(OrderStatus.Archived)]
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task SignoffOrderScopeAsync_Should_RejectEveryIllegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var act = async () => await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(sourceStatus);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Adjusted)]
+    public async Task UnlockOrderPlanScopeAsync_Should_AllowEveryLegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var result = await service.UnlockOrderPlanScopeAsync(
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.OldStatuses.Should().ContainSingle().Which.Should().Be(sourceStatus);
+        result.NewStatus.Should().Be(OrderStatus.Draft);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Draft)]
+    [InlineData(OrderStatus.Forecasted)]
+    [InlineData(OrderStatus.Completed)]
+    [InlineData(OrderStatus.Archived)]
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task UnlockOrderPlanScopeAsync_Should_RejectEveryIllegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var act = async () => await service.UnlockOrderPlanScopeAsync(
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(sourceStatus);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScopeActions_Should_UpdateAllPlansInSelectedShiftAndLeaveOtherShiftUntouched()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var morning = SeedAdjustServingsFixture(options, false, suffix: "201", planStatus: OrderStatus.Confirmed);
+        SeedAdjustServingsFixture(options, false, suffix: "202", planStatus: OrderStatus.Adjusted);
+        SeedAdjustServingsFixture(options, false, suffix: "203", shiftName: "AFTERNOON", planStatus: OrderStatus.Confirmed);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var signoff = await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            morning.UserId);
+
+        signoff.Should().NotBeNull();
+        signoff!.AffectedPlanCount.Should().Be(2);
+        signoff.OldStatuses.Should().BeEquivalentTo([OrderStatus.Confirmed, OrderStatus.Adjusted]);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        var plans = await verifyContext.Mealquantityplans
+            .AsNoTracking()
+            .Include(plan => plan.Mealquantityplanlines)
+            .ToListAsync();
+        plans.Where(plan => plan.Mealquantityplanlines.Single().ShiftName == "MORNING")
+            .Should().OnlyContain(plan => plan.Status == OrderStatus.Completed);
+        plans.Single(plan => plan.Mealquantityplanlines.Single().ShiftName == "AFTERNOON").Status
+            .Should().Be(OrderStatus.Confirmed);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ScopeActions_Should_BlockMixedStatusesAtomically()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var first = SeedAdjustServingsFixture(options, false, suffix: "301", planStatus: OrderStatus.Confirmed);
+        SeedAdjustServingsFixture(options, false, suffix: "302", planStatus: OrderStatus.Draft);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+
+        var act = async () => await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            first.UserId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().Select(plan => plan.Status).ToListAsync())
+            .Should().BeEquivalentTo([OrderStatus.Confirmed, OrderStatus.Draft]);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScopeActions_Should_HandleMissingUserInvalidShiftAndMissingPlans()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
+        var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+
+        (await service.SignoffOrderScopeAsync(request, null)).Should().BeNull();
+        (await service.UnlockOrderPlanScopeAsync(request, null)).Should().BeNull();
+        (await service.SignoffOrderScopeAsync(request, Guid.NewGuid().ToString())).Should().BeNull();
+        (await service.UnlockOrderPlanScopeAsync(request, Guid.NewGuid().ToString())).Should().BeNull();
+        var fallbackShiftRequest = new CoordinationScopeActionRequest
+        {
+            ServiceDate = "2026-06-15",
+            Shift = "Ca Sáng"
+        };
+        (await service.SignoffOrderScopeAsync(fallbackShiftRequest, Guid.NewGuid().ToString())).Should().BeNull();
+        (await service.UnlockOrderPlanScopeAsync(fallbackShiftRequest, Guid.NewGuid().ToString())).Should().BeNull();
+
+        var invalidRequest = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "INVALID" };
+        Func<Task> invalidSignoff = async () =>
+            await service.SignoffOrderScopeAsync(invalidRequest, Guid.NewGuid().ToString());
+        Func<Task> invalidUnlock = async () =>
+            await service.UnlockOrderPlanScopeAsync(invalidRequest, Guid.NewGuid().ToString());
+        await invalidSignoff.Should().ThrowAsync<ArgumentException>();
+        await invalidUnlock.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("signoff")]
+    [InlineData("unlock")]
+    public async Task ScopeActions_Should_RollBackPlanAndAudit_WhenSaveFails(string action)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var seedOptions = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(seedOptions, true);
+        var failingOptions = BuildOptions(connection, new ThrowOnAuditlogSaveChangesInterceptor());
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(failingOptions));
+        var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+
+        Func<Task> act = action == "signoff"
+            ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
+            : async () => await service.UnlockOrderPlanScopeAsync(request, fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Simulated audit log failure");
+
+        await using var verifyContext = new IpcManagementContext(seedOptions);
+        var plan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        plan.Status.Should().Be(OrderStatus.Confirmed);
+        plan.ConfirmedAt.Should().NotBeNull();
+        plan.CompletedAt.Should().BeNull();
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("signoff")]
+    [InlineData("unlock")]
+    public async Task ScopeActions_Should_ReturnBusinessConflict_WhenConcurrencyCheckFails(string action)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var seedOptions = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(seedOptions, true);
+        var failingOptions = BuildOptions(connection, new ThrowConcurrencyOnPlanSaveChangesInterceptor());
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(failingOptions));
+        var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+        Func<Task> act = action == "signoff"
+            ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
+            : async () => await service.UnlockOrderPlanScopeAsync(request, fixture.UserId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
+
+        await using var verifyContext = new IpcManagementContext(seedOptions);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(OrderStatus.Confirmed);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
     private static DbContextOptions<IpcManagementContext> BuildOptions(
@@ -501,9 +939,14 @@ public class CoordinationTransactionTests
 
     private static AdjustFixture SeedAdjustServingsFixture(
         DbContextOptions<IpcManagementContext> options,
-        bool confirmedPlan)
+        bool confirmedPlan,
+        string suffix = "001",
+        string shiftName = "MORNING",
+        string? planStatus = null)
     {
         using var context = new IpcManagementContext(options);
+
+        var resolvedStatus = planStatus ?? (confirmedPlan ? OrderStatus.Confirmed : OrderStatus.Draft);
 
         var customerId = GuidHelper.ToBytes(Guid.NewGuid());
         var menuId = GuidHelper.ToBytes(Guid.NewGuid());
@@ -516,7 +959,7 @@ public class CoordinationTransactionTests
         var customer = new Customer
         {
             CustomerId = customerId,
-            CustomerCode = "CUS-001",
+            CustomerCode = $"CUS-{suffix}",
             CustomerName = "Customer Test",
             IsActive = true
         };
@@ -524,7 +967,7 @@ public class CoordinationTransactionTests
         var menu = new Menu
         {
             MenuId = menuId,
-            MenuCode = "MENU-001",
+            MenuCode = $"MENU-{suffix}",
             MenuName = "Menu Test",
             IsActive = true
         };
@@ -532,12 +975,12 @@ public class CoordinationTransactionTests
         var dish = new Dish
         {
             DishId = dishId,
-            DishCode = "DISH-001",
+            DishCode = $"DISH-{suffix}",
             DishName = "Dish Test",
             IsActive = true
         };
 
-        var menuItem = new Menuitem
+        var menuItem = new MenuItem
         {
             MenuItemId = menuItemId,
             MenuId = menuId,
@@ -547,14 +990,14 @@ public class CoordinationTransactionTests
             Menu = menu
         };
 
-        var schedule = new Menuschedule
+        var schedule = new MenuSchedule
         {
             MenuScheduleId = scheduleId,
             CustomerId = customerId,
             MenuId = menuId,
             ServiceDate = new DateOnly(2026, 6, 15),
             WeekStartDate = new DateOnly(2026, 6, 15),
-            ShiftName = "MORNING",
+            ShiftName = shiftName,
             MenuPrice = 35000,
             BomRatePercent = 100,
             Status = "ACTIVE",
@@ -562,24 +1005,26 @@ public class CoordinationTransactionTests
             Menu = menu
         };
 
-        var plan = new Mealquantityplan
+        var plan = new MealQuantityPlan
         {
             QuantityPlanId = planId,
-            PlanCode = "PLAN-001",
+            PlanCode = $"PLAN-{suffix}",
             ServiceDate = new DateOnly(2026, 6, 15),
-            Status = confirmedPlan ? "CONFIRMED" : "DRAFT",
+            Status = resolvedStatus,
             ConfirmationTime = new TimeOnly(8, 0),
-            ConfirmedAt = confirmedPlan ? DateTime.UtcNow : null
+            ConfirmedAt = OrderStatus.IsLocked(resolvedStatus) || resolvedStatus is OrderStatus.Completed or OrderStatus.Archived
+                ? DateTime.UtcNow
+                : null
         };
 
-        var line = new Mealquantityplanline
+        var line = new MealQuantityPlanLine
         {
             QuantityPlanLineId = lineId,
             QuantityPlanId = planId,
             MenuScheduleId = scheduleId,
             CustomerId = customerId,
             MenuId = menuId,
-            ShiftName = "MORNING",
+            ShiftName = shiftName,
             ForecastServings = 100,
             ConfirmedServings = 100,
             AdjustedServings = 0,
@@ -653,7 +1098,7 @@ public class CoordinationTransactionTests
 
         private static void ThrowIfAuditlogPending(DbContext? context)
         {
-            var hasPendingAuditLog = context?.ChangeTracker.Entries<Auditlog>()
+            var hasPendingAuditLog = context?.ChangeTracker.Entries<AuditLog>()
                 .Any(entry => entry.State is EntityState.Added) == true;
 
             if (hasPendingAuditLog)
@@ -684,7 +1129,7 @@ public class CoordinationTransactionTests
 
         private static void ThrowIfMealQuantityPlanPending(DbContext? context)
         {
-            var hasPendingPlanChange = context?.ChangeTracker.Entries<Mealquantityplan>()
+            var hasPendingPlanChange = context?.ChangeTracker.Entries<MealQuantityPlan>()
                 .Any(entry => entry.State is EntityState.Modified) == true;
 
             if (hasPendingPlanChange)
@@ -692,6 +1137,77 @@ public class CoordinationTransactionTests
                 throw new InvalidOperationException("Simulated lock failure");
             }
         }
+    }
+
+    private sealed class ThrowConcurrencyOnPlanSaveChangesInterceptor : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context?.ChangeTracker.Entries<MealQuantityPlan>()
+                    .Any(entry => entry.State == EntityState.Modified) == true)
+            {
+                throw new DbUpdateConcurrencyException("Simulated concurrency conflict");
+            }
+
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    private sealed class OrderLifecycleTestHarness
+    {
+        private readonly OrderPlanService _plan;
+        private readonly OrderAdjustmentService _adjustment;
+        private readonly OrderSignoffService _signoff;
+
+        public OrderLifecycleTestHarness(IpcManagementContext context)
+        {
+            var transactionRunner = new EfTransactionRunner(context);
+            _plan = new OrderPlanService(context, transactionRunner);
+            _adjustment = new OrderAdjustmentService(context, transactionRunner);
+            _signoff = new OrderSignoffService(context, transactionRunner);
+        }
+
+        public Task<LockOrderPlanResultDto?> LockOrderPlanAsync(LockOrderPlanRequest request, string? userId)
+            => _plan.LockOrderPlanAsync(request, userId);
+
+        public Task<LockOrderPlanResultDto?> UnlockOrderPlanAsync(string planId, string? userId)
+            => _plan.UnlockOrderPlanAsync(planId, userId);
+
+        public Task<CoordinationScopeActionResultDto?> UnlockOrderPlanScopeAsync(
+            CoordinationScopeActionRequest request,
+            string? userId)
+            => _plan.UnlockOrderPlanScopeAsync(request, userId);
+
+        public Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(
+            AdjustOrderAfterLockRequest request,
+            string? userId)
+            => _adjustment.AdjustOrderAfterLockAsync(request, userId);
+
+        public Task<AdjustServingsResultDto?> AdjustServingsAsync(
+            string orderId,
+            AdjustServingsRequest request,
+            string? userId)
+            => _adjustment.AdjustServingsAsync(orderId, request, userId);
+
+        public Task<AdjustServingsResultDto?> UpdateForecastServingsAsync(
+            string orderId,
+            UpdateForecastServingsRequest request,
+            string? userId)
+            => _adjustment.UpdateForecastServingsAsync(orderId, request, userId);
+
+        public Task<SignoffOrderResultDto?> SignoffOrderAsync(
+            string planId,
+            SignoffOrderRequest request,
+            string? userId)
+            => _signoff.SignoffOrderAsync(planId, request, userId);
+
+        public Task<CoordinationScopeActionResultDto?> SignoffOrderScopeAsync(
+            CoordinationScopeActionRequest request,
+            string? userId)
+            => _signoff.SignoffOrderScopeAsync(request, userId);
     }
 
     private sealed class AdjustFixture

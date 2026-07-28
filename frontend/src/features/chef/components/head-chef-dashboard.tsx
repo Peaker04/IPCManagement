@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ChefHeader } from './chef-header'
 import { ActiveDishesGrid } from './active-dishes-grid'
 import { MaterialChecklist } from './material-checklist'
 import { OperationalActions } from './operational-actions'
@@ -26,11 +25,8 @@ export function HeadChefDashboard({
 
   return (
     <main className="ipc-chef-workbench text-slate-700">
-      {/* Production Header Summary */}
-      <ChefHeader productionPlan={productionPlan} />
-
       {/* Main Content Grid */}
-      <div className="ipc-chef-workbench-grid mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
+      <div className="ipc-chef-workbench-grid grid grid-cols-1 gap-5 xl:grid-cols-3">
         {/* Left Column: Dishes and Materials */}
         <div className="ipc-chef-workbench-main space-y-5 xl:col-span-2">
           {/* Active Dishes Section */}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "canonicalBaseline": "backend/database/IPCmanagement.sql + ordered source migrations",
+  "databaseOnlyMigrations": [
+    {
+      "migrationId": "20260626043000_SeedTemporaryBomData",
+      "disposition": "retired-data-only",
+      "reason": "The migration only inserted temporary TMP-BOM sample data and had no schema effect. It was intentionally deleted before the canonical baseline was hardened; restoring executable Up/Down logic would seed demo data into fresh installs.",
+      "sourceCommit": "bb57c4aeffd52f37131d16d50407cc9a0f39140c",
+      "sourcePath": "backend/src/IPCManagement.Api/Migrations/20260626043000_SeedTemporaryBomData.cs",
+      "sourceBlobOid": "8e1ce7d939701f4703deab8298890b5c753235e9",
+      "successorMigrationId": null
+    },
+    {
+      "migrationId": "20260705121500_AddCompletedMealQuantityPlanStatuses",
+      "disposition": "superseded-by-source",
+      "reason": "No source file exists in reachable Git history. Its named status-enum effect is represented by the checked-in migration that adds COMPLETED plus completion/concurrency columns; the database history row is retained as historical deployment evidence.",
+      "sourceCommit": null,
+      "sourcePath": null,
+      "sourceBlobOid": null,
+      "successorMigrationId": "20260706033326_AddMealQuantityPlanCompletedAndConcurrency"
+    }
+  ]
+}

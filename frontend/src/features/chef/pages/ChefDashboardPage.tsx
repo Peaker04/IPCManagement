@@ -1,26 +1,31 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
 import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '../../coordination/types'
-import { getBangkokDayCode, resolveChefServiceDate } from '../chefServiceDate'
+import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
+import { ChefHeader } from '../components/chef-header'
 import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
 import { useChefJournal } from '../journal/useChefJournal'
 import { ChefProductionSection } from '../production/ChefProductionSection'
 import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '../production/useChefProductionPlan'
 import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
+import { ChefQueryBoundary } from '../ChefQueryBoundary'
 
 export default function ChefDashboardPage() {
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
   const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
-  const [activeView, setActiveView] = useState<'production' | 'documents'>('production')
+  const [selectedView, setSelectedView] = useState<'production' | 'documents'>('production')
+  const activeView = useDeferredValue(selectedView)
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
+  const isProductionView = activeView === 'production'
+  const isViewPending = selectedView !== activeView
   const lockKey = `${activeDay}-${activeShift}`
   const serviceDate = resolveChefServiceDate(activeDay)
   const scope = useMemo<ChefShiftScope>(() => ({
@@ -31,33 +36,29 @@ export default function ChefDashboardPage() {
     isLocked: Boolean(lockedShifts[lockKey]),
   }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
-  const receipts = useKitchenReceipts(scope, setFeedback)
-  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback)
-  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback)
-  const journal = useChefJournal()
+  const receipts = useKitchenReceipts(scope, setFeedback, isProductionView)
+  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback, isProductionView)
+  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback, isProductionView)
+  const journal = useChefJournal(!isProductionView)
   const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
+  const receiptViewReady = receipts.queryView.phase === 'ready'
+  const returnView = isProductionView ? exceptions.queryView : journal.queryViews.documents
+  const returnCount = isProductionView ? exceptions.activeReturns.length : journal.returnDocuments.length
 
   const statusMessages = [
-    production.status.isCatalogLoading ? 'Đang tải danh mục món ăn và định lượng để lập danh sách nguyên liệu.' : null,
-    production.status.isCatalogError ? 'Chưa tải được danh mục món ăn; danh sách sẽ thiếu định lượng chính xác từ hệ thống.' : null,
     production.status.isCatalogEmpty ? 'Danh mục món ăn đang trống nên danh sách nguyên liệu chưa thể sinh đầy đủ từ định lượng.' : null,
-    receipts.isLoading ? 'Đang tải phiếu xuất kho để bếp trưởng ký nhận nguyên liệu.' : null,
-    receipts.isError ? 'Chưa tải được phiếu xuất kho; danh sách tạm dùng dữ liệu dự kiến từ định lượng.' : null,
-    receipts.rows.length > 0
+    receiptViewReady && receipts.rows.length > 0
       ? receipts.pendingCount > 0
         ? `${receipts.pendingCount} dòng nguyên liệu trên trang ${receipts.page} đang chờ bếp trưởng ký nhận.`
         : hasUnreviewedReceiptPages
           ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
           : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
-    production.status.isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ hệ thống.' : null,
-    production.status.isDailyPlanError ? 'Chưa tải được kế hoạch sản xuất gửi bếp; danh sách dự kiến vẫn được giữ để tham chiếu.' : null,
     ...production.dailyPlanWarnings,
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
-  const statusVariant = production.status.isCatalogError || production.status.isCatalogEmpty || receipts.isError
-    || production.status.isDailyPlanError || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
 
   const signOffMaterial = async (materialId: string, signed: boolean) => {
     await receipts.signOff(
@@ -72,11 +73,11 @@ export default function ChefDashboardPage() {
       context={(
         <>
           <ContextStrip items={[
-            { label: 'Kế hoạch hôm nay', value: production.dailyPlan ? `${production.dailyPlan.sentPlans}/${production.dailyPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: production.dailyPlan?.sentPlans ? 'success' : 'warning' },
-            { label: 'Phiếu trả', value: `${journal.returnDocuments.length} chứng từ`, tone: 'neutral' },
-            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : scope.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : scope.isLocked ? 'warning' : 'neutral' },
+            { label: 'Kế hoạch hôm nay', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã gửi` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
+            { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
+            { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
-          <ShiftAlert isLocked={scope.isLocked} />
+          <ShiftAlert isLocked={production.isLocked} />
           {statusMessages.length > 0 && (
             <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
               <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
@@ -91,12 +92,34 @@ export default function ChefDashboardPage() {
           compact
           ariaLabel="Chọn góc nhìn bếp trưởng"
           tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }]}
-          activeTab={activeView === 'production' ? 'chef-production' : 'chef-documents'}
-          onTabChange={(id) => setActiveView(id === 'chef-production' ? 'production' : 'documents')}
+          activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
+          onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}
         />
-        {activeView === 'production' && (
-          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab">
-            <ChefProductionSection lines={production.dailyPlanLines} isSending={production.isSendingDailyPlan} onReceivePlan={production.receiveDailyPlan} />
+        <div className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none" aria-busy={isViewPending} aria-live="polite">
+        {isViewPending && (
+          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
+            Đang cập nhật
+          </span>
+        )}
+        {isProductionView && (
+          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab" className="space-y-4">
+            <ChefQueryBoundary preserveFallback queries={[
+              { label: 'danh mục món và BOM', view: production.queryViews.catalog },
+              { label: 'kế hoạch sản xuất trong ngày', view: production.queryViews.dailyPlan },
+              { label: 'phiếu xuất kho bàn giao cho bếp', view: receipts.queryView },
+              { label: 'phiếu trả kho của ca', view: exceptions.queryView },
+            ]}>
+            <ChefHeader productionPlan={production.productionPlan} />
+            <ChefProductionSection
+              lines={production.dailyPlanLines}
+              isSending={production.isSendingDailyPlan}
+              isLocked={production.isLocked}
+              isLoading={production.status.isDailyPlanLoading}
+              isError={production.status.isDailyPlanError}
+              totalPlans={production.dailyPlan?.totalPlans ?? 0}
+              sentPlans={production.dailyPlan?.sentPlans ?? 0}
+              onReceivePlan={production.receiveDailyPlan}
+            />
             <KitchenReceiptSection
               productionPlan={production.productionPlan}
               returns={exceptions.activeReturns}
@@ -109,9 +132,21 @@ export default function ChefDashboardPage() {
               receiptTotalCount={receipts.totalCount}
               onReceiptPageChange={receipts.setPage}
             />
+            </ChefQueryBoundary>
           </div>
         )}
-        {activeView === 'documents' && <ChefDocumentsSection movements={journal.kitchenMovements} documents={journal.returnDocuments} />}
+        {!isProductionView && (
+          <ChefQueryBoundary queries={[
+            { label: 'chứng từ bếp', view: journal.queryViews.documents },
+            { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
+          ]}>
+            <ChefDocumentsSection
+              movements={journal.kitchenMovements}
+              documents={journal.returnDocuments}
+            />
+          </ChefQueryBoundary>
+        )}
+        </div>
       </div>
     </OperationalFrame>
   )

@@ -1,439 +1,52 @@
 import {
   AlertTriangle,
   ArrowLeftRight,
-  ClipboardList,
   Database,
   Download,
   Filter,
   PackageCheck,
   RotateCcw,
   ShoppingCart,
-  TrendingUp,
   Utensils,
   Warehouse,
 } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
   CursorPaginationBar,
-  ExceptionLane,
   FieldRow,
-  InlineAlert,
   OperationalFrame,
   PaginationBar,
   TableViewport,
   SectionPanel,
   StatusBadge,
   StockMovementTable,
-  ViewSwitcher,
 } from '@/components/common';
-import { ROUTES } from '@/routes/routeConfig';
-import {
-  useGetAuditChangePageQuery,
-  useGetCurrentStockPageQuery,
-  useGetDataQualityPageQuery,
-  useGetIngredientDemandPageQuery,
-  useGetIssueVsReturnUsagePageQuery,
-  useGetKitchenIssuesPageQuery,
-  useGetPriceVariancePageQuery,
-  useGetPriceVarianceBySupplierPageQuery,
-  useGetPriceVarianceByPeriodPageQuery,
-  useGetPriceVarianceByDishGroupPageQuery,
-  useGetPurchasePlanPageQuery,
-  useGetStockMovementPageQuery,
-  type StockMovement,
-  type WorkflowReportQuery,
-} from '@/features/workflow';
-import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
+import { ROUTES } from '@/lib/routeConfig';
+import { useHasPermission, useHasRole } from '@/app/hooks';
+import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
-import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
-
-type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
-
-const reportTabs = [
-  { id: 'reports-price', label: 'Biến động giá' },
-  { id: 'reports-demand', label: 'Nhu cầu nguyên liệu' },
-  { id: 'reports-purchase', label: 'Kế hoạch thu mua' },
-  { id: 'reports-stock', label: 'Tồn kho' },
-  { id: 'reports-movement', label: 'Nhập/xuất kho' },
-  { id: 'reports-kitchen', label: 'Xuất bếp' },
-  { id: 'reports-usage', label: 'Sử dụng thực tế' },
-  { id: 'reports-audit', label: uiCopy.reports.audit },
-  { id: 'reports-data-quality', label: uiCopy.reports.dataQuality },
-];
-
-const movementTypeLabel: Record<StockMovement['type'], string> = {
-  receipt: 'Nhập kho',
-  issue: 'Xuất kho',
-  supplemental: 'Xuất bổ sung',
-  return: 'Trả kho',
-  adjustment: 'Điều chỉnh',
-};
-
-const escapeCsvValue = (value: unknown) => {
-  const text = value == null ? '' : String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
-const buildCsv = <T,>(rows: T[], columns: Array<[string, (row: T) => unknown]>) => {
-  const headerLine = columns.map(([label]) => escapeCsvValue(label)).join(',');
-  const rowLines = rows.map((row) => columns.map(([, getValue]) => escapeCsvValue(getValue(row))).join(','));
-  return ['﻿' + headerLine, ...rowLines].join('\r\n');
-};
-
-const downloadCsv = (csv: string, filename: string) => {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-};
-
-const EmptyRow = ({ colSpan }: { colSpan: number }) => (
-  <tr>
-    <td colSpan={colSpan} className="py-8 text-center text-slate-500">
-      Chưa có dữ liệu để hiển thị
-    </td>
-  </tr>
-);
-
-interface ReportCursor {
-  cursorDate: string;
-  cursorId?: string;
-}
-
-type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
-
-const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
-  { id: 'lines', label: 'Theo dòng nhập' },
-  { id: 'supplier', label: 'Theo nhà cung cấp' },
-  { id: 'period', label: 'Theo thời gian' },
-  { id: 'dishGroup', label: 'Theo nhóm món' },
-];
-
-const validReportViews: ReportView[] = ['price', 'demand', 'purchase', 'stock', 'movement', 'kitchen', 'usage', 'audit', 'data-quality'];
+import {
+  standardPageSizeOptions,
+  useReportsPageModel,
+} from './useReportsPageModel';
+import { ReportsNavigation } from './ReportsNavigation';
+import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
+import { ReportQueryBoundary } from './ReportQueryBoundary';
+import { ReportsPricePanel } from './ReportsPricePanel';
 
 const ReportsPage = () => {
-  const [searchParams] = useSearchParams();
-  const initialView = searchParams.get('view');
-  const [activeView, setActiveView] = useState<ReportView>(
-    validReportViews.includes(initialView as ReportView) ? (initialView as ReportView) : 'price'
-  );
-  const [priceSubView, setPriceSubView] = useState<PriceSubView>('lines');
-  const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [shiftName, setShiftName] = useState('');
-  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
-  const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
-  const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
-  const pricePageSize = 6;
-  const [pricePage, setPricePage] = useState(1);
-  const priceAggregatePageSize = 8;
-  const [supplierPage, setSupplierPage] = useState(1);
-  const [periodPage, setPeriodPage] = useState(1);
-  const [dishGroupPage, setDishGroupPage] = useState(1);
-  const reportPageSize = 20;
-  const stockPageSize = 8;
-  const [stockPage, setStockPage] = useState(1);
-  const demandPageSize = 8;
-  const [demandPage, setDemandPage] = useState(1);
-  const purchasePageSize = 8;
-  const [purchasePage, setPurchasePage] = useState(1);
-  const operationalPageSize = 8;
-  const [kitchenPage, setKitchenPage] = useState(1);
-  const [usagePage, setUsagePage] = useState(1);
-  const [dataQualityPage, setDataQualityPage] = useState(1);
-
-  const resetCursorPages = () => {
-    setMovementCursors([]);
-    setAuditCursors([]);
-  };
-
-  const resetReportPages = () => {
-    setPricePage(1);
-    setSupplierPage(1);
-    setPeriodPage(1);
-    setDishGroupPage(1);
-    setStockPage(1);
-    setDemandPage(1);
-    setPurchasePage(1);
-    setKitchenPage(1);
-    setUsagePage(1);
-    setDataQualityPage(1);
-    resetCursorPages();
-  };
-
-  const reportQuery: WorkflowReportQuery = {
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-    shiftName: shiftName || undefined,
-    limit: reportPageSize,
-  };
-
-  const priceVarianceResult = useGetPriceVariancePageQuery({
-    ...reportQuery,
-    pageNumber: pricePage,
-    pageSize: pricePageSize,
-  }, { skip: activeView !== 'price' || priceSubView !== 'lines' });
-  const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierPageQuery({ ...reportQuery, pageNumber: supplierPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
-  const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodPageQuery({ ...reportQuery, pageNumber: periodPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'period' });
-  const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupPageQuery({ ...reportQuery, pageNumber: dishGroupPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
-  const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data?.items ?? [];
-  const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data?.items ?? [];
-  const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data?.items ?? [];
-  const ingredientDemandResult = useGetIngredientDemandPageQuery({
-    ...reportQuery,
-    pageNumber: demandPage,
-    pageSize: demandPageSize,
-  }, { skip: activeView !== 'demand' });
-  const purchasePlanResult = useGetPurchasePlanPageQuery({
-    ...reportQuery,
-    groupBy: purchasePlanGroupBy,
-    pageNumber: purchasePage,
-    pageSize: purchasePageSize,
-  }, { skip: activeView !== 'purchase' });
-  const currentStockResult = useGetCurrentStockPageQuery({
-    ...reportQuery,
-    pageNumber: stockPage,
-    pageSize: stockPageSize,
-  }, { skip: activeView !== 'stock' });
-  const movementCursor = movementCursors.at(-1);
-  const auditCursor = auditCursors.at(-1);
-  const stockMovementResult = useGetStockMovementPageQuery({
-    ...reportQuery,
-    cursorDate: movementCursor?.cursorDate,
-    cursorId: movementCursor?.cursorId,
-    limit: reportPageSize,
-    sortDirection,
-  }, { skip: activeView !== 'movement' });
-  const kitchenIssueResult = useGetKitchenIssuesPageQuery({ ...reportQuery, pageNumber: kitchenPage, pageSize: operationalPageSize }, { skip: activeView !== 'kitchen' });
-  const usageResult = useGetIssueVsReturnUsagePageQuery({ ...reportQuery, pageNumber: usagePage, pageSize: operationalPageSize }, { skip: activeView !== 'usage' });
-  const auditResult = useGetAuditChangePageQuery({
-    ...reportQuery,
-    cursorDate: auditCursor?.cursorDate,
-    cursorId: auditCursor?.cursorId,
-    limit: reportPageSize,
-    sortDirection,
-  }, { skip: activeView !== 'audit' });
-  const dataQualityResult = useGetDataQualityPageQuery({ ...reportQuery, pageNumber: dataQualityPage, pageSize: operationalPageSize }, { skip: activeView !== 'data-quality' });
-
-  const priceVarianceRows = priceVarianceResult.data?.items ?? [];
-  const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
-  const purchasePlanRows = purchasePlanResult.data?.items ?? [];
-  const purchasePlanSummary = {
-    rowCount: purchasePlanResult.data?.totalCount ?? 0,
-    totalShortageQty: purchasePlanResult.data?.totalShortageQty ?? 0,
-    totalEstimatedAmount: purchasePlanResult.data?.totalEstimatedAmount ?? 0,
-    shortageTone: (purchasePlanResult.data?.totalShortageQty ?? 0) > 0 ? 'danger' as const : 'success' as const,
-  };
-  const currentStockRows = currentStockResult.data?.items ?? [];
-  const stockMovementRows = stockMovementResult.data?.items ?? [];
-  const kitchenIssueRows = kitchenIssueResult.data?.items ?? [];
-  const usageRows = usageResult.data?.items ?? [];
-  const auditRows = auditResult.data?.items ?? [];
-  const dataQualityReport = dataQualityResult.data;
-  const dataQualityRows = dataQualityReport?.page.items ?? [];
-
-  const warningItems = priceVarianceRows.filter((item) => item.warning);
-  const selectedWarning = warningItems[0];
-  const shortageCount = ingredientDemandResult.data?.shortageCount ?? 0;
-  const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
-    price: priceVarianceResult,
-    demand: ingredientDemandResult,
-    purchase: purchasePlanResult,
-    stock: currentStockResult,
-    movement: stockMovementResult,
-    kitchen: kitchenIssueResult,
-    usage: usageResult,
-    audit: auditResult,
-    'data-quality': dataQualityResult,
-  };
-  const activeReportState = reportStates[activeView];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each entry's rows/columns are paired per report view; a shared row type would be unsound here.
-  const exportConfig: Record<ReportView, { filename: string; rows: unknown[]; columns: Array<[string, (row: any) => unknown]> }> = {
-    price: {
-      filename: 'bien-dong-gia',
-      rows: priceVarianceRows,
-      columns: [
-        ['Tên nguyên liệu', (row) => row.name],
-        ['Nhà cung cấp', (row) => row.supplier],
-        ['ĐVT', (row) => row.unit],
-        ['Giá tham chiếu', (row) => row.pricePrev],
-        ['Giá nhập', (row) => row.priceCurrent],
-        ['Thay đổi (%)', (row) => row.change],
-        ['Vượt ngưỡng', (row) => (row.warning ? 'Có' : 'Không')],
-      ],
-    },
-    demand: {
-      filename: 'nhu-cau-nguyen-lieu',
-      rows: ingredientDemandRows,
-      columns: [
-        ['Nguyên liệu', (row) => row.material],
-        ['Nguồn', (row) => row.source],
-        ['Cần', (row) => row.required],
-        ['Tồn hiện có', (row) => row.available],
-        ['Thiếu/mua', (row) => Math.max(row.required - row.available, 0)],
-        ['Đơn vị', (row) => row.unit],
-        ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
-      ],
-    },
-    purchase: {
-      filename: 'ke-hoach-thu-mua',
-      rows: purchasePlanRows,
-      columns: [
-        ['Kỳ', (row) => row.periodKey],
-        ['Nguyên liệu', (row) => row.ingredientName],
-        ['Cần', (row) => row.requiredQty],
-        ['Tồn', (row) => row.currentStockQty],
-        [uiCopy.reports.pending, (row) => row.pendingReceiptQty],
-        ['Đề xuất mua', (row) => row.shortageQty],
-        ['Đơn vị', (row) => row.unitName],
-        ['Nhà cung cấp', (row) => row.supplierName],
-        ['Cảnh báo', (row) => row.warnings.join('; ')],
-      ],
-    },
-    stock: {
-      filename: 'ton-kho-hien-tai',
-      rows: currentStockRows,
-      columns: [
-        ['Kho', (row) => row.warehouse],
-        ['Nguyên liệu', (row) => row.ingredient],
-        ['Số lượng hiện tại', (row) => row.currentQty],
-        ['Đơn vị', (row) => row.unit],
-        ['Cập nhật', (row) => new Date(row.lastUpdated).toLocaleString('vi-VN')],
-      ],
-    },
-    movement: {
-      filename: 'nhap-xuat-kho',
-      rows: stockMovementRows,
-      columns: [
-        ['Chứng từ', (row) => row.documentNo],
-        ['Loại', (row: StockMovement) => movementTypeLabel[row.type]],
-        ['Nguyên liệu', (row) => row.material],
-        ['Số lượng', (row) => row.quantity],
-        ['Đơn vị', (row) => row.unit],
-        ['Phụ trách', (row) => row.owner],
-        ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
-      ],
-    },
-    kitchen: {
-      filename: 'xuat-bep',
-      rows: kitchenIssueRows,
-      columns: [
-        ['Phiếu xuất', (row) => row.issueCode],
-        ['Ngày', (row) => new Date(row.issueDate).toLocaleDateString('vi-VN')],
-        ['Ca', (row) => row.shiftName ?? 'Cả ngày'],
-        ['Kho', (row) => row.warehouse],
-        ['Nguyên liệu', (row) => row.ingredient],
-        ['Yêu cầu', (row) => row.requestedQty],
-        ['Đã xuất', (row) => row.issuedQty],
-        ['Đơn vị', (row) => row.unit],
-      ],
-    },
-    usage: {
-      filename: 'su-dung-thuc-te',
-      rows: usageRows,
-      columns: [
-        ['Phiếu xuất', (row) => row.issueCode],
-        ['Ngày', (row) => new Date(row.issueDate).toLocaleDateString('vi-VN')],
-        ['Ca', (row) => row.shiftName ?? 'Cả ngày'],
-        ['Nguyên liệu', (row) => row.ingredient],
-        ['Đã xuất', (row) => row.issuedQty],
-        ['Hoàn kho', (row) => row.returnedQty],
-        ['Đã dùng', (row) => row.usedQty],
-        ['Đơn vị', (row) => row.unit],
-      ],
-    },
-    audit: {
-      filename: 'audit',
-      rows: auditRows,
-      columns: [
-        ['Thời gian', (row) => new Date(row.timestamp).toLocaleString('vi-VN')],
-        ['Người thực hiện', (row) => row.actor],
-        ['Mảng nghiệp vụ', (row) => row.businessArea],
-        ['Đối tượng', (row) => row.fieldAffected],
-        ['Giá trị cũ', (row) => row.oldValue],
-        ['Giá trị mới', (row) => row.newValue],
-        ['Lý do', (row) => row.reason],
-      ],
-    },
-    'data-quality': {
-      filename: 'data-quality',
-      rows: dataQualityRows,
-      columns: [
-        ['Mức độ', (row) => row.severity],
-        ['Hạn xử lý (SLA)', (row) => row.slaLabel],
-        ['Priority', (row) => row.priorityRank],
-        ['Trạng thái xử lý', (row) => formatWorkflowStatus(row.remediationStatus)],
-        [uiCopy.reports.owner, (row) => row.owner],
-        ['Nhóm lỗi', (row) => row.category],
-        ['Bảng/entity', (row) => row.entityName],
-        ['Mã', (row) => row.entityCode],
-        ['Đối tượng', (row) => row.entityLabel],
-        ['Vấn đề', (row) => row.message],
-        ['Cách xử lý', (row) => row.suggestedAction],
-        ['Route', (row) => row.route],
-      ],
-    },
-  };
-
-  const handleExportActiveReport = () => {
-    const config = exportConfig[activeView];
-    if (config.rows.length === 0) {
-      return;
-    }
-    const csv = buildCsv(config.rows, config.columns);
-    const timestamp = new Date().toISOString().slice(0, 10);
-    downloadCsv(csv, `${config.filename}-${timestamp}.csv`);
-  };
-
-  const openNextMovementPage = () => {
-    const page = stockMovementResult.data;
-    if (page?.hasNext && page.nextCursorDate) {
-      setMovementCursors((current) => [...current, {
-        cursorDate: page.nextCursorDate!,
-        cursorId: page.nextCursorId,
-      }]);
-    }
-  };
-
-  const openNextAuditPage = () => {
-    const page = auditResult.data;
-    if (page?.hasNext && page.nextCursorDate) {
-      setAuditCursors((current) => [...current, {
-        cursorDate: page.nextCursorDate!,
-        cursorId: page.nextCursorId,
-      }]);
-    }
-  };
-
-  const warningQueue = warningItems.map((item) => ({
-    title: item.name,
-    description: `Tăng ${formatPercent(item.change)} tại ${item.supplier}. Giá hiện tại ${formatCurrency(item.priceCurrent)}/${formatUnit(item.unit)}.`,
-    action: (
-      <div className="ipc-report-warning-actions">
-        <Link className="ipc-button ipc-button-warning ipc-button-bounded" to={ROUTES.PURCHASING}>
-          Thu mua xử lí
-        </Link>
-        <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.APPROVALS}>
-          Gửi quản lí duyệt
-        </Link>
-      </div>
-    ),
-    tone: 'danger' as const,
-  }));
-
-  return (
+  const canReadPurchaseReports = useHasPermission('purchase.read');
+  const canReadWarehouseReports = useHasPermission('warehouse.read');
+  const canReadAuditChanges = useHasRole(['admin']);
+  const model = useReportsPageModel({ canReadAuditChanges, canReadPurchaseReports, canReadWarehouseReports });
+  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dataQualityPage, dataQualityReport, dataQualityResult, dataQualityRows, dateFrom, dateTo, demandPage, demandPageSize, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, reportContextItems, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDataQualityPage, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setKitchenPage, setMovementCursors, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setShiftName, setSortDirection, setStockPage, setStockPageSize, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, usagePage, usageResult, usageRows } = model;
+return (
     <OperationalFrame
+      className="ipc-reports-page"
       eyebrow="Dữ liệu vận hành"
       title="Phân tích và thống kê vận hành"
       command={
@@ -463,7 +76,7 @@ const ReportsPage = () => {
               value={dateFrom}
               onChange={(event) => {
                 setDateFrom(event.target.value);
-                resetReportPages();
+                resetReportPagesAndUrl();
               }}
             />
           </FieldRow>
@@ -475,12 +88,12 @@ const ReportsPage = () => {
               value={dateTo}
               onChange={(event) => {
                 setDateTo(event.target.value);
-                resetReportPages();
+                resetReportPagesAndUrl();
               }}
             />
           </FieldRow>
           <FieldRow label="Ca" htmlFor="report-shift">
-            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => { setShiftName(event.target.value); resetReportPages(); }}>
+            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => { setShiftName(event.target.value); resetReportPagesAndUrl(); }}>
               <option value="">Tất cả</option>
               <option value="MORNING">Ca sáng</option>
               <option value="AFTERNOON">Ca chiều</option>
@@ -505,272 +118,15 @@ const ReportsPage = () => {
         </CommandBar>
       }
       context={
-        <ContextStrip
-          items={[
-            { label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' : 'success' },
-            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
-            { label: 'Dòng tồn kho', value: (currentStockResult.data?.totalCount ?? currentStockRows.length).toString(), tone: 'neutral' },
-            { label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' },
-            { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
-          ]}
-        />
+        <ContextStrip items={reportContextItems} />
       }
     >
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn loại báo cáo vận hành"
-        tabs={reportTabs}
-        activeTab={`reports-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('reports-', '') as ReportView)}
-      />
+      <ReportsNavigation model={model} />
 
-      {activeReportState.isFetching && (
-        <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">
-          Hệ thống đang lấy dữ liệu báo cáo quy trình cho tab đang mở.
-        </InlineAlert>
-      )}
-
-      {activeReportState.isError && (
-        <InlineAlert title="Không tải được dữ liệu báo cáo" variant="danger">
-          Vui lòng kiểm tra quyền truy cập hoặc dữ liệu mẫu trước khi đối chiếu.
-        </InlineAlert>
-      )}
-
-      {activeView === 'price' && (
-        <div id="reports-price-panel" role="tabpanel" aria-labelledby="reports-price-tab" className="flex flex-col gap-4">
-          <ExceptionLane
-            title="Hàng đợi cảnh báo giá"
-            items={warningQueue}
-            empty="Không có nguyên liệu vượt ngưỡng trong kỳ này."
-          />
-
-          <ViewSwitcher
-            compact
-            ariaLabel="Chọn cách phân tích biến động giá"
-            tabs={priceSubViewTabs.map((tab) => ({ id: `price-sub-${tab.id}`, label: tab.label }))}
-            activeTab={`price-sub-${priceSubView}`}
-            onTabChange={(id) => setPriceSubView(id.replace('price-sub-', '') as PriceSubView)}
-          />
-
-          {priceSubView === 'supplier' && (
-            <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-              <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
-                <table className="ipc-data-table min-w-[720px]">
-                  <thead>
-                    <tr>
-                      <th>Nguyên liệu</th>
-                      <th>Nhà cung cấp</th>
-                      <th>Số lần nhập</th>
-                      <th>Giá TB</th>
-                      <th>Giá thấp nhất</th>
-                      <th>Giá cao nhất</th>
-                      <th>Giá tham chiếu</th>
-                      <th>% biến động</th>
-                      <th>Đánh giá</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {priceVarianceBySupplierRows.length === 0 ? (
-                      <EmptyRow colSpan={9} />
-                    ) : (
-                      priceVarianceBySupplierRows.map((row) => (
-                        <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                          <td>{row.ingredientName}</td>
-                          <td>{row.supplierName}</td>
-                          <td className="ipc-numeric-cell">{row.receiptCount}</td>
-                          <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                          <td className="ipc-numeric-cell">{formatCurrency(row.minUnitPrice)}</td>
-                          <td className="ipc-numeric-cell">{formatCurrency(row.maxUnitPrice)}</td>
-                          <td className="ipc-numeric-cell">{formatCurrency(row.referencePrice)}</td>
-                          <td className="ipc-numeric-cell">{formatPercent(row.variancePercent)}</td>
-                          <td className="ipc-badge-cell">
-                            {row.isWarning ? (
-                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
-                            ) : (
-                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </TableViewport>
-              <PaginationBar page={priceVarianceBySupplierResult.data?.pageNumber ?? supplierPage} pageSize={priceVarianceBySupplierResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceBySupplierResult.data?.totalCount ?? 0} onPageChange={setSupplierPage} />
-            </SectionPanel>
-          )}
-
-          {priceSubView === 'period' && (
-            <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-              <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
-                <table className="ipc-data-table min-w-[720px]">
-                  <thead>
-                    <tr>
-                      <th>Nguyên liệu</th>
-                      <th>Tháng</th>
-                      <th>Giá TB</th>
-                      <th>% so với tham chiếu</th>
-                      <th>% so với tháng trước</th>
-                      <th>Đánh giá</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {priceVarianceByPeriodRows.length === 0 ? (
-                      <EmptyRow colSpan={6} />
-                    ) : (
-                      priceVarianceByPeriodRows.map((row) => (
-                        <tr key={`${row.ingredientId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                          <td>{row.ingredientName}</td>
-                          <td>{row.periodLabel}</td>
-                          <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                          <td className="ipc-numeric-cell">{formatPercent(row.variancePercentVsReference)}</td>
-                          <td className="ipc-numeric-cell">
-                            {row.variancePercentVsPreviousPeriod == null ? '—' : formatPercent(row.variancePercentVsPreviousPeriod)}
-                          </td>
-                          <td className="ipc-badge-cell">
-                            {row.isWarning ? (
-                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
-                            ) : (
-                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </TableViewport>
-              <PaginationBar page={priceVarianceByPeriodResult.data?.pageNumber ?? periodPage} pageSize={priceVarianceByPeriodResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceByPeriodResult.data?.totalCount ?? 0} onPageChange={setPeriodPage} />
-            </SectionPanel>
-          )}
-
-          {priceSubView === 'dishGroup' && (
-            <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-              <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
-                <table className="ipc-data-table min-w-[720px]">
-                  <thead>
-                    <tr>
-                      <th>Nhóm món</th>
-                      <th>Số nguyên liệu</th>
-                      <th>Số NL vượt ngưỡng</th>
-                      <th>% biến động (có trọng số)</th>
-                      <th>Nguyên liệu ảnh hưởng nhiều nhất</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {priceVarianceByDishGroupRows.length === 0 ? (
-                      <EmptyRow colSpan={5} />
-                    ) : (
-                      priceVarianceByDishGroupRows.map((row) => (
-                        <tr key={row.dishGroup} className={row.warningIngredientCount > 0 ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                          <td>{row.dishGroup}</td>
-                          <td className="ipc-numeric-cell">{row.ingredientCount}</td>
-                          <td className="ipc-numeric-cell">{row.warningIngredientCount}</td>
-                          <td className="ipc-numeric-cell">{formatPercent(row.weightedAvgVariancePercent)}</td>
-                          <td className="text-left">
-                            {row.topIngredients.map((ing) => `${ing.ingredientName} (${formatPercent(ing.variancePercent)})`).join(', ')}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </TableViewport>
-              <PaginationBar page={priceVarianceByDishGroupResult.data?.pageNumber ?? dishGroupPage} pageSize={priceVarianceByDishGroupResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceByDishGroupResult.data?.totalCount ?? 0} onPageChange={setDishGroupPage} />
-            </SectionPanel>
-          )}
-
-          {priceSubView === 'lines' && (
-          <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-            <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
-              <table className="ipc-data-table ipc-report-table min-w-[720px]">
-                <thead>
-                  <tr>
-                    <th>Tên nguyên liệu</th>
-                    <th>ĐV</th>
-                    <th>Giá tham chiếu</th>
-                    <th>Giá nhập</th>
-                    <th>Thay đổi</th>
-                    <th>Đánh giá</th>
-                    <th>Xử lý</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {priceVarianceRows.length === 0 ? (
-                    <EmptyRow colSpan={7} />
-                  ) : (
-                    priceVarianceRows.map((item, index) => (
-                      <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
-                          <span className="ipc-report-material">
-                            {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="var(--ipc-slate-600)" />}
-                            <span className="ipc-report-material-copy">
-                              <span>{item.name}</span>
-                              <span className="text-xs font-normal text-slate-400">{item.supplier}</span>
-                            </span>
-                          </span>
-                        </td>
-                        <td>{formatUnit(item.unit)}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
-                        <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>
-                        <td className={item.warning ? 'ipc-numeric-cell font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'ipc-numeric-cell font-bold text-[var(--ipc-warning)]' : 'ipc-numeric-cell text-slate-600'}>
-                          <span className="inline-flex items-center gap-1 justify-end w-full">
-                            {item.change > 0 && <span className="inline-block text-[10px] text-inherit">▲</span>}
-                            {item.change > 0 ? `+${formatPercent(item.change)}` : '0%'}
-                          </span>
-                        </td>
-                        <td className="ipc-badge-cell">
-                          {item.warning ? (
-                            <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
-                          ) : item.change > 0 ? (
-                            <StatusBadge variant="warning" className="ipc-table-badge ipc-table-badge--status">Theo dõi</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
-                          )}
-                        </td>
-                        <td className="ipc-report-action-cell">
-                          {item.warning ? 'Thu mua xử lí, duyệt nếu vẫn vượt ngưỡng' : 'Theo dõi kỳ kế'}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </TableViewport>
-            <PaginationBar
-              page={priceVarianceResult.data?.pageNumber ?? pricePage}
-              pageSize={priceVarianceResult.data?.pageSize ?? pricePageSize}
-              totalItems={priceVarianceResult.data?.totalCount ?? 0}
-              onPageChange={setPricePage}
-            />
-          </SectionPanel>
-          )}
-
-          {priceSubView === 'lines' && selectedWarning && (
-            <div className="ipc-split-detail-strip ipc-report-warning-detail">
-              <div className="ipc-split-detail-label mb-3">Tác động vận hành — {selectedWarning.name}</div>
-              <div className="flex flex-wrap items-start gap-4">
-                <div className="ipc-report-warning-card min-w-[240px] flex-1 rounded-md border border-[var(--ipc-danger)] bg-[var(--ipc-danger-soft)] p-3 text-sm text-[var(--ipc-danger)]">
-                  <div className="font-bold text-[14px]">Vượt ngưỡng {formatPercent(selectedWarning.change)}</div>
-                  <div className="mt-1 leading-5">
-                    Giá tăng từ {formatCurrency(selectedWarning.pricePrev)} lên {formatCurrency(selectedWarning.priceCurrent)}/{formatUnit(selectedWarning.unit)}.
-                  </div>
-                </div>
-                <div className="ipc-report-warning-card rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 min-w-[240px] flex-1">
-                  <div className="font-bold text-slate-900 text-[14px]">Hành động đề xuất</div>
-                  <p className="mt-1 leading-5 text-slate-500">
-                    Thu mua kiểm tra nhà cung cấp thay thế, sau đó gửi quản lí duyệt nếu giá vẫn vượt ngưỡng.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Link className="ipc-button ipc-button-warning ipc-button-bounded shadow-sm" to={ROUTES.PURCHASING}>Mở thu mua</Link>
-                    <Link className="ipc-button ipc-button-ghost ipc-button-bounded shadow-sm" to={ROUTES.APPROVALS}>Mở duyệt vận hành</Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {activeView === 'price' ? (
+        <ReportsPricePanel model={model} />
+      ) : (
+        <ReportQueryBoundary view={activeReportView}>
 
       {activeView === 'demand' && (
         <SectionPanel title="Nhu cầu nguyên liệu theo ngày, ca, khách hàng và món" icon={<Utensils size={18} />}>
@@ -806,7 +162,11 @@ const ReportsPage = () => {
             page={ingredientDemandResult.data?.pageNumber ?? demandPage}
             pageSize={ingredientDemandResult.data?.pageSize ?? demandPageSize}
             totalItems={ingredientDemandResult.data?.totalCount ?? 0}
-            onPageChange={setDemandPage}
+            itemLabel="nguyên liệu"
+            isPending={ingredientDemandResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setDemandPage, setDemandPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setDemandPage, nextPage)}
           />
         </SectionPanel>
       )}
@@ -852,7 +212,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePlanRows.map((row) => (
+                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} isError={purchasePlanResult.isError} /> : purchasePlanRows.map((row) => (
                   <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
                     <td>{row.periodKey}</td>
                     <td>{row.ingredientName ?? row.ingredientId}</td>
@@ -875,7 +235,11 @@ const ReportsPage = () => {
             page={purchasePlanResult.data?.pageNumber ?? purchasePage}
             pageSize={purchasePlanResult.data?.pageSize ?? purchasePageSize}
             totalItems={purchasePlanResult.data?.totalCount ?? 0}
-            onPageChange={setPurchasePage}
+            itemLabel="kế hoạch"
+            isPending={purchasePlanResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setPurchasePage, setPurchasePageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setPurchasePage, nextPage)}
           />
 
         </SectionPanel>
@@ -911,19 +275,27 @@ const ReportsPage = () => {
             page={currentStockResult.data?.pageNumber ?? stockPage}
             pageSize={currentStockResult.data?.pageSize ?? stockPageSize}
             totalItems={currentStockResult.data?.totalCount ?? 0}
-            onPageChange={setStockPage}
+            itemLabel="nguyên liệu"
+            isPending={currentStockResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setStockPage, setStockPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setStockPage, nextPage)}
           />
         </SectionPanel>
       )}
 
       {activeView === 'movement' && (
         <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
-          <StockMovementTable movements={stockMovementRows} pageSize={reportPageSize} />
-          <CursorPaginationBar
-            page={movementCursors.length + 1}
-            hasNext={stockMovementResult.data?.hasNext ?? false}
-            onPrevious={() => setMovementCursors((current) => current.slice(0, -1))}
-            onNext={openNextMovementPage}
+          <StockMovementTable
+            movements={stockMovementRows}
+            cursorPagination={{
+              page: movementCursors.length + 1,
+              hasNext: stockMovementResult.data?.hasNext ?? false,
+              isPending: stockMovementResult.isFetching,
+              onPrevious: () => setMovementCursors((current) => current.slice(0, -1)),
+              onNext: openNextMovementPage,
+              ariaLabel: 'Phân trang lịch sử nhập xuất kho',
+            }}
           />
         </SectionPanel>
       )}
@@ -958,7 +330,16 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={kitchenIssueResult.data?.pageNumber ?? kitchenPage} pageSize={kitchenIssueResult.data?.pageSize ?? operationalPageSize} totalItems={kitchenIssueResult.data?.totalCount ?? 0} onPageChange={setKitchenPage} />
+          <PaginationBar
+            page={kitchenIssueResult.data?.pageNumber ?? kitchenPage}
+            pageSize={kitchenIssueResult.data?.pageSize ?? operationalPageSize}
+            totalItems={kitchenIssueResult.data?.totalCount ?? 0}
+            itemLabel="phiếu xuất"
+            isPending={kitchenIssueResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setKitchenPage, setOperationalPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setKitchenPage, nextPage)}
+          />
         </SectionPanel>
       )}
 
@@ -992,7 +373,16 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={usageResult.data?.pageNumber ?? usagePage} pageSize={usageResult.data?.pageSize ?? operationalPageSize} totalItems={usageResult.data?.totalCount ?? 0} onPageChange={setUsagePage} />
+          <PaginationBar
+            page={usageResult.data?.pageNumber ?? usagePage}
+            pageSize={usageResult.data?.pageSize ?? operationalPageSize}
+            totalItems={usageResult.data?.totalCount ?? 0}
+            itemLabel="dòng sử dụng"
+            isPending={usageResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setUsagePage, setOperationalPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setUsagePage, nextPage)}
+          />
         </SectionPanel>
       )}
 
@@ -1012,7 +402,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {auditRows.length === 0 ? <EmptyRow colSpan={7} /> : auditRows.map((row, index) => (
+                {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{new Date(row.timestamp).toLocaleString('vi-VN')}</td>
                     <td>{row.actor}</td>
@@ -1029,6 +419,7 @@ const ReportsPage = () => {
           <CursorPaginationBar
             page={auditCursors.length + 1}
             hasNext={auditResult.data?.hasNext ?? false}
+            isPending={auditResult.isFetching}
             onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
             onNext={openNextAuditPage}
           />
@@ -1102,8 +493,19 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={dataQualityResult.data?.page.pageNumber ?? dataQualityPage} pageSize={dataQualityResult.data?.page.pageSize ?? operationalPageSize} totalItems={dataQualityResult.data?.page.totalCount ?? 0} onPageChange={setDataQualityPage} />
+          <PaginationBar
+            page={dataQualityResult.data?.page.pageNumber ?? dataQualityPage}
+            pageSize={dataQualityResult.data?.page.pageSize ?? operationalPageSize}
+            totalItems={dataQualityResult.data?.page.totalCount ?? 0}
+            itemLabel="vấn đề dữ liệu"
+            isPending={dataQualityResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setDataQualityPage, setOperationalPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setDataQualityPage, nextPage)}
+          />
         </SectionPanel>
+      )}
+        </ReportQueryBoundary>
       )}
     </OperationalFrame>
   );

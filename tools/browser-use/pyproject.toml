@@ -1,0 +1,11 @@
+[project]
+name = "ipc-browser-automation"
+version = "0.1.0"
+description = "Project-local Browser Use automation tooling for IPC Management"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "browser-use>=0.13.6",
+]
+
+[tool.uv]
+package = false

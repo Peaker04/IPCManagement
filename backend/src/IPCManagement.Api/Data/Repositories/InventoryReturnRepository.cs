@@ -1,17 +1,17 @@
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Inventory.Contracts;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IInventoryReturnRepository
+public class InventoryReturnRepository : GenericRepository<InventoryReturn>, IInventoryReturnRepository
 {
     public InventoryReturnRepository(IpcManagementContext context) : base(context)
     {
     }
 
-    public async Task<(IEnumerable<Inventoryreturn> Items, int TotalCount)> GetPagedAsync(InventoryReturnFilterRequestDto request)
+    public async Task<(IEnumerable<InventoryReturn> Items, int TotalCount)> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
         var (pageNumber, pageSize) = NormalizePaging(request.PageNumber, request.PageSize);
 
@@ -20,15 +20,17 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
             .Include(inventoryReturn => inventoryReturn.Warehouse)
             .Include(inventoryReturn => inventoryReturn.Issue)
             .Include(inventoryReturn => inventoryReturn.CreatedByNavigation)
+            .Include(inventoryReturn => inventoryReturn.ReceivedByNavigation)
+            .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)
+                .ThenInclude(line => line.Unit)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(request.WarehouseId))
+        var warehouseBytes = GuidHelper.ParseFilterIdOrThrow(request.WarehouseId, "kho");
+        if (warehouseBytes != null)
         {
-            var warehouseBytes = GuidHelper.ParseGuidString(request.WarehouseId);
-            if (warehouseBytes != null)
-            {
-                query = query.Where(r => r.WarehouseId == warehouseBytes);
-            }
+            query = query.Where(r => r.WarehouseId == warehouseBytes);
         }
 
         if (!string.IsNullOrWhiteSpace(request.ShiftName))
@@ -64,12 +66,13 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
         return (items, totalCount);
     }
 
-    public async Task<Inventoryreturn?> GetByIdWithLinesAsync(byte[] id)
+    public async Task<InventoryReturn?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Inventoryreturns
             .AsNoTracking()
             .Include(inventoryReturn => inventoryReturn.Warehouse)
             .Include(inventoryReturn => inventoryReturn.Issue)
             .Include(inventoryReturn => inventoryReturn.CreatedByNavigation)
+            .Include(inventoryReturn => inventoryReturn.ReceivedByNavigation)
             .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)
                 .ThenInclude(line => line.Ingredient)
             .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)

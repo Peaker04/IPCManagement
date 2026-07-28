@@ -22,6 +22,18 @@ export const normalizeDishMatchKey = (value?: string) =>
     .replace(/\s+/g, ' ')
     .toLocaleUpperCase('vi-VN')
 
+/**
+ * Khóa gộp cho dữ liệu định lượng: giữ nguyên dấu tiếng Việt, chỉ chuẩn hóa khoảng trắng và hoa/thường.
+ * Không dùng `normalizeDishMatchKey` ở đây — hàm đó bỏ dấu để **dò tìm** món theo tên nên gộp
+ * "Bò" với "Bơ" thành một dòng nếu đem đi cộng số lượng.
+ */
+export const normalizeMaterialGroupKey = (value?: string) =>
+  (value ?? '')
+    .normalize('NFC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleUpperCase('vi-VN')
+
 export const getShiftLabel = (shiftName?: string) => {
   if (shiftName === 'MORNING') return 'Ca sáng'
   if (shiftName === 'AFTERNOON') return 'Ca chiều'
@@ -56,7 +68,7 @@ export const isMeaningfulMenuDiff = (
   return normalizeMenuDisplayDiff(row.currentDishName) !== normalizeMenuDisplayDiff(row.importedDishName)
 }
 
-export const summarizeImportWarnings = (warnings: string[]) => {
+export const summarizeImportWarnings = (warnings: readonly string[]) => {
   const uniqueWarnings = Array.from(new Set(warnings.filter(Boolean)))
   const contractWarnings = uniqueWarnings.filter(
     (warning) => warning.includes('Không có hợp đồng hiệu lực') && warning.includes('dùng giá mặc định'),
@@ -89,7 +101,7 @@ export const formatQuantityVariance = (value: number, unit: string) => {
   return formatQuantityWithUnit(0, unit)
 }
 
-export const formatImportDate = (value?: string) => {
+export const formatImportDate = (value?: string | null) => {
   if (!value) return 'Chưa xác định'
   const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
   if (dateOnlyMatch) return `${Number(dateOnlyMatch[3])}/${Number(dateOnlyMatch[2])}/${dateOnlyMatch[1]}`

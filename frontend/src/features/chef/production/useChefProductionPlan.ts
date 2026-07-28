@@ -1,42 +1,60 @@
 import { useMemo } from 'react'
 import { useAppSelector } from '@/app/hooks'
-import { useGetDishesCatalogQuery } from '@/features/projects/dishCatalogApi'
-import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation, type KitchenIssueRow } from '@/features/workflow'
-import type { ShiftType } from '../../coordination/types'
+import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi'
+import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation, type KitchenIssueRow } from '@/api/workflowApi'
+import type { OrderRow, ShiftType } from '../../coordination/types'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
+import { toChefView } from '../chefQueryView'
 import { buildChefProductionPlan, mapDailyPlanLines } from './chefProductionModel'
 
 export type ChefFeedback = { title: string; message: string; variant: 'info' | 'warning' | 'danger' }
 export type ChefShiftScope = { activeDay: string; activeShift: ShiftType; serviceDate: string; apiShiftName: string; isLocked: boolean }
+const EMPTY_CHEF_LIST: never[] = []
 
 export function useChefProductionPlan(
   scope: ChefShiftScope,
   kitchenIssues: KitchenIssueRow[],
   signedMaterials: Record<string, boolean>,
   onFeedback: (feedback: ChefFeedback) => void,
+  enabled = true,
 ) {
   const orders = useAppSelector((state) => state.coordination.orders)
-  const menuPrice = useAppSelector((state) => state.coordination.menuPrice)
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
-  const catalog = useGetDishesCatalogQuery()
-  const daily = useGetDailyProductionPlanQuery({ serviceDate: scope.serviceDate, shiftName: scope.apiShiftName })
+  const catalogQuery = useGetDishesCatalogQuery(undefined, { skip: !enabled })
+  const catalogView = toChefView(catalogQuery, 'danh mục món và BOM')
+  const catalogDishes = catalogView.phase === 'ready' ? catalogView.data : EMPTY_CHEF_LIST
+  const dailyQuery = useGetDailyProductionPlanQuery(
+    { serviceDate: scope.serviceDate, shiftName: scope.apiShiftName },
+    { skip: !enabled },
+  )
+  const dailyPlanView = toChefView(dailyQuery, 'kế hoạch sản xuất trong ngày')
+  const dailyPlan = dailyPlanView.phase === 'ready' ? dailyPlanView.data : undefined
   const [sendDailyPlan, sendState] = useSendDailyProductionPlanToKitchenMutation()
+  const supportedOrders = useMemo(
+    () => orders.filter((order): order is OrderRow & { shift: ShiftType } =>
+      order.shift === 'Ca Sáng' || order.shift === 'Ca Chiều'),
+    [orders],
+  )
+  const dailyPlanLines = useMemo(() => mapDailyPlanLines(dailyPlan), [dailyPlan])
+  const isLocked = scope.isLocked || Boolean(
+    dailyPlan && dailyPlan.totalPlans > 0 && dailyPlan.sentPlans >= dailyPlan.totalPlans,
+  )
 
   const productionPlan = useMemo(() => buildChefProductionPlan({
-    orders,
-    catalogDishes: catalog.data ?? [],
+    orders: supportedOrders,
+    catalogDishes,
     kitchenIssues,
     signedMaterials,
     activeDay: scope.activeDay,
     activeShift: scope.activeShift,
-    isLocked: scope.isLocked,
-    menuPrice,
+    isLocked,
     lossRate,
     serviceDate: scope.serviceDate,
-  }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, menuPrice, lossRate])
-  const dailyPlanLines = useMemo(() => mapDailyPlanLines(daily.data), [daily.data])
-  const dailyPlanWarnings = daily.data?.warnings ?? []
-  const isCatalogEmpty = !catalog.isLoading && !catalog.isError && (catalog.data?.length ?? 0) === 0
+    dailyPlanLines,
+    dailyTotalServings: dailyPlan?.totalServings,
+  }), [supportedOrders, catalogDishes, kitchenIssues, signedMaterials, scope, isLocked, lossRate, dailyPlanLines, dailyPlan?.totalServings])
+  const dailyPlanWarnings = dailyPlan?.warnings ?? EMPTY_CHEF_LIST
+  const isCatalogEmpty = catalogView.phase === 'ready' && catalogDishes.length === 0
 
   const receiveDailyPlan = async () => {
     try {
@@ -61,17 +79,22 @@ export function useChefProductionPlan(
 
   return {
     productionPlan,
-    dailyPlan: daily.data,
+    dailyPlan,
     dailyPlanLines,
     dailyPlanWarnings,
     receiveDailyPlan,
     isSendingDailyPlan: sendState.isLoading,
+    isLocked,
+    queryViews: {
+      catalog: catalogView,
+      dailyPlan: dailyPlanView,
+    },
     status: {
-      isCatalogLoading: catalog.isLoading,
-      isCatalogError: catalog.isError,
+      isCatalogLoading: catalogView.phase === 'uninitialized' || catalogView.phase === 'loading',
+      isCatalogError: catalogView.phase === 'error' || catalogView.phase === 'forbidden',
       isCatalogEmpty,
-      isDailyPlanLoading: daily.isLoading,
-      isDailyPlanError: daily.isError,
+      isDailyPlanLoading: dailyPlanView.phase === 'uninitialized' || dailyPlanView.phase === 'loading',
+      isDailyPlanError: dailyPlanView.phase === 'error' || dailyPlanView.phase === 'forbidden',
     },
   }
 }

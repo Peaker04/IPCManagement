@@ -4,9 +4,13 @@ using System.Reflection;
 using System.Security;
 using System.Xml.Linq;
 using FluentAssertions;
-using IPCManagement.Api.Models.DTOs.SampleData;
+using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.SampleData;
+using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -24,41 +28,84 @@ public class WeeklyMenuImportParserTests
             AppContext.BaseDirectory,
             "Fixtures",
             "weekly-menu-template-ANV-2026-07-20.xlsx");
+        var populatedBytes = PopulateAnvTemplate(
+            File.ReadAllBytes(fixturePath),
+            new Dictionary<string, string> { ["D9"] = "Cá kho mẫu" });
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            File.WriteAllBytes(tempFile, populatedBytes);
+            var plan = InvokeParse(
+                tempFile,
+                Path.GetFileName(fixturePath),
+                new DateOnly(2026, 7, 20),
+                new CustomerImportMapping { SheetNameHint = "ANV" },
+                priceTier);
 
-        var plan = InvokeParse(
-            fixturePath,
-            Path.GetFileName(fixturePath),
-            new DateOnly(2026, 7, 20),
-            new Customerimportmapping { SheetNameHint = "ANV" },
-            priceTier);
+            GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
+            GetProperty<DateOnly>(plan, "WeekStartDate").Should().Be(new DateOnly(2026, 7, 20));
+            GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
+            GetEnumerable(plan, "Sections").Should().HaveCount(4);
+            GetEnumerable(plan, "Items").Should().NotBeEmpty();
+            GetStrings(plan, "Warnings").Any(message =>
+                    message.Contains("menu dùng chung", StringComparison.OrdinalIgnoreCase))
+                .Should().Be(expectsSharedMenuFallback);
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
 
-        GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
-        GetProperty<DateOnly>(plan, "WeekStartDate").Should().Be(new DateOnly(2026, 7, 20));
-        GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
-        GetEnumerable(plan, "Sections").Should().HaveCount(4);
-        GetEnumerable(plan, "Items").Should().NotBeEmpty();
-        GetStrings(plan, "Warnings").Any(message =>
-                message.Contains("menu dùng chung", StringComparison.OrdinalIgnoreCase))
-            .Should().Be(expectsSharedMenuFallback);
+    [Fact]
+    public async Task BuildWeeklyMenuTemplateAsync_Should_ReturnEmbeddedAnvDefaultForAnvCustomer()
+    {
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseInMemoryDatabase($"weekly-menu-template-{Guid.NewGuid():N}")
+            .Options;
+        await using var context = new IpcManagementContext(options);
+        var customerId = GuidHelper.NewId();
+        context.Customers.Add(new Customer
+        {
+            CustomerId = customerId,
+            CustomerCode = "ANV",
+            CustomerName = "AMANN",
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var service = new WeeklyMenuTemplateService(context);
+        var result = await service.BuildWeeklyMenuTemplateAsync(
+            GuidHelper.ToGuidString(customerId),
+            new DateOnly(2026, 7, 20));
+        using var embeddedTemplate = typeof(WeeklyMenuTemplateService).Assembly
+            .GetManifestResourceStream(
+                "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx")
+            ?? throw new InvalidOperationException("Embedded ANV template was not found.");
+        using var expectedContent = new MemoryStream();
+        await embeddedTemplate.CopyToAsync(expectedContent);
+
+        result.CustomerCode.Should().Be("ANV");
+        result.Content.Should().Equal(expectedContent.ToArray());
     }
 
     [Fact]
     public void NormalizeWeeklyMenuPriceTier_Should_RejectMissingTier()
     {
-        var method = typeof(SampleDataImportService)
+        var method = typeof(WeeklyMenuImportService)
             .GetMethod("NormalizeWeeklyMenuPriceTier", BindingFlags.NonPublic | BindingFlags.Static);
 
         var action = () => method!.Invoke(null, [null]);
 
         action.Should().Throw<TargetInvocationException>()
-            .WithInnerException<InvalidOperationException>()
+            .WithInnerException<BusinessRuleException>()
             .WithMessage("*chọn định mức*");
     }
 
     [Fact]
     public async Task BuildWeeklyMenuTemplateAsync_Should_CreateThreeAlignedPriceSheets()
     {
-        var service = new SampleDataImportService(null!, null!);
+        var service = new WeeklyMenuTemplateService(null!);
         var template = await service.BuildWeeklyMenuTemplateAsync(null, new DateOnly(2026, 6, 15));
         var bytes = template.Content;
 
@@ -79,14 +126,21 @@ public class WeeklyMenuImportParserTests
         sheet3Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
         sheet1Xml.Should().Contain("""<mergeCell ref="C2:I3"/>""").And.NotContain("""<mergeCell ref="C2:H3"/>""");
         sheet1Xml.Should().Contain("""<mergeCell ref="C4:I4"/>""").And.NotContain("""<mergeCell ref="C4:H4"/>""");
+        sheet1Xml.Should()
+            .Contain("Món mặn 1")
+            .And.Contain("Món mặn 2")
+            .And.Contain("""<dimension ref="A1:I32"/>""")
+            .And.Contain("""<mergeCell ref="C13:I13"/>""")
+            .And.Contain("""<mergeCell ref="C32:I32"/>""")
+            .And.NotContain("Sữa chua");
         sheet1Xml.Should().Contain("zoomScale=\"55\"").And.Contain("zoomScaleNormal=\"55\"");
     }
 
     [Fact]
     public void WeeklyMenuTemplateBuilder_Should_CreateDistinctCustomerLayouts_ForAnvAndDav()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
-            .GetType("IPCManagement.Api.Services.SampleData.WeeklyMenuTemplateWorkbookBuilder")!
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
+            .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         buildMethod.Should().NotBeNull();
 
@@ -104,8 +158,139 @@ public class WeeklyMenuImportParserTests
         anvWorkbookXml.Should().Contain("ANV 25k").And.Contain("ANV 30k").And.Contain("ANV 34k");
         davSheetXml.Should().Contain("THỰC ĐƠN DAV");
         anvSheetXml.Should().Contain("THỰC ĐƠN AMANN");
-        anvSheetXml.Should().Contain("Phụ").And.Contain("Sữa chua");
-        davSheetXml.Should().Contain("Phụ 1").And.Contain("Phụ 2").And.NotContain("Sữa chua");
+        anvSheetXml.Should()
+            .Contain("Món mặn 1")
+            .And.Contain("Món mặn 2")
+            .And.Contain("""<dimension ref="A1:I32"/>""")
+            .And.Contain("""<row r="20" ht="19.5" customHeight="1"/>""")
+            .And.Contain("""<mergeCell ref="C13:I13"/>""")
+            .And.Contain("""<mergeCell ref="C19:I19"/>""")
+            .And.Contain("""<mergeCell ref="C26:I26"/>""")
+            .And.Contain("""<mergeCell ref="C32:I32"/>""")
+            .And.NotContain("Sữa chua");
+        davSheetXml.Should()
+            .Contain("Món mặn 1")
+            .And.Contain("Món mặn 2")
+            .And.Contain("""<dimension ref="A1:I32"/>""")
+            .And.Contain("""<mergeCell ref="C13:I13"/>""")
+            .And.Contain("""<mergeCell ref="C32:I32"/>""")
+            .And.NotContain("Phụ 1")
+            .And.NotContain("Phụ 2")
+            .And.NotContain("Sữa chua");
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_MapAnvMainRowsToMainAndSub1Slots()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            CreateWorkbook(tempFile, "ANV 25k", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                ["", "", "Từ ngày 15/06/2026 đến ngày 20/06/2026"],
+                ["", "", "", "Thứ 2", "Thứ 3"],
+                ["", "", "", "15/06/2026", "16/06/2026"],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn 1", "Cá kho", "Gà kho"],
+                ["", "", "Món mặn 2", "Trứng chiên", "Tôm rim"]
+            ]);
+
+            var plan = InvokeParse(
+                tempFile,
+                Path.GetFileName(tempFile),
+                new DateOnly(2026, 6, 15),
+                new CustomerImportMapping { SheetNameHint = "ANV" },
+                25000m);
+
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "Slot"))
+                .Should()
+                .Contain("main")
+                .And.Contain("sub1");
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void WeeklyMenuTemplateBuilder_Should_BorderEveryCellInMergedFruitRows()
+    {
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
+            .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
+            .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
+        var bytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
+
+        using var archive = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
+        var sheet = XDocument.Parse(ReadEntry(archive, "xl/worksheets/sheet1.xml"));
+        XNamespace spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+
+        foreach (var rowNumber in new[] { 13, 19, 26, 32 })
+        {
+            var cells = sheet
+                .Descendants(spreadsheet + "row")
+                .Single(row => (string?)row.Attribute("r") == rowNumber.ToString())
+                .Elements(spreadsheet + "c")
+                .ToList();
+
+            cells.Select(cell => (string?)cell.Attribute("r")).Should().Equal(
+                Enumerable.Range(3, 7).Select(column => $"{ColumnLetter(column)}{rowNumber}"));
+            cells.Should().OnlyContain(cell => (string?)cell.Attribute("s") == "7");
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_AcceptPopulatedGeneratedSharedLayout()
+    {
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
+            .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
+            .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
+        var generatedBytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
+        var populatedBytes = PopulateGeneratedTemplate(generatedBytes, new Dictionary<string, string>
+        {
+            ["D9"] = "Cá kho sáng",
+            ["D10"] = "Trứng chiên sáng",
+            ["D11"] = "Rau luộc sáng",
+            ["D12"] = "Canh bí sáng",
+            ["D15"] = "Đậu hũ kho sáng",
+            ["D16"] = "Nấm xào sáng",
+            ["D17"] = "Rau chay sáng",
+            ["D18"] = "Canh chay sáng",
+            ["D22"] = "Cá kho chiều",
+            ["D23"] = "Trứng chiên chiều",
+            ["D24"] = "Rau luộc chiều",
+            ["D25"] = "Canh bí chiều",
+            ["D28"] = "Đậu hũ kho chiều",
+            ["D29"] = "Nấm xào chiều",
+            ["D30"] = "Rau chay chiều",
+            ["D31"] = "Canh chay chiều"
+        });
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+
+        try
+        {
+            File.WriteAllBytes(tempFile, populatedBytes);
+            var plan = InvokeParse(
+                tempFile,
+                "weekly-menu-template-ANV-2026-06-15.xlsx",
+                new DateOnly(2026, 6, 15),
+                new CustomerImportMapping { SheetNameHint = "ANV" },
+                25000m);
+
+            GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
+            GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
+            GetEnumerable(plan, "Sections").Should().HaveCount(4);
+            GetEnumerable(plan, "Items").Should().HaveCount(16);
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "Slot"))
+                .Should()
+                .Contain(["main", "sub1", "rau", "canh"]);
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
     }
 
     [Fact]
@@ -122,7 +307,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var action = () => InvokeParse(tempFile, "no-sheet.xlsx", null);
-            action.Should().Throw<TargetInvocationException>();
+            action.Should().Throw<BusinessRuleException>();
         }
         finally
         {
@@ -150,7 +335,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var action = () => InvokeParse(tempFile, "bad-dates.xlsx", null);
-            action.Should().Throw<TargetInvocationException>();
+            action.Should().Throw<BusinessRuleException>();
         }
         finally
         {
@@ -511,8 +696,7 @@ public class WeeklyMenuImportParserTests
 
             var action = () => InvokeParse(tempFile, "mam-le-cung.xlsx", null);
 
-            action.Should().Throw<TargetInvocationException>()
-                .WithInnerException<InvalidOperationException>()
+            action.Should().Throw<BusinessRuleException>()
                 .WithMessage("*không có bảng thực đơn tuần*");
         }
         finally
@@ -547,9 +731,9 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var actionWithoutHint = () => InvokeParse(tempFile, "customer-file.xlsx", null, null);
-            actionWithoutHint.Should().Throw<TargetInvocationException>();
+            actionWithoutHint.Should().Throw<BusinessRuleException>();
 
-            var mapping = new Customerimportmapping { SheetNameHint = "MENU" };
+            var mapping = new CustomerImportMapping { SheetNameHint = "MENU" };
             var plan = InvokeParse(tempFile, "customer-file.xlsx", null, mapping);
 
             GetProperty<string>(plan, "SheetName").Should().Be("MENU");
@@ -623,7 +807,7 @@ public class WeeklyMenuImportParserTests
                 ["", "", "Phụ", "Tôm thịt rim"],
             ]);
 
-            var mapping = new Customerimportmapping { LabelColumn = "c" };
+            var mapping = new CustomerImportMapping { LabelColumn = "c" };
             var plan = InvokeParse(tempFile, "override.xlsx", null, mapping);
 
             GetProperty<string>(plan, "LabelColumn").Should().Be("c");
@@ -638,17 +822,15 @@ public class WeeklyMenuImportParserTests
         string workbookPath,
         string fileName,
         DateOnly? weekStartDate,
-        Customerimportmapping? mapping = null,
+        CustomerImportMapping? mapping = null,
         decimal? priceTierAmount = null)
-    {
-        var service = new SampleDataImportService(null!, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
-            "ParseWeeklyMenuWorkbook",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-
-        method.Should().NotBeNull();
-        return method!.Invoke(service, [workbookPath, fileName, weekStartDate, mapping, priceTierAmount])!;
-    }
+        => WeeklyMenuWorkbookParser.Parse(
+            new XlsxWorkbookReader(),
+            workbookPath,
+            fileName,
+            weekStartDate,
+            mapping,
+            priceTierAmount);
 
     private static T GetProperty<T>(object source, string propertyName)
     {
@@ -667,14 +849,7 @@ public class WeeklyMenuImportParserTests
     private static WeeklyMenuImportValidationDto InvokeValidation(
         object plan,
         IReadOnlyList<WeeklyMenuImportRowDto> rows)
-    {
-        var method = typeof(SampleDataImportService).GetMethod(
-            "BuildWeeklyMenuImportValidation",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
-        method.Should().NotBeNull();
-        return (WeeklyMenuImportValidationDto)method!.Invoke(null, [plan, rows])!;
-    }
+        => WeeklyMenuImportValidationPolicy.Build((WeeklyMenuImportPlan)plan, rows);
 
     private static void CreateWorkbook(
         string path,
@@ -797,6 +972,83 @@ public class WeeklyMenuImportParserTests
               {mergeCellsXml}
             </worksheet>
             """;
+    }
+
+    private static byte[] PopulateGeneratedTemplate(
+        byte[] workbookBytes,
+        IReadOnlyDictionary<string, string> valuesByCell)
+    {
+        using var output = new MemoryStream();
+        output.Write(workbookBytes);
+        output.Position = 0;
+
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true))
+        {
+            const string worksheetPath = "xl/worksheets/sheet1.xml";
+            var entry = archive.GetEntry(worksheetPath)!;
+            XDocument worksheet;
+            using (var entryStream = entry.Open())
+            {
+                worksheet = XDocument.Load(entryStream);
+            }
+
+            XNamespace spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            foreach (var (cellReference, value) in valuesByCell)
+            {
+                var cell = worksheet
+                    .Descendants(spreadsheet + "c")
+                    .Single(candidate => (string?)candidate.Attribute("r") == cellReference);
+                cell.Descendants(spreadsheet + "t").Single().Value = value;
+            }
+
+            entry.Delete();
+            var replacement = archive.CreateEntry(worksheetPath, CompressionLevel.Optimal);
+            using var writer = new StreamWriter(replacement.Open());
+            worksheet.Save(writer, SaveOptions.DisableFormatting);
+        }
+
+        return output.ToArray();
+    }
+
+    private static byte[] PopulateAnvTemplate(
+        byte[] workbookBytes,
+        IReadOnlyDictionary<string, string> valuesByCell)
+    {
+        using var output = new MemoryStream();
+        output.Write(workbookBytes);
+        output.Position = 0;
+
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true))
+        {
+            const string worksheetPath = "xl/worksheets/sheet1.xml";
+            var entry = archive.GetEntry(worksheetPath)!;
+            XDocument worksheet;
+            using (var entryStream = entry.Open())
+            {
+                worksheet = XDocument.Load(entryStream);
+            }
+
+            XNamespace spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            foreach (var (cellReference, value) in valuesByCell)
+            {
+                var cell = worksheet
+                    .Descendants(spreadsheet + "c")
+                    .Single(candidate => (string?)candidate.Attribute("r") == cellReference);
+                cell.SetAttributeValue("t", "inlineStr");
+                cell.Elements(spreadsheet + "v").Remove();
+                cell.Elements(spreadsheet + "is").Remove();
+                cell.Add(new XElement(
+                    spreadsheet + "is",
+                    new XElement(spreadsheet + "t", value)));
+            }
+
+            entry.Delete();
+            var replacement = archive.CreateEntry(worksheetPath, CompressionLevel.Optimal);
+            using var writer = new StreamWriter(replacement.Open());
+            worksheet.Save(writer, SaveOptions.DisableFormatting);
+        }
+
+        return output.ToArray();
     }
 
     private static string ColumnLetter(int column)

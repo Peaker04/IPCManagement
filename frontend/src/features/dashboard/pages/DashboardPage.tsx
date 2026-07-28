@@ -1,37 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle,
-  ArrowRight,
-  CalendarClock,
-  CheckCircle2,
-  ClipboardCheck,
-  Database,
-  Gauge,
-  PackageX,
-  ShoppingCart,
-  TimerOff,
-  Truck,
-  Utensils,
-  Warehouse,
-} from 'lucide-react';
-import { CommandBar, InlineAlert, OperationalFrame, StatusBadge } from '@/components/common';
-import { useGetOperationalKpisQuery, useWorkflowOverview, type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/features/workflow';
-import { ROUTES } from '../../../routes/routeConfig';
-
-const tonePriority: Record<WorkflowTone, number> = {
-  danger: 3,
-  warning: 2,
-  neutral: 1,
-  success: 0,
-};
-
-const toneLabel: Record<WorkflowTone, string> = {
-  danger: 'Cần xử lý',
-  warning: 'Đang chờ',
-  neutral: 'Chưa có dữ liệu',
-  success: 'Ổn định',
-};
+import { useAppDispatch } from '@/app/hooks';
+import { CommandBar, OperationalFrame, QueryErrorAlert } from '@/components/common';
+import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
+import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
+import { workflowApi } from '@/api/workflowApi';
+import { workflowOverviewCacheTags } from '@/api/workflowCacheTags';
+import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
+import { ROUTES } from '@/lib/routeConfig';
 
 const queuePriority: Record<WorkflowTone, number> = {
   danger: 0,
@@ -63,12 +39,6 @@ const queueFilters: Array<{ key: DashboardQueueCategory; label: string }> = [
 
 const getNumber = (value: number | undefined) => value ?? 0;
 
-const getLaneTone = (lanes: WorkflowLane[]) =>
-  lanes.reduce<WorkflowTone>(
-    (current, lane) => (tonePriority[lane.tone] > tonePriority[current] ? lane.tone : current),
-    'success',
-  );
-
 const sumLaneCount = (lanes: WorkflowLane[], key: 'waiting' | 'blocked' | 'done') =>
   lanes.reduce((total, lane) => total + lane[key], 0);
 
@@ -88,9 +58,12 @@ const getQueueCategory = (item: RoleInboxItem): Exclude<DashboardQueueCategory, 
 };
 
 const DashboardPage = () => {
-  const { blockedItems, isError, isLoading, roleInboxItems, workflowLanes } = useWorkflowOverview();
-  const { data: kpis } = useGetOperationalKpisQuery();
+  const dispatch = useAppDispatch();
+  const { isError, isLoading, roleInboxItems, workflowLanes } = useWorkflowOverview();
+  const { data: kpis, isError: isKpiError, isLoading: isKpiLoading, isFetching: isKpiFetching, refetch: refetchKpis } = useGetOperationalKpisQuery();
   const [activeQueueFilter, setActiveQueueFilter] = useState<DashboardQueueCategory>('all');
+  const isDashboardLoading = isLoading || isKpiLoading;
+  const hasDashboardError = isError || isKpiError;
 
   const shortageCount = getNumber(kpis?.shortageCount);
   const lowStockCount = getNumber(kpis?.lowStockCount);
@@ -108,7 +81,6 @@ const DashboardPage = () => {
       order: '01',
       title: 'Menu & số suất',
       description: 'Điều phối chốt menu, khách và ca phục vụ.',
-      icon: <ClipboardCheck size={17} />,
       lanes: [laneById.get('coordination')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.MEAL_ORDERS,
     },
@@ -117,7 +89,6 @@ const DashboardPage = () => {
       order: '02',
       title: 'Định lượng BOM',
       description: 'KHSX kiểm tier BOM, định lượng và tồn kho.',
-      icon: <Gauge size={17} />,
       lanes: [laneById.get('planning'), laneById.get('admin')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.WEEKLY_MENU,
     },
@@ -126,7 +97,6 @@ const DashboardPage = () => {
       order: '03',
       title: 'Duyệt & thu mua',
       description: 'Quản lý duyệt, thu mua chọn NCC và theo receipt.',
-      icon: <ShoppingCart size={17} />,
       lanes: [laneById.get('management'), laneById.get('purchasing')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.PURCHASING,
     },
@@ -135,7 +105,6 @@ const DashboardPage = () => {
       order: '04',
       title: 'Kho & bếp',
       description: 'Thủ kho xuất nguyên liệu, bếp xác nhận nhận hàng.',
-      icon: <Warehouse size={17} />,
       lanes: [laneById.get('warehouse'), laneById.get('kitchen')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.WAREHOUSE,
     },
@@ -147,8 +116,7 @@ const DashboardPage = () => {
       label: 'Thiếu / tồn thấp',
       value: shortageCount,
       helper: `${lowStockCount} tồn thấp`,
-      tone: shortageCount > 0 ? 'danger' : lowStockCount > 0 ? 'warning' : 'success',
-      icon: <PackageX size={17} />,
+      numberTone: shortageCount > 0 ? 'danger' : lowStockCount > 0 ? 'warning' : 'neutral',
       route: `${ROUTES.REPORTS}?view=demand`,
     },
     {
@@ -156,8 +124,7 @@ const DashboardPage = () => {
       label: 'Thu mua trễ',
       value: overduePurchaseCount + lateReceiptCount,
       helper: `${overduePurchaseCount} PR / ${lateReceiptCount} receipt`,
-      tone: overduePurchaseCount + lateReceiptCount > 0 ? 'danger' : 'success',
-      icon: <Truck size={17} />,
+      numberTone: overduePurchaseCount + lateReceiptCount > 0 ? 'warning' : 'neutral',
       route: `${ROUTES.REPORTS}?view=purchase`,
     },
     {
@@ -165,8 +132,7 @@ const DashboardPage = () => {
       label: 'Bếp chờ xác nhận',
       value: pendingKitchenCount,
       helper: 'Issue chưa nhận bếp',
-      tone: pendingKitchenCount > 0 ? 'warning' : 'success',
-      icon: <Utensils size={17} />,
+      numberTone: pendingKitchenCount > 0 ? 'warning' : 'neutral',
       route: `${ROUTES.REPORTS}?view=kitchen`,
     },
     {
@@ -174,8 +140,7 @@ const DashboardPage = () => {
       label: 'Dữ liệu chặn luồng',
       value: failedWorkflowCount + criticalDataCount,
       helper: `${criticalDataCount} lỗi dữ liệu`,
-      tone: failedWorkflowCount + criticalDataCount > 0 ? 'danger' : 'success',
-      icon: <Database size={17} />,
+      numberTone: failedWorkflowCount + criticalDataCount > 0 ? 'danger' : 'neutral',
       route: `${ROUTES.ADMIN_DATA}?view=cleanup`,
     },
     {
@@ -183,8 +148,7 @@ const DashboardPage = () => {
       label: 'Duyệt quá hạn',
       value: overdueApprovalCount,
       helper: 'Cần quản lý xử lý',
-      tone: overdueApprovalCount > 0 ? 'warning' : 'success',
-      icon: <TimerOff size={17} />,
+      numberTone: overdueApprovalCount > 0 ? 'warning' : 'neutral',
       route: ROUTES.APPROVALS,
     },
   ] as const;
@@ -249,10 +213,6 @@ const DashboardPage = () => {
   const visibleQueue = actionQueue
     .filter((item) => activeQueueFilter === 'all' || item.category === activeQueueFilter)
     .slice(0, 7);
-  const blockerCount = blockedItems.length + failedWorkflowCount + criticalDataCount;
-  const readyTone: WorkflowTone = blockerCount > 0 || shortageCount > 0 ? 'danger' : actionQueue.length > 0 ? 'warning' : 'success';
-  const readyLabel = readyTone === 'danger' ? 'Đang nghẽn' : readyTone === 'warning' ? 'Cần theo dõi' : 'Sẵn sàng vận hành';
-  const topIncident = [...riskGroups].sort((a, b) => tonePriority[b.tone] - tonePriority[a.tone] || b.value - a.value)[0];
   const totalWaiting = sumLaneCount(workflowLanes, 'waiting');
   const totalBlocked = sumLaneCount(workflowLanes, 'blocked') + failedWorkflowCount + criticalDataCount;
 
@@ -277,119 +237,86 @@ const DashboardPage = () => {
           }
         >
           <div className="ipc-dashboard-command-main">
-            <CalendarClock size={16} />
             <span>Ngày phục vụ hôm nay · Ca đang vận hành</span>
-            <span className={`ipc-dashboard-status-chip is-${readyTone}`}>{readyLabel}</span>
           </div>
         </CommandBar>
       }
     >
-      {isError && (
-        <InlineAlert title="Không tải được dữ liệu workflow" variant="warning">
-          Bảng điều hành đang chờ backend trả dữ liệu báo cáo workflow.
-        </InlineAlert>
+      {hasDashboardError && (
+        <QueryErrorAlert
+          title="Không tải được dữ liệu workflow"
+          isRetrying={isKpiFetching}
+          onRetry={() => {
+            dispatch(workflowApi.util.invalidateTags([...workflowOverviewCacheTags]));
+            return refetchKpis();
+          }}
+        >
+          Chưa thể xác định trạng thái vận hành. Kiểm tra kết nối rồi thử tải lại; hệ thống không xem lỗi này là trạng thái không có việc.
+        </QueryErrorAlert>
       )}
-      {isLoading && (
-        <InlineAlert title="Đang tải dữ liệu workflow" variant="info">
+      {isDashboardLoading && (
+        <span className="sr-only" role="status">
           Hệ thống đang tổng hợp chứng từ, nhu cầu và luân chuyển kho.
-        </InlineAlert>
+        </span>
       )}
 
-      <section className={`ipc-dashboard-incident is-${readyTone}`}>
+      <section className="ipc-dashboard-incident" aria-labelledby="dashboard-shift-status" aria-busy={isDashboardLoading}>
         <div className="ipc-dashboard-incident-main">
-          <div className="ipc-dashboard-readiness-icon">
-            {readyTone === 'success' ? <CheckCircle2 size={22} /> : <AlertTriangle size={22} />}
-          </div>
-          <div>
-            <span className="ipc-dashboard-panel-kicker">Trạng thái ca</span>
-            <h2>{readyLabel}</h2>
+          <div className="ipc-dashboard-incident-copy">
+            <h2 id="dashboard-shift-status">Tổng quan ca hôm nay</h2>
             <p>
-              Ưu tiên hiện tại: {topIncident.label.toLowerCase()} ({topIncident.value}). Theo dõi menu, BOM, mua/kho và xác nhận bếp trong ca.
+              Theo dõi liên tục từ menu, định lượng, mua/kho đến xác nhận bếp trong ca.
             </p>
           </div>
         </div>
         <div className="ipc-dashboard-readiness-metrics">
           <div>
-            <span>Việc mở</span>
-            <strong>{actionQueue.length}</strong>
+            <span>Cần xử lý</span>
+            <strong>{isDashboardLoading ? '—' : actionQueue.length}</strong>
           </div>
           <div>
-            <span>Dữ liệu chặn</span>
-            <strong>{failedWorkflowCount + criticalDataCount}</strong>
+            <span>Đang chờ</span>
+            <strong>{isDashboardLoading ? '—' : totalWaiting}</strong>
           </div>
           <div>
-            <span>Thiếu / tồn thấp</span>
-            <strong>{shortageCount + lowStockCount}</strong>
+            <span>Điểm tắc</span>
+            <strong>{isDashboardLoading ? '—' : totalBlocked}</strong>
           </div>
         </div>
       </section>
 
-      <section className="ipc-dashboard-risk-board" aria-label="Tín hiệu vận hành chính">
-        {riskGroups.map((signal) => (
-          <Link key={signal.key} to={signal.route} className={`ipc-dashboard-signal is-${signal.tone}`}>
-            <span className="ipc-dashboard-signal-icon">{signal.icon}</span>
-            <span className="ipc-dashboard-signal-copy">
-              <span>{signal.label}</span>
-              <strong>{signal.value}</strong>
-              <small>{signal.helper}</small>
-            </span>
-          </Link>
-        ))}
+      <section className="ipc-dashboard-section" aria-label="Tín hiệu vận hành">
+        <div className="ipc-dashboard-risk-board">
+          {riskGroups.map((signal) => (
+            <Link
+              key={signal.key}
+              to={signal.route}
+              className="ipc-dashboard-signal"
+              aria-label={`${signal.label}: ${isDashboardLoading ? 'đang tổng hợp' : signal.value}`}
+            >
+              <span className="ipc-dashboard-signal-copy">
+                <span className="ipc-dashboard-signal-label">{signal.label}</span>
+                <strong className={`ipc-dashboard-signal-number tone-${isDashboardLoading ? 'neutral' : signal.numberTone}`}>
+                  {isDashboardLoading ? '—' : signal.value}
+                </strong>
+                <small>{isDashboardLoading ? 'Đang tổng hợp' : signal.helper}</small>
+              </span>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <div className="ipc-dashboard-grid">
-        <section className="ipc-dashboard-panel ipc-dashboard-panel-main">
-          <div className="ipc-dashboard-panel-header">
-            <div>
-              <span className="ipc-dashboard-panel-kicker">Luồng IPC hôm nay</span>
-              <h3>Menu → định lượng → mua/kho → bếp</h3>
-            </div>
-            <div className="ipc-dashboard-flow-summary" aria-label="Tổng trạng thái luồng">
-              <span>{totalBlocked} tắc</span>
-              <span>{totalWaiting} chờ</span>
-            </div>
-            <Link to={ROUTES.WEEKLY_MENU} className="ipc-dashboard-panel-link">
-              Xem KHSX <ArrowRight size={15} />
-            </Link>
-          </div>
-          <div className="ipc-dashboard-gate-list">
-            {workflowSteps.map((gate) => {
-              const tone = getLaneTone(gate.lanes);
-              const blocked = sumLaneCount(gate.lanes, 'blocked');
-              const waiting = sumLaneCount(gate.lanes, 'waiting');
-              const done = sumLaneCount(gate.lanes, 'done');
-              const nextAction = gate.lanes.find((lane) => lane.tone === tone)?.nextAction ?? gate.lanes[0]?.nextAction;
-
-              return (
-                <Link key={gate.key} to={gate.route} className={`ipc-dashboard-gate is-${tone}`}>
-                  <span className="ipc-dashboard-gate-order">{gate.order}</span>
-                  <span className="ipc-dashboard-gate-icon">{gate.icon}</span>
-                  <span className="ipc-dashboard-gate-copy">
-                    <strong>{gate.title}</strong>
-                    <small>{gate.description}</small>
-                  </span>
-                  <span className="ipc-dashboard-gate-state">
-                    <StatusBadge variant={tone}>{toneLabel[tone]}</StatusBadge>
-                    <small>{blocked} tắc / {waiting} chờ / {done} xong</small>
-                  </span>
-                  <span className="ipc-dashboard-gate-next">{nextAction}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
         <section className="ipc-dashboard-panel ipc-dashboard-queue-panel">
           <div className="ipc-dashboard-panel-header">
             <div>
-              <span className="ipc-dashboard-panel-kicker">Action queue</span>
-              <h3>Việc cần gỡ trước khi gửi bếp</h3>
+              <h3>Việc cần xử lý trước</h3>
             </div>
             <Link to={ROUTES.APPROVALS} className="ipc-dashboard-panel-link">
-              Mở duyệt <ArrowRight size={15} />
+              Xem toàn bộ
             </Link>
           </div>
-          <div className="ipc-dashboard-queue-filters" aria-label="Lọc hàng đợi xử lý">
+          <div className="ipc-dashboard-queue-filters" role="group" aria-label="Lọc hàng đợi xử lý">
             {queueFilters.map((filter) => {
               const count = filter.key === 'all' ? actionQueue.length : actionQueue.filter((item) => item.category === filter.key).length;
 
@@ -399,32 +326,94 @@ const DashboardPage = () => {
                   type="button"
                   className={filter.key === activeQueueFilter ? 'is-active' : undefined}
                   onClick={() => setActiveQueueFilter(filter.key)}
+                  aria-pressed={filter.key === activeQueueFilter}
                 >
                   {filter.label}
-                  <span>{count}</span>
+                  {filter.key !== 'all' && <span>{count}</span>}
                 </button>
               );
             })}
           </div>
           <div className="ipc-dashboard-task-list">
-            {visibleQueue.length === 0 ? (
+            {isDashboardLoading ? (
+              Array.from({ length: 7 }, (_, index) => (
+                <div key={`dashboard-task-skeleton-${index}`} className="ipc-dashboard-task ipc-dashboard-task-skeleton" aria-hidden="true">
+                  <span className="ipc-dashboard-skeleton-copy">
+                    <span />
+                    <span />
+                  </span>
+                  <span className="ipc-dashboard-skeleton-owner" />
+                  <span className="ipc-dashboard-skeleton-due" />
+                </div>
+              ))
+            ) : visibleQueue.length === 0 ? (
               <div className="ipc-dashboard-empty">Không có việc cần xử lý trong ca này.</div>
             ) : (
-              visibleQueue.map((item) => (
-                <Link key={item.id} to={item.route} className={`ipc-dashboard-task is-${item.tone}`}>
-                  <span className="ipc-dashboard-task-marker" />
+              visibleQueue.map((item, index) => (
+                <Link
+                  key={`${item.category}-${item.id}-${index}`}
+                  to={item.route}
+                  className={`ipc-dashboard-task${index === 0 ? ' is-recommended' : ''}`}
+                >
                   <span className="ipc-dashboard-task-copy">
                     <strong>{item.title}</strong>
-                    <small>{item.description}</small>
+                    <small className={index === 0 ? 'ipc-dashboard-task-recommended' : undefined}>
+                      {index === 0 ? item.nextAction : item.description}
+                    </small>
                   </span>
-                  <span className="ipc-dashboard-task-meta">
-                    <span>{item.owner}</span>
-                    <StatusBadge variant={item.tone}>{item.due}</StatusBadge>
+                  <span className="ipc-dashboard-task-field ipc-dashboard-task-owner">
+                    <small>Phụ trách</small>
+                    <strong>{item.owner}</strong>
                   </span>
-                  <span className="ipc-dashboard-task-action">{item.nextAction}</span>
+                  <span className="ipc-dashboard-task-field ipc-dashboard-task-due">
+                    <small>Thời hạn</small>
+                    <strong>{item.due}</strong>
+                  </span>
                 </Link>
               ))
             )}
+          </div>
+        </section>
+
+        <section className="ipc-dashboard-panel ipc-dashboard-panel-main">
+          <div className="ipc-dashboard-panel-header">
+            <div>
+              <h3>Tiến độ 4 công đoạn</h3>
+            </div>
+            <Link to={ROUTES.WEEKLY_MENU} className="ipc-dashboard-panel-link">
+              Xem KHSX
+            </Link>
+          </div>
+          <div className="ipc-dashboard-gate-list">
+            {isDashboardLoading ? (
+              Array.from({ length: 4 }, (_, index) => (
+                <div key={`dashboard-gate-skeleton-${index}`} className="ipc-dashboard-gate ipc-dashboard-gate-skeleton" aria-hidden="true">
+                  <span className="ipc-dashboard-gate-order">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="ipc-dashboard-skeleton-copy">
+                    <span />
+                    <span />
+                  </span>
+                  <span className="ipc-dashboard-skeleton-action" />
+                </div>
+              ))
+            ) : workflowSteps.map((gate) => {
+              const gateLaneIds = new Set(gate.lanes.map((lane) => lane.id));
+              const gateInboxAction = sortQueueItems(roleInboxItems.filter((item) => gateLaneIds.has(item.laneId)))[0]?.nextAction;
+              const hasPendingGateWork = sumLaneCount(gate.lanes, 'waiting') + sumLaneCount(gate.lanes, 'blocked') > 0;
+
+              return (
+                <Link key={gate.key} to={gate.route} className="ipc-dashboard-gate">
+                  <span className="ipc-dashboard-gate-order">{gate.order}</span>
+                  <span className="ipc-dashboard-gate-copy">
+                    <strong>{gate.title}</strong>
+                    <small>{gate.description}</small>
+                  </span>
+                  <span className="ipc-dashboard-gate-next">
+                    {hasPendingGateWork && gateInboxAction ? gateInboxAction : resolveWorkflowGateAction(gate.lanes)}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       </div>

@@ -3,19 +3,41 @@
 -- Last updated: 2026-07-08
 -- Charset: utf8mb4 / utf8mb4_unicode_ci
 --
--- Dùng file này để tạo database trắng hoàn toàn.
+-- Dùng file này để tạo database trắng hoàn toàn. Phải tự tạo database đích trước
+-- rồi truyền tên nó vào dòng lệnh — file không tự chọn database:
+--
+--   mysql -u root -p -e "CREATE DATABASE ten_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+--   mysql -u root -p ten_db < backend/database/IPCmanagement.sql
+--
 -- Chạy sau:
 --   dotnet ef database update ...
 -- để đánh dấu tất cả migrations đã applied (hoặc chạy Init_EF_History_For_Old_DB.sql).
 --
 -- KHÔNG dùng file này để nâng cấp database đang có dữ liệu.
 -- Dùng "dotnet ef database update" cho database đang chạy.
+-- Chốt an toàn bên dưới sẽ dừng script nếu database đích chưa chọn hoặc không rỗng.
 
-CREATE DATABASE IF NOT EXISTS ipcManagement
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE ipcManagement;
+-- ─── Chốt an toàn: file KHÔNG tự chọn database ───────────────────────────
+-- Trước 27/07/2026 file này tự `CREATE DATABASE ipcManagement` rồi `USE ipcManagement`,
+-- nên chỉ định database đích ở dòng lệnh KHÔNG có tác dụng — chạy kiểu gì cũng xoá
+-- sạch database chính. Nay phải truyền database đích và database đó phải rỗng:
+--
+--   mysql -u root -p TEN_DB_MOI < backend/database/IPCmanagement.sql
+--
+-- Muốn cài lại sau một lần chạy hỏng: tự DROP/CREATE lại database đích rồi chạy lại.
+-- Cách hoạt động: bảng tạm có PRIMARY KEY, nạp vào 1 dòng cố định cộng thêm 1 dòng nữa
+-- nếu database đích đã có bảng. Database rỗng → 1 dòng, chạy tiếp. Database không rỗng →
+-- 2 dòng trùng khoá → ERROR 1062 và mysql dừng ngay. Chưa chọn database → ERROR 1046.
+-- Dùng bảng TEMPORARY nên khi dừng giữa chừng không để lại gì trong database đích.
+-- Không dùng biến @ (MySqlConnector hiểu @ten là parameter, sẽ vỡ khi test nạp file qua driver).
+CREATE TEMPORARY TABLE `DUNG_LAI_database_dich_phai_rong` (marker INT NOT NULL PRIMARY KEY);
+INSERT INTO `DUNG_LAI_database_dich_phai_rong` (marker)
+SELECT 1
+UNION ALL
+(SELECT 1 FROM information_schema.tables
+  WHERE table_schema = DATABASE()
+  LIMIT 1);
+DROP TEMPORARY TABLE `DUNG_LAI_database_dich_phai_rong`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -226,14 +248,20 @@ CREATE TABLE customercontracts (
   FOREIGN KEY (customerId) REFERENCES customers(customerId)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Hình dạng bảng này lấy theo 20260701175833_AddCustomerImportMapping (và khớp database đang
+-- chạy). Bản cũ trong file dựng sourceCustomerCode + isActive — một thiết kế đã bị thay, khiến
+-- database cài mới lệch hẳn với entity: thiếu sheetNameHint/labelColumn/updatedAt và thừa 2 cột
+-- không ai đọc. Init_EF_History_For_Old_DB.sql khai migration trên là đã applied nên nó không
+-- bao giờ chạy để sửa lại.
 CREATE TABLE customerimportmappings (
   mappingId          BINARY(16)   PRIMARY KEY,
   customerId         BINARY(16)   NOT NULL,
-  sourceCustomerCode VARCHAR(100) NOT NULL,
-  isActive           BOOLEAN      NOT NULL DEFAULT TRUE,
+  sheetNameHint      VARCHAR(100) NULL,
+  labelColumn        VARCHAR(10)  NULL,
   createdAt          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uqCustomerImportMappings (customerId, sourceCustomerCode),
-  FOREIGN KEY (customerId) REFERENCES customers(customerId)
+  updatedAt          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY ixCustomerImportMappingsCustomer (customerId),
+  FOREIGN KEY (customerId) REFERENCES customers(customerId) ON DELETE CASCADE
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE portionrules (
@@ -390,9 +418,12 @@ CREATE TABLE productionplans (
   createdAt     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- added by 20260702072352 / 20260702121000
   updatedAt     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  customerId    BINARY(16)   NULL,
   menuVersionId BINARY(16)   NULL,
   weekStartDate DATE         NULL,
-  FOREIGN KEY (createdBy) REFERENCES users(userId)
+  FOREIGN KEY (createdBy)     REFERENCES users(userId),
+  FOREIGN KEY (customerId)    REFERENCES customers(customerId),
+  FOREIGN KEY (menuVersionId) REFERENCES menuversions(menuVersionId)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE productionplanlines (
@@ -481,7 +512,7 @@ CREATE TABLE purchaserequestlines (
   estimatedUnitPrice    DECIMAL(18,2) NOT NULL DEFAULT 0,
   -- added by 20260702194500_AddPurchaseLineDeliveryNote
   expectedDeliveryDate  DATE          NULL,
-  note                  VARCHAR(500)  NULL,
+  note                  TEXT          NULL,
   FOREIGN KEY (purchaseRequestId)     REFERENCES purchaserequests(purchaseRequestId),
   FOREIGN KEY (materialRequestLineId) REFERENCES materialrequestlines(requestLineId),
   FOREIGN KEY (ingredientId)          REFERENCES ingredients(ingredientId),
@@ -659,7 +690,7 @@ CREATE TABLE inventoryreturns (
   createdBy   BINARY(16)  NOT NULL,
   createdAt   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- added by 20260702204500_AddInventoryReturnType
-  returnType  VARCHAR(30) NULL,
+  returnType  VARCHAR(20) NOT NULL DEFAULT 'RETURN',
   -- added by 20260707085015_AddReceivedToInventoryReturn
   receivedAt  DATETIME    NULL,
   receivedBy  BINARY(16)  NULL,
@@ -809,13 +840,15 @@ CREATE INDEX        ixStockMovementsRef           ON stockmovements(refTable, re
 CREATE INDEX        ixCurrentStockLotsFefo        ON currentstocklots(warehouseId, ingredientId, expiredDate, lotNumber);
 CREATE UNIQUE INDEX ixCurrentStockLotsIdentity   ON currentstocklots(warehouseId, ingredientId, unitId, lotNumber, manufactureDate, expiredDate);
 CREATE INDEX        ixStockSnapshotsPeriod        ON stocksnapshots(periodMonth, warehouseId, ingredientId);
-CREATE INDEX        ixApprovalHistoriesTarget     ON approvalhistories(targetType, targetId, actionAt);
+-- ixApprovalHistoriesTarget đã khai bằng KEY trong CREATE TABLE approvalhistories.
+-- Khai lại ở đây làm script chết với ERROR 1061 Duplicate key name — đừng thêm lại.
 CREATE INDEX        ixSupplierQuotationsIngredient ON supplierquotations(ingredientId);
 CREATE UNIQUE INDEX ixStocktakeCode              ON stocktakes(stocktakeCode);
 CREATE INDEX        ixStocktakelineIngredient     ON stocktakelines(ingredientId);
 CREATE INDEX        IX_stocktakelines_unitId      ON stocktakelines(unitId);
 CREATE INDEX        ixMaterialRequestAppliedRule  ON materialrequestlines(appliedPortionRuleId);
 CREATE INDEX        IX_inventoryreturns_receivedBy ON inventoryreturns(receivedBy);
-CREATE INDEX        IX_approvalassignments_approverUserId ON approvalassignments(approverUserId);
+-- IX_approvalassignments_approverUserId đã khai bằng KEY trong CREATE TABLE approvalassignments.
+-- Khai lại ở đây làm script chết với ERROR 1061 Duplicate key name — đừng thêm lại.
 CREATE INDEX        IX_stocktakes_approvedBy      ON stocktakes(approvedBy);
 CREATE INDEX        IX_stocktakes_createdBy       ON stocktakes(createdBy);

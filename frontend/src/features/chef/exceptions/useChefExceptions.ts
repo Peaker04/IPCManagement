@@ -1,12 +1,9 @@
 import { useState } from 'react'
-import {
-  useCreateInventoryReturnMutation,
-  useCreateSupplementalMaterialRequestMutation,
-  type KitchenIssueRow,
-} from '@/features/workflow'
+import { useCreateInventoryReturnMutation, useCreateSupplementalMaterialRequestMutation, useGetInventoryReturnsQuery, type KitchenIssueRow } from '@/api/workflowApi'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
+import { toChefView } from '../chefQueryView'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 
 type RecordedReturn = ExcessMaterial & { serviceDate: string; shift: ChefShiftScope['activeShift'] }
@@ -16,10 +13,23 @@ export function useChefExceptions(
   productionPlan: ProductionPlan,
   kitchenIssues: KitchenIssueRow[],
   onFeedback: (feedback: ChefFeedback) => void,
+  enabled = true,
 ) {
   const [returns, setReturns] = useState<RecordedReturn[]>([])
   const [createReturn, returnState] = useCreateInventoryReturnMutation()
   const [createSupplemental, supplementalState] = useCreateSupplementalMaterialRequestMutation()
+  const returnsQuery = useGetInventoryReturnsQuery({
+    returnDate: scope.serviceDate,
+    shiftName: scope.activeShift,
+    pageNumber: 1,
+    pageSize: 100,
+  }, { skip: !enabled })
+  const returnsView = toChefView(returnsQuery, 'phiếu trả kho của ca', {
+    getTruncation: (page) => page.items.length < page.totalCount
+      ? { shown: page.items.length, total: page.totalCount }
+      : null,
+  })
+  const persistedReturnPage = returnsView.phase === 'ready' ? returnsView.data : undefined
 
   const requestSupplemental = async (data: SupplementalRequest) => {
     const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
@@ -112,9 +122,20 @@ export function useChefExceptions(
   }
 
   return {
-    activeReturns: returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
+    activeReturns: persistedReturnPage
+      ? persistedReturnPage.items.flatMap((item) => item.lines.map((line) => ({
+          ingredientId: line.ingredientId,
+          ingredientName: line.ingredientName || line.ingredientId,
+          unit: line.unitName || '',
+          returnedQty: line.quantity,
+          condition: item.returnType === 'WASTE' ? 'damaged' as const : 'intact' as const,
+          notes: item.reason ?? undefined,
+          returnedAt: item.createdAt,
+        })))
+      : returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
     requestSupplemental,
     recordReturn,
+    queryView: returnsView,
     isSubmittingSupplemental: supplementalState.isLoading,
     isCreatingReturn: returnState.isLoading,
   }

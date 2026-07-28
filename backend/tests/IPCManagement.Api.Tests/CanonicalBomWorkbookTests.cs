@@ -1,11 +1,18 @@
 using System.Globalization;
 using FluentAssertions;
-using IPCManagement.Api.Services.SampleData;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 
 public class CanonicalBomWorkbookTests
 {
+    private static readonly HashSet<string> TechnicalCountIngredients = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Bánh mì", "Chuối", "Chả cá", "Căn cuộn", "Sữa chua", "Trứng cút",
+        "Trứng cút lột sẵn", "trứng cút lọt sẵn", "Trứng gà", "Trứng gà (cái)",
+        "Trứng gà trung", "Đậu khuôn", "Đậu khuôn chiên", "Đậu khuôn chiên lát nhỏ"
+    };
+
     private static readonly string[] RequiredHeaders =
     [
         "Món",
@@ -58,6 +65,33 @@ public class CanonicalBomWorkbookTests
 
         ratios30To25.Should().HaveCountGreaterThan(1, "30k must not be derived from 25k by one fixed multiplier");
         ratios34To30.Should().HaveCountGreaterThan(1, "34k must not be derived from 30k by one fixed multiplier");
+    }
+
+    [Fact]
+    public void CurrentCanonicalBomWorkbook_TechnicalCountRows_ShouldRetainWholeSourceTotals()
+    {
+        var fixturePath = Path.Combine(
+            AppContext.BaseDirectory,
+            "Fixtures",
+            "IPC. Định lượng 07.2026.xlsx");
+        var reader = new XlsxWorkbookReader();
+        var rows = new[] { "định lượng suất 25k", "định lượng suất 30k", "định lượng suất 34k" }
+            .SelectMany(sheet => reader.ReadTable(fixturePath, sheet, RequiredHeaders))
+            .Where(row => TechnicalCountIngredients.Contains(Read(row, "Nguyên liệu chính").Trim()))
+            .Select(row => new
+            {
+                Ingredient = Read(row, "Nguyên liệu chính").Trim(),
+                Total = ParseDecimal(Read(row, "Khối lượng ( kg)")),
+                Servings = ParseDecimal(Read(row, "Số lượng suất ăn")),
+                PerServing = ParseDecimal(Read(row, "Định lượng (gram) / khay"))
+            })
+            .Where(row => row.Total > 0 && row.Servings > 0 && row.PerServing > 0)
+            .ToList();
+
+        rows.Should().NotBeEmpty();
+        rows.Should().OnlyContain(row => row.Total == decimal.Truncate(row.Total));
+        rows.Should().OnlyContain(row =>
+            Math.Abs(row.Total - (row.Servings * row.PerServing)) <= 0.001m);
     }
 
     private static Dictionary<string, decimal> BuildAverageQuantities(

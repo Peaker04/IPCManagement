@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import { buildPurchaseSummaryPresentation, buildWarehouseCsv } from './purchaseSummaryModel'
 
 describe('purchase summary model', () => {
@@ -16,5 +16,16 @@ describe('purchase summary model', () => {
     expect(csv?.startsWith('\uFEFFTuần,')).toBe(true)
     expect(csv).toContain('"Cá ""thu"""')
     expect(csv).toContain('"60000"')
+  })
+
+  it('places shortage exceptions before sufficient materials across pages', () => {
+    const enough = Array.from({ length: 12 }, (_, index) => ({
+      id: `enough-${index}`, material: `Đủ ${index}`, required: 1, available: 5, reserved: 0, unit: 'kg', source: '', status: 'Đủ', nextAction: '', tone: 'success',
+    })) as DemandLine[]
+    const shortage = { id: 'shortage', material: 'Thiếu gạo', required: 5, available: 0, reserved: 0, unit: 'kg', source: '', status: 'Thiếu', nextAction: '', tone: 'danger' } as DemandLine
+    const result = buildPurchaseSummaryPresentation({}, [shortage], [...enough, shortage], 0)
+
+    expect(result.demandRows[0].id).toBe('shortage')
+    expect(result.shortageCount).toBe(1)
   })
 })

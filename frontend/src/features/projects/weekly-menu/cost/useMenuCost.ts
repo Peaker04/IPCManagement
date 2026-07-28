@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { WeeklyPlanRow } from '../model/types'
 import type { WeeklyMenuScope } from '../schedule/types'
-import { buildMenuCostPresentation, getDishUnitCost } from './costModel'
+import { buildMenuCostPresentation } from './costModel'
 
 type Options = {
   scope: WeeklyMenuScope
@@ -24,8 +24,10 @@ export function useMenuCost({ scope, sourceLabel, weeklyPlanRows, dishesById, di
       activeDayKey: scope.activeDayKey,
       dishesById,
       dishesByName,
+      customerId: scope.customerId,
+      priceTier: scope.menuPrice,
     }),
-    [dishesById, dishesByName, scope.activeDayKey, scope.displayDays, selectedDayKey, weeklyPlanRows],
+    [dishesById, dishesByName, scope.activeDayKey, scope.customerId, scope.displayDays, scope.menuPrice, selectedDayKey, weeklyPlanRows],
   )
 
   return {
@@ -37,8 +39,6 @@ export function useMenuCost({ scope, sourceLabel, weeklyPlanRows, dishesById, di
     presentation: {
       ...presentation,
       sourceLabel,
-      getDishUnitCost: (dishId: string, quantityFactor = 1) =>
-        getDishUnitCost(dishesById.get(dishId), quantityFactor),
     },
   }
 }

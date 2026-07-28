@@ -5,12 +5,12 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
-using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
-using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using Xunit;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -19,7 +19,7 @@ public class InventoryReceiptServiceTests
     private readonly IInventoryReceiptRepository _receiptRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
-    private readonly IDbContextTransaction _transaction;
+    private readonly ImmediateTransactionRunner _transactionRunner;
     private readonly InventoryReceiptService _service;
 
     public InventoryReceiptServiceTests()
@@ -27,14 +27,13 @@ public class InventoryReceiptServiceTests
         _receiptRepository = Substitute.For<IInventoryReceiptRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
-        _transaction = Substitute.For<IDbContextTransaction>();
-
-        _unitOfWork.BeginTransactionAsync().Returns(_transaction);
+        _transactionRunner = new ImmediateTransactionRunner();
 
         _service = new InventoryReceiptService(
             _receiptRepository,
             _unitOfWork,
-            _stockLedgerService);
+            _stockLedgerService,
+            _transactionRunner);
     }
 
     [Fact]
@@ -47,12 +46,12 @@ public class InventoryReceiptServiceTests
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
 
-        var dto = new CreateInventoryReceiptDto
+        var dto = new CreateInventoryReceiptRequest
         {
             ReceiptDate = DateOnly.FromDateTime(DateTime.UtcNow),
             SupplierId = supplierId,
             WarehouseId = warehouseId,
-            Lines = new List<CreateInventoryReceiptLineDto>
+            Lines = new List<CreateInventoryReceiptLineRequest>
             {
                 new()
                 {
@@ -72,7 +71,7 @@ public class InventoryReceiptServiceTests
         result!.ReceiptCode.Should().StartWith("RCP-");
 
         // Verify receipt is added
-        _receiptRepository.Received(1).Add(Arg.Is<Inventoryreceipt>(r =>
+        _receiptRepository.Received(1).Add(Arg.Is<InventoryReceipt>(r =>
             r.WarehouseId != null &&
             r.SupplierId != null &&
             r.Inventoryreceiptlines.Count == 1));
@@ -92,7 +91,7 @@ public class InventoryReceiptServiceTests
 
         // Verify UnitOfWork saved changes and transaction committed
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     private IpcManagementContext CreateInMemoryContext()
@@ -183,7 +182,7 @@ public class InventoryReceiptServiceTests
     [Fact]
     public async Task CreateFromPurchaseRequestAsync_Should_Throw_When_ContextIsNull()
     {
-        var dto = new CreateInventoryReceiptFromPurchaseDto();
+        var dto = new CreateInventoryReceiptFromPurchaseRequest();
         var action = () => _service.CreateFromPurchaseRequestAsync(dto, Guid.NewGuid().ToString());
         await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Chưa cấu hình dữ liệu để nhập kho từ phiếu mua.");
     }
@@ -192,14 +191,19 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_Throw_When_PurchaseRequest_NotFound()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
-        var dto = new CreateInventoryReceiptFromPurchaseDto
+        var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = Guid.NewGuid().ToString(),
             SupplierId = Guid.NewGuid().ToString(),
             WarehouseId = Guid.NewGuid().ToString(),
-            Lines = new List<CreateInventoryReceiptFromPurchaseLineDto> { new() }
+            Lines = new List<CreateInventoryReceiptFromPurchaseLineRequest> { new() }
         };
 
         var action = () => service.CreateFromPurchaseRequestAsync(dto, Guid.NewGuid().ToString());
@@ -210,7 +214,12 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_CreateReceipt_UpdateStock_And_ChangeStatus()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var userId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.NewId();
@@ -221,7 +230,7 @@ public class InventoryReceiptServiceTests
         var unitId = IPCManagement.Api.Helpers.GuidHelper.NewId();
 
         // Arrange database state
-        var pr = new Purchaserequest
+        var pr = new PurchaseRequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = "PR-123",
@@ -230,7 +239,7 @@ public class InventoryReceiptServiceTests
             Status = "SENTTOSUPPLIER",
             CreatedBy = userId
         };
-        pr.Purchaserequestlines.Add(new Purchaserequestline
+        pr.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = purchaseLineId,
             PurchaseRequestId = purchaseRequestId,
@@ -247,13 +256,13 @@ public class InventoryReceiptServiceTests
         context.Purchaserequests.Add(pr);
         await context.SaveChangesAsync();
 
-        var dto = new CreateInventoryReceiptFromPurchaseDto
+        var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(purchaseRequestId),
             SupplierId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(supplierId),
             WarehouseId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(warehouseId),
             ReceiptDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            Lines = new List<CreateInventoryReceiptFromPurchaseLineDto>
+            Lines = new List<CreateInventoryReceiptFromPurchaseLineRequest>
             {
                 new()
                 {
@@ -275,7 +284,7 @@ public class InventoryReceiptServiceTests
         pr.Status.Should().Be("PARTIALRECEIVED");
 
         // Verify receipt is added
-        _receiptRepository.Received(1).Add(Arg.Is<Inventoryreceipt>(r =>
+        _receiptRepository.Received(1).Add(Arg.Is<InventoryReceipt>(r =>
             r.PurchaseRequestId != null &&
             r.Inventoryreceiptlines.Count == 1 &&
             r.Inventoryreceiptlines.First().Quantity == 50));
@@ -296,16 +305,20 @@ public class InventoryReceiptServiceTests
             Arg.Any<DateOnly?>(),
             Arg.Any<DateOnly?>());
 
-        // Verify transaction
+        // Verify persistence boundary
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
     }
 
     [Fact]
     public async Task CreateFromPurchaseRequestAsync_Should_Track_ReceivedQuantity_ByPurchaseLine()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var userId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.NewId();
@@ -316,7 +329,7 @@ public class InventoryReceiptServiceTests
         var ingredientId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var unitId = IPCManagement.Api.Helpers.GuidHelper.NewId();
 
-        var request = new Purchaserequest
+        var request = new PurchaseRequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = "PR-DUP",
@@ -325,7 +338,7 @@ public class InventoryReceiptServiceTests
             Status = "SENTTOSUPPLIER",
             CreatedBy = userId
         };
-        request.Purchaserequestlines.Add(new Purchaserequestline
+        request.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = firstPurchaseLineId,
             PurchaseRequestId = purchaseRequestId,
@@ -337,7 +350,7 @@ public class InventoryReceiptServiceTests
             PurchaseQty = 50,
             EstimatedUnitPrice = 5000
         });
-        request.Purchaserequestlines.Add(new Purchaserequestline
+        request.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = secondPurchaseLineId,
             PurchaseRequestId = purchaseRequestId,
@@ -352,7 +365,7 @@ public class InventoryReceiptServiceTests
         context.Purchaserequests.Add(request);
         await context.SaveChangesAsync();
 
-        var dto = new CreateInventoryReceiptFromPurchaseDto
+        var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(purchaseRequestId),
             SupplierId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(supplierId),
@@ -379,7 +392,7 @@ public class InventoryReceiptServiceTests
 
         result.Should().NotBeNull();
         request.Status.Should().Be("RECEIVED");
-        _receiptRepository.Received(1).Add(Arg.Is<Inventoryreceipt>(receipt =>
+        _receiptRepository.Received(1).Add(Arg.Is<InventoryReceipt>(receipt =>
             receipt.Inventoryreceiptlines.Count == 2 &&
             receipt.Inventoryreceiptlines.All(line => line.PurchaseRequestLineId != null)));
     }

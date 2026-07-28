@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
-import { ROUTES } from '../src/routes/routeConfig';
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { ROUTES } from '../src/lib/routeConfig';
 import {
   PHASE09_DATE,
   PHASE09_WEEK,
@@ -271,6 +273,49 @@ test.describe('visual routes', () => {
           await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`, {
             fullPage: true,
           });
+        });
+      }
+    });
+  }
+});
+
+test.describe('full-system tab audit captures', () => {
+  for (const viewport of [
+    { name: 's-390', width: 390, height: 844 },
+    { name: 'm-768', width: 768, height: 1024 },
+    { name: 'l-1280', width: 1280, height: 900 },
+    { name: 'xl-1440', width: 1440, height: 900 },
+  ] as const) {
+    test.describe(viewport.name, () => {
+      test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+      for (const route of visualRoutes) {
+        test(`${route.name} tab audit capture`, async ({ page }) => {
+          await stubVisualApi(page);
+          if (route.path === ROUTES.LOGIN) {
+            await page.goto(route.path);
+          } else {
+            await login(page);
+            if (route.path !== ROUTES.DASHBOARD) {
+              await page.goto(route.path);
+            }
+            await expect(page.locator('.ipc-app-shell')).toBeVisible();
+          }
+
+          await stabilizeVisuals(page);
+          const auditState = process.env.TAB_AUDIT_STATE ?? 'before';
+          const screenshotPath = resolve(
+            process.cwd(),
+            '..',
+            '.planning',
+            'ui-reviews',
+            'tabs',
+            auditState,
+            viewport.name,
+            `${route.name}.png`,
+          );
+          mkdirSync(dirname(screenshotPath), { recursive: true });
+          await page.screenshot({ path: screenshotPath, fullPage: true, animations: 'disabled' });
         });
       }
     });
