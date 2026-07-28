@@ -44,6 +44,48 @@ Re-audit hiệu năng ngày 2026-07-26 đã chuyển sang đúng database ứng 
 dùng chung cho data-quality cleanup. Cache snapshot data-quality có khóa chống tính trùng; page/KPI dùng cùng
 snapshot scan 500 và phát `IsTruncated` khi vượt giới hạn. Không đồng bộ dữ liệu E2E từ lane vào database chính.
 
+## Production Render/Vercel đã đồng bộ với local ngày 28/07/2026
+
+- Production frontend `ipc-managament-frontend-demo.vercel.app` từng nhận HTTP 500 từ
+  `GET /api/workflow-reports/receipt-price-variance/page`; `/health/ready` báo `Degraded` với 19 migration
+  source-only. Database lúc preflight có 20/39 migration, 48 bảng, 0 stock movement và chưa có dữ liệu
+  nghiệp vụ.
+- Trước mutation schema đã tạo backup đã kiểm tra SHA-256 ở
+  `C:\Users\Administrator\ipc-prod-backups\IPC-20260728-203345.zip` và mirror
+  `D:\Backups\ipc-prod\IPC-20260728-203345.zip`. Trước full data sync tiếp tục tạo checkpoint hậu-migration
+  `IPC-20260728-205452.zip` ở cả hai vị trí.
+- Ba migration có object tương đương sẵn trong schema (`AddProductionPlanUpdatedAt`,
+  `AddSupplierQuotations`, `AddPurchaseOrders`) được audit column/index/FK rồi mới bổ sung history. Các
+  migration còn lại chạy bằng EF theo thứ tự source.
+- Lần chạy đầu dừng ở `CorrectPresetBomTechnicalUnits` vì temporary table dùng collation mặc định
+  `utf8mb4_0900_ai_ci` nhưng join với cột `utf8mb4_unicode_ci`. MySQL đã commit 7 unit tham chiếu trước
+  điểm lỗi nhưng chưa ghi history cho migration. Hai migration có temporary key tương tự đã được sửa bằng
+  collation tường minh; rerun idempotent hoàn tất an toàn.
+- Sau khi người dùng làm rõ cần cả dữ liệu nghiệp vụ, database local `ipcmanagement` được backup thành
+  `C:\Users\Administrator\ipc-local-sync-backups\ipcmanagement-20260728-205559.zip` và mirror
+  `D:\Backups\ipc-local-sync\ipcmanagement-20260728-205559.zip`; manifest/SHA-256 đã kiểm tra trước restore.
+  Dump có 61 `DROP TABLE`, không có `USE` hoặc `DROP DATABASE`.
+- Restore Windows→Linux tạo đồng thời `__efmigrationshistory` và `__EFMigrationsHistory` do khác biệt
+  case-sensitive. Dữ liệu hai history được merge về đúng bảng uppercase EF sử dụng, bảng lowercase dư bị
+  xóa; hai `ProductVersion` được đồng bộ đúng local. Trạng thái cuối: **61/61 bảng, 53.404/53.404 dòng,
+  0 missing table, 0 row-count mismatch, 0 checksum mismatch**. Lineage có 39 source migration và 2
+  database-only canonical hợp lệ, 0 unexplained/source-only/stale manifest/error.
+- Production hiện có cùng dữ liệu local, gồm 773 nguyên liệu, 358 món, 1.957 dòng BOM, 216 menu, 64 nhà
+  cung cấp, 43 đơn vị, 7 user và 17.256 stock movement. Vì bảng user cũng được đồng bộ, `admin/admin`
+  không còn hợp lệ; browser/E2E phải dùng mật khẩu đã xoay trong `K6_PASSWORD`.
+- Runtime verification: `/health/live` và `/health/ready` đều `Healthy`; migration/database check đều
+  `Healthy`. Chrome headed đăng nhập bằng credential local, report API trả **200** với 17.194 dòng giá và
+  UI render dữ liệu thật; không có page error/API error. Evidence mới:
+  `.artifacts/shipyard-live/production-reports-after-local-sync.png` và
+  `.artifacts/shipyard-live/production-report-debug.json`. CSP chặn Google Fonts vẫn còn nhưng không liên
+  quan tới report/database.
+- Gate source sau incident: API **667 pass / 1 skip**, Application **47/47**, FE **416/416**; Debug/Release
+  build 0 warning, lint/dependency/production build, OpenAPI/TypeScript deterministic, EF pending-model,
+  `git diff --check` và secret scan đều xanh. GitNexus incident diff: 3 file/7 symbol/0 flow, **LOW**.
+- Connection string production không được ghi vào repository. User-scope environment variable
+  `IPC_PROD_CONNECTION_STRING` dùng trong incident đã được xóa sau gates/commit; lần truy cập production
+  sau phải cấu hình lại qua secret manager hoặc environment, không đưa giá trị vào command/docs.
+
 ## Kết quả E2E đã xác minh
 
 Luồng bổ sung bếp đã đi hết trên FE + BE + DB:
