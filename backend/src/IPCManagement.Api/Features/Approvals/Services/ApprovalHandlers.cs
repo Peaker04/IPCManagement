@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +14,14 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
     where TEntity : class
 {
     protected readonly IpcManagementContext Context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    protected ApprovalHandlerBase(IpcManagementContext context)
+    protected ApprovalHandlerBase(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner)
     {
         Context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public abstract ApprovalTargetType TargetType { get; }
@@ -29,26 +34,29 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
             return null;
         }
 
-        await using var transaction = await Context.Database.BeginTransactionAsync();
-
-        try
-        {
-            var result = await HandleCoreAsync(entityId, request, actorId);
-            if (result is null)
+        ApprovalResultDto? transactionResult = null;
+        return await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
-                await transaction.RollbackAsync();
-                return null;
-            }
+                transactionResult = await HandleCoreAsync(entityId, request, actorId);
+                if (transactionResult is null)
+                {
+                    return null;
+                }
 
-            await Context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                await Context.SaveChangesAsync();
+                return transactionResult;
+            },
+            async cancellationToken =>
+            {
+                var historyId = GuidHelper.ParseGuidString(transactionResult?.HistoryId);
+                return historyId is not null &&
+                       await Context.Approvalhistories
+                           .AsNoTracking()
+                           .AnyAsync(
+                               history => history.ApprovalHistoryId == historyId,
+                               cancellationToken);
+            });
     }
 
     protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId);
@@ -100,7 +108,11 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
 
 public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<PurchaseRequest>
 {
-    public PurchaseRequestApprovalHandler(IpcManagementContext context) : base(context) { }
+    public PurchaseRequestApprovalHandler(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context)) { }
+
+    public PurchaseRequestApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+        : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.PurchaseRequest;
 
@@ -163,7 +175,11 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
 {
     private const string TargetTypeName = "purchase-price-exception";
 
-    public PurchasePriceExceptionApprovalHandler(IpcManagementContext context) : base(context) { }
+    public PurchasePriceExceptionApprovalHandler(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context)) { }
+
+    public PurchasePriceExceptionApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+        : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.PurchasePriceException;
 
@@ -251,7 +267,11 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
     private const string ApprovedStatus = "MANAGERAPPROVED";
     private const string RejectedStatus = "CANCELLED";
 
-    public MaterialDemandApprovalHandler(IpcManagementContext context) : base(context) { }
+    public MaterialDemandApprovalHandler(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context)) { }
+
+    public MaterialDemandApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+        : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.MaterialDemand;
 
@@ -320,7 +340,11 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
 
 public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<InventoryReceipt>
 {
-    public InventoryReceiptApprovalHandler(IpcManagementContext context) : base(context) { }
+    public InventoryReceiptApprovalHandler(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context)) { }
+
+    public InventoryReceiptApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+        : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryReceipt;
 
@@ -348,7 +372,11 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
 
 public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<InventoryIssue>
 {
-    public InventoryIssueApprovalHandler(IpcManagementContext context) : base(context) { }
+    public InventoryIssueApprovalHandler(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context)) { }
+
+    public InventoryIssueApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+        : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryIssue;
 
