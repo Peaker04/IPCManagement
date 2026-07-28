@@ -6,9 +6,9 @@ status: executing
 current_phase: "16"
 current_phase_name: persistence-and-reliability
 current_plan: "16-01"
-stopped_at: Step 16 five mapping slices complete through SampleData; continue feature-owned EF mapping before transaction standardization
-last_updated: "2026-07-28T17:06:00+07:00"
-last_activity: 2026-07-28 — Fifteen mappings extracted through SampleData with full gates and zero EF model drift
+stopped_at: Step 16 six mapping slices complete through Planning; continue Coordination, Purchasing and Inventory mappings
+last_updated: "2026-07-28T17:11:00+07:00"
+last_activity: 2026-07-28 — Seventeen mappings extracted through Planning with full gates and zero EF model drift
 progress:
   total_phases: 8
   completed_phases: 5
@@ -54,7 +54,7 @@ Defined-plan progress: ████████░░ 83% (5/6 defined plans com
 4. Explain and test canonical fresh/upgrade migration lineage without modifying applied migration history.
 5. Add off-site backup and disposable-clone restore rehearsal evidence without mutating `ipc_lane1`.
 
-Auth/Approvals/Catalog/Reports/SampleData checkpoint: fifteen entities now use feature-owned `IEntityTypeConfiguration<T>`
+Six-feature mapping checkpoint through Planning: seventeen entities now use feature-owned `IEntityTypeConfiguration<T>`
 implementations and `IpcManagementContext` discovers them through assembly registration. Full
 backend/frontend/contract/dependency and pending-model gates are green after each feature slice.
 
