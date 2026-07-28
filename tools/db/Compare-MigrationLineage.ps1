@@ -16,6 +16,8 @@ param(
 
     [string]$MySqlExe = 'C:\Program Files\MySQL\MySQL Server 9.5\bin\mysql.exe',
 
+    [string]$ManifestPath,
+
     [switch]$FailOnDrift
 )
 
@@ -31,6 +33,38 @@ if (-not (Test-Path -LiteralPath $MySqlExe -PathType Leaf)) {
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $migrationsPath = Join-Path $repoRoot 'backend\src\IPCManagement.Api\Migrations'
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path $PSScriptRoot 'migration-lineage.json'
+}
+if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
+    throw "Migration lineage manifest not found: $ManifestPath"
+}
+
+$manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
+if ($manifest.schemaVersion -ne 1) {
+    throw "Unsupported migration lineage manifest schemaVersion: $($manifest.schemaVersion)"
+}
+$manifestEntries = @($manifest.databaseOnlyMigrations)
+$manifestErrors = [System.Collections.Generic.List[string]]::new()
+$manifestById = @{}
+foreach ($entry in $manifestEntries) {
+    $migrationId = [string]$entry.migrationId
+    if ($migrationId -notmatch '^\d{14}_[A-Za-z0-9_]+$') {
+        $manifestErrors.Add("Invalid manifest migration ID: $migrationId")
+        continue
+    }
+    if ($manifestById.ContainsKey($migrationId)) {
+        $manifestErrors.Add("Duplicate manifest migration ID: $migrationId")
+        continue
+    }
+    if ($entry.disposition -notin @('retired-data-only', 'superseded-by-source')) {
+        $manifestErrors.Add("Unsupported disposition '$($entry.disposition)' for $migrationId")
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$entry.reason)) {
+        $manifestErrors.Add("Missing reason for $migrationId")
+    }
+    $manifestById[$migrationId] = $entry
+}
 
 $sourceMigrationIds = @(
     Get-ChildItem -LiteralPath $migrationsPath -File -Filter '*.cs' |
@@ -38,6 +72,20 @@ $sourceMigrationIds = @(
         ForEach-Object { $_.BaseName } |
         Sort-Object -Unique
 )
+
+foreach ($entry in $manifestEntries) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$entry.sourceBlobOid)) {
+        $blobSpec = "$($entry.sourceBlobOid)^{blob}"
+        & git -C $repoRoot cat-file -e $blobSpec 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            $manifestErrors.Add("Missing Git blob evidence $($entry.sourceBlobOid) for $($entry.migrationId)")
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$entry.successorMigrationId) -and
+        $entry.successorMigrationId -notin $sourceMigrationIds) {
+        $manifestErrors.Add("Missing source successor $($entry.successorMigrationId) for $($entry.migrationId)")
+    }
+}
 
 $sql = @'
 START TRANSACTION READ ONLY;
@@ -75,13 +123,19 @@ $databaseMigrationIds = @($databaseMigrationIds | ForEach-Object { $_.Trim() } |
 $databaseOnly = @($databaseMigrationIds | Where-Object { $_ -notin $sourceMigrationIds })
 $sourceOnly = @($sourceMigrationIds | Where-Object { $_ -notin $databaseMigrationIds })
 $allMigrationIds = @(($databaseMigrationIds + $sourceMigrationIds) | Sort-Object -Unique)
+$unexplainedDatabaseOnly = @($databaseOnly | Where-Object { -not $manifestById.ContainsKey($_) })
+$staleManifestEntries = @($manifestEntries | Where-Object { $_.migrationId -notin $databaseOnly })
 
 $allMigrationIds | ForEach-Object {
+    $manifestEntry = if ($manifestById.ContainsKey($_)) { $manifestById[$_] } else { $null }
     [pscustomobject]@{
         MigrationId = $_
         InDatabase = $_ -in $databaseMigrationIds
         InSource = $_ -in $sourceMigrationIds
-        Status = if ($_ -in $databaseOnly) {
+        Status = if ($null -ne $manifestEntry -and $_ -in $databaseOnly) {
+            'CANONICAL_DATABASE_ONLY'
+        }
+        elseif ($_ -in $databaseOnly) {
             'DATABASE_ONLY'
         }
         elseif ($_ -in $sourceOnly) {
@@ -90,12 +144,23 @@ $allMigrationIds | ForEach-Object {
         else {
             'MATCHED'
         }
+        CanonicalDisposition = $manifestEntry.disposition
+        SuccessorMigrationId = $manifestEntry.successorMigrationId
     }
 }
 
 Write-Host "Compared $($databaseMigrationIds.Count) database migration IDs with $($sourceMigrationIds.Count) source migration files."
-Write-Host "Database-only: $($databaseOnly.Count); source-only: $($sourceOnly.Count)."
+Write-Host "Canonical database-only: $($databaseOnly.Count - $unexplainedDatabaseOnly.Count); unexplained database-only: $($unexplainedDatabaseOnly.Count); source-only: $($sourceOnly.Count)."
+Write-Host "Stale manifest entries: $($staleManifestEntries.Count); manifest errors: $($manifestErrors.Count)."
 
-if ($FailOnDrift -and ($databaseOnly.Count -gt 0 -or $sourceOnly.Count -gt 0)) {
+foreach ($manifestError in $manifestErrors) {
+    Write-Error $manifestError
+}
+
+if ($FailOnDrift -and (
+    $unexplainedDatabaseOnly.Count -gt 0 -or
+    $sourceOnly.Count -gt 0 -or
+    $staleManifestEntries.Count -gt 0 -or
+    $manifestErrors.Count -gt 0)) {
     exit 3
 }

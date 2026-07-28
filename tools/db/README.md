@@ -9,6 +9,7 @@ Lưới an toàn dữ liệu tối thiểu cho MySQL. Hai script, không phụ t
 | `Restore-Database.ps1` | Giải nén → tạo DB đích → nạp dump, có guard chặn ghi đè DB thật |
 | `Audit-NonCriticalDataQuality.sql` | Audit read-only BOM, quotation, demand traceability, duplicate master, menu status và lineage |
 | `Compare-MigrationLineage.ps1` | Đối chiếu read-only `__EFMigrationsHistory` với file migration trong source |
+| `migration-lineage.json` | Manifest canonical cho migration DB-only đã retirement/supersede có evidence |
 
 Chạy audit không ghi dữ liệu:
 
@@ -30,8 +31,11 @@ Mỗi result set có cột `audit_section`; ID binary chỉ được xuất dạ
 .\Compare-MigrationLineage.ps1 -Database ipcmanagement -DbUser ipc_backup
 ```
 
-Script trả `DATABASE_ONLY`, `SOURCE_ONLY` hoặc `MATCHED`. Thêm `-FailOnDrift` nếu dùng làm
-quality gate (exit code `3` khi có lineage drift). Không tự xóa row lịch sử và không tự tạo migration.
+Script trả `CANONICAL_DATABASE_ONLY`, `DATABASE_ONLY`, `SOURCE_ONLY` hoặc `MATCHED`.
+`CANONICAL_DATABASE_ONLY` chỉ hợp lệ khi manifest có reason và blob/successor evidence kiểm
+chứng được. Thêm `-FailOnDrift` để làm quality gate: exit code `3` khi có ID chưa
+giải thích, source-only, manifest stale hoặc evidence hỏng. Script không tự xóa row lịch sử
+và không tự tạo migration.
 
 Lý do tồn tại: `stockmovements` là **sổ cái tồn kho không tái tạo được** từ bất kỳ nguồn nào khác.
 Mất bảng này là mất số liệu kho, không có cách dựng lại.
