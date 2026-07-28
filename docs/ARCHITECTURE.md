@@ -35,10 +35,10 @@ Browser
 | `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình host, middleware, JWT, CORS, Swagger và rate limit. |
 | `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
 | `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext cho MySQL và các entity nghiệp vụ. |
-| `CoordinationService` | `backend/src/IPCManagement.Api/Features/Coordination/Services/CoordinationService.cs` | Điều phối customer, menu, số suất và sign-off. |
+| Coordination use-case services | `backend/src/IPCManagement.Api/Features/Coordination/Services/` | Tách customer contract, portion rule, menu schedule, meal quantity plan và order lifecycle thành các shell/policy riêng. |
 | `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
-| `PurchaseRequestWorkflowService` | `backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestWorkflowService.cs` | Chuyển demand thiếu hụt thành quy trình đề xuất mua. |
-| `WorkflowReportService` | `backend/src/IPCManagement.Api/Features/Reports/Services/WorkflowReportService.cs` | Tổng hợp tồn kho, demand, mua hàng, biến động và audit. |
+| Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |
+| Reports use-case services | `backend/src/IPCManagement.Api/Features/Reports/Services/` | Tách price, demand, purchasing, inventory, audit/data-quality, KPI và aggregate cache theo use case. |
 | `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. |
 | `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session và RTK Query cache. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |

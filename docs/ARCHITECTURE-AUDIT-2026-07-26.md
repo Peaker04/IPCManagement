@@ -425,7 +425,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 | 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
 | 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
-| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Active tiếp theo: Reports** |
+| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Đã xong Reports, Coordination, Purchasing; active: Catalog** |
 | 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
 | 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
 | 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
@@ -448,7 +448,8 @@ acceptance criteria của chính hàng đợi này, không phải một plan th�
 - Browser gate chỉ kiểm website tại `1365×900`, `1280×900`, `768×1024`; mobile ngoài scope.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
 - Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
-  Gate 13 nay đã xanh; luồng active chuyển sang Bước 15, bắt đầu từ Reports.
+  Gate 13 nay đã xanh; Bước 15 đã hoàn tất Reports, Coordination và Purchasing; luồng active
+  tiếp theo là Catalog.
 
 ### Bước 11 — Khóa hợp đồng `f(data, state)`
 
@@ -660,11 +661,20 @@ FE 416/416, lint/dependency/build xanh, OpenAPI canonical 152 path/396 schema kh
 pending-model gate xanh.
 
 Coordination đã tách customer contract `fe8b720`, portion rule `a8c9a14`, menu
-schedule/version/rollback `055c611` và meal quantity plan/quick servings `a92410b` thành
-application service + pure policy có test không DB. Bốn service mới lần lượt 545/408/511/255
-dòng; `CoordinationService` giảm 2.728 → 1.524 dòng. Gate mới nhất: BE 668 pass/1 skip,
-FE 416/416, lint/dependency/build/contract/EF xanh. Coordination còn Order Lifecycle, controller
-split và xóa facade/helper chết; sau đó Bước 15 mới chuyển sang Purchasing.
+schedule/version/rollback `055c611`, meal quantity plan/quick servings `a92410b` và Order
+Lifecycle `370004c`. Order plan/adjustment/signoff lần lượt 337/202/179 dòng; pure policy
+phủ lock/unlock, adjustment/forecast và signoff scope. Commit `187fe63` tách năm controller
+theo responsibility và xóa `CoordinationService`, interface/controller facade cũ. Controller
+order còn 231 dòng/10 action; production scan 0 reference. Gate: BE 677 pass/1 skip,
+FE 416/416, OpenAPI 152 path/396 schema, lint/dependency/build/EF xanh.
+
+Purchasing hoàn tất Workbench `5226d06`, generate-from-demand `b954d2d`, supplier
+evidence/decision + price exception `6e835c3` và submit/validation + retire facade
+`f429482`. `PurchaseRequestWorkflowService`/interface production đã xóa; controller 184
+dòng/5 action gọi trực tiếp bốn port. Bốn shell use-case có 274/260/496/197 dòng, pure policy
+và mapper có test không DB; test facade chỉ còn trong project test để giữ characterization.
+Targeted Purchasing 201/201; full gate BE 702 pass/1 skip, FE 416/416, build 0 warning,
+contract deterministic và EF pending-model sạch. Bước 15 tiếp tục **Catalog → SampleData**.
 
 ### Bước 16 — Persistence và reliability
 
