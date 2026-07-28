@@ -34,7 +34,8 @@ Browser
 |---|---|---|
 | `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình host, middleware, JWT, CORS, Swagger và rate limit. |
 | `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
-| `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext/registration root cho MySQL; feature-owned mapping nằm trong `Features/*/Persistence`. Auth là lát đầu đã chuyển sang `IEntityTypeConfiguration<T>`. |
+| `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext/registration root cho MySQL; 53 mapping nằm trong 11 file feature-owned `Features/*/Persistence` qua `IEntityTypeConfiguration<T>`. |
+| `IEfTransactionRunner` | `backend/src/IPCManagement.Api/Data/Transactions/` | Chủ sở hữu duy nhất của manual transaction; chạy qua EF execution strategy, clear tracking trước retry/commit verification và yêu cầu verifier ổn định để tránh duplicate side effect. |
 | Coordination use-case services | `backend/src/IPCManagement.Api/Features/Coordination/Services/` | Tách customer contract, portion rule, menu schedule, meal quantity plan và order lifecycle thành các shell/policy riêng. |
 | `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
 | Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |
@@ -42,6 +43,10 @@ Browser
 | `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. |
 | `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session và RTK Query cache. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
+
+Pomelo bật `EnableRetryOnFailure`; production source chỉ còn một `BeginTransactionAsync(` nằm trong
+`EfTransactionRunner`. `IUnitOfWork` chỉ còn trách nhiệm `SaveChangesAsync`, không còn mở transaction.
+Convention test khóa cả hai điều kiện này để manual transaction mới không thể lách execution strategy.
 
 Sau khi shell đăng nhập ổn định, `MainLayout` preload tuần tự module của các route sidebar mà người dùng có quyền trong các idle slot. Scheduler chỉ warm code, không bulk-fetch dữ liệu; data vẫn được intent-prefetch khi hover, focus hoặc touch. Bulk preload bị bỏ qua khi trình duyệt bật Data Saver hoặc báo mạng 2G. `routeLoaders` giữ component đã resolve để lần render đầu sau preload không quay lại Suspense fallback; nếu người dùng click trước khi preload xong thì fallback có kích thước ổn định vẫn là đường lui.
 
@@ -76,7 +81,7 @@ IPCManagement/
 │   ├── src/IPCManagement.Api/
 │   │   ├── Features/          10 vertical slice; controller/service/contract/validator
 │   │   ├── Shared/Contracts/  contract dùng chéo slice
-│   │   ├── Data/              DbContext, repository, Unit of Work
+│   │   ├── Data/              DbContext, repository, Unit of Work, transaction runner
 │   │   ├── Helpers/           mapping, response, validation hỗ trợ
 │   │   ├── Middlewares/       exception, correlation, production guard
 │   │   ├── Migrations/        EF Core migrations

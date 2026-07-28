@@ -201,7 +201,7 @@ Khóa đúng theo ngữ cảnh:
 
 | Phạm vi | Tests | Line | Branch | Function/method |
 |---|---:|---:|---:|---:|
-| Backend | **714 pass / 0 fail / 1 skip** (28/07) — gate incident gồm Api.Tests 667 pass/1 skip và Application.Tests 47/47 | 69.4% | 53.8% | 75.5% method |
+| Backend | **716 pass / 0 fail / 1 skip** (28/07) — Gate 16 gồm Api.Tests 667 pass/1 skip và Application.Tests 49/49 | 69.4% | 53.8% | 75.5% method |
 | Frontend | **416/416 pass trên 74 file** (28/07) | 39.68% | 29.21% | 32.00% function |
 
 Số coverage phần trăm là của lần chạy coverage 25/07; các lần sau chỉ chạy lại test suite, chưa chạy lại coverage.
@@ -271,11 +271,11 @@ Không được mô tả các mục P2–P3 là đã xử lý cho tới khi có 
 |---|---|---|
 | 1.1 Health check + logging | Xong | `/health/live` (không chạm DB) + `/health/ready` (`DatabaseHealthCheck`, timeout 5s); `UseSerilogRequestLogging`; log JSON `CompactJsonFormatter` → `logs/ipc-.jsonl` bọc `WriteTo.Async`; `Log.CloseAndFlush()`. `health.sh` chuyển sang `/health/ready`, có nhánh chẩn đoán "alive nhưng not ready" |
 | 1.2a Hạ tầng phân loại lỗi | Xong | `Exceptions/{BusinessRule,ResourceNotFound,ResourceConflict}Exception` (kế thừa thẳng `Exception`) → 400/404/409; `correlationId` vào body lỗi dùng lại `CorrelationIdMiddleware`; `WithExposedHeaders("X-Correlation-ID")`; thêm arm `BadHttpRequestException` để upload quá cỡ ra **413** thay vì 500 |
-| 1.2b Phân loại `InvalidOperationException` | **CHƯA** | Cố ý hoãn — xem phần còn hở |
+| 1.2b Phân loại `InvalidOperationException` | **Đã đóng ở Bước 16** | Business failure đã dùng domain/application exception có HTTP mapping; system/import failure không còn bị che thành 400 nghiệp vụ. |
 | 1.3 CI thật | Xong | CI chạy FE unit test; `IPC_TEST_CONNECTION_STRING` trỏ service container; **đảo thứ tự step** vì schema đang được dựng SAU khi test chạy; `RequiresMySqlFact` (thiếu biến ở local → Skipped có lý do, trong CI → chạy thật, không skip); step đếm integration test đã chạy, **exit 1 nếu = 0**; xóa `UnitTest1.cs`; concurrency, cache NuGet/npm, dependabot, CodeQL |
 | 1.4 Gỡ `.gitignore` | Xong | `docs/` + `scripts/` vào git (8 + 3 file). `tools/perf/` hóa ra **đã track sẵn** — audit lỗi thời. Xóa 2 npm script trỏ `Invoke-Iter1QualityGate.ps1` (không tồn tại) |
 | 1.5 Transaction + toàn vẹn | Xong | 9 transaction (6 mới) ở 5 service; unique constraint `uxStocktakeActiveWarehouse` qua cột sinh (MySQL không có partial index); 8 chỗ chuyển sang `ResourceConflictException` (409) |
-| 1.5b Bọc execution strategy | **CHƯA** | Cố ý hoãn — xem phần còn hở |
+| 1.5b Bọc execution strategy | **Đã đóng ở Bước 16** | Manual transaction tập trung vào `EfTransactionRunner`; source còn đúng một opener, retry/idempotency test xanh và MySQL đã bật `EnableRetryOnFailure`. |
 | 1.6 Security headers | Xong | API: HSTS ngoài Development, nosniff, `X-Frame-Options: DENY`, CSP. Vercel: header đặt ở **root `vercel.json`**, đã xóa `frontend/vercel.json` |
 | 1.7 Forwarded headers, cookie, rate limit | Xong | `UseForwardedHeaders` là middleware đầu tiên; cookie `Secure` qua `CookiePolicyOptions`; `api-general` thành **global limiter** (opt-out). `ApiPermitLimit=100000` của k6 nguyên vẹn |
 | 1.8 Upload + parser XLSX | Xong | `[RequestSizeLimit(10 MB)]` cho **5** endpoint upload (audit đếm 4, sót stub `weekly-menu/import`); chặn merged-cell bomb, zip bomb 2 lớp, XXE, tràn số nguyên tên cột |
@@ -285,7 +285,7 @@ Quality gates ngày 26/07 sau P1: backend **626 pass / 0 fail / 1 skip** (baseli
 
 Điều chỉnh so với plan audit, đều do phân tích impact chứ không làm máy móc:
 
-1. **`EnableRetryOnFailure` đã bị gỡ.** Audit (1.5) yêu cầu bật, nhưng codebase có **26 chỗ `BeginTransactionAsync` ở 15 file và 0 chỗ bọc `CreateExecutionStrategy`** — `UnitOfWork.BeginTransactionAsync` là wrapper dùng chung cho 7 service, riêng `CoordinationService` có 6 chỗ. Bật retry mà bọc thiếu là vỡ runtime hàng loạt luồng, trong khi unit test mock `IUnitOfWork` nên vẫn xanh (pass giả). Giữ `CommandTimeout(30)`, tách việc bọc thành P1.5b.
+1. **`EnableRetryOnFailure` đã bị gỡ ở đợt P1.** Audit (1.5) yêu cầu bật, nhưng codebase khi đó có **26 chỗ `BeginTransactionAsync` ở 15 file và 0 chỗ bọc `CreateExecutionStrategy`** — `UnitOfWork.BeginTransactionAsync` là wrapper dùng chung cho 7 service, riêng `CoordinationService` có 6 chỗ. Bật retry mà bọc thiếu là vỡ runtime hàng loạt luồng, trong khi unit test mock `IUnitOfWork` nên vẫn xanh (pass giả). Bước 16 sau đó đã tập trung mọi manual transaction vào runner và bật lại retry an toàn tại `59add79`.
 2. **`InvalidOperationException` vẫn map 400.** Audit (1.2) yêu cầu để rơi về 500, nhưng toàn bộ service đang ném nó cho lỗi nghiệp vụ hợp lệ — đổi ngay sẽ biến hàng loạt 400 đúng thành 500. Đã thêm log `Warning "Unclassified exception"` kèm service/endpoint để P1.2b có danh sách chính xác.
 3. **`CurrentStockRepository` giữ `ExecuteUpdateAsync`.** Audit coi đây là đường vòng bỏ qua RowVersion. Kiểm trên DB thật: `rowVersion` là `timestamp(6) on update CURRENT_TIMESTAMP(6)` nên database vẫn đẩy token lên; điều kiện `currentQty >= quantity` trong `WHERE` là compare-and-set nguyên tử, mạnh hơn optimistic lock cho bài toán trừ kho. Lỗ hổng thật chỉ là bản sao cũ trong change-tracker, đã xử lý đúng chỗ đó.
 4. **Lỗ hổng XLSX rộng hơn audit mô tả**: cùng merged-cell bomb còn nguyên ở `PurchaseHistorySourceParser`. Đã trích `XlsxSecurityLimits` làm nguồn sự thật duy nhất (14 hằng số + helper), `XlsxWorkbookReader` giảm 712 → 332 dòng, toàn repo còn đúng **một** chỗ parse `<mergeCell>` và **một** `XDocument.Load`.
@@ -398,8 +398,8 @@ Database chính đã chạy `dotnet ef database update`: **38 → 40 migration**
 
 Còn hở sau đợt P1 ngày 26/07/2026:
 
-- **P1.2b — phân loại `InvalidOperationException`**: vẫn map 400 kèm log `Warning "Unclassified exception"`. Phải quét theo log đó, đổi từng chỗ sang `BusinessRuleException`/`ResourceConflictException` rồi mới để `InvalidOperationException` rơi về 500. Có `// TODO P1.2b` tại arm tương ứng trong `ExceptionMiddleware`.
-- **P1.5b — bọc `CreateExecutionStrategy` cho 26 `BeginTransactionAsync` ở 15 file**, rồi mới bật lại `EnableRetryOnFailure`. Ưu tiên `UnitOfWork.BeginTransactionAsync` (wrapper dùng chung cho 7 service) và `CoordinationService` (6 chỗ). Chừng nào chưa xong thì **không được bật retry**.
+- ~~**P1.2b — phân loại `InvalidOperationException`**~~ **ĐÃ ĐÓNG Ở BƯỚC 16** bằng domain/application exception và middleware mapping rõ.
+- ~~**P1.5b — bọc execution strategy trước khi bật retry**~~ **ĐÃ ĐÓNG Ở BƯỚC 16**: source chỉ còn một `BeginTransactionAsync(` trong `EfTransactionRunner`, `IUnitOfWork` không còn mở transaction và convention/retry regression khóa lại trạng thái này.
 - **P1.9 nhóm 2 đã đóng trong Bước 13**: Approvals `c0cf976` và Admin
   `0e0279f` đã chuyển các query owner cũ của `ApprovalPage`, `ApprovalRulesPage` và
   `useAdminDataPageModel` sang `QueryView`; lint hiện sạch, error/skip/403 không còn bị coi là empty.
@@ -838,7 +838,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   chỉ là comment stale, không đổi executable reader. Staged audit cuối là **MEDIUM**: 21 file,
   48 symbol, 2 flow; hai flow chỉ map tới hunk comment trong `OpenWorkbook` và đều đã qua full regression.
 - Không gọi endpoint import, không reset/seed/import hoặc truy cập database, không chạy browser vì
-  API contract, route, UI và DOM không đổi. **Bước 15 đã hoàn tất; bước active tiếp theo là Bước 16.**
+  API contract, route, UI và DOM không đổi. **Bước 15 đã hoàn tất; Bước 16 sau đó cũng đã đóng.**
 
 ### GSD routing đã đồng bộ với workflow kiến trúc
 
@@ -847,32 +847,34 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   `0fb96be` và `5869295` làm rõ/chốt Phần F là nguồn thực thi duy nhất.
 - `.planning/ROADMAP.md` v1.1 có lịch sử từ 20–23/07 và không được tạo trong session nói trên.
   Nó cùng Phase 08–09 đã được chuyển vào `.planning/archive/v1.1-legacy/` để chỉ giữ provenance.
-- GSD active hiện là milestone `v1.2`, **5/8 bước hoàn tất**, đúng một phase đang thực hiện:
-  **Phase/Step 16 — Persistence and reliability**. Step 17–18 vẫn pending và chưa có executable plan
-  cho đến khi dependency gate trước đó đóng.
-- Step 16 hiện dừng ở **Task 4/5**; ba work package đầu đã hoàn tất. Task 1 chuyển đủ **53 mapping**
+- GSD active hiện là milestone `v1.2`, **6/8 bước hoàn tất**; sáu plan đã định nghĩa đều có summary
+  (**6/6, 100% defined-plan progress**). **Phase/Step 17 — Frontend ownership** là bước active tiếp theo
+  và chưa có executable plan; Step 18 vẫn pending.
+- Step 16 đã hoàn tất đủ **5/5 task**. Task 1 chuyển đủ **53 mapping**
   vào 11 file feature-owned `IEntityTypeConfiguration<T>` và đóng tại `7e94eb3`; context chỉ còn assembly
   registration. Task 2 thêm `IEfTransactionRunner`, phân loại domain/application exception, canonicalize
   migration lineage và diễn tập restore disposable clone, đóng tại `b37606b`. Task 3 đưa runner vào
   Coordination, Purchasing, Inventory, SampleData, Catalog, Reports, Approvals và Admin, đóng tại
   `f3e7bcd`; mọi operation mutable load entity bên trong runner và có database verifier để tránh nhân đôi
   side effect khi retry/commit verification.
-- Task 4 còn gỡ `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync` không còn caller,
-  cập nhật comment DI và chỉ quyết định `EnableRetryOnFailure` sau source scan + retry regression. Task 5
-  chưa chạy: full Gate 16, đồng bộ closeout và đánh dấu ARCH-16A–E. Restore rehearsal/hash mirror đã pass,
-  nhưng C:/D: chưa chứng minh là hai thiết bị/site vật lý; off-site NAS/cloud/external media vẫn là gap vận hành.
+- Task 4 đóng tại `59add79`: xóa `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync`,
+  bật `EnableRetryOnFailure` và thêm convention test khóa đúng một transaction opener trong runner.
+  Focused convention **2/2**, retry runner **2/2**. Task 5 full gate: API **667 pass/1 skip**,
+  Application **49/49**, FE **416/416**, Debug/Release **0 warning/0 error**, lint sạch, dependency không
+  có violation mới, production build, contract determinism và EF pending-model đều xanh. ARCH-16A–E đã đóng.
+- Restore rehearsal/hash mirror đã pass, nhưng C:/D: chưa chứng minh là hai thiết bị/site vật lý;
+  off-site NAS/cloud/external media vẫn là gap vận hành. Direct restore runbook đã thêm restart/clear
+  application cache để tránh trạng thái catalog/BOM cũ sau restore.
 - Công việc production xen ngang đã tạo commit `7e79106` để hai data migration dùng collation tường minh;
-  full source gate sau incident xanh. Việc này không tự đóng Task 4/5 và không thay đổi routing: milestone
-  vẫn 5/8 phase hoàn tất, defined-plan progress 5/6 (**83%**), Step 16 active, Step 17–18 pending.
+  full source gate sau incident xanh và được giữ nguyên khi đóng Bước 16.
 
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
 2. Chạy `git status --short --branch`; xác nhận vẫn ở `feature/production-plan`. Không reset, checkout hoặc commit thay đổi chưa rõ ownership.
 3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
-3b. Resume Step 16 từ Task 4: impact `IUnitOfWork`, `UnitOfWork`, `BeginTransactionAsync` và
-   `DependencyInjection.AddBackendServices`; gỡ duy nhất API transaction legacy rồi chạy focused retry/idempotency
-   trước khi cân nhắc `EnableRetryOnFailure`. Không nhảy sang Step 17 khi Gate 16 chưa đóng.
+3b. Bước 16 đã đóng; tiếp tục bằng discuss/plan **Step 17 — Frontend ownership**. Giữ một `apiSlice`,
+   không đổi public hook/cache behavior và chưa thực hiện Step 18 trước khi Gate 17 xanh.
 4. Kiểm tra port `8090`, `3001`, `8001` và trạng thái Shipyard lane. Không khởi tạo database mới nếu lane hiện tại còn evidence cần bảo toàn.
 4b. **Trước khi chạy bất kỳ file `.sql` nào vào MySQL**: `grep -n '^USE\|DROP TABLE\|DROP DATABASE'` file đó trước. `backend/database/IPCmanagement.sql` nay có chốt an toàn nhưng các file khác thì chưa. Muốn biết database có tụt hậu migration không thì gọi `/health/ready` — check `migrations` sẽ báo Degraded kèm danh sách ID còn thiếu.
 5. Mở UI bằng browser headed; đăng nhập demo `admin` với mật khẩu lấy từ biến môi trường `K6_PASSWORD`

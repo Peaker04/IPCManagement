@@ -36,6 +36,10 @@ phải tính lại bằng `Get-FileHash`. Archive chứa SQL và manifest nhưng
   cloud. Operator phải cấu hình `-MirrorDir` tới đích thực sự độc lập rồi chạy lại cùng rehearsal.
 - Manifest là integrity/evidence gate, không phải chữ ký mật mã. Nếu attacker sửa cả SQL lẫn
   manifest trước khi tạo zip thì gate không phát hiện; off-machine immutability/encryption còn hở.
+- Direct restore bypass cache invalidation của ứng dụng. Sau restore production phải restart API hoặc
+  clear catalog/application cache, rồi buộc frontend refetch; `DishCatalogService` giữ cache 30 phút và
+  RTK Query giữ cache 5 phút. Evidence production từng hiển thị BOM cũ `0/90` cho tới khi refetch, trong
+  khi database và preview đã là `90/90`. Đây là bước bắt buộc của runbook, không phải data repair/import.
 
 ## Lệnh gate có thể chạy lại
 
