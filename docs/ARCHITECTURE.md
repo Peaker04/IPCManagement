@@ -34,7 +34,7 @@ Browser
 |---|---|---|
 | `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình host, middleware, JWT, CORS, Swagger và rate limit. |
 | `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
-| `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext cho MySQL và các entity nghiệp vụ. |
+| `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext/registration root cho MySQL; feature-owned mapping nằm trong `Features/*/Persistence`. Auth là lát đầu đã chuyển sang `IEntityTypeConfiguration<T>`. |
 | Coordination use-case services | `backend/src/IPCManagement.Api/Features/Coordination/Services/` | Tách customer contract, portion rule, menu schedule, meal quantity plan và order lifecycle thành các shell/policy riêng. |
 | `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
 | Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |

@@ -412,6 +412,13 @@ một roadmap P0–P3. Toàn bộ việc của hai danh sách cũ được nhậ
 package của Bước 11→18, dùng chung dependency, gate và trạng thái. Từ đây không giao việc,
 commit hay báo tiến độ bằng nhãn P0/P1/P2/P3 nữa; chỉ dùng số Bước 11–18 bên dưới.
 
+GSD đã được đồng bộ ngày 28/07/2026 thành milestone `v1.2`: `.planning/ROADMAP.md`
+chỉ mirror trạng thái Bước 11–18 để route workflow. Roadmap GSD v1.1 cùng Phase 08–09 được
+lưu dưới `.planning/archive/v1.1-legacy/` làm lịch sử và không còn tham gia execution queue.
+Provenance được đối chiếu từ Git history và session “Kiểm tra tiến độ đọc tài liệu”: roadmap v1.1
+kết thúc ngày 23/07, còn workflow hợp nhất này được tạo trong session ngày 27/07 tại `15d8592`
+và tiếp tục được chốt ở `0fb96be`, `5869295`.
+
 ```text
 Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bước 16 → Bước 17 → Bước 18
  state core    pilot      state rollout VSA boundary  functional   persistence  FE ownership  close/gates
@@ -728,6 +735,18 @@ mà không reset dữ liệu.
 
 **Gate 16:** retry không nhân đôi side effect; fresh-install/upgrade lineage được giải thích và test;
 restore drill đạt RPO/RTO đã chốt; production/lane data không bị reset.
+
+**Tiến độ 28/07/2026 — EF mapping qua Coordination customer/contract:** mười chín mapping của
+`Role`, `User`, `RefreshToken`, `ApprovalHistory`, `ApprovalRule`, `ApprovalAssignment`,
+`BomAdjustment`, `Dish`, `DishBom`, `Ingredient`, `Unit`, `AuditLog`, `CustomerImportMapping`
+hai entity reconciliation, demand cùng `Customer`/`CustomerContract` đã chuyển nguyên cấu hình sang
+`Features/<owner>/Persistence` bằng `IEntityTypeConfiguration<T>`; context đăng ký configuration
+từ production assembly và bỏ mười chín block inline. Architecture convention đã mở layer `Persistence`
+chính thức, không đặt mapping vào `Services` để né gate. GitNexus cảnh báo
+`IpcManagementContext` **HIGH** (26 direct dependants/3 module), còn `OnModelCreating` LOW;
+blast radius được phủ bằng full regression. Gate: API **663 pass/1 skip**, Application **47/47**,
+FE **416/416**, build/lint/dependency/production build/OpenAPI deterministic xanh và EF xác nhận
+không có pending model change. Không gọi database runtime, migrate, seed, reset hay import.
 
 ### Bước 17 — Thu hẹp frontend ownership
 

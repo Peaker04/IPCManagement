@@ -23,6 +23,7 @@ public class FeatureNamespaceConventionTests
     [
         "Contracts",
         "Controllers",
+        "Persistence",
         "Services",
         "Validators",
     ];
