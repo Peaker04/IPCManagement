@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -16,6 +17,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*";
 
     private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
     private static readonly (Guid RoleId, string RoleCode, string RoleName)[] DefaultRoles =
     [
         (Guid.Parse("00000000-0000-0000-0000-000000000001"), "ADMIN", "Admin"),
@@ -28,8 +30,16 @@ public class AdminEmployeeService : IAdminEmployeeService
     ];
 
     public AdminEmployeeService(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context))
+    {
+    }
+
+    public AdminEmployeeService(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner)
     {
         _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<List<AdminRoleDto>> GetRolesAsync()
@@ -94,10 +104,9 @@ public class AdminEmployeeService : IAdminEmployeeService
         // hai lần commit rời rạc: nếu insert user hỏng (trùng username, lỗi kết nối) thì 7 role mặc định
         // vừa được chèn vẫn nằm lại vĩnh viễn. Gộp cả hai vào một transaction: hoặc có đủ role + user,
         // hoặc không thay đổi gì.
-        byte[] createdUserId;
-        await using (var transaction = await _context.Database.BeginTransactionAsync())
-        {
-            try
+        var normalizedUsername = request.Username.Trim();
+        var createdUserId = await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
                 var roleId = await ResolveRoleIdAsync(request.RoleId);
                 await EnsureUsernameAvailableAsync(request.Username);
@@ -106,7 +115,7 @@ public class AdminEmployeeService : IAdminEmployeeService
                 {
                     UserId = GuidHelper.NewId(),
                     FullName = request.FullName.Trim(),
-                    Username = request.Username.Trim(),
+                    Username = normalizedUsername,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                     RoleId = roleId,
                     IsActive = request.IsActive,
@@ -115,16 +124,11 @@ public class AdminEmployeeService : IAdminEmployeeService
 
                 _context.Users.Add(user);
                 await SaveChangesGuardingUsernameAsync();
-                await transaction.CommitAsync();
-
-                createdUserId = user.UserId;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+                return user.UserId;
+            },
+            cancellationToken => _context.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.Username == normalizedUsername, cancellationToken));
 
         var created = await LoadEmployeeEntityAsync(createdUserId)
             ?? throw new InvalidOperationException("Không thể tải nhân viên vừa tạo.");
@@ -140,10 +144,8 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         // Giống CreateAsync: ResolveRoleIdAsync có thể commit role mặc định trước khi user + auditlog
         // được ghi. Một transaction duy nhất cho cả hai lượt SaveChangesAsync.
-        byte[] updatedUserId;
-        await using (var transaction = await _context.Database.BeginTransactionAsync())
-        {
-            try
+        var updatedUserId = await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
                 var updated = await ApplyEmployeeUpdateAsync(userId, request, changedByUserId);
                 if (updated is null)
@@ -151,14 +153,17 @@ public class AdminEmployeeService : IAdminEmployeeService
                     return null;
                 }
 
-                await transaction.CommitAsync();
-                updatedUserId = updated;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+                return updated;
+            },
+            cancellationToken => _context.Users
+                .AsNoTracking()
+                .AnyAsync(
+                    user => user.UserId == userId && user.Username == request.Username.Trim(),
+                    cancellationToken));
+
+        if (updatedUserId is null)
+        {
+            return null;
         }
 
         var reloaded = await LoadEmployeeEntityAsync(updatedUserId)
@@ -444,18 +449,23 @@ public class AdminEmployeeService : IAdminEmployeeService
     {
         // Cùng lỗi hai lần commit rời rạc như CreateAsync: EnsureDefaultRolesAsync tự lưu role trước,
         // rồi mới tới lượt lưu 6 user mẫu. Bọc chung một transaction để seed là thao tác tất-cả-hoặc-không.
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            var credentials = await SeedSampleUsersCoreAsync();
-            await transaction.CommitAsync();
-            return credentials;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+        return await _transactionRunner.ExecuteAsync(
+            _ => SeedSampleUsersCoreAsync(),
+            async cancellationToken =>
+            {
+                var usernames = await _context.Users
+                    .AsNoTracking()
+                    .Where(user =>
+                        user.Username == "admin" ||
+                        user.Username == "quanly" ||
+                        user.Username == "dieuphoi" ||
+                        user.Username == "beptruong" ||
+                        user.Username == "thukho" ||
+                        user.Username == "thumua")
+                    .Select(user => user.Username)
+                    .ToListAsync(cancellationToken);
+                return usernames.Distinct(StringComparer.OrdinalIgnoreCase).Count() == 6;
+            });
     }
 
     private async Task<IReadOnlyDictionary<string, string>> SeedSampleUsersCoreAsync()
