@@ -85,6 +85,19 @@ snapshot scan 500 và phát `IsTruncated` khi vượt giới hạn. Không đồ
 - Connection string production không được ghi vào repository. User-scope environment variable
   `IPC_PROD_CONNECTION_STRING` dùng trong incident đã được xóa sau gates/commit; lần truy cập production
   sau phải cấu hình lại qua secret manager hoặc environment, không đưa giá trị vào command/docs.
+- Kiểm tra BOM sau đồng bộ dùng đúng workbook
+  `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx` (SHA-256
+  `a7e734cefbd409e7220c4ff19b3e1b7fddd4e33d202a3f24e63309d60d4d5a01`) và **chỉ gọi preview**, không
+  import lại hay mutate database. Preview tuần `2026-07-27` của ANV có 114/114 dòng dùng món đã tồn tại,
+  0 món mới, validation hợp lệ, 0 error/0 warning. Menu đã commit trước đó có 114 source row → 90 display
+  row; cả **90/90 món có BOM**, 0 matched-without-BOM và 0 unmatched. Catalog production có 194 món active,
+  1.957 BOM line; 32 món toàn cục chưa có BOM nhưng không món nào nằm trong 90 dòng menu này.
+- Ảnh browser headed hiện render `BOM & định mức: 90/90 món`. Con số `0/90` trước đó là cache cũ sau direct
+  restore: `DishCatalogService` giữ memory cache 30 phút, RTK Query giữ cache 5 phút, còn restore trực tiếp
+  bypass `DishCatalogCache.Clear`. Ctrl+F5 hoặc logout/login lấy lại catalog đúng; runbook restore production
+  vẫn còn việc vận hành là restart/clear application cache sau restore. Evidence:
+  `.artifacts/shipyard-live/production-weekly-menu-bom-debug.png` và
+  `.artifacts/shipyard-live/production-bom-debug.json`.
 
 ## Kết quả E2E đã xác minh
 
@@ -188,7 +201,7 @@ Khóa đúng theo ngữ cảnh:
 
 | Phạm vi | Tests | Line | Branch | Function/method |
 |---|---:|---:|---:|---:|
-| Backend | **710 pass / 0 fail / 1 skip** (28/07) — `npm run test:be` gồm 2 project: Api.Tests 663, Application.Tests 47 | 69.4% | 53.8% | 75.5% method |
+| Backend | **714 pass / 0 fail / 1 skip** (28/07) — gate incident gồm Api.Tests 667 pass/1 skip và Application.Tests 47/47 | 69.4% | 53.8% | 75.5% method |
 | Frontend | **416/416 pass trên 74 file** (28/07) | 39.68% | 29.21% | 32.00% function |
 
 Số coverage phần trăm là của lần chạy coverage 25/07; các lần sau chỉ chạy lại test suite, chưa chạy lại coverage.
@@ -732,7 +745,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
 - Bước 14 đã đóng sớm; Gate 13 nay đã xanh nên tiếp tục Bước 15, bắt đầu từ Reports.
 
-### Bước 15 — Tách use case và functional core (SampleData đang thực hiện)
+### Bước 15 — Tách use case và functional core (đã hoàn tất)
 
 - Reports đã tách theo mười hai lát commit nguyên tử: price variance `92b7bf3`, demand
   `354b920`, purchasing `ffdab86`, stock snapshot `92c64dd`, inventory operations `7db54c5`,
@@ -837,18 +850,29 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - GSD active hiện là milestone `v1.2`, **5/8 bước hoàn tất**, đúng một phase đang thực hiện:
   **Phase/Step 16 — Persistence and reliability**. Step 17–18 vẫn pending và chưa có executable plan
   cho đến khi dependency gate trước đó đóng.
-- Step 16 đã hoàn tất bảy lát EF mapping đến Coordination customer/contract: tổng cộng 19 entity nằm
-  trong `Features/<owner>/Persistence` dưới `IEntityTypeConfiguration<T>`; context dùng assembly
-  registration. Architecture convention
-  công nhận `Persistence`. Full gate mỗi lát: API **663/1**,
-  Application **47/47**, FE **416/416**, build/lint/dependency/OpenAPI xanh và EF pending-model sạch.
-  Không truy cập hoặc mutate database runtime.
+- Step 16 hiện dừng ở **Task 4/5**; ba work package đầu đã hoàn tất. Task 1 chuyển đủ **53 mapping**
+  vào 11 file feature-owned `IEntityTypeConfiguration<T>` và đóng tại `7e94eb3`; context chỉ còn assembly
+  registration. Task 2 thêm `IEfTransactionRunner`, phân loại domain/application exception, canonicalize
+  migration lineage và diễn tập restore disposable clone, đóng tại `b37606b`. Task 3 đưa runner vào
+  Coordination, Purchasing, Inventory, SampleData, Catalog, Reports, Approvals và Admin, đóng tại
+  `f3e7bcd`; mọi operation mutable load entity bên trong runner và có database verifier để tránh nhân đôi
+  side effect khi retry/commit verification.
+- Task 4 còn gỡ `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync` không còn caller,
+  cập nhật comment DI và chỉ quyết định `EnableRetryOnFailure` sau source scan + retry regression. Task 5
+  chưa chạy: full Gate 16, đồng bộ closeout và đánh dấu ARCH-16A–E. Restore rehearsal/hash mirror đã pass,
+  nhưng C:/D: chưa chứng minh là hai thiết bị/site vật lý; off-site NAS/cloud/external media vẫn là gap vận hành.
+- Công việc production xen ngang đã tạo commit `7e79106` để hai data migration dùng collation tường minh;
+  full source gate sau incident xanh. Việc này không tự đóng Task 4/5 và không thay đổi routing: milestone
+  vẫn 5/8 phase hoàn tất, defined-plan progress 5/6 (**83%**), Step 16 active, Step 17–18 pending.
 
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
 2. Chạy `git status --short --branch`; xác nhận vẫn ở `feature/production-plan`. Không reset, checkout hoặc commit thay đổi chưa rõ ownership.
 3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
+3b. Resume Step 16 từ Task 4: impact `IUnitOfWork`, `UnitOfWork`, `BeginTransactionAsync` và
+   `DependencyInjection.AddBackendServices`; gỡ duy nhất API transaction legacy rồi chạy focused retry/idempotency
+   trước khi cân nhắc `EnableRetryOnFailure`. Không nhảy sang Step 17 khi Gate 16 chưa đóng.
 4. Kiểm tra port `8090`, `3001`, `8001` và trạng thái Shipyard lane. Không khởi tạo database mới nếu lane hiện tại còn evidence cần bảo toàn.
 4b. **Trước khi chạy bất kỳ file `.sql` nào vào MySQL**: `grep -n '^USE\|DROP TABLE\|DROP DATABASE'` file đó trước. `backend/database/IPCmanagement.sql` nay có chốt an toàn nhưng các file khác thì chưa. Muốn biết database có tụt hậu migration không thì gọi `/health/ready` — check `migrations` sẽ báo Degraded kèm danh sách ID còn thiếu.
 5. Mở UI bằng browser headed; đăng nhập demo `admin` với mật khẩu lấy từ biến môi trường `K6_PASSWORD`
@@ -866,6 +890,10 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - `.artifacts/shipyard-live/admin-data-tabs.png`
 - `.artifacts/shipyard-live/warehouse-final-supplemental-status.png`
 - `.artifacts/shipyard-live/live-visual-performance.json`
+- `.artifacts/shipyard-live/production-reports-after-local-sync.png`
+- `.artifacts/shipyard-live/production-report-debug.json`
+- `.artifacts/shipyard-live/production-weekly-menu-bom-debug.png`
+- `.artifacts/shipyard-live/production-bom-debug.json`
 - `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`
 - `.artifacts/shipyard-live/coverage-be-20260725/report/index.html`
 - `frontend/coverage/index.html`
