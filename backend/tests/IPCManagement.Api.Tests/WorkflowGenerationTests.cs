@@ -5075,21 +5075,14 @@ public class WorkflowGenerationTests
         context.Menuversions.Add(version);
         await context.SaveChangesAsync();
 
-        var service = new SampleDataImportService(context, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
-            "InvalidateWorkflowDocumentsForMenuReimportAsync",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        method.Should().NotBeNull();
-
-        var task = (Task<int>)method!.Invoke(service, [
+        var service = CreateWeeklyMenuImportPersistence(context);
+        var invalidated = await service.InvalidateWorkflowDocumentsForMenuReimportAsync(
             customer,
             new DateOnly(2026, 6, 15),
             new DateOnly(2026, 6, 20),
             version,
             fixture.UserIdString,
-            CancellationToken.None
-        ])!;
-        var invalidated = await task;
+            CancellationToken.None);
         await context.SaveChangesAsync();
 
         invalidated.Should().Be(2);
@@ -5131,21 +5124,15 @@ public class WorkflowGenerationTests
             context.Menuversions.Add(version);
             await context.SaveChangesAsync();
 
-            var importService = new SampleDataImportService(context, null!);
-            var invalidateMethod = typeof(SampleDataImportService).GetMethod(
-                "InvalidateWorkflowDocumentsForMenuReimportAsync",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            invalidateMethod.Should().NotBeNull();
-
-            var invalidateTask = (Task<int>)invalidateMethod!.Invoke(importService, [
+            var importService = CreateWeeklyMenuImportPersistence(context);
+            var invalidated = await importService.InvalidateWorkflowDocumentsForMenuReimportAsync(
                 customer,
                 new DateOnly(2026, 6, 15),
                 new DateOnly(2026, 6, 20),
                 version,
                 fixture.UserIdString,
-                CancellationToken.None
-            ])!;
-            (await invalidateTask).Should().Be(1);
+                CancellationToken.None);
+            invalidated.Should().Be(1);
             await context.SaveChangesAsync();
         }
 
@@ -5195,21 +5182,15 @@ public class WorkflowGenerationTests
             context.Menuversions.Add(version);
             await context.SaveChangesAsync();
 
-            var importService = new SampleDataImportService(context, null!);
-            var invalidateMethod = typeof(SampleDataImportService).GetMethod(
-                "InvalidateWorkflowDocumentsForMenuReimportAsync",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            invalidateMethod.Should().NotBeNull();
-
-            var invalidateTask = (Task<int>)invalidateMethod!.Invoke(importService, [
+            var importService = CreateWeeklyMenuImportPersistence(context);
+            var invalidated = await importService.InvalidateWorkflowDocumentsForMenuReimportAsync(
                 customer,
                 new DateOnly(2026, 6, 15),
                 new DateOnly(2026, 6, 20),
                 version,
                 fixture.UserIdString,
-                CancellationToken.None
-            ])!;
-            (await invalidateTask).Should().Be(2);
+                CancellationToken.None);
+            invalidated.Should().Be(2);
             await context.SaveChangesAsync();
             var demandCancellationAudit = await context.Auditlogs.SingleAsync(item =>
                 item.BusinessArea == "Demand" &&
@@ -5334,6 +5315,13 @@ public class WorkflowGenerationTests
 
     private static ClaimsPrincipal BuildPrincipal(string roleName)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, roleName)], "TestAuth"));
+
+    private static WeeklyMenuImportPersistence CreateWeeklyMenuImportPersistence(IpcManagementContext context)
+    {
+        var resultBuilder = new WeeklyMenuImportResultBuilder(context);
+        var actorResolver = new WeeklyMenuAuditActorResolver(context);
+        return new WeeklyMenuImportPersistence(context, resultBuilder, actorResolver);
+    }
 
     private static PurchaseRequestWorkflowService CreatePurchaseRequestWorkflowService(IpcManagementContext context)
         => new(context, new SupplierQuotationService(context));

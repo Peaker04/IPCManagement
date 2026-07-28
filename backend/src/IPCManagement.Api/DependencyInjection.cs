@@ -101,7 +101,17 @@ public static class DependencyInjection
         services.AddScoped<IOrderPlanService, OrderPlanService>();
         services.AddScoped<IOrderAdjustmentService, OrderAdjustmentService>();
         services.AddScoped<IOrderSignoffService, OrderSignoffService>();
-        services.AddScoped<ISampleDataImportService, SampleDataImportService>();
+        services.AddScoped<WeeklyMenuCustomerResolver>();
+        services.AddScoped<WeeklyMenuAuditActorResolver>();
+        services.AddScoped<WeeklyMenuImportResultBuilder>();
+        services.AddScoped<WeeklyMenuImportPersistence>();
+        services.AddScoped<IWeeklyMenuQueryService, WeeklyMenuQueryService>();
+        services.AddScoped<IWeeklyMenuTemplateService, WeeklyMenuTemplateService>();
+        services.AddScoped<ICustomerImportMappingService, CustomerImportMappingService>();
+        services.AddScoped<IWeeklyMenuImportService, WeeklyMenuImportService>();
+        services.AddScoped<IWeeklyMenuImportHistoryService, WeeklyMenuImportHistoryService>();
+        services.AddScoped<IWeeklyMenuBulkEditService, WeeklyMenuBulkEditService>();
+        services.AddScoped<ISampleBomImportService, SampleBomImportService>();
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
         services.AddScoped<IPurchaseRequestQueryService, PurchaseRequestQueryService>();
