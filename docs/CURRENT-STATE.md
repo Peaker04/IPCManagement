@@ -686,7 +686,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
 - Bước 14 đã đóng sớm; Gate 13 nay đã xanh nên tiếp tục Bước 15, bắt đầu từ Reports.
 
-### Bước 15 — Tách use case và functional core (Catalog đang thực hiện)
+### Bước 15 — Tách use case và functional core (SampleData đang thực hiện)
 
 - Reports đã tách theo mười hai lát commit nguyên tử: price variance `92b7bf3`, demand
   `354b920`, purchasing `ffdab86`, stock snapshot `92c64dd`, inventory operations `7db54c5`,
@@ -738,9 +738,15 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   lint sạch, dependency không tăng (54 known violation vẫn ignore), production/Release build xanh,
   OpenAPI/TypeScript deterministic và EF pending-model sạch. Không chạm database và không chạy
   browser vì API contract, UI, route và cache behavior không đổi.
-- Catalog **chưa hoàn tất**: architecture-growth còn cảnh báo `DishesController` 266 dòng/17 action.
-  Lát active tiếp theo là manual BOM lifecycle → split controller → retire `DishService` facade.
-  Chỉ sau khi các gate này xanh mới bắt đầu SampleData; không chạy SampleData seed trên `ipc_lane1`.
+- Catalog hoàn tất thêm manual BOM `d81f6b0` và controller/facade retirement `5d07df9`.
+  `DishBomService` còn 426 dòng; bốn controller nhỏ đều dưới growth warning. Production scan
+  không còn `DishService`/`IDishService`; 17 route, policy, response metadata và upload limit giữ nguyên.
+- Gate Catalog cuối: API **671 pass / 1 skip**, Application **47/47**, FE **416/416**,
+  Release build 0 warning, lint/dependency/production build xanh và EF sạch. OpenAPI còn
+  **152 path / 396 schema**, generator deterministic; generated TypeScript không đổi.
+- Lát active tiếp theo là **SampleData**, theo thứ tự preset BOM → weekly parser/policy →
+  query/template/mapping → preview/commit → history/rollback → bulk edit → controller/facade.
+  Không gọi endpoint import và không seed/reset `ipc_lane1` trong quá trình refactor.
 
 ## Quy trình tiếp tục ở phiên mới
 

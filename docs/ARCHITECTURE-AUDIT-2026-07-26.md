@@ -425,7 +425,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 | 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
 | 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
-| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Đã xong Reports, Coordination, Purchasing; Catalog đã tách core/diagnostics/policy/template/import, còn manual BOM + controller; chưa sang SampleData** |
+| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Đã xong Reports, Coordination, Purchasing, Catalog; active: SampleData** |
 | 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
 | 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
 | 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
@@ -448,9 +448,8 @@ acceptance criteria của chính hàng đợi này, không phải một plan th�
 - Browser gate chỉ kiểm website tại `1365×900`, `1280×900`, `768×1024`; mobile ngoài scope.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
 - Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
-  Gate 13 nay đã xanh; Bước 15 đã hoàn tất Reports, Coordination và Purchasing. Catalog đã tách
-  catalog core, diagnostics/validation, pure BOM policy, template và bulk import; lát active còn lại
-  là manual BOM lifecycle, split controller và retire facade trước khi sang SampleData.
+  Gate 13 nay đã xanh; Bước 15 đã hoàn tất Reports, Coordination, Purchasing và Catalog;
+  luồng active tiếp theo là SampleData.
 
 ### Bước 11 — Khóa hợp đồng `f(data, state)`
 
@@ -677,17 +676,15 @@ và mapper có test không DB; test facade chỉ còn trong project test để g
 Targeted Purchasing 201/201; full gate BE 702 pass/1 skip, FE 416/416, build 0 warning,
 contract deterministic và EF pending-model sạch.
 
-**Catalog đang thực hiện tại `b3cdbad` → `f083fb0`.** Năm checkpoint nguyên tử đã tách
+**Catalog hoàn tất tại `b3cdbad` → `5d07df9`.** Năm checkpoint đầu đã tách
 catalog core, diagnostics/validation, pure `DishBomPolicy`, BOM template và BOM import/parser.
-`DishService` giảm từ 1.796 xuống 542 dòng; các shell mới lần lượt 143/316/135/330/462 dòng,
-không vượt ngưỡng service 600. Import giữ nguyên preview/commit transaction, message, DTO và
-hai cache key; policy HIGH/CRITICAL đã được phủ bằng test direct và full regression.
+Manual BOM được tách tại `d81f6b0`; controller/facade retirement hoàn tất tại `5d07df9`.
+`DishBomService` còn 426 dòng; bốn controller đều dưới growth warning. Production scan không còn
+`DishService`/`IDishService`. Import giữ nguyên preview/commit transaction, message, DTO và hai cache key.
 
-Gate checkpoint: API **675 pass / 1 skip**, Application **47/47**, FE **416/416**, Release build
-0 warning, lint/dependency/production build xanh, OpenAPI/TypeScript deterministic và EF
-pending-model sạch. Architecture-growth vẫn cảnh báo `DishesController` **266 dòng/17 action**;
-vì vậy Catalog chưa đóng. Lát active là manual BOM lifecycle + split controller + retire facade;
-chỉ sau đó mới bắt đầu SampleData.
+Gate cuối: API **671 pass / 1 skip**, Application **47/47**, FE **416/416**, Release build 0 warning,
+lint/dependency/production build xanh và EF pending-model sạch. OpenAPI vẫn **152 path / 396 schema**;
+generated TypeScript không đổi và generator chạy lặp deterministic. Bước 15 tiếp tục với SampleData.
 
 ### Bước 16 — Persistence và reliability
 
