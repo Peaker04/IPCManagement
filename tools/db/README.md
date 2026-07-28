@@ -7,6 +7,31 @@ Lưới an toàn dữ liệu tối thiểu cho MySQL. Hai script, không phụ t
 |---|---|
 | `Backup-Database.ps1` | Dump → nén `.zip` → xoá bản cũ quá hạn |
 | `Restore-Database.ps1` | Giải nén → tạo DB đích → nạp dump, có guard chặn ghi đè DB thật |
+| `Audit-NonCriticalDataQuality.sql` | Audit read-only BOM, quotation, demand traceability, duplicate master, menu status và lineage |
+| `Compare-MigrationLineage.ps1` | Đối chiếu read-only `__EFMigrationsHistory` với file migration trong source |
+
+Chạy audit không ghi dữ liệu:
+
+```powershell
+$env:MYSQL_PWD = '<mat-khau-mysql>'
+$mysql = 'C:\Program Files\MySQL\MySQL Server 9.5\bin\mysql.exe'
+Get-Content .\Audit-NonCriticalDataQuality.sql -Raw |
+    & $mysql --database=ipcmanagement --table
+```
+
+Script audit chỉ chứa `SELECT`/`WITH`; nó không seed, migrate, cleanup hoặc đổi trạng thái chứng từ.
+Mỗi result set có cột `audit_section`; ID binary chỉ được xuất dạng hex. Cột
+`review_order` của duplicate ingredient chỉ giúp sắp xếp review theo số tham chiếu, không phải
+đề xuất canonical ID và không được dùng để merge tự động.
+
+Đối chiếu migration mà không thay đổi database:
+
+```powershell
+.\Compare-MigrationLineage.ps1 -Database ipcmanagement -DbUser ipc_backup
+```
+
+Script trả `DATABASE_ONLY`, `SOURCE_ONLY` hoặc `MATCHED`. Thêm `-FailOnDrift` nếu dùng làm
+quality gate (exit code `3` khi có lineage drift). Không tự xóa row lịch sử và không tự tạo migration.
 
 Lý do tồn tại: `stockmovements` là **sổ cái tồn kho không tái tạo được** từ bất kỳ nguồn nào khác.
 Mất bảng này là mất số liệu kho, không có cách dựng lại.
