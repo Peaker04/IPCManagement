@@ -686,13 +686,25 @@ Gate cuối: API **671 pass / 1 skip**, Application **47/47**, FE **416/416**, R
 lint/dependency/production build xanh và EF pending-model sạch. OpenAPI vẫn **152 path / 396 schema**;
 generated TypeScript không đổi và generator chạy lặp deterministic. Bước 15 tiếp tục với SampleData.
 
-**SampleData đã bắt đầu tại `486c9f8` và `815a3c0`.** Endpoint preset BOM dùng port hẹp
-`ISampleBomImportService`; weekly menu tiếp tục dùng port riêng cũ nhưng cùng scoped implementation nên
-tracking/transaction không đổi. Weighted merge, scientific notation và fallback weight/servings đã chuyển
-sang pure `PresetBomImportPolicy` có test trực tiếp. Service partial giảm còn **3.868 dòng**; chưa gọi endpoint,
-không seed/reset database. Gate hiện tại: API **672 pass / 1 skip**, Application **47/47**.
-Lát active tiếp theo là di chuyển preset BOM imperative shell khỏi `SampleDataImportService`, sau đó mới tới
-weekly parser/policy, query/template/mapping, commit, history/rollback và bulk edit.
+**SampleData đang thực hiện tại `486c9f8` → `266378a`.** Endpoint preset BOM dùng port hẹp
+`ISampleBomImportService`; weighted merge, scientific notation và fallback weight/servings nằm trong pure
+`PresetBomImportPolicy`. Commit `8a9f709` chuyển ownership imperative shell sang
+`SampleBomImportService` 554 dòng, giữ dry-run, stable ID, warehouse unit, ba tier và destructive replace;
+`SampleDataImportService` không còn implement port preset.
+
+Commit `266378a` tách weekly parser/validation thành internal models, `WeeklyMenuWorkbookParser`
+(276 dòng), layout policy (311), syntax policy (127) và validation policy (186). Các test gọi core trực tiếp,
+không còn reflection vào private parser/validation của facade. Preview/commit vẫn giữ response DTO,
+temp-file lifecycle và transaction boundary hiện hữu. Tổng service partial giảm **3.868 → 2.409 dòng**.
+
+Gate mới nhất: API **674 pass / 1 skip**, Application **47/47**, FE **416/416**, backend build 0 warning,
+lint/dependency/production build xanh, OpenAPI/TypeScript deterministic và EF pending-model sạch.
+GitNexus staged audit lần lượt **HIGH** cho preset shell và **CRITICAL** cho parser, đúng các flow import đã
+được full regression phủ. Không gọi endpoint, không seed/reset hoặc truy cập `ipc_lane1`; ba port runtime
+`8090/3001/8001` đang không listen nên không có browser evidence mới.
+
+Lát active tiếp theo là query/template/mapping, sau đó preview/commit, history/rollback, bulk edit và
+controller/facade retirement.
 
 ### Bước 16 — Persistence và reliability
 

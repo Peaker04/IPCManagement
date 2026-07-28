@@ -22,18 +22,22 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 | Thành phần | Giá trị đã kiểm tra ngày 28/07/2026 |
 |---|---|
 | Git branch | `feature/production-plan` |
-| Shipyard UI | `http://localhost:8090` |
-| Frontend lane 1 | `http://localhost:3001` — source-backed từ working tree hiện tại |
-| API lane 1 | `http://localhost:8001` — source-backed từ working tree hiện tại |
+| Shipyard UI | `http://localhost:8090` — **không listen khi kiểm tra đầu phiên 28/07** |
+| Frontend lane 1 | `http://localhost:3001` — **không listen khi kiểm tra đầu phiên 28/07** |
+| API lane 1 | `http://localhost:8001` — **không listen khi kiểm tra đầu phiên 28/07** |
 | Database | `ipc_lane1`, đã đồng bộ từ `ipcmanagement` sau khôi phục |
 | Tài khoản demo | username `admin`; mật khẩu phải lấy từ credential đã xoay, không dùng giá trị mặc định |
 | Template happy path | `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx` |
 
-Ba port `8090`, `3001`, `8001` đang listen tại thời điểm cập nhật. `/health/ready` trả `Healthy` cho cả `database` và `migrations`. Không giả định trạng thái này còn đúng ở phiên sau; phải kiểm tra lại trước khi mở browser hoặc chạy test.
+Evidence runtime gần nhất trước phiên này từng xác nhận ba port `8090`, `3001`, `8001` và
+`/health/ready` xanh. Tuy nhiên kiểm tra đầu phiên hiện tại cho thấy **cả ba port đều không listen**;
+không được dùng trạng thái runtime cũ để kết luận E2E. Hai lát SampleData dưới đây chỉ chạy test host/
+quality gate, không boot Shipyard và không đọc/ghi `ipc_lane1`.
 
 Ngày 27/07, `ipc_lane1` cũ được xác nhận chỉ có 38 migration và cũ hơn database chính đã khôi phục. Theo lệnh của Kỳ, đã backup cả hai DB vào `D:\Backups\ipc-lane-sync-20260727`, ghi migration no-op `20260726203853_RenameEntitiesToPascalCase` vào database chính, rồi restore `ipcmanagement` sang `ipc_lane1`. Gate sau restore: **61/61 bảng, 53.416/53.416 dòng, 0 row-count mismatch, 0 checksum mismatch, 41/41 migration**. Từ mốc này, lane là bản sao của database chính sau khôi phục; lineage E2E cũ của lane không còn là baseline hiện hành, nhưng vẫn có trong file backup lane trước đồng bộ.
 
-Checkout `shipyard-lanes/lane1` vẫn ở commit cũ `e025d13` và có nhiều thay đổi chưa commit; không reset hoặc ghi đè nó. Stack hiện tại được Shipyard quản lý PID/log nhưng boot source-backed từ checkout chính sau các commit Bước 10, nên UI tại `3001` phản ánh đúng working tree đang kiểm tra.
+Checkout `shipyard-lanes/lane1` vẫn ở commit cũ `e025d13` và có nhiều thay đổi chưa commit; không reset hoặc ghi đè nó. Lần boot gần nhất của stack dùng source-backed từ checkout chính sau các commit Bước 10,
+nhưng runtime hiện đã dừng nên phải boot lại và đối chiếu commit/source trước lần browser test kế tiếp.
 
 Re-audit hiệu năng ngày 2026-07-26 đã chuyển sang đúng database ứng dụng `ipcmanagement` (read-only). P0 ledger
 đã được sửa để aggregate ở MySQL, bảo toàn khóa current-only/movement-only, chọn movement mới nhất ổn định và
@@ -744,13 +748,24 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Gate Catalog cuối: API **671 pass / 1 skip**, Application **47/47**, FE **416/416**,
   Release build 0 warning, lint/dependency/production build xanh và EF sạch. OpenAPI còn
   **152 path / 396 schema**, generator deterministic; generated TypeScript không đổi.
-- Lát active tiếp theo là **SampleData**, theo thứ tự preset BOM → weekly parser/policy →
-  query/template/mapping → preview/commit → history/rollback → bulk edit → controller/facade.
-  Không gọi endpoint import và không seed/reset `ipc_lane1` trong quá trình refactor.
-- SampleData đã bắt đầu: `486c9f8` tách port preset BOM khỏi weekly menu; `815a3c0` tách pure
+- SampleData thực hiện theo thứ tự preset BOM → weekly parser/policy → query/template/mapping →
+  preview/commit → history/rollback → bulk edit → controller/facade. Không gọi endpoint import và
+  không seed/reset `ipc_lane1` trong quá trình refactor.
+- `486c9f8` tách port preset BOM khỏi weekly menu; `815a3c0` tách pure
   `PresetBomImportPolicy` cho weighted merge, scientific notation và fallback weight/servings.
-  Full backend sau hai lát: API **672 pass / 1 skip**, Application **47/47**. Service partial còn
-  **3.868 dòng**; bước tiếp theo là tách preset BOM imperative shell, không chạy import thật.
+- `8a9f709` tách imperative shell thật thành `SampleBomImportService` **554 dòng** và đăng ký
+  trực tiếp cho `ISampleBomImportService`; facade không còn implement port preset. Dry-run, stable ID,
+  unit kho hiện hữu, ba tier 25k/30k/34k và hành vi destructive `ReplaceBomCatalog` được khóa bằng test.
+- `266378a` tách weekly parser/validation khỏi partial thành internal models và bốn module thuần:
+  parser **276**, layout **311**, syntax **127**, validation **186 dòng**. Test parser/validation gọi
+  functional core trực tiếp thay vì reflection; preview/commit tiếp tục giữ DTO và transaction cũ.
+- Tổng `SampleDataImportService` partial giảm **3.868 → 2.409 dòng**. Quality gate sau lát mới nhất:
+  API **674 pass / 1 skip**, Application **47/47**, FE **416/416**, build backend 0 warning,
+  lint/dependency/production build xanh, OpenAPI/TypeScript deterministic và EF pending-model sạch.
+  GitNexus staged audit preset là **HIGH** (35 symbol/9 flow); parser là **CRITICAL**
+  (103 symbol/17 flow), đúng các flow preview/commit đã được phủ regression.
+- Lát active tiếp theo là **query/template/mapping**, sau đó preview/commit, history/rollback,
+  bulk edit và cuối cùng rewire controller để xóa `ISampleDataImportService`/partial facade.
 
 ## Quy trình tiếp tục ở phiên mới
 
