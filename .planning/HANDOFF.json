@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-28T12:02:18.645Z",
+  "phase": "16",
+  "phase_name": "persistence-and-reliability",
+  "phase_dir": ".planning/phases/16-persistence-and-reliability",
+  "plan": 1,
+  "task": 4,
+  "total_tasks": 5,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Feature-owned EF mappings",
+      "status": "done",
+      "commit": "7e94eb3"
+    },
+    {
+      "id": 2,
+      "name": "Transaction runner foundation, domain exceptions, migration lineage and restore rehearsal",
+      "status": "done",
+      "commit": "b37606b"
+    },
+    {
+      "id": 3,
+      "name": "Adopt transaction runner across feature transaction boundaries",
+      "status": "done",
+      "commit": "f3e7bcd"
+    },
+    {
+      "id": 4,
+      "name": "Retire legacy UnitOfWork transaction API and decide retry enablement",
+      "status": "in_progress",
+      "progress": "All feature call sites now use IEfTransactionRunner; only IUnitOfWork.BeginTransactionAsync/UnitOfWork.BeginTransactionAsync and stale DI comments remain. EnableRetryOnFailure is still disabled."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 4,
+      "name": "Remove the unused UnitOfWork transaction API, update DI comments, assess EnableRetryOnFailure and run focused regression",
+      "status": "in_progress"
+    },
+    {
+      "id": 5,
+      "name": "Run full Step 16 gates, synchronize CURRENT-STATE/audit/GSD and close ARCH-16A-E with the off-site limitation stated accurately",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "The C: and D: mirror paths have matching SHA-256 evidence but are not proven to be separate physical/off-site media.",
+      "type": "human_action",
+      "workaround": "Keep restore rehearsal evidence valid but document production off-site NAS/cloud/external-drive setup as an operational gap."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Configure and verify a genuinely off-site backup target for production.",
+      "context": "Current mirror rehearsal proves copy integrity and disposable restore, not physical-site independence.",
+      "blocking": false
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Every mutable EF load is performed inside the transaction runner operation and every operation supplies a database verifier.",
+      "rationale": "EfTransactionRunner clears ChangeTracker on retry/commit verification; external tracked entities would otherwise be detached and could silently skip writes.",
+      "phase": "16"
+    },
+    {
+      "decision": "Keep EnableRetryOnFailure disabled until the legacy UnitOfWork transaction API is removed and final gates pass.",
+      "rationale": "The source scan must have exactly one BeginTransactionAsync in EfTransactionRunner before global transient retry is considered safe.",
+      "phase": "16"
+    },
+    {
+      "decision": "Do not treat the C:/D: mirror as proven off-site storage.",
+      "rationale": "Logical drive letters do not prove separate physical devices or sites.",
+      "phase": "16"
+    }
+  ],
+  "uncommitted_files": [
+    ".dockerignore (untracked, user-owned, outside scope)",
+    "Dockerfile (untracked, user-owned, outside scope)"
+  ],
+  "next_action": "Read AGENTS.md and docs/CURRENT-STATE.md, refresh GitNexus after the merge, run impact for IUnitOfWork/UnitOfWork/DependencyInjection.AddBackendServices, remove the unused BeginTransactionAsync API, then run full Step 16 gates and synchronize docs.",
+  "context_notes": "Architecture workflow Part F remains the only execution source; archived GSD v1.1 must not be applied. No database seed/import/reset or SampleData/admin seed endpoint was run. Latest full backend gate: API 667 pass/1 skip, Application 47/47."
+}
