@@ -82,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryAdjustmentApprovalHandler>();
         services.AddScoped<IIngredientService, IngredientService>();
+        services.AddScoped<IDishCatalogService, DishCatalogService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
@@ -90,7 +91,6 @@ public static class DependencyInjection
         services.AddScoped<IInventoryReturnService, InventoryReturnService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
-        services.AddScoped<ICoordinationService, CoordinationService>();
         services.AddScoped<ICustomerContractService, CustomerContractService>();
         services.AddScoped<IPortionRuleService, PortionRuleService>();
         services.AddScoped<IMenuScheduleService, MenuScheduleService>();
@@ -102,7 +102,10 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
         services.AddScoped<IPurchaseRequestQueryService, PurchaseRequestQueryService>();
-        services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
+        services.AddScoped<IPurchaseWorkbenchService, PurchaseWorkbenchService>();
+        services.AddScoped<IPurchaseRequestGenerationService, PurchaseRequestGenerationService>();
+        services.AddScoped<IPurchaseSupplierDecisionService, PurchaseSupplierDecisionService>();
+        services.AddScoped<IPurchaseRequestSubmissionService, PurchaseRequestSubmissionService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
         services.AddScoped<IPurchaseReceivingService, PurchaseReceivingService>();
         services.AddScoped<IDemandReportService, DemandReportService>();

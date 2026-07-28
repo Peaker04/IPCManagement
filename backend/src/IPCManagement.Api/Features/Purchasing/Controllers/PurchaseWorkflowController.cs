@@ -1,3 +1,4 @@
+
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -15,14 +16,23 @@ namespace IPCManagement.Api.Features.Purchasing.Controllers;
 [EnableRateLimiting("api-general")]
 public class PurchaseWorkflowController : ControllerBase
 {
-    private readonly IPurchaseRequestWorkflowService _purchaseRequestWorkflowService;
+    private readonly IPurchaseWorkbenchService _purchaseWorkbenchService;
+    private readonly IPurchaseRequestGenerationService _purchaseRequestGenerationService;
+    private readonly IPurchaseSupplierDecisionService _purchaseSupplierDecisionService;
+    private readonly IPurchaseRequestSubmissionService _purchaseRequestSubmissionService;
     private readonly ICurrentUserService _currentUserService;
 
     public PurchaseWorkflowController(
-        IPurchaseRequestWorkflowService purchaseRequestWorkflowService,
+        IPurchaseWorkbenchService purchaseWorkbenchService,
+        IPurchaseRequestGenerationService purchaseRequestGenerationService,
+        IPurchaseSupplierDecisionService purchaseSupplierDecisionService,
+        IPurchaseRequestSubmissionService purchaseRequestSubmissionService,
         ICurrentUserService currentUserService)
     {
-        _purchaseRequestWorkflowService = purchaseRequestWorkflowService;
+        _purchaseWorkbenchService = purchaseWorkbenchService;
+        _purchaseRequestGenerationService = purchaseRequestGenerationService;
+        _purchaseSupplierDecisionService = purchaseSupplierDecisionService;
+        _purchaseRequestSubmissionService = purchaseRequestSubmissionService;
         _currentUserService = currentUserService;
     }
 
@@ -36,7 +46,7 @@ public class PurchaseWorkflowController : ControllerBase
     {
         try
         {
-            var result = await _purchaseRequestWorkflowService.GetWorkbenchWeekAsync(query, cancellationToken);
+            var result = await _purchaseWorkbenchService.GetWorkbenchWeekAsync(query, cancellationToken);
             return Ok(ApiResponse<PurchaseWorkbenchWeekDto>.SuccessResult(result));
         }
         catch (ArgumentException ex)
@@ -55,7 +65,7 @@ public class PurchaseWorkflowController : ControllerBase
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _purchaseRequestWorkflowService.GenerateFromDemandAsync(request, userId, cancellationToken);
+        var result = await _purchaseRequestGenerationService.GenerateFromDemandAsync(request, userId, cancellationToken);
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng thiếu nguyên liệu để tạo đề xuất mua hàng."));
@@ -77,7 +87,7 @@ public class PurchaseWorkflowController : ControllerBase
     {
         try
         {
-            var result = await _purchaseRequestWorkflowService.GetSupplierEvidenceAsync(
+            var result = await _purchaseSupplierDecisionService.GetSupplierEvidenceAsync(
                 id,
                 lineId,
                 cancellationToken);
@@ -113,7 +123,7 @@ public class PurchaseWorkflowController : ControllerBase
         try
         {
             var userId = _currentUserService.GetUserId(User);
-            var result = await _purchaseRequestWorkflowService.ConfirmLineSupplierAsync(
+            var result = await _purchaseSupplierDecisionService.ConfirmLineSupplierAsync(
                 id,
                 lineId,
                 request,
@@ -154,7 +164,7 @@ public class PurchaseWorkflowController : ControllerBase
         try
         {
             var userId = _currentUserService.GetUserId(User);
-            var result = await _purchaseRequestWorkflowService.SubmitAsync(id, userId, cancellationToken);
+            var result = await _purchaseRequestSubmissionService.SubmitAsync(id, userId, cancellationToken);
             if (result is null)
             {
                 return NotFound(ApiResponse.FailResult("Không tìm thấy đơn mua."));

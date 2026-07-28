@@ -32,7 +32,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var request = new LockOrderPlanRequest
         {
             ServiceDate = "2026-06-15",
@@ -82,7 +82,7 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var request = new AdjustServingsRequest
         {
@@ -120,7 +120,7 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var request = new UpdateForecastServingsRequest
         {
@@ -163,7 +163,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var act = async () => await service.UpdateForecastServingsAsync(
             lineId,
@@ -197,7 +197,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var lockResult = await service.LockOrderPlanAsync(
             new LockOrderPlanRequest
@@ -257,7 +257,7 @@ public class CoordinationTransactionTests
             await arrangeContext.SaveChangesAsync();
         }
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var act = async () => await service.LockOrderPlanAsync(
             new LockOrderPlanRequest
             {
@@ -293,7 +293,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.LockOrderPlanAsync(
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
@@ -319,7 +319,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var act = async () => await service.LockOrderPlanAsync(
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
@@ -340,7 +340,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var morning = SeedAdjustServingsFixture(options, false, suffix: "101", shiftName: "MORNING");
         SeedAdjustServingsFixture(options, false, suffix: "102", shiftName: "AFTERNOON", planStatus: OrderStatus.Forecasted);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.LockOrderPlanAsync(
             new LockOrderPlanRequest
@@ -377,7 +377,7 @@ public class CoordinationTransactionTests
         await connection.OpenAsync();
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         (await service.LockOrderPlanAsync(
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
@@ -404,7 +404,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var first = await service.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
@@ -451,7 +451,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
@@ -491,7 +491,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var coordinationService = new CoordinationService(new IpcManagementContext(options));
+        var coordinationService = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
             {
@@ -547,7 +547,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var coordinationService = new CoordinationService(new IpcManagementContext(options));
+        var coordinationService = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
             {
@@ -598,7 +598,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var planId = GuidHelper.ToGuidString(fixture.PlanId);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderAsync(
             planId,
@@ -632,7 +632,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest
@@ -664,7 +664,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.UnlockOrderPlanScopeAsync(
             new CoordinationScopeActionRequest
@@ -697,7 +697,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -721,7 +721,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var act = async () => await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -743,7 +743,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var result = await service.UnlockOrderPlanScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -767,7 +767,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var act = async () => await service.UnlockOrderPlanScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -789,7 +789,7 @@ public class CoordinationTransactionTests
         var morning = SeedAdjustServingsFixture(options, false, suffix: "201", planStatus: OrderStatus.Confirmed);
         SeedAdjustServingsFixture(options, false, suffix: "202", planStatus: OrderStatus.Adjusted);
         SeedAdjustServingsFixture(options, false, suffix: "203", shiftName: "AFTERNOON", planStatus: OrderStatus.Confirmed);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var signoff = await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -820,7 +820,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var first = SeedAdjustServingsFixture(options, false, suffix: "301", planStatus: OrderStatus.Confirmed);
         SeedAdjustServingsFixture(options, false, suffix: "302", planStatus: OrderStatus.Draft);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
 
         var act = async () => await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -840,7 +840,7 @@ public class CoordinationTransactionTests
         await connection.OpenAsync();
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(options));
         var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
 
         (await service.SignoffOrderScopeAsync(request, null)).Should().BeNull();
@@ -875,7 +875,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(seedOptions, true);
         var failingOptions = BuildOptions(connection, new ThrowOnAuditlogSaveChangesInterceptor());
-        var service = new CoordinationService(new IpcManagementContext(failingOptions));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(failingOptions));
         var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
 
         Func<Task> act = action == "signoff"
@@ -904,7 +904,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(seedOptions, true);
         var failingOptions = BuildOptions(connection, new ThrowConcurrencyOnPlanSaveChangesInterceptor());
-        var service = new CoordinationService(new IpcManagementContext(failingOptions));
+        var service = new OrderLifecycleTestHarness(new IpcManagementContext(failingOptions));
         var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
         Func<Task> act = action == "signoff"
             ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
@@ -1151,6 +1151,59 @@ public class CoordinationTransactionTests
 
             return base.SavingChangesAsync(eventData, result, cancellationToken);
         }
+    }
+
+    private sealed class OrderLifecycleTestHarness
+    {
+        private readonly OrderPlanService _plan;
+        private readonly OrderAdjustmentService _adjustment;
+        private readonly OrderSignoffService _signoff;
+
+        public OrderLifecycleTestHarness(IpcManagementContext context)
+        {
+            _plan = new OrderPlanService(context);
+            _adjustment = new OrderAdjustmentService(context);
+            _signoff = new OrderSignoffService(context);
+        }
+
+        public Task<LockOrderPlanResultDto?> LockOrderPlanAsync(LockOrderPlanRequest request, string? userId)
+            => _plan.LockOrderPlanAsync(request, userId);
+
+        public Task<LockOrderPlanResultDto?> UnlockOrderPlanAsync(string planId, string? userId)
+            => _plan.UnlockOrderPlanAsync(planId, userId);
+
+        public Task<CoordinationScopeActionResultDto?> UnlockOrderPlanScopeAsync(
+            CoordinationScopeActionRequest request,
+            string? userId)
+            => _plan.UnlockOrderPlanScopeAsync(request, userId);
+
+        public Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(
+            AdjustOrderAfterLockRequest request,
+            string? userId)
+            => _adjustment.AdjustOrderAfterLockAsync(request, userId);
+
+        public Task<AdjustServingsResultDto?> AdjustServingsAsync(
+            string orderId,
+            AdjustServingsRequest request,
+            string? userId)
+            => _adjustment.AdjustServingsAsync(orderId, request, userId);
+
+        public Task<AdjustServingsResultDto?> UpdateForecastServingsAsync(
+            string orderId,
+            UpdateForecastServingsRequest request,
+            string? userId)
+            => _adjustment.UpdateForecastServingsAsync(orderId, request, userId);
+
+        public Task<SignoffOrderResultDto?> SignoffOrderAsync(
+            string planId,
+            SignoffOrderRequest request,
+            string? userId)
+            => _signoff.SignoffOrderAsync(planId, request, userId);
+
+        public Task<CoordinationScopeActionResultDto?> SignoffOrderScopeAsync(
+            CoordinationScopeActionRequest request,
+            string? userId)
+            => _signoff.SignoffOrderScopeAsync(request, userId);
     }
 
     private sealed class AdjustFixture

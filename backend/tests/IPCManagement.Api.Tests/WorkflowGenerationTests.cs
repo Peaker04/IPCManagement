@@ -4169,7 +4169,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
 
         var contracts = await service.GetCustomerContractsAsync();
         var contract = contracts.Should().ContainSingle().Subject;
@@ -4229,7 +4229,7 @@ public class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
 
         await using var context = fixture.CreateContext();
-        var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
 
         var created = await service.CreateCustomerContractAsync(
             new CreateCustomerContractRequest
@@ -4286,7 +4286,7 @@ public class WorkflowGenerationTests
         string customerId;
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
             var contract = (await service.GetCustomerContractsAsync()).Should().ContainSingle().Subject;
             customerId = contract.CustomerId;
             await service.UpdateCustomerContractAsync(
@@ -4322,7 +4322,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
             Func<Task> act = async () => await service.UpdateCustomerContractAsync(
                 customerId,
                 new UpdateCustomerContractRequest
@@ -4347,7 +4347,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
         var customerId = GuidHelper.ToGuidString(await context.Customers
             .Select(item => item.CustomerId)
             .SingleAsync());
@@ -4457,7 +4457,7 @@ public class WorkflowGenerationTests
         string portionRuleId;
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
             customerId = GuidHelper.ToGuidString(await context.Customers
                 .Select(item => item.CustomerId)
                 .SingleAsync());
@@ -4802,7 +4802,7 @@ public class WorkflowGenerationTests
             await context.SaveChangesAsync();
 
             customerId = GuidHelper.ToGuidString(schedule.CustomerId);
-            var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
             foreach (var (shiftName, rate) in new[] { ("MORNING", 50m), ("AFTERNOON", 75m) })
             {
                 await service.CreatePortionRuleAsync(
@@ -4866,7 +4866,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
             var updated = await service.UpdateMenuScheduleRulesAsync(
                 scheduleId,
                 new UpdateMenuScheduleRulesRequest
@@ -4916,7 +4916,7 @@ public class WorkflowGenerationTests
             Status = "ACTIVE"
         });
         await context.SaveChangesAsync();
-        var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
 
         var updated = await service.UpdateMenuScheduleVersionAsync(
             scheduleId,
@@ -5013,7 +5013,7 @@ public class WorkflowGenerationTests
             fixture.UserIdString);
         purchase.Should().NotBeNull();
 
-        var service = new CoordinationService(context);
+        var service = new CoordinationConfigurationTestHarness(context);
         var result = await service.RollbackMenuVersionAsync(
             new RollbackMenuVersionRequest
             {
@@ -6448,6 +6448,60 @@ public class WorkflowGenerationTests
         stopwatch.Elapsed.Should().BeLessThan(
             TimeSpan.FromSeconds(3),
             "a single-month purchase plan should stay responsive when historical demand accumulates");
+    }
+
+    private sealed class CoordinationConfigurationTestHarness
+    {
+        private readonly CustomerContractService _contracts;
+        private readonly PortionRuleService _portionRules;
+        private readonly MenuScheduleService _menuSchedules;
+
+        public CoordinationConfigurationTestHarness(IpcManagementContext context)
+        {
+            _contracts = new CustomerContractService(context);
+            _portionRules = new PortionRuleService(context);
+            _menuSchedules = new MenuScheduleService(context);
+        }
+
+        public Task<IReadOnlyList<CustomerContractDto>> GetCustomerContractsAsync()
+            => _contracts.GetCustomerContractsAsync();
+
+        public Task<CustomerContractDto> CreateCustomerContractAsync(
+            CreateCustomerContractRequest request,
+            string? userId)
+            => _contracts.CreateCustomerContractAsync(request, userId);
+
+        public Task<CustomerContractDto?> UpdateCustomerContractAsync(
+            string customerId,
+            UpdateCustomerContractRequest request,
+            string? userId)
+            => _contracts.UpdateCustomerContractAsync(customerId, request, userId);
+
+        public Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleRequest request, string? userId)
+            => _portionRules.CreatePortionRuleAsync(request, userId);
+
+        public Task<IReadOnlyList<PortionRuleDto>> GetPortionRulesAsync(PortionRuleQueryDto query)
+            => _portionRules.GetPortionRulesAsync(query);
+
+        public Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleRequest request)
+            => _portionRules.ResolvePortionRuleAsync(request);
+
+        public Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
+            string id,
+            UpdateMenuScheduleRulesRequest request,
+            string? userId)
+            => _menuSchedules.UpdateMenuScheduleRulesAsync(id, request, userId);
+
+        public Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
+            string id,
+            UpdateMenuScheduleVersionRequest request,
+            string? userId)
+            => _menuSchedules.UpdateMenuScheduleVersionAsync(id, request, userId);
+
+        public Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
+            RollbackMenuVersionRequest request,
+            string? userId)
+            => _menuSchedules.RollbackMenuVersionAsync(request, userId);
     }
 
     private sealed class SelectCommandCounter : DbCommandInterceptor

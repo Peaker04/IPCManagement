@@ -686,7 +686,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
 - Bước 14 đã đóng sớm; Gate 13 nay đã xanh nên tiếp tục Bước 15, bắt đầu từ Reports.
 
-### Bước 15 — Tách use case và functional core (Reports hoàn tất, Coordination đang thực hiện)
+### Bước 15 — Tách use case và functional core (Reports, Coordination và Purchasing hoàn tất)
 
 - Reports đã tách theo mười hai lát commit nguyên tử: price variance `92b7bf3`, demand
   `354b920`, purchasing `ffdab86`, stock snapshot `92c64dd`, inventory operations `7db54c5`,
@@ -706,23 +706,30 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   lint sạch, dependency-cruiser không có violation mới (vẫn ignore 54 baseline), production build xanh,
   OpenAPI canonical **152 path / 396 schema** và generated TypeScript không đổi, EF không có
   model change chưa migration. Không reset/seed database và không push.
-- Coordination đã tách bốn responsibility thành scoped application service và pure policy:
-  customer contract `fe8b720`, portion rule `a8c9a14`, menu schedule/version/rollback `055c611`
-  và meal quantity plan/quick servings `a92410b`. Constructor facade một tham số vẫn giữ để
-  characterization test cũ không đổi.
-- `CustomerContractService` 545 dòng, `PortionRuleService` 408 dòng, `MenuScheduleService`
-  511 dòng và `MealQuantityPlanService` 255 dòng; pure policy có test không DB cho
-  normalization, scope overlap, rollback target/domain exception và quick-serving plan code.
-  `CoordinationService` giảm từ **2.728 xuống 1.524 dòng**; facade vẫn còn Order Lifecycle
-  và các private helper cũ sẽ được xóa khi responsibility tương ứng đã tách hết.
-- Gate Coordination mới nhất: targeted Meal Quantity/Coordination **58/58**; full BE
-  **668 pass / 1 skip** (621 API + 47 Application), FE **416/416**, backend build 0 warning,
-  lint/dependency/build xanh, OpenAPI/TypeScript deterministic và EF pending-model gate sạch.
-  GitNexus không materialize method riêng trong monolith nên impact method trả UNKNOWN;
-  class-level impact đã từng là CRITICAL với 35 direct test consumers và đã được phủ full gate.
-- Bước 15 chưa đóng: thứ tự tiếp theo là **Coordination → Purchasing → Catalog →
-  SampleData**. Coordination tiếp tục từ Order Lifecycle (lock/unlock, adjustment/forecast,
-  signoff/scope signoff, export), sau đó tách controller theo responsibility và xóa facade/helper chết.
+- Coordination hoàn tất Order Lifecycle tại `370004c`: `OrderPlanService` 337 dòng,
+  `OrderAdjustmentService` 202 dòng, `OrderSignoffService` 179 dòng và pure
+  `OrderLifecyclePolicy`. Lock/unlock, adjustment/forecast, signoff theo scope và export giữ
+  nguyên route/response/Swagger.
+- Commit `187fe63` tách controller theo responsibility. `CoordinationOrdersController` còn
+  231 dòng/10 action; customer contract, portion rule, menu schedule và meal quantity plan có
+  controller riêng. `CoordinationService`, `ICoordinationService` và
+  `CoordinationController` đã xóa; production scan 0 reference. Gate Coordination cuối:
+  BE **677 pass / 1 skip**, FE **416/416**, OpenAPI **152 path / 396 schema**, build/lint/
+  dependency/EF xanh.
+- Purchasing hoàn tất bốn lát: Workbench `5226d06`, generate-from-demand `b954d2d`,
+  supplier evidence/decision + price exception `6e835c3`, submit/validation và retire facade
+  `f429482`. Controller gọi trực tiếp bốn port use-case; `PurchaseRequestWorkflowService`
+  và `IPurchaseRequestWorkflowService` đã xóa khỏi production.
+- Các shell mới đều dưới ngưỡng 600 dòng: `PurchaseWorkbenchService` 274,
+  `PurchaseRequestGenerationService` 260, `PurchaseSupplierDecisionService` 496 và
+  `PurchaseRequestSubmissionService` 197; `PurchaseWorkflowController` 184 dòng/5 action.
+  Functional core gồm Workbench/Generation/SupplierDecision/Submission policy và mapper dùng
+  chung; test compatibility facade chỉ tồn tại trong project test.
+- Gate Purchasing cuối: targeted **201/201**; full BE **702 pass / 1 skip**
+  (655 API + 47 Application), FE **416/416**, backend build 0 warning, lint/dependency/
+  production build xanh, OpenAPI/TypeScript deterministic và EF pending-model sạch. Không
+  reset/seed database, không push và không chạy browser vì UI/API/cache/DOM không đổi.
+- Bước 15 chưa đóng: thứ tự active tiếp theo là **Catalog → SampleData**.
 
 ## Quy trình tiếp tục ở phiên mới
 

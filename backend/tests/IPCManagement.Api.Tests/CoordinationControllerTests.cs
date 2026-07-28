@@ -76,8 +76,8 @@ public class CoordinationControllerTests
     [Fact]
     public async Task UpdateForecastServings_Should_Return_BadRequest_WhenForecastIsNegative()
     {
-        var coordinationService = Substitute.For<ICoordinationService>();
-        coordinationService.UpdateForecastServingsAsync(
+        var adjustmentService = Substitute.For<IOrderAdjustmentService>();
+        adjustmentService.UpdateForecastServingsAsync(
                 Arg.Any<string>(),
                 Arg.Any<UpdateForecastServingsRequest>(),
                 Arg.Any<string?>())
@@ -85,8 +85,10 @@ public class CoordinationControllerTests
         var currentUserService = Substitute.For<ICurrentUserService>();
         currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(GuidHelper.ToGuidString(GuidHelper.NewId()));
 
-        var controller = new CoordinationController(
-            coordinationService,
+        var controller = new CoordinationOrdersController(
+            Substitute.For<IOrderPlanService>(),
+            adjustmentService,
+            Substitute.For<IOrderSignoffService>(),
             currentUserService);
 
         var result = await controller.UpdateForecastServingsAsync(
