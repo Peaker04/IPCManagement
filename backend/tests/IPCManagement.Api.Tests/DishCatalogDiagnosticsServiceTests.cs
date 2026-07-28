@@ -12,31 +12,6 @@ namespace IPCManagement.Api.Tests;
 public class DishCatalogDiagnosticsServiceTests
 {
     [Fact]
-    public async Task DishService_DiagnosticsMethods_Should_DelegateToFocusedService()
-    {
-        var repository = Substitute.For<IDishRepository>();
-        var catalogService = Substitute.For<IDishCatalogService>();
-        var diagnosticsService = Substitute.For<IDishCatalogDiagnosticsService>();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
-        var service = new DishService(repository, null!, cache, catalogService, diagnosticsService);
-
-        diagnosticsService.GetBomCoverageAsync().Returns(new BomCoverageReportDto());
-        diagnosticsService.GetBomValidationAsync().Returns(new BomValidationReportDto());
-        diagnosticsService.GetMenuImportHistoryAsync().Returns(new MenuImportHistoryDto());
-        diagnosticsService.GetSampleImportStatusAsync().Returns(new SampleImportStatusDto());
-
-        await service.GetBomCoverageAsync();
-        await service.GetBomValidationAsync();
-        await service.GetMenuImportHistoryAsync();
-        await service.GetSampleImportStatusAsync();
-
-        await diagnosticsService.Received(1).GetBomCoverageAsync();
-        await diagnosticsService.Received(1).GetBomValidationAsync();
-        await diagnosticsService.Received(1).GetMenuImportHistoryAsync();
-        await diagnosticsService.Received(1).GetSampleImportStatusAsync();
-    }
-
-    [Fact]
     public async Task EmptyCatalog_Should_PreserveImportWarningsAndIncompleteDomainStatuses()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
