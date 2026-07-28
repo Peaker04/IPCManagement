@@ -1,3 +1,4 @@
+
 using System.Globalization;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Purchasing.Contracts;
@@ -178,6 +179,7 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
                 ReceivingLineCount = orderLines.Count,
                 FullyReceivedLineCount = orderLines.Count(line => line.OrderedQty > 0 && line.ReceivedQty >= line.OrderedQty)
             });
+
         }
 
         var totalItems = 0;
@@ -224,7 +226,7 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
                 selectedSummary.PurchaseLines = selectedLines
                     .OrderBy(line => line.Ingredient.IngredientName, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(line => PurchaseWorkbenchPolicy.BuildKey(line.PurchaseRequestLineId), StringComparer.Ordinal)
-                    .Select(PurchaseWorkbenchPolicy.MapLine)
+                    .Select(PurchaseWorkflowMapper.MapLine)
                     .ToList();
             }
         }

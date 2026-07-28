@@ -1,3 +1,4 @@
+
 using System.Globalization;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Purchasing.Contracts;
@@ -178,6 +179,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                 .ThenBy(item => PurchaseSupplierDecisionPolicy.BuildKey(item.ReceiptLineId), StringComparer.Ordinal)
                 .First())
             .Select(item => new SupplierEvidenceCandidateDto
+
             {
                 EvidenceType = SupplierEvidenceType.LatestValidReceipt,
                 EvidenceId = GuidHelper.ToGuidString(item.ReceiptLineId),
@@ -331,7 +333,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                 await transaction.CommitAsync(cancellationToken);
             }
 
-            return PurchaseSupplierDecisionPolicy.MapDecision(currentDecision);
+            return PurchaseWorkflowMapper.MapDecision(currentDecision);
         }
 
         var decisionId = GuidHelper.NewId();
@@ -358,6 +360,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                 CultureInfo.InvariantCulture),
             EvidenceReferencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice),
             ProposedUnitPrice = proposedUnitPrice,
+
             ProposedDeliveryDate = proposedDeliveryDate,
             ConfirmedBy = actorId,
             ConfirmedAt = DateTime.UtcNow,
@@ -406,7 +409,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
 
         }
 
-        return PurchaseSupplierDecisionPolicy.MapDecision(decision);
+        return PurchaseWorkflowMapper.MapDecision(decision);
     }
 
     private async Task UpsertPriceExceptionAsync(

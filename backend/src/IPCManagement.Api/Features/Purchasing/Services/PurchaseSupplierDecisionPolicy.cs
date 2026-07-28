@@ -1,3 +1,4 @@
+
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -87,32 +88,6 @@ internal static class PurchaseSupplierDecisionPolicy
             "LATEST_VALID_RECEIPT" => SupplierEvidenceType.LatestValidReceipt,
             _ => throw new InvalidOperationException(
                 $"Loại bằng chứng nhà cung cấp không hợp lệ: {evidenceType}.")
-        };
-
-    internal static PurchaseLineSupplierDecisionDto MapDecision(
-        PurchaseLineSupplierDecision decision)
-        => new()
-        {
-            PurchaseLineSupplierDecisionId =
-                GuidHelper.ToGuidString(decision.PurchaseLineSupplierDecisionId),
-            SupplierId = GuidHelper.ToGuidString(decision.SupplierId),
-            EvidenceType = FromPersistenceEvidenceType(decision.EvidenceType),
-            EvidenceId = GuidHelper.ToGuidString(decision.EvidenceId),
-            EvidenceDate = decision.EvidenceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            EvidenceReferencePrice = decision.EvidenceReferencePrice,
-            ProposedUnitPrice = decision.ProposedUnitPrice,
-            ProposedDeliveryDate =
-                decision.ProposedDeliveryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            ConfirmedBy = GuidHelper.ToGuidString(decision.ConfirmedBy),
-            ConfirmedAt =
-                decision.ConfirmedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-            DecisionFingerprint = decision.DecisionFingerprint,
-            Version = decision.Version,
-            Status = decision.Status,
-            SupersededByDecisionId = decision.SupersededByDecisionId is null
-                ? null
-                : GuidHelper.ToGuidString(decision.SupersededByDecisionId),
-            ConcurrencyVersion = decision.ConcurrencyVersion
         };
 
     private static string NormalizedBaseUnitCode(Unit unit)

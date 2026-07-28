@@ -1,3 +1,4 @@
+
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Helpers;
@@ -64,7 +65,7 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
         var existingLines = purchaseRequest.Purchaserequestlines.ToList();
         if (purchaseRequest.Status == SubmittedStatus)
         {
-            return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
+            return PurchaseWorkflowMapper.MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
         }
 
         foreach (var line in shortageLines)
@@ -101,7 +102,7 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
+        return PurchaseWorkflowMapper.MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
     }
 
     private async Task<PurchaseRequestWorkflowResultDto?> ClearStaleRequestAsync(
@@ -125,7 +126,7 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
 
         if (purchaseRequest.Status == SubmittedStatus)
         {
-            return MapResult(
+            return PurchaseWorkflowMapper.MapResult(
                 purchaseRequest,
                 materialRequest.RequestId,
                 purchaseRequest.Purchaserequestlines);
@@ -154,7 +155,7 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return MapResult(purchaseRequest, materialRequest.RequestId, []);
+        return PurchaseWorkflowMapper.MapResult(purchaseRequest, materialRequest.RequestId, []);
     }
 
     private async Task<PurchaseRequest> EnsureRequestAsync(
@@ -178,6 +179,7 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
         }
 
         var purchaseRequest = new PurchaseRequest
+
         {
             PurchaseRequestId = GuidHelper.NewId(),
             PurchaseRequestCode = requestCode,
@@ -255,21 +257,4 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
         }
     }
 
-    private static PurchaseRequestWorkflowResultDto MapResult(
-        PurchaseRequest purchaseRequest,
-        byte[] materialRequestId,
-        IEnumerable<PurchaseRequestLine> lines)
-        => new()
-        {
-            PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
-            PurchaseRequestCode = purchaseRequest.PurchaseRequestCode,
-            MaterialRequestId = GuidHelper.ToGuidString(materialRequestId),
-            PurchaseForDate = purchaseRequest.PurchaseForDate.ToString("yyyy-MM-dd"),
-            ShiftName = purchaseRequest.ShiftName,
-            Status = purchaseRequest.Status,
-            Lines = lines
-                .OrderBy(line => line.Ingredient.IngredientName)
-                .Select(PurchaseWorkbenchPolicy.MapLine)
-                .ToList()
-        };
 }
