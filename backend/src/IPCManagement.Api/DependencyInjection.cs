@@ -103,7 +103,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderSignoffService, OrderSignoffService>();
         services.AddScoped<SampleDataImportService>();
         services.AddScoped<ISampleDataImportService>(provider => provider.GetRequiredService<SampleDataImportService>());
-        services.AddScoped<ISampleBomImportService>(provider => provider.GetRequiredService<SampleDataImportService>());
+        services.AddScoped<ISampleBomImportService, SampleBomImportService>();
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
         services.AddScoped<IPurchaseRequestQueryService, PurchaseRequestQueryService>();

@@ -39,8 +39,8 @@ public class SampleDataImportServiceTests
     [Fact]
     public void EnsureBomLine_Should_KeepPresetPriceTiersSeparate()
     {
-        var service = new SampleDataImportService(null!, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
+        var service = new SampleBomImportService(null!, null!);
+        var method = typeof(SampleBomImportService).GetMethod(
             "EnsureBomLine",
             BindingFlags.NonPublic | BindingFlags.Instance);
         var dish = new Dish { DishId = GuidHelper.NewId(), DishCode = "DISH-01", DishName = "Món thử" };
@@ -70,7 +70,7 @@ public class SampleDataImportServiceTests
     public void EnsureDish_Should_ReuseStableCode_WhenExistingDishWasRenamed()
     {
         const string sourceName = "Cá kho tộ";
-        var stableCode = InvokePrivateStatic<string>("StableCode", "DISH", sourceName);
+        var stableCode = InvokePrivateStatic<string>(typeof(SampleBomImportService), "StableCode", "DISH", sourceName);
         var existing = new Dish
         {
             DishId = GuidHelper.NewId(),
@@ -80,8 +80,8 @@ public class SampleDataImportServiceTests
         };
         var dishes = new List<Dish> { existing };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleDataImportService(null!, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
+        var service = new SampleBomImportService(null!, null!);
+        var method = typeof(SampleBomImportService).GetMethod(
             "EnsureDish",
             BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -99,7 +99,7 @@ public class SampleDataImportServiceTests
     public void EnsureIngredient_Should_ReuseStableCode_WhenExistingIngredientWasRenamed()
     {
         const string sourceName = "Sườn heo";
-        var stableCode = InvokePrivateStatic<string>("StableCode", "ING", sourceName);
+        var stableCode = InvokePrivateStatic<string>(typeof(SampleBomImportService), "StableCode", "ING", sourceName);
         var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
         var warehouse = new Warehouse { WarehouseId = GuidHelper.NewId(), WarehouseCode = "WH", WarehouseName = "Kho" };
         var existing = new Ingredient
@@ -114,8 +114,8 @@ public class SampleDataImportServiceTests
         };
         var ingredients = new List<Ingredient> { existing };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleDataImportService(null!, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
+        var service = new SampleBomImportService(null!, null!);
+        var method = typeof(SampleBomImportService).GetMethod(
             "EnsureIngredient",
             BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -142,7 +142,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleDataImportService(context, null!);
+        var service = new SampleBomImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
@@ -194,7 +194,7 @@ public class SampleDataImportServiceTests
         var ingredient = new Ingredient
         {
             IngredientId = GuidHelper.NewId(),
-            IngredientCode = InvokePrivateStatic<string>("StableCode", "ING", "Chuối"),
+            IngredientCode = InvokePrivateStatic<string>(typeof(SampleBomImportService), "StableCode", "ING", "Chuối"),
             IngredientName = "Chuối",
             UnitId = kgUnit.UnitId,
             WarehouseId = warehouse.WarehouseId,
@@ -202,8 +202,8 @@ public class SampleDataImportServiceTests
         };
         var ingredients = new List<Ingredient> { ingredient };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleDataImportService(null!, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
+        var service = new SampleBomImportService(null!, null!);
+        var method = typeof(SampleBomImportService).GetMethod(
             "EnsureIngredient",
             BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -226,7 +226,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleDataImportService(context, null!);
+        var service = new SampleBomImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
@@ -251,6 +251,76 @@ public class SampleDataImportServiceTests
         suppliers.Select(item => Convert.ToBase64String(item.SupplierId))
             .Should().BeEquivalentTo(firstSupplierIds.Select(Convert.ToBase64String));
         suppliers.Should().NotContain(item => item.SupplierCode.EndsWith("-2", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ImportAsync_Should_NotPersistAnyRows_WhenDryRunIsEnabled()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new SqliteSampleImportContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var service = new SampleBomImportService(context, null!);
+        using var fixture = CreateSampleImportFixture();
+
+        var result = await service.ImportAsync(new SampleDataImportRequest
+        {
+            SourceDirectory = fixture.SourceDirectory,
+            DryRun = true,
+            MaxRows = 25
+        });
+
+        result.DryRun.Should().BeTrue();
+        result.Counts.BomLinesCreated.Should().BeGreaterThan(0);
+        (await context.Warehouses.CountAsync()).Should().Be(0);
+        (await context.Units.CountAsync()).Should().Be(0);
+        (await context.Suppliers.CountAsync()).Should().Be(0);
+        (await context.Ingredients.CountAsync()).Should().Be(0);
+        (await context.Dishes.CountAsync()).Should().Be(0);
+        (await context.Dishboms.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ImportAsync_Should_ReplaceEveryExistingBom_WhenReplaceCatalogIsEnabled()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new SqliteSampleImportContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var service = new SampleBomImportService(context, null!);
+        using var fixture = CreateSampleImportFixture();
+        var request = new SampleDataImportRequest
+        {
+            SourceDirectory = fixture.SourceDirectory,
+            DryRun = false,
+            MaxRows = 25
+        };
+
+        await service.ImportAsync(request);
+        var originalBomIds = await context.Dishboms
+            .AsNoTracking()
+            .Select(item => item.BomId)
+            .ToListAsync();
+        originalBomIds.Should().NotBeEmpty();
+
+        context.ChangeTracker.Clear();
+        request.ReplaceBomCatalog = true;
+        var result = await service.ImportAsync(request);
+        context.ChangeTracker.Clear();
+
+        result.Warnings.Should().Contain(message => message.StartsWith("Thay catalog BOM:", StringComparison.Ordinal));
+        var replacementBomIds = await context.Dishboms
+            .AsNoTracking()
+            .Select(item => item.BomId)
+            .ToListAsync();
+        replacementBomIds.Should().NotBeEmpty();
+        replacementBomIds.Should().NotContain(id => originalBomIds.Any(original => original.SequenceEqual(id)));
     }
 
     [Fact]
@@ -344,7 +414,12 @@ public class SampleDataImportServiceTests
                 code => new Unit { UnitId = GuidHelper.NewId(), UnitCode = code, UnitName = code },
                 StringComparer.OrdinalIgnoreCase);
 
-        var unit = InvokePrivateStatic<Unit>("ResolvePresetBomUnit", ingredientName, kgUnit, presetUnits);
+        var unit = InvokePrivateStatic<Unit>(
+            typeof(SampleBomImportService),
+            "ResolvePresetBomUnit",
+            ingredientName,
+            kgUnit,
+            presetUnits);
 
         unit.UnitCode.Should().Be(expectedCode);
     }
@@ -662,8 +737,11 @@ public class SampleDataImportServiceTests
     }
 
     private static T InvokePrivateStatic<T>(string methodName, params object?[] args)
+        => InvokePrivateStatic<T>(typeof(SampleDataImportService), methodName, args);
+
+    private static T InvokePrivateStatic<T>(Type serviceType, string methodName, params object?[] args)
     {
-        var method = typeof(SampleDataImportService).GetMethod(
+        var method = serviceType.GetMethod(
             methodName,
             BindingFlags.NonPublic | BindingFlags.Static);
 
