@@ -76,8 +76,16 @@ $sourceMigrationIds = @(
 foreach ($entry in $manifestEntries) {
     if (-not [string]::IsNullOrWhiteSpace([string]$entry.sourceBlobOid)) {
         $blobSpec = "$($entry.sourceBlobOid)^{blob}"
-        & git -C $repoRoot cat-file -e $blobSpec 2>$null
-        if ($LASTEXITCODE -ne 0) {
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & git -C $repoRoot cat-file -e $blobSpec 2>$null
+            $blobExitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+        if ($blobExitCode -ne 0) {
             $manifestErrors.Add("Missing Git blob evidence $($entry.sourceBlobOid) for $($entry.migrationId)")
         }
     }
@@ -154,13 +162,16 @@ Write-Host "Canonical database-only: $($databaseOnly.Count - $unexplainedDatabas
 Write-Host "Stale manifest entries: $($staleManifestEntries.Count); manifest errors: $($manifestErrors.Count)."
 
 foreach ($manifestError in $manifestErrors) {
-    Write-Error $manifestError
+    Write-Host "Manifest error: $manifestError" -ForegroundColor Red
+}
+
+if ($manifestErrors.Count -gt 0) {
+    exit 3
 }
 
 if ($FailOnDrift -and (
     $unexplainedDatabaseOnly.Count -gt 0 -or
     $sourceOnly.Count -gt 0 -or
-    $staleManifestEntries.Count -gt 0 -or
-    $manifestErrors.Count -gt 0)) {
+    $staleManifestEntries.Count -gt 0)) {
     exit 3
 }
