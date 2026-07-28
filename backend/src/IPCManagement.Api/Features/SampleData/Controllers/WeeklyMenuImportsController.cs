@@ -1,3 +1,4 @@
+
 using System.Globalization;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
@@ -25,14 +26,29 @@ public sealed class WeeklyMenuImportsController : ControllerBase
     /// </summary>
     private const long MaxUploadBytes = XlsxSecurityLimits.MaxUploadBytes;
 
-    private readonly ISampleDataImportService _sampleDataImportService;
+    private readonly IWeeklyMenuQueryService _queryService;
+    private readonly IWeeklyMenuTemplateService _templateService;
+    private readonly IWeeklyMenuImportService _importService;
+    private readonly IWeeklyMenuImportHistoryService _historyService;
+    private readonly ICustomerImportMappingService _mappingService;
+    private readonly IWeeklyMenuBulkEditService _bulkEditService;
     private readonly ICurrentUserService _currentUserService;
 
     public WeeklyMenuImportsController(
-        ISampleDataImportService sampleDataImportService,
+        IWeeklyMenuQueryService queryService,
+        IWeeklyMenuTemplateService templateService,
+        IWeeklyMenuImportService importService,
+        IWeeklyMenuImportHistoryService historyService,
+        ICustomerImportMappingService mappingService,
+        IWeeklyMenuBulkEditService bulkEditService,
         ICurrentUserService currentUserService)
     {
-        _sampleDataImportService = sampleDataImportService;
+        _queryService = queryService;
+        _templateService = templateService;
+        _importService = importService;
+        _historyService = historyService;
+        _mappingService = mappingService;
+        _bulkEditService = bulkEditService;
         _currentUserService = currentUserService;
     }
 
@@ -40,7 +56,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CoordinationCustomerOptionDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomersAsync(CancellationToken cancellationToken)
     {
-        var result = await _sampleDataImportService.GetActiveCustomersAsync(cancellationToken);
+        var result = await _queryService.GetActiveCustomersAsync(cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<CoordinationCustomerOptionDto>>.SuccessResult(result));
     }
 
@@ -58,7 +74,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         }
 
         var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
-        var result = await _sampleDataImportService.GetCommittedWeeklyMenuAsync(
+        var result = await _queryService.GetCommittedWeeklyMenuAsync(
             customerId,
             parsedWeekStart,
             cancellationToken);
@@ -89,7 +105,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
-        var template = await _sampleDataImportService.BuildWeeklyMenuTemplateAsync(
+        var template = await _templateService.BuildWeeklyMenuTemplateAsync(
             customerId,
             parsedWeekStart,
             cancellationToken);
@@ -123,7 +139,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         {
             var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
             using var stream = file.OpenReadStream();
-            var result = await _sampleDataImportService.PreviewWeeklyMenuImportAsync(
+            var result = await _importService.PreviewWeeklyMenuImportAsync(
                 stream,
                 file.FileName,
                 customerId,
@@ -168,7 +184,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
             var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
             var userId = _currentUserService.GetUserId(User);
             using var stream = file.OpenReadStream();
-            var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
+            var result = await _importService.CommitWeeklyMenuImportAsync(
                 stream,
                 file.FileName,
                 customerId,
@@ -197,7 +213,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         [FromQuery] string? customerId,
         CancellationToken cancellationToken)
     {
-        var history = await _sampleDataImportService.GetWeeklyMenuImportHistoryAsync(customerId, cancellationToken);
+        var history = await _historyService.GetWeeklyMenuImportHistoryAsync(customerId, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>.SuccessResult(history));
     }
 
@@ -210,7 +226,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
     {
         try
         {
-            var result = await _sampleDataImportService.RollbackWeeklyMenuImportAsync(
+            var result = await _historyService.RollbackWeeklyMenuImportAsync(
                 menuVersionId,
                 _currentUserService.GetUserId(User),
                 cancellationToken);
@@ -238,7 +254,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         string customerId,
         CancellationToken cancellationToken)
     {
-        var mapping = await _sampleDataImportService.GetCustomerImportMappingAsync(customerId, cancellationToken);
+        var mapping = await _mappingService.GetCustomerImportMappingAsync(customerId, cancellationToken);
         return Ok(ApiResponse<CustomerImportMappingDto?>.SuccessResult(mapping));
     }
 
@@ -249,7 +265,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         [FromBody] SaveCustomerImportMappingRequest request,
         CancellationToken cancellationToken)
     {
-        var mapping = await _sampleDataImportService.SaveCustomerImportMappingAsync(
+        var mapping = await _mappingService.SaveCustomerImportMappingAsync(
             customerId,
             request,
             cancellationToken);
@@ -270,7 +286,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Dữ liệu cập nhật thực đơn không hợp lệ."));
         }
 
-        var (success, message, warnings) = await _sampleDataImportService.BulkUpdateWeeklyMenuAsync(
+        var (success, message, warnings) = await _bulkEditService.BulkUpdateWeeklyMenuAsync(
             request,
             cancellationToken);
         if (!success)

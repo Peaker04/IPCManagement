@@ -73,11 +73,11 @@ public class WeeklyMenuImportParserTests
         });
         await context.SaveChangesAsync();
 
-        var service = new SampleDataImportService(context, null!);
+        var service = new WeeklyMenuTemplateService(context);
         var result = await service.BuildWeeklyMenuTemplateAsync(
             GuidHelper.ToGuidString(customerId),
             new DateOnly(2026, 7, 20));
-        using var embeddedTemplate = typeof(SampleDataImportService).Assembly
+        using var embeddedTemplate = typeof(WeeklyMenuTemplateService).Assembly
             .GetManifestResourceStream(
                 "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx")
             ?? throw new InvalidOperationException("Embedded ANV template was not found.");
@@ -91,7 +91,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void NormalizeWeeklyMenuPriceTier_Should_RejectMissingTier()
     {
-        var method = typeof(SampleDataImportService)
+        var method = typeof(WeeklyMenuImportService)
             .GetMethod("NormalizeWeeklyMenuPriceTier", BindingFlags.NonPublic | BindingFlags.Static);
 
         var action = () => method!.Invoke(null, [null]);
@@ -104,7 +104,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public async Task BuildWeeklyMenuTemplateAsync_Should_CreateThreeAlignedPriceSheets()
     {
-        var service = new SampleDataImportService(null!, null!);
+        var service = new WeeklyMenuTemplateService(null!);
         var template = await service.BuildWeeklyMenuTemplateAsync(null, new DateOnly(2026, 6, 15));
         var bytes = template.Content;
 
@@ -138,7 +138,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void WeeklyMenuTemplateBuilder_Should_CreateDistinctCustomerLayouts_ForAnvAndDav()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
             .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         buildMethod.Should().NotBeNull();
@@ -216,7 +216,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void WeeklyMenuTemplateBuilder_Should_BorderEveryCellInMergedFruitRows()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
             .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         var bytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
@@ -242,7 +242,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void ParseWeeklyMenuWorkbook_Should_AcceptPopulatedGeneratedSharedLayout()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
             .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         var generatedBytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
@@ -306,7 +306,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var action = () => InvokeParse(tempFile, "no-sheet.xlsx", null);
-            action.Should().Throw<TargetInvocationException>();
+            action.Should().Throw<InvalidOperationException>();
         }
         finally
         {
@@ -334,7 +334,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var action = () => InvokeParse(tempFile, "bad-dates.xlsx", null);
-            action.Should().Throw<TargetInvocationException>();
+            action.Should().Throw<InvalidOperationException>();
         }
         finally
         {
@@ -695,8 +695,7 @@ public class WeeklyMenuImportParserTests
 
             var action = () => InvokeParse(tempFile, "mam-le-cung.xlsx", null);
 
-            action.Should().Throw<TargetInvocationException>()
-                .WithInnerException<InvalidOperationException>()
+            action.Should().Throw<InvalidOperationException>()
                 .WithMessage("*không có bảng thực đơn tuần*");
         }
         finally
@@ -731,7 +730,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var actionWithoutHint = () => InvokeParse(tempFile, "customer-file.xlsx", null, null);
-            actionWithoutHint.Should().Throw<TargetInvocationException>();
+            actionWithoutHint.Should().Throw<InvalidOperationException>();
 
             var mapping = new CustomerImportMapping { SheetNameHint = "MENU" };
             var plan = InvokeParse(tempFile, "customer-file.xlsx", null, mapping);
@@ -824,15 +823,13 @@ public class WeeklyMenuImportParserTests
         DateOnly? weekStartDate,
         CustomerImportMapping? mapping = null,
         decimal? priceTierAmount = null)
-    {
-        var service = new SampleDataImportService(null!, null!);
-        var method = typeof(SampleDataImportService).GetMethod(
-            "ParseWeeklyMenuWorkbook",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-
-        method.Should().NotBeNull();
-        return method!.Invoke(service, [workbookPath, fileName, weekStartDate, mapping, priceTierAmount])!;
-    }
+        => WeeklyMenuWorkbookParser.Parse(
+            new XlsxWorkbookReader(),
+            workbookPath,
+            fileName,
+            weekStartDate,
+            mapping,
+            priceTierAmount);
 
     private static T GetProperty<T>(object source, string propertyName)
     {
@@ -851,14 +848,7 @@ public class WeeklyMenuImportParserTests
     private static WeeklyMenuImportValidationDto InvokeValidation(
         object plan,
         IReadOnlyList<WeeklyMenuImportRowDto> rows)
-    {
-        var method = typeof(SampleDataImportService).GetMethod(
-            "BuildWeeklyMenuImportValidation",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
-        method.Should().NotBeNull();
-        return (WeeklyMenuImportValidationDto)method!.Invoke(null, [plan, rows])!;
-    }
+        => WeeklyMenuImportValidationPolicy.Build((WeeklyMenuImportPlan)plan, rows);
 
     private static void CreateWorkbook(
         string path,

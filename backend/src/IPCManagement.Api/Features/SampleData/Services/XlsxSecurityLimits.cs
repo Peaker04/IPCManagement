@@ -44,7 +44,7 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 /// <para>
 /// <b>Quy ước ngoại lệ</b>: vi phạm hạn mức ném <see cref="BusinessRuleException"/> (→ HTTP 400).
 /// Tuyệt đối KHÔNG ném <see cref="InvalidOperationException"/> cho lỗi bảo mật vì
-/// <c>SampleDataImportService.CustomMenu.cs:251</c> nuốt nó thành HTTP 200 kèm kết quả validation.
+/// <c>WeeklyMenuImportService</c> quy lỗi workbook đọc được nhưng sai cấu trúc thành kết quả validation.
 /// <see cref="InvalidDataException"/> và <see cref="XmlException"/> được giữ nguyên cho lỗi
 /// "file không phải xlsx / XML hỏng" để <c>IsUnreadableWorkbookException</c> tiếp tục quy về
 /// <c>FILE_READ_ERROR</c> thân thiện.

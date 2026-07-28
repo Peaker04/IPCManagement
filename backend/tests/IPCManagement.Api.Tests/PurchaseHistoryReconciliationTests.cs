@@ -1947,7 +1947,13 @@ public class PurchaseHistoryReconciliationTests
                 policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CatalogRoles));
         });
         builder.Services.AddSingleton(reconciliationService);
-        builder.Services.AddSingleton(Substitute.For<ISampleDataImportService>());
+        builder.Services.AddSingleton(Substitute.For<IWeeklyMenuQueryService>());
+        builder.Services.AddSingleton(Substitute.For<IWeeklyMenuTemplateService>());
+        builder.Services.AddSingleton(Substitute.For<IWeeklyMenuImportService>());
+        builder.Services.AddSingleton(Substitute.For<IWeeklyMenuImportHistoryService>());
+        builder.Services.AddSingleton(Substitute.For<ICustomerImportMappingService>());
+        builder.Services.AddSingleton(Substitute.For<IWeeklyMenuBulkEditService>());
+        builder.Services.AddSingleton(Substitute.For<ISampleBomImportService>());
         builder.Services.AddControllers().AddApplicationPart(typeof(SampleDataController).Assembly);
 
         var app = builder.Build();

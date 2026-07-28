@@ -15,12 +15,12 @@ namespace IPCManagement.Api.Features.SampleData.Controllers;
 [EnableRateLimiting("api-general")]
 public class SampleDataController : ControllerBase
 {
-    private readonly ISampleDataImportService _sampleDataImportService;
+    private readonly ISampleBomImportService _sampleDataImportService;
     private readonly IPurchaseHistoryReconciliationService _purchaseHistoryReconciliationService;
     private readonly IHostEnvironment _environment;
 
     public SampleDataController(
-        ISampleDataImportService sampleDataImportService,
+        ISampleBomImportService sampleDataImportService,
         IPurchaseHistoryReconciliationService purchaseHistoryReconciliationService,
         IHostEnvironment environment)
     {

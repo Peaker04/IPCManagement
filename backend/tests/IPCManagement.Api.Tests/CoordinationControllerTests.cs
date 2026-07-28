@@ -19,7 +19,7 @@ public class CoordinationControllerTests
     [Fact]
     public async Task PreviewWeeklyMenuImport_Should_Return_BadRequest_When_Parsing_Fails()
     {
-        var sampleDataImportService = Substitute.For<ISampleDataImportService>();
+        var sampleDataImportService = Substitute.For<IWeeklyMenuImportService>();
         sampleDataImportService.PreviewWeeklyMenuImportAsync(
                 Arg.Any<Stream>(),
                 Arg.Any<string>(),
@@ -30,7 +30,12 @@ public class CoordinationControllerTests
             .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.")));
 
         var controller = new WeeklyMenuImportsController(
+            Substitute.For<IWeeklyMenuQueryService>(),
+            Substitute.For<IWeeklyMenuTemplateService>(),
             sampleDataImportService,
+            Substitute.For<IWeeklyMenuImportHistoryService>(),
+            Substitute.For<ICustomerImportMappingService>(),
+            Substitute.For<IWeeklyMenuBulkEditService>(),
             Substitute.For<ICurrentUserService>());
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "menu.xlsx");
@@ -46,7 +51,7 @@ public class CoordinationControllerTests
     [Fact]
     public async Task CommitWeeklyMenuImport_Should_Return_BadRequest_When_Parsing_Fails()
     {
-        var sampleDataImportService = Substitute.For<ISampleDataImportService>();
+        var sampleDataImportService = Substitute.For<IWeeklyMenuImportService>();
         sampleDataImportService.CommitWeeklyMenuImportAsync(
                 Arg.Any<Stream>(),
                 Arg.Any<string>(),
@@ -60,7 +65,12 @@ public class CoordinationControllerTests
         currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(GuidHelper.ToGuidString(GuidHelper.NewId()));
 
         var controller = new WeeklyMenuImportsController(
+            Substitute.For<IWeeklyMenuQueryService>(),
+            Substitute.For<IWeeklyMenuTemplateService>(),
             sampleDataImportService,
+            Substitute.For<IWeeklyMenuImportHistoryService>(),
+            Substitute.For<ICustomerImportMappingService>(),
+            Substitute.For<IWeeklyMenuBulkEditService>(),
             currentUserService);
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");
