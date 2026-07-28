@@ -6,10 +6,6 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 public interface ISampleDataImportService
 {
-    Task<SampleDataImportResultDto> ImportAsync(
-        SampleDataImportRequest request,
-        CancellationToken cancellationToken = default);
-
     Task<IReadOnlyList<CoordinationCustomerOptionDto>> GetActiveCustomersAsync(
         CancellationToken cancellationToken = default);
 

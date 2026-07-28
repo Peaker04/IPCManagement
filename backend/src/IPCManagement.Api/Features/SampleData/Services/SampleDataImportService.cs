@@ -10,7 +10,7 @@ using IPCManagement.Api.Features.SampleData.Contracts;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
-public partial class SampleDataImportService : ISampleDataImportService
+public partial class SampleDataImportService : ISampleDataImportService, ISampleBomImportService
 {
     private const string SampleCustomerCode = "DAV";
     private const string SampleCustomerName = "Draxlmaier";
