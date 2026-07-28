@@ -1,6 +1,7 @@
 using FluentAssertions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -345,7 +346,12 @@ public class WarehousePurchaseReceivingTests
         var serviceType = typeof(PurchaseOrderService).Assembly.GetType(
             "IPCManagement.Api.Features.Purchasing.Services.PurchaseReceivingService");
         serviceType.Should().NotBeNull("the canonical Warehouse receiving writer must exist");
-        return Activator.CreateInstance(serviceType!, context, stockLedgerService, faultInjector)!;
+        return Activator.CreateInstance(
+            serviceType!,
+            context,
+            stockLedgerService,
+            new EfTransactionRunner(context),
+            faultInjector)!;
     }
 
     private static async Task<WarehousePurchaseReceiptResultDto> InvokeRecordAsync(

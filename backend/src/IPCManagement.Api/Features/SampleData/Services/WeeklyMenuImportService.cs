@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -13,7 +14,8 @@ internal sealed class WeeklyMenuImportService(
     IpcManagementContext context,
     WeeklyMenuCustomerResolver customerResolver,
     WeeklyMenuImportResultBuilder resultBuilder,
-    WeeklyMenuImportPersistence persistence) : IWeeklyMenuImportService
+    WeeklyMenuImportPersistence persistence,
+    IEfTransactionRunner transactionRunner) : IWeeklyMenuImportService
 {
     private static readonly decimal[] WeeklyMenuPriceTiers = [25000m, 30000m, 34000m];
     private readonly XlsxWorkbookReader _reader = new();
@@ -111,16 +113,32 @@ internal sealed class WeeklyMenuImportService(
                     firstIssue?.Message ?? "File import còn lỗi critical, không thể commit DB.");
             }
 
-            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-            var result = await persistence.CommitAsync(
-                plan,
-                customer,
-                normalizedPriceTier,
-                actorUserId,
-                cancellationToken);
-            await context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return result;
+            WeeklyMenuImportResultDto? committedResult = null;
+            return await transactionRunner.ExecuteAsync(
+                async token =>
+                {
+                    committedResult = await persistence.CommitAsync(
+                        plan,
+                        customer,
+                        normalizedPriceTier,
+                        actorUserId,
+                        token);
+                    await context.SaveChangesAsync(token);
+                    return committedResult;
+                },
+                async token =>
+                {
+                    var menuVersionId = GuidHelper.ParseGuidString(committedResult?.MenuVersionId);
+                    return menuVersionId is not null &&
+                           await context.Menuversions
+                               .AsNoTracking()
+                               .AnyAsync(
+                                   version =>
+                                       version.MenuVersionId == menuVersionId &&
+                                       version.SourceChecksum == plan.SourceChecksum,
+                                   token);
+                },
+                cancellationToken: cancellationToken);
         }
         catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
         {

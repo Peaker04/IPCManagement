@@ -1,6 +1,7 @@
 
 using System.Globalization;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -17,10 +18,14 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
         "Chưa có đơn giá hiệu lực hoặc biên nhận hợp lệ cho nguyên liệu này. Hãy cập nhật báo giá hoặc xác minh biên nhận trước khi chọn nhà cung cấp.";
 
     private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public PurchaseSupplierDecisionService(IpcManagementContext context)
+    public PurchaseSupplierDecisionService(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner)
     {
         _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
@@ -245,173 +250,178 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
             throw new ArgumentException("Ngày giao dự kiến phải có định dạng yyyy-MM-dd.");
         }
 
-        await using var transaction = _context.Database.IsRelational()
-            ? await _context.Database.BeginTransactionAsync(cancellationToken)
-            : null;
-        var lineQuery = _context.Purchaserequestlines
+        string? committedFingerprint = null;
+        return await _transactionRunner.ExecuteAsync(
+            async token =>
+            {
+                var lineQuery = _context.Purchaserequestlines
             .Include(item => item.PurchaseRequest)
             .Include(item => item.SupplierDecisions)
             .Include(item => item.Ingredient)
             .Include(item => item.Unit)
             .AsQueryable();
-        PurchaseRequestLine? line;
-        if (string.Equals(
-                _context.Database.ProviderName,
-                "Microsoft.EntityFrameworkCore.InMemory",
-                StringComparison.Ordinal))
-        {
-            line = _context.ChangeTracker.Entries<PurchaseRequestLine>()
-                .Select(entry => entry.Entity)
-                .FirstOrDefault(item =>
-                    item.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
-                    item.PurchaseRequestLineId.SequenceEqual(purchaseRequestLineId));
-        }
-        else
-        {
-            line = await lineQuery.FirstOrDefaultAsync(item =>
-                item.PurchaseRequestId == purchaseRequestId &&
-                item.PurchaseRequestLineId == purchaseRequestLineId,
-                cancellationToken);
-        }
+                PurchaseRequestLine? line;
+                if (string.Equals(
+                        _context.Database.ProviderName,
+                        "Microsoft.EntityFrameworkCore.InMemory",
+                        StringComparison.Ordinal))
+                {
+                    line = _context.ChangeTracker.Entries<PurchaseRequestLine>()
+                        .Select(entry => entry.Entity)
+                        .FirstOrDefault(item =>
+                            item.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
+                            item.PurchaseRequestLineId.SequenceEqual(purchaseRequestLineId));
+                }
+                else
+                {
+                    line = await lineQuery.FirstOrDefaultAsync(item =>
+                        item.PurchaseRequestId == purchaseRequestId &&
+                        item.PurchaseRequestLineId == purchaseRequestLineId,
+                        token);
+                }
 
-        if (line is null)
-        {
-            throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong đề xuất mua.");
-        }
+                if (line is null)
+                {
+                    throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong đề xuất mua.");
+                }
 
-        if (!string.Equals(line.PurchaseRequest.Status, DraftStatus, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new BusinessRuleException("Chỉ được xác nhận nhà cung cấp khi đề xuất mua ở trạng thái DRAFT.");
-        }
+                if (!string.Equals(line.PurchaseRequest.Status, DraftStatus, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new BusinessRuleException("Chỉ được xác nhận nhà cung cấp khi đề xuất mua ở trạng thái DRAFT.");
+                }
 
-        var currentDecision = line.SupplierDecisions
-            .SingleOrDefault(item => string.Equals(item.Status, "CURRENT", StringComparison.Ordinal));
-        var currentVersion = currentDecision?.Version ?? 0;
-        if (request.ExpectedDecisionVersion != currentVersion)
-        {
-            throw new DbUpdateConcurrencyException("Quyết định nhà cung cấp đã thay đổi. Hãy tải lại dữ liệu.");
-        }
+                var currentDecision = line.SupplierDecisions
+                    .SingleOrDefault(item => string.Equals(item.Status, "CURRENT", StringComparison.Ordinal));
+                var currentVersion = currentDecision?.Version ?? 0;
+                if (request.ExpectedDecisionVersion != currentVersion)
+                {
+                    throw new DbUpdateConcurrencyException("Quyết định nhà cung cấp đã thay đổi. Hãy tải lại dữ liệu.");
+                }
 
-        var evidence = await GetSupplierEvidenceAsync(requestId, lineId, cancellationToken);
-        var evidenceCandidate = evidence.Candidates.SingleOrDefault(candidate =>
-            candidate.EvidenceType == request.EvidenceType &&
-            string.Equals(candidate.EvidenceId, request.EvidenceId, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(candidate.SupplierId, request.SupplierId, StringComparison.OrdinalIgnoreCase));
-        if (evidenceCandidate is null)
-        {
-            throw new DbUpdateConcurrencyException("Bằng chứng nhà cung cấp đã hết hiệu lực hoặc không còn khớp. Hãy tải lại gợi ý.");
-        }
+                var evidence = await GetSupplierEvidenceAsync(requestId, lineId, token);
+                var evidenceCandidate = evidence.Candidates.SingleOrDefault(candidate =>
+                    candidate.EvidenceType == request.EvidenceType &&
+                    string.Equals(candidate.EvidenceId, request.EvidenceId, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(candidate.SupplierId, request.SupplierId, StringComparison.OrdinalIgnoreCase));
+                if (evidenceCandidate is null)
+                {
+                    throw new DbUpdateConcurrencyException("Bằng chứng nhà cung cấp đã hết hiệu lực hoặc không còn khớp. Hãy tải lại gợi ý.");
+                }
 
-        var evidenceType = PurchaseSupplierDecisionPolicy.ToPersistenceEvidenceType(request.EvidenceType);
-        var referencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice);
-        var variancePercent = PurchasePricePolicy.CalculateVariancePercent(referencePrice, proposedUnitPrice);
-        var exceptionReason = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
-        if (PurchasePricePolicy.RequiresException(variancePercent) && exceptionReason is null)
-        {
-            throw new BusinessRuleException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
-        }
+                var evidenceType = PurchaseSupplierDecisionPolicy.ToPersistenceEvidenceType(request.EvidenceType);
+                var referencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice);
+                var variancePercent = PurchasePricePolicy.CalculateVariancePercent(referencePrice, proposedUnitPrice);
+                var exceptionReason = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+                if (PurchasePricePolicy.RequiresException(variancePercent) && exceptionReason is null)
+                {
+                    throw new BusinessRuleException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
+                }
 
-        var fingerprint = PurchaseSupplierDecisionPolicy.BuildFingerprint(
-            line.PurchaseRequestLineId,
-            supplierId,
-            evidenceType,
-            GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
-            evidenceCandidate.UnitPrice,
-            proposedUnitPrice,
-            proposedDeliveryDate);
-        if (currentDecision is not null &&
-            string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
-        {
-            await UpsertPriceExceptionAsync(
-                currentDecision,
-                null,
-                variancePercent,
-                exceptionReason,
-                actorId,
-                cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-            if (transaction is not null)
-            {
-                await transaction.CommitAsync(cancellationToken);
-            }
+                var fingerprint = PurchaseSupplierDecisionPolicy.BuildFingerprint(
+                    line.PurchaseRequestLineId,
+                    supplierId,
+                    evidenceType,
+                    GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
+                    evidenceCandidate.UnitPrice,
+                    proposedUnitPrice,
+                    proposedDeliveryDate);
+                if (currentDecision is not null &&
+                    string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
+                {
+                    await UpsertPriceExceptionAsync(
+                        currentDecision,
+                        null,
+                        variancePercent,
+                        exceptionReason,
+                        actorId,
+                            token);
+                    committedFingerprint = fingerprint;
+                    await _context.SaveChangesAsync(token);
 
-            return PurchaseWorkflowMapper.MapDecision(currentDecision);
-        }
+                    return PurchaseWorkflowMapper.MapDecision(currentDecision);
+                }
 
-        var decisionId = GuidHelper.NewId();
-        if (currentDecision is not null)
-        {
-            currentDecision.Status = "SUPERSEDED";
-            currentDecision.CurrentDecisionKey = null;
-            currentDecision.SupersededByDecisionId = decisionId;
-            currentDecision.ConcurrencyVersion++;
-            await _context.SaveChangesAsync(cancellationToken);
+                var decisionId = GuidHelper.NewId();
+                if (currentDecision is not null)
+                {
+                    currentDecision.Status = "SUPERSEDED";
+                    currentDecision.CurrentDecisionKey = null;
+                    currentDecision.SupersededByDecisionId = decisionId;
+                    currentDecision.ConcurrencyVersion++;
+                    await _context.SaveChangesAsync(token);
 
-        }
+                }
 
-        var decision = new PurchaseLineSupplierDecision
-        {
-            PurchaseLineSupplierDecisionId = decisionId,
-            PurchaseRequestLineId = line.PurchaseRequestLineId,
-            SupplierId = supplierId,
-            EvidenceType = evidenceType,
-            EvidenceId = GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
-            EvidenceDate = DateOnly.ParseExact(
-                evidenceCandidate.EvidenceDate,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture),
-            EvidenceReferencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice),
-            ProposedUnitPrice = proposedUnitPrice,
+                var decision = new PurchaseLineSupplierDecision
+                {
+                    PurchaseLineSupplierDecisionId = decisionId,
+                    PurchaseRequestLineId = line.PurchaseRequestLineId,
+                    SupplierId = supplierId,
+                    EvidenceType = evidenceType,
+                    EvidenceId = GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
+                    EvidenceDate = DateOnly.ParseExact(
+                        evidenceCandidate.EvidenceDate,
+                        "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture),
+                    EvidenceReferencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice),
+                    ProposedUnitPrice = proposedUnitPrice,
 
-            ProposedDeliveryDate = proposedDeliveryDate,
-            ConfirmedBy = actorId,
-            ConfirmedAt = DateTime.UtcNow,
-            DecisionFingerprint = fingerprint,
-            Version = currentVersion + 1,
-            Status = "CURRENT",
-            CurrentDecisionKey = line.PurchaseRequestLineId,
-            ConcurrencyVersion = 1,
-            PurchaseRequestLine = line
-        };
+                    ProposedDeliveryDate = proposedDeliveryDate,
+                    ConfirmedBy = actorId,
+                    ConfirmedAt = DateTime.UtcNow,
+                    DecisionFingerprint = fingerprint,
+                    Version = currentVersion + 1,
+                    Status = "CURRENT",
+                    CurrentDecisionKey = line.PurchaseRequestLineId,
+                    ConcurrencyVersion = 1,
+                    PurchaseRequestLine = line
+                };
 
-        line.SupplierId = supplierId;
-        line.EstimatedUnitPrice = proposedUnitPrice;
-        line.ExpectedDeliveryDate = proposedDeliveryDate;
-        line.Note = exceptionReason;
-        line.IsLegacySupplierSnapshot = false;
-        line.SupplierDecisions.Add(decision);
-        _context.Purchaselinesupplierdecisions.Add(decision);
+                line.SupplierId = supplierId;
+                line.EstimatedUnitPrice = proposedUnitPrice;
+                line.ExpectedDeliveryDate = proposedDeliveryDate;
+                line.Note = exceptionReason;
+                line.IsLegacySupplierSnapshot = false;
+                line.SupplierDecisions.Add(decision);
+                _context.Purchaselinesupplierdecisions.Add(decision);
 
-        await UpsertPriceExceptionAsync(
-            decision,
-            currentDecision,
-            variancePercent,
-            exceptionReason,
-            actorId,
-            cancellationToken);
+                await UpsertPriceExceptionAsync(
+                    decision,
+                    currentDecision,
+                    variancePercent,
+                    exceptionReason,
+                    actorId,
+                        token);
 
-        _context.Auditlogs.Add(new AuditLog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = DateTime.UtcNow,
-            ChangedBy = actorId,
-            BusinessArea = "Purchasing",
-            EntityName = nameof(PurchaseLineSupplierDecision),
-            EntityId = decision.PurchaseLineSupplierDecisionId,
-            FieldName = "ConfirmSupplierDecision",
-            OldValue = currentDecision?.DecisionFingerprint,
-            NewValue = decision.DecisionFingerprint,
-            Reason = "Xác nhận nhà cung cấp, giá và ngày giao từ bằng chứng hợp lệ."
-        });
+                _context.Auditlogs.Add(new AuditLog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = DateTime.UtcNow,
+                    ChangedBy = actorId,
+                    BusinessArea = "Purchasing",
+                    EntityName = nameof(PurchaseLineSupplierDecision),
+                    EntityId = decision.PurchaseLineSupplierDecisionId,
+                    FieldName = "ConfirmSupplierDecision",
+                    OldValue = currentDecision?.DecisionFingerprint,
+                    NewValue = decision.DecisionFingerprint,
+                    Reason = "Xác nhận nhà cung cấp, giá và ngày giao từ bằng chứng hợp lệ."
+                });
 
-        await _context.SaveChangesAsync(cancellationToken);
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync(cancellationToken);
-
-        }
-
-        return PurchaseWorkflowMapper.MapDecision(decision);
+                committedFingerprint = fingerprint;
+                await _context.SaveChangesAsync(token);
+                return PurchaseWorkflowMapper.MapDecision(decision);
+            },
+            async token =>
+                committedFingerprint is not null &&
+                await _context.Purchaselinesupplierdecisions
+                    .AsNoTracking()
+                    .AnyAsync(
+                        decision =>
+                            decision.PurchaseRequestLineId == purchaseRequestLineId &&
+                            decision.Status == "CURRENT" &&
+                            decision.DecisionFingerprint == committedFingerprint,
+                        token),
+            cancellationToken: cancellationToken);
     }
 
     private async Task UpsertPriceExceptionAsync(

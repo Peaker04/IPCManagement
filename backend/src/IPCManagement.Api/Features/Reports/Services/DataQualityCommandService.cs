@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -18,18 +19,21 @@ public sealed class DataQualityCommandService : IDataQualityCommandService
 
     private readonly IpcManagementContext _context;
     private readonly IStockLedgerReportService _stockLedgerReportService;
+    private readonly IEfTransactionRunner _transactionRunner;
 
     public DataQualityCommandService(IpcManagementContext context)
-        : this(context, new StockLedgerReportService(context))
+        : this(context, new StockLedgerReportService(context), new EfTransactionRunner(context))
     {
     }
 
     public DataQualityCommandService(
         IpcManagementContext context,
-        IStockLedgerReportService stockLedgerReportService)
+        IStockLedgerReportService stockLedgerReportService,
+        IEfTransactionRunner transactionRunner)
     {
         _context = context;
         _stockLedgerReportService = stockLedgerReportService;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(
@@ -92,9 +96,10 @@ public sealed class DataQualityCommandService : IDataQualityCommandService
             ExecutedAt = now
         };
 
-        await using var transaction = request.DryRun ? null : await _context.Database.BeginTransactionAsync();
-
-        void AddAction(
+        return await _transactionRunner.ExecuteAsync(
+            async _ =>
+            {
+                void AddAction(
             string category,
             string entityName,
             byte[] entityId,
@@ -132,8 +137,8 @@ public sealed class DataQualityCommandService : IDataQualityCommandService
             }
         }
 
-        if (categories.Contains("inventory_ledger_baseline"))
-        {
+                if (categories.Contains("inventory_ledger_baseline"))
+                {
             var ledgerRows = await _stockLedgerReportService.LoadSourceRowsAsync(new WorkflowReportQueryDto());
             var baselineActionCount = 0;
             foreach (var stock in ledgerRows
@@ -439,18 +444,33 @@ public sealed class DataQualityCommandService : IDataQualityCommandService
             }
         }
 
-        if (!request.DryRun)
-        {
-            await _context.SaveChangesAsync();
-            if (transaction is not null)
-            {
-                await transaction.CommitAsync();
-            }
-        }
+                if (!request.DryRun)
+                {
+                    await _context.SaveChangesAsync();
+                }
 
-        result.TotalActions = actions.Count;
-        result.Actions = actions;
-        return result;
+                result.TotalActions = actions.Count;
+                result.Actions = actions;
+                return result;
+            },
+            async cancellationToken =>
+            {
+                if (request.DryRun || result.TotalActions == 0)
+                {
+                    return true;
+                }
+
+                var persistedAuditCount = await _context.Auditlogs
+                    .AsNoTracking()
+                    .CountAsync(
+                        audit =>
+                            audit.BusinessArea == DataQualityBusinessArea &&
+                            audit.FieldName == DataQualityCleanupFieldName &&
+                            audit.ChangedBy == actorId &&
+                            audit.ChangedAt == now,
+                        cancellationToken);
+                return persistedAuditCount >= result.AuditLogCount;
+            });
     }
 
 }

@@ -5,6 +5,7 @@ using System.Security;
 using FluentAssertions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.Data.Sqlite;
@@ -667,7 +668,12 @@ public class SampleDataImportServiceTests
         var resultBuilder = new WeeklyMenuImportResultBuilder(context);
         var actorResolver = new WeeklyMenuAuditActorResolver(context);
         var persistence = new WeeklyMenuImportPersistence(context, resultBuilder, actorResolver);
-        return new WeeklyMenuImportService(context, customerResolver, resultBuilder, persistence);
+        return new WeeklyMenuImportService(
+            context,
+            customerResolver,
+            resultBuilder,
+            persistence,
+            new EfTransactionRunner(context));
     }
 
     private static async Task<WeeklyMenuImportContext> CreateWeeklyMenuImportContextAsync()

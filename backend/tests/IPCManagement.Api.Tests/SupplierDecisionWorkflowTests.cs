@@ -1,6 +1,7 @@
 using FluentAssertions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
@@ -1088,7 +1089,8 @@ public class SupplierDecisionWorkflowTests
             context,
             new StockLedgerService(
                 new CurrentStockRepository(context),
-                new StockMovementRepository(context)));
+                new StockMovementRepository(context)),
+            new EfTransactionRunner(context));
 
     private static (
         PurchaseRequest Request,

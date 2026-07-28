@@ -1,9 +1,9 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
-using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using Xunit;
 using IPCManagement.Api.Features.Inventory.Contracts;
@@ -19,7 +19,7 @@ public class InventoryReturnServiceTests
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
-    private readonly IDbContextTransaction _transaction;
+    private readonly ImmediateTransactionRunner _transactionRunner;
     private readonly InventoryReturnService _service;
 
     public InventoryReturnServiceTests()
@@ -28,15 +28,14 @@ public class InventoryReturnServiceTests
         _issueRepository = Substitute.For<IInventoryIssueRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
-        _transaction = Substitute.For<IDbContextTransaction>();
-
-        _unitOfWork.BeginTransactionAsync().Returns(_transaction);
+        _transactionRunner = new ImmediateTransactionRunner();
 
         _service = new InventoryReturnService(
             _returnRepository,
             _issueRepository,
             _unitOfWork,
-            _stockLedgerService);
+            _stockLedgerService,
+            _transactionRunner);
     }
 
     [Fact]
@@ -93,7 +92,7 @@ public class InventoryReturnServiceTests
             default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
 
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     [Fact]
@@ -155,7 +154,7 @@ public class InventoryReturnServiceTests
             Arg.Any<byte[]>(),
             Arg.Any<string>(),
             Arg.Any<string>());
-        await _transaction.Received(1).RollbackAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     [Fact]
@@ -217,7 +216,7 @@ public class InventoryReturnServiceTests
             Arg.Any<string>(),
             Arg.Any<string>());
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     private static InventoryIssue CreateIssue(

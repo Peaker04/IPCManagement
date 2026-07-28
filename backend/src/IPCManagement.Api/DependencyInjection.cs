@@ -35,15 +35,10 @@ public static class DependencyInjection
                 connectionString,
                 ServerVersion.AutoDetect(connectionString),
                 mySqlOptions => mySqlOptions
+                    // Manual transactions are centralized in EfTransactionRunner, which
+                    // executes them through the provider execution strategy.
+                    .EnableRetryOnFailure()
                     .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-                    // CHƯA bật EnableRetryOnFailure — xem P1.5b.
-                    // Retry khiến MỌI BeginTransaction thủ công ném InvalidOperationException
-                    // ("execution strategy does not support user-initiated transactions") nếu
-                    // không được bọc trong Database.CreateExecutionStrategy().ExecuteAsync(...).
-                    // Đo ngày 26/07/2026: 26 chỗ BeginTransactionAsync ở 15 file, 0 chỗ đã bọc —
-                    // trong đó UnitOfWork.BeginTransactionAsync là wrapper dùng chung cho 7 service.
-                    // Unit test mock IUnitOfWork nên vẫn xanh, lỗi chỉ lộ khi chạy thật.
-                    // Chỉ bật lại sau khi đã bọc đủ cả 26 chỗ trong một đợt riêng.
                     .CommandTimeout(commandTimeoutSeconds)));
 
         // Configurations

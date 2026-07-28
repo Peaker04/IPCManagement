@@ -1,0 +1,112 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-28T16:05:41.000Z",
+  "phase": "16",
+  "phase_name": "persistence-and-reliability",
+  "phase_dir": ".planning/phases/16-persistence-and-reliability",
+  "plan": 1,
+  "task": 4,
+  "total_tasks": 5,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Feature-owned EF mappings",
+      "status": "done",
+      "commit": "7e94eb3"
+    },
+    {
+      "id": 2,
+      "name": "Transaction runner foundation, domain exceptions, migration lineage and restore rehearsal",
+      "status": "done",
+      "commit": "b37606b"
+    },
+    {
+      "id": 3,
+      "name": "Adopt transaction runner across feature transaction boundaries",
+      "status": "done",
+      "commit": "f3e7bcd"
+    },
+    {
+      "id": 4,
+      "name": "Retire legacy UnitOfWork transaction API and decide retry enablement",
+      "status": "in_progress",
+      "progress": "All feature call sites now use IEfTransactionRunner; only IUnitOfWork.BeginTransactionAsync/UnitOfWork.BeginTransactionAsync and stale DI comments remain. EnableRetryOnFailure is still disabled."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 4,
+      "name": "Remove the unused UnitOfWork transaction API, update DI comments, assess EnableRetryOnFailure and run focused regression",
+      "status": "in_progress"
+    },
+    {
+      "id": 5,
+      "name": "Run full Step 16 gates, synchronize CURRENT-STATE/audit/GSD and close ARCH-16A-E with the off-site limitation stated accurately",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "The C: and D: mirror paths have matching SHA-256 evidence but are not proven to be separate physical/off-site media.",
+      "type": "human_action",
+      "workaround": "Keep restore rehearsal evidence valid but document production off-site NAS/cloud/external-drive setup as an operational gap."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Configure and verify a genuinely off-site backup target for production.",
+      "context": "Current mirror rehearsal proves copy integrity and disposable restore, not physical-site independence.",
+      "blocking": false
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Every mutable EF load is performed inside the transaction runner operation and every operation supplies a database verifier.",
+      "rationale": "EfTransactionRunner clears ChangeTracker on retry/commit verification; external tracked entities would otherwise be detached and could silently skip writes.",
+      "phase": "16"
+    },
+    {
+      "decision": "Keep EnableRetryOnFailure disabled until the legacy UnitOfWork transaction API is removed and final gates pass.",
+      "rationale": "The source scan must have exactly one BeginTransactionAsync in EfTransactionRunner before global transient retry is considered safe.",
+      "phase": "16"
+    },
+    {
+      "decision": "Do not treat the C:/D: mirror as proven off-site storage.",
+      "rationale": "Logical drive letters do not prove separate physical devices or sites.",
+      "phase": "16"
+    }
+  ],
+  "repository_checkpoint": {
+    "branch": "feature/production-plan",
+    "source_head_before_handoff_commit": "7e79106",
+    "ahead_of_origin_after_handoff_commit": 2,
+    "gitnexus": "10629 nodes / 29171 edges / 300 flows",
+    "step_16_progress": "3/5 tasks complete; task 4 in progress; task 5 not started"
+  },
+  "intervening_production_work": {
+    "status": "complete",
+    "schema_and_data": "61/61 tables; 53404/53404 rows; zero missing, row-count mismatch or checksum mismatch",
+    "health": "live, ready, database and migration checks Healthy",
+    "source_commit": "7e79106 fixes temporary-key migration collation; full gates passed",
+    "credential_state": "IPC_PROD_CONNECTION_STRING was removed from User scope; never print or reconstruct it"
+  },
+  "bom_verification": {
+    "workbook": "C:/Users/Administrator/Pictures/weekly-menu-template-ANV-default.xlsx",
+    "sha256": "a7e734cefbd409e7220c4ff19b3e1b7fddd4e33d202a3f24e63309d60d4d5a01",
+    "preview": "114/114 existing-dish rows; 0 new dishes; valid; 0 errors; 0 warnings",
+    "committed_menu": "90/90 display dishes have BOM; 0 matched-without-BOM; 0 unmatched",
+    "diagnosis": "The earlier 0/90 display was stale backend 30-minute catalog cache plus frontend 5-minute RTK Query cache after direct restore bypassed DishCatalogCache.Clear.",
+    "mutation": "Preview only; no repeat import and no database mutation during diagnosis",
+    "evidence": [
+      ".artifacts/shipyard-live/production-weekly-menu-bom-debug.png",
+      ".artifacts/shipyard-live/production-bom-debug.json"
+    ]
+  },
+  "uncommitted_files": [
+    ".dockerignore (untracked, user-owned, outside scope)",
+    "Dockerfile (untracked, user-owned, outside scope)"
+  ],
+  "next_action": "Read AGENTS.md and docs/CURRENT-STATE.md, confirm GitNexus is current, run upstream impact for IUnitOfWork/UnitOfWork/BeginTransactionAsync/DependencyInjection.AddBackendServices, remove only the unused transaction API and stale DI note, then run focused retry/idempotency gates before deciding EnableRetryOnFailure.",
+  "context_notes": "Architecture workflow Part F remains the only execution source; archived GSD v1.1 must not be applied. The production synchronization was explicitly authorized and is complete; do not repeat it. Step 16 refactoring did not seed/import/reset a database or mutate ipc_lane1. Latest full backend gate: API 667 pass/1 skip, Application 47/47."
+}

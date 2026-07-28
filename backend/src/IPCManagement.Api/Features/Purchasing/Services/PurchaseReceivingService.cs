@@ -4,6 +4,7 @@ using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,15 +25,18 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 
     private readonly IpcManagementContext _context;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IEfTransactionRunner _transactionRunner;
     private readonly Func<string, CancellationToken, Task>? _faultInjector;
 
     public PurchaseReceivingService(
         IpcManagementContext context,
         IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner,
         Func<string, CancellationToken, Task>? faultInjector = null)
     {
         _context = context;
         _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner;
         _faultInjector = faultInjector;
     }
 
@@ -90,166 +94,165 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         byte[] receiptId,
         CancellationToken cancellationToken)
     {
-        await using var transaction = _context.Database.IsRelational()
-            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
-            : null;
         var mutationStarted = false;
 
         try
         {
-            var order = await LoadOrderAsync(purchaseOrderId, cancellationToken)
-                ?? throw new KeyNotFoundException("Không tìm thấy đơn mua hàng.");
-            var requirements = BuildEvidenceRequirements(order);
-            var existingReceipt = await LoadReceiptAsync(receiptId, cancellationToken);
-            if (existingReceipt is not null)
-            {
-                ValidateIdempotentReplay(existingReceipt, order, request, warehouseId);
-                if (transaction is not null)
+            return await _transactionRunner.ExecuteAsync(
+                async token =>
                 {
-                    await transaction.CommitAsync(cancellationToken);
-                }
+                    var order = await LoadOrderAsync(purchaseOrderId, token)
+                        ?? throw new KeyNotFoundException("Không tìm thấy đơn mua hàng.");
+                    var requirements = BuildEvidenceRequirements(order);
+                    var existingReceipt = await LoadReceiptAsync(receiptId, token);
+                    if (existingReceipt is not null)
+                    {
+                        ValidateIdempotentReplay(existingReceipt, order, request, warehouseId);
+                        return BuildResult(existingReceipt, order, normalizedKey, requirements);
+                    }
 
-                return BuildResult(existingReceipt, order, normalizedKey, requirements);
-            }
+                    if (order.Status is StatusCancelled or StatusReceived)
+                    {
+                        throw new BusinessRuleException("Đơn mua hàng đã đóng hoặc bị hủy, không thể nhập thêm.");
+                    }
 
-            if (order.Status is StatusCancelled or StatusReceived)
-            {
-                throw new BusinessRuleException("Đơn mua hàng đã đóng hoặc bị hủy, không thể nhập thêm.");
-            }
+                    if (order.Status is not StatusOrdered and not StatusPartiallyReceived)
+                    {
+                        throw new BusinessRuleException("Trạng thái đơn mua hàng không cho phép nhập kho.");
+                    }
 
-            if (order.Status is not StatusOrdered and not StatusPartiallyReceived)
-            {
-                throw new BusinessRuleException("Trạng thái đơn mua hàng không cho phép nhập kho.");
-            }
-
-            var purchaseRequestId = GuidHelper.ToGuidString(order.PurchaseRequestId);
-            var supplementalAudit = await _context.Auditlogs
-                .AsNoTracking()
-                .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
-                    item.FieldName == "PurchaseRequestId" &&
-                    item.NewValue == purchaseRequestId)
-                .OrderByDescending(item => item.ChangedAt)
-                .FirstOrDefaultAsync(cancellationToken);
-            var supplementalRequest = supplementalAudit?.EntityId is null
-                ? null
-                : await _context.Supplementalmaterialrequests
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(item => item.RequestId == supplementalAudit.EntityId, cancellationToken);
-            if (supplementalRequest is not null && !supplementalRequest.WarehouseId.SequenceEqual(warehouseId))
-            {
-                throw new BusinessRuleException(
-                    "Đơn mua bổ sung phải được nhập vào đúng kho đang xử lý yêu cầu của bếp.");
-            }
-
-            var validatedLines = await ValidateActualReceiptAsync(order, requirements, request, cancellationToken);
-            var now = DateTime.UtcNow;
-            var receipt = new InventoryReceipt
-            {
-                ReceiptId = receiptId,
-                ReceiptCode = $"RCP-PO-{Convert.ToHexString(receiptId)}",
-                ReceiptDate = request.ReceiptDate,
-                SupplierId = order.SupplierId,
-                WarehouseId = warehouseId,
-                PurchaseRequestId = order.PurchaseRequestId,
-                CreatedBy = actorId,
-                CreatedAt = now
-            };
-
-            foreach (var validated in validatedLines)
-            {
-                var input = validated.Input;
-                var orderLine = validated.OrderLine;
-                receipt.Inventoryreceiptlines.Add(new InventoryReceiptLine
-                {
-                    ReceiptLineId = BuildReceiptLineId(receiptId, orderLine.PurchaseOrderLineId),
-                    ReceiptId = receiptId,
-                    PurchaseRequestLineId = orderLine.PurchaseRequestLineId,
-                    IngredientId = orderLine.IngredientId,
-                    UnitId = orderLine.UnitId,
-                    Quantity = DecimalPolicy.RoundQuantity(input.ActualQuantity),
-                    UnitPrice = DecimalPolicy.RoundMoney(input.ActualUnitPrice),
-                    Amount = DecimalPolicy.RoundMoney(input.ActualQuantity * input.ActualUnitPrice),
-                    PackageQuantitySnapshot = input.PackageQuantity is null
+                    var purchaseRequestId = GuidHelper.ToGuidString(order.PurchaseRequestId);
+                    var supplementalAudit = await _context.Auditlogs
+                        .AsNoTracking()
+                        .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
+                            item.FieldName == "PurchaseRequestId" &&
+                            item.NewValue == purchaseRequestId)
+                        .OrderByDescending(item => item.ChangedAt)
+                        .FirstOrDefaultAsync(token);
+                    var supplementalRequest = supplementalAudit?.EntityId is null
                         ? null
-                        : DecimalPolicy.RoundQuantity(input.PackageQuantity.Value),
-                    PackageBaseUnitIdSnapshot = GuidHelper.ParseGuidString(input.PackageBaseUnitId),
-                    PackagePolicyVersionSnapshot = NormalizeOptional(input.PackagePolicyVersion),
-                    LotNumber = NormalizeOptional(input.LotNumber),
-                    ManufactureDate = input.ManufactureDate,
-                    ExpiredDate = input.ExpiryDate
-                });
-            }
+                        : await _context.Supplementalmaterialrequests
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(item => item.RequestId == supplementalAudit.EntityId, token);
+                    if (supplementalRequest is not null && !supplementalRequest.WarehouseId.SequenceEqual(warehouseId))
+                    {
+                        throw new BusinessRuleException(
+                            "Đơn mua bổ sung phải được nhập vào đúng kho đang xử lý yêu cầu của bếp.");
+                    }
 
-            _context.Inventoryreceipts.Add(receipt);
-            mutationStarted = true;
-            await InjectFaultAsync("AfterReceipt", cancellationToken);
+                    var validatedLines = await ValidateActualReceiptAsync(order, requirements, request, token);
+                    var now = DateTime.UtcNow;
+                    var receipt = new InventoryReceipt
+                    {
+                        ReceiptId = receiptId,
+                        ReceiptCode = $"RCP-PO-{Convert.ToHexString(receiptId)}",
+                        ReceiptDate = request.ReceiptDate,
+                        SupplierId = order.SupplierId,
+                        WarehouseId = warehouseId,
+                        PurchaseRequestId = order.PurchaseRequestId,
+                        CreatedBy = actorId,
+                        CreatedAt = now
+                    };
 
-            foreach (var line in receipt.Inventoryreceiptlines)
-            {
-                await _stockLedgerService.AddStockAsync(
-                    warehouseId,
-                    line.IngredientId,
-                    line.UnitId,
-                    line.Quantity,
-                    "RECEIPT",
-                    "purchaseorders",
-                    order.PurchaseOrderId,
-                    actorId,
-                    "Nhập kho từ đơn mua hàng",
-                    $"Phiếu nhập {receipt.ReceiptCode} từ {order.PurchaseOrderCode}",
-                    line.LotNumber,
-                    line.ManufactureDate,
-                    line.ExpiredDate);
-            }
+                    foreach (var validated in validatedLines)
+                    {
+                        var input = validated.Input;
+                        var orderLine = validated.OrderLine;
+                        receipt.Inventoryreceiptlines.Add(new InventoryReceiptLine
+                        {
+                            ReceiptLineId = BuildReceiptLineId(receiptId, orderLine.PurchaseOrderLineId),
+                            ReceiptId = receiptId,
+                            PurchaseRequestLineId = orderLine.PurchaseRequestLineId,
+                            IngredientId = orderLine.IngredientId,
+                            UnitId = orderLine.UnitId,
+                            Quantity = DecimalPolicy.RoundQuantity(input.ActualQuantity),
+                            UnitPrice = DecimalPolicy.RoundMoney(input.ActualUnitPrice),
+                            Amount = DecimalPolicy.RoundMoney(input.ActualQuantity * input.ActualUnitPrice),
+                            PackageQuantitySnapshot = input.PackageQuantity is null
+                                ? null
+                                : DecimalPolicy.RoundQuantity(input.PackageQuantity.Value),
+                            PackageBaseUnitIdSnapshot = GuidHelper.ParseGuidString(input.PackageBaseUnitId),
+                            PackagePolicyVersionSnapshot = NormalizeOptional(input.PackagePolicyVersion),
+                            LotNumber = NormalizeOptional(input.LotNumber),
+                            ManufactureDate = input.ManufactureDate,
+                            ExpiredDate = input.ExpiryDate
+                        });
+                    }
 
-            await InjectFaultAsync("AfterStock", cancellationToken);
+                    _context.Inventoryreceipts.Add(receipt);
+                    mutationStarted = true;
+                    await InjectFaultAsync("AfterReceipt", token);
 
-            var oldStatus = order.Status;
-            foreach (var validated in validatedLines)
-            {
-                validated.OrderLine.ReceivedQty = DecimalPolicy.RoundQuantity(
-                    validated.OrderLine.ReceivedQty + validated.Input.ActualQuantity);
-            }
+                    foreach (var line in receipt.Inventoryreceiptlines)
+                    {
+                        await _stockLedgerService.AddStockAsync(
+                            warehouseId,
+                            line.IngredientId,
+                            line.UnitId,
+                            line.Quantity,
+                            "RECEIPT",
+                            "purchaseorders",
+                            order.PurchaseOrderId,
+                            actorId,
+                            "Nhập kho từ đơn mua hàng",
+                            $"Phiếu nhập {receipt.ReceiptCode} từ {order.PurchaseOrderCode}",
+                            line.LotNumber,
+                            line.ManufactureDate,
+                            line.ExpiredDate);
+                    }
 
-            order.Status = ComputeOrderStatus(order.Purchaseorderlines);
-            order.UpdatedAt = now;
-            await InjectFaultAsync("AfterOrderProgress", cancellationToken);
+                    await InjectFaultAsync("AfterStock", token);
 
-            _context.Auditlogs.Add(new AuditLog
-            {
-                AuditId = BuildAuditId(receiptId),
-                ChangedAt = now,
-                ChangedBy = actorId,
-                BusinessArea = "Receipt",
-                EntityName = nameof(PurchaseOrder),
-                EntityId = order.PurchaseOrderId,
-                FieldName = nameof(PurchaseOrder.Status),
-                OldValue = oldStatus,
-                NewValue = order.Status,
-                Reason = $"Kho ghi nhận phiếu {receipt.ReceiptCode} cho {order.PurchaseOrderCode}."
-            });
-            await InjectFaultAsync("AfterAudit", cancellationToken);
+                    var oldStatus = order.Status;
+                    foreach (var validated in validatedLines)
+                    {
+                        validated.OrderLine.ReceivedQty = DecimalPolicy.RoundQuantity(
+                            validated.OrderLine.ReceivedQty + validated.Input.ActualQuantity);
+                    }
 
-            await _context.SaveChangesAsync(cancellationToken);
-            if (transaction is not null)
-            {
-                await transaction.CommitAsync(cancellationToken);
-            }
+                    order.Status = ComputeOrderStatus(order.Purchaseorderlines);
+                    order.UpdatedAt = now;
+                    await InjectFaultAsync("AfterOrderProgress", token);
 
-            return BuildResult(receipt, order, normalizedKey, requirements);
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = BuildAuditId(receiptId),
+                        ChangedAt = now,
+                        ChangedBy = actorId,
+                        BusinessArea = "Receipt",
+                        EntityName = nameof(PurchaseOrder),
+                        EntityId = order.PurchaseOrderId,
+                        FieldName = nameof(PurchaseOrder.Status),
+                        OldValue = oldStatus,
+                        NewValue = order.Status,
+                        Reason = $"Kho ghi nhận phiếu {receipt.ReceiptCode} cho {order.PurchaseOrderCode}."
+                    });
+                    await InjectFaultAsync("AfterAudit", token);
+
+                    await _context.SaveChangesAsync(token);
+                    return BuildResult(receipt, order, normalizedKey, requirements);
+                },
+                async token =>
+                {
+                    var order = await LoadOrderAsync(purchaseOrderId, token);
+                    var receipt = await LoadReceiptAsync(receiptId, token);
+                    if (order is null || receipt is null)
+                    {
+                        return false;
+                    }
+
+                    ValidateIdempotentReplay(receipt, order, request, warehouseId);
+                    return true;
+                },
+                IsolationLevel.Serializable,
+                cancellationToken);
         }
         catch
         {
-            if (transaction is not null)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-            }
-
-            if (mutationStarted || transaction is not null)
+            if (mutationStarted || _context.Database.IsRelational())
             {
                 _context.ChangeTracker.Clear();
             }
-
             throw;
         }
     }
