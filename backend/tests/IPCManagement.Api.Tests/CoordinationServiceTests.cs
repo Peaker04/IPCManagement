@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using FluentAssertions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -84,12 +83,8 @@ public class CoordinationServiceTests
             }
         };
 
-        var method = typeof(CoordinationService).GetMethod(
-            "MapOrder",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
         // Act
-        var result = (CoordinationOrderDto)method!.Invoke(null, [line])!;
+        var result = OrderLifecyclePolicy.MapOrder(line);
 
         // Assert
         result.MenuId.Should().Be(menuId.ToString());
