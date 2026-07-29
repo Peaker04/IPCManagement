@@ -23,6 +23,26 @@ if (args.Length == 5 &&
             "stockmovements", "stocksnapshots", "stocktakelines", "stocktakes", "supplierquotations", "refreshtokens"
         };
 
+        var importedMenuIdsTable = $"phase18_imported_menu_ids_{Environment.ProcessId}";
+        await ExecuteAsync(connection, $"""
+            CREATE TEMPORARY TABLE {Quote(importedMenuIdsTable)} (
+                menuId BINARY(16) NOT NULL PRIMARY KEY
+            );
+            INSERT IGNORE INTO {Quote(importedMenuIdsTable)} (menuId)
+            SELECT DISTINCT schedule.menuId
+            FROM {Quote(database)}.{Quote("menuschedules")} AS schedule
+            INNER JOIN {Quote(database)}.{Quote("menuversions")} AS version
+                ON version.menuVersionId = schedule.menuVersionId
+            WHERE schedule.menuVersionId IS NOT NULL
+              AND (
+                  COALESCE(version.sourceChecksum, '') <> '' OR
+                  COALESCE(version.sourceImportBatch, '') <> ''
+              );
+            """);
+        var importedMenuCount = await ReadScalarAsync(
+            connection,
+            $"SELECT COUNT(*) FROM {Quote(importedMenuIdsTable)};");
+
         await ExecuteAsync(connection, "SET FOREIGN_KEY_CHECKS=0;");
         try
         {
@@ -30,6 +50,17 @@ if (args.Length == 5 &&
             {
                 await ExecuteAsync(connection, $"TRUNCATE TABLE {Quote(database)}.{Quote(table)};");
             }
+
+            await ExecuteAsync(connection, $"""
+                DELETE item
+                FROM {Quote(database)}.{Quote("menuitems")} AS item
+                INNER JOIN {Quote(importedMenuIdsTable)} AS imported
+                    ON imported.menuId = item.menuId;
+                DELETE menu
+                FROM {Quote(database)}.{Quote("menus")} AS menu
+                INNER JOIN {Quote(importedMenuIdsTable)} AS imported
+                    ON imported.menuId = menu.menuId;
+                """);
         }
         finally
         {
@@ -44,9 +75,26 @@ if (args.Length == 5 &&
                 throw new InvalidOperationException($"E2E sanitization left {count} rows in {table}.");
             }
         }
+        var importedMenuArtifactsLeft = await ReadScalarAsync(
+            connection,
+            $"""
+            SELECT
+                (SELECT COUNT(*)
+                 FROM {Quote(database)}.{Quote("menus")} AS menu
+                 INNER JOIN {Quote(importedMenuIdsTable)} AS imported ON imported.menuId = menu.menuId) +
+                (SELECT COUNT(*)
+                 FROM {Quote(database)}.{Quote("menuitems")} AS item
+                 INNER JOIN {Quote(importedMenuIdsTable)} AS imported ON imported.menuId = item.menuId);
+            """);
+        if (importedMenuArtifactsLeft != 0)
+        {
+            throw new InvalidOperationException(
+                $"E2E sanitization left {importedMenuArtifactsLeft} imported menu artifacts.");
+        }
 
         Console.WriteLine($"SANITIZE={database}");
         Console.WriteLine($"TRANSACTION_TABLES={transactionTables.Length}");
+        Console.WriteLine($"IMPORTED_MENUS_REMOVED={importedMenuCount}");
         Console.WriteLine("VERIFY=PASS");
         return 0;
     }
@@ -243,6 +291,12 @@ static async Task<long> ReadRowCountAsync(MySqlConnection connection, string dat
     await using var command = new MySqlCommand(
         $"SELECT COUNT(*) FROM {Quote(database)}.{Quote(table)};",
         connection);
+    return Convert.ToInt64(await command.ExecuteScalarAsync());
+}
+
+static async Task<long> ReadScalarAsync(MySqlConnection connection, string sql)
+{
+    await using var command = new MySqlCommand(sql, connection);
     return Convert.ToInt64(await command.ExecuteScalarAsync());
 }
 
