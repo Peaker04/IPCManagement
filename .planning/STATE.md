@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-07-29T03:48:33.965Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-07-29T04:14:59.195Z"
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 14
-  completed_plans: 7
-  percent: 50
+  completed_plans: 8
+  percent: 57
 current_phase: 17
 current_phase_name: frontend-ownership
 ---
@@ -27,26 +27,26 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 Phase: 17 (frontend-ownership) — EXECUTING
 
-Plan: 2 of 8
+Plan: 3 of 8
 
 Status: Ready to execute
 
 Milestone phase progress: ████████░░ 75% (6/8 steps complete).
 
-Defined-plan progress: 8/8 plans defined; 0/8 executed
+Defined-plan progress: 8/8 plans defined; 2/8 executed
 
 Step 16 work-package progress: 5/5 complete.
 
 ## Verified Baseline
 
-- Branch `feature/production-plan`; Step 16 code baseline trước closeout docs là
-  `59add79 refactor(persistence): retire legacy transaction API`. Không push trong phiên này.
+- Branch `feature/workflow-b17-b18`; current Phase 17 code baseline is
+  `ed8c3d0 refactor(17-02): lower auth and layout ownership`. Không push trong phiên này.
 
-- Working tree has only user-owned untracked `.dockerignore` and `Dockerfile`; do not stage, overwrite or remove them.
-- GitNexus was refreshed before Task 4 impact: 10,629 nodes, 29,171 edges and 300 execution flows.
-- Step 16 full gates: backend API 667 pass/1 skip; Application 49/49; frontend 416/416;
-  Debug/Release 0 warning/error, lint, dependency, production build, OpenAPI/TypeScript determinism,
-  EF pending-model, diff and secret gates green.
+- Plan 17-01 characterization and Plan 17-02 auth/layout ownership are complete. Focused Plan 17-02
+  regression is 29/29; lint and production build pass; dependency baseline reduced 54 → 44.
+- GitNexus PDG index: 56,409 nodes, 102,653 edges and 300 execution flows. Final staged audit for
+  Plan 17-02 reported 56 changed symbols across 16 files, LOW risk and 0 affected processes.
+- No database reset, seed, import or lane mutation occurred during Phase 17 execution.
 
 - OpenAPI remained 152 paths / 396 schemas.
 - Step 15 and the Step 16 refactor sequence did not call import endpoints, seed/reset/import a database or access `ipc_lane1`.
@@ -116,11 +116,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T03:48:33.956Z
+**Last Date:** 2026-07-29T04:14:59.186Z
 
-**Stopped At:** Completed 17-01-PLAN.md
+**Stopped At:** Completed 17-02-PLAN.md
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-02-PLAN.md
+**Resume File:** .planning/phases/17-frontend-ownership/17-03-PLAN.md
 
 ## Constraints
 
@@ -135,3 +135,4 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 17 P01 | 8 min | 2 tasks | 4 files |
+| Phase 17 P02 | 30min | 2 tasks | 16 files |
