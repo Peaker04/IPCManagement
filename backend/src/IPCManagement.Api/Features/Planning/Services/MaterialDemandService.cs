@@ -15,6 +15,7 @@ public class MaterialDemandService : IMaterialDemandService
     private const string DemandApprovedStatus = "MANAGERAPPROVED";
     private const string DemandDraftStatus = "DRAFT";
     private const string PurchaseDraftStatus = "DRAFT";
+    private const string CompletedQuantityPlanStatus = "COMPLETED";
     private const decimal FixedBomRatePercent = 100m;
 
     public MaterialDemandService(IpcManagementContext context)
@@ -64,6 +65,12 @@ public class MaterialDemandService : IMaterialDemandService
 
             return null;
         }
+
+        await EnsureMenusPublishedForDemandAsync(
+            serviceDate,
+            shiftName,
+            customerId,
+            cancellationToken);
 
         var planContext = await ResolveProductionPlanContextAsync(quantityLines, customerId, cancellationToken);
         var plan = await EnsureProductionPlanAsync(serviceDate, scope, planContext, userIdBytes, cancellationToken);
@@ -512,6 +519,43 @@ public class MaterialDemandService : IMaterialDemandService
         return query;
     }
 
+    private async Task EnsureMenusPublishedForDemandAsync(
+        DateOnly serviceDate,
+        string? shiftName,
+        byte[]? customerId,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Mealquantityplanlines
+            .AsNoTracking()
+            .Where(line =>
+                line.QuantityPlan.ServiceDate == serviceDate &&
+                line.QuantityPlan.Status == CompletedQuantityPlanStatus);
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            query = query.Where(line => line.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            query = query.Where(line => line.CustomerId.SequenceEqual(customerId));
+        }
+
+        var hasUnpublishedMenu = await query.AnyAsync(line =>
+            line.MenuSchedule.Status != "ACTIVE" ||
+            (line.MenuSchedule.MenuVersionId != null &&
+             !_context.Menuversions.Any(version =>
+                 version.MenuVersionId == line.MenuSchedule.MenuVersionId &&
+                 (version.Status == "ACTIVE" || version.Status == "PUBLISHED"))),
+            cancellationToken);
+        if (hasUnpublishedMenu)
+        {
+            throw new BusinessRuleException(
+                "Không thể tạo nhu cầu nguyên liệu khi thực đơn chưa được phát hành. " +
+                "Hãy phát hành phiên bản thực đơn trước khi tiếp tục.");
+        }
+    }
+
     private async Task<bool> HasUnsignedOffQuantityLinesAsync(
         DateOnly serviceDate,
         string? shiftName,
@@ -742,6 +786,7 @@ public class MaterialDemandService : IMaterialDemandService
                 .AsNoTracking()
                 .Where(version => version.WeekStartDate == weekStartDate.Value)
                 .Where(version => version.CustomerId.SequenceEqual(customerId))
+                .Where(version => version.Status == "ACTIVE" || version.Status == "PUBLISHED")
                 .OrderByDescending(version => version.PublishedAt.HasValue)
                 .ThenByDescending(version => version.VersionNo)
                 .Select(version => version.MenuVersionId)

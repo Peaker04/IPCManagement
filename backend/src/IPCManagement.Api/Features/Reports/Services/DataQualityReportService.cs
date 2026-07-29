@@ -509,7 +509,11 @@ public sealed class DataQualityReportService : IDataQualityReportService
     {
         var sourceQuery = DataQualityPolicy.CloneQuery(query, 500);
         var report = await GetDataQualityAsync(sourceQuery);
-        var pageItems = report.Issues
+        var searchKeyword = query.SearchKeyword?.Trim();
+        var filteredIssues = string.IsNullOrWhiteSpace(searchKeyword)
+            ? report.Issues
+            : report.Issues.Where(issue => MatchesSearch(issue, searchKeyword)).ToList();
+        var pageItems = filteredIssues
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToList();
@@ -532,11 +536,29 @@ public sealed class DataQualityReportService : IDataQualityReportService
             Issues = pageItems,
             Page = PagedResponseDto<DataQualityIssueDto>.Create(
                 pageItems,
-                report.TotalIssues,
+                filteredIssues.Count,
                 query.PageNumber,
                 query.PageSize)
         };
     }
+
+    private static bool MatchesSearch(DataQualityIssueDto issue, string searchKeyword)
+        => new[]
+        {
+            issue.IssueId,
+            issue.Category,
+            issue.Severity,
+            issue.Owner,
+            issue.SlaLabel,
+            issue.EntityName,
+            issue.EntityCode,
+            issue.EntityLabel,
+            issue.Message,
+            issue.SuggestedAction,
+            issue.RemediationStatus,
+            issue.RemediationByName,
+            issue.RemediationNote
+        }.Any(value => value?.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase) == true);
 
     private async Task ApplyDataQualityRemediationStateAsync(IReadOnlyList<DataQualityIssueDto> issues)
     {

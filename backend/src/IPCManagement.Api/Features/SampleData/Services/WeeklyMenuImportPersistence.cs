@@ -23,6 +23,8 @@ internal sealed class WeeklyMenuImportPersistence(
         string? actorUserId,
         CancellationToken cancellationToken)
     {
+        await ValidateReimportBoundaryAsync(plan, customer, cancellationToken);
+
         var version = await CreateMenuVersionHeaderAsync(
             plan,
             customer,
@@ -133,6 +135,35 @@ internal sealed class WeeklyMenuImportPersistence(
         version.WarningRowCount = result.Warnings.Count;
         WeeklyMenuImportProjection.ApplyCommittedDishIds(result, plan.Items);
         return result;
+    }
+
+    private async Task ValidateReimportBoundaryAsync(
+        WeeklyMenuImportPlan plan,
+        Customer customer,
+        CancellationToken cancellationToken)
+    {
+        var irreversiblePlan = await context.Mealquantityplanlines
+            .AsNoTracking()
+            .Where(line =>
+                line.CustomerId.SequenceEqual(customer.CustomerId) &&
+                line.MenuSchedule.WeekStartDate == plan.WeekStartDate &&
+                (line.QuantityPlan.Status == "CONFIRMED" ||
+                 line.QuantityPlan.Status == "ADJUSTED" ||
+                 line.QuantityPlan.Status == "COMPLETED" ||
+                 line.QuantityPlan.Status == "ARCHIVED"))
+            .Select(line => new
+            {
+                line.QuantityPlan.PlanCode,
+                line.QuantityPlan.Status
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (irreversiblePlan is not null)
+        {
+            throw new BusinessRuleException(
+                $"Không thể import lại thực đơn tuần vì kế hoạch {irreversiblePlan.PlanCode} " +
+                $"đã ở trạng thái {irreversiblePlan.Status}. " +
+                "Hãy dùng luồng điều chỉnh chứng từ thay vì ghi đè thực đơn nguồn.");
+        }
     }
 
     internal async Task<int> InvalidateWorkflowDocumentsForMenuReimportAsync(
@@ -347,20 +378,26 @@ internal sealed class WeeklyMenuImportPersistence(
             .FirstOrDefault();
         if (existing is not null)
         {
-            existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
-            existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
+            // Group/type describe the global dish catalog. A workbook slot only describes where the
+            // dish is used in this menu, so importing another customer/week must not reclassify it.
+            var reactivated = existing.IsActive != true;
             existing.IsActive = true;
-            counts.DishesUpdated++;
+            if (reactivated)
+            {
+                counts.DishesUpdated++;
+            }
             return existing;
         }
 
-        return EnsureDish(cleanDishName, dishGroup, dishType, dishes, counts);
+        // Workbook section/slot belongs to the menu line and is persisted in MenuItem.DishSlot.
+        // A newly discovered dish must stay uncategorized until the global catalog is reviewed.
+        return EnsureDish(cleanDishName, null, null, dishes, counts);
     }
 
     private Dish EnsureDish(
         string dishName,
-        string dishGroup,
-        string dishType,
+        string? dishGroup,
+        string? dishType,
         List<Dish> dishes,
         SampleDataImportCountsDto counts)
     {
@@ -371,11 +408,12 @@ internal sealed class WeeklyMenuImportPersistence(
             string.Equals(item.DishCode, stableCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
-            existing.DishName = dishName.Trim();
-            existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
-            existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
+            var reactivated = existing.IsActive != true;
             existing.IsActive = true;
-            counts.DishesUpdated++;
+            if (reactivated)
+            {
+                counts.DishesUpdated++;
+            }
             return existing;
         }
 

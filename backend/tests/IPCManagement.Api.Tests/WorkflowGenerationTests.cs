@@ -33,6 +33,343 @@ namespace IPCManagement.Api.Tests;
 public class WorkflowGenerationTests
 {
     [Fact]
+    public async Task GetMealQuantityPlansAsync_Should_ExcludePlansWithoutRequestedShift()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var menu = await context.Menus.SingleAsync();
+        var afternoonScheduleId = GuidHelper.NewId();
+        var afternoonPlanId = GuidHelper.NewId();
+        context.Menuschedules.Add(new MenuSchedule
+        {
+            MenuScheduleId = afternoonScheduleId,
+            CustomerId = fixture.CustomerId,
+            MenuId = menu.MenuId,
+            ServiceDate = new DateOnly(2026, 6, 15),
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            ShiftName = "AFTERNOON",
+            MenuPrice = 25000,
+            BomRatePercent = 100,
+            Status = "ACTIVE"
+        });
+        context.Mealquantityplans.Add(new MealQuantityPlan
+        {
+            QuantityPlanId = afternoonPlanId,
+            PlanCode = "QTY-20260615-AFTERNOON",
+            ServiceDate = new DateOnly(2026, 6, 15),
+            Status = OrderStatus.Forecasted,
+            ConfirmationTime = new TimeOnly(8, 30)
+        });
+        context.Mealquantityplanlines.Add(new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(),
+            QuantityPlanId = afternoonPlanId,
+            MenuScheduleId = afternoonScheduleId,
+            CustomerId = fixture.CustomerId,
+            MenuId = menu.MenuId,
+            ShiftName = "AFTERNOON",
+            ForecastServings = 120,
+            FinalServings = 120
+        });
+        await context.SaveChangesAsync();
+
+        var result = await new MealQuantityPlanService(context, new EfTransactionRunner(context))
+            .GetMealQuantityPlansAsync(new MealQuantityPlanQueryDto
+            {
+                ServiceDate = "2026-06-15",
+                ShiftName = "MORNING"
+            });
+
+        result.Should().ContainSingle();
+        result.Single().Lines.Should().OnlyContain(line => line.ShiftName == "MORNING");
+    }
+
+    [Fact]
+    public async Task GetMealQuantityPlansAsync_Should_MatchCustomerAndShiftOnTheSameLine()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var menu = await context.Menus.SingleAsync();
+        var secondCustomerId = GuidHelper.NewId();
+        var secondScheduleId = GuidHelper.NewId();
+        context.Customers.Add(new Customer
+        {
+            CustomerId = secondCustomerId,
+            CustomerCode = "CUS-SECOND",
+            CustomerName = "Second customer",
+            IsActive = true
+        });
+        context.Menuschedules.Add(new MenuSchedule
+        {
+            MenuScheduleId = secondScheduleId,
+            CustomerId = secondCustomerId,
+            MenuId = menu.MenuId,
+            ServiceDate = new DateOnly(2026, 6, 15),
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            ShiftName = "AFTERNOON",
+            MenuPrice = 25000,
+            BomRatePercent = 100,
+            Status = "ACTIVE"
+        });
+        context.Mealquantityplanlines.Add(new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(),
+            QuantityPlanId = fixture.QuantityPlanId,
+            MenuScheduleId = secondScheduleId,
+            CustomerId = secondCustomerId,
+            MenuId = menu.MenuId,
+            ShiftName = "AFTERNOON",
+            ForecastServings = 75,
+            ConfirmedServings = 75,
+            FinalServings = 75
+        });
+        await context.SaveChangesAsync();
+
+        var service = new MealQuantityPlanService(context, new EfTransactionRunner(context));
+        var mismatched = await service.GetMealQuantityPlansAsync(new MealQuantityPlanQueryDto
+        {
+            CustomerId = fixture.CustomerIdString,
+            ServiceDate = "2026-06-15",
+            ShiftName = "AFTERNOON"
+        });
+        var matched = await service.GetMealQuantityPlansAsync(new MealQuantityPlanQueryDto
+        {
+            CustomerId = GuidHelper.ToGuidString(secondCustomerId),
+            ServiceDate = "2026-06-15",
+            ShiftName = "AFTERNOON"
+        });
+
+        mismatched.Should().BeEmpty();
+        matched.Should().ContainSingle();
+        matched.Single().Lines.Should().ContainSingle(line =>
+            line.CustomerId == GuidHelper.ToGuidString(secondCustomerId) &&
+            line.ShiftName == "AFTERNOON");
+    }
+
+    [Fact]
+    public async Task LockOrderPlanAsync_Should_RejectDraftMenuBeforeMutatingPlan()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            (await setupContext.Mealquantityplans.SingleAsync()).Status = OrderStatus.Draft;
+            (await setupContext.Menuschedules.SingleAsync()).Status = "DRAFT";
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new OrderPlanService(context, new EfTransactionRunner(context));
+        var act = () => service.LockOrderPlanAsync(new LockOrderPlanRequest
+        {
+            ServiceDate = "2026-06-15",
+            Scope = "FULLDAY"
+        }, fixture.UserIdString);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*thực đơn chưa được phát hành*");
+        await using var verifyContext = fixture.CreateContext();
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(OrderStatus.Draft);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SignoffEndpoints_Should_RejectDraftLinkedMenuVersionBeforeMutation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            var plan = await setupContext.Mealquantityplans.SingleAsync();
+            var schedule = await setupContext.Menuschedules.SingleAsync();
+            var version = new MenuVersion
+            {
+                MenuVersionId = GuidHelper.NewId(),
+                CustomerId = fixture.CustomerId,
+                WeekStartDate = schedule.WeekStartDate,
+                VersionNo = 1,
+                Status = "DRAFT",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            plan.Status = OrderStatus.Confirmed;
+            schedule.MenuVersionId = version.MenuVersionId;
+            setupContext.Menuversions.Add(version);
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new OrderSignoffService(context, new EfTransactionRunner(context));
+        var scopeAct = () => service.SignoffOrderScopeAsync(new CoordinationScopeActionRequest
+        {
+            ServiceDate = "2026-06-15",
+            ShiftName = "MORNING"
+        }, fixture.UserIdString);
+        var planAct = () => service.SignoffOrderAsync(
+            GuidHelper.ToGuidString(fixture.QuantityPlanId),
+            new SignoffOrderRequest(),
+            fixture.UserIdString);
+
+        await scopeAct.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*thực đơn chưa được phát hành*");
+        await planAct.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*thực đơn chưa được phát hành*");
+        await using var verifyContext = fixture.CreateContext();
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(OrderStatus.Confirmed);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("ACTIVE")]
+    [InlineData("PUBLISHED")]
+    public async Task SignoffOrderScopeAsync_Should_AllowOperationalMenuVersion(string versionStatus)
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            var plan = await setupContext.Mealquantityplans.SingleAsync();
+            var schedule = await setupContext.Menuschedules.SingleAsync();
+            var version = new MenuVersion
+            {
+                MenuVersionId = GuidHelper.NewId(),
+                CustomerId = fixture.CustomerId,
+                WeekStartDate = schedule.WeekStartDate,
+                VersionNo = 1,
+                Status = versionStatus,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            plan.Status = OrderStatus.Confirmed;
+            schedule.MenuVersionId = version.MenuVersionId;
+            setupContext.Menuversions.Add(version);
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var result = await new OrderSignoffService(context, new EfTransactionRunner(context))
+            .SignoffOrderScopeAsync(new CoordinationScopeActionRequest
+            {
+                ServiceDate = "2026-06-15",
+                ShiftName = "MORNING"
+            }, fixture.UserIdString);
+
+        result.Should().NotBeNull();
+        result!.NewStatus.Should().Be(OrderStatus.Completed);
+    }
+
+    [Fact]
+    public async Task SignoffOrderScopeAsync_Should_RejectPlanContainingAnotherShift()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            var plan = await setupContext.Mealquantityplans.SingleAsync();
+            var menu = await setupContext.Menus.SingleAsync();
+            var schedule = await setupContext.Menuschedules.SingleAsync();
+            var afternoonScheduleId = GuidHelper.NewId();
+            plan.Status = OrderStatus.Confirmed;
+            setupContext.Menuschedules.Add(new MenuSchedule
+            {
+                MenuScheduleId = afternoonScheduleId,
+                CustomerId = fixture.CustomerId,
+                MenuId = menu.MenuId,
+                ServiceDate = schedule.ServiceDate,
+                WeekStartDate = schedule.WeekStartDate,
+                ShiftName = "AFTERNOON",
+                MenuPrice = 25000,
+                BomRatePercent = 100,
+                Status = "ACTIVE"
+            });
+            setupContext.Mealquantityplanlines.Add(new MealQuantityPlanLine
+            {
+                QuantityPlanLineId = GuidHelper.NewId(),
+                QuantityPlanId = fixture.QuantityPlanId,
+                MenuScheduleId = afternoonScheduleId,
+                CustomerId = fixture.CustomerId,
+                MenuId = menu.MenuId,
+                ShiftName = "AFTERNOON",
+                ForecastServings = 100,
+                ConfirmedServings = 100,
+                FinalServings = 100
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new OrderSignoffService(context, new EfTransactionRunner(context));
+        var act = () => service.SignoffOrderScopeAsync(new CoordinationScopeActionRequest
+        {
+            ServiceDate = "2026-06-15",
+            ShiftName = "MORNING"
+        }, fixture.UserIdString);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*chứa nhiều ca*");
+        await using var verifyContext = fixture.CreateContext();
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(OrderStatus.Confirmed);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpsertQuickServingsAsync_Should_RejectDraftMenuBeforeMutation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            (await setupContext.Menuschedules.SingleAsync()).Status = "DRAFT";
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new MealQuantityPlanService(context, new EfTransactionRunner(context));
+        var act = () => service.UpsertQuickServingsAsync(new UpsertQuickServingsRequest
+        {
+            CustomerId = fixture.CustomerIdString,
+            ServiceDate = "2026-06-15",
+            ShiftName = "MORNING",
+            Servings = 120,
+            Complete = true
+        }, fixture.UserIdString);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*thực đơn chưa được phát hành*");
+        await using var verifyContext = fixture.CreateContext();
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GenerateMaterialDemandAsync_Should_RejectCompletedPlanWithDraftMenu()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            (await setupContext.Menuschedules.SingleAsync()).Status = "DRAFT";
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new MaterialDemandService(context);
+        var act = () => service.GenerateAsync(new GenerateMaterialDemandRequest
+        {
+            ServiceDate = "2026-06-15",
+            Scope = "FULLDAY",
+            CustomerId = fixture.CustomerIdString
+        }, fixture.UserIdString);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*thực đơn chưa được phát hành*");
+        await using var verifyContext = fixture.CreateContext();
+        (await verifyContext.Materialrequests.AsNoTracking().CountAsync()).Should().Be(0);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetIngredientDemandAggregatePageAsync_Should_GroupDemandByIngredientAndDate()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -3924,6 +4261,37 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task DataQualityPage_Should_SearchAcrossIssueFieldsBeforePaging()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: true);
+        await using var context = fixture.CreateContext();
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 5m,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var page = await new DataQualityReportService(context).GetDataQualityPageAsync(
+            new DataQualityPageQueryDto
+            {
+                PageNumber = 1,
+                PageSize = 50,
+                SearchKeyword = "inventory_ledger"
+            });
+
+        page.TotalIssues.Should().BeGreaterThan(page.Page.TotalCount);
+        page.Page.Items.Should().NotBeEmpty();
+        page.Page.Items.Should().OnlyContain(issue =>
+            issue.Category.Contains("inventory_ledger", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task StockSnapshot_Should_GenerateMonthlyOpeningInOutAndClosing_FromLedgerSnapshots()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -5095,6 +5463,228 @@ public class WorkflowGenerationTests
             .Select(item => item.BusinessArea)
             .ToListAsync();
         auditReasons.Should().BeEquivalentTo(["Demand", "Purchase"]);
+    }
+
+    [Fact]
+    public async Task WeeklyMenuImport_Should_PreserveExistingGlobalDishClassification()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var roleId = GuidHelper.NewId();
+        var customer = new Customer
+        {
+            CustomerId = fixture.CustomerId,
+            CustomerCode = "CUS",
+            CustomerName = "Customer",
+            IsActive = true
+        };
+        var dish = new Dish
+        {
+            DishId = fixture.DishWithBomId,
+            DishCode = "DISH-GLOBAL",
+            DishName = "Gà kho sả",
+            DishGroup = "Món mặn",
+            DishType = "Món chính",
+            IsActive = true
+        };
+        context.Roles.Add(new Role { RoleId = roleId, RoleCode = "ADMIN", RoleName = "Admin" });
+        context.Users.Add(new User
+        {
+            UserId = fixture.UserId,
+            Username = "menu-importer",
+            FullName = "Menu Importer",
+            PasswordHash = "hash",
+            RoleId = roleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.Customers.Add(customer);
+        context.Dishes.Add(dish);
+        await context.SaveChangesAsync();
+
+        var serviceDate = new DateOnly(2026, 7, 20);
+        var plan = new WeeklyMenuImportPlan(
+            "weekly-menu.xlsx",
+            "CUS 25k",
+            "C",
+            serviceDate,
+            serviceDate,
+            10,
+            [new WeeklyMenuImportDayColumn("D", serviceDate, "t2", "D - 20/07/2026", 7)],
+            serviceDate)
+        {
+            SourceChecksum = "TEST-CHECKSUM"
+        };
+        plan.Sections.Add("MENU CHAY- CA CHIỀU");
+        plan.Items.Add(new ParsedWeeklyMenuItem
+        {
+            SourceOrder = 1,
+            ServiceDate = serviceDate,
+            DayKey = "t2",
+            SourceRowNumber = 9,
+            SourceColumn = "D",
+            SectionLabel = "MENU CHAY- CA CHIỀU",
+            SectionKey = "vegetarian-afternoon",
+            SourceShift = "AFTERNOON",
+            SourceShiftLabel = "Ca chiều",
+            DbShiftName = "AFTERNOON",
+            VariantKey = "vegetarian",
+            VariantLabel = "Chay",
+            Slot = "main",
+            SlotLabel = "Món chay chính",
+            DishName = "Gà kho sả"
+        });
+
+        var result = await CreateWeeklyMenuImportPersistence(context).CommitAsync(
+            plan,
+            customer,
+            25000m,
+            fixture.UserIdString,
+            CancellationToken.None);
+        await context.SaveChangesAsync();
+
+        var persisted = await context.Dishes.AsNoTracking().SingleAsync();
+        persisted.DishGroup.Should().Be("Món mặn");
+        persisted.DishType.Should().Be("Món chính");
+        result.Counts.DishesUpdated.Should().Be(0);
+        (await context.Menuitems.AsNoTracking().SingleAsync()).DishSlot.Should().Be("vegetarian-main");
+    }
+
+    [Fact]
+    public async Task WeeklyMenuImport_Should_Not_ClassifyNewDishFromWorkbookSlot()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var roleId = GuidHelper.NewId();
+        var customer = new Customer
+        {
+            CustomerId = fixture.CustomerId,
+            CustomerCode = "CUS",
+            CustomerName = "Customer",
+            IsActive = true
+        };
+        context.Roles.Add(new Role { RoleId = roleId, RoleCode = "ADMIN", RoleName = "Admin" });
+        context.Users.Add(new User
+        {
+            UserId = fixture.UserId,
+            Username = "menu-importer-new-dish",
+            FullName = "Menu Importer",
+            PasswordHash = "hash",
+            RoleId = roleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.Customers.Add(customer);
+        await context.SaveChangesAsync();
+
+        var serviceDate = new DateOnly(2026, 7, 20);
+        var plan = new WeeklyMenuImportPlan(
+            "weekly-menu.xlsx",
+            "CUS 25k",
+            "C",
+            serviceDate,
+            serviceDate,
+            10,
+            [new WeeklyMenuImportDayColumn("D", serviceDate, "t2", "D - 20/07/2026", 7)],
+            serviceDate)
+        {
+            SourceChecksum = "TEST-NEW-DISH-CHECKSUM"
+        };
+        plan.Sections.Add("MENU CHAY- CA CHIỀU");
+        plan.Items.Add(new ParsedWeeklyMenuItem
+        {
+            SourceOrder = 1,
+            ServiceDate = serviceDate,
+            DayKey = "t2",
+            SourceRowNumber = 9,
+            SourceColumn = "D",
+            SectionLabel = "MENU CHAY- CA CHIỀU",
+            SectionKey = "vegetarian-afternoon",
+            SourceShift = "AFTERNOON",
+            SourceShiftLabel = "Ca chiều",
+            DbShiftName = "AFTERNOON",
+            VariantKey = "vegetarian",
+            VariantLabel = "Chay",
+            Slot = "main",
+            SlotLabel = "Món chay chính",
+            DishName = "Món thử nghiệm chưa phân loại"
+        });
+
+        var result = await CreateWeeklyMenuImportPersistence(context).CommitAsync(
+            plan,
+            customer,
+            25000m,
+            fixture.UserIdString,
+            CancellationToken.None);
+        await context.SaveChangesAsync();
+
+        var persisted = await context.Dishes.AsNoTracking().SingleAsync();
+        persisted.DishGroup.Should().BeNull();
+        persisted.DishType.Should().BeNull();
+        result.Counts.DishesCreated.Should().Be(1);
+        (await context.Menuitems.AsNoTracking().SingleAsync()).DishSlot.Should().Be("vegetarian-main");
+    }
+
+    [Fact]
+    public async Task WeeklyMenuReimport_Should_RejectCompletedQuantityPlanBeforeMutation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            (await setupContext.Menuschedules.SingleAsync()).Status = "DRAFT";
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var customer = await context.Customers.SingleAsync();
+        var existingVersionCount = await context.Menuversions.CountAsync();
+        var serviceDate = new DateOnly(2026, 6, 15);
+        var plan = new WeeklyMenuImportPlan(
+            "reimport.xlsx",
+            "CUS 25k",
+            "C",
+            serviceDate,
+            serviceDate,
+            10,
+            [new WeeklyMenuImportDayColumn("D", serviceDate, "t2", "D - 15/06/2026", 7)],
+            serviceDate)
+        {
+            SourceChecksum = "REIMPORT-BLOCK-CHECKSUM"
+        };
+        plan.Sections.Add("MENU MẶN- CA SÁNG");
+        plan.Items.Add(new ParsedWeeklyMenuItem
+        {
+            SourceOrder = 1,
+            ServiceDate = serviceDate,
+            DayKey = "t2",
+            SourceRowNumber = 9,
+            SourceColumn = "D",
+            SectionLabel = "MENU MẶN- CA SÁNG",
+            SectionKey = "savory-morning",
+            SourceShift = "MORNING",
+            SourceShiftLabel = "Ca sáng",
+            DbShiftName = "MORNING",
+            VariantKey = "savory",
+            VariantLabel = "Mặn",
+            Slot = "main",
+            SlotLabel = "Món chính",
+            DishName = "Dish with BOM"
+        });
+
+        var act = () => CreateWeeklyMenuImportPersistence(context).CommitAsync(
+            plan,
+            customer,
+            25000m,
+            fixture.UserIdString,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*Không thể import lại thực đơn tuần*");
+        context.ChangeTracker.HasChanges().Should().BeFalse();
+        (await context.Menuversions.CountAsync()).Should().Be(existingVersionCount);
+        (await context.Auditlogs.CountAsync()).Should().Be(0);
+        (await context.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(OrderStatus.Completed);
     }
 
     [Fact]

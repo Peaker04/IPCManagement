@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 using IPCManagement.Api.Exceptions;
 
@@ -15,7 +17,8 @@ internal sealed class WeeklyMenuImportService(
     WeeklyMenuCustomerResolver customerResolver,
     WeeklyMenuImportResultBuilder resultBuilder,
     WeeklyMenuImportPersistence persistence,
-    IEfTransactionRunner transactionRunner) : IWeeklyMenuImportService
+    IEfTransactionRunner transactionRunner,
+    IMemoryCache cache) : IWeeklyMenuImportService
 {
     private static readonly decimal[] WeeklyMenuPriceTiers = [25000m, 30000m, 34000m];
     private readonly XlsxWorkbookReader _reader = new();
@@ -114,7 +117,7 @@ internal sealed class WeeklyMenuImportService(
             }
 
             WeeklyMenuImportResultDto? committedResult = null;
-            return await transactionRunner.ExecuteAsync(
+            var result = await transactionRunner.ExecuteAsync(
                 async token =>
                 {
                     committedResult = await persistence.CommitAsync(
@@ -139,6 +142,8 @@ internal sealed class WeeklyMenuImportService(
                                    token);
                 },
                 cancellationToken: cancellationToken);
+            DishCatalogCache.Clear(cache);
+            return result;
         }
         catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
         {

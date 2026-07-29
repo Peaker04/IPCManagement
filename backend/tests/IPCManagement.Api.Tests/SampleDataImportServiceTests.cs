@@ -12,6 +12,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IPCManagement.Api.Tests;
 
@@ -673,7 +674,8 @@ public class SampleDataImportServiceTests
             customerResolver,
             resultBuilder,
             persistence,
-            new EfTransactionRunner(context));
+            new EfTransactionRunner(context),
+            new MemoryCache(new MemoryCacheOptions()));
     }
 
     private static async Task<WeeklyMenuImportContext> CreateWeeklyMenuImportContextAsync()
