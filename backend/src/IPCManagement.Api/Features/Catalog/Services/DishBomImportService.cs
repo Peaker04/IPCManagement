@@ -3,6 +3,7 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Caching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 

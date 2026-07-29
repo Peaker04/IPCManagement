@@ -1268,3 +1268,60 @@ Final Plan 17-07 audit:
 | `ReportsPage → ReadPositiveInteger` | Handled — URL page/pageSize parsing remains shared and all pagination compile/state tests pass. |
 
 Cypher final: `ReportsPage` is the sole facade caller; the facade calls exactly five view models plus `readPositiveInteger`; it has zero direct endpoint-query call; all five view models call the single shared `toReportView`. `detect_changes(staged)`: 30 symbols, 9 files, 4 expected processes, MEDIUM. Deferred: none.
+
+## Plan 17-08 Gate 17 failure-closure plan
+
+The clean-HEAD `npm run verify` gate exposed two pre-existing regressions from `5a15c46`: an unapproved `SampleData → Catalog` cache-helper edge and a stale Coordination SQLite fixture missing `menuversions`. Risk changes rigor, not scope; both failures remain in the same Plan 17-08 branch and must be closed before browser verification.
+
+| Symbol | Upstream | Downstream | Planned disposition |
+|---|---:|---:|---|
+| `DishCatalogCache.Clear` | **CRITICAL** — 6 direct / 30 total, 6 processes, 3 modules | LOW — 0 | Move the unchanged cache key/clear helper to root infrastructure `Caching`; update all six static callers and preserve the two exact cache keys/removals. |
+| `DishCatalogCache.Key` | LOW — 1 direct / 5 total | LOW — 0 | Move with `Clear`; preserve active/all key selection and the sole `GetCatalogAsync` caller. |
+| `DishCatalogCache` | LOW — 0 | LOW — 0 | Keep the same internal static contract under dependency-safe root-infrastructure ownership. |
+| `CreateMinimalSchemaAsync` | **HIGH** — 26 direct callers | LOW — 0 | Add the minimal `menuversions` table required by the production menu-publication guard; execute all 26 callers together. |
+
+PDG/taint evidence for `Clear`: `explain` found 0 persisted taint finding; `controls` found 0 branch edge; `flows(cache)` found the single expected parameter definition reaching both `cache.Remove` calls. Absence of taint is treated only as supporting evidence, not proof of safety.
+
+`Clear` callers from Cypher (all confidence 0.85, manually verified by `context`):
+
+- `DishBomImportService.CommitAsync`
+- `DishBomService.ClearCatalogCache`
+- `DishCatalogService.CreateAsync`
+- `DishCatalogService.UpdateAsync`
+- `DishCatalogService.DeleteAsync`
+- `WeeklyMenuImportService.CommitWeeklyMenuImportAsync`
+
+Cross-cluster/controller traces (all confidence 0.85): `DishesController.CreateAsync → DishCatalogService.CreateAsync → Clear`; `DishesController.UpdateAsync → DishCatalogService.UpdateAsync → Clear`; `DishesController.DeleteAsync → DishCatalogService.DeleteAsync → Clear`; `DishBomImportsController.CommitBomImportAsync → DishBomImportService.CommitAsync → Clear`; `DishBomController.UpdateBomLineAsync → DishBomService.UpdateBomLineAsync → ClearCatalogCache → Clear`; `DishBomController.CloseBomLineAsync → DishBomService.CloseBomLineAsync → ClearCatalogCache → Clear`; `WeeklyMenuImportsController.CommitWeeklyMenuImportAsync → WeeklyMenuImportService.CommitWeeklyMenuImportAsync → Clear`.
+
+`CreateMinimalSchemaAsync` callers from Cypher (all confidence 0.85; one helper change handles every caller):
+
+- `AdjustOrderAfterLockAsync_Should_BlockDuplicatePendingAdjustment`
+- `AdjustOrderAfterLockAsync_Should_CreatePendingApproval_AndKeepLockedServings`
+- `AdjustServingsAsync_Should_BlockDirectPostLockAdjustment`
+- `LockOrderPlanAsync_FullDay_Should_LockBothShiftsAndUseRequestedOrForecastServings`
+- `LockOrderPlanAsync_Should_AllowEveryLegalSourceStatus`
+- `LockOrderPlanAsync_Should_HandleMissingUserInvalidShiftAndMissingPlans`
+- `LockOrderPlanAsync_Should_LockPlanAndBlockDirectForecastEdits`
+- `LockOrderPlanAsync_Should_Not_DowngradeCompletedPlan`
+- `LockOrderPlanAsync_Should_RejectEveryIllegalSourceStatus`
+- `LockOrderPlanAsync_Should_Rollback_LineAndPlanChanges_When_SaveChanges_Fails`
+- `OrderAdjustmentApproval_Should_ApplyServingsAndWaitForSignoff_WhenApproved`
+- `OrderAdjustmentApproval_Should_KeepServings_WhenRejected`
+- `ScopeActions_Should_BlockMixedStatusesAtomically`
+- `ScopeActions_Should_HandleMissingUserInvalidShiftAndMissingPlans`
+- `ScopeActions_Should_ReturnBusinessConflict_WhenConcurrencyCheckFails`
+- `ScopeActions_Should_RollBackPlanAndAudit_WhenSaveFails`
+- `ScopeActions_Should_UpdateAllPlansInSelectedShiftAndLeaveOtherShiftUntouched`
+- `SignoffOrderAsync_Should_WriteAuditWithActor`
+- `SignoffOrderScopeAsync_Should_AllowEveryLegalSourceStatus`
+- `SignoffOrderScopeAsync_Should_CompleteSelectedShiftInOneTransaction`
+- `SignoffOrderScopeAsync_Should_RejectEveryIllegalSourceStatus`
+- `UnlockOrderPlanScopeAsync_Should_AllowEveryLegalSourceStatus`
+- `UnlockOrderPlanScopeAsync_Should_RejectEveryIllegalSourceStatus`
+- `UnlockOrderPlanScopeAsync_Should_UnlockSelectedShiftInOneTransaction`
+- `UpdateForecastServingsAsync_Should_BlockNegativeForecast_AndKeepExistingValues`
+- `UpdateForecastServingsAsync_Should_Update_DraftForecastAndAudit`
+
+Review gate: focused Application convention, all `CoordinationTransactionTests`, Catalog/SampleData cache tests, full `npm run verify`, Cypher old-namespace/callsite audit, and staged `detect_changes`. Deferred: none.
+
+Final failure-closure audit: Cypher resolves all 6 `Clear` callers to `backend/src/IPCManagement.Api/Caching/DishCatalogCache.cs`, finds 0 symbol at the old Catalog path, 0 `SampleData → Catalog` import and all 26 schema-helper callers at confidence 0.85. Focused gates pass 49/49 Application, 43/43 Coordination and 27/27 Catalog/SampleData tests; full gate passes 49 Application, 680 API plus 1 intentional skip, and 433 frontend tests with lint/dependency/build green. `detect_changes(staged)`: 2 changed test symbols, 7 files, 0 affected process, LOW; the pure cache move is separately covered by the CRITICAL impact/PDG/trace/Cypher review above. Deferred: none.

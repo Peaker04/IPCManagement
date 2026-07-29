@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
-using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Caching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 

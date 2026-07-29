@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 
-namespace IPCManagement.Api.Features.Catalog.Services;
+namespace IPCManagement.Api.Caching;
 
 internal static class DishCatalogCache
 {
