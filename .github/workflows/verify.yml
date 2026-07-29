@@ -47,6 +47,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -69,6 +71,19 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Regression test architecture growth gate
+        run: npm run test:architecture-growth
+
+      - name: Enforce architecture growth baseline
+        env:
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          BASE_REF="$EVENT_BASE_REF"
+          if [ -z "$BASE_REF" ] || [[ "$BASE_REF" =~ ^0+$ ]]; then
+            BASE_REF="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          node scripts/check-architecture-growth.mjs --strict --base-ref "$BASE_REF"
 
       - name: Build backend
         run: npm run build:be

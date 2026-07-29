@@ -31,8 +31,9 @@ Các script root trong `package.json`:
 | `npm run coverage:fe` | Chạy frontend unit test với coverage. |
 | `npm run lint:fe` | Chạy ESLint cho frontend. |
 | `npm run build:fe` | Type-check và build frontend Vite. |
-| `npm run check:architecture-growth` | Báo controller/service/FE/test file vượt ngưỡng; hiện là warning baseline. |
-| `npm run verify` | Growth report, build/test backend, unit test/lint/dependency/build frontend. |
+| `npm run test:architecture-growth` | Chạy regression matrix cho comparator growth baseline. |
+| `npm run check:architecture-growth` | Strict gate: cấm test debt, production debt mới/tăng và baseline không co khi nợ giảm. |
+| `npm run verify` | Regression + strict growth gate, build/test backend, unit test/lint/dependency/build frontend. |
 | `npm run verify:coverage` | Chạy coverage cho backend và frontend. |
 | `npm run benchmark:workflow` | Chạy backend test có category `Performance`. |
 | `npm run verify:release` | Gọi quality-gate PowerShell script được khai báo trong `package.json`; kiểm tra script đích trước khi chạy. |

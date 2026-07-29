@@ -18,8 +18,10 @@ npm run verify
 ```
 
 `FeatureDependencyConventionTests` khóa dependency DAG backend và ceiling cho bốn cạnh legacy;
-ceiling chỉ được giảm, không được tăng. Growth gate hiện báo warning/`PLAN_REQUIRED` để
-khóa baseline trước khi Bước 18 chuyển phần nợ đã xử lý sang blocking. Contract gate build vào
+ceiling chỉ được giảm, không được tăng. Growth gate chạy strict theo
+`scripts/architecture-growth-baseline.json`: test file trên 1.500 dòng, production debt mới,
+metric/severity tăng hoặc baseline không co lại sau cải thiện đều làm gate thất bại. CI còn so
+baseline với commit gốc của push/PR để không thể grandfather nợ bằng cách nâng JSON. Contract gate build vào
 `.artifacts/contract-build/api`, nên có thể chạy trong khi lane API Release vẫn listen mà không dừng
 process hoặc khóa DLL của lane.
 
