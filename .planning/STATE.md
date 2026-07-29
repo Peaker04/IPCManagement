@@ -1,19 +1,18 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: architecture-hardening-steps-11-18
-status: ready_to_plan
-current_phase: "17"
-current_phase_name: frontend-ownership
-stopped_at: Step 16 complete; proceed to discuss/plan Step 17 frontend ownership
-last_updated: "2026-07-28T23:25:31+07:00"
-last_activity: 2026-07-28 — Step 16 completed with full gates; Step 17 is ready for planning
+milestone_name: — Architecture workflow 11–18
+status: planning
+stopped_at: Phase 17 context gathered; ready for planning
+last_updated: "2026-07-29T03:11:08.915Z"
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 6
   completed_plans: 6
-  percent: 100
+  percent: 75
+current_phase: 17
+current_phase_name: frontend-ownership
 ---
 
 # Project State
@@ -42,11 +41,13 @@ Step 16 work-package progress: 5/5 complete.
 
 - Branch `feature/production-plan`; Step 16 code baseline trước closeout docs là
   `59add79 refactor(persistence): retire legacy transaction API`. Không push trong phiên này.
+
 - Working tree has only user-owned untracked `.dockerignore` and `Dockerfile`; do not stage, overwrite or remove them.
 - GitNexus was refreshed before Task 4 impact: 10,629 nodes, 29,171 edges and 300 execution flows.
 - Step 16 full gates: backend API 667 pass/1 skip; Application 49/49; frontend 416/416;
   Debug/Release 0 warning/error, lint, dependency, production build, OpenAPI/TypeScript determinism,
   EF pending-model, diff and secret gates green.
+
 - OpenAPI remained 152 paths / 396 schemas.
 - Step 15 and the Step 16 refactor sequence did not call import endpoints, seed/reset/import a database or access `ipc_lane1`.
 
@@ -54,13 +55,17 @@ Step 16 work-package progress: 5/5 complete.
 
 1. **Done (`7e94eb3`):** 53 EF mappings live in 11 feature-owned `IEntityTypeConfiguration<T>` files;
    `IpcManagementContext` is the assembly registration root.
+
 2. **Done (`b37606b`):** execution-strategy transaction runner, duplicate-side-effect regression,
    mapped domain/application exceptions, canonical migration lineage and disposable restore rehearsal.
+
 3. **Done (`f3e7bcd`):** runner adopted across Coordination, Purchasing, Inventory, SampleData, Catalog,
    Reports, Approvals and Admin. Mutable loads occur inside runner operations and every operation has a
    stable database verifier.
+
 4. **Done (`59add79`):** removed unused `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync`,
    enabled `EnableRetryOnFailure` and added convention coverage that permits only the runner transaction opener.
+
 5. **Done:** full Step 16 gates and synchronized closeout of ARCH-16A–E.
 
 Restore/hash evidence is valid, but C:/D: matching mirrors are not proof of physically independent/off-site
@@ -70,11 +75,14 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 - User-authorized production synchronization completed at 61/61 tables and 53,404/53,404 rows with zero
   missing table, row-count mismatch or checksum mismatch. Production health and migration checks are Healthy.
+
 - Commit `7e79106` makes the two temporary-key data migrations collation-safe; rerun was idempotent and the
   full source gate above passed.
+
 - Workbook `weekly-menu-template-ANV-default.xlsx` was checked through preview only: 114/114 existing-dish
   rows, 0 new dishes, valid with 0 errors/warnings. The committed ANV menu has 90/90 display dishes with BOM,
   0 matched-without-BOM and 0 unmatched. No repeat import or database mutation occurred during diagnosis.
+
 - The earlier `0/90` display was stale cache after direct restore: backend catalog cache lasts 30 minutes and
   frontend RTK Query cache 5 minutes; direct restore bypasses cache invalidation. Production restore runbook
   must include restart/cache clear. Evidence is in `.artifacts/shipyard-live/production-bom-debug.json` and
@@ -108,11 +116,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-28 23:25 +07:00
+**Last Date:** 2026-07-29T03:11:08.909Z
 
-**Stopped At:** Step 16 complete; Step 17 frontend ownership is ready for discussion/planning.
+**Stopped At:** Phase 17 context gathered; ready for planning
 
-**Resume File:** None
+**Resume File:** .planning/phases/17-frontend-ownership/17-CONTEXT.md
 
 ## Constraints
 
