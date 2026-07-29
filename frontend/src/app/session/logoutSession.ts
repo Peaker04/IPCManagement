@@ -1,6 +1,6 @@
-import type { AppDispatch, RootState } from '../../app/store';
-import { authApi } from './authApi';
-import { logOut } from './authSlice';
+import type { AppDispatch, RootState } from '@/app/store';
+import { authApi } from '@/features/auth/authApi';
+import { logOut } from '@/lib/auth/authSlice';
 
 const isDevFallbackToken = (token: string) =>
   !import.meta.env.PROD &&

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { ROLE_LABELS, selectCurrentUser } from '../../features/auth';
-import { store } from '../../app/store';
-import { logoutSession } from '../../features/auth/logoutSession';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { ROLE_LABELS, selectCurrentUser } from '@/features/auth';
+import { store } from '@/app/store';
+import { logoutSession } from '@/app/session/logoutSession';
 import { ROUTES } from '@/lib/routeConfig';
-import { preloadRoute, preloadRouteData } from '../../routes/routeLoaders';
+import { preloadRoute, preloadRouteData } from '@/routes/routeLoaders';
 import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig';
-import { uiCopy } from '../../lib/uiCopy';
+import { uiCopy } from '@/lib/uiCopy';
 import {
   ChefHat,
   LayoutDashboard,

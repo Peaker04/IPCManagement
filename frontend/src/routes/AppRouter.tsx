@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
-import { MainLayout } from '../components/layout/MainLayout';
+import { MainLayout } from '@/app/layout/MainLayout';
 import { SessionTimeoutModal } from '../features/auth/components/SessionTimeoutModal';
 import LoginPage from '../features/auth/pages/LoginPage';
 import ForbiddenPage from '../features/auth/pages/ForbiddenPage';

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import currentLayoutSource from '@/components/layout/MainLayout.tsx?raw';
+import currentLayoutSource from '@/app/layout/MainLayout.tsx?raw';
 import appRouterSource from '@/routes/AppRouter.tsx?raw';
 
 describe('MainLayout ownership and behavior contract', () => {
-  it('characterizes the current route owner before the path-only move', () => {
-    expect(appRouterSource).toContain("from '../components/layout/MainLayout'");
+  it('keeps the route owner in the app composition layer', () => {
+    expect(appRouterSource).toContain("from '@/app/layout/MainLayout'");
   });
 
   it('locks navigation, permissions, preload and DOM-visible behavior', () => {

@@ -1,10 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import { logOut, setCredentials } from '../features/auth/authSlice';
-import type { AuthState } from '../features/auth/authTypes';
-import { normalizeUserRole } from '../features/auth/roleUtils';
+import { logOut, setCredentials } from '@/lib/auth/authSlice';
+import type { AuthState } from '@/lib/auth/authTypes';
+import { normalizeUserRole } from '@/lib/auth/roleUtils';
 import type { ApiResponse, LoginData } from '../types/api';
-import { notifySessionExpired } from '../features/auth/sessionEvents';
+import { notifySessionExpired } from '@/lib/auth/sessionEvents';
 
 type AuthAwareState = { auth: AuthState };
 
