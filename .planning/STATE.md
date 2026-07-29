@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
 stopped_at: Phase 17 complete; ready to discuss Phase 18 guardrails and workflow closeout
-last_updated: "2026-07-29T07:54:31.377Z"
+last_updated: "2026-07-29T08:07:22.785Z"
 progress:
   total_phases: 8
   completed_phases: 7
@@ -147,6 +147,7 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Phase 17]: Keep cross-panel customer-contract and current-stock queries in Contracts and Inventory owners. — Avoids duplicate endpoints/cache subscriptions while preserving the BOM/Statistics skip contracts.
 - [Phase 17]: Keep Reports URL/permission/reset orchestration facade-owned and place query transforms plus CSV columns in five view owners. — Preserves cross-view navigation and export behavior without recreating a page-model monolith.
 - [Phase 17]: Close Gate 17 only when one-api-slice, public/cache, dependency, full regression, headed browser, GitNexus and documentation evidence agree. — Risk controls rigor rather than scope; every caller and affected process must be handled with no Deferred item.
+- [Phase 18]: Use five desktop browser-gate viewports: 1920x1080, 1440x900, 1366x768, 1365x900 and 1280x900; remove 768x1024. — User explicitly replaced the tablet viewport on 2026-07-29; tablet/mobile remain out of the default gate.
 
 ## Blockers
 

@@ -21,8 +21,9 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 - Thay đổi UI phải giữ cấu trúc SAP Fiori: work object tách bằng tab, trạng thái/action rõ ràng, không ẩn lỗi dependency thành empty state, layout ổn định khi refetch và có evidence Chrome/Playwright.
 - Button/action và dữ liệu hiển thị phải được đối chiếu với permission, eligibility và terminal state do server trả về. Action không hợp lệ phải ẩn hoặc disable kèm lý do; không được chỉ ẩn trên FE trong khi BE vẫn cho phép mutation sai.
 - Không tự gộp nguyên liệu theo tên. Chứng từ chi tiết giữ document/line grain; báo cáo aggregate theo ID, unit và phạm vi nghiệp vụ.
-- Kiểm thử UI/visual hiện chỉ bao phủ website desktop/tablet web. Dùng `1365×900`,
-  `1280×900` và `768×1024`; mobile chưa nằm trong phạm vi cho tới khi Kỳ yêu cầu.
+- Ma trận UI/visual bắt buộc cho các browser gate mới là `1920×1080`, `1440×900`,
+  `1366×768`, `1365×900` và `1280×900`. `768×1024` đã bị loại khỏi ma trận từ 29/07/2026;
+  tablet/mobile nằm ngoài phạm vi mặc định cho tới khi Kỳ yêu cầu lại.
 - Không dùng mock API, mock login, snapshot/baseline visual cũ hoặc tự update snapshot để kết luận UI hiện tại pass. Phải boot đúng working tree/source hiện tại, xác minh database qua runtime health và chạy Chrome headed trực tiếp vào URL thật.
 
 ## Môi trường Shipyard hiện tại
@@ -184,7 +185,11 @@ Ghi chú vận hành:
 ## Browser runtime và quy ước evidence hiện tại
 
 - Evidence cũ ngày 25–26/07 chỉ là lịch sử, không được dùng để kết luận Bước 10 hiện tại pass. `frontend/playwright.config.ts` vẫn bật `VITE_ENABLE_MOCK_LOGIN=true`, nên các visual snapshot spec cũ không phải gate runtime cho lượt này.
-- Helper mới `.artifacts/shipyard-live/current-runtime-desktop-audit.mjs` mở Google Chrome headed trực tiếp vào FE `3001`, chỉ chạy `1365×900` và `1440×900`, ghi screenshot, API response, console/page error, request failure, CLS và long task. Không có mobile viewport trong ma trận.
+- Kể từ 29/07/2026, mọi helper browser gate mới phải cấu hình đủ năm viewport `1920×1080`,
+  `1440×900`, `1366×768`, `1365×900`, `1280×900`; không còn `768×1024`.
+- Lượt helper ngày 27/07 `.artifacts/shipyard-live/current-runtime-desktop-audit.mjs` chỉ chạy
+  `1365×900` và `1440×900`; đây là evidence lịch sử, không phải ma trận hiện hành. Helper ghi screenshot,
+  API response, console/page error, request failure, CLS và long task.
 - `SEED_USER_PASSWORD` trong Shipyard local config đã được Kỳ cập nhật sau khi probe đầu phát hiện credential cũ trả `401`. Audit chỉ dùng giá trị runtime qua environment, không ghi password/token vào script, JSON hay docs.
 - Audit headed trên runtime thật đã đi hết **10 route × 2 viewport = 20/20 PASS**: 20 screenshot route, 179 API response không có status `>=400`, 0 console error, 0 page error, 0 horizontal overflow và 0 long task. Tám `ERR_ABORTED` là request bị navigation/context close hủy (một KPI và bảy Vite idle preload), không phải response lỗi.
 - Full sweep có một CLS outlier `0,0474` ở Warehouse cold `1365×900`; retry có capture shift-source cho kết quả cold `0,00531`, warm `0,00518`, đều dưới gate `0,02`. Evidence hiện hành: `.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/current-runtime-desktop-audit.json`, 20 screenshot route và `warehouse-desktop-cls-probe.json`. File `*-error.json`/`fatal-error.png` chỉ lưu attempt credential cũ, không phải kết quả cuối.

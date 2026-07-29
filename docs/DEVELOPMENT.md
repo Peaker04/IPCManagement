@@ -105,8 +105,9 @@ Remove-Item Env:K6_PASSWORD
 
 Helper dùng Playwright từ `node_modules/@playwright/test`, mở Google Chrome `headless: false`,
 đi thẳng vào FE lane thật, đăng nhập bằng credential đã xoay và ghi evidence cho 10 route.
-Ma trận hiện chỉ gồm website desktop `1365×900` và `1440×900`; không test mobile cho
-tới khi Kỳ yêu cầu. Không dùng mock login/API hoặc snapshot visual cũ để kết luận runtime pass.
+Ma trận browser gate hiện hành gồm `1920×1080`, `1440×900`, `1366×768`, `1365×900` và
+`1280×900`. Không dùng `768×1024`; tablet/mobile nằm ngoài gate mặc định cho tới khi Kỳ yêu cầu lại.
+Không dùng mock login/API hoặc snapshot visual cũ để kết luận runtime pass.
 
 `agent-browser` executable không có trong PATH ở lần kiểm tra ngày 27/07/2026 nên helper
 Playwright là fallback đã xác minh. Helper tạo controlled Chrome context riêng; Chrome bình thường

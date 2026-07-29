@@ -452,7 +452,8 @@ acceptance criteria của chính hàng đợi này, không phải một plan th�
   deterministic và không sửa type FE viết tay thay cho generated contract.
 - Không push, không reset/seed database, không di chuyển migrations. Mọi DB gate chạy trên đúng
   lane/database hiện hành sau khi kiểm tra lineage và evidence cần bảo toàn.
-- Browser gate chỉ kiểm website tại `1365×900`, `1280×900`, `768×1024`; mobile ngoài scope.
+- Browser gate mới chỉ kiểm website tại `1920×1080`, `1440×900`, `1366×768`, `1365×900`,
+  `1280×900`; `768×1024`, tablet và mobile ngoài scope mặc định kể từ 29/07/2026.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
 - Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
   Gate 13 nay đã xanh; Bước 15 đã hoàn tất cả Reports, Coordination, Purchasing, Catalog và SampleData;

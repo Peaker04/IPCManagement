@@ -189,6 +189,13 @@ Nếu muốn điều khiển Chrome đã mở sẵn, Chrome đó phải expose r
 
 `tests/navigation-performance.spec.ts` còn kiểm tra hai hợp đồng lazy-load của sidebar: toàn bộ route module được warm sau idle preload và scheduler phải tắt khi `navigator.connection.saveData` bật. Khi route đã warm, lần click đầu không được mount route-level Suspense fallback. Kết quả Chromium real-stack mới nhất cho tất cả trang sidebar nằm trong `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`.
 
+### Ma trận viewport hiện hành
+
+Mọi browser gate mới kể từ 29/07/2026 phải chạy đủ `1920×1080`, `1440×900`, `1366×768`,
+`1365×900` và `1280×900`. `768×1024` không còn thuộc ma trận; tablet/mobile chỉ được thêm lại
+khi có yêu cầu mới. Các mục evidence bên dưới vẫn ghi kích thước lịch sử thực tế và không được sửa
+ngược để giả thành coverage của ma trận mới.
+
 ### Gate Phase 17 — Frontend ownership (29/07/2026)
 
 - Contract frontend giữ đúng một production `apiSlice`/`createApi`, 75 endpoint key, 75 public generated hook và 22 cache ID.
