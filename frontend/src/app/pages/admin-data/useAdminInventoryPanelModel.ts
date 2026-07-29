@@ -1,0 +1,46 @@
+import { useState } from 'react';
+import {
+  useGetCurrentStockPageQuery,
+  useGetStockMovementPageQuery,
+  type ReportCursor,
+} from '@/api/workflowApi';
+import type { AdminView } from './adminDataPageTypes';
+import { toAdminView } from './adminDataPageModelShared';
+
+export function useAdminInventoryPanelModel(activeView: AdminView) {
+  const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
+  const [currentStockPage, setCurrentStockPage] = useState(1);
+  const stockMovementCursor = stockMovementCursors.at(-1);
+  const stockMovementResult = useGetStockMovementPageQuery({
+    movementType: 'adjustment',
+    cursorDate: stockMovementCursor?.cursorDate,
+    cursorId: stockMovementCursor?.cursorId,
+    cursorOffset: stockMovementCursor?.cursorOffset,
+    limit: 8,
+    sortDirection: 'desc',
+  }, { skip: activeView !== 'inventory' });
+  const stockMovementView = toAdminView(stockMovementResult, 'bút toán điều chỉnh kho');
+  const currentStockQuery = useGetCurrentStockPageQuery(
+    { pageNumber: currentStockPage, pageSize: 8 },
+    { skip: activeView !== 'inventory' && activeView !== 'statistics' },
+  );
+  const currentStockView = toAdminView(currentStockQuery, 'tồn kho hiện tại');
+  const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
+  const adjustmentMovements = stockMovementView.phase === 'ready' ? stockMovementView.data.items : [];
+  const currentStockRows = currentStockPageResponse?.items ?? [];
+
+  return {
+    queryViews: {
+      currentStock: currentStockView,
+      stockMovements: stockMovementView,
+    },
+    adjustmentMovements,
+    currentStockPage,
+    currentStockPageResponse,
+    currentStockRows,
+    setCurrentStockPage,
+    setStockMovementCursors,
+    stockMovementCursors,
+    stockMovementResult,
+  };
+}

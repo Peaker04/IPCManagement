@@ -1196,3 +1196,47 @@ All 134 unique returned nodes were opened with `context`. Frontend nodes are ver
 | WarehousePage → FormatPercent | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
 | DashboardPage → OwnerToLaneId | useWorkflowOverview → buildWorkflowLanes | Handled; full FE tests/build pass. |
 | DashboardPage → FormatPercent | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
+
+## Plan 17-06 pre-edit ownership checklist
+
+PDG index: 56,526 nodes, 102,833 edges, 483 clusters, 300 flows (`feature/workflow-b17-b18` at `c1b9a32`). The active locked plan is `17-06-PLAN.md`; risk changes rigor, not scope.
+
+| Symbol | Upstream | Downstream | Planned disposition |
+|---|---:|---:|---|
+| `useAdminDataPageModel` | LOW — 1 direct / 1 total | CRITICAL — 5 direct / 12 total | Keep compatibility facade and unchanged public return; compose all seven panel models. |
+| `toAdminView` | LOW — 1 direct / 2 total | CRITICAL — 1 direct / 2 total | Move once to Admin model shared helper; preserve all QueryView text/retry/forbidden semantics. |
+| `currentBomRows` | LOW — 0 | HIGH — 1 direct / 4 total | Move to BOM model; preserve date/search/tier/customer/status filters and sorting. |
+| `handleExportAuditCsv` | LOW — 0 | HIGH — 1 direct / 4 total | Move to Audit model; preserve URL, auth header, filename, DOM download, and danger toast timing. |
+| `openEditBomDialog` | LOW — 0 | HIGH — 2 direct / 6 total | Move to BOM model; preserve published-version effective-date calculation and dialog state sequence. |
+| `selectedContract`, `selectedSchedule`, `authToken`, `auditQuery`, `employeeQuery` | LOW | LOW | Move with owning panel; preserve memo dependencies and selectors. |
+| BOM handlers (`handleDownloadBomTemplate`, `handlePreviewBomImport`, `handleCommitBomImport`, `openCreateBomDialog`, `handleSaveBomLine`, `handleCloseBomLine`) | LOW | LOW | Move together to BOM model; preserve mutation and feedback ordering. |
+| Contract handlers (`loadContractForm`, `startNewContract`, `loadScheduleRuleForm`, `handleSaveCustomerContract`, `handleSaveScheduleRules`, `handleUpdateScheduleVersion`) | LOW | LOW | Move together to Contracts model; preserve validation, mutation, and feedback ordering. |
+| `handleDataQualityRemediation` | LOW | LOW | Move to Cleanup model unchanged. |
+| Employee handlers (`resetEmployeeForm`, `handleEmployeeSubmit`, `handleEditEmployee`, `handleEmployeeStatusToggle`) | LOW | LOW | Move together to Employees model unchanged. |
+| `EMPTY_ADMIN_LIST`, `retry`, `shortageCount`, `defaultMenuPrice`, `activeWeekDays`, `shiftNames`, `menuPrice` | LOW | LOW | Move with owning helper/panel without semantic edits. |
+| `AdminDataPage` | direct facade caller | six Admin cross-cluster processes | Verify no change: same facade import/call and panel props. |
+| `getTodayInputValue`, `isAdminView`, `useToast`, `usePaginatedRows`, `toQueryView` | direct downstream nodes | shared cross-cluster chains | Verify no change: same invocation semantics; targeted/full tests and build. |
+| `getBangkokToday`, `getBangkokCalendarDate`, `formatCalendarDate`, `valueOf`, `useLocalPagination`, `createLocalPaginationContract`, `isQueryErrorStatus` | transitive downstream nodes | shared processes | Verify no change: no edits; trace and regression gates cover confidence-0.85 edges. |
+
+Cross-cluster trace checklist (all confidence 0.85):
+
+- `AdminDataPage → useAdminDataPageModel → useToast`
+- `AdminDataPage → useAdminDataPageModel → isAdminView`
+- `AdminDataPage → useAdminDataPageModel → getTodayInputValue → getBangkokToday → getBangkokCalendarDate → valueOf`
+- `AdminDataPage → useAdminDataPageModel → getTodayInputValue → getBangkokToday → formatCalendarDate`
+- `AdminDataPage → useAdminDataPageModel → toAdminView → toQueryView → isQueryErrorStatus`
+- `AdminDataPage → ViewSwitcher → cn`
+- `currentBomRows|handleExportAuditCsv|openEditBomDialog → getTodayInputValue → getBangkokToday → getBangkokCalendarDate|formatCalendarDate`
+- `openEditBomDialog → getNextDayInputValue → addCalendarDays → formatCalendarDate`
+
+Final Plan 17-06 audit:
+
+| Affected process | Disposition |
+|---|---|
+| `AdminDataPage → ValueOf` | Handled — BOM date chain retained; Admin tests, lint and build pass. |
+| `AdminDataPage → FormatCalendarDate` | Handled — BOM date formatting chain retained; trace confidence 0.85 verified. |
+| `AdminDataPage → IsQueryErrorStatus` | Handled — all 14 queries still pass through the shared `toAdminView → toQueryView` contract. |
+| `AdminDataPage → CreateLocalPaginationContract` | Handled — BOM pagination retains page sizes 8/20 and existing pagination hook. |
+| `AdminDataPage → IsAdminView` | Handled — facade retains the same initial-view/employee permission guard. |
+
+Cypher final: `AdminDataPage` is the sole facade caller; facade owns no moved helper definitions and calls exactly the seven panel hooks plus `getTodayInputValue`/`isAdminView`; every moved helper resolves only to its new owner file. `detect_changes(staged)`: 43 changed symbols, 11 files, 5 expected processes, MEDIUM. Deferred: none.
