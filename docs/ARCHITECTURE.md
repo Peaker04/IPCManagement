@@ -23,7 +23,7 @@ Browser
 
 1. `frontend/src/main.tsx` khởi tạo React và Redux store; `frontend/src/App.tsx` gắn router và toast provider.
 2. `frontend/src/routes/AppRouter.tsx` phân biệt route công khai `/login` với các route cần đăng nhập. `ProtectedRoute` kiểm tra session, còn `RoleGuard` kiểm tra permission trước khi render màn hình.
-3. Các feature inject endpoint vào `frontend/src/api/apiSlice.ts`. Base query gắn Bearer token, xử lý refresh token và dùng `/api` hoặc `VITE_API_BASE_URL` tùy môi trường.
+3. Toàn frontend dùng đúng một `frontend/src/api/apiSlice.ts`. Bảy feature owner cùng `workflowDocumentsApi` inject endpoint vào slice này; `frontend/src/api/workflowApi.ts` chỉ là compatibility barrel đăng ký/re-export public contract. Base query gắn Bearer token, xử lý refresh token và dùng `/api` hoặc `VITE_API_BASE_URL` tùy môi trường.
 4. `Program.cs` chạy correlation ID, exception middleware, Swagger ở Development, CORS, authentication, rate limiting, authorization và controller mapping.
 5. Controller xác thực model và policy, gọi service nghiệp vụ. Service dùng repository/Unit of Work và `IpcManagementContext` để thao tác các entity, migration và audit/workflow.
 6. Response JSON được trả về frontend để cập nhật RTK Query cache và giao diện feature tương ứng.
@@ -35,13 +35,16 @@ Browser
 | `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình host, middleware, JWT, CORS, Swagger và rate limit. |
 | `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
 | `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext/registration root cho MySQL; 53 mapping nằm trong 11 file feature-owned `Features/*/Persistence` qua `IEntityTypeConfiguration<T>`. |
+| `DishCatalogCache` | `backend/src/IPCManagement.Api/Caching/DishCatalogCache.cs` | Root-owned cache contract dùng chéo Catalog và SampleData; giữ hai key catalog active/all và xóa cả hai sau các mutation liên quan. |
 | `IEfTransactionRunner` | `backend/src/IPCManagement.Api/Data/Transactions/` | Chủ sở hữu duy nhất của manual transaction; chạy qua EF execution strategy, clear tracking trước retry/commit verification và yêu cầu verifier ổn định để tránh duplicate side effect. |
 | Coordination use-case services | `backend/src/IPCManagement.Api/Features/Coordination/Services/` | Tách customer contract, portion rule, menu schedule, meal quantity plan và order lifecycle thành các shell/policy riêng. |
 | `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
 | Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |
 | Reports use-case services | `backend/src/IPCManagement.Api/Features/Reports/Services/` | Tách price, demand, purchasing, inventory, audit/data-quality, KPI và aggregate cache theo use case. |
 | `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. |
-| `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session và RTK Query cache. |
+| `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session và namespace RTK Query cache duy nhất. |
+| `workflowApi` compatibility barrel | `frontend/src/api/workflowApi.ts` | Đăng ký/re-export đúng 75 workflow endpoint và 75 public hook từ `workflowDocumentsApi` cùng bảy feature owner; không tạo slice, endpoint hoặc tag registry thứ hai. |
+| `MainLayout` | `frontend/src/app/layout/MainLayout.tsx` | App-owned shell cho permission navigation, mobile nav và tuần tự idle preload route module. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
 
 Pomelo bật `EnableRetryOnFailure`; production source chỉ còn một `BeginTransactionAsync(` nằm trong
@@ -52,17 +55,19 @@ Sau khi shell đăng nhập ổn định, `MainLayout` preload tuần tự modul
 
 Trong các workbench nhiều tab, query RTK Query được gate theo panel cần dữ liệu thay vì chạy toàn bộ ở page parent. Weekly Menu split Demand, Production Plan, Purchase Summary, Cost và Dish Materials thành chunk riêng; sau khi route ổn định, các chunk này được preload tuần tự trong idle slot mà không preload API. Weekly, Chef và Warehouse dùng selected view riêng với deferred rendered view: tab strip phản hồi ngay, còn panel cũ được giữ trong boundary cục bộ cho tới frame mới. Shell/sidebar/header không remount; trạng thái pending là overlay tuyệt đối nên không chiếm layout, và transition tôn trọng `prefers-reduced-motion`.
 
-`frontend/src/lib/queryView.ts` là hợp đồng opt-in cho kiến trúc `f(data, state)`: adapter thuần chuyển RTK
+`frontend/src/lib/queryView.ts` là hợp đồng opt-in cho kiến trúc hàm thuần từ data + state sang UI: adapter thuần chuyển RTK
 Query snapshot thành `uninitialized`, `loading`, `forbidden`, `error` hoặc `ready`; `ready` giữ riêng
 `isRefreshing` và bằng chứng truncation. Empty chỉ được dẫn xuất từ dữ liệu authoritative trong `ready`.
 Lint chặn query đã đi qua adapter nhưng vẫn đọc trực tiếp `query.data ?? []`. Hợp đồng đã có test nền;
 Material Demand và Warehouse là hai pilot đầu tiên, nên các feature chưa pilot vẫn giữ state handling hiện có.
 
 Frontend giữ cây module hiện tại thay vì đổi tên hàng loạt sang `shared/`. Hai composition
-lớn đã được tách theo page model/panel: Reports page còn 799 dòng; Admin Data page chỉ
-là shell 74 dòng với model và bảy panel riêng. CSS global được nạp theo thứ tự tường minh
-từ `main.tsx`: `styles/index.css` giữ token/base, `styles/components/*` chứa shell/table/document/
-operation/domain/responsive, còn `styles/ui-redesign.css` + `styles/redesign/*` giữ lớp Fiori/demand/
+lớn đã được tách theo page model/panel: `frontend/src/features/reports/pages/ReportsPage.tsx` dùng compatibility facade
+`useReportsPageModel` trên năm view-model owner; `frontend/src/app/pages/AdminDataPage.tsx` là shell dùng compatibility facade
+`useAdminDataPageModel` trên bảy panel-model owner. Các owner hook được gọi vô điều kiện theo thứ tự query cũ để giữ React hook order, cache timing,
+URL/permission contract và flat page-model API. CSS global được nạp theo thứ tự tường minh
+từ `frontend/src/main.tsx`: `frontend/src/styles/index.css` giữ token/base, `frontend/src/styles/components/*` chứa shell/table/document/
+operation/domain/responsive, còn `frontend/src/styles/ui-redesign.css` + `frontend/src/styles/redesign/*` giữ lớp Fiori/demand/
 dashboard/responsive. Việc tách file không đổi selector order hay DOM contract.
 
 ## Phạm vi API
@@ -79,6 +84,7 @@ resource và migration được giữ ngoài feature slice để không làm nhi
 IPCManagement/
 ├── backend/
 │   ├── src/IPCManagement.Api/
+│   │   ├── Caching/           cache key/invalidation dùng chéo feature
 │   │   ├── Features/          10 vertical slice; controller/service/contract/validator
 │   │   ├── Shared/Contracts/  contract dùng chéo slice
 │   │   ├── Data/              DbContext, repository, Unit of Work, transaction runner
@@ -91,8 +97,8 @@ IPCManagement/
 │   ├── tests/                 xUnit backend tests
 │   └── database/              SQL schema/cleanup/migration hỗ trợ
 ├── frontend/
-│   ├── src/app/               Redux store, hooks và composition page đa-feature
-│   ├── src/api/               RTK Query base API + workflow/dish endpoint modules dùng chung
+│   ├── src/app/               Redux store, app layout và composition page đa-feature
+│   ├── src/api/               RTK Query base API + compatibility/types/tag/document modules
 │   ├── src/features/          module nghiệp vụ: admin, approvals, chef, coordination, projects,
 │   │                          purchasing, reports và warehouse
 │   ├── src/components/        component dùng chung/layout/UI
@@ -105,7 +111,14 @@ IPCManagement/
 └── scripts/                   script vận hành/quality gate hiện có
 ```
 
-Frontend không còn `src/features/workflow`: core dùng chung nằm ở `src/api/workflowApi.ts`,
-`src/lib/workflowConfig.ts`, `src/lib/actionEligibility.ts` và `src/types/workflow.ts`; page được sở hữu
-bởi feature nghiệp vụ tương ứng. `AdminDataPage` ở tầng `src/app/pages` vì nó composition dữ liệu của
-admin, auth và coordination thay vì thuộc riêng một feature.
+Frontend không còn `frontend/src/features/workflow`: core dùng chung nằm ở `frontend/src/api/workflowApi.ts`,
+`frontend/src/lib/workflowConfig.ts`, `frontend/src/lib/actionEligibility.ts` và `frontend/src/types/workflow.ts`; page được sở hữu
+bởi feature nghiệp vụ tương ứng. Endpoint implementation nằm trong dashboard, reports, purchasing,
+warehouse, chef, approvals và admin owner; `workflowDocumentsApi` là owner trung lập cho document overview.
+Cache giữ một `workflowCacheTags` registry 22 tag. `AdminDataPage` ở tầng `src/app/pages` vì nó composition
+dữ liệu của admin, auth và coordination thay vì thuộc riêng một feature. Cross-feature Projects chỉ dùng
+coordination transport/read projection và action contract ở tầng thấp hơn, không import ruột feature Coordination.
+
+Dependency-cruiser áp dụng R1–R6 trên 342 module. Baseline 54 violation đã giảm về file `[]`; strict run
+không dùng baseline cũng trả 0 violation. Ngoại lệ duy nhất là compatibility barrel chỉ được import chính xác
+các endpoint owner đã liệt kê và phải được review lại ở milestone v1.3.

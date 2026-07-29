@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
-status: executing
-stopped_at: Completed 17-07-PLAN.md
-last_updated: "2026-07-29T06:24:10.238Z"
+status: completed
+stopped_at: Phase 17 complete; ready to discuss Phase 18 guardrails and workflow closeout
+last_updated: "2026-07-29T07:54:31.377Z"
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 14
-  completed_plans: 13
-  percent: 75
+  completed_plans: 14
+  percent: 88
 current_phase: 17
 current_phase_name: frontend-ownership
 ---
@@ -25,24 +25,24 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 ## Current Position
 
-Phase: 17 (frontend-ownership) — EXECUTING
+Phase: 17 — COMPLETE
 
 Plan: 8 of 8
 
-Status: Ready to execute
+Status: Phase 17 complete
 
-Milestone phase progress: ████████░░ 75% (6/8 steps complete).
+Milestone phase progress: █████████░ 88% (7/8 steps complete).
 
-Defined-plan progress: 8/8 plans defined; 7/8 executed
+Defined-plan progress: 8/8 plans defined and executed.
 
 Step 16 work-package progress: 5/5 complete.
 
 ## Verified Baseline
 
-- Branch `feature/workflow-b17-b18`; current Phase 17 code baseline is
-  `5338d99 refactor(17-07): split Reports model by view ownership`. Không push trong phiên này.
+- Branch `feature/workflow-b17-b18`; current Phase 17 implementation baseline is
+  `1ca2bbb fix(17-08): close full-gate regressions`. Không push trong phiên này.
 
-- Plans 17-01 through 17-07 are complete. Coordination transport/types/actions and all workflow endpoints
+- Plans 17-01 through 17-08 are complete. Coordination transport/types/actions and all workflow endpoints
   now have explicit lower/feature owners, Projects has zero Coordination feature imports, and the dependency
   baseline reduced 54 → 44 → 16 → 0 without weakening R1-R6.
 
@@ -67,6 +67,11 @@ Step 16 work-package progress: 5/5 complete.
   Reports tests pass at 22/22 and the full frontend suite at 433/433 plus lint, zero-violation dependency-
   cruiser and production build. Its staged audit named four expected Reports processes; Cypher found no
   direct endpoint call left in the facade and no deferred node/process.
+
+- Plan 17-08 full gate passed: Application 49/49, API 680 pass + 1 intentional skip, frontend 433/433,
+  lint/build/strict dependency/contract determinism and secret/whitespace scans green. Three-viewport headed
+  evidence records 30 app routes, 3 Shipyard captures, 96 tab interactions, 48 warm revisits and 64 2xx API
+  responses with zero new warm request/error/overflow/CLS/long task. Goal-backward verification passed 7/7.
 
 - No database reset, seed, import or lane mutation occurred during Phase 17 execution.
 
@@ -120,7 +125,6 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Remaining Workflow
 
-- Step 17: frontend endpoint/layout/page-model ownership and dependency debt retirement.
 - Step 18: test decomposition, growth gates, complete evidence and documentation closeout.
 
 ## Decisions Made
@@ -142,6 +146,7 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Phase 17]: Keep useAdminDataPageModel as the sole AdminDataPage API while seven unconditional panel hooks own query, state and mutation behavior. — Preserves all panel props and UI behavior while removing the 784-line ownership monolith.
 - [Phase 17]: Keep cross-panel customer-contract and current-stock queries in Contracts and Inventory owners. — Avoids duplicate endpoints/cache subscriptions while preserving the BOM/Statistics skip contracts.
 - [Phase 17]: Keep Reports URL/permission/reset orchestration facade-owned and place query transforms plus CSV columns in five view owners. — Preserves cross-view navigation and export behavior without recreating a page-model monolith.
+- [Phase 17]: Close Gate 17 only when one-api-slice, public/cache, dependency, full regression, headed browser, GitNexus and documentation evidence agree. — Risk controls rigor rather than scope; every caller and affected process must be handled with no Deferred item.
 
 ## Blockers
 
@@ -149,11 +154,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T06:24:10.230Z
+**Last Date:** 2026-07-29T07:54:31.041Z
 
-**Stopped At:** Completed 17-07-PLAN.md
+**Stopped At:** Phase 17 complete; ready to discuss Phase 18 guardrails and workflow closeout
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-08-PLAN.md
+**Resume File:** .planning/ROADMAP.md
 
 ## Constraints
 
@@ -174,3 +179,4 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | Phase 17 P05 | 15min | 2 tasks | 24 files |
 | Phase 17 P06 | 26min | 1 tasks | 11 files |
 | Phase 17 P07 | 16min | 1 tasks | 10 files |
+| Phase 17 P08 | 77min | 3 tasks | 16 files |

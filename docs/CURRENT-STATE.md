@@ -903,8 +903,9 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
 2. Chạy `git status --short --branch`; branch hiện hành của checkout chính là `feature/workflow-b17-b18`, tách từ `main` tại `6c9931a`. Không reset hoặc ghi đè thay đổi chưa rõ ownership; lane checkout cũ vẫn có thể hiển thị `feature/production-plan` và không phải source of truth của runtime goal này.
 3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
-3b. Bước 16 đã đóng; tiếp tục bằng discuss/plan **Step 17 — Frontend ownership**. Giữ một `apiSlice`,
-   không đổi public hook/cache behavior và chưa thực hiện Step 18 trước khi Gate 17 xanh.
+3b. Bước 17 đã qua full automated/browser gate và đang ở closeout verifier. Sau khi
+   `.planning/phases/17-frontend-ownership/VERIFICATION.md` có status `passed`, tiếp tục
+   **Step 18 — Guardrails and workflow closeout**; không dùng roadmap v1.1 trong archive.
 4. Kiểm tra port `8090`, `3001`, `8001` và trạng thái Shipyard lane. Không khởi tạo database mới nếu lane hiện tại còn evidence cần bảo toàn.
 4b. **Trước khi chạy bất kỳ file `.sql` nào vào MySQL**: `grep -n '^USE\|DROP TABLE\|DROP DATABASE'` file đó trước. `backend/database/IPCmanagement.sql` nay có chốt an toàn nhưng các file khác thì chưa. Muốn biết database có tụt hậu migration không thì gọi `/health/ready` — check `migrations` sẽ báo Degraded kèm danh sách ID còn thiếu.
 5. Mở UI bằng browser headed; đăng nhập demo `admin` với mật khẩu lấy từ biến môi trường `K6_PASSWORD`
@@ -980,3 +981,53 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   Deferred rỗng.
 - Plan này không truy cập, reset, seed, import hoặc mutate database; không chạy browser vì API route, UI/DOM
   và hành vi người dùng không đổi. Bước tiếp theo là Plan 17-05; chưa push.
+
+## Phase 17 Gate 17 và closeout — 2026-07-29
+
+### Đã xác minh
+
+- Tám plan 17-01..17-08 đã hoàn tất trên `feature/workflow-b17-b18`. Ownership cuối: một
+  `apiSlice`; `workflowApi.ts` là compatibility barrel; endpoint implementation thuộc bảy feature owner
+  cùng neutral `workflowDocumentsApi`; `MainLayout` thuộc `app/layout`; Projects chỉ dùng Coordination
+  transport/read projection/action contract; Admin và Reports giữ facade công khai trên panel/view owner.
+- Public/cache/wire contract không drift: đúng **1** production `createApi`, **75** endpoint key,
+  **75** public generated hook và **22** cache ID. OpenAPI/generated TypeScript deterministic; route,
+  request args/response transform, public hook, serialization, provides/invalidates và UI behavior giữ nguyên.
+- Dependency baseline 54 violation đã về file `[]`. Strict dependency-cruiser pass với **0 violation**
+  trên **342 module / 1.169 dependency**; không còn cycle/reverse import ngoài compatibility allowlist hẹp.
+- Regression full gate trên HEAD `1ca2bbb`: Application **49/49**; API **680 pass + 1 intentional skip**;
+  frontend **80 file / 433/433**; backend/frontend build, ESLint, dependency-cruiser,
+  `npm run check:api-contract`, secret scan và `git diff --check` đều xanh.
+- Hai regression full-gate phát hiện từ checkpoint nền được đóng trong commit `1ca2bbb`:
+  `DishCatalogCache` chuyển về root `Caching/` để loại `SampleData → Catalog`, giữ nguyên key/invalidation;
+  minimal integration schema có bảng `menuversions`. Focused regression: Application 49/49,
+  Coordination 43/43, Catalog/SampleData 27/27.
+- GitNexus branch index `feature/workflow-b17-b18` ở đúng `1ca2bbb`, PDG enabled:
+  56.621 node, 103.081 edge, 482 cluster, 300 flow. CRITICAL review đã chạy explain/PDG/trace;
+  Cypher xác minh 6/6 cache caller dùng path mới, old path 0, `SampleData → Catalog` import 0 và
+  26/26 caller schema helper đã xử lý. Checklist đầy đủ:
+  `.planning/phases/17-frontend-ownership/17-GITNEXUS-CALLSITES.md`; Deferred rỗng.
+
+### Evidence browser authoritative
+
+- File: `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json`.
+- SHA-256: `b5cb0ab87821bd32f173ffb1e87364bcdc9b694d1ab0e18f228927a80930aa13`.
+- Run `2026-07-29T07:18:20.187Z` → `07:22:00.466Z`, production preview và Google Chrome headed:
+  30 app-route capture, 3 Shipyard capture, 96 tab interaction (Admin 21, Reports 27, route khác 48),
+  48 warm revisit, 64 API response đều 2xx, warm request mới 0, 82 screenshot.
+- Console/page/request failure, horizontal overflow, CLS và long task đều 0. Runtime log chỉ có GET
+  cùng `POST /api/auth/login`; không gọi business-write endpoint. Các file `phase17-headed-audit-error.*`
+  là attempt cũ, không phải evidence authoritative.
+
+### Còn hở và checklist tiếp tục
+
+- Goal-backward GSD verifier đã pass 7/7 must-have, không gap/human follow-up/override/Deferred.
+  Closeout đã qua staged `detect_changes` LOW (13 documentation section, 0 affected process),
+  commit cục bộ, PDG re-index đúng clean HEAD và final detect 0 change/0 process.
+- Sau closeout, Phase 18 vẫn pending. Gap off-site backup là concern vận hành đã có từ Phase 16,
+  không mở rộng vào Phase 17.
+- Runtime do Gate 17 tạo đã teardown: FE 3001, API 8001 và Shipyard 8090 down; MySQL 3306 giữ nguyên.
+  Không push/reset/seed/import database và không mutate preserved lane trong Plan 17-08.
+- Final PDG index có 56.627 node, 103.087 edge, 482 cluster và 300 flow. Cypher trên index mới:
+  6/6 cache caller, old cache path 0, `SampleData → Catalog` import 0, 26 schema-helper caller và
+  old `workflowApi` implementation call 0. CRITICAL explain/PDG cùng 6 trace đều đã xử lý; worktree sạch.

@@ -154,10 +154,10 @@ không dựng dialog BOM khi đóng.
 
 Regression contract `src/app/operationalPagePerformanceContracts.test.ts` còn khóa query gating cho Weekly Menu, Chef và Warehouse, controlled idle preload của các panel Weekly, cùng panel shell chống layout jump. Browser-use live phải kiểm tra selected tab cập nhật ngay trong khi panel cũ còn hiện với `aria-busy`, không có API của tab ẩn, vòng chuyển lại dùng cache, CLS dưới `0.02` và reduced motion làm transition về `0s`. Evidence gần nhất: `.artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json`.
 
-### Browser-use headed và chụp evidence
+### Browser-use headed và chụp evidence (snapshot desktop 27/07/2026)
 
 Từ project root, sau khi xác nhận các port `3001`, `8001`, `8090` đang listen và
-`/health/ready` xanh cho cả database/migration, chạy helper runtime hiện tại:
+`/health/ready` xanh cho cả database/migration, chạy helper của snapshot này:
 
 ```powershell
 $env:K6_PASSWORD = '<credential hien tai; khong commit>'
@@ -169,8 +169,8 @@ Remove-Item Env:K6_PASSWORD
 Helper dùng Google Chrome headed, truy cập trực tiếp FE/API lane thật và không route/mock request.
 Credential phải lấy từ environment hoặc Shipyard local config đã xoay; không thử `admin/admin`.
 
-Phạm vi visual hiện tại chỉ là website desktop: `1365×900` và `1440×900`.
-Mobile chưa nằm trong gate. Helper đi 10 route, reset resource/performance probe trước mỗi
+Phạm vi của snapshot này chỉ là website desktop: `1365×900` và `1440×900`.
+Mobile chưa nằm trong gate của lượt 27/07. Helper đi 10 route, reset resource/performance probe trước mỗi
 navigation và lưu:
 
 - `current-runtime-desktop-audit.json`
@@ -188,6 +188,13 @@ update snapshot cũ để làm Bước 10 xanh.
 Nếu muốn điều khiển Chrome đã mở sẵn, Chrome đó phải expose remote-debugging và test phải kết nối bằng CDP. Persistent helper hiện tại mở context riêng; không được mô tả nó là attach vào tab Chrome bình thường của người dùng.
 
 `tests/navigation-performance.spec.ts` còn kiểm tra hai hợp đồng lazy-load của sidebar: toàn bộ route module được warm sau idle preload và scheduler phải tắt khi `navigator.connection.saveData` bật. Khi route đã warm, lần click đầu không được mount route-level Suspense fallback. Kết quả Chromium real-stack mới nhất cho tất cả trang sidebar nằm trong `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`.
+
+### Gate Phase 17 — Frontend ownership (29/07/2026)
+
+- Contract frontend giữ đúng một production `apiSlice`/`createApi`, 75 endpoint key, 75 public generated hook và 22 cache ID.
+- `npm run verify` xanh trên HEAD `1ca2bbb`: Application **49/49**; API **680 pass + 1 intentional skip**; frontend **80 file, 433/433 test**. Backend/frontend build, ESLint và dependency-cruiser đều pass; dependency graph có **0 violation trên 342 module/1.169 dependency**.
+- `npm run check:api-contract` chạy lặp giữ nguyên SHA-256 của OpenAPI và generated TypeScript, không có contract drift; lint, build, dependency và contract gate đều deterministic.
+- Evidence authoritative của Chrome headed là `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json`: 3 viewport (`1365×900`, `1280×900`, `768×1024`), 30 app-route capture, 3 Shipyard capture, 96 tab interaction, 64 API response đều 2xx và 48 warm revisit không phát sinh request mới. Console/page/request error, horizontal overflow, CLS và long task đều bằng 0.
 
 ## CI integration
 

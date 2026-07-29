@@ -88,8 +88,8 @@ npm run test:visual:update  # Update visual snapshots
 
 ```
 frontend/src/
-├── app/                    # Redux store, hooks và composition pages đa-feature
-├── api/                    # RTK Query base API và endpoint modules dùng chung
+├── app/                    # Redux store, app layout và composition pages đa-feature
+├── api/                    # Một RTK Query slice, compatibility barrel, shared types/tags/documents
 ├── features/               # Feature modules
 │   ├── auth/              # Authentication
 │   ├── admin/             # Admin panel
@@ -130,6 +130,39 @@ import { RoleGuard } from './routes/RoleGuard';
 import { workflowApi } from './api/workflowApi';
 import { coordinationApi } from './features/coordination/coordinationApi';
 ```
+
+`apiSlice.ts` là production `createApi` duy nhất. `workflowApi.ts` chỉ đăng ký rồi re-export
+compatibility contract: 75 endpoint key và 75 public generated hook trên cùng slice/cache namespace.
+Implementation endpoint thuộc bảy feature owner (`admin`, `approvals`, `chef`, `purchasing`,
+`reports`, `warehouse`, dashboard) cùng neutral `workflowDocumentsApi`; cache dùng một registry
+`workflowCacheTags` gồm 22 ID. Không tạo feature-local `createApi` hoặc đổi public hook/cache tag
+khi chuyển ownership.
+
+`MainLayout` thuộc `src/app/layout`. Projects chỉ dùng Coordination transport/read projection và
+action contract ở boundary thấp hơn, không import feature internals. Dependency-cruiser khóa R1–R6;
+baseline 54 violation hiện là `[]`, strict graph có 0 violation trên 342 module/1.169 dependency.
+
+Hai page model lớn giữ facade công khai nhưng đã chia owner bên trong:
+
+- `useAdminDataPageModel` composition bảy panel-model owner;
+- `useReportsPageModel` composition năm report view-model owner.
+
+Các owner hook vẫn được gọi vô điều kiện theo thứ tự cũ để giữ React hook order, RTK Query cache
+timing, URL/permission/reset contract và UI behavior.
+
+## Phase 17 verification snapshot
+
+Gate ngày 29/07/2026 trên HEAD `1ca2bbb`:
+
+- frontend: 80 file, 433/433 test; lint, dependency-cruiser và production build pass;
+- one-api-slice/public/cache contract: 75 endpoint, 75 hook, 22 cache ID;
+- `npm run check:api-contract`: OpenAPI và generated TypeScript deterministic, không drift;
+- headed Chrome: 3 viewport, 30 app route, 3 Shipyard capture, 96 tab interaction,
+  48 warm revisit với 0 request mới, 64 API response đều 2xx, không console/page/request error,
+  overflow, CLS hoặc long task.
+
+Evidence authoritative:
+`.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json`.
 
 ## Related Documentation
 

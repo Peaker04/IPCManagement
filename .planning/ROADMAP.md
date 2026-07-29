@@ -14,7 +14,7 @@
 - [x] **Phase 14: VSA boundary** — complete; dependency cycles and controller-to-DbContext access removed.
 - [x] **Phase 15: Use-case and functional-core extraction** — complete through SampleData at `7ae0e67`.
 - [x] **Phase 16: Persistence and reliability** — complete at `59add79` plus prior mapping/runner/lineage checkpoints.
-- [ ] **Phase 17: Frontend ownership** — in progress, 7/8 plans complete.
+- [x] **Phase 17: Frontend ownership** — complete, 8/8 plans; Gate 17 verified. (completed 2026-07-29)
 - [ ] **Phase 18: Guardrails and workflow closeout** — pending Steps 11–17.
 
 ### Phase 11: Query state contract
@@ -67,7 +67,7 @@
 
 **Goal:** Give every endpoint module, layout and page model a clear owner while keeping one API slice and stable public hooks/cache behavior.
 **Depends on:** Phase 13, Phase 15, Phase 16
-**Status:** In progress — 7/8 plans complete
+**Status:** Complete — 8/8 plans; verification passed 7/7 must-haves
 
 **Scope:** split `workflowApi.ts` by feature, move `MainLayout` to `app/layout`, resolve `projects→coordination`, retire the 54-violation baseline and split oversized Admin/Reports page models.
 
