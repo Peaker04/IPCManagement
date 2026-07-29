@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: executing
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-07-29T04:14:59.195Z"
+stopped_at: Completed 17-03-PLAN.md
+last_updated: "2026-07-29T04:36:54.941Z"
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 14
-  completed_plans: 8
-  percent: 57
+  completed_plans: 9
+  percent: 64
 current_phase: 17
 current_phase_name: frontend-ownership
 ---
@@ -27,13 +27,13 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 Phase: 17 (frontend-ownership) — EXECUTING
 
-Plan: 3 of 8
+Plan: 4 of 8
 
 Status: Ready to execute
 
 Milestone phase progress: ████████░░ 75% (6/8 steps complete).
 
-Defined-plan progress: 8/8 plans defined; 2/8 executed
+Defined-plan progress: 8/8 plans defined; 3/8 executed
 
 Step 16 work-package progress: 5/5 complete.
 
@@ -42,10 +42,13 @@ Step 16 work-package progress: 5/5 complete.
 - Branch `feature/workflow-b17-b18`; current Phase 17 code baseline is
   `ed8c3d0 refactor(17-02): lower auth and layout ownership`. Không push trong phiên này.
 
-- Plan 17-01 characterization and Plan 17-02 auth/layout ownership are complete. Focused Plan 17-02
-  regression is 29/29; lint and production build pass; dependency baseline reduced 54 → 44.
-- GitNexus PDG index: 56,409 nodes, 102,653 edges and 300 execution flows. Final staged audit for
-  Plan 17-02 reported 56 changed symbols across 16 files, LOW risk and 0 affected processes.
+- Plans 17-01 through 17-03 are complete. Coordination transport/types/actions now have lower owners,
+  Projects has zero Coordination feature imports, and the dependency baseline reduced 54 → 44 → 16.
+- Plan 17-03 focused gates passed at 61/61 and 133/133 tests plus lint, dependency-cruiser and build.
+
+- GitNexus PDG index: 56,419 nodes, 102,663 edges, 471 clusters and 300 execution flows. Final staged
+  Task 2 audit reported 5 changed symbols across 22 files, LOW risk and 0 affected processes.
+
 - No database reset, seed, import or lane mutation occurred during Phase 17 execution.
 
 - OpenAPI remained 152 paths / 396 schemas.
@@ -110,17 +113,20 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 16 | Do not call the C:/D: mirror proven off-site storage. | Logical drive letters do not prove different physical devices or sites. |
 | Incident | Do not repeat the production restore/import; direct restore procedures must restart or clear catalog/application caches. | Production is already synchronized, and direct database restore bypasses application cache invalidation. |
 
+- [Phase 17]: Keep exactly one coordination injector and use feature API/type modules only as compatibility re-exports. — Preserves endpoint, hook, cache and existing import contracts without duplicate RTK Query registration.
+- [Phase 17]: Move only cross-feature weekly-menu actions to lib while Coordination retains reducer and presentation ownership. — Removes Projects-to-Coordination imports without broadening shared state ownership or changing Redux action types.
+
 ## Blockers
 
 - Non-blocking operational gap: configure and verify a genuinely off-site production backup target; the current C:/D: mirror proves copy integrity and disposable restore only.
 
 ## Session
 
-**Last Date:** 2026-07-29T04:14:59.186Z
+**Last Date:** 2026-07-29T04:36:54.933Z
 
-**Stopped At:** Completed 17-02-PLAN.md
+**Stopped At:** Completed 17-03-PLAN.md
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-03-PLAN.md
+**Resume File:** .planning/phases/17-frontend-ownership/17-04-PLAN.md
 
 ## Constraints
 
@@ -136,3 +142,4 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 |-------|------|----------|-------|
 | Phase 17 P01 | 8 min | 2 tasks | 4 files |
 | Phase 17 P02 | 30min | 2 tasks | 16 files |
+| Phase 17 P03 | 25min | 2 tasks | 39 files |
