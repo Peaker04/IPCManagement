@@ -26,6 +26,10 @@
 const SHARED = '^src/(components|lib|types|utils|api|services)/';
 const APP = '^src/(app|routes)/';
 const FEATURE = '^src/features/([^/]+)/';
+const WORKFLOW_COMPATIBILITY_BARREL = '^src/api/workflowApi\\.ts$';
+const WORKFLOW_ENDPOINT_OWNERS =
+  '^src/features/(dashboard/dashboardApi|reports/reportsApi|purchasing/purchasingApi|' +
+  'warehouse/warehouseApi|chef/chefApi|approvals/approvalsApi|admin/adminWorkflowApi)\\.ts$';
 
 module.exports = {
   forbidden: [
@@ -36,8 +40,23 @@ module.exports = {
         'Tầng shared/entities không được biết gì về feature hay app. Vi phạm luật này là ' +
         'nguồn của "sửa trang này hỏng trang kia": một thay đổi trong feature lan ngược ' +
         'xuống tầng dùng chung rồi lan ra mọi feature khác.',
-      from: { path: SHARED },
+      from: {
+        path: SHARED,
+        pathNot: WORKFLOW_COMPATIBILITY_BARREL,
+      },
       to: { path: '^src/(features|app|routes)/' },
+    },
+    {
+      name: 'R1-workflow-barrel-chi-goi-endpoint-owner',
+      severity: 'error',
+      comment:
+        'Ngoại lệ tương thích có chủ đích: workflowApi chỉ được đăng ký đúng các endpoint owner này. ' +
+        'Owner: Frontend Architecture; review/expiry: milestone v1.3 khi retire barrel cũ.',
+      from: { path: WORKFLOW_COMPATIBILITY_BARREL },
+      to: {
+        path: '^src/(features|app|routes)/',
+        pathNot: WORKFLOW_ENDPOINT_OWNERS,
+      },
     },
     {
       name: 'R2-feature-khong-goi-feature',

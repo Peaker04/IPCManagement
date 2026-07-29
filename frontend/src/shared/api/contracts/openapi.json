@@ -15075,6 +15075,13 @@
         ],
         "parameters": [
           {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {

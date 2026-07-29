@@ -1,7 +1,7 @@
 import { apiSlice } from '@/api/apiSlice';
 import type {
   OperationalKpiSummaryDto,
-} from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags, workflowOperationalKpiSourceTags } from '@/api/workflowCacheTags';
 

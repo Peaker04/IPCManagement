@@ -6994,6 +6994,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly PriceTier?: number;
+                    readonly SearchKeyword?: string;
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;

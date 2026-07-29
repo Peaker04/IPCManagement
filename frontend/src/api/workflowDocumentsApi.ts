@@ -11,8 +11,8 @@ import { ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConf
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 
 const queryWithLimit = (query?: WorkflowReportQuery) => ({
+  limit: 100,
   ...query,
-  limit: query?.limit ?? 500,
 });
 
 const normalizeDocumentType = (type: string): WorkflowDocumentType => {
