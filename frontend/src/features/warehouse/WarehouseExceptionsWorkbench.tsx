@@ -43,6 +43,8 @@ const mutationError = (error: unknown, fallback: string) => {
 export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean }) {
   const [supplementalPage, setSupplementalPage] = useState(1);
   const [returnPage, setReturnPage] = useState(1);
+  const [supplementalSearch, setSupplementalSearch] = useState('');
+  const [returnSearch, setReturnSearch] = useState('');
   const [selectedSupplemental, setSelectedSupplemental] = useState<SupplementalMaterialRequestResult>();
   const [fulfillQty, setFulfillQty] = useState('');
   const [rejecting, setRejecting] = useState<SupplementalMaterialRequestResult>();
@@ -53,16 +55,16 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
   const [discrepancyNote, setDiscrepancyNote] = useState('');
   const [feedback, setFeedback] = useState<Feedback>();
 
-  const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: 8 });
-  const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: 8, isReceived: false });
+  const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: 8, searchKeyword: supplementalSearch.trim() || undefined });
+  const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: 8, isReceived: false, searchKeyword: returnSearch.trim() || undefined });
   const returnDetailQuery = useGetInventoryReturnByIdQuery(selectedReturnId, { skip: !selectedReturnId });
   const [fulfill, fulfillState] = useFulfillSupplementalMaterialRequestMutation();
   const [routeToPurchasing, routeState] = useRouteSupplementalMaterialRequestToPurchasingMutation();
   const [reject, rejectState] = useRejectSupplementalMaterialRequestMutation();
   const [confirmReturn, confirmReturnState] = useConfirmInventoryReturnReceiptMutation();
 
-  const supplementalItems = supplementalQuery.data?.items ?? [];
-  const returnItems = returnsQuery.data?.items ?? [];
+  const supplementalItems = useMemo(() => supplementalQuery.data?.items ?? [], [supplementalQuery.data?.items]);
+  const returnItems = useMemo(() => returnsQuery.data?.items ?? [], [returnsQuery.data?.items]);
   const selectedReturn = returnDetailQuery.data;
 
   const returnQuantity = useMemo(
@@ -187,6 +189,13 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
             Không thể quyết định cấp hoặc mua thêm khi dữ liệu chưa tải thành công.
           </QueryErrorAlert>
         )}
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-supplemental-search">
+            Tìm yêu cầu, nguyên liệu hoặc trạng thái
+            <Input id="warehouse-supplemental-search" value={supplementalSearch} onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }} placeholder="Nhập mã hoặc tên nguyên liệu" className="h-9 max-w-md" />
+          </label>
+          {supplementalSearch.trim() && <span className="pb-2 text-xs text-slate-500">{supplementalQuery.data?.totalCount ?? 0} kết quả</span>}
+        </div>
         <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Trạng thái và eligibility thao tác do máy chủ cung cấp.">
           <table className="ipc-data-table min-w-[980px]">
             <thead><tr><th>Yêu cầu</th><th>Nguyên liệu</th><th>Đã cấp / yêu cầu</th><th>Tồn khả dụng</th><th>Trạng thái</th><th>Hướng xử lý</th><th>Thao tác</th></tr></thead>
@@ -230,6 +239,13 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
             Không hiển thị empty state khi API tiếp nhận phiếu trả đang lỗi.
           </QueryErrorAlert>
         )}
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-return-search">
+            Tìm phiếu trả, ngày hoặc lý do
+            <Input id="warehouse-return-search" value={returnSearch} onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }} placeholder="Nhập mã phiếu hoặc nội dung" className="h-9 max-w-md" />
+          </label>
+          {returnSearch.trim() && <span className="pb-2 text-xs text-slate-500">{returnsQuery.data?.totalCount ?? 0} kết quả</span>}
+        </div>
         <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Kho mở từng phiếu để kiểm đếm số thực nhận.">
           <table className="ipc-data-table min-w-[820px]">
             <thead><tr><th>Phiếu trả</th><th>Loại</th><th>Phiếu xuất gốc</th><th>Ngày/ca</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>

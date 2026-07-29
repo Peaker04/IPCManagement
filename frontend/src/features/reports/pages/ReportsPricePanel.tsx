@@ -96,6 +96,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
         }}
       />
 
+      <div id={`price-sub-${priceSubView}-panel`} role="tabpanel" aria-labelledby={`price-sub-${priceSubView}-tab`} className="min-w-0">
       <ReportQueryBoundary view={activePriceView}>
       {priceSubView === 'supplier' && (
         <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
@@ -346,6 +347,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
         </div>
       )}
       </ReportQueryBoundary>
+      </div>
     </div>
   );
 }

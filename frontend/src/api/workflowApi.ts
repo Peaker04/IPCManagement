@@ -50,6 +50,7 @@ type WorkflowReportPageQueryWire = WorkflowReportQueryWire
 export type WorkflowReportQuery = LowerCamelQuery<WorkflowReportQueryWire>;
 
 export type WorkflowReportPageQuery = LowerCamelQuery<WorkflowReportPageQueryWire>;
+export type DataQualityPageQuery = WorkflowReportPageQuery & { searchKeyword?: string };
 
 export type MaterialRequestCandidatePageQuery = LowerCamelQuery<NonNullable<
   paths['/api/workflow-reports/material-request-candidates/page']['get']['parameters']['query']
@@ -1827,7 +1828,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         workflowCacheTags.stockLedger,
       ],
     }),
-    getDataQualityPage: builder.query<DataQualityPageReport, WorkflowReportPageQuery | void>({
+    getDataQualityPage: builder.query<DataQualityPageReport, DataQualityPageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/data-quality/page',
         params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },

@@ -402,8 +402,24 @@ code {
 }
 
 .ipc-view-switcher.is-compact button {
-  min-width: 112px;
-  flex-grow: 0;
+  min-width: max-content;
+  flex: 0 0 auto;
+  padding-inline: 12px;
+}
+
+.ipc-view-switcher.is-compact {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ipc-primary) 45%, transparent) transparent;
+}
+
+.ipc-view-switcher.is-compact::-webkit-scrollbar {
+  display: block;
+  height: 6px;
+}
+
+.ipc-view-switcher.is-compact::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ipc-primary) 45%, transparent);
 }
 
 .ipc-operational-view {

@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { TableViewport } from '@/components/common'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import { formatFileSize, formatImportDate, getImportJobStatusLabel } from '../model/formatters'
@@ -7,6 +10,20 @@ import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 
 export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
   const { state, selectedJob, readyJobs, status, actions } = workflow
+  const [search, setSearch] = useState('')
+  const filteredJobs = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('vi-VN')
+    if (!needle) return state.jobs
+    return state.jobs.filter((job) => [
+      job.customerCode,
+      job.customerName,
+      job.fileName,
+      job.weekStartDate,
+      formatBomTierLabel(job.priceTierAmount),
+      getImportJobStatusLabel(job.status),
+    ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(needle))
+  }, [search, state.jobs])
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -23,6 +40,16 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
           </button>
         </div>
       </div>
+      <div className="relative max-w-md">
+        <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Tìm khách hàng, tuần, file hoặc trạng thái"
+          aria-label="Tìm trong danh sách file thực đơn"
+          className="pl-9"
+        />
+      </div>
       <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
         <table className="ipc-data-table min-w-[980px]">
           <thead><tr>
@@ -32,7 +59,7 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
             <th className="text-center whitespace-nowrap">Trạng thái</th><th className="text-right whitespace-nowrap">Thao tác</th>
           </tr></thead>
           <tbody>
-            {state.jobs.map((job) => {
+            {filteredJobs.map((job) => {
               const preview = job.previewResult
               return (
                 <tr key={job.jobId} className={cn(selectedJob?.jobId === job.jobId && 'bg-blue-50/70')}>
@@ -52,6 +79,7 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
               )
             })}
             {state.jobs.length === 0 && <tr><td colSpan={8} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có file nào. Chọn khách hàng, tuần, định mức và file Excel rồi bấm Thêm file.</td></tr>}
+            {state.jobs.length > 0 && filteredJobs.length === 0 && <tr><td colSpan={8} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy file thực đơn phù hợp.</td></tr>}
           </tbody>
         </table>
       </TableViewport>

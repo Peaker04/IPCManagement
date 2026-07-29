@@ -1,4 +1,4 @@
-import { useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { type ContextStripItem } from '@/components/common';
 import { useGetAuditChangePageQuery, useGetCurrentStockPageQuery, useGetDataQualityPageQuery, useGetIngredientDemandPageQuery, useGetIssueVsReturnUsagePageQuery, useGetKitchenIssuesPageQuery, useGetPriceVariancePageQuery, useGetPriceVarianceBySupplierPageQuery, useGetPriceVarianceByPeriodPageQuery, useGetPriceVarianceByDishGroupPageQuery, useGetPurchasePlanPageQuery, useGetStockMovementPageQuery, type WorkflowReportQuery } from '@/api/workflowApi';
@@ -137,6 +137,16 @@ export const useReportsPageModel = ({
   const [kitchenPage, setKitchenPage] = useState(initialPage);
   const [usagePage, setUsagePage] = useState(initialPage);
   const [dataQualityPage, setDataQualityPage] = useState(initialPage);
+  const [dataQualitySearch, setDataQualitySearch] = useState('');
+  const [debouncedDataQualitySearch, setDebouncedDataQualitySearch] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedDataQualitySearch(dataQualitySearch.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timer);
+  }, [dataQualitySearch]);
 
   const updateSearchState = (updates: Record<string, string | undefined>) => {
     setSearchParams((current) => {
@@ -248,7 +258,12 @@ export const useReportsPageModel = ({
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'audit' });
-  const dataQualityResult = useGetDataQualityPageQuery({ ...reportQuery, pageNumber: dataQualityPage, pageSize: operationalPageSize }, { skip: activeView !== 'data-quality' });
+  const dataQualityResult = useGetDataQualityPageQuery({
+    ...reportQuery,
+    pageNumber: dataQualityPage,
+    pageSize: operationalPageSize,
+    searchKeyword: debouncedDataQualitySearch || undefined,
+  }, { skip: activeView !== 'data-quality' });
 
   const priceVarianceView = toReportView(priceVarianceResult, 'biến động giá theo dòng nhập');
   const priceVarianceBySupplierView = toReportView(priceVarianceBySupplierResult, 'biến động giá theo nhà cung cấp');
@@ -491,6 +506,7 @@ export const useReportsPageModel = ({
     dataQualityReport,
     dataQualityResult,
     dataQualityRows,
+    dataQualitySearch,
     dateFrom,
     dateTo,
     demandPage,
@@ -544,6 +560,7 @@ export const useReportsPageModel = ({
     selectedWarning,
     setAuditCursors,
     setDataQualityPage,
+    setDataQualitySearch,
     setDateFrom,
     setDateTo,
     setDemandPage,

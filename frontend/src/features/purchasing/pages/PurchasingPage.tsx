@@ -265,7 +265,7 @@ export default function PurchasingPage() {
 
         {activeView === 'quotations' ? (
           <SupplierQuotationSection workflow={quotationWorkflow} />
-        ) : <>
+        ) : <div id="purchasing-workflow-panel" role="tabpanel" aria-labelledby="purchasing-workflow-tab" className="space-y-4">
           <SupplementalPurchasingWorkbench week={routeState.week} />
           {workbenchView.phase === 'ready' ? (
             <>
@@ -298,7 +298,7 @@ export default function PurchasingPage() {
               </PurchaseServiceDateWorkbench>
             </>
           ) : <div className="min-h-[420px]" aria-hidden="true" />}
-        </>}
+        </div>}
       </div>
     </OperationalFrame>
   );

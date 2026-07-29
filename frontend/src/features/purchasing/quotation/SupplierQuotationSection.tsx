@@ -13,7 +13,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
 
   return (
     <SectionPanel title="Quản lý báo giá nhà cung cấp">
-      <div id="purchasing-quotation-panel" role="tabpanel" aria-labelledby="purchasing-quotation-tab" className="mt-4 space-y-4">
+      <div id="purchasing-quotations-panel" role="tabpanel" aria-labelledby="purchasing-quotations-tab" className="mt-4 space-y-4">
         {workflow.isLookupForbidden ? (
           <InlineAlert title="Không có quyền xem danh mục thu mua" variant="danger">
             <span role="alert">Bạn không có quyền xem nguyên liệu hoặc nhà cung cấp phục vụ quản lý báo giá.</span>

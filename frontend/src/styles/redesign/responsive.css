@@ -75,7 +75,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1023px) {
   .ipc-redesign-shell .ipc-brand {
     min-height: 56px;
     padding: 10px 12px;
@@ -110,11 +110,6 @@
     display: none;
   }
 
-}
-
-.ipc-table-shell,
-.ipc-table-viewport {
-  height: auto;
 }
 
 .ipc-table-viewport {

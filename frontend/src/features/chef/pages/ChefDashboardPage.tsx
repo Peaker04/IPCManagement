@@ -136,15 +136,17 @@ export default function ChefDashboardPage() {
           </div>
         )}
         {!isProductionView && (
-          <ChefQueryBoundary queries={[
-            { label: 'chứng từ bếp', view: journal.queryViews.documents },
-            { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
-          ]}>
-            <ChefDocumentsSection
-              movements={journal.kitchenMovements}
-              documents={journal.returnDocuments}
-            />
-          </ChefQueryBoundary>
+          <div id="chef-documents-panel" role="tabpanel" aria-labelledby="chef-documents-tab">
+            <ChefQueryBoundary queries={[
+              { label: 'chứng từ bếp', view: journal.queryViews.documents },
+              { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
+            ]}>
+              <ChefDocumentsSection
+                movements={journal.kitchenMovements}
+                documents={journal.returnDocuments}
+              />
+            </ChefQueryBoundary>
+          </div>
         )}
         </div>
       </div>

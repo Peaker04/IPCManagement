@@ -6,6 +6,7 @@ import {
   Filter,
   PackageCheck,
   RotateCcw,
+  Search,
   ShoppingCart,
   Utensils,
   Warehouse,
@@ -37,13 +38,14 @@ import { ReportsNavigation } from './ReportsNavigation';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import { ReportsPricePanel } from './ReportsPricePanel';
+import { Input } from '@/components/ui/input';
 
 const ReportsPage = () => {
   const canReadPurchaseReports = useHasPermission('purchase.read');
   const canReadWarehouseReports = useHasPermission('warehouse.read');
   const canReadAuditChanges = useHasRole(['admin']);
   const model = useReportsPageModel({ canReadAuditChanges, canReadPurchaseReports, canReadWarehouseReports });
-  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dataQualityPage, dataQualityReport, dataQualityResult, dataQualityRows, dateFrom, dateTo, demandPage, demandPageSize, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, reportContextItems, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDataQualityPage, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setKitchenPage, setMovementCursors, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setShiftName, setSortDirection, setStockPage, setStockPageSize, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, usagePage, usageResult, usageRows } = model;
+  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dataQualityPage, dataQualityReport, dataQualityResult, dataQualityRows, dataQualitySearch, dateFrom, dateTo, demandPage, demandPageSize, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, reportContextItems, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDataQualityPage, setDataQualitySearch, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setKitchenPage, setMovementCursors, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setShiftName, setSortDirection, setStockPage, setStockPageSize, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, usagePage, usageResult, usageRows } = model;
 return (
     <OperationalFrame
       className="ipc-reports-page"
@@ -126,7 +128,8 @@ return (
       {activeView === 'price' ? (
         <ReportsPricePanel model={model} />
       ) : (
-        <ReportQueryBoundary view={activeReportView}>
+        <div id={`reports-${activeView}-panel`} role="tabpanel" aria-labelledby={`reports-${activeView}-tab`} className="min-w-0">
+          <ReportQueryBoundary view={activeReportView}>
 
       {activeView === 'demand' && (
         <SectionPanel title="Nhu cầu nguyên liệu theo ngày, ca, khách hàng và món" icon={<Utensils size={18} />}>
@@ -439,6 +442,30 @@ return (
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
             ]}
           />
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <label className="grid min-w-[280px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="report-data-quality-search">
+              Tìm vấn đề dữ liệu
+              <div className="relative max-w-xl">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  id="report-data-quality-search"
+                  type="search"
+                  value={dataQualitySearch}
+                  onChange={(event) => {
+                    setDataQualitySearch(event.target.value);
+                    setDataQualityPage(1);
+                  }}
+                  placeholder="Mã, đối tượng, nhóm lỗi, người phụ trách hoặc nội dung"
+                  className="h-9 bg-white pl-9"
+                />
+              </div>
+            </label>
+            {dataQualitySearch.trim() && (
+              <span className="pb-2 text-xs text-slate-500" aria-live="polite">
+                {dataQualityResult.data?.page.totalCount ?? 0} kết quả
+              </span>
+            )}
+          </div>
           <TableViewport ariaLabel="Bảng data quality trước production">
             <table className="ipc-data-table min-w-[720px]">
               <thead>
@@ -455,7 +482,11 @@ return (
                 </tr>
               </thead>
               <tbody>
-                {dataQualityRows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityRows.map((row) => (
+                {dataQualityRows.length === 0
+                  ? dataQualitySearch.trim()
+                    ? <tr><td colSpan={9} className="py-8 text-center text-slate-500">Không tìm thấy vấn đề dữ liệu phù hợp.</td></tr>
+                    : <EmptyRow colSpan={9} />
+                  : dataQualityRows.map((row) => (
                   <tr key={row.id}>
                     <td>
                       <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
@@ -505,7 +536,8 @@ return (
           />
         </SectionPanel>
       )}
-        </ReportQueryBoundary>
+          </ReportQueryBoundary>
+        </div>
       )}
     </OperationalFrame>
   );

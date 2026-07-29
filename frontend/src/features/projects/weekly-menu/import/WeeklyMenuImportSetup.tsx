@@ -11,8 +11,8 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
   return (
     <>
       <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(165px,190px)_minmax(210px,240px)_minmax(250px,1.25fr)_130px]">
-          <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="[&_.ipc-field-label]:min-h-[34px]">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_minmax(165px,190px)_minmax(210px,240px)_minmax(250px,1.25fr)_130px]">
+          <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <select
               aria-label="Khách hàng"
               value={state.draftCustomerId}
@@ -29,7 +29,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               {customers.length === 0 && <option value="">Chưa có khách hàng</option>}
             </select>
           </FieldRow>
-          <FieldRow label="Tuần bắt đầu" hint="Chọn thứ 2 của tuần" className="[&_.ipc-field-label]:min-h-[34px]">
+          <FieldRow label="Tuần bắt đầu" hint="Chọn thứ 2 của tuần" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <input
               aria-label="Tuần bắt đầu"
               type="date"
@@ -38,7 +38,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               className="ipc-input h-9 min-h-9"
             />
           </FieldRow>
-          <FieldRow label="Định mức BOM" hint="Chọn tier cho file" className="[&_.ipc-field-label]:min-h-[34px]">
+          <FieldRow label="Định mức BOM" hint="Chọn tier cho file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <select
               aria-label="Định mức BOM"
               value={state.priceTierAmount}
@@ -49,7 +49,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               {BOM_PRICE_TIERS.map((tier) => <option key={tier} value={tier}>{formatBomTierLabel(tier)}</option>)}
             </select>
           </FieldRow>
-          <FieldRow label="File Excel" hint="Chọn file thực đơn" className="[&_.ipc-field-label]:min-h-[34px]">
+          <FieldRow label="File Excel" hint="Chọn file thực đơn" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <input
               id="weekly-menu-import-file"
               ref={fileInputRef}
@@ -60,7 +60,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               aria-describedby="weekly-menu-import-file-meta"
               disabled={status.isImporting}
             />
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid min-w-0 grid-cols-1 gap-2 2xl:grid-cols-[minmax(170px,1fr)_minmax(138px,0.8fr)]">
               <button
                 type="button"
                 onClick={() => void actions.downloadWeeklyMenuTemplate()}

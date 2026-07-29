@@ -1,4 +1,7 @@
+import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { Input } from '@/components/ui/input'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { formatImportDate } from '../model/formatters'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
@@ -6,9 +9,33 @@ import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 
 export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
   const { history, status, actions } = workflow
+  const [search, setSearch] = useState('')
+  const filteredHistory = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('vi-VN')
+    if (!needle) return history
+    return history.filter((item) => [
+      item.customerCode,
+      item.customerName,
+      item.weekStartDate,
+      `v${item.versionNo}`,
+      getWorkflowStatusPresentation(item.status).label,
+      item.createdByName,
+    ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(needle))
+  }, [history, search])
+
   return (
     <SectionPanel title="Lịch sử import thực đơn tuần">
       <QueryViewBoundary preserveFallback={history.length > 0} queries={[{ label: 'lịch sử import thực đơn tuần', view: workflow.historyDataState }]} refreshLabel="Đang cập nhật lịch sử import">
+        <div className="relative mb-3 max-w-md">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm khách hàng, tuần, phiên bản hoặc người tạo"
+            aria-label="Tìm trong lịch sử import thực đơn"
+            className="pl-9"
+          />
+        </div>
         <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
           <table className="ipc-data-table">
             <thead>
@@ -18,7 +45,7 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => {
+              {filteredHistory.map((item) => {
                 const label = `${item.customerCode} - tuần ${formatImportDate(item.weekStartDate)} (v${item.versionNo})`
                 const statusPresentation = getWorkflowStatusPresentation(item.status)
                 return (
@@ -47,6 +74,9 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
               })}
               {history.length === 0 && (
                 <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có lịch sử import thực đơn tuần.</td></tr>
+              )}
+              {history.length > 0 && filteredHistory.length === 0 && (
+                <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy lịch sử import phù hợp.</td></tr>
               )}
             </tbody>
           </table>
