@@ -1,5 +1,5 @@
-import type { MealQuantityPlanDto, OrderRow, WeeklyMenuState } from '../../../coordination/types'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { MealQuantityPlanDto, OrderRow, WeeklyMenuState } from '@/types/coordination'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { WeeklyPlanRow } from '../model/types'
 import { getQuickServingKey, QUICK_SERVING_SHIFTS } from '../model/scope'
 import { parseDisplayDateToIso } from '../model/formatters'

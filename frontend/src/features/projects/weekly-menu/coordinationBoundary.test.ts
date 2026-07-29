@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 const weeklyMenuSources = import.meta.glob([
-  './**/*.ts',
-  './**/*.tsx',
+  '../**/*.ts',
+  '../**/*.tsx',
 ], {
   eager: true,
   query: '?raw',
@@ -15,14 +15,17 @@ const coordinationFeatureImports = () => Object.entries(weeklyMenuSources)
   .sort((left, right) => left.file.localeCompare(right.file));
 
 describe('projects to coordination ownership boundary', () => {
-  it('captures the exact legacy feature imports that Phase 17 must retire', () => {
+  it('contains no import from coordination feature internals', () => {
     const imports = coordinationFeatureImports();
 
-    expect(imports).not.toHaveLength(0);
-    expect(new Set(imports.map(({ specifier }) => specifier))).toEqual(new Set([
-      '../../../coordination/coordinationApi',
-      '../../../coordination/coordinationSlice',
-      '../../../coordination/types',
-    ]));
+    expect(imports).toEqual([]);
+  });
+
+  it('uses only lower API, type and action contracts', () => {
+    const source = Object.values(weeklyMenuSources).join('\n');
+
+    expect(source).toContain("from '@/api/coordinationApi'");
+    expect(source).toContain("from '@/types/coordination'");
+    expect(source).toContain("from '@/lib/coordinationActions'");
   });
 });

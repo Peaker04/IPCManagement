@@ -1,5 +1,5 @@
 import { formatQuantityWithUnit } from '@/lib/formatters'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { WeeklyMenuImportJobStatus } from './types'
 
 export const importSlotLabels: Record<string, string> = {

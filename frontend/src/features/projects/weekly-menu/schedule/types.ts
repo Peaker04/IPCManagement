@@ -1,4 +1,4 @@
-import type { WeeklyMenuState } from '../../../coordination/types'
+import type { WeeklyMenuState } from '@/types/coordination'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 import type { WeeklyPlanRow } from '../model/types'
 

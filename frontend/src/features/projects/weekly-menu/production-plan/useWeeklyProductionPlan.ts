@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useGetProductionPlansQuery } from '../../../coordination/coordinationApi'
+import { useGetProductionPlansQuery } from '@/api/coordinationApi'
 import {
   buildProductionDisplayDayByDate,
   buildProductionPlanPages,

@@ -3,6 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import type { CoordinationState, OrderRow, AuditLogEntry, ShiftType, WeeklyMenuState, OrderUpdatePayload, SyncOrdersPayload, MarkOrdersLockedPayload } from './types'
 import { toDisplayShift } from './types'
 import { coordinationApi } from '@/api/coordinationApi'
+import { setWeeklyMenu, updateWeeklyMenuDish } from '@/lib/coordinationActions'
 import { getDayCodeFromIsoDate, getTodayDayCode } from '@/lib/dateUtils'
 import { getBangkokToday } from '@/lib/chefServiceDate'
 
@@ -236,34 +237,8 @@ const coordinationSlice = createSlice({
         order.dishId = action.payload.dishId
       }
     },
-    updateWeeklyMenuDish: (
-      state,
-      action: PayloadAction<{ day: string; slotType: 'morningSavory' | 'morningVegetarian' | 'afternoonSavory' | 'afternoonVegetarian'; dishId: string }>,
-    ) => {
-      const { day, slotType, dishId } = action.payload
-      if (state.weeklyMenu[day]) {
-        state.weeklyMenu[day][slotType].dishId = dishId
-
-        // Also update all unlocked customer orders for that day & shift to match this new default dish if it is savory
-        if (slotType === 'morningSavory' || slotType === 'afternoonSavory') {
-          const targetShift = slotType === 'morningSavory' ? 'Ca Sáng' : 'Ca Chiều'
-          const lockKey = `${day}-${targetShift}`
-          const isCurrentlyLocked = !!state.lockedShifts[lockKey]
-          if (!isCurrentlyLocked) {
-            state.orders.forEach((order) => {
-              if (order.dayOfWeek === day && order.shift === targetShift) {
-                order.dishId = dishId
-              }
-            })
-          }
-        }
-      }
-    },
     setLossRate: (state, action: PayloadAction<number>) => {
       state.lossRate = action.payload
-    },
-    setWeeklyMenu: (state, action: PayloadAction<WeeklyMenuState>) => {
-      state.weeklyMenu = action.payload
     },
     shuffleWeeklyMenu: (state, action: PayloadAction<{ dishes: WeeklyMenuShuffleDish[] }>) => {
       const dishes = action.payload.dishes
@@ -292,6 +267,29 @@ const coordinationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(updateWeeklyMenuDish, (state, action) => {
+        const { day, slotType, dishId } = action.payload
+        if (state.weeklyMenu[day]) {
+          state.weeklyMenu[day][slotType].dishId = dishId
+
+          // Also update all unlocked customer orders for that day & shift to match this new default dish if it is savory
+          if (slotType === 'morningSavory' || slotType === 'afternoonSavory') {
+            const targetShift = slotType === 'morningSavory' ? 'Ca Sáng' : 'Ca Chiều'
+            const lockKey = `${day}-${targetShift}`
+            const isCurrentlyLocked = !!state.lockedShifts[lockKey]
+            if (!isCurrentlyLocked) {
+              state.orders.forEach((order) => {
+                if (order.dayOfWeek === day && order.shift === targetShift) {
+                  order.dishId = dishId
+                }
+              })
+            }
+          }
+        }
+      })
+      .addCase(setWeeklyMenu, (state, action) => {
+        state.weeklyMenu = action.payload
+      })
       // Fetch active orders
       .addCase(fetchActiveOrders.pending, (state) => {
         state.loading = true
@@ -415,13 +413,13 @@ export const {
   setCurrentDayOfWeek,
   setCurrentServiceDate,
   updateOrderDish,
-  updateWeeklyMenuDish,
   setLossRate,
-  setWeeklyMenu,
   shuffleWeeklyMenu,
   addAuditLog,
   clearError,
 } = coordinationSlice.actions
+
+export { setWeeklyMenu, updateWeeklyMenuDish }
 
 export default coordinationSlice.reducer
 

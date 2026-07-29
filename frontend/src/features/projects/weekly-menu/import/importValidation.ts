@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import {
   formatImportDate,

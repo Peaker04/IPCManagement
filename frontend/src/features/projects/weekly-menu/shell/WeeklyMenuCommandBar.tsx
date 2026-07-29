@@ -1,7 +1,7 @@
 import { Edit, Upload } from 'lucide-react'
 import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
-import type { CoordinationCustomerOption } from '../../../coordination/coordinationApi'
+import type { CoordinationCustomerOption } from '@/api/coordinationApi'
 
 type CommandProps = {
   customers: CoordinationCustomerOption[]

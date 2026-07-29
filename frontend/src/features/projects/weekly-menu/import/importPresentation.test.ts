@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import { DEFAULT_BOM_PRICE_TIER } from '../../weeklyMenuPlanning'
 import type { WeeklyMenuImportJob } from '../model/types'
 import { buildImportPresentation } from './importPresentation'

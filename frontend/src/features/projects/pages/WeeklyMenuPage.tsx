@@ -1,6 +1,6 @@
 import { Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { setWeeklyMenu } from '../../coordination/coordinationSlice';
+import { setWeeklyMenu } from '@/lib/coordinationActions';
 import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
@@ -10,7 +10,7 @@ import {
   useGetCommittedWeeklyMenuQuery,
   useGetMealQuantityPlansQuery,
   useGetMenuSchedulesQuery,
-} from '../../coordination/coordinationApi';
+} from '@/api/coordinationApi';
 import { isBomPriceTier, normalizeBomPriceTier } from '../weeklyMenuPlanning';
 import {
   formatImportDate,

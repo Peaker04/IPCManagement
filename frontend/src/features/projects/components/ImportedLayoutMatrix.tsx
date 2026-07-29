@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { TableViewport } from '@/components/common'
 import { cn } from '@/lib/utils'
-import type { WeeklyMenuImportResult } from '@/features/coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 
 export type ImportedLayoutRow = {
   key: string

@@ -1,5 +1,5 @@
 import { useMemo, useReducer, useRef } from 'react'
-import type { CreateCustomerContractRequest } from '../../../coordination/types'
+import type { CreateCustomerContractRequest } from '@/types/coordination'
 import {
   useCommitWeeklyMenuImportMutation,
   useCreateCustomerContractMutation,
@@ -8,8 +8,8 @@ import {
   usePreviewWeeklyMenuImportMutation,
   useRollbackWeeklyMenuImportMutation,
   useSaveCustomerImportMappingMutation,
-} from '../../../coordination/coordinationApi'
-import type { CoordinationCustomerOption, WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+} from '@/api/coordinationApi'
+import type { CoordinationCustomerOption, WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage, isValidWeekStartDate } from '../model/formatters'
 import type { WeeklyMenuImportJob } from '../model/types'
