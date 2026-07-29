@@ -57,27 +57,38 @@ function Invoke-E2EApi {
     }
 
     $uri = "$BaseUrl$Path"
-    try {
-        if ($null -eq $Body) {
-            return Invoke-RestMethod -Method $Method -Uri $uri -Headers $headers
-        }
+    $maxAttempts = 5
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        try {
+            if ($null -eq $Body) {
+                return Invoke-RestMethod -Method $Method -Uri $uri -Headers $headers
+            }
 
-        return Invoke-RestMethod `
-            -Method $Method `
-            -Uri $uri `
-            -Headers $headers `
-            -ContentType "application/json" `
-            -Body ($Body | ConvertTo-Json -Depth 40)
-    }
-    catch {
-        $response = $_.Exception.Response
-        if ($response) {
-            $reader = New-Object IO.StreamReader($response.GetResponseStream())
-            $text = $reader.ReadToEnd()
-            throw "HTTP $($response.StatusCode) $Method $Path :: $text"
+            return Invoke-RestMethod `
+                -Method $Method `
+                -Uri $uri `
+                -Headers $headers `
+                -ContentType "application/json" `
+                -Body ($Body | ConvertTo-Json -Depth 40)
         }
+        catch {
+            $response = $_.Exception.Response
+            if ($response -and [int]$response.StatusCode -eq 429 -and $attempt -lt $maxAttempts) {
+                $retryAfter = [int]0
+                [int]::TryParse([string]$response.Headers["Retry-After"], [ref]$retryAfter) | Out-Null
+                $delaySeconds = [Math]::Min([Math]::Max($retryAfter, 15 * $attempt), 60)
+                Write-E2ELog "Rate limited: $Method $Path; retry $($attempt + 1)/$maxAttempts in ${delaySeconds}s." | Out-Null
+                Start-Sleep -Seconds $delaySeconds
+                continue
+            }
+            if ($response) {
+                $reader = New-Object IO.StreamReader($response.GetResponseStream())
+                $text = $reader.ReadToEnd()
+                throw "HTTP $($response.StatusCode) $Method $Path :: $text"
+            }
 
-        throw
+            throw
+        }
     }
 }
 
@@ -249,41 +260,54 @@ $serviceDateValue = [DateTime]::ParseExact($ServiceDate, "yyyy-MM-dd", [Globaliz
 $dayKeys = @("cn", "t2", "t3", "t4", "t5", "t6", "t7")
 $dayOfWeek = $dayKeys[[int]$serviceDateValue.DayOfWeek]
 $defaultServingsByShift = @{ MORNING = 840; AFTERNOON = 870 }
-foreach ($scheduleShift in @($serviceSchedules.shiftName | Sort-Object -Unique)) {
-    $normalizedShift = Normalize-Status $scheduleShift
-    if (-not $defaultServingsByShift.ContainsKey($normalizedShift)) {
-        throw "No E2E servings fixture is defined for shift $scheduleShift."
-    }
-    $forecast = Invoke-E2EApi -Method "POST" -Path "/api/coordination/meal-quantity-plans/quick-servings" -Token $token -Body @{
-        customerId = $customer.customerId
-        serviceDate = $ServiceDate
-        shiftName = $normalizedShift
-        servings = $defaultServingsByShift[$normalizedShift]
-        complete = $false
-    }
-    Assert-Success $forecast "Quick servings forecast $normalizedShift"
-    Write-E2ELog "Serving forecast created: shift=$normalizedShift, servings=$($defaultServingsByShift[$normalizedShift])."
-}
-$locked = Invoke-E2EApi -Method "POST" -Path "/api/coordination/orders/lock" -Token $token -Body @{
-    serviceDate = $ServiceDate
-    dayOfWeek = $dayOfWeek
-    shiftName = "MORNING"
-    scope = "FULLDAY"
-    lines = @()
-}
-Assert-Success $locked "Full-day servings lock"
-Write-E2ELog "Serving plans locked: scope=$($locked.data.scope), shifts=$($locked.data.lockedShiftNames -join ','), lines=$($locked.data.lockedLineCount)."
+$scheduledShifts = @($serviceSchedules.shiftName | ForEach-Object { Normalize-Status $_ } | Sort-Object -Unique)
+$existingPlans = Invoke-E2EApi -Method "GET" `
+    -Path "/api/coordination/meal-quantity-plans?serviceDate=$ServiceDate" -Token $token
+Assert-Success $existingPlans "Existing meal quantity plan lookup"
+$completedShifts = @($existingPlans.data | Where-Object { (Normalize-Status $_.status) -eq "COMPLETED" } |
+    ForEach-Object { $_.lines } | ForEach-Object { Normalize-Status $_.shiftName } | Sort-Object -Unique)
+$allScheduledShiftsCompleted = $scheduledShifts.Count -gt 0 -and
+    @($scheduledShifts | Where-Object { $_ -notin $completedShifts }).Count -eq 0
 
-foreach ($lockedShift in @($locked.data.lockedShiftNames)) {
-    $signedOff = Invoke-E2EApi -Method "POST" -Path "/api/coordination/orders/signoff" -Token $token -Body @{
+if ($allScheduledShiftsCompleted) {
+    Write-E2ELog "Coordination setup skipped; completed shifts already exist: $($completedShifts -join ',')."
+}
+else {
+    foreach ($normalizedShift in $scheduledShifts) {
+        if (-not $defaultServingsByShift.ContainsKey($normalizedShift)) {
+            throw "No E2E servings fixture is defined for shift $normalizedShift."
+        }
+        $forecast = Invoke-E2EApi -Method "POST" -Path "/api/coordination/meal-quantity-plans/quick-servings" -Token $token -Body @{
+            customerId = $customer.customerId
+            serviceDate = $ServiceDate
+            shiftName = $normalizedShift
+            servings = $defaultServingsByShift[$normalizedShift]
+            complete = $false
+        }
+        Assert-Success $forecast "Quick servings forecast $normalizedShift"
+        Write-E2ELog "Serving forecast created: shift=$normalizedShift, servings=$($defaultServingsByShift[$normalizedShift])."
+    }
+    $locked = Invoke-E2EApi -Method "POST" -Path "/api/coordination/orders/lock" -Token $token -Body @{
         serviceDate = $ServiceDate
         dayOfWeek = $dayOfWeek
-        shiftName = $lockedShift
-        scope = "SHIFT"
-        note = "ANV 25k E2E completes servings before material demand generation."
+        shiftName = "MORNING"
+        scope = "FULLDAY"
+        lines = @()
     }
-    Assert-Success $signedOff "Coordination signoff $lockedShift"
-    Write-E2ELog "Coordination shift signed off: shift=$lockedShift, status=$($signedOff.data.newStatus), plans=$($signedOff.data.affectedPlanCount)."
+    Assert-Success $locked "Full-day servings lock"
+    Write-E2ELog "Serving plans locked: scope=$($locked.data.scope), shifts=$($locked.data.lockedShiftNames -join ','), lines=$($locked.data.lockedLineCount)."
+
+    foreach ($lockedShift in @($locked.data.lockedShiftNames)) {
+        $signedOff = Invoke-E2EApi -Method "POST" -Path "/api/coordination/orders/signoff" -Token $token -Body @{
+            serviceDate = $ServiceDate
+            dayOfWeek = $dayOfWeek
+            shiftName = $lockedShift
+            scope = "SHIFT"
+            note = "ANV 25k E2E completes servings before material demand generation."
+        }
+        Assert-Success $signedOff "Coordination signoff $lockedShift"
+        Write-E2ELog "Coordination shift signed off: shift=$lockedShift, status=$($signedOff.data.newStatus), plans=$($signedOff.data.affectedPlanCount)."
+    }
 }
 
 $documents = Invoke-E2EApi -Method "GET" -Path "/api/workflow-reports/workflow-documents?dateFrom=$ServiceDate&dateTo=$ServiceDate&limit=100" -Token $token
@@ -346,7 +370,7 @@ Assert-Success $purchaseList "Purchase request lookup"
 $existingPurchase = @($purchaseList.data | Where-Object { $_.purchaseRequestCode -eq $purchaseRequestCode }) | Select-Object -First 1
 
 # Check if existing PR is valid for workflow or needs regeneration
-$existingPurchaseStatus = Normalize-Status $existingPurchase.status
+$existingPurchaseStatus = if ($null -eq $existingPurchase) { "" } else { Normalize-Status $existingPurchase.status }
 if ($null -ne $existingPurchase -and $existingPurchaseStatus -eq "CANCELLED") {
     Write-E2ELog "Existing purchase request is CANCELLED. Creating new PR from demand."
     $purchase = Invoke-E2EApi -Method "POST" -Path "/api/purchase-workflow/from-demand" -Token $token -Body @{
@@ -524,7 +548,10 @@ if ($dailyPlan.data.sentPlans -ne $dailyPlan.data.totalPlans) {
 }
 Write-E2ELog "Production plan sent to kitchen: $($dailyPlan.data.sentPlans)/$($dailyPlan.data.totalPlans)."
 
-$existingKitchenIssues = Invoke-E2EApi -Method "GET" -Path "/api/workflow-reports/kitchen-issues?dateFrom=$ServiceDate&dateTo=$ServiceDate&limit=500" -Token $token
+$today = (Get-Date).Date
+$reportDateFrom = if ($serviceDateValue -lt $today) { $ServiceDate } else { $today.ToString("yyyy-MM-dd") }
+$reportDateTo = if ($serviceDateValue -gt $today) { $ServiceDate } else { $today.ToString("yyyy-MM-dd") }
+$existingKitchenIssues = Invoke-E2EApi -Method "GET" -Path "/api/workflow-reports/kitchen-issues?dateFrom=$reportDateFrom&dateTo=$reportDateTo&limit=500" -Token $token
 Assert-Success $existingKitchenIssues "Existing kitchen issue lookup"
 $requestKitchenIssues = @($existingKitchenIssues.data | Where-Object { $_.materialRequestId -eq $materialRequestId })
 $confirmedIssues = @()
@@ -668,8 +695,8 @@ Write-E2ELog "Inventory allocation completed across $($issueCodes.Count) warehou
 
 $reports = @(
     @{ Name = "purchase-demand"; Path = "/api/workflow-reports/purchase-demand?dateFrom=$ServiceDate&dateTo=$ServiceDate&limit=20" },
-    @{ Name = "stock-movements"; Path = "/api/workflow-reports/stock-movements?dateFrom=$ServiceDate&dateTo=$(Get-Date -Format 'yyyy-MM-dd')&limit=20" },
-    @{ Name = "kitchen-issues"; Path = "/api/workflow-reports/kitchen-issues?dateFrom=$ServiceDate&dateTo=$(Get-Date -Format 'yyyy-MM-dd')&limit=20" },
+    @{ Name = "stock-movements"; Path = "/api/workflow-reports/stock-movements?dateFrom=$reportDateFrom&dateTo=$reportDateTo&limit=20" },
+    @{ Name = "kitchen-issues"; Path = "/api/workflow-reports/kitchen-issues?dateFrom=$reportDateFrom&dateTo=$reportDateTo&limit=20" },
     @{ Name = "audit-changes"; Path = "/api/workflow-reports/audit-changes?limit=20" }
 )
 

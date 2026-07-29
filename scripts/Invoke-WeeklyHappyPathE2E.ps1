@@ -7,7 +7,8 @@ param(
     [decimal]$PriceTierAmount = 25000,
     [string]$WeeklyMenuTemplatePath = "",
     [string]$OutputRoot = ".artifacts/e2e",
-    [switch]$SkipSeedReset
+    [switch]$SkipSeedReset,
+    [switch]$SkipInitialWeeklyMenuImport
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,7 +67,7 @@ function Invoke-DailyLifecycle {
     }
 }
 
-Invoke-DailyLifecycle -Date $WeekStartDate
+Invoke-DailyLifecycle -Date $WeekStartDate -ReusePublishedMenu:$SkipInitialWeeklyMenuImport
 
 $login = Invoke-RestMethod -Method Post -Uri "$BaseUrl/api/auth/login" -ContentType "application/json" -Body (@{
     username = $Username
