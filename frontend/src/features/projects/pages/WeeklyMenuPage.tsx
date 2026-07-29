@@ -1,5 +1,6 @@
 import { Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
+import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
 import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
@@ -49,9 +50,9 @@ import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
 const WeeklyMenuPage = () => {
   const dispatch = useAppDispatch();
-  const reduxWeeklyMenu = useAppSelector((state) => state.coordination.weeklyMenu);
-  const orders = useAppSelector((state) => state.coordination.orders);
-  const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts);
+  const reduxWeeklyMenu = useCoordinationStoreSelector((state) => state.coordination.weeklyMenu);
+  const orders = useCoordinationStoreSelector((state) => state.coordination.orders);
+  const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts);
   const catalogQuery = useGetDishesCatalogQuery();
   const catalogView = toLabeledQueryView(catalogQuery, 'danh mục món và BOM', {
     instruction: 'Mở kế hoạch tuần để tải danh mục món và BOM.',

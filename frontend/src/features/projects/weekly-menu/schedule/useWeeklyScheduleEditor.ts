@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer } from 'react'
-import { useAppDispatch } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
 import { updateWeeklyMenuDish } from '@/lib/coordinationActions'
 import type { MealQuantityPlanDto, MenuScheduleDto, OrderRow, WeeklyMenuState } from '@/types/coordination'
 import type { WeeklyMenuImportResult } from '@/api/coordinationApi'

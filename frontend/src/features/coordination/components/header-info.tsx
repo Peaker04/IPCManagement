@@ -3,7 +3,8 @@
 import { CalendarClock, Sun, Sunset } from 'lucide-react'
 import type { ShiftType } from '../types'
 import { SHIFT_LABELS } from '@/lib/constants'
-import { useAppDispatch, useCurrentShift, useAppSelector } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
+import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { setCurrentServiceDate, setCurrentShift } from '../coordinationSlice'
 import { useCountdown } from './hooks'
 
@@ -14,7 +15,7 @@ interface HeaderInfoProps {
 export function HeaderInfo({ status }: HeaderInfoProps) {
   const dispatch = useAppDispatch()
   const shift = useCurrentShift()
-  const currentServiceDate = useAppSelector((state) => state.coordination.currentServiceDate)
+  const currentServiceDate = useCoordinationSelector((state) => state.coordination.currentServiceDate)
   const { timeRemaining, isPastCutoff } = useCountdown(currentServiceDate)
   
   const handleShiftChange = (newShift: ShiftType) => {

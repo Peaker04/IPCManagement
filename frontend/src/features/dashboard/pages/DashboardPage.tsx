@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch } from '@/lib/reduxHooks';
 import { CommandBar, OperationalFrame, QueryErrorAlert } from '@/components/common';
 import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';

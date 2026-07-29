@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/components/common'
 import type { QueryView } from '@/lib/queryView'
 
-vi.mock('@/app/hooks', () => ({
-  useAppSelector: (selector: (state: unknown) => unknown) => selector({ auth: { user: null } }),
+vi.mock('@/components/common/ActionGuard', () => ({
+  ActionGuard: ({ fallback = null }: { fallback?: unknown }) => fallback,
 }))
 
 import { MaterialDemandSection } from './MaterialDemandSection'

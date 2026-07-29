@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../../../app/hooks';
+import { useAppDispatch } from '@/lib/reduxHooks';
 import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
 import { normalizeUserRole, type AppRole } from '../roleUtils';

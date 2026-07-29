@@ -5,12 +5,13 @@ import { AlertTriangle, CheckCircle, FileDown, Lock, Unlock } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { InlineAlert } from '@/components/common'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useAppDispatch, useOrders, useCurrentShift, useAppSelector } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
+import { useCoordinationSelector, useCurrentShift, useOrders } from '../coordinationHooks'
 import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
 import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationScopeMutation, useUnlockCoordinationScopeMutation } from '@/api/coordinationApi'
 import { toDisplayShift } from '../types'
 import type { ShiftType } from '../types'
-import { ActionGuard } from '@/routes/ActionGuard'
+import { ActionGuard } from '@/components/common/ActionGuard'
 
 type ConfirmationAction = 'lock' | 'export' | 'signoff' | 'unlock' | null
 
@@ -108,10 +109,10 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const dispatch = useAppDispatch()
   const allOrders = useOrders()
   const currentShift = useCurrentShift()
-  const selectedServiceDate = useAppSelector((state) => state.coordination.currentServiceDate)
-  const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
-  const currentUserName = useAppSelector((state) => state.auth.user?.fullName) ?? 'Điều phối ca'
-  const authToken = useAppSelector((state) => state.auth.token)
+  const selectedServiceDate = useCoordinationSelector((state) => state.coordination.currentServiceDate)
+  const currentDayOfWeek = useCoordinationSelector((state) => state.coordination.currentDayOfWeek)
+  const currentUserName = useCoordinationSelector((state) => state.auth.user?.fullName) ?? 'Điều phối ca'
+  const authToken = useCoordinationSelector((state) => state.auth.token)
   const [lockCoordinationOrders, { isLoading: isLocking }] = useLockCoordinationOrdersMutation()
   const [exportCoordinationOrders, { isLoading: isExporting }] = useExportCoordinationOrdersMutation()
   const [signoffCoordinationScope, { isLoading: isSigningOff }] = useSignoffCoordinationScopeMutation()

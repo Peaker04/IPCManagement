@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { OrderRow, OrderUpdatePayload } from '../types'
-import { useAppDispatch } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '@/api/coordinationApi'
 import { EmptyState, InlineAlert, PaginationBar, TableViewport } from '@/components/common'

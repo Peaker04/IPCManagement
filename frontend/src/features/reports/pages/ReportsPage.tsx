@@ -25,7 +25,8 @@ import {
   StockMovementTable,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { useHasPermission, useHasRole } from '@/app/hooks';
+import { useHasPermission } from '@/lib/useHasPermission';
+import { useHasRole } from '@/lib/useHasRole';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';

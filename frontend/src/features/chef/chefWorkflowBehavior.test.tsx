@@ -16,8 +16,8 @@ const mocks = vi.hoisted(() => ({
   sendDailyPlan: vi.fn(),
 }))
 
-vi.mock('@/app/hooks', () => ({
-  useAppSelector: (selector: (state: unknown) => unknown) => selector({
+vi.mock('@/lib/coordinationStore', () => ({
+  useCoordinationStoreSelector: (selector: (state: unknown) => unknown) => selector({
     coordination: { orders: [], lossRate: 0 },
   }),
 }))

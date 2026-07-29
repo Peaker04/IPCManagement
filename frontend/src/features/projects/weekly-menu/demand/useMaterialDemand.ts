@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useAppDispatch } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
 import { apiSlice } from '@/api/apiSlice'
 import { useGenerateMaterialDemandMutation, useGetApprovalHistoryQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialDemandStalenessQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
 import type { DemandLine } from '@/types/workflow'

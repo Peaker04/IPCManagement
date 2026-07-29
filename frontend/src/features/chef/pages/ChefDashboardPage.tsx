@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { useAppSelector } from '@/app/hooks'
+import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '@/types/coordination'
@@ -18,7 +18,7 @@ import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
 
 export default function ChefDashboardPage() {
-  const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
+  const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
   const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
   const [selectedView, setSelectedView] = useState<'production' | 'documents'>('production')

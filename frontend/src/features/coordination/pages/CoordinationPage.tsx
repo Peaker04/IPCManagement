@@ -3,7 +3,8 @@ import { HeaderInfo } from '../components/header-info'
 import { OrderStatusBanner } from '../components/order-status-banner'
 import { OrderTable } from '../components/order-table'
 import { ActionToolbar } from '../components/action-toolbar'
-import { useAppDispatch, useAppSelector, useCurrentShift } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
+import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { syncOrdersForShift } from '../coordinationSlice'
 import { useGetCoordinationOrdersQuery, useGetMealQuantityPlansQuery } from '@/api/coordinationApi'
 import { toApiShiftName } from '../types'
@@ -16,10 +17,10 @@ import { toLabeledQueryView } from '@/lib/labeledQueryView'
 export default function CoordinationPage() {
   const dispatch = useAppDispatch()
   const currentShift = useCurrentShift()
-  const currentServiceDate = useAppSelector((state) => state.coordination.currentServiceDate)
-  const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
-  const allOrders = useAppSelector((state) => state.coordination.orders)
-  const localError = useAppSelector((state) => state.coordination.error)
+  const currentServiceDate = useCoordinationSelector((state) => state.coordination.currentServiceDate)
+  const currentDayOfWeek = useCoordinationSelector((state) => state.coordination.currentDayOfWeek)
+  const allOrders = useCoordinationSelector((state) => state.coordination.orders)
+  const localError = useCoordinationSelector((state) => state.coordination.error)
   const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, serviceDate: currentServiceDate, shift: currentShift })
   const shiftName = toApiShiftName(currentShift)
   const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, serviceDate: currentServiceDate, shiftName })

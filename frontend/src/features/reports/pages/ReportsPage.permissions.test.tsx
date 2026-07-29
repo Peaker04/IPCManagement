@@ -4,8 +4,8 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import authReducer from '@/features/auth/authSlice';
-import type { User } from '@/features/auth/authTypes';
+import authReducer from '@/lib/auth/authSlice';
+import type { User } from '@/lib/auth/authTypes';
 
 const emptyResult = () => ({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() });
 
