@@ -5,7 +5,7 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 
 ## Dọn lịch sử và CI ngày 29/07/2026
 
-- Branch đang làm việc là `main`. Lịch sử hiện có 85 commit milestone liên tục với ngày author/committer chính xác, ranh giới Phase 8–16 rõ ràng, cộng một commit sửa CI ngày 29/07.
+- Branch đang làm việc là `feature/workflow-b17-b18`, tách trực tiếp từ `main` tại `6c9931a` để tiếp tục Phase 17 rồi Phase 18. Lịch sử nền có 85 commit milestone liên tục với ngày author/committer chính xác, ranh giới Phase 8–16 rõ ràng, cộng một commit sửa CI ngày 29/07.
 - Remote `main` đã được thay bằng lịch sử curated qua `--force-with-lease`; tip cũ `968b2ed` vẫn được giữ tại `backup/main-before-history-curation-20260729-000323`. Backup của `feature/production-plan`, local `main` cũ, Git bundle và manifest phục dựng cũng vẫn được giữ.
 - Lỗi CI boundary xuất phát từ việc test dùng `DateTime.Today` của runner UTC trong khi validator dùng `ServiceCalendar.Today()` theo giờ Việt Nam. Test đã dùng chung service calendar và pass khi ép `TZ=UTC`.
 - Lỗi integration refresh-token trong run backup feature `e67f0e0` là contract test cũ. Lịch sử hiện tại xác minh refresh token không xuất hiện trong response body và được phát hành bằng cookie HttpOnly.
@@ -29,7 +29,7 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 
 | Thành phần | Giá trị đã kiểm tra ngày 28/07/2026 |
 |---|---|
-| Git branch | `feature/production-plan` |
+| Git branch | `feature/workflow-b17-b18` (checkout chính; lane checkout cũ vẫn có thể ở `feature/production-plan`) |
 | Shipyard UI | `http://localhost:8090` — **không listen khi kiểm tra đầu phiên 28/07** |
 | Frontend lane 1 | `http://localhost:3001` — **không listen khi kiểm tra đầu phiên 28/07** |
 | API lane 1 | `http://localhost:8001` — **không listen khi kiểm tra đầu phiên 28/07** |
@@ -876,10 +876,32 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Công việc production xen ngang đã tạo commit `7e79106` để hai data migration dùng collation tường minh;
   full source gate sau incident xanh và được giữ nguyên khi đóng Bước 16.
 
+## Goal audit Shipyard/import — 2026-07-29
+
+- Đã đối chiếu read-only `ipcmanagement` với `ipc_lane1` trước cleanup: 61/61 bảng, 594/594 cột, 288/288 index, 130/130 FK, 41/41 migration và checksum nghiệp vụ khớp; drift duy nhất là 34 `refreshtokens` phiên cục bộ. Đã tạo backup SHA-256 mirror tại `D:\Backups\ipc-goal-20260729` và `C:\Users\Administrator\ipc-goal-20260729`.
+- Đã dừng writer rồi cleanup riêng trên `ipc_lane1`; menu/quantity/material/purchase/order/inventory transaction chain về 0, giữ master/BOM/currentstock, dynamic FK orphan audit = 0, `/health/ready` vẫn Healthy. Không reset từ `ipc_e2e_template` vì template stale (56 bảng/32 migration).
+- Shipyard dashboard đã được mở headed ở `http://127.0.0.1:8090`: trang và `/api/lanes`, `/api/proof/1` trả 200, không console/page/request error và không overflow. Card lane 1 ghi đúng source-backed `api=:8001 fe=:3001 db=ipc_lane1`; stage/heartbeat của harness vẫn stale (`down`/`DEAD`) vì app được boot trực tiếp từ checkout chính, không qua `lane-up.sh`. Evidence: `.artifacts/shipyard-live/goal-runtime-20260729/shipyard-dashboard/`.
+- Import fixture thật đã pass preview + commit cho hai khách trong cùng tuần `2026-07-20`:
+  - ANV tier 25k: 92 source rows, 12 schedule, đúng một tier 25000.
+  - DAV tier 34k: 92 source rows, 12 schedule, đúng một tier 34000.
+  - Không duplicate customer/date/shift, không mixed tier/customer-week. Preview lặp lại 25k/30k/34k xác nhận 25k dùng sheet `ANV 25k`; 30k/34k fallback về sheet có dữ liệu và phát đúng một cảnh báo shared-menu. Evidence: `tier-preview-matrix-repeat.json`, `import-e2e-summary.json`, `import-isolation.json`.
+- Import ban đầu làm 27 món catalog dùng chung bị ghi đè `dishGroup/dishType` theo slot cuối. Lane đã được repair transaction từ base: 27/27 dòng khôi phục và checksum `dishes` hai DB cùng `20734622`. `EnsureImportedMenuDish`/`EnsureDish` đã sửa để món tồn tại giữ classification global; test regression pass.
+- FE Coordination đã có ngày phục vụ thật và mọi GET/lock/signoff/unlock/export truyền `serviceDate`; countdown 08:30 tính theo ngày được chọn. Chrome headed với clock shim đã chọn ngày lịch sử `2026-07-21`, lock FULLDAY và signoff cả Ca sáng/Ca chiều từ control thật; request body đúng ngày, mỗi ca 2 plan `COMPLETED`, reload FE vẫn render terminal state. Backend đồng thời đã sửa query ca để MORNING không trả plan AFTERNOON.
+- Lifecycle dữ liệu tuần import đã kết thúc có audit: trước correction, DB phát hiện version/schedule của ANV/DAV còn `DRAFT` dù 4 plan/khách đã `COMPLETED`. Endpoint version đã chuyển 24 schedule và 2 menu version `DRAFT → ACTIVE` với reason audit. Trạng thái cuối trực tiếp trong DB: ANV `ACTIVE/25k/12 schedule/4 COMPLETED plan`; DAV `ACTIVE/34k/12 schedule/4 COMPLETED plan`. Chrome headed chọn lần lượt hai khách và tuần `2026-07-20`, render đúng tier, badge `Đang dùng`, 86/86 dòng món có BOM, không overflow/lỗi. Evidence: `menu-lifecycle-finalization.json`, `headed-weekly-customer-lifecycle-audit.json` và hai ảnh `*-active.png`.
+- UI/UX đã sửa theo compact SAP Fiori hiện có: form import responsive 1→2→5 cột; tab compact `nowrap`, bỏ min-width dư và có scrollbar mảnh; bỏ global table `height:auto`; tablet 768 dùng navigation gọn; hoàn chỉnh tabpanel ARIA cho Reports/Purchasing/Chef; thêm search cho warehouse supplemental/return, Coordination order, import queue và import history. Search import browser test lọc lịch sử 2→1 dòng với `DAV`.
+- Audit toàn dự án cuối: 30 route/viewport capture, 96 tab interaction, 0 `aria-controls` thiếu, 0 tab wrap/clipping, 0 page overflow, 0 console/page error, 0 API >=400. Hai request `ERR_ABORTED` là query bị hủy khi chuyển route. CLS cao nhất `0.006945` ở Purchasing 1280; Chef 768 giảm từ `0.0764` xuống `0.000758`, không long task. Evidence authoritative: `.artifacts/shipyard-live/goal-runtime-20260729/all-tabs/headed-all-tabs-audit.json`.
+- Quality gate cuối trước khi tách commit: backend Application 49/49, API 669 pass/1 skip; frontend 419/419, lint, dependency-cruiser và production build xanh; `git diff --check` không có whitespace error. Diff đã được commit cục bộ thành các lát reviewable trên `feature/workflow-b17-b18`; chưa push.
+- GitNexus staged audit trước từng commit: backend **CRITICAL** (10 file/48 symbol/26 flow), historical Coordination **MEDIUM** (12 file/26 symbol/1 flow), UI/search/accessibility **CRITICAL** (14 file/18 symbol/16 flow). Impact upstream trước từng symbol sửa trong phiên triển khai là LOW; component dùng chung `ViewSwitcher` từng báo CRITICAL nên không bị chỉnh trực tiếp.
+- Blocker workbook còn nguyên do runtime artifact không cung cấp `load_workspace_dependencies`/`@oai/artifact-tool`. Theo spreadsheet skill không được fallback sang openpyxl, XML hand-edit, Excel COM hoặc tự cài package. Vì vậy chưa thể tự author một workbook export mới có đồng thời món đủ BOM, existing/new dish thiếu BOM, merge ô dài và một sheet được fill cho từng tier 25/30/34k. Parser/unit đã có coverage merged-cell và unknown-dish; preview matrix tier đã chạy, nhưng không được gọi đó là workbook-authoring E2E.
+- Cell-level manifest cho lượt authoring kế tiếp đã sẵn sàng tại `.artifacts/shipyard-live/goal-runtime-20260729/workbook-case-manifest.json`: tuần `2026-07-27..2026-08-01`, 6 biến thể ANV/DAV × 25/30/34k, mỗi file chỉ fill đúng sheet tier tương ứng, 93 row dự kiến. Case gồm `BẦU NẤU TÔM` đủ BOM cả ba tier, `BÍ NGÒI XÀO CHAY` là món catalog thiếu BOM, hai món test mới thiếu BOM và merge dọc `G23:G26`; merge sẵn `D30:D33` được bảo toàn. Commit pair cuối vẫn là ANV 25k + DAV 34k cùng tuần.
+- Hai P0 đã được triển khai trong `5a15c46`: backend chặn lock/signoff khi menu chưa ACTIVE và chặn re-import khi có quantity plan irreversible. Phần còn hở: invariant một tier/customer/week cần enforce ở BE + DB thay vì chỉ UI; preview cần diagnostics BOM theo customer+tier+effective date; commit nên dùng preview token/checksum và batch hai khách cần atomic hoặc có recovery rõ ràng. P1: gắn provenance cho dish tạo bởi import và hoàn thiện search server-side cho các report/admin table paged lớn.
+- Lifecycle phiên: parity → backup → cleanup → preview/commit hai khách → repair catalog → quantity plan → historical lock/signoff → publish version/schedule → DB/API/browser reconciliation → toàn-route UI audit → quality gates → docs/GitNexus → shutdown đúng các process do phiên tạo. Không reset lane, không chép dữ liệu test ngược về base và không ghi credential vào evidence.
+- Sau teardown, FE `3001`, API `8001`, Shipyard `8090` đều không còn listen; MySQL `3306` vẫn chạy để giữ nguyên `ipc_lane1` và toàn bộ evidence/lineage.
+
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
-2. Chạy `git status --short --branch`; xác nhận vẫn ở `feature/production-plan`. Không reset, checkout hoặc commit thay đổi chưa rõ ownership.
+2. Chạy `git status --short --branch`; branch hiện hành của checkout chính là `feature/workflow-b17-b18`, tách từ `main` tại `6c9931a`. Không reset hoặc ghi đè thay đổi chưa rõ ownership; lane checkout cũ vẫn có thể hiển thị `feature/production-plan` và không phải source of truth của runtime goal này.
 3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
 3b. Bước 16 đã đóng; tiếp tục bằng discuss/plan **Step 17 — Frontend ownership**. Giữ một `apiSlice`,
    không đổi public hook/cache behavior và chưa thực hiện Step 18 trước khi Gate 17 xanh.
@@ -915,3 +937,22 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - `docs/DEVELOPMENT.md`: command, lane mapping và quy tắc phát triển.
 - `docs/ARCHITECTURE.md`: boundary FE/BE/DB và data flow.
 - `docs/CONFIGURATION.md`: cấu hình local/lane và biến môi trường.
+
+## Undo request P0 Điều phối — 2026-07-29
+
+- Người dùng xác nhận request chặn quick-complete và bắt buộc quay sang Điều phối đơn làm sai lệch nghiệp vụ, nên đã yêu cầu hoàn tác toàn bộ phần phát sinh từ request đó.
+- Đã inverse-patch đúng ownership, không reset/restore worktree: frontend khôi phục nút Hoàn tất Ca sáng/Ca chiều, completeQuickServing, complete=true và bước tự hoàn tất trước khi tạo nhu cầu; backend khôi phục quick completion như trước nhưng vẫn giữ guard có trước request là menu schedule/version phải được phát hành.
+- Năm file frontend cùng test phát sinh từ request đã biến mất hoàn toàn khỏi git status; backend chỉ còn các thay đổi lifecycle/search/import có trước request. Targeted gate sau undo: backend 1/1, frontend 6/6; backend Release build 0 warning và frontend production build pass.
+- ipc_lane1 đã được phục hồi bằng compensating transaction có precondition downstream bằng 0: 8/8 plan ANV/DAV ngày 20–21/07 trở lại COMPLETED; ConfirmedAt/By, CompletedAt/By, confirmationTime, confirmedServings, finalServings và line timestamp khớp evidence trước request. Không xóa audit: giữ 16 correction row và thêm 16 compensating undo row.
+- Evidence DB: .artifacts/shipyard-live/goal-runtime-20260729/quick-serving-lifecycle-undo.json.
+- Chrome thật headed, chỉ desktop 1365x900 và 1280x900: tab Nhu cầu có đúng 2 control hoàn tất, không còn link hướng dẫn thay thế, không overflow, 0 console/page/API error. Evidence: .artifacts/shipyard-live/goal-runtime-20260729/undo-browser/headed-desktop-undo-verification.json và hai screenshot cùng thư mục.
+- Runtime source-backed sau undo từng có `/health/ready` Healthy trên API 8001 và FE 3001 boot từ source hiện tại; sau teardown ba port 3001/8001/8090 đều đã tắt. Các thay đổi đã commit cục bộ, chưa push.
+
+## Tách branch và checkpoint commit B17–B18 — 2026-07-29
+
+- Tạo `feature/workflow-b17-b18` trực tiếp từ `main` tại `6c9931a`; không stash/reset và không đụng dữ liệu/evidence của `ipc_lane1`.
+- `5a15c46 fix(workflow): harden menu lifecycle boundaries` — backend lifecycle/import/report cùng regression tests.
+- `bf66dd7 fix(coordination): honor selected service date` — ngày phục vụ thật cho query/action/countdown và search bảng Điều phối.
+- `5d32a55 feat(ui): improve operational search and accessibility` — search, tabpanel ARIA và responsive styling cho các màn hình vận hành.
+- Các commit trên là checkpoint cho diff E2E đã xác minh, chưa phải triển khai Phase 17. Bước tiếp theo vẫn là discuss/plan Phase 17, giữ một `apiSlice`, ổn định public hook/cache behavior và chỉ chuyển Phase 18 sau khi Gate 17 xanh.
+- Không push; không chạy lại browser/backend/frontend gate trong thao tác tách branch vì code không đổi so với evidence/gate đã ghi ở trên. Mỗi commit đã qua `git diff --cached --check`, commit hooks và GitNexus staged `detect-changes`.
