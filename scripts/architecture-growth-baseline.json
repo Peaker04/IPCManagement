@@ -49,7 +49,7 @@
       "files": [
         "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
       ],
-      "lines": 1470,
+      "lines": 1446,
       "level": "PLAN_REQUIRED"
     },
     {

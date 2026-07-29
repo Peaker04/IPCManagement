@@ -93,7 +93,11 @@ public class MaterialDemandService : IMaterialDemandService
 
         var stockDict = currentStocks
             .GroupBy(s => Convert.ToBase64String(s.IngredientId))
-            .ToDictionary(g => g.Key, g => g.ToList());
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(stock => Convert.ToBase64String(stock.WarehouseId), StringComparer.Ordinal)
+                    .ThenBy(stock => Convert.ToBase64String(stock.UnitId), StringComparer.Ordinal)
+                    .ToList());
         var effectivePortionRules = await LoadEffectivePortionRulesAsync(serviceDate, cancellationToken);
 
         var outputLines = new Dictionary<string, MaterialDemandLineDto>();
@@ -121,9 +125,8 @@ public class MaterialDemandService : IMaterialDemandService
 
                 foreach (var bom in activeBomLines)
                 {
-                    var stockConversion = CalculateStockInBomUnit(
-                        stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), []),
-                        bom.Unit);
+                    var ingredientStocks = stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), []);
+                    var stockConversion = CalculateStockInBomUnit(ingredientStocks, bom.Unit);
                     missingConversionIssues.AddRange(stockConversion.MissingConversionIssues.Select(issue =>
                     {
                         var ingredientId = GuidHelper.ToGuidString(bom.IngredientId);
@@ -139,6 +142,7 @@ public class MaterialDemandService : IMaterialDemandService
                         stockConversion.Quantity,
                         portionRule.PortionRatePercent,
                         portionRule.YieldLossPercent);
+                    MaterialStockPool.ConsumeInBomUnit(ingredientStocks, bom.Unit, numbers.CurrentStockQty);
                     var requestLine = EnsureMaterialRequestLine(
                         materialRequest,
                         productionLine,
@@ -1342,7 +1346,7 @@ public class MaterialDemandService : IMaterialDemandService
         var issues = new List<MissingUnitConversionIssueDto>();
         foreach (var stock in stocks)
         {
-            if (TryConvertQuantity(stock.CurrentQty, stock.Unit, bomUnit, out var convertedQty))
+            if (MaterialStockPool.TryConvertQuantity(stock.CurrentQty, stock.Unit, bomUnit, out var convertedQty))
             {
                 total += convertedQty;
                 continue;
@@ -1353,34 +1357,6 @@ public class MaterialDemandService : IMaterialDemandService
 
         return new StockConversionResult(DecimalPolicy.RoundQuantity(total), DeduplicateConversionIssues(issues));
     }
-
-    private static bool TryConvertQuantity(decimal quantity, Unit sourceUnit, Unit targetUnit, out decimal convertedQty)
-    {
-        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
-        {
-            convertedQty = quantity;
-            return true;
-        }
-
-        if (!CanConvertUnits(sourceUnit, targetUnit))
-        {
-            convertedQty = 0m;
-            return false;
-        }
-
-        convertedQty = DecimalPolicy.RoundQuantity(quantity * sourceUnit.ConvertRateToBase / targetUnit.ConvertRateToBase);
-        return true;
-    }
-
-    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
-        => sourceUnit.ConvertRateToBase > 0 &&
-           targetUnit.ConvertRateToBase > 0 &&
-           string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
-
-    private static string NormalizedBaseUnitCode(Unit unit)
-        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
-            ? unit.UnitCode.Trim().ToUpperInvariant()
-            : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private static MissingUnitConversionIssueDto BuildMissingConversionIssue(Unit sourceUnit, Unit targetUnit)
     {

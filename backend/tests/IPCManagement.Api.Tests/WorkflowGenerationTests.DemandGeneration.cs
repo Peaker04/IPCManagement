@@ -543,6 +543,67 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_AllocateSharedStockAcrossDuplicateIngredientLines()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var menu = await context.Menus.SingleAsync();
+            var secondDish = new Dish
+            {
+                DishId = GuidHelper.NewId(),
+                DishCode = "DISH-SHARED-STOCK",
+                DishName = "Second dish using shared stock",
+                IsActive = true
+            };
+            context.Dishes.Add(secondDish);
+            context.Menuitems.Add(new MenuItem
+            {
+                MenuItemId = GuidHelper.NewId(),
+                MenuId = menu.MenuId,
+                DishId = secondDish.DishId,
+                DisplayOrder = 2
+            });
+            context.Dishboms.Add(new DishBom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = secondDish.DishId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                GrossQtyPerServing = 1,
+                WasteRatePercent = 0,
+                BomStatus = "PUBLISHED",
+                EffectiveFrom = new DateOnly(2026, 1, 1)
+            });
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 150m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            result!.Lines.Should().HaveCount(2);
+            result.Lines.Sum(line => line.TotalRequiredQty).Should().Be(300m);
+            result.Lines.Sum(line => line.CurrentStockQty).Should().Be(150m);
+            result.Lines.Sum(line => line.SuggestedPurchaseQty).Should().Be(150m);
+        }
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_NotDuplicateHeaderOrLines_WhenRunAgain()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
