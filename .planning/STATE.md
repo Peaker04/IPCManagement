@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
-status: planning
-stopped_at: Phase 17 context gathered; ready for planning
-last_updated: "2026-07-29T03:11:08.915Z"
+status: executing
+stopped_at: Phase 17 planned; 8 plans ready for execution
+last_updated: "2026-07-29T03:41:02.111Z"
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 6
+  total_plans: 14
   completed_plans: 6
-  percent: 75
+  percent: 43
 current_phase: 17
 current_phase_name: frontend-ownership
 ---
@@ -27,13 +27,13 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 Phase: 17 of 18 — Frontend ownership
 
-Plan: not created
+Plan: 8 plans across waves 0-6
 
-Status: ready for discussion/planning
+Status: Ready to execute
 
 Milestone phase progress: ████████░░ 75% (6/8 steps complete).
 
-Defined-plan progress: ██████████ 100% (6/6 defined plans complete; Steps 17–18 remain intentionally unplanned).
+Defined-plan progress: 8/8 plans defined; 0/8 executed
 
 Step 16 work-package progress: 5/5 complete.
 
@@ -116,11 +116,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T03:11:08.909Z
+**Last Date:** 2026-07-29T03:41:02.000Z
 
-**Stopped At:** Phase 17 context gathered; ready for planning
+**Stopped At:** Phase 17 planned; 8 plans ready for execution
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-CONTEXT.md
+**Resume File:** .planning/phases/17-frontend-ownership/17-01-PLAN.md
 
 ## Constraints
 
