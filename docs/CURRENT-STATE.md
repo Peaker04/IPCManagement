@@ -956,3 +956,27 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - `5d32a55 feat(ui): improve operational search and accessibility` — search, tabpanel ARIA và responsive styling cho các màn hình vận hành.
 - Các commit trên là checkpoint cho diff E2E đã xác minh, chưa phải triển khai Phase 17. Bước tiếp theo vẫn là discuss/plan Phase 17, giữ một `apiSlice`, ổn định public hook/cache behavior và chỉ chuyển Phase 18 sau khi Gate 17 xanh.
 - Không push; không chạy lại browser/backend/frontend gate trong thao tác tách branch vì code không đổi so với evidence/gate đã ghi ở trên. Mỗi commit đã qua `git diff --cached --check`, commit hooks và GitNexus staged `detect-changes`.
+
+## Phase 17 Plan 04 — Tách workflow API theo owner — 2026-07-29
+
+- Hoàn tất bốn commit nguyên tử trên `feature/workflow-b17-b18`: `7700140` tách reports/dashboard/documents,
+  `6e35d5f` tách purchasing/warehouse, `57b89dc` tách chef/approvals/admin và `b2adb6f` thu gọn
+  `workflowApi.ts` thành compatibility barrel.
+- Runtime frontend chỉ còn đúng một production `createApi(` và một `reducerPath: 'api'`;
+  `workflowApi === apiSlice`. Public contract giữ nguyên đúng 75 endpoint key và 75 generated hook;
+  request args, transform, cache tag/invalidation và wire behavior không đổi.
+- Endpoint implementation hiện thuộc bảy feature owner cùng neutral `workflowDocumentsApi`; shared DTO/query
+  contract nằm ở `workflowApiTypes.ts`. Admin workflow được tách khỏi employee `adminApi` để không đăng ký
+  thêm năm endpoint ngoài contract 75-key; `adminApi.ts` vẫn re-export approval-rule hooks cho consumer cũ.
+- Dependency-cruiser dùng allowlist chính xác bảy owner module cho compatibility barrel, owner là Frontend
+  Architecture và review ở milestone v1.3. Baseline vẫn 16 ignored violation, không tăng.
+- Quality gate cuối: frontend **79 file / 428/428 test**, ESLint, dependency-cruiser, production build và
+  `check:api-contract` đều xanh; generated contract chạy lặp có SHA-256 giống nhau. OpenAPI/schema chỉ đồng bộ
+  query property `SearchKeyword` đã tồn tại ở backend.
+- GitNexus final staged audit là **HIGH**, 8 changed symbol và 8 process Dashboard/Warehouse qua
+  `useWorkflowOverview`/`buildRoleInbox`/`buildWorkflowLanes`; toàn bộ đã được xử lý bằng full test/build.
+  Cypher xác nhận 38 exact barrel importer ở confidence 1.0; rename dry-run thấy 44 file/103 reference và
+  không apply edit. Bảng disposition đầy đủ ở `.planning/phases/17-frontend-ownership/17-GITNEXUS-CALLSITES.md`,
+  Deferred rỗng.
+- Plan này không truy cập, reset, seed, import hoặc mutate database; không chạy browser vì API route, UI/DOM
+  và hành vi người dùng không đổi. Bước tiếp theo là Plan 17-05; chưa push.

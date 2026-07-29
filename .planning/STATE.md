@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: executing
-stopped_at: Completed 17-03-PLAN.md
-last_updated: "2026-07-29T04:36:54.941Z"
+stopped_at: Completed 17-04-PLAN.md
+last_updated: "2026-07-29T05:22:51.157Z"
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 14
-  completed_plans: 9
-  percent: 64
+  completed_plans: 10
+  percent: 71
 current_phase: 17
 current_phase_name: frontend-ownership
 ---
@@ -27,27 +27,32 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 Phase: 17 (frontend-ownership) — EXECUTING
 
-Plan: 4 of 8
+Plan: 5 of 8
 
 Status: Ready to execute
 
 Milestone phase progress: ████████░░ 75% (6/8 steps complete).
 
-Defined-plan progress: 8/8 plans defined; 3/8 executed
+Defined-plan progress: 8/8 plans defined; 4/8 executed
 
 Step 16 work-package progress: 5/5 complete.
 
 ## Verified Baseline
 
 - Branch `feature/workflow-b17-b18`; current Phase 17 code baseline is
-  `ed8c3d0 refactor(17-02): lower auth and layout ownership`. Không push trong phiên này.
+  `b2adb6f refactor(17-04): collapse workflow API to compatibility barrel`. Không push trong phiên này.
 
-- Plans 17-01 through 17-03 are complete. Coordination transport/types/actions now have lower owners,
-  Projects has zero Coordination feature imports, and the dependency baseline reduced 54 → 44 → 16.
-- Plan 17-03 focused gates passed at 61/61 and 133/133 tests plus lint, dependency-cruiser and build.
+- Plans 17-01 through 17-04 are complete. Coordination transport/types/actions and all workflow endpoints
+  now have explicit lower/feature owners, Projects has zero Coordination feature imports, and the dependency
+  baseline reduced 54 → 44 → 16 without expanding for the compatibility barrel.
 
-- GitNexus PDG index: 56,419 nodes, 102,663 edges, 471 clusters and 300 execution flows. Final staged
-  Task 2 audit reported 5 changed symbols across 22 files, LOW risk and 0 affected processes.
+- Plan 17-04 full gates passed at 428/428 frontend tests plus lint, dependency-cruiser, production build
+  and deterministic API-contract generation. The application has one RTK Query slice with exactly 75
+  workflow endpoint keys and 75 hooks.
+
+- GitNexus Plan 17-04 final staged audit reported HIGH risk, 8 changed symbols and 8 expected
+  Dashboard/Warehouse overview processes. All were enumerated and handled by the full frontend gates;
+  exact Cypher found 38 compatibility-barrel importers and Deferred is empty.
 
 - No database reset, seed, import or lane mutation occurred during Phase 17 execution.
 
@@ -115,6 +120,9 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 - [Phase 17]: Keep exactly one coordination injector and use feature API/type modules only as compatibility re-exports. — Preserves endpoint, hook, cache and existing import contracts without duplicate RTK Query registration.
 - [Phase 17]: Move only cross-feature weekly-menu actions to lib while Coordination retains reducer and presentation ownership. — Removes Projects-to-Coordination imports without broadening shared state ownership or changing Redux action types.
+- [Phase 17]: Keep workflowApi as a deterministic compatibility barrel over one apiSlice and seven enumerated owner injectors. — Preserves all 75 endpoint and hook contracts while assigning implementation ownership.
+- [Phase 17]: Keep employee administration endpoints outside workflow registration and expose approval-rule hooks through adminWorkflowApi plus adminApi re-exports. — Prevents five unrelated employee endpoints from expanding the exact 75-key workflow surface.
+- [Phase 17]: Permit only exact compatibility-barrel-to-owner imports through a milestone-v1.3 dependency rule. — Supports the stable barrel without expanding the known dependency violation baseline.
 
 ## Blockers
 
@@ -122,11 +130,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T04:36:54.933Z
+**Last Date:** 2026-07-29T05:22:51.150Z
 
-**Stopped At:** Completed 17-03-PLAN.md
+**Stopped At:** Completed 17-04-PLAN.md
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-04-PLAN.md
+**Resume File:** None
 
 ## Constraints
 
@@ -143,3 +151,4 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | Phase 17 P01 | 8 min | 2 tasks | 4 files |
 | Phase 17 P02 | 30min | 2 tasks | 16 files |
 | Phase 17 P03 | 25min | 2 tasks | 39 files |
+| Phase 17 P04 | 39min | 4 tasks | 14 files |

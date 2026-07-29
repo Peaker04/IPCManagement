@@ -656,3 +656,484 @@ Each entry is `symbol / direction / depth: node @ file [confidence] — disposit
 ## Deferred
 
 None.
+
+
+## Plan 17-04 — workflow endpoint ownership
+
+### Policy and tool evidence
+
+- Branch/PDG index refreshed to the final working tree with `node .gitnexus/run.cjs analyze --branch feature/workflow-b17-b18 --pdg --force --index-only`.
+- Bidirectional `impact` ran for `workflowApi`, all 75 endpoint keys, 28 helper/export symbols, 143 type/interface candidates, `adminApi`, and the dependency-rule symbols before their edits.
+- CRITICAL workflow surface: `explain` returned 0 taint paths and `pdg_query` returned 0 control/data edges for the final compatibility const; absence is treated only as tool evidence, not proof of safety.
+- Final Cypher found 38 exact `IMPORTS` callers of the compatibility barrel, all confidence 1.0. Rename dry-run found 103 textual references in 44 files and applied 0 edits.
+- Final staged `detect_changes`: HIGH, 8 changed symbols and 8 expected dashboard/warehouse overview processes; every process below passed the 428-test frontend gate and production build.
+- Deferred is empty.
+
+### Required completion table
+
+| Symbol | Callers found | Handled | Deferred + reason |
+|---|---:|---|---|
+| `workflowApi` | 38 exact file importers; 103 rename-preview refs | Stable barrel; identity is `apiSlice`; 75 endpoints/hooks characterized | — |
+| 75 endpoint keys | GitNexus parser: 75 × UNKNOWN/no node | Exact owner registration + public/cache/wire tests | — |
+| `useWorkflowOverview` | 2 direct callers; 8 cross-community processes | Moved with identical body; dashboard/warehouse/full FE gates pass | — |
+| report/type contracts | 134 unique returned nodes contextualized | Names/shapes re-exported unchanged; TypeScript build passes | — |
+| `adminApi` / `adminWorkflowApi` | 0 indexed direct callers for const | Employee endpoints excluded from 75-key workflow registration; approval rules singly owned | — |
+| generated `SearchKeyword` | Not indexed (generated file >512 KB) | Existing backend contract synchronized; two consecutive SHA-256 hashes identical | — |
+
+### Exact compatibility-barrel importers
+
+| Caller | Confidence | Disposition |
+|---|---:|---|
+| `frontend/src/api/workflowApi.approvalDecisionWire.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/api/workflowApi.cacheInvalidation.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/api/workflowApi.publicSurface.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/app/pages/admin-data/AdminInventoryPanel.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/app/pages/admin-data/useAdminDataPageModel.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/app/purchasingHooksBehavior.test.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/admin/pages/ApprovalRulesPage.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/approvals/pages/ApprovalPage.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/chefReadiness.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/chefWorkflowBehavior.test.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/exceptions/useChefExceptions.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/journal/useChefJournal.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/production/chefProductionModel.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/production/chefProductionModel.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/production/useChefProductionPlan.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/chef/receipts/useKitchenReceipts.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/dashboard/pages/DashboardPage.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/projects/weekly-menu/demand/demandModel.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/projects/weekly-menu/demand/useMaterialDemand.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/PurchaseDecisionPanel.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/PurchaseServiceDateWorkbench.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/PurchaseWorkflowGuide.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/SupplementalPurchasingWorkbench.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/pages/PurchasingPage.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/purchaseServiceDatePresentation.test.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/purchasingModel.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/purchasingModel.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/purchasing/quotation/useSupplierQuotations.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/reports/pages/useReportsPageModel.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/reports/reportPlanning.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/reports/reportPlanning.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/warehouse/pages/WarehousePage.tsx` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/warehouse/warehouseIssueAllocation.test.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/features/warehouse/warehouseIssueAllocation.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+| `frontend/src/routes/routeDataPreloaders.ts` | 1.0 | Verified no change: compatibility import and exported name remain valid. |
+
+### Endpoint impact inventory
+
+Each endpoint key was queried upstream and downstream before extraction. GitNexus does not index RTK Query object-property endpoint keys, so every call returned UNKNOWN with no node; the 75-key/75-hook characterization, cache fan-out, approval wire, focused owner tests and full build are the handling evidence.
+
+| Endpoint symbol | Upstream | Downstream | Handled | Deferred |
+|---|---:|---:|---|---|
+| `getWorkflowDocuments` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getSuppliers` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getWarehouses` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getWarehouseSelector` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchaseWorkbench` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getSupplierEvidence` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `confirmLineSupplier` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `recordWarehousePurchaseReceipt` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `updatePurchaseRequestLineSupplier` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getSupplierQuotationsByIngredient` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getSupplierQuotationsByIngredientPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createSupplierQuotation` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `updateSupplierQuotation` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `deactivateSupplierQuotation` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchaseOrders` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchaseOrdersPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createPurchaseOrdersFromRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `recordPurchaseOrderReceipt` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `cancelPurchaseOrder` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getIngredientDemand` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `generateMaterialDemand` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getMaterialDemandStaleness` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createPurchaseRequestFromDemand` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `submitPurchaseRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createInventoryReceiptFromPurchase` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createInventoryIssue` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createSupplementalMaterialRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getSupplementalMaterialRequests` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `fulfillSupplementalMaterialRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `routeSupplementalMaterialRequestToPurchasing` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `rejectSupplementalMaterialRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createInventoryReturn` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getInventoryReturns` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getInventoryReturnById` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `confirmInventoryReturnReceipt` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `confirmInventoryIssueReceipt` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchasePlan` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchasePlanPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getIngredientDemandPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getMaterialRequestCandidatePage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getIngredientDemandAggregatePage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getDailyProductionPlan` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `sendDailyProductionPlanToKitchen` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getApprovalRecords` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `executeApprovalDecision` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getStockMovements` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getStockMovementPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVariance` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVarianceBySupplier` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVarianceBySupplierPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVarianceByPeriod` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVarianceByPeriodPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVarianceByDishGroup` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVarianceByDishGroupPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getOperationalKpis` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getCurrentStock` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getStockLedgerReconciliation` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getKitchenIssues` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getKitchenIssuesPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getIssueVsReturnUsage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getIssueVsReturnUsagePage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getAuditChanges` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPriceVariancePage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getCurrentStockPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getAuditChangePage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getDataQuality` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getDataQualityPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `updateDataQualityIssueRemediation` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchaseRequests` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getPurchaseRequestsPage` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getApprovalHistory` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `getApprovalRules` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `createApprovalRule` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `updateApprovalRule` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+| `deleteApprovalRule` | UNKNOWN / 0 | UNKNOWN / 0 | Owner injector + characterization gates | — |
+
+### Helper/export impact inventory
+
+| Symbol | Upstream | Downstream | Disposition |
+|---|---:|---:|---|
+| `toNextReportCursor` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `getData` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `emptyDailyProductionPlan` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapProductionPlan` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `normalizeDailyProductionPlan` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `queryWithLimit` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `normalizeDocumentType` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapDocument` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapDemandLine` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapDemandAggregateLine` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapPurchasePlanRow` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `normalizeWorkflowTone` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapApprovalInboxItem` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapStockMovement` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapPriceVariance` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapCurrentStock` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapStockLedgerReconciliation` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapKitchenIssue` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapUsageReport` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapAuditChange` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapCursorPage` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapPageNumberPage` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapDataQualityIssue` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `mapDataQualityReport` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `buildRoleInbox` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `buildWorkflowLanes` | UNKNOWN / 0 | UNKNOWN / 0 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `endpoints` | LOW / 0 | LOW / 2 | Changed or re-exported with identical behavior; all returned processes verified. |
+| `useWorkflowOverview` | LOW / 2 | HIGH / 8 | Changed or re-exported with identical behavior; all returned processes verified. |
+
+### Type/interface impact inventory
+
+| Symbol | Upstream | Downstream | Disposition |
+|---|---:|---:|---|
+| `LowerCamelQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `MutableContract` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WorkflowReportQueryWire` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WorkflowReportPageQueryWire` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WorkflowReportQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WorkflowReportPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `MaterialRequestCandidatePageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CurrentStockPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ReceiptPriceVariancePageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PriceVarianceAggregatePageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PageNumberPage` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `CursorPage` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `ReportCursor` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalInboxQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalInboxPage` | CRITICAL / 70 | LOW / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseRequestQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseRequestResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseWorkbenchQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseWorkflowStageCounts` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierEvidenceType` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierEvidenceCandidate` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierEvidenceResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseLineSupplierDecision` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseRequestWorkflowLine` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovedDemandSummary` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseWorkbenchServiceDate` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseWorkbenchWeek` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierEvidencePath` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierEvidenceQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmPurchaseLineSupplierData` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmPurchaseLineSupplierRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalHistoryItem` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateInventoryReceiptFromPurchaseLineRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateInventoryReceiptFromPurchaseRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WarehouseDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WarehousePageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `GeneratePurchaseRequestFromDemandRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseRequestWorkflowResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryReceiptCreatedResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateInventoryIssueLineRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateInventoryIssueRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateSupplementalMaterialRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplementalMaterialRequestResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplementalMaterialRequestPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplementalRequestPath` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplementalRequestId` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `FulfillSupplementalMaterialRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `RejectSupplementalMaterialRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryIssueCreatedResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateInventoryReturnLineRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateInventoryReturnRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryReturnCreatedResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmInventoryIssueReceiptData` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmInventoryIssueReceiptPath` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmInventoryIssueReceiptRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryIssueResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WorkflowDocumentDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `IngredientDemandReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `IngredientDemandPageResponseDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `MaterialRequestCandidate` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `IngredientDemandAggregateReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `IngredientDemandAggregatePageResponseDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchasePlanRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `PurchasePlanReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchasePlanPageResponseDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ProductionPlanLine` | CRITICAL / 117 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `ProductionPlan` | CRITICAL / 71 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `DailyProductionPlan` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `ProductionPlanDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `DailyProductionPlanDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SendDailyProductionPlanRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalInboxItemDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalRuleDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalAssignmentDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalAssignmentRequestDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalRuleRequestDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `StockMovementViewDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `StockLedgerReconciliationDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `UpdatePurchaseRequestLineSupplierDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierQuotationDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CreateSupplierQuotationDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `UpdateSupplierQuotationDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierQuotationPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `SupplierQuotationIdPath` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `UpdateSupplierQuotationArgs` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseOrderLineDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryReturnLineResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryReturnResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `InventoryReturnPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmInventoryReturnReceiptData` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmInventoryReturnReceiptPath` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ConfirmInventoryReturnReceiptRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseOrderDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseOrderQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseOrderPageQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseReceiptEvidenceRequirements` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WarehousePurchaseReceiptLineRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WarehousePurchaseReceiptRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `WarehousePurchaseReceiptResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `RecordWarehousePurchaseReceiptRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalInboxPageDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseOrderPageResponse` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `RecordPurchaseOrderReceiptLineDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `RecordPurchaseOrderReceiptDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `RecordPurchaseOrderReceiptArgs` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ReceiptPriceVarianceReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PriceVarianceBySupplierDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PriceVarianceByPeriodDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PriceVarianceDishGroupIngredientDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PriceVarianceByDishGroupDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `OperationalKpiSummaryDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CurrentStockSummaryDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `KitchenIssueReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `IssueVsReturnUsageReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `AuditChangeReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityIssueDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityReportDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityPageDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `MaterialDemandResultDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `GenerateMaterialDemandWire` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `GenerateMaterialDemandRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `MaterialDemandStalenessQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `MaterialDemandStaleness` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PurchaseRequestWorkflowResultDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalDecisionRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalHistoryQuery` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `ApprovalRuleIdPath` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `UpdateApprovalRuleArgs` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PriceVarianceRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `AuditLogRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `CurrentStockRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `StockLedgerReconciliationRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `KitchenIssueRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `UsageReportRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityIssueRow` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityReport` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityPageReport` | CRITICAL / 70 | MEDIUM / 16 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityIssueRemediationRequest` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `CursorPageDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `PageNumberPageDto` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+| `DataQualityIssueRemediationResult` | UNKNOWN / 0 | UNKNOWN / 0 | Neutral contract move; public name and shape unchanged. |
+
+### Every unique returned node
+
+All 134 unique returned nodes were opened with `context`. Frontend nodes are verified by unchanged compatibility exports plus full tests/build. Backend nodes are GitNexus same-name collisions and were manually classified as unrelated; no backend file was edited.
+
+- `File:frontend/src/routes/routeDataPreloaders.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/purchasingHooksBehavior.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/api/workflowApi.publicSurface.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/api/workflowApi.cacheInvalidation.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/api/workflowApi.approvalDecisionWire.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/warehouse/warehouseIssueAllocation.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/warehouse/warehouseIssueAllocation.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/reportPlanning.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/reportPlanning.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/SupplementalPurchasingWorkbench.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/purchasingModel.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/purchasingModel.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/PurchaseWorkflowGuide.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/PurchaseServiceDateWorkbench.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/purchaseServiceDatePresentation.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/PurchaseDecisionPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/chefWorkflowBehavior.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/chefReadiness.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/useAdminDataPageModel.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminInventoryPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/warehouse/pages/WarehousePage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/pages/useReportsPageModel.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/quotation/useSupplierQuotations.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/pages/PurchasingPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/dashboard/pages/DashboardPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/receipts/useKitchenReceipts.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/production/useChefProductionPlan.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/production/chefProductionModel.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/production/chefProductionModel.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/approvals/pages/ApprovalPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/journal/useChefJournal.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/exceptions/useChefExceptions.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/admin/pages/ApprovalRulesPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/demand/useMaterialDemand.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/demand/demandModel.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/routes/routeLoaders.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/AdminDataPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/warehouse/WarehouseExceptionsWorkbench.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/SupplementalPurchasingWorkbench.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/purchasingWeekBoundary.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/chefReadiness.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminStatisticsPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminEmployeesPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminContractsPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminCleanupPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminBomPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/pages/admin-data/AdminAuditPanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/pages/ReportsPricePanel.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/pages/ReportsPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/pages/ReportsNavigation.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/quotation/SupplierQuotationSection.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/quotation/SupplierQuotationSection.state.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/purchasing/pages/PurchasingPage.state.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/pages/WeeklyMenuPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/production/ChefProductionSection.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/pages/ChefDashboardPage.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/approvals/pages/ApprovalPage.state.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/admin/pages/ApprovalRulesPage.state.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/shell/WeeklyMenuViewContent.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/demand/materialDemandErrorState.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/demand/demandModel.test.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/routes/AppRouter.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/app/layout/MainLayout.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/chef/index.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/reports/pages/ReportsPage.permissions.test.tsx` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/features/projects/weekly-menu/shell/weeklyMenuViewPreload.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/types/workflow.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/types/api.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/workflowConfig.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/formatters.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/actionEligibility.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/api/workflowCacheTags.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/api/apiSlice.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/statusPresentation.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/routeConfig.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/auth/sessionEvents.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/auth/roleUtils.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/auth/authTypes.ts` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/auth/authSlice.ts` — Verified no change: compatibility name/type shape preserved.
+- `Function:frontend/src/api/workflowCacheTags.ts:workflowTag` — Verified no change: compatibility name/type shape preserved.
+- `Function:frontend/src/lib/auth/authStorage.ts:readStoredAuthSnapshot` — Verified no change: compatibility name/type shape preserved.
+- `File:frontend/src/lib/auth/authStorage.ts` — Verified no change: compatibility name/type shape preserved.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs:MaterialDemandService.GenerateAsync#3` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs:MaterialDemandService.EnsureProductionPlanAsync#5` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs:MaterialDemandService.PruneStaleLines#4` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs:MaterialDemandService.EnsureProductionPlanLine#3` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.MapPlan#2` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Reports/Services/InventoryOperationsReportService.cs:InventoryOperationsReportService.GetWorkflowDocumentsAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Reports/Services/PurchasingReportService.cs:PurchasingReportService.GetPurchaseDemandAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/SampleData/Services/WeeklyMenuImportPersistence.cs:WeeklyMenuImportPersistence.InvalidateWorkflowDocumentsForMenuReimportAsync#6` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowControllerContractTests.cs:WorkflowControllerContractTests.MaterialDemandGenerate_Should_ReturnConflict_WhenDomainBlocksRequest#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowControllerContractTests.cs:WorkflowControllerContractTests.MaterialDemandGenerate_Should_ReturnBadRequest_WhenInputIsInvalid#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowControllerContractTests.cs:WorkflowControllerContractTests.MaterialDemandGenerate_Should_ReturnNotFound_WhenNoCompletedQuantityPlan#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateMaterialDemandAsync_Should_RejectCompletedPlanWithDraftMenu#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_CreateDemandLines_ForHappyPath#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_ReportMissingBom_And_WriteDemandAudit#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_Ignore_Draft_BomLines#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_PruneStaleDemandAndProductionLines_OnRegenerate#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_BlockRecalculation_WhenPurchaseOrderReferencesDemand#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GeneratePurchaseRequest_Should_RemoveStalePurchaseLines_WhenDemandNoLongerShort#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_ConvertCurrentStock_ToBomUnit#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_NotDuplicateHeaderOrLines_WhenRunAgain#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_ReportMissingConversion_WhenStockUnitCannotConvertToBomUnit#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_RequireSignoffBeforeUsingLockedOrder#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.GenerateDemand_Should_ApplyDifferentPortionRules_ByShift#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.WeeklyMenuReimport_Should_CancelDownstreamDemandAndPurchase_ForCustomerWeek#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.WeeklyMenuReimport_Should_AllowDemandRegeneration_ForApprovedLineageWithoutIrreversibleDocuments#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.WeeklyMenuReimport_Should_AllowDemandRegeneration_ForDraftLineageWithoutPurchaseOrder#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.DemandAndPurchase_Should_StayBounded_ForMultiCustomerWeek#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:MaterialDemandController.GenerateAsync#2` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.GetPagedAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.GetByIdAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.GetFilteredAsync#5` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.BuildDailyDto#4` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs:InventoryOperationsReportsController.GetWorkflowDocumentsAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Reports/Controllers/PurchasingReportsController.cs:PurchasingReportsController.GetPurchaseDemandAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/SampleData/Services/WeeklyMenuImportPersistence.cs:WeeklyMenuImportPersistence.CommitAsync#5` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowControllerContractTests.cs:WorkflowControllerContractTests.ProductionPlansGetById_Should_ReturnNotFoundEnvelope_WhenPlanMissing#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowControllerContractTests.cs:WorkflowControllerContractTests.ProductionPlansGetAll_Should_ReturnPagedApiResponse#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.ProductionPlans_Should_PageNewestFirst_WhenPlansSpanMultipleYears#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.WeeklyMenuImport_Should_PreserveExistingGlobalDishClassification#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.WeeklyMenuImport_Should_Not_ClassifyNewDishFromWorkbookSlot#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/WorkflowGenerationTests.cs:WorkflowGenerationTests.WeeklyMenuReimport_Should_RejectCompletedQuantityPlanBeforeMutation#0` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs:ProductionPlansController.GetAllAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs:ProductionPlansController.GetFilteredAsync#5` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs:ProductionPlansController.GetByIdAsync#1` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.GetDailyAsync#4` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs:ProductionPlanService.SendDailyToKitchenAsync#3` — Verified no change: unrelated backend name collision.
+- `Method:backend/src/IPCManagement.Api/Features/SampleData/Services/WeeklyMenuImportService.cs:WeeklyMenuImportService.CommitWeeklyMenuImportAsync#7` — Verified no change: unrelated backend name collision.
+- `Method:backend/tests/IPCManagement.Api.Tests/MaterialDemandAndPriceExceptionApprovalTests.cs:MaterialDemandAndPriceExceptionApprovalTests.Inbox_ManagerSeesPendingMaterialDemandOnceWithOperationalContext#0` — Verified no change: unrelated backend name collision.
+
+### Final affected processes
+
+| Process | Changed chain | Disposition |
+|---|---|---|
+| WarehousePage → RoundToScale | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
+| DashboardPage → RoundToScale | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
+| WarehousePage → FormatUnit | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
+| DashboardPage → FormatUnit | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
+| WarehousePage → OwnerToLaneId | useWorkflowOverview → buildWorkflowLanes | Handled; full FE tests/build pass. |
+| WarehousePage → FormatPercent | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
+| DashboardPage → OwnerToLaneId | useWorkflowOverview → buildWorkflowLanes | Handled; full FE tests/build pass. |
+| DashboardPage → FormatPercent | useWorkflowOverview → buildRoleInbox | Handled; full FE tests/build pass. |
