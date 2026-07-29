@@ -15,6 +15,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = $utf8NoBom
+[Console]::OutputEncoding = $utf8NoBom
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 
 function Get-Sha256Text([string[]]$Lines) {
@@ -64,12 +67,35 @@ else {
 
     $names = @($output |
         Where-Object { $_ -match '^\s+\[chromium\]' } |
-        ForEach-Object { ($_ -replace '^\s+\[chromium\]\s+›\s+[^›]+›\s+', '').Trim() } |
+        ForEach-Object { ($_ -replace '^\s+\[chromium\]\s+\u203A\s+[^\u203A]+\u203A\s+', '').Trim() } |
         Sort-Object)
     $searchRoot = Join-Path $root 'frontend/tests'
+
+    $bodyFiles = @(
+        Get-ChildItem -LiteralPath (Join-Path $frontend 'tests') -Filter $PlaywrightPattern -File
+        Get-ChildItem -LiteralPath (Join-Path $frontend 'tests/support/route-smoke') -Filter '*.ts' -File
+    ) | Sort-Object FullName
+    $bodySegments = @($bodyFiles | ForEach-Object {
+        $lines = [System.IO.File]::ReadAllLines($_.FullName)
+        $markerIndex = -1
+        for ($index = 0; $index -lt $lines.Count; $index++) {
+            if ($lines[$index] -eq '// phase18-body-start') {
+                $markerIndex = $index
+                break
+            }
+        }
+        if ($markerIndex -lt 0) {
+            throw "Missing phase18 body marker in $($_.FullName)."
+        }
+        if ($markerIndex -eq $lines.Count - 1) { '' }
+        else { (($lines[($markerIndex + 1)..($lines.Count - 1)] -join "`n").TrimEnd()) }
+    })
+    $actualBodySha256 = Get-Sha256Text $bodySegments
+    Write-Verbose "Normalized body SHA-256: $actualBodySha256"
 }
 
 $actualSha256 = Get-Sha256Text $names
+Write-Verbose ("Normalized discovery names: " + ($names | ConvertTo-Json -Compress))
 if ($names.Count -ne $ExpectedCount) {
     throw "Discovery count drift: expected $ExpectedCount, actual $($names.Count)."
 }
@@ -89,9 +115,21 @@ if ($ExpectedBodySha256FromCallsiteChecklist) {
     $checklist = Join-Path $root '.planning/phases/18-guardrails-and-workflow-closeout/18-GITNEXUS-CALLSITES.md'
     $label = if ($PSCmdlet.ParameterSetName -eq 'Backend') { $BackendOwner } else { 'route-smoke' }
     $content = [System.IO.File]::ReadAllText($checklist)
-    if ($content -notmatch "Body SHA-256 ``$([Regex]::Escape($label))``: ``[A-F0-9]{64}`` \(pre=post\)") {
-        throw "Missing exact pre=post body SHA-256 evidence for $label in the GitNexus checklist."
+    if ($PSCmdlet.ParameterSetName -eq 'Backend') {
+        if ($content -notmatch "Body SHA-256 ``$([Regex]::Escape($label))``: ``[A-F0-9]{64}`` \(pre=post\)") {
+            throw "Missing exact pre=post body SHA-256 evidence for $label in the GitNexus checklist."
+        }
+    }
+    else {
+        if ($content -notmatch "Body SHA-256 ``route-smoke`` \(post-contract-fix marker tails\): ``([A-F0-9]{64})``\.") {
+            throw 'Missing post-contract-fix route-smoke body SHA-256 evidence in the GitNexus checklist.'
+        }
+        $expectedBodySha256 = $Matches[1]
+        if (-not [string]::Equals($actualBodySha256, $expectedBodySha256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Body SHA-256 drift: expected $expectedBodySha256, actual $actualBodySha256."
+        }
     }
 }
 
-Write-Host "Decomposition verified: count=$($names.Count), sha256=$actualSha256, files<=1500."
+$bodyEvidence = if ($PSCmdlet.ParameterSetName -eq 'Playwright') { ", bodySha256=$actualBodySha256" } else { '' }
+Write-Host "Decomposition verified: count=$($names.Count), sha256=$actualSha256$bodyEvidence, files<=1500."
