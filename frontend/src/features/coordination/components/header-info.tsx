@@ -2,9 +2,9 @@
 
 import { CalendarClock, Sun, Sunset } from 'lucide-react'
 import type { ShiftType } from '../types'
-import { DAYS_OF_WEEK, SHIFT_LABELS } from '@/lib/constants'
+import { SHIFT_LABELS } from '@/lib/constants'
 import { useAppDispatch, useCurrentShift, useAppSelector } from '@/app/hooks'
-import { setCurrentShift, setCurrentDayOfWeek } from '../coordinationSlice'
+import { setCurrentServiceDate, setCurrentShift } from '../coordinationSlice'
 import { useCountdown } from './hooks'
 
 interface HeaderInfoProps {
@@ -14,15 +14,15 @@ interface HeaderInfoProps {
 export function HeaderInfo({ status }: HeaderInfoProps) {
   const dispatch = useAppDispatch()
   const shift = useCurrentShift()
-  const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
-  const { timeRemaining, isPastCutoff } = useCountdown()
+  const currentServiceDate = useAppSelector((state) => state.coordination.currentServiceDate)
+  const { timeRemaining, isPastCutoff } = useCountdown(currentServiceDate)
   
   const handleShiftChange = (newShift: ShiftType) => {
     dispatch(setCurrentShift(newShift))
   }
 
-  const handleDayChange = (newDay: string) => {
-    dispatch(setCurrentDayOfWeek(newDay))
+  const handleDateChange = (newDate: string) => {
+    dispatch(setCurrentServiceDate(newDate))
   }
 
   const normalizedStatus = status.toUpperCase()
@@ -34,16 +34,13 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
         <div className="flex flex-wrap items-end gap-4">
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             <span>Ngày phục vụ</span>
-            <select
+            <input
               aria-label="Ngày phục vụ"
-              value={currentDayOfWeek}
-              onChange={(event) => handleDayChange(event.target.value)}
+              type="date"
+              value={currentServiceDate}
+              onChange={(event) => handleDateChange(event.target.value)}
               className="h-9 min-w-32 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-              {DAYS_OF_WEEK.map((day) => (
-                <option key={day.key} value={day.key}>{day.label}</option>
-              ))}
-            </select>
+            />
           </label>
 
           <div className="grid gap-1">

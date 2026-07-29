@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getTodayDayCode } from '@/lib/dateUtils'
+import { getDayCodeFromIsoDate, getTodayDayCode } from '@/lib/dateUtils'
 import { addCalendarDays, getBangkokToday } from './chefServiceDate'
 
 describe('vietnam calendar date boundaries', () => {
@@ -42,5 +42,11 @@ describe('vietnam calendar date boundaries', () => {
       vi.setSystemTime(new Date(`2026-07-26T${hour}:30:00+07:00`))
       expect(addCalendarDays('2026-07-26', 1)).toBe('2026-07-27')
     }
+  })
+
+  it('maps an explicit service date to the matching coordination day', () => {
+    expect(getDayCodeFromIsoDate('2026-07-20')).toBe('t2')
+    expect(getDayCodeFromIsoDate('2026-07-21')).toBe('t3')
+    expect(getDayCodeFromIsoDate('2026-07-26')).toBe('cn')
   })
 })

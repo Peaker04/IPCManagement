@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
@@ -10,6 +10,7 @@ import { EmptyState, InlineAlert, PaginationBar, TableViewport } from '@/compone
 import { useLocalPagination } from '@/lib/useLocalPagination'
 import { ClipboardList, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 type DishDetailDialogComponent = typeof import('./dish-detail-dialog')['DishDetailDialog']
 
@@ -82,11 +83,24 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const [dishDialogLoadError, setDishDialogLoadError] = useState<string | null>(null)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const [LoadedDishDetailDialog, setLoadedDishDetailDialog] = useState<DishDetailDialogComponent | null>(
     () => cachedDishDetailDialog,
   )
   const pageSize = 12
-  const { page, rows: pageOrders, totalItems, setPage } = useLocalPagination(orders, pageSize)
+  const filteredOrders = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('vi-VN')
+    if (!needle) return orders
+    return orders.filter((order) => [
+      order.customerCode,
+      order.customerName,
+      order.menuCode,
+      order.menuName,
+      order.mealType,
+      ...(order.dishes ?? []).map((dish) => dish.dishName),
+    ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(needle))
+  }, [orders, search])
+  const { page, rows: pageOrders, totalItems, setPage } = useLocalPagination(filteredOrders, pageSize)
   const selectedOrder = selectedOrderId ? orders.find((order) => order.id === selectedOrderId) : undefined
 
   const openDishDetailDialog = (order: OrderRow) => {
@@ -219,6 +233,20 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
           </InlineAlert>
         </div>
       )}
+      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2">
+        <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="coordination-order-search">
+          Tìm khách hàng, thực đơn hoặc món ăn
+          <Input
+            id="coordination-order-search"
+            type="search"
+            value={search}
+            onChange={(event) => { setSearch(event.target.value); setPage(1) }}
+            placeholder="Nhập mã khách hàng hoặc tên món"
+            className="h-9 max-w-md bg-white"
+          />
+        </label>
+        {search.trim() && <span className="pb-2 text-xs text-slate-500">{totalItems} kết quả</span>}
+      </div>
       <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Danh sách đơn theo khách hàng">
         <table className="ipc-data-table ipc-order-table">
           <thead>
@@ -244,7 +272,9 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
             </tr>
           </thead>
           <tbody>
-            {pageOrders.map((order, idx) => {
+            {pageOrders.length === 0 ? (
+              <tr><td colSpan={6} className="py-8 text-center text-slate-500">Không tìm thấy đơn phù hợp.</td></tr>
+            ) : pageOrders.map((order, idx) => {
               const finalQuantity = useFinalServings ? order.actualQuantity : order.forecastQuantity
               const variance = finalQuantity - order.forecastQuantity
               const uniqueDishes = Array.from(

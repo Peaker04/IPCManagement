@@ -108,6 +108,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const dispatch = useAppDispatch()
   const allOrders = useOrders()
   const currentShift = useCurrentShift()
+  const selectedServiceDate = useAppSelector((state) => state.coordination.currentServiceDate)
   const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
   const currentUserName = useAppSelector((state) => state.auth.user?.fullName) ?? 'Điều phối ca'
   const authToken = useAppSelector((state) => state.auth.token)
@@ -127,6 +128,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const orders = allOrders.filter(
     (o) => o.dayOfWeek === currentDayOfWeek && o.shift === currentShift
   )
+  const currentServiceDate = orders.find((order) => order.serviceDate)?.serviceDate?.split('T')[0] ?? selectedServiceDate
 
   const normalizedStatus = (status ?? '').toUpperCase()
   const isTerminal = normalizedStatus === 'COMPLETED' || normalizedStatus === 'ARCHIVED' || normalizedStatus === 'CANCELLED'
@@ -158,6 +160,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
     try {
       const response = await lockCoordinationOrders({
         dayOfWeek: currentDayOfWeek,
+        serviceDate: currentServiceDate,
         shift: currentShift,
         scope: 'FULLDAY',
         lines: orders.map((order) => ({
@@ -199,6 +202,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
       const response = await exportCoordinationOrders({
         shift: currentShift,
         dayOfWeek: currentDayOfWeek,
+        serviceDate: currentServiceDate,
         format: 'excel',
       }).unwrap()
 
@@ -265,6 +269,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
     try {
       const response = await signoffCoordinationScope({
         dayOfWeek: currentDayOfWeek,
+        serviceDate: currentServiceDate,
         shift: currentShift,
         note: `Hoàn tất ca ${currentShift}`,
       }).unwrap()
@@ -300,6 +305,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
     try {
       const response = await unlockCoordinationScope({
         dayOfWeek: currentDayOfWeek,
+        serviceDate: currentServiceDate,
         shift: currentShift,
         note: `Mở khóa ca ${currentShift}`,
       }).unwrap()

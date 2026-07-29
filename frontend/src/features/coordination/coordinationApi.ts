@@ -49,6 +49,7 @@ type ProductionPlanQuery = LowerCamelQuery<
 
 export interface CoordinationQuery {
   dayOfWeek: string
+  serviceDate?: string
   shift: ShiftType
 }
 
@@ -199,9 +200,9 @@ export const coordinationApi = apiSlice.injectEndpoints({
       providesTags: ['Coordination'],
     }),
     getCoordinationOrders: builder.query<ApiResponse<OrderRow[]>, CoordinationQuery>({
-      query: ({ dayOfWeek, shift }) => ({
+      query: ({ dayOfWeek, serviceDate, shift }) => ({
         url: '/coordination/orders',
-        params: { dayOfWeek, shiftName: toApiShiftName(shift) },
+        params: { dayOfWeek, serviceDate, shiftName: toApiShiftName(shift) },
       }),
       transformResponse: (response: ApiResponse<readonly CoordinationOrderWire[]>) => ({
         ...response,
@@ -276,10 +277,10 @@ export const coordinationApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Coordination'],
     }),
     signoffCoordinationScope: builder.mutation<ApiResponse<CoordinationScopeActionResult>, CoordinationScopeActionRequest>({
-      query: ({ dayOfWeek, shift, note }) => ({
+      query: ({ dayOfWeek, serviceDate, shift, note }) => ({
         url: '/coordination/orders/signoff',
         method: 'POST',
-        body: { dayOfWeek, shiftName: toApiShiftName(shift), note } satisfies components['schemas']['CoordinationScopeActionRequest'],
+        body: { dayOfWeek, serviceDate, shiftName: toApiShiftName(shift), note } satisfies components['schemas']['CoordinationScopeActionRequest'],
       }),
       invalidatesTags: ['Coordination'],
     }),
@@ -291,19 +292,20 @@ export const coordinationApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Coordination'],
     }),
     unlockCoordinationScope: builder.mutation<ApiResponse<CoordinationScopeActionResult>, CoordinationScopeActionRequest>({
-      query: ({ dayOfWeek, shift, note }) => ({
+      query: ({ dayOfWeek, serviceDate, shift, note }) => ({
         url: '/coordination/orders/unlock',
         method: 'POST',
-        body: { dayOfWeek, shiftName: toApiShiftName(shift), note } satisfies components['schemas']['CoordinationScopeActionRequest'],
+        body: { dayOfWeek, serviceDate, shiftName: toApiShiftName(shift), note } satisfies components['schemas']['CoordinationScopeActionRequest'],
       }),
       invalidatesTags: ['Coordination'],
     }),
     exportCoordinationOrders: builder.mutation<ApiResponse<ExportOrderReportResult>, ExportOrderReportRequest>({
-      query: ({ dayOfWeek, shift, format }) => ({
+      query: ({ dayOfWeek, serviceDate, shift, format }) => ({
         url: '/coordination/orders/export',
         method: 'POST',
         body: {
           dayOfWeek,
+          serviceDate,
           shiftName: toApiShiftName(shift),
           format,
         } satisfies components['schemas']['ExportOrderReportRequest'],

@@ -116,6 +116,7 @@ export interface CoordinationState {
   loading: boolean
   orders: OrderRow[]
   currentShift: ShiftType
+  currentServiceDate: string
   currentDayOfWeek: string // 't2', 't3', etc.
   weeklyMenu: WeeklyMenuState
   lossRate: number
@@ -155,7 +156,7 @@ export type SignoffOrderResult = components['schemas']['SignoffOrderResultDto']
 
 export type CoordinationScopeActionRequest = Pick<
   components['schemas']['CoordinationScopeActionRequest'],
-  'note'
+  'note' | 'serviceDate'
 > & { dayOfWeek: string; shift: ShiftType }
 
 export type CoordinationScopeActionResult = components['schemas']['CoordinationScopeActionResultDto']

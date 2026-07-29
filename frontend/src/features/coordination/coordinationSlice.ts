@@ -3,7 +3,8 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import type { CoordinationState, OrderRow, AuditLogEntry, ShiftType, WeeklyMenuState, OrderUpdatePayload, SyncOrdersPayload, MarkOrdersLockedPayload } from './types'
 import { toDisplayShift } from './types'
 import { coordinationApi } from './coordinationApi'
-import { getTodayDayCode } from '@/lib/dateUtils'
+import { getDayCodeFromIsoDate, getTodayDayCode } from '@/lib/dateUtils'
+import { getBangkokToday } from '@/lib/chefServiceDate'
 
 const defaultWeeklyMenu: WeeklyMenuState = {}
 
@@ -13,6 +14,7 @@ const initialState: CoordinationState = {
   loading: false,
   orders: [],
   currentShift: 'Ca Sáng',
+  currentServiceDate: getBangkokToday(),
   currentDayOfWeek: initialDay,
   weeklyMenu: defaultWeeklyMenu,
   lossRate: 5,
@@ -34,7 +36,7 @@ export const fetchActiveOrders = createAsyncThunk(
     const { coordination } = getState() as { coordination: CoordinationState }
     const response = await dispatch(
       coordinationApi.endpoints.getCoordinationOrders.initiate(
-        { dayOfWeek: coordination.currentDayOfWeek, shift },
+        { dayOfWeek: coordination.currentDayOfWeek, serviceDate: coordination.currentServiceDate, shift },
         { forceRefetch: true, subscribe: false },
       ),
     ).unwrap()
@@ -215,6 +217,12 @@ const coordinationSlice = createSlice({
     setCurrentDayOfWeek: (state, action: PayloadAction<string>) => {
       state.currentDayOfWeek = action.payload
       const lockKey = `${action.payload}-${state.currentShift}`
+      state.isLocked = !!state.lockedShifts[lockKey]
+    },
+    setCurrentServiceDate: (state, action: PayloadAction<string>) => {
+      state.currentServiceDate = action.payload
+      state.currentDayOfWeek = getDayCodeFromIsoDate(action.payload)
+      const lockKey = `${state.currentDayOfWeek}-${state.currentShift}`
       state.isLocked = !!state.lockedShifts[lockKey]
     },
     updateOrderDish: (
@@ -405,6 +413,7 @@ export const {
   markOrdersLocked,
   setCurrentShift,
   setCurrentDayOfWeek,
+  setCurrentServiceDate,
   updateOrderDish,
   updateWeeklyMenuDish,
   setLossRate,

@@ -16,12 +16,13 @@ import { toLabeledQueryView } from '@/lib/labeledQueryView'
 export default function CoordinationPage() {
   const dispatch = useAppDispatch()
   const currentShift = useCurrentShift()
+  const currentServiceDate = useAppSelector((state) => state.coordination.currentServiceDate)
   const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
   const allOrders = useAppSelector((state) => state.coordination.orders)
   const localError = useAppSelector((state) => state.coordination.error)
-  const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, shift: currentShift })
+  const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, serviceDate: currentServiceDate, shift: currentShift })
   const shiftName = toApiShiftName(currentShift)
-  const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, shiftName })
+  const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, serviceDate: currentServiceDate, shiftName })
   const ordersView = toLabeledQueryView(ordersQuery, 'danh sách suất ăn', {
     instruction: 'Chọn ngày và ca để tải danh sách suất ăn.',
   })
