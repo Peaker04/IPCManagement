@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: executing
-stopped_at: Phase 17 planned; 8 plans ready for execution
-last_updated: "2026-07-29T03:41:02.111Z"
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-07-29T03:48:33.965Z"
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 14
-  completed_plans: 6
-  percent: 43
+  completed_plans: 7
+  percent: 50
 current_phase: 17
 current_phase_name: frontend-ownership
 ---
@@ -25,9 +25,9 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 ## Current Position
 
-Phase: 17 of 18 — Frontend ownership
+Phase: 17 (frontend-ownership) — EXECUTING
 
-Plan: 8 plans across waves 0-6
+Plan: 2 of 8
 
 Status: Ready to execute
 
@@ -116,11 +116,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T03:41:02.000Z
+**Last Date:** 2026-07-29T03:48:33.956Z
 
-**Stopped At:** Phase 17 planned; 8 plans ready for execution
+**Stopped At:** Completed 17-01-PLAN.md
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-01-PLAN.md
+**Resume File:** .planning/phases/17-frontend-ownership/17-02-PLAN.md
 
 ## Constraints
 
@@ -129,3 +129,9 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - Do not rewrite, delete or move applied migrations.
 - Run upstream impact before every symbol edit; warn on HIGH/CRITICAL; run staged `detect_changes` before every commit.
 - Browser evidence is required only for frontend/route/UI behavior changes until the final workflow closeout.
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Notes |
+|-------|------|----------|-------|
+| Phase 17 P01 | 8 min | 2 tasks | 4 files |
