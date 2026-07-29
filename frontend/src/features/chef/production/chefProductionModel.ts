@@ -1,7 +1,7 @@
 import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { DailyProductionPlan, KitchenIssueRow, ProductionPlanLine } from '@/api/workflowApi'
 import type { ProductionPlan } from '@/lib/types'
-import type { ShiftType } from '../../coordination/types'
+import type { ShiftType } from '@/types/coordination'
 import type { ChefMaterial } from '../chefDashboardTypes'
 
 type ChefOrder = {

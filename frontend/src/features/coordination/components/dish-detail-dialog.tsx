@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { OrderRow } from '../types'
 import { getMenuDishSlotLabel, groupMenuDishes, type MenuDishRole } from '../dishRole'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useLazyGetMenuSchedulesQuery } from '../coordinationApi'
+import { useLazyGetMenuSchedulesQuery } from '@/api/coordinationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 

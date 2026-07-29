@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import type { CoordinationState, OrderRow, AuditLogEntry, ShiftType, WeeklyMenuState, OrderUpdatePayload, SyncOrdersPayload, MarkOrdersLockedPayload } from './types'
 import { toDisplayShift } from './types'
-import { coordinationApi } from './coordinationApi'
+import { coordinationApi } from '@/api/coordinationApi'
 import { getDayCodeFromIsoDate, getTodayDayCode } from '@/lib/dateUtils'
 import { getBangkokToday } from '@/lib/chefServiceDate'
 

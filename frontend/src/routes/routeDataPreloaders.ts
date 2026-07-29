@@ -14,7 +14,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   },
   [ROUTES.WEEKLY_MENU]: async () => {
     const [{ coordinationApi }, { dishCatalogApi }] = await Promise.all([
-      import('../features/coordination/coordinationApi'),
+      import('@/api/coordinationApi'),
       import('../api/dishCatalogApi'),
     ]);
     store.dispatch(dishCatalogApi.util.prefetch('getDishCatalog', undefined, dataPrefetchOptions));
@@ -31,7 +31,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     }, dataPrefetchOptions));
   },
   [ROUTES.MEAL_ORDERS]: async () => {
-    const { coordinationApi } = await import('../features/coordination/coordinationApi');
+    const { coordinationApi } = await import('@/api/coordinationApi');
     const { currentDayOfWeek, currentShift } = store.getState().coordination;
     const shiftName = currentShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON';
     store.dispatch(coordinationApi.util.prefetch('getCoordinationOrders', {

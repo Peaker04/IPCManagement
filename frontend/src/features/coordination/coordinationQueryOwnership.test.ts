@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import dialogSource from './components/dish-detail-dialog.tsx?raw'
 import headerSource from './components/header-info.tsx?raw'
 import pageSource from './pages/CoordinationPage.tsx?raw'
-import apiSource from './coordinationApi.ts?raw'
+import apiSource from '@/api/coordinationApi.ts?raw'
 
 const queryOwners = [pageSource, dialogSource].join('\n')
 
