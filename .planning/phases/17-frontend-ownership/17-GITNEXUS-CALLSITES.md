@@ -482,6 +482,65 @@ Each entry is `symbol / direction / depth: node @ file [confidence] — disposit
 
 None.
 
+---
+
+# Plan 17-05 GitNexus callsite checklist
+
+Scope: retire the final 16 frontend dependency violations and reduce the known-violation baseline to zero.
+
+## Policy result
+
+- Bidirectional impact ran before moving typed dispatch, coordination selectors, permission presentation and `ActionGuard` ownership.
+- `useAppDispatch` was HIGH: 11 direct/13 total upstream nodes across Dashboard, Weekly Menu and Coordination processes. All callers were repointed in one coherent branch slice; app/routes retain the exact store-typed public hook.
+- `ActionGuard` was LOW: 3 direct/6 total upstream and 1 downstream node. Its executable body is unchanged; the old route path is a compatibility re-export.
+- Final Cypher found 0 feature→app/routes imports and 0 Reports-permission-test→Auth-feature imports. Dependency-cruiser strict mode reports 0 violations and 0 cycles.
+- Staged Task 1 detect_changes was HIGH with 48 changed symbols and 6 processes; every process is traced below and covered by 428/428 frontend tests plus lint/build. Task 2 baseline audit was LOW with 0 affected processes.
+- All returned nodes are handled or verified; Deferred is empty.
+
+## Symbol summary
+
+| Symbol | Callers found | Handled | Deferred + reason |
+|---|---:|---|---|
+| `useAppDispatch` | 11 direct / 13 total, HIGH | Feature callers use `lib/reduxHooks`; app/routes retain the exact store-typed hook; full tests/build pass | — |
+| `useAppSelector` | 0 indexed, LOW | App/routes retain RootState typing; feature selectors moved to lower projections or feature-owned hooks | — |
+| `useHasPermission` | 1 direct, LOW | Reports uses lower structural auth hook; permission tests pass | — |
+| `useOrders` | 1 direct / 2 total, LOW | Coordination-owned hook; app compatibility re-export preserved | — |
+| `useCurrentShift` | 3 direct, LOW | Coordination-owned hook; app compatibility re-export preserved | — |
+| `ActionGuard` | 3 direct / 6 total upstream; 1 downstream, LOW | Common owner with identical body; route compatibility re-export; guard tests pass | — |
+| Other app hook exports | 0 indexed, LOW | Unused public exports preserved or re-exported without behavior change | — |
+
+## Every returned node
+
+- `useAppDispatch` / upstream / d1: `MainLayout`, `useMaterialDemand`, `LoginPage`, `ActionToolbar`, `HeaderInfo`, `OrderTable`, `CoordinationPage`, `DashboardPage`, `WeeklyMenuPage`, `useWeeklyScheduleEditor`, `ProtectedRoute` [0.85] — all handled; feature callers repointed to the lower dispatch primitive, app/routes kept the exact existing hook.
+- `useAppDispatch` / upstream / d2: `AppRouter` [0.85] — verified no edit required; app composition path unchanged.
+- `useAppDispatch` / upstream / d3: `App` [0.85] — verified no edit required; app composition path unchanged.
+- `useAppDispatch` / downstream: no returned node.
+- `useHasPermission` / upstream / d1: `ReportsPage` [0.85] — repointed to the lower permission hook; permission and query-state tests pass.
+- `useHasPermission` / downstream: no returned node.
+- `useOrders` / upstream / d1: `ActionToolbar` [0.85] — repointed to the Coordination-owned selector hook.
+- `useOrders` / upstream / d2: `CoordinationPage` [0.85] — verified through unchanged component composition.
+- `useOrders` / downstream: no returned node.
+- `useCurrentShift` / upstream / d1: `HeaderInfo`, `ActionToolbar`, `CoordinationPage` [0.85] — repointed to the Coordination-owned selector hook.
+- `useCurrentShift` / downstream: no returned node.
+- `ActionGuard` / upstream / d1: `ActionToolbar`, `MaterialDemandSection`, `guards.test.tsx` [0.85] — handled by common owner imports and compatibility test path.
+- `ActionGuard` / upstream / d2: `CoordinationPage`, `renderSection` [0.85] — verified through focused feature tests.
+- `ActionGuard` / upstream / d3: `materialDemandErrorState.test.tsx` [0.85] — test mock updated to the lower owner.
+- `ActionGuard` / downstream / d1: `canAccessRole` [0.85] — verified unchanged.
+- `useAppSelector`, `useIsAdmin`, `useCurrentRole`, `useCoordinationState`, `useIsLocked`, `useAuditLogs`, `useLoading`, `useError` / both directions: no returned node requiring a caller edit.
+
+## HIGH process traces
+
+- `ChefDashboardPage → useKitchenReceipts → toChefView → toQueryView → isQueryErrorStatus`; all CALLS 0.85.
+- `ChefDashboardPage → resolveChefServiceDate → getBangkokCalendarDate → valueOf`; all CALLS 0.85.
+- `ChefDashboardPage → resolveChefServiceDate → formatCalendarDate`; all CALLS 0.85.
+- `ChefDashboardPage → useKitchenReceipts → countPendingKitchenReceipts`; all CALLS 0.85.
+- `CoordinationPage → toLabeledQueryView → toQueryView → isQueryErrorStatus`; all CALLS 0.85.
+- `WeeklyMenuPage → toLabeledQueryView → toQueryView → isQueryErrorStatus`; all CALLS 0.85.
+
+## Deferred
+
+None.
+
 
 ---
 
