@@ -69,3 +69,10 @@ export const {
   useUpdateAdminEmployeeMutation,
   useUpdateAdminEmployeeStatusMutation,
 } = adminApi;
+
+export {
+  useGetApprovalRulesQuery,
+  useCreateApprovalRuleMutation,
+  useUpdateApprovalRuleMutation,
+  useDeleteApprovalRuleMutation,
+} from '@/features/admin/adminWorkflowApi';

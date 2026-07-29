@@ -1,15 +1,11 @@
 import { apiSlice } from '@/api/apiSlice';
-import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { formatPercent, formatQuantityWithUnit } from '@/lib/formatters';
-import type { ApiResponse } from '@/types/api';
 import {
   ownerToLaneId,
   routeByLaneId,
-  toneFromStatus,
   workflowLaneDefinitions,
 } from '@/lib/workflowConfig';
 import type {
-  ApprovalRecord,
   DemandLine,
   RoleInboxItem,
   StockMovement,
@@ -19,22 +15,6 @@ import type {
 } from '@/types/workflow';
 
 import type {
-  WorkflowReportQuery,
-  ApprovalInboxQuery,
-  ApprovalInboxPage,
-  ApprovalHistoryItem,
-  ProductionPlan,
-  DailyProductionPlan,
-  ProductionPlanDto,
-  DailyProductionPlanDto,
-  SendDailyProductionPlanRequest,
-  ApprovalInboxItemDto,
-  ApprovalRuleDto,
-  ApprovalRuleRequestDto,
-  ApprovalInboxPageDto,
-  ApprovalDecisionRequest,
-  ApprovalHistoryQuery,
-  UpdateApprovalRuleArgs,
   PriceVarianceRow,
 } from '@/api/workflowApiTypes';
 
@@ -137,107 +117,6 @@ export type {
 } from '@/api/workflowApiTypes';
 
 export { toNextReportCursor } from '@/api/workflowApiTypes';
-
-
-const getData = <T>(response: ApiResponse<T>): T => response.data as T;
-const emptyDailyProductionPlan = (): DailyProductionPlan => ({
-  serviceDate: '',
-  totalPlans: 0,
-  sentPlans: 0,
-  totalDishes: 0,
-  totalServings: 0,
-  totalRequiredQty: 0,
-  suggestedPurchaseQty: 0,
-  warnings: [],
-  plans: [],
-});
-
-const mapProductionPlan = (plan: ProductionPlanDto): ProductionPlan => ({
-  ...plan,
-  customerId: plan.customerId ?? undefined,
-  customerCode: plan.customerCode ?? undefined,
-  customerName: plan.customerName ?? undefined,
-  status: plan.status ?? undefined,
-  sentToKitchenAt: plan.sentToKitchenAt ?? undefined,
-  sentToKitchenByName: plan.sentToKitchenByName ?? undefined,
-  lines: plan.lines.map((line) => ({ ...line })),
-});
-
-const normalizeDailyProductionPlan = (
-  response: ApiResponse<DailyProductionPlanDto> | DailyProductionPlanDto | unknown,
-): DailyProductionPlan => {
-  const maybeData =
-    response && typeof response === 'object' && 'data' in response
-      ? (response as ApiResponse<DailyProductionPlanDto>).data
-      : response;
-
-  if (!maybeData || typeof maybeData !== 'object' || Array.isArray(maybeData)) {
-    return emptyDailyProductionPlan();
-  }
-
-  const plan = maybeData as Partial<DailyProductionPlanDto>;
-  return {
-    ...emptyDailyProductionPlan(),
-    ...plan,
-    customerId: plan.customerId ?? undefined,
-    customerCode: plan.customerCode ?? undefined,
-    customerName: plan.customerName ?? undefined,
-    shiftName: plan.shiftName ?? undefined,
-    warnings: Array.isArray(plan.warnings) ? plan.warnings : [],
-    plans: Array.isArray(plan.plans) ? plan.plans.map(mapProductionPlan) : [],
-  };
-};
-
-
-
-
-
-
-
-const normalizeWorkflowTone = (tone: string, status: string): WorkflowTone =>
-  tone === 'success' || tone === 'warning' || tone === 'danger' || tone === 'neutral'
-    ? tone
-    : toneFromStatus(status);
-
-const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
-  id: item.inboxItemId || item.targetCode || item.targetId,
-  targetType: item.targetType,
-  targetId: item.targetId,
-  targetCode: item.targetCode,
-  type: item.itemType === 'price-alert' || item.itemType === 'price-exception' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
-  title: item.title,
-  source: item.source || item.targetCode,
-  owner: item.ownerRole,
-  submittedBy: item.submittedBy,
-  deadline: item.dueDate ? new Date(item.dueDate).toLocaleDateString('vi-VN') : 'Trong ca',
-  status: item.status,
-  reason: item.reason,
-  nextAction: item.nextAction,
-  tone: normalizeWorkflowTone(item.tone, item.status),
-  slaDeadline: item.slaDeadline ?? undefined,
-  slaHours: item.slaHours,
-  route: item.route,
-  weekStartDate: item.weekStartDate ?? undefined,
-  serviceDate: item.serviceDate ?? undefined,
-  scope: item.scope ?? undefined,
-  lineCount: item.lineCount,
-  totalQuantity: item.totalQuantity,
-  totalValue: item.totalValue,
-  submittedAt: item.submittedAt ?? undefined,
-  referencePrice: item.referencePrice,
-  proposedPrice: item.proposedPrice,
-  variancePercent: item.variancePercent,
-  evidenceType: item.evidenceType ?? undefined,
-  evidenceId: item.evidenceId ?? undefined,
-  evidenceDate: item.evidenceDate ?? undefined,
-  proposalFingerprint: item.proposalFingerprint ?? undefined,
-  proposalVersion: item.proposalVersion,
-  supplierName: item.supplierName ?? undefined,
-  sourceDocumentCode: item.sourceDocumentCode ?? undefined,
-  materials: (item.materials ?? []).map((material) => ({ ...material })),
-});
-
-
 
 
 
@@ -415,134 +294,37 @@ export {
   useConfirmInventoryReturnReceiptMutation,
   useConfirmInventoryIssueReceiptMutation,
 } from '@/features/warehouse/warehouseApi';
+import { chefApi } from '@/features/chef/chefApi';
+import { approvalsApi } from '@/features/approvals/approvalsApi';
+import { adminWorkflowApi } from '@/features/admin/adminWorkflowApi';
+export {
+  useGetDailyProductionPlanQuery,
+  useSendDailyProductionPlanToKitchenMutation,
+} from '@/features/chef/chefApi';
+export {
+  useGetApprovalRecordsQuery,
+  useExecuteApprovalDecisionMutation,
+  useGetApprovalHistoryQuery,
+} from '@/features/approvals/approvalsApi';
+export {
+  useGetApprovalRulesQuery,
+  useCreateApprovalRuleMutation,
+  useUpdateApprovalRuleMutation,
+  useDeleteApprovalRuleMutation,
+} from '@/features/admin/adminWorkflowApi';
 
-const remainingWorkflowApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
-      query: (query) => ({
-        url: '/production-plans/daily',
-        params: query || undefined,
-      }),
-      transformResponse: normalizeDailyProductionPlan,
-      providesTags: [workflowCacheTags.productionPlans],
-    }),
-    sendDailyProductionPlanToKitchen: builder.mutation<DailyProductionPlan, SendDailyProductionPlanRequest>({
-      query: (body) => ({
-        url: '/production-plans/daily/send-to-kitchen',
-        method: 'POST',
-        body,
-      }),
-      transformResponse: normalizeDailyProductionPlan,
-      invalidatesTags: [
-        workflowCacheTags.productionPlans,
-        workflowCacheTags.documents,
-        workflowCacheTags.kitchenIssues,
-      ],
-    }),
-    getApprovalRecords: builder.query<ApprovalInboxPage, ApprovalInboxQuery | void>({
-      query: (query) => ({
-        url: '/approvals/inbox',
-        params: {
-          limit: query?.limit ?? 20,
-          ...(query?.cursor ? { cursor: query.cursor } : {}),
-        },
-      }),
-      transformResponse: (response: ApiResponse<ApprovalInboxPageDto>): ApprovalInboxPage => {
-        const page = getData(response);
-        return {
-          items: (page.items ?? []).map(mapApprovalInboxItem),
-          limit: page.limit,
-          hasNext: page.hasNext,
-          nextCursor: page.nextCursor,
-        };
-      },
-      providesTags: (result) => [
-        workflowCacheTags.approvalInbox,
-        ...(result?.items ?? []).map((item) => ({
-          type: 'WorkflowReports' as const,
-          id: `ApprovalTarget:${item.targetType}:${item.targetId}`,
-        })),
-      ],
-    }),
-    executeApprovalDecision: builder.mutation<ApiResponse<unknown>, ApprovalDecisionRequest>({
-      query: ({ targetType, targetId, status, reason }) => ({
-        url: `/approvals/${targetType}/${targetId}`,
-        method: 'POST',
-        body: { status, reason },
-      }),
-      invalidatesTags: (_result, _error, { targetType, targetId, week }) => [
-        workflowCacheTags.approvalInbox,
-        workflowCacheTags.documents,
-        workflowCacheTags.operationalKpis,
-        workflowCacheTags.purchaseRequests,
-        { type: 'WorkflowReports', id: `ApprovalTarget:${targetType}:${targetId}` },
-        ...(week
-          ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
-          : []),
-      ],
-    }),
-    getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, ApprovalHistoryQuery>({
-      query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
-      providesTags: [workflowCacheTags.approvalHistory],
-    }),
-    getApprovalRules: builder.query<ApiResponse<ApprovalRuleDto[]>, void>({
-      query: () => '/approval-rules',
-      providesTags: [workflowCacheTags.approvalRules],
-    }),
-    createApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, ApprovalRuleRequestDto>({
-      query: (body) => ({
-        url: '/approval-rules',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [
-        workflowCacheTags.approvalRules,
-        workflowCacheTags.approvalInbox,
-      ],
-    }),
-    updateApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, UpdateApprovalRuleArgs>({
-      query: ({ id, body }) => ({
-        url: `/approval-rules/${id}`,
-        method: 'PUT',
-        body,
-      }),
-      invalidatesTags: [
-        workflowCacheTags.approvalRules,
-        workflowCacheTags.approvalInbox,
-      ],
-    }),
-    deleteApprovalRule: builder.mutation<ApiResponse<void>, string>({
-      query: (id) => ({
-        url: `/approval-rules/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: [
-        workflowCacheTags.approvalRules,
-        workflowCacheTags.approvalInbox,
-      ],
-    }),
-  }),
-  overrideExisting: false,
-});
+const remainingWorkflowApi = apiSlice;
 
 export const workflowApi = remainingWorkflowApi as typeof remainingWorkflowApi
   & typeof workflowDocumentsApi
   & typeof dashboardApi
   & typeof reportsApi
   & typeof purchasingApi
-  & typeof warehouseApi;
+  & typeof warehouseApi
+  & typeof chefApi
+  & typeof approvalsApi
+  & typeof adminWorkflowApi;
 
-export const {
-  useGetDailyProductionPlanQuery,
-  useSendDailyProductionPlanToKitchenMutation,
-  useGetApprovalRecordsQuery,
-  useExecuteApprovalDecisionMutation,
-  useGetApprovalHistoryQuery,
-  useGetApprovalRulesQuery,
-  useCreateApprovalRuleMutation,
-  useUpdateApprovalRuleMutation,
-  useDeleteApprovalRuleMutation,
-} = remainingWorkflowApi;
 
 export function useWorkflowOverview(options: { skip?: boolean } = {}) {
   const queryOptions = { skip: options.skip ?? false };
