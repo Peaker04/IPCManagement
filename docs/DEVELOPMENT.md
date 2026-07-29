@@ -110,6 +110,20 @@ Ma trận browser gate hiện hành gồm `1920×1080`, `1440×900`, `1366×768`
 `1280×900`. Không dùng `768×1024`; tablet/mobile nằm ngoài gate mặc định cho tới khi Kỳ yêu cầu lại.
 Không dùng mock login/API hoặc snapshot visual cũ để kết luận runtime pass.
 
+Evidence Phase 18 hiện được giữ tại `.artifacts/shipyard-live/phase-18-guardrails-20260729`. Kiểm tra lại
+artifact theo cách read-only từ project root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Assert-Phase18Evidence.ps1 `
+  -EvidenceRoot .artifacts/shipyard-live/phase-18-guardrails-20260729 `
+  -ExpectedDatabase ipc_lane1 -ExpectedWeek 2026-07-27 `
+  -ExpectedViewports '1920x1080,1440x900,1366x768,1365x900,1280x900'
+```
+
+Không chạy lại `Invoke-Phase18LaneE2E.ps1`, sanitizer hoặc weekly import chỉ để tái kiểm tra lượt đã hoàn tất:
+`ipc_lane1` đang giữ chính transition/evidence đó. Một lượt mới phải có authorization riêng, database identity
+guard, backup/checksum mới và exact workbook hash trước mutation.
+
 `agent-browser` executable không có trong PATH ở lần kiểm tra ngày 27/07/2026 nên helper
 Playwright là fallback đã xác minh. Helper tạo controlled Chrome context riêng; Chrome bình thường
 đang mở không thể attach nếu không được khởi động với remote-debugging/CDP.

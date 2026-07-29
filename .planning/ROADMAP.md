@@ -15,7 +15,7 @@
 - [x] **Phase 15: Use-case and functional-core extraction** — complete through SampleData at `7ae0e67`.
 - [x] **Phase 16: Persistence and reliability** — complete at `59add79` plus prior mapping/runner/lineage checkpoints.
 - [x] **Phase 17: Frontend ownership** — complete, 8/8 plans; Gate 17 verified. (completed 2026-07-29)
-- [ ] **Phase 18: Guardrails and workflow closeout** — pending Steps 11–17.
+- [x] **Phase 18: Guardrails and workflow closeout** — complete, 8/8 plans; Gate 18 and milestone audit passed. (completed 2026-07-29)
 
 ### Phase 11: Query state contract
 
@@ -77,7 +77,7 @@
 
 **Goal:** Decompose test monoliths, enforce growth thresholds and close the workflow with reproducible evidence and synchronized documentation.
 **Depends on:** Phase 11, Phase 12, Phase 13, Phase 14, Phase 15, Phase 16, Phase 17
-**Status:** Pending
+**Status:** Complete — 8/8 plans; verification passed 8/8 must-haves
 
 **Gate:** full backend/frontend/contract/dependency/migration gates and required browser evidence are green; secret scan, `git diff --check` and staged GitNexus `detect_changes` are clean; no automatic push.
 

@@ -3,6 +3,7 @@ phase: 15-use-case-and-functional-core-extraction
 plan: "01"
 status: complete
 completed: 2026-07-28
+requirements-completed: [ARCH-15]
 ---
 
 # Phase 15 Summary

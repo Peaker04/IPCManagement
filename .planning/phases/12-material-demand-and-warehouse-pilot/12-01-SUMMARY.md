@@ -3,6 +3,7 @@ phase: 12-material-demand-and-warehouse-pilot
 plan: "01"
 status: complete
 completed: 2026-07-27
+requirements-completed: [ARCH-12]
 ---
 
 # Phase 12 Summary

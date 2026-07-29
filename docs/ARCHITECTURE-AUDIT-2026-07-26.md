@@ -434,8 +434,8 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Hoàn tất** |
 | 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | **Hoàn tất** |
-| 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | **Active tiếp theo** |
-| 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
+| 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | **Hoàn tất** |
+| 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | **Hoàn tất** |
 
 Như vậy, bốn nhãn cũ đã biến mất khỏi execution queue: boundary cũ nằm trong
 Bước 14; tách use case trong Bước 15; persistence trong Bước 16; frontend boundary
@@ -774,6 +774,14 @@ vận hành được ghi rõ, không bị mô tả sai là disaster recovery to�
 **Gate 17:** 0 feature cycle/import ngược không có whitelist; navigation/cache/state tests xanh;
 OpenAPI-derived type và public hook surface không drift; browser ba viewport giữ UI/cache behavior.
 
+**Hoàn tất 29/07/2026:** tám plan đã đóng. Frontend còn đúng một production `apiSlice`/`createApi`,
+75 endpoint key, 75 public generated hook và 22 cache ID. `workflowApi.ts` là compatibility barrel trên
+bảy feature owner cùng `workflowDocumentsApi`; `MainLayout` thuộc `app/layout`; Projects chỉ dùng
+Coordination transport/read projection/action contract; Admin và Reports giữ facade công khai trên
+panel/view owner. Baseline 54 dependency violation đã về `[]`; strict dependency-cruiser trả 0 violation
+trên 342 module/1.169 dependency. Full gate: Application 49/49, API 680 pass/1 skip, frontend 433/433,
+contract deterministic và headed evidence xanh; endpoint, public hook, cache key/tag và UI behavior không drift.
+
 ### Bước 18 — Guardrail test, growth gate và tài liệu
 
 **Mục tiêu:** khóa nợ còn lại bằng test/gate có thể chạy lại và đóng workflow bằng evidence.
@@ -791,3 +799,19 @@ OpenAPI-derived type và public hook surface không drift; browser ba viewport g
 **Gate kết thúc workflow:** full backend/frontend/contract/dependency/migration gates xanh; browser headed
 website xác nhận FE state, BE request/response, DB transition và render sau reload; secret scan,
 `git diff --check` và staged `detect_changes` sạch; không push tự động.
+
+**Hoàn tất 29/07/2026:** ba backend test monolith được chia theo workflow/fixture nhưng giữ partial-class
+identity; route smoke được chia thành ba spec và năm helper, discovery/focused Chromium vẫn 17/17.
+Growth comparator pass 6/6 và strict baseline pass với đúng 10 finding production; test debt, debt mới/tăng
+và baseline expansion đều bị chặn. Lượt full gate cuối: Application 49/49, API 682 pass/1 skip, frontend
+433/433, lint/dependency/build xanh, OpenAPI/generated TypeScript không drift, EF pending-model sạch và
+migration contract 5/5.
+
+Guarded E2E chỉ mutate `ipc_lane1` sau backup/checksum/lineage gate, dùng đúng workbook ANV SHA-256
+`A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01` cho tuần `2026-07-27`.
+Evidence cuối có 15 screenshot ở `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`;
+112 API response thành công, không console/page/request/API error, overflow hoặc long-task failure, reload
+ổn định. DB có 1 menu version, 12 schedule/meal plan, 6 material request, 7 purchase request/order,
+13 inventory issue và một supplemental request `FULFILLED`, orphan 0. Backup mirror SHA-256
+`027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13` hợp lệ; gap off-site vật lý
+từ Bước 16 vẫn là concern vận hành, không bị mô tả sai là đã đóng. Không push/reset/seed/restore.

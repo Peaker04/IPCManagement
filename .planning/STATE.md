@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
-stopped_at: Phase 17 complete; ready to discuss Phase 18 guardrails and workflow closeout
-last_updated: "2026-07-29T08:07:22.785Z"
+stopped_at: Milestone v1.2 complete; Phase 18 verification and milestone audit passed
+last_updated: "2026-07-29T19:18:00+07:00"
 progress:
   total_phases: 8
-  completed_phases: 7
-  total_plans: 14
-  completed_plans: 14
-  percent: 88
-current_phase: 17
-current_phase_name: frontend-ownership
+  completed_phases: 8
+  total_plans: 22
+  completed_plans: 22
+  percent: 100
+current_phase: 18
+current_phase_name: guardrails-and-workflow-closeout
 ---
 
 # Project State
@@ -25,19 +25,44 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 ## Current Position
 
-Phase: 17 — COMPLETE
+Phase: 18 — COMPLETE
 
-Plan: 8 of 8
+Plan: 8 of 8 complete
 
-Status: Phase 17 complete
+Status: Milestone v1.2 verification and audit passed
 
-Milestone phase progress: █████████░ 88% (7/8 steps complete).
+Milestone phase progress: ██████████ 100% (8/8 steps complete).
 
 Defined-plan progress: 8/8 plans defined and executed.
 
 Step 16 work-package progress: 5/5 complete.
 
 ## Verified Baseline
+
+- Phase 18 is complete through `87e92fe` plus documentation/GSD closeout. Goal-backward verification
+  passed 8/8 must-haves and milestone v1.2 audit passed 12/12 requirements, 8/8 phases, 7/7
+  integrations and 4/4 end-to-end flows. No gap, undispositioned process or Deferred item remains.
+- Guarded `ipc_lane1` evidence for week `2026-07-27` is preserved: exact ANV workbook hash, rollback
+  backup/mirror, protected lineage, 15 screenshots, 112 successful API responses and five desktop
+  viewports. Do not rerun sanitizer/import/reset/seed for closeout.
+- Final source gate: Application 49/49, API 682 pass + 1 intentional skip, frontend 433/433,
+  comparator 6/6, strict growth/dependency/lint/build/contract/EF/migration gates green.
+
+- Phase 18 Plan 06 non-mutating checkpoint is green. Root verify passed at Application 49/49,
+  API 680 + 1 intentional skip and frontend 80 files/433 tests; contracts are deterministic,
+  EF snapshot and five migration contract tests pass, secret/whitespace scans are clean. Final PDG
+  compare is LOW at 365 symbols/39 files/0 process; Deferred empty. Guarded E2E is authorized only
+  after `ipc_lane1` backup/checksum/lineage checks.
+
+- Phase 18 Plan 05 is complete at `e4ce7fc`. The strict growth gate records exactly ten
+  production-only findings, rejects any test debt/new debt/worsening/stale improvement and compares
+  the JSON ceiling with the CI base ref. Its six black-box comparator cases, current-tree gate,
+  lint and dependency gates pass; staged GitNexus was LOW with 48 symbols and zero affected process.
+
+- Phase 18 Plans 01–04 are complete at `3a787a5`, `8fc7463`, `86ac57d` and `4bee50d`.
+  Three backend monoliths and the route-smoke Playwright monolith are decomposed. Route-smoke discovery is
+  17/17 with stable title/body fingerprints; focused Chromium, lint and production build pass. Final staged
+  GitNexus for Plan 18-04 was LOW with 15 symbols, zero affected process and Deferred empty.
 
 - Branch `feature/workflow-b17-b18`; current Phase 17 implementation baseline is
   `1ca2bbb fix(17-08): close full-gate regressions`. Không push trong phiên này.
@@ -125,7 +150,8 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Remaining Workflow
 
-- Step 18: test decomposition, growth gates, complete evidence and documentation closeout.
+- None for milestone v1.2. Start a new milestone before adding implementation work.
+- Operational follow-up only: configure and verify a genuinely physical off-site backup target.
 
 ## Decisions Made
 
@@ -155,16 +181,16 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T07:54:31.041Z
+**Last Date:** 2026-07-29T19:18:00+07:00
 
-**Stopped At:** Phase 17 complete; ready to discuss Phase 18 guardrails and workflow closeout
+**Stopped At:** Milestone v1.2 complete; Phase 18 verifier and milestone audit passed
 
 **Resume File:** .planning/ROADMAP.md
 
 ## Constraints
 
 - Do not push or reset.
-- Do not seed/import existing databases and do not mutate `ipc_lane1`.
+- Do not seed/import/reset or further mutate `ipc_lane1`; preserve the completed Phase 18 week/evidence.
 - Do not rewrite, delete or move applied migrations.
 - Run upstream impact before every symbol edit; warn on HIGH/CRITICAL; run staged `detect_changes` before every commit.
 - Browser evidence is required only for frontend/route/UI behavior changes until the final workflow closeout.
@@ -181,3 +207,8 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | Phase 17 P06 | 26min | 1 tasks | 11 files |
 | Phase 17 P07 | 16min | 1 tasks | 10 files |
 | Phase 17 P08 | 77min | 3 tasks | 16 files |
+| Phase 18 P04 | 46min | 1 tasks | 10 files |
+| Phase 18 P05 | 18min | 1 tasks | 7 files |
+| Phase 18 P06 | 13min | 2 tasks | 2 files |
+| Phase 18 P07 | 73min | 2 tasks | guarded DB/E2E + 4 atomic commits |
+| Phase 18 P08 | 35min | 2 tasks | documentation/verifier/audit |

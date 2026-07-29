@@ -1036,3 +1036,51 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Final PDG index có 56.627 node, 103.087 edge, 482 cluster và 300 flow. Cypher trên index mới:
   6/6 cache caller, old cache path 0, `SampleData → Catalog` import 0, 26 schema-helper caller và
   old `workflowApi` implementation call 0. CRITICAL explain/PDG cùng 6 trace đều đã xử lý; worktree sạch.
+
+## Phase 18 — Guardrails, weekly E2E và workflow closeout — 2026-07-29
+
+### Đã xác minh
+
+- Plans 18-01..18-07 đã hoàn tất qua các commit `3a787a5`, `8fc7463`, `86ac57d`, `4bee50d`,
+  `e4ce7fc`, `c9554ee`, `e12de8a`, `a536d3a`, `87e92fe`. Ba backend monolith giữ nguyên
+  partial-class identity sau khi chia workflow/fixture; route-smoke discovery và focused Chromium giữ 17/17.
+- Growth comparator pass 6/6; strict baseline có đúng 10 finding production, không test debt/new debt/
+  worsening/stale improvement. `MaterialDemandService` giảm 1.470 → 1.446 dòng và baseline giảm theo.
+- Full gate cuối: Application 49/49; API 682 pass + 1 intentional skip; frontend 80 file/433 test;
+  ESLint, dependency-cruiser 0 violation trên 342 module/1.169 dependency, backend/frontend build,
+  OpenAPI/generated TypeScript determinism, EF pending-model và migration 5/5 đều xanh. Contract hash:
+  `DF09371F71C7CF9A524CD58C6C89A4443870DA6743ACC3E5F85C95E9FB7BB9E5`; generated schema hash:
+  `E1FF2980B16D62EA3375AE30C3C8DF682C2DC18BE26A09778036B48EAD74EFA1`.
+- Plan 18-07 chỉ mutate `ipc_lane1`; không reset/seed/restore và không import lần hai. Workbook
+  `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx`, SHA-256
+  `A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01`, tuần `2026-07-27`.
+  Sanitizer xóa menu/import transaction chain theo dependency order, giữ protected master/reference/BOM;
+  migration vẫn 41 và dynamic FK orphan audit bằng 0.
+- Backup rollback checkpoint ở `D:\Backups\ipc-phase18-20260729\ipc_lane1-20260729-173035.zip`
+  và mirror `C:\Users\Administrator\ipc-phase18-20260729\ipc_lane1-20260729-173035.zip` có cùng
+  SHA-256 `027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13`.
+  Protected fingerprint trước mutation là
+  `EA62337AE966B980D19746E1741C4A223010F65E42F5E748D24BBCDAF03CF17B`; protected hash/lineage guard pass.
+- DB evidence cuối: 1 menu version, 12 schedule, 12 meal plan, 6 material request, 7 purchase
+  request/order, 13 inventory issue và 1 supplemental request đã đi đủ route → supplier decision → submit
+  → approve → PO → receipt → issue → kitchen confirmation → `FULFILLED`; orphan 0.
+
+### Evidence
+
+- Root: `.artifacts/shipyard-live/phase-18-guardrails-20260729`.
+- `Assert-Phase18Evidence.ps1` pass: 15 screenshot, 112 successful API response, 0 console/page/request/API
+  error, 0 whole-page horizontal overflow, 0 long-task failure; CLS tối đa xấp xỉ `0,04567`.
+- Năm viewport authoritative: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`;
+  không có `768×1024`. Manual screenshot review và reload render đều ổn định.
+
+### Còn hở, quality gates và checklist tiếp tục
+
+- `ipc_lane1` đang giữ nguyên dữ liệu evidence tuần 2026-07-27. Không chạy lại sanitizer/import/reset/seed;
+  kiểm tra artifact bằng `scripts/Assert-Phase18Evidence.ps1` nếu cần.
+- Gap vận hành duy nhất vẫn là backup off-site vật lý thật sự. Hai mirror C:/D: chứng minh integrity và
+  rollback checkpoint, không chứng minh hai thiết bị/site độc lập.
+- Goal-backward Phase 18 verifier pass 8/8 must-have; milestone v1.2 audit pass 12/12 requirement,
+  8/8 phase, 7/7 integration và 4/4 end-to-end flow. Nyquist validation 8/8 phase compliant;
+  không có gap, affected process chưa xử lý hoặc Deferred item.
+- Không push. Closeout cuối phải giữ docs secret scan, `git diff --check` và GitNexus staged
+  `detect_changes` xanh trước commit cục bộ; sau commit re-index và final clean detect.

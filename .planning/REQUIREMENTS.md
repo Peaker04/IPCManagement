@@ -15,7 +15,7 @@ The detailed contract is Part F of `docs/ARCHITECTURE-AUDIT-2026-07-26.md`. This
 - [x] ARCH-16D — Explained and tested canonical fresh/upgrade migration lineage.
 - [x] ARCH-16E — Cross-volume backup integrity plus disposable-clone restore evidence; genuinely off-site physical storage remains an explicit operational gap.
 - [x] ARCH-17 — Explicit frontend endpoint/layout/page-model ownership and zero unapproved dependency debt.
-- [ ] ARCH-18 — Test decomposition, growth gates, full verification and synchronized documentation.
+- [x] ARCH-18 — Test decomposition, growth gates, full verification and synchronized documentation.
 
 ## Preservation requirements
 

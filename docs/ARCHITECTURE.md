@@ -122,3 +122,23 @@ coordination transport/read projection và action contract ở tầng thấp hơ
 Dependency-cruiser áp dụng R1–R6 trên 342 module. Baseline 54 violation đã giảm về file `[]`; strict run
 không dùng baseline cũng trả 0 violation. Ngoại lệ duy nhất là compatibility barrel chỉ được import chính xác
 các endpoint owner đã liệt kê và phải được review lại ở milestone v1.3.
+
+## Guardrail kiến trúc và workflow closeout
+
+Phase 18 giữ nguyên identity của ba xUnit partial class nhưng chia responsibility theo workflow và fixture:
+`WorkflowGenerationTests` có 11 partial definition, `PurchaseHistoryReconciliationTests` có 4 và
+`SupplierDecisionWorkflowTests` có 4. Route smoke Playwright được chia thành ba spec cùng năm helper domain
+dưới `frontend/tests/support/route-smoke`; discovery cuối vẫn là 17/17 scenario.
+
+`scripts/check-architecture-growth.mjs` và `scripts/architecture-growth-baseline.json` khóa growth theo
+baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action và buộc plan split trên 400 dòng hoặc
+20 action; service cảnh báo trên 600 dòng và buộc plan split trên 1.000 dòng; frontend viết tay cảnh báo
+trên 600 dòng; test file trên 1.500 dòng là lỗi. Strict gate còn fail khi có production debt mới/tăng,
+test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline hiện có đúng
+10 finding production; `MaterialDemandService` đã giảm từ 1.470 xuống 1.446 dòng và ceiling cũng giảm theo.
+
+Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
+trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng
+`MaterialStockPool` để quy đổi và tiêu thụ cùng một tồn kho dùng chung theo đơn vị BOM, tránh phân bổ lặp
+cùng lượng tồn cho nhiều demand line. API route, OpenAPI/generated TypeScript, public hook, cache key/tag
+và UI behavior không đổi.

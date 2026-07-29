@@ -205,6 +205,31 @@ ngược để giả thành coverage của ma trận mới.
 - `npm run check:api-contract` chạy lặp giữ nguyên SHA-256 của OpenAPI và generated TypeScript, không có contract drift; lint, build, dependency và contract gate đều deterministic.
 - Evidence authoritative của Chrome headed là `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json`: 3 viewport (`1365×900`, `1280×900`, `768×1024`), 30 app-route capture, 3 Shipyard capture, 96 tab interaction, 64 API response đều 2xx và 48 warm revisit không phát sinh request mới. Console/page/request error, horizontal overflow, CLS và long task đều bằng 0.
 
+### Gate Phase 18 — Guardrails và weekly E2E (29/07/2026)
+
+- `npm run test:architecture-growth` pass 6/6 comparator case; strict current-tree gate pass với đúng
+  10 finding production, không có test debt hoặc baseline expansion. Ba backend monolith và route-smoke
+  monolith đã được tách; route-smoke discovery/focused Chromium giữ 17/17 scenario.
+- `npm run verify` cuối xanh: Application **49/49**, API **682 pass + 1 intentional skip**, frontend
+  **80 file / 433/433**; ESLint, backend/frontend build và dependency-cruiser **0 violation trên
+  342 module / 1.169 dependency** đều pass. OpenAPI và generated TypeScript giữ lần lượt SHA-256
+  `DF09371F71C7CF9A524CD58C6C89A4443870DA6743ACC3E5F85C95E9FB7BB9E5` và
+  `E1FF2980B16D62EA3375AE30C3C8DF682C2DC18BE26A09778036B48EAD74EFA1`; EF pending-model sạch,
+  migration contracts 5/5.
+- Guarded runner chỉ sanitize `ipc_lane1` sau khi xác nhận đúng database, 61 bảng, 130 FK, 41 migration,
+  orphan 0 và backup mirror cùng SHA-256. Workbook tuần `2026-07-27` là
+  `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx`, SHA-256
+  `A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01`; import chỉ chạy một lần.
+- Evidence authoritative ở `.artifacts/shipyard-live/phase-18-guardrails-20260729`: 15 screenshot tại
+  đủ năm viewport hiện hành, 112 API response thành công, 0 console/page/request/API error, 0 whole-page
+  horizontal overflow, 0 long-task failure và CLS tối đa xấp xỉ `0,04567`. Giá trị CLS này là số đo
+  được lưu, không phải gate `0,02` của các probe tab lịch sử. Reload render ổn định và manual screenshot
+  review đã pass.
+- DB transition cuối: 1 menu version, 12 schedule, 12 meal plan, 6 material request, 7 purchase
+  request/order, 13 inventory issue và 1 supplemental request `FULFILLED`; orphan vẫn 0. Không chạy lại
+  sanitizer/import khi cần kiểm tra evidence đã lưu; dùng `scripts/Assert-Phase18Evidence.ps1` để xác minh
+  artifact mà không mutate database.
+
 ## CI integration
 
 Workflow `.github/workflows/verify.yml` chạy trên cả `push` và `pull_request`. Job `verify` dùng MySQL `8.0`, .NET `9.0.x` và Node `20`, sau đó chạy `npm ci`, backend build/test, kiểm tra EF migration snapshot, tạo và smoke-test MySQL schema, frontend lint và frontend build. Workflow hiện là quality gate; không có workflow deploy riêng trong `.github/workflows/`.
