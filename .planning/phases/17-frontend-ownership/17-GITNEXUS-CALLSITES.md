@@ -1240,3 +1240,31 @@ Final Plan 17-06 audit:
 | `AdminDataPage → IsAdminView` | Handled — facade retains the same initial-view/employee permission guard. |
 
 Cypher final: `AdminDataPage` is the sole facade caller; facade owns no moved helper definitions and calls exactly the seven panel hooks plus `getTodayInputValue`/`isAdminView`; every moved helper resolves only to its new owner file. `detect_changes(staged)`: 43 changed symbols, 11 files, 5 expected processes, MEDIUM. Deferred: none.
+
+## Plan 17-07 pre-edit ownership checklist
+
+| Symbol | Upstream | Downstream | Planned disposition |
+|---|---:|---:|---|
+| `useReportsPageModel` | LOW — 1 direct / 1 total | CRITICAL — 4 direct / 9 total | Keep sole `ReportsPage` compatibility facade; compose five unconditional view models. |
+| `toReportView` | LOW — 1 direct / 2 total | CRITICAL — 1 direct / 2 total | Move once to Reports shared model helper with exact QueryView copy/retry/403 behavior. |
+| `readPositiveInteger`, `readPageSize` | LOW | LOW | Move to Reports shared model helper; retain URL fallback and allowed page-size semantics. |
+| Price state/query/derived values | LOW | LOW | Move four subviews together; preserve order, page sizes, skips, rows and active subview. |
+| Demand/purchase state/query/summary | LOW | LOW | Move together; preserve groupBy, args, page state and CSV values. |
+| Stock/movement state/query/cursors | LOW | LOW | Move together; preserve current-stock-before-movement query order and cursor handling. |
+| Kitchen/usage state/query/rows | LOW | LOW | Move together; preserve shared operational page size and CSV values. |
+| Audit/data-quality state/query/debounce/cursors | LOW | LOW | Move together; preserve 300ms search debounce, query order and cursor handling. |
+| Navigation/URL helpers (`updateSearchState`, numbered page/size, reset functions) | LOW | LOW | Keep facade-owned because all view models consume the same URL contract. |
+| CSV/export helpers | LOW | LOW | Each view owns its unchanged columns/rows; facade keeps active-view download timing. |
+
+Cross-cluster traces (all confidence 0.85): `ReportsPage → useReportsPageModel → readPageSize → readPositiveInteger`; `ReportsPage → useReportsPageModel → toReportView → toQueryView → isQueryErrorStatus`; `ReportsPage → formatWorkflowStatus → getWorkflowStatusPresentation → normalizeStatusCode|toneFromFallbackText`; `ReportsPage → Input → cn`. Deferred: none.
+
+Final Plan 17-07 audit:
+
+| Affected process | Disposition |
+|---|---|
+| `ReportsPage → IsQueryErrorStatus` | Handled — all 12 report queries retain shared QueryView semantics; state/permission tests pass. |
+| `ReportsPage → NormalizeStatusCode` | Handled — demand/purchase and audit/data-quality CSV columns retain `formatWorkflowStatus`. |
+| `ReportsPage → ToneFromFallbackText` | Handled — workflow status presentation chain remains unchanged and was traced from the new owner. |
+| `ReportsPage → ReadPositiveInteger` | Handled — URL page/pageSize parsing remains shared and all pagination compile/state tests pass. |
+
+Cypher final: `ReportsPage` is the sole facade caller; the facade calls exactly five view models plus `readPositiveInteger`; it has zero direct endpoint-query call; all five view models call the single shared `toReportView`. `detect_changes(staged)`: 30 symbols, 9 files, 4 expected processes, MEDIUM. Deferred: none.

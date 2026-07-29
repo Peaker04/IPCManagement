@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import purchasingSource from '../features/purchasing/pages/PurchasingPage.tsx?raw';
 import adminSource from './pages/AdminDataPage.tsx?raw';
 import adminBomSource from './pages/admin-data/AdminBomPanel.tsx?raw';
+import adminBomModelSource from './pages/admin-data/useAdminBomPanelModel.ts?raw';
+import adminContractsModelSource from './pages/admin-data/useAdminContractsPanelModel.ts?raw';
 import adminModelSource from './pages/admin-data/useAdminDataPageModel.ts?raw';
 import chefSource from '../features/chef/pages/ChefDashboardPage.tsx?raw';
 import chefReceiptsSource from '../features/chef/receipts/useKitchenReceipts.ts?raw';
@@ -11,6 +13,7 @@ import chefJournalSource from '../features/chef/journal/useChefJournal.ts?raw';
 import reportsSource from '../features/reports/pages/ReportsPage.tsx?raw';
 import reportsModelSource from '../features/reports/pages/useReportsPageModel.ts?raw';
 import reportsPriceSource from '../features/reports/pages/ReportsPricePanel.tsx?raw';
+import reportsPriceModelSource from '../features/reports/pages/useReportsPriceViewModel.ts?raw';
 import weeklyMenuSource from '../features/projects/pages/WeeklyMenuPage.tsx?raw';
 import materialDemandSource from '../features/projects/weekly-menu/demand/useMaterialDemand.ts?raw';
 import warehouseSource from '../features/warehouse/pages/WarehousePage.tsx?raw';
@@ -53,17 +56,17 @@ describe('operational page performance contracts', () => {
   });
 
   it('only fetches and renders the selected price analysis', () => {
-    const reportsContractSource = `${reportsSource}\n${reportsModelSource}\n${reportsPriceSource}`;
+    const reportsContractSource = `${reportsSource}\n${reportsModelSource}\n${reportsPriceModelSource}\n${reportsPriceSource}`;
     for (const subview of ['lines', 'supplier', 'period', 'dishGroup']) {
       expect(reportsContractSource).toContain(`priceSubView !== '${subview}'`);
     }
     expect(reportsContractSource).toContain("priceSubView === 'lines' && (");
-    expect(reportsContractSource).toContain('price: activePriceView');
+    expect(reportsContractSource).toContain('price: priceModel.activePriceView');
   });
 
   it('does not build hidden admin dialogs or query inactive datasets', () => {
-    const adminContractSource = `${adminSource}\n${adminModelSource}\n${adminBomSource}`;
-    expect(adminContractSource).toContain('{ skip: !isContractView || !selectedContract?.customerId }');
+    const adminContractSource = `${adminSource}\n${adminModelSource}\n${adminBomModelSource}\n${adminContractsModelSource}\n${adminBomSource}`;
+    expect(adminContractSource).toContain("{ skip: activeView !== 'contracts' || !selectedContract?.customerId }");
     expect(adminContractSource).toContain('if (!isBomView) return [];');
     expect(adminContractSource).toContain('{isBomDialogOpen && <Dialog open');
     expect(adminContractSource).toContain('{closingBom && <Dialog open');
