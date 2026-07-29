@@ -78,7 +78,7 @@ public class InventoryIssuesController : ControllerBase
                 return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
             return CreatedAtAction(
-                nameof(GetByIdAsync),
+                "GetById",
                 new { id = result.IssueId },
                 ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
         }

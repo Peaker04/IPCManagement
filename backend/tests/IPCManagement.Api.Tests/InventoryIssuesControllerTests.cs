@@ -73,6 +73,24 @@ public class InventoryIssuesControllerTests
         forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
     }
 
+    [Fact]
+    public async Task Create_Should_TargetMvcActionNameWithoutAsyncSuffix()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var issueId = Guid.NewGuid().ToString();
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
+            .Returns(userId);
+        _inventoryIssueService.CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), userId)
+            .Returns(new InventoryIssueCreatedDto { IssueId = issueId, IssueCode = "ISSUE-E2E" });
+
+        var result = await CreateController().CreateAsync(new CreateInventoryIssueRequest());
+
+        var created = result.Should().BeOfType<CreatedAtActionResult>().Subject;
+        created.ActionName.Should().Be("GetById");
+        created.RouteValues.Should().ContainKey("id").WhoseValue.Should().Be(issueId);
+        created.Value.Should().BeOfType<ApiResponse<InventoryIssueCreatedDto>>();
+    }
+
     private InventoryIssuesController CreateController()
         => new(_inventoryIssueService, _currentUserService)
         {
