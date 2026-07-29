@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: executing
-stopped_at: Completed 17-05-PLAN.md
-last_updated: "2026-07-29T05:41:31.227Z"
+stopped_at: Completed 17-06-PLAN.md
+last_updated: "2026-07-29T06:07:49.426Z"
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
   percent: 75
 current_phase: 17
 current_phase_name: frontend-ownership
@@ -27,22 +27,22 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 Phase: 17 (frontend-ownership) — EXECUTING
 
-Plan: 6 of 8
+Plan: 7 of 8
 
 Status: Ready to execute
 
 Milestone phase progress: ████████░░ 75% (6/8 steps complete).
 
-Defined-plan progress: 8/8 plans defined; 5/8 executed
+Defined-plan progress: 8/8 plans defined; 6/8 executed
 
 Step 16 work-package progress: 5/5 complete.
 
 ## Verified Baseline
 
 - Branch `feature/workflow-b17-b18`; current Phase 17 code baseline is
-  `b49c0ae chore(17-05): retire frontend dependency baseline`. Không push trong phiên này.
+  `9fcebf2 refactor(17-06): split Admin model by panel ownership`. Không push trong phiên này.
 
-- Plans 17-01 through 17-05 are complete. Coordination transport/types/actions and all workflow endpoints
+- Plans 17-01 through 17-06 are complete. Coordination transport/types/actions and all workflow endpoints
   now have explicit lower/feature owners, Projects has zero Coordination feature imports, and the dependency
   baseline reduced 54 → 44 → 16 → 0 without weakening R1-R6.
 
@@ -57,6 +57,11 @@ Step 16 work-package progress: 5/5 complete.
 - Plan 17-05 full frontend gates passed at 428/428 tests plus lint, strict dependency-cruiser and build.
   Its HIGH staged audit named six Chef/Coordination/Weekly Menu processes; all six traces were verified at
   confidence 0.85. Final Cypher found zero feature→app/routes edges and zero cycles; Deferred is empty.
+
+- Plan 17-06 split the Admin model into seven panel-owned hooks behind the unchanged compatibility facade.
+  Admin tests pass at 12/12 plus lint, zero-violation dependency-cruiser and production build. Its final
+  staged audit named five expected Admin processes; Cypher found one facade caller, no moved helper left in
+  the facade and no deferred node/process.
 
 - No database reset, seed, import or lane mutation occurred during Phase 17 execution.
 
@@ -129,6 +134,8 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Phase 17]: Permit only exact compatibility-barrel-to-owner imports through a milestone-v1.3 dependency rule. — Supports the stable barrel without expanding the known dependency violation baseline.
 - [Phase 17]: Keep app/routes on the exact store-typed dispatch hook while feature callers use a lower thunk-capable dispatch primitive. — Feature modules no longer depend on app, while logout orchestration retains the configured store dispatch contract.
 - [Phase 17]: Keep full Coordination state typing feature-owned and expose only the cross-feature read projection needed by Chef and Projects. — Removes reverse imports without making presentation state a shared contract.
+- [Phase 17]: Keep useAdminDataPageModel as the sole AdminDataPage API while seven unconditional panel hooks own query, state and mutation behavior. — Preserves all panel props and UI behavior while removing the 784-line ownership monolith.
+- [Phase 17]: Keep cross-panel customer-contract and current-stock queries in Contracts and Inventory owners. — Avoids duplicate endpoints/cache subscriptions while preserving the BOM/Statistics skip contracts.
 
 ## Blockers
 
@@ -136,11 +143,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-29T05:41:31.219Z
+**Last Date:** 2026-07-29T06:07:49.417Z
 
-**Stopped At:** Completed 17-05-PLAN.md
+**Stopped At:** Completed 17-06-PLAN.md
 
-**Resume File:** .planning/phases/17-frontend-ownership/17-06-PLAN.md
+**Resume File:** .planning/phases/17-frontend-ownership/17-07-PLAN.md
 
 ## Constraints
 
@@ -159,3 +166,4 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | Phase 17 P03 | 25min | 2 tasks | 39 files |
 | Phase 17 P04 | 39min | 4 tasks | 14 files |
 | Phase 17 P05 | 15min | 2 tasks | 24 files |
+| Phase 17 P06 | 26min | 1 tasks | 11 files |
