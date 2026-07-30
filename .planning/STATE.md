@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: UI Completeness & Conformance
 status: planning
 stopped_at: Phase 19 complete; Phase 20 ready to plan
-last_updated: "2026-07-31T05:58:52+07:00"
+last_updated: "2026-07-31T06:25:20+07:00"
 last_activity: 2026-07-31
 progress:
   total_phases: 7
@@ -199,6 +199,9 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
   `scenario × operation` rows, row-level `scope`, separate `entityState`/`projectionState`, and shared FE/BE
   family coverage. — The registry projects importable code and guards the remaining source-linked debt without
   entering production.
+- [Quick 260731-8me]: Classify intended diffs as graph-free, lightweight graph or full analysis before any
+  GitNexus call. — Semantic risk now selects rigor; docs/leaf assertions avoid graph ceremony, behavior-bearing
+  test/config contracts keep source-aware closure, and production/API/auth/migration work retains full impact.
 - [Milestone v1.3]: Skip external design research and derive canon from the approved PB ballot/live code. —
   The addendum explicitly warns that agent-authored canon would create another variant.
 - [Milestone v1.3]: Use the user's delegated brainstorm authority to close D-10/golden/PD decision gates,
@@ -224,14 +227,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260731-15j | Record Option A for WeeklyMenu DRAFT Publish and close OPEN-11/DEC-08 without behavior change | 2026-07-31 | 3e364a2 | [260731-15j-record-option-a-for-weeklymenu-draft-pub](./quick/260731-15j-record-option-a-for-weeklymenu-draft-pub/) |
 | 260731-27u | Resolve PA-4 by canonicalizing all eight frontend permission literal callsites without changing authorization behavior | 2026-07-31 | 8b87470 | [260731-27u-resolve-pa-4-by-canonicalizing-all-eight](./quick/260731-27u-resolve-pa-4-by-canonicalizing-all-eight/) |
 | 260731-3hj | Approve DEC-06 format-only and calibrate local branch-aware GitNexus raw/effective risk policy | 2026-07-31 | 94cf3c4 | [260731-3hj-approve-dec-06-format-and-calibrate-gitn](./quick/260731-3hj-approve-dec-06-format-and-calibrate-gitn/) |
+| 260731-8me | Calibrate GitNexus into graph-free, lightweight-graph and full-analysis lanes | 2026-07-31 | 7e55f6c | [260731-8me-calibrate-gitnexus-rules-with-explicit-g](./quick/260731-8me-calibrate-gitnexus-rules-with-explicit-g/) |
 
 ## Session
 
-**Last Date:** 2026-07-31T05:58:52+07:00
+**Last Date:** 2026-07-31T06:25:20+07:00
 
 **Stopped At:** Phase 19 complete; Phase 20 ready to plan
 
-Last activity: 2026-07-31 - Verified Phase 19 registry expansion 6/6; Phase 20 is ready to plan
+Last activity: 2026-07-31 - Completed quick task 260731-8me; Phase 20 remains ready to plan
 
 **Resume File:** .planning/ROADMAP.md
 
@@ -240,8 +244,9 @@ Last activity: 2026-07-31 - Verified Phase 19 registry expansion 6/6; Phase 20 i
 - Do not push or reset.
 - Do not seed/import/reset or further mutate `ipc_lane1`; preserve the completed Phase 18 week/evidence.
 - Do not rewrite, delete or move applied migrations.
-- Follow the calibrated `AGENTS.md` policy: explicit repo/branch, two-way impact for executable symbol
-  edits, raw/effective risk disposition, and final `detect_changes` before every commit.
+- Follow the calibrated `AGENTS.md` classifier: graph-free uses no GitNexus call; lightweight uses
+  source-aware closure plus one final detect; full-analysis production changes use two-way impact and
+  raw/effective-risk disposition.
 
 - Browser evidence is required only for frontend/route/UI behavior changes until the final workflow closeout.
 
