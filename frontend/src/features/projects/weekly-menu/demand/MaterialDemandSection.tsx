@@ -1,8 +1,8 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, ChevronDown, ClipboardList, PackageSearch, Scale, ShoppingCart, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { DemandSummary, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ConfirmDialog, DemandSummary, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { ActionGuard } from '@/components/common/ActionGuard'
 import { ROUTES } from '@/lib/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
@@ -23,6 +23,8 @@ export function MaterialDemandSection({
   scheduleWorkflow: WeeklyScheduleEditorWorkflow
   servingFeedback: WeeklyScheduleFeedback | null
 }) {
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false)
+  const [isRegenerateSubmitting, setIsRegenerateSubmitting] = useState(false)
   const { state, status, actions, presentation } = workflow
   const demandView = workflow.dataState
   const { activeDay, dayPages, dayIndex, activeRows, activeQuickServingRows, inventoryStatus, inventoryGroups } = presentation
@@ -57,8 +59,22 @@ export function MaterialDemandSection({
             ? 'Tính lại nhu cầu'
             : 'Tạo nhu cầu từ KHSX'
   const handleGenerate = () => {
-    if (actionPresentation.requiresRegenerateConfirmation && !window.confirm('Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?')) return
+    if (actionPresentation.requiresRegenerateConfirmation) {
+      setIsRegenerateConfirmOpen(true)
+      return
+    }
     void actions.generate()
+  }
+  const regenerateConfirmationBusy = isRegenerateSubmitting || status.isGenerating
+  const handleConfirmRegenerate = async () => {
+    if (regenerateConfirmationBusy) return
+    setIsRegenerateSubmitting(true)
+    try {
+      await actions.generate()
+    } finally {
+      setIsRegenerateSubmitting(false)
+      setIsRegenerateConfirmOpen(false)
+    }
   }
   return (
     <SectionPanel
@@ -313,6 +329,19 @@ export function MaterialDemandSection({
           )}
         </section>
       </div>
+      <ConfirmDialog
+        open={isRegenerateConfirmOpen}
+        ariaLabel="Xác nhận tính lại nhu cầu"
+        title="Tính lại nhu cầu đã duyệt?"
+        description="Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?"
+        confirmLabel="Tiếp tục tính lại"
+        busy={regenerateConfirmationBusy}
+        busyLabel="Đang tính nhu cầu..."
+        onConfirm={handleConfirmRegenerate}
+        onOpenChange={(open) => {
+          if (!regenerateConfirmationBusy) setIsRegenerateConfirmOpen(open)
+        }}
+      />
     </SectionPanel>
   )
 }

@@ -1,11 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/components/common'
 import type { QueryView } from '@/lib/queryView'
 
 vi.mock('@/components/common/ActionGuard', () => ({
-  ActionGuard: ({ fallback = null }: { fallback?: unknown }) => fallback,
+  ActionGuard: ({ children }: { children?: ReactNode }) => children ?? null,
 }))
 
 import { MaterialDemandSection } from './MaterialDemandSection'
@@ -21,7 +22,17 @@ const readyState = (overrides: Partial<Extract<QueryView<unknown>, { phase: 'rea
   ...overrides,
 })
 
-const buildWorkflow = (dataState: QueryView<unknown>) => ({
+type WorkflowOptions = {
+  approvalStatus?: 'none' | 'not-created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'terminal'
+  activeStaleness?: {
+    isStale: boolean
+    canRegenerate: boolean
+    reasons: string[]
+  }
+  generate?: () => void | Promise<void>
+}
+
+const buildWorkflow = (dataState: QueryView<unknown>, options: WorkflowOptions = {}) => ({
   scope: {
     customerId: 'customer-1',
     customerLabel: 'KH01 - Khách hàng A',
@@ -49,19 +60,19 @@ const buildWorkflow = (dataState: QueryView<unknown>) => ({
     selectDay: vi.fn(),
     retryDemand,
     setAggregatePage: vi.fn(),
-    generate: vi.fn(),
+    generate: options.generate ?? vi.fn(),
   },
   dataState,
   presentation: {
     sourceMenuValue: 'KH01',
     materialSummaryCount: 0,
-    weeklyPlanRows: [],
+    weeklyPlanRows: options.approvalStatus ? [{}] : [],
     missingBomRows: [],
     importDefaultRows: [],
     demandLines: [],
     aggregatedDemandLines: [],
     staleness: undefined,
-    activeStaleness: undefined,
+    activeStaleness: options.activeStaleness,
     dayPages: [],
     dayIndex: 0,
     activeDay: undefined,
@@ -74,7 +85,7 @@ const buildWorkflow = (dataState: QueryView<unknown>) => ({
     inventoryGroups: { exceptionLines: [], sufficientLines: [] },
     documents: [],
     weeklyDocuments: [],
-    demandApprovalStatus: { status: 'none', tone: 'neutral', label: 'Chưa trình duyệt', documentCode: undefined, reason: undefined, actionLabel: 'Mở phê duyệt', targetId: undefined },
+    demandApprovalStatus: { status: options.approvalStatus ?? 'none', tone: 'neutral', label: 'Chưa trình duyệt', documentCode: undefined, reason: undefined, actionLabel: 'Mở phê duyệt', targetId: undefined },
     approvalHref: undefined,
   },
 }) as unknown as MaterialDemandWorkflow
@@ -85,11 +96,11 @@ const scheduleWorkflow = {
   actions: { completeQuickServing: vi.fn() },
 } as unknown as WeeklyScheduleEditorWorkflow
 
-const renderSection = (dataState: QueryView<unknown>) => render(
+const renderSection = (dataState: QueryView<unknown>, options?: WorkflowOptions) => render(
   <MemoryRouter>
     <ToastProvider>
       <MaterialDemandSection
-        workflow={buildWorkflow(dataState)}
+        workflow={buildWorkflow(dataState, options)}
         scheduleWorkflow={scheduleWorkflow}
         servingFeedback={null}
       />
@@ -155,5 +166,65 @@ describe('MaterialDemandSection — lỗi API không được hoá trang thành 
     expect(screen.getByText('Đang cập nhật nhu cầu nguyên liệu')).toBeInTheDocument()
     expect(screen.getByText(/Đang hiển thị 100\/140 dòng/)).toBeInTheDocument()
     expect(screen.getByText(/Chưa tính nhu cầu nguyên liệu/)).toBeInTheDocument()
+  })
+})
+
+describe('MaterialDemandSection — xác nhận tính lại nhu cầu đã duyệt', () => {
+  const approvedStaleOptions = (generate: WorkflowOptions['generate']): WorkflowOptions => ({
+    approvalStatus: 'approved',
+    activeStaleness: { isStale: true, canRegenerate: true, reasons: ['Số suất đã thay đổi'] },
+    generate,
+  })
+
+  it('tạo trực tiếp khi trạng thái không yêu cầu xác nhận', () => {
+    const generate = vi.fn()
+    renderSection(readyState(), { approvalStatus: 'rejected', generate })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tính lại nhu cầu' }))
+
+    expect(generate).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('chờ xác nhận trước khi tính lại nhu cầu đã duyệt', () => {
+    const generate = vi.fn()
+    renderSection(readyState(), approvedStaleOptions(generate))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tính lại nhu cầu' }))
+
+    expect(generate).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Xác nhận tính lại nhu cầu' })).toHaveTextContent(
+      'Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?',
+    )
+  })
+
+  it('không tính lại khi hủy xác nhận', () => {
+    const generate = vi.fn()
+    renderSection(readyState(), approvedStaleOptions(generate))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tính lại nhu cầu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
+
+    expect(generate).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('chỉ gửi một lần và khóa dialog trong lúc đang tính lại', async () => {
+    let finishGenerate!: () => void
+    const generate = vi.fn(() => new Promise<void>((resolve) => {
+      finishGenerate = resolve
+    }))
+    renderSection(readyState(), approvedStaleOptions(generate))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tính lại nhu cầu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục tính lại' }))
+
+    expect(generate).toHaveBeenCalledOnce()
+    expect(screen.getByRole('button', { name: 'Đang tính nhu cầu...' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đang tính nhu cầu...' }))
+    expect(generate).toHaveBeenCalledOnce()
+
+    finishGenerate()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })
