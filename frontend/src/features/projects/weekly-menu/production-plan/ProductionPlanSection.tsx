@@ -55,7 +55,10 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
         ) : !state.selectedServiceDate && status.isLoading ? (
           <div className="py-8 text-center text-slate-500">Đang tải kế hoạch sản xuất cả tuần...</div>
         ) : presentation.pages.length === 0 ? (
-          <div className="py-8 text-center text-slate-500">Chưa có kế hoạch sản xuất nào.</div>
+          <EmptyState
+            title="Chưa có kế hoạch sản xuất nào."
+            className="!min-h-0 !py-8"
+          />
         ) : (
           <>
             {activePage?.plans.map((plan) => {

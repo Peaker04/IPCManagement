@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { EmptyState } from './EmptyState';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
 import { StatusBadge } from './StatusBadge';
@@ -45,7 +46,12 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
   const { page, rows: pageRecords, totalItems, setPage } = useLocalPagination(records, pageSize);
 
   if (!records.length) {
-    return <div className={cn('ipc-approval-queue is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
+    return (
+      <EmptyState
+        title="Chưa có dữ liệu để hiển thị"
+        className={cn('ipc-approval-queue is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   return (

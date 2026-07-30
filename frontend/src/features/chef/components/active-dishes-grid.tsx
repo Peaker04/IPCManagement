@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { SectionPanel, TableViewport } from '@/components/common'
+import { EmptyState, SectionPanel, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Dish } from '@/lib/types'
 
@@ -39,9 +39,10 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
     >
       <div className="space-y-2">
         {dishes.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-slate-500 text-sm">Không có món ăn nào được lên lịch hôm nay</p>
-          </div>
+          <EmptyState
+            title="Không có món ăn nào được lên lịch hôm nay"
+            className="!min-h-0 !py-8"
+          />
         ) : (
           <div className="ipc-chef-dish-list">
             {dishes.map((dish) => (

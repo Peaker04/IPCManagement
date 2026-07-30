@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantityWithUnit } from '@/lib/formatters';
@@ -48,7 +49,12 @@ const shortenNextAction = (action: string) => {
 
 export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showServiceDate = false }: DemandSummaryProps) {
   if (!lines.length) {
-    return <div className={cn('ipc-demand-summary is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
+    return (
+      <EmptyState
+        title="Chưa có dữ liệu để hiển thị"
+        className={cn('ipc-demand-summary is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   return (

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from './EmptyState';
 
 export interface WorkQueueItem {
   title: ReactNode;
@@ -27,7 +28,12 @@ const queueToneClasses = {
 
 export function WorkQueue({ items, empty, className }: WorkQueueProps) {
   if (items.length === 0) {
-    return <div className={cn('ipc-work-queue is-empty', className)}>{empty ?? 'Chưa có việc cần xử lý.'}</div>;
+    return (
+      <EmptyState
+        title={empty ?? 'Chưa có việc cần xử lý.'}
+        className={cn('ipc-work-queue is-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left', className)}
+      />
+    );
   }
 
   return (

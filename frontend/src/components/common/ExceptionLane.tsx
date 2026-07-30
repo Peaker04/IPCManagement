@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle, CircleCheck, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from './EmptyState';
 
 export interface ExceptionLaneItem {
   title: ReactNode;
@@ -35,7 +36,10 @@ export function ExceptionLane({ title, items, empty, className }: ExceptionLaneP
     <aside className={cn('ipc-exception-lane', className)}>
       {title && <div className="ipc-exception-lane-title">{title}</div>}
       {items.length === 0 ? (
-        <div className="ipc-exception-lane-empty">{empty ?? 'Không có ngoại lệ đang mở.'}</div>
+        <EmptyState
+          title={empty ?? 'Không có ngoại lệ đang mở.'}
+          className="ipc-exception-lane-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left"
+        />
       ) : (
         <div className="ipc-exception-lane-list">
           {items.map((item, index) => {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { EmptyState } from './EmptyState';
 import { TableViewport } from './TableViewport';
 import { StatusBadge } from './StatusBadge';
 import type { RoleInboxItem } from '@/types/workflow';
@@ -35,7 +36,12 @@ export function RoleInbox({
   const { page, rows: pageItems, totalItems, setPage } = useLocalPagination(items, pageSize);
 
   if (!items.length) {
-    return <div className={cn('ipc-role-inbox is-empty', className)}>{emptyText}</div>;
+    return (
+      <EmptyState
+        title={emptyText}
+        className={cn('ipc-role-inbox is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   const hasActions = Boolean(actionForItem);

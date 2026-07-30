@@ -2,6 +2,7 @@ import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { CursorPaginationBar } from './CursorPaginationBar';
+import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
@@ -91,7 +92,12 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
   };
 
   if (!movements.length) {
-    return <div className={cn('ipc-stock-movement-table is-empty text-slate-500 text-center py-8 border border-dashed border-slate-200 bg-slate-50 rounded-sm', className)}>Chưa có dữ liệu để hiển thị</div>;
+    return (
+      <EmptyState
+        title="Chưa có dữ liệu để hiển thị"
+        className={cn('ipc-stock-movement-table is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   return (

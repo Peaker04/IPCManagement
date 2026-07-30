@@ -4,6 +4,7 @@ import {
   ApprovalQueue,
   CursorPaginationBar,
   DocumentRail,
+  EmptyState,
   InlineAlert,
   PaginationBar,
   QueryErrorAlert,
@@ -206,7 +207,10 @@ export function PurchaseRequestHistoryState({
         </InlineAlert>
       )}
       {purchaseRequests.length === 0 ? (
-        <p className="text-slate-500 italic p-4 text-center">Không có đề xuất mua hàng nào.</p>
+        <EmptyState
+          title="Không có đề xuất mua hàng nào."
+          className="!min-h-0 !p-4"
+        />
       ) : (
         <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
           {purchaseRequests.map((purchaseRequest) => (

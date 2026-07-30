@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
+  EmptyState,
   InlineAlert,
   OperationalFrame,
   QueryErrorAlert,
@@ -429,7 +430,10 @@ export default function ApprovalPage() {
                         </InlineAlert>
                       )}
                       {historyItems.length === 0 ? (
-                        <p className="text-sm text-slate-500 italic text-center py-4">Không tìm thấy bước duyệt nào.</p>
+                        <EmptyState
+                          title="Không tìm thấy bước duyệt nào."
+                          className="!min-h-0 !p-4"
+                        />
                       ) : (
                         <div className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                           {historyItems.map((item) => (

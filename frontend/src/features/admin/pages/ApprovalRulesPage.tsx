@@ -4,6 +4,7 @@ import {
   OperationalFrame,
   SectionPanel,
   CommandBar,
+  EmptyState,
   InlineAlert,
   QueryErrorAlert,
   StatusBadge,
@@ -261,7 +262,10 @@ export default function ApprovalRulesPage() {
                 </InlineAlert>
               )}
               {rules.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 italic">Chưa có quy tắc phê duyệt nào được thiết lập.</div>
+                <EmptyState
+                  title="Chưa có quy tắc phê duyệt nào được thiết lập."
+                  className="!min-h-0 !p-8"
+                />
               ) : (
                 <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
               {rules.map((rule: ApprovalRuleDto) => (

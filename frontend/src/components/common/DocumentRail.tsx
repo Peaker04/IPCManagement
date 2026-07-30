@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
@@ -29,7 +30,12 @@ export function DocumentRail({ documents, title = 'Chứng từ vận hành', ac
   const pagination = useLocalPagination(documents, pageSize);
 
   if (!documents.length) {
-    return <div className={cn('ipc-document-rail is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
+    return (
+      <EmptyState
+        title="Chưa có dữ liệu để hiển thị"
+        className={cn('ipc-document-rail is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   const handleCopyDocumentId = async (documentId: string) => {

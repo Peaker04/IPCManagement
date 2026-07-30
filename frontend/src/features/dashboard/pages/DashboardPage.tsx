@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch } from '@/lib/reduxHooks';
-import { CommandBar, OperationalFrame, QueryErrorAlert } from '@/components/common';
+import { CommandBar, EmptyState, OperationalFrame, QueryErrorAlert } from '@/components/common';
 import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
 import { workflowApi } from '@/api/workflowApi';
@@ -347,7 +347,10 @@ const DashboardPage = () => {
                 </div>
               ))
             ) : visibleQueue.length === 0 ? (
-              <div className="ipc-dashboard-empty">Không có việc cần xử lý trong ca này.</div>
+              <EmptyState
+                title="Không có việc cần xử lý trong ca này."
+                className="ipc-dashboard-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left"
+              />
             ) : (
               visibleQueue.map((item, index) => (
                 <Link
