@@ -55,6 +55,7 @@ const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [missingFields, setMissingFields] = useState({ username: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dispatch = useAppDispatch();
@@ -63,11 +64,15 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setError('Vui lòng nhập đầy đủ tài khoản và mật khẩu.');
+    const usernameMissing = !username.trim();
+    const passwordMissing = !password.trim();
+    if (usernameMissing || passwordMissing) {
+      setMissingFields({ username: usernameMissing, password: passwordMissing });
+      setError('');
       return;
     }
 
+    setMissingFields({ username: false, password: false });
     setError('');
     setIsSubmitting(true);
 
@@ -139,18 +144,24 @@ const LoginPage = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="ipc-auth-form">
-          {error && <div className="ipc-auth-alert">{error}</div>}
+          {error && <div className="ipc-auth-alert" role="alert">{error}</div>}
 
           <FieldRow label="Tài khoản" htmlFor="username">
             <input
               type="text"
               id="username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              aria-invalid={missingFields.username || undefined}
+              aria-describedby={missingFields.username ? 'username-required-error' : undefined}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                setMissingFields((current) => ({ ...current, username: false }));
+              }}
               placeholder="Nhập tên đăng nhập"
               className="ipc-input"
               disabled={isSubmitting}
             />
+            {missingFields.username && <p id="username-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 
           <FieldRow label="Mật khẩu" htmlFor="password">
@@ -158,11 +169,17 @@ const LoginPage = () => {
               type="password"
               id="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={missingFields.password || undefined}
+              aria-describedby={missingFields.password ? 'password-required-error' : undefined}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setMissingFields((current) => ({ ...current, password: false }));
+              }}
               placeholder="Nhập mật khẩu"
               className="ipc-input"
               disabled={isSubmitting}
             />
+            {missingFields.password && <p id="password-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 
           <button type="submit" className="ipc-button ipc-button-primary w-full" disabled={isSubmitting}>
