@@ -190,14 +190,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260730-rfr | PA closeout: architecture-clean registry guards and durable permission evidence | 2026-07-30 | d26a452 | [260730-rfr-pa-closeout-make-registry-source-guards-](./quick/260730-rfr-pa-closeout-make-registry-source-guards-/) |
 | 260730-rws | PB inventory: discover every recurring UI concept, count variants and prepare canon ballot without changing production code | 2026-07-30 | 51b99db | [260730-rws-pb-inventory-discover-every-recurring-ui](./quick/260730-rws-pb-inventory-discover-every-recurring-ui/) |
 | 260730-tx0 | Read-only P3 to P4 to PC audit: map WeeklyMenu DOM controls to source, capture headed Chrome interaction points across required viewports and compare against the approved one-object PA registry without changing behavior | 2026-07-30 | 8635ce4 | [260730-tx0-read-only-p3-to-p4-to-pc-audit-map-weekl](./quick/260730-tx0-read-only-p3-to-p4-to-pc-audit-map-weekl/) |
+| 260730-uno | PA-2B WeeklyMenuLifecycle: add actor/downstream registry, terminal-none contract, read-only fixture and PC rerun without opening PD | 2026-07-30 | 4e9ee5b | [260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe](./quick/260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe/) |
 
 ## Session
 
-**Last Date:** 2026-07-30T21:57:00+07:00
+**Last Date:** 2026-07-30T22:56:40+07:00
 
-**Stopped At:** P3 → P4 → PC complete for WeeklyMenuLifecycle; waiting for Kỳ's review before PD/object two/new PE
+**Stopped At:** PA-2B and PC rerun complete for WeeklyMenuLifecycle; waiting for Kỳ's review before PD/object two
 
-Last activity: 2026-07-30 - Completed quick task 260730-tx0: read-only P3 → P4 → PC audit for WeeklyMenuLifecycle
+Last activity: 2026-07-30 - Completed quick task 260730-uno: PA-2B registry, read-only fixture and PC rerun for WeeklyMenuLifecycle
 
 **Resume File:** .planning/ROADMAP.md
 
