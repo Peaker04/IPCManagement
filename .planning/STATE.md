@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
-stopped_at: Quick task 260731-15j complete; Option A Admin-only recorded and OPEN-11/DEC-08 closed
-last_updated: "2026-07-31T00:58:15+07:00"
+stopped_at: Quick task 260731-27u complete; PA-4 green and OPEN-10/DEC-03 closed
+last_updated: "2026-07-31T02:10:26+07:00"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -49,11 +49,14 @@ Step 16 work-package progress: 5/5 complete.
 - Quick task `260731-15j` records D-01 / Option A: WeeklyMenu DRAFT `Publish` remains intentionally
   **Admin-only**; Manager/Coordinator absence is accepted FE-chặt-hơn-BE, and `OPEN-11`/`DEC-08` are
   closed. This documentation-only closeout changed no production behavior, test, evidence, database or runtime.
+- Quick task `260731-27u` closed PA-4 at `8b87470`: all eight frontend literals now belong to the
+  backend-generated vocabulary, the checker and root verify pass, and `OPEN-10`/`DEC-03` are closed.
+  Backend policy, guard implementation and rendered UI behavior remain unchanged.
 - Guarded `ipc_lane1` evidence for week `2026-07-27` is preserved: exact ANV workbook hash, rollback
   backup/mirror, protected lineage, 15 screenshots, 112 successful API responses and five desktop
   viewports. Do not rerun sanitizer/import/reset/seed for closeout.
-- Final source gate: Application 49/49, API 682 pass + 1 intentional skip, frontend 433/433,
-  comparator 6/6, strict growth/dependency/lint/build/contract/EF/migration gates green.
+- Current source gate is authoritative in `MEMORY.md`; strict growth/dependency/lint/build gates remain
+  green and PA-4 no longer intentionally stops the root verify pipeline.
 
 - Phase 18 Plan 06 non-mutating checkpoint is green. Root verify passed at Application 49/49,
   API 680 + 1 intentional skip and frontend 80 files/433 tests; contracts are deterministic,
@@ -200,14 +203,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260730-uno | PA-2B WeeklyMenuLifecycle: add actor/downstream registry, terminal-none contract, read-only fixture and PC rerun without opening PD | 2026-07-30 | 4e9ee5b | [260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe](./quick/260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe/) |
 | 260730-wbx | Remove unintended WeeklyMenuLifecyclePanel, align two verified FE gates and run real operational lifecycle E2E without mutating the source lane | 2026-07-31 | fbb489e | [260730-wbx-remove-unintended-weeklymenulifecyclepan](./quick/260730-wbx-remove-unintended-weeklymenulifecyclepan/) |
 | 260731-15j | Record Option A for WeeklyMenu DRAFT Publish and close OPEN-11/DEC-08 without behavior change | 2026-07-31 | 3e364a2 | [260731-15j-record-option-a-for-weeklymenu-draft-pub](./quick/260731-15j-record-option-a-for-weeklymenu-draft-pub/) |
+| 260731-27u | Resolve PA-4 by canonicalizing all eight frontend permission literal callsites without changing authorization behavior | 2026-07-31 | 8b87470 | [260731-27u-resolve-pa-4-by-canonicalizing-all-eight](./quick/260731-27u-resolve-pa-4-by-canonicalizing-all-eight/) |
 
 ## Session
 
-**Last Date:** 2026-07-31T00:58:15+07:00
+**Last Date:** 2026-07-31T02:10:26+07:00
 
-**Stopped At:** quick task 260731-15j complete; Option A keeps WeeklyMenu DRAFT Publish Admin-only, OPEN-11/DEC-08 are closed, and PD/object two remain closed
+**Stopped At:** quick task 260731-27u complete; PA-4 checker/root verify are green, OPEN-10/DEC-03 are closed, and DEC-04/05/06 remain open
 
-Last activity: 2026-07-31 - Completed documentation-only quick task 260731-15j at 3e364a2; production behavior unchanged
+Last activity: 2026-07-31 - Completed PA-4 quick task 260731-27u at 8b87470; authorization behavior unchanged
 
 **Resume File:** .planning/ROADMAP.md
 

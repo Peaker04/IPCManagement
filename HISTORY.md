@@ -1167,3 +1167,17 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Đây là closeout chỉ-tài-liệu. Không production code, backend policy, frontend route/control, test,
   evidence artifact, database hoặc runtime nào thay đổi; số đo và evidence pointer cũ được giữ nguyên
   tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`.
+
+## Đóng PA-4 — vocabulary frontend khớp backend — 31/07/2026
+
+- Baseline checker đỏ đúng năm nhóm/tám callsite. Kỳ chọn xử lý PA-4 theo guard-generic: ba literal
+  dev-login đổi dấu `:` sang canonical backend; hai literal synthetic trong guard tests cùng dùng
+  `report.read` để giữ exact-match, role rejection và admin/full-access bypass mà không khai thêm ý nghĩa
+  nghiệp vụ.
+- Commit `8b87470` không sửa backend vocabulary/policy, guard implementation, route/menu/action gate hoặc
+  rendered UI. Focused checker, focused guard/login tests và full root verify đều pass; test count không
+  giảm và không fixture/test nào được miễn.
+- `OPEN-10` và `DEC-03` đóng. Các quyết định Manager catalog-write, inventory-receipt approval và định
+  dạng registry trước object thứ hai vẫn mở.
+- Không chạy browser/runtime, không mutate database và không tạo evidence artifact mới cho thay đổi
+  source/test vocabulary này.

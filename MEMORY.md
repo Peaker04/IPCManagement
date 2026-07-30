@@ -55,25 +55,23 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `OPEN-07` · owner `Import/Platform` · đóng khi preview có BOM diagnostics đúng scope, token/checksum commit và provenance cho dish do import tạo.
 - `OPEN-08` · owner `Backend/Import` · đóng khi batch hai khách hàng atomic hoặc có recovery protocol được test.
 - `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
-- `OPEN-10` · owner `Frontend/Auth` · đóng khi Kỳ duyệt canonical cho năm nhóm chuỗi PA-4 còn lại, checker vocabulary xanh và được đưa vào full gate mà không miễn production, dev fixture hoặc test.
 
 ## Cần Kỳ quyết
 
 - `DEC-01` · Xác nhận/gạch 7 UI candidate, bổ sung 3 lỗi còn thiếu và chọn 3 màn IPC golden theo `docs/UI-CONFORMANCE-CANDIDATES.md`.
 - `DEC-02` · Chọn/cấp tài khoản object storage R2 hoặc B2 và hai SSD luân phiên; codebase không tự tạo subscription/credential.
-- `DEC-03` · Chọn canonical cần sửa cho PA-4: `admin.only`, `inventory:read`, `production:read`, `warehouse.issue`, `warehouse:read`; `warehouse.issue` chưa suy ra được canonical từ test generic. `orders.lock` đã được đổi sang canonical `coordination.order.lock` tại commit `fbb489e`.
 - `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
 - `DEC-06` · Duyệt định dạng registry một đối tượng trước khi mở object thứ hai; canon PB đã được duyệt và không còn nằm trong quyết định này.
 
 ## Gate hiện hành
 
-Gate chốt ngày `2026-07-30`: Application `49/49`; API baseline `697 pass + 1 intentional skip`
-khi tách checker PA-4; checker PA-4 riêng lẻ đỏ đúng thiết kế trên năm nhóm chuỗi có file:dòng;
-frontend `95 file / 506 test`; ESLint và production build pass. Dependency-cruiser `0 violation /
-363 module / 1.242 dependency`; architecture-growth test và strict gate pass. Commit `fbb489e` gỡ
-panel ngoài ý muốn và sửa đúng hai frontend gate đã xác minh. `npm run verify` hiện cố ý dừng ở PA-4 cho
-đến khi DEC-03 được chốt; không được skip fixture hoặc test để làm gate xanh.
+Gate chốt ngày `2026-07-31`: Application `49/49`; API `698 pass + 1 intentional skip`; checker PA-4
+riêng lẻ `1/1` pass và vẫn quét production, dev fixture cùng test không miễn trừ. Frontend giữ nguyên
+`95 file / 506 test`; ESLint và production build pass. Dependency-cruiser `0 violation / 363 module /
+1.242 dependency`; architecture-growth test và strict gate pass. Root `npm run verify` pass toàn bộ.
+Commit `8b87470` canonicalize đúng tám callsite; backend vocabulary/policy, guard implementation,
+route/menu/action gate và rendered UI không đổi. PA-4 closeout đã chuyển sang `HISTORY.md`.
 
 PA-2B/PC fixture final chạy Chrome headed `6/6` trên đúng năm viewport: 11 scenario, 115
 actor-scenario case, 2.675 interaction point, 115 screenshot, 1.235 API record, 0 business mutation,

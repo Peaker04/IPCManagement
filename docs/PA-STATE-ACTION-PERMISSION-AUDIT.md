@@ -3,6 +3,8 @@ title: PA state/action and BE-FE permission audit
 audited_at: 2026-07-30
 scope: WeeklyMenuLifecycle plus complete backend/frontend permission vocabulary
 behavior_change: remove unintended lifecycle panel and align two verified frontend permission gates
+pa4_closed_at: 2026-07-31
+pa4_checker: green
 ---
 
 # PA state/action and permission audit
@@ -113,20 +115,20 @@ The authoritative backend vocabulary contains 22 named permissions plus the admi
 |---|---|
 | `KHỚP` | `*`, `auth.profile.read`, `catalog.read`, `coordination.order.adjust`, `coordination.order.lock`, `coordination.order.signoff`, `coordination.read`, `dashboard.read`, `demand.generate`, `inventory.read`, `production.read`, `purchase.generate`, `purchase.read`, `purchase.request.approve`, `report.read`, `warehouse.read` |
 | `CHỈ-CÓ-Ở-BE` | `catalog.write`, `inventory.adjustment.approve`, `inventory.issue.approve`, `inventory.receipt.approve`, `material-demand.approve`, `purchase.price-exception.approve`, `purchase.quotation.manage` |
-| `CHỈ-CÓ-Ở-FE` | `admin.only`, `warehouse.issue` |
-| `GẦN-GIỐNG` | `inventory:read` ↔ `inventory.read`; `production:read` ↔ `production.read`; `warehouse:read` ↔ `warehouse.read` |
+| `CHỈ-CÓ-Ở-FE` | Không còn sau PA-4. |
+| `GẦN-GIỐNG` | Không còn sau PA-4. |
 
-### Observable consequences of FE-only/near-match strings
+### PA-4 replacements and preserved consequences
 
-| FE string | Location | Verified consequence | Canonical backend value |
+| Previous FE string | Location | Verified consequence | Replacement |
 |---|---|---|---|
 | `production:read` | `LoginPage.tsx:24` | In the dev-login fixture, Bếp trưởng receives a colon variant while menu/route require `production.read`; the Bếp screen is hidden/forbidden in that fixture. | `production.read` |
 | `warehouse:read` | `LoginPage.tsx:25` | In the dev-login fixture, Thủ kho does not satisfy the `warehouse.read` menu/route gate. | `warehouse.read` |
 | `inventory:read` | `LoginPage.tsx:25` | No current runtime gate consumes canonical `inventory.read`; the immediate visible consequence is not independently observable. | `inventory.read` |
-| `admin.only` | `guards.test.tsx:87,155` | Test-only synthetic string; no production screen is affected. | `*` for the tested admin-wildcard case |
-| `warehouse.issue` | `guards.test.tsx:128,141,147` | Test-only synthetic string; semantic canonical replacement cannot be determined from this generic guard test. | `KHÔNG-XÁC-ĐỊNH-ĐƯỢC` |
+| `admin.only` | `guards.test.tsx:87,155` | Test-only synthetic string; the tests exercise admin/full-access bypass, not an admin-only business permission. | `report.read` |
+| `warehouse.issue` | `guards.test.tsx:128,141,147` | Test-only synthetic string; required/granted exact-match and role rejection semantics are preserved without asserting an inventory-issue business meaning. | `report.read` |
 
-## PA-4 — intentional-red vocabulary checker
+## PA-4 — green vocabulary checker
 
 `FrontendPermissionVocabularyTests` imports `AuthorizationPolicies.AllPermissions`, reads the admin wildcard
 from `AuthService.BuildPermissionsForRole`, and scans both `frontend/src` and `frontend/tests`. It covers
@@ -138,9 +140,10 @@ Verified command:
 dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore --filter "FullyQualifiedName~FrontendPermissionVocabularyTests"
 ```
 
-Expected current result: one failed test with the five remaining non-canonical literal groups listed above.
-`orders.lock` is no longer reported. This red result
-is the requested stopping point. No permission string is changed by PA.
+The captured pre-fix baseline failed exactly one test on five groups and eight callsites. After commit
+`8b87470`, the same checker passes `1/1`; production source, dev fixtures and tests remain in scope with no
+exemption. The full root `npm run verify` gate also passes. No backend vocabulary, policy, guard
+implementation, route/menu/action gate or rendered UI behavior changed.
 
 ## PA-5 — seven backend permissions without an exact FE runtime gate
 
@@ -156,10 +159,9 @@ is the requested stopping point. No permission string is changed by PA.
 
 ## Decisions still required
 
-1. Approve which five remaining PA-4 mismatches may be corrected; PA does not assume backend names are necessarily the desired product policy.
-2. Decide whether Manager should reach catalog-write UI. Current FE admin-only routing is stricter than `CatalogAccess`.
-3. Decide whether inventory-receipt approval should enter the centralized inbox or remain API-only.
-4. Approve this one-object registry format before creating a registry for a second business object.
+1. Decide whether Manager should reach catalog-write UI. Current FE admin-only routing is stricter than `CatalogAccess`.
+2. Decide whether inventory-receipt approval should enter the centralized inbox or remain API-only.
+3. Approve this one-object registry format before creating a registry for a second business object.
 
 ## Scalability assessment
 
