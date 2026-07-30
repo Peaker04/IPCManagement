@@ -312,6 +312,11 @@ Evidence authoritative:
    backend policy, frontend route/control placement, permission hoặc alignment FE/BE.
 3. `OPEN-11` và `DEC-08` đóng ngày `2026-07-31`. Quyết định này không cấp Publish cho Manager hoặc
    Coordinator, không mở PD và không mở object thứ hai.
+4. `DEC-06` duyệt riêng định dạng object tương lai `CoordinationOrderScopeLifecycle`: một hàng có grain
+   `scenario × operation`, mọi hàng thêm `scope`, còn `entityState` và `projectionState` là hai field tách
+   biệt. Đây chỉ là quyết định format; không tạo CoordinationOrder registry, không implement object thứ hai
+   và không thay đổi bất kỳ snapshot `WeeklyMenuLifecycle`/PA-2B nào đã audit.
 
 **ĐÃ ĐÓNG:** panel ngoài ý muốn đã gỡ, hai gate cũ đã khớp, operational E2E đã pass và disposition
-Option A đã được duyệt. Không có thay đổi hành vi production, test, evidence, database hoặc runtime.
+Option A cùng format DEC-06 đã được duyệt. Không có thay đổi hành vi production, test, evidence, database
+hoặc runtime.

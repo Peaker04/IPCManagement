@@ -161,7 +161,13 @@ implementation, route/menu/action gate or rendered UI behavior changed.
 
 1. Decide whether Manager should reach catalog-write UI. Current FE admin-only routing is stricter than `CatalogAccess`.
 2. Decide whether inventory-receipt approval should enter the centralized inbox or remain API-only.
-3. Approve this one-object registry format before creating a registry for a second business object.
+
+## DEC-06 format approved — 2026-07-31
+
+DEC-06 approves only the format of the future `CoordinationOrderScopeLifecycle` object. One row has grain
+`scenario × operation`; every row adds `scope`; and `entityState` and `projectionState` remain separate
+fields. This closeout does not create a CoordinationOrder registry or implement the second object. The
+audited `WeeklyMenuLifecycle` and PA-2B snapshots above remain unchanged.
 
 ## Scalability assessment
 

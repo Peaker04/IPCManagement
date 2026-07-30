@@ -1181,3 +1181,22 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   dạng registry trước object thứ hai vẫn mở.
 - Không chạy browser/runtime, không mutate database và không tạo evidence artifact mới cho thay đổi
   source/test vocabulary này.
+
+## Duyệt DEC-06 và hiệu chỉnh GitNexus risk policy — 31/07/2026
+
+- DEC-06 duyệt format-only cho object tương lai `CoordinationOrderScopeLifecycle`: grain mỗi hàng là
+  `scenario × operation`, mọi hàng thêm `scope`, còn `entityState` và `projectionState` là hai field riêng.
+  Không tạo CoordinationOrder registry, không implement object thứ hai và không thay đổi snapshot
+  `WeeklyMenuLifecycle`/PA-2B đã audit.
+- Evidence PA-4 cho thấy raw transitive import closure có thể leo thang sai nếu bị đồng nhất với directed
+  production impact. Policy project-local nay giữ raw risk làm evidence nhưng phân loại effective risk theo
+  production signature, control flow, data flow và affected process đã xác minh; mọi edge unresolved vẫn
+  giữ raw risk.
+- Policy mới khóa repo/branch explicit, symbol-first anchor với file fallback, semantics upstream/downstream,
+  `includeTests`, pagination/partial handling, grouped disposition cho import-only closure, lightweight lane
+  và selective PDG. Không dùng zero-taint làm bằng chứng an toàn.
+- GSD tiếp tục là process owner duy nhất; GitNexus chỉ cung cấp analysis và `gitnexus-pr-review` discipline
+  bên trong plan GSD. Closeout này chỉ sửa docs/governance, không chạy browser/runtime, không mutate database
+  và không tạo production/test/evidence code.
+- Root `AGENTS.md` được `.gitignore:95` loại khỏi version control; policy được áp dụng cho workspace hiện
+  tại và không bị force-add. Năm file audit/state canonical là phần được commit.
