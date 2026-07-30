@@ -89,6 +89,9 @@ export default function ApprovalRulesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [ruleNameError, setRuleNameError] = useState<{ title: string; message: string } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   
   const [ruleName, setRuleName] = useState('');
   const [documentType, setDocumentType] = useState('purchase-request');
@@ -101,6 +104,8 @@ export default function ApprovalRulesPage() {
   ]);
 
   const handleOpenCreate = () => {
+    setRuleNameError(null);
+    setSaveError(null);
     setEditingRuleId(null);
     setRuleName('');
     setDocumentType('purchase-request');
@@ -115,6 +120,8 @@ export default function ApprovalRulesPage() {
   const handleOpenEdit = (rule: ApprovalRuleDto) => {
     if (!rule.ruleId) return;
 
+    setRuleNameError(null);
+    setSaveError(null);
     setEditingRuleId(rule.ruleId);
     setRuleName(rule.ruleName);
     setDocumentType(rule.documentType);
@@ -165,8 +172,10 @@ export default function ApprovalRulesPage() {
   };
 
   const handleSubmit = async () => {
+    setRuleNameError(null);
+    setSaveError(null);
     if (!ruleName.trim()) {
-      toast({ title: 'Thiếu tên quy tắc', description: 'Vui lòng nhập tên để dễ nhận biết luồng phê duyệt.', variant: 'warning' });
+      setRuleNameError({ title: 'Thiếu tên quy tắc', message: 'Vui lòng nhập tên để dễ nhận biết luồng phê duyệt.' });
       return;
     }
 
@@ -195,20 +204,24 @@ export default function ApprovalRulesPage() {
       }
       setIsModalOpen(false);
     } catch (err) {
-      toast({ title: 'Chưa thể lưu quy tắc', description: formatMutationError(err), variant: 'danger', durationMs: 0 });
+      setSaveError(formatMutationError(err));
     }
   };
 
-  const handleDelete = (id: string) => setDeleteTargetId(id);
+  const handleDelete = (id: string) => {
+    setDeleteError(null);
+    setDeleteTargetId(id);
+  };
 
   const handleConfirmDelete = async () => {
     if (!deleteTargetId) return;
     try {
       await deleteRule(deleteTargetId).unwrap();
       setDeleteTargetId(null);
+      setDeleteError(null);
       toast({ title: 'Đã xóa quy tắc duyệt', variant: 'success' });
     } catch (err) {
-      toast({ title: 'Chưa thể xóa quy tắc', description: formatMutationError(err), variant: 'danger', durationMs: 0 });
+      setDeleteError(formatMutationError(err));
     }
   };
 
@@ -343,8 +356,23 @@ export default function ApprovalRulesPage() {
           <div className="space-y-4 py-2">
             <div className="ipc-approval-rule-form-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Tên quy tắc</label>
-                <Input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ví dụ: Duyệt PR vượt ngưỡng 10M..." />
+                <label htmlFor="approval-rule-name" className="text-xs font-semibold text-slate-600">Tên quy tắc</label>
+                <Input
+                  id="approval-rule-name"
+                  value={ruleName}
+                  aria-invalid={Boolean(ruleNameError) || undefined}
+                  aria-describedby={ruleNameError ? 'approval-rule-name-error' : undefined}
+                  onChange={(event) => {
+                    setRuleName(event.target.value);
+                    setRuleNameError(null);
+                  }}
+                  placeholder="Ví dụ: Duyệt PR vượt ngưỡng 10M..."
+                />
+                {ruleNameError && (
+                  <p id="approval-rule-name-error" className="text-xs text-red-700">
+                    <span className="font-semibold">{ruleNameError.title}</span>{' '}{ruleNameError.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-600">Loại chứng từ</label>
@@ -486,6 +514,7 @@ export default function ApprovalRulesPage() {
                 ))}
               </div>
             </div>
+            {saveError && <div role="alert"><InlineAlert title="Chưa thể lưu quy tắc" variant="danger">{saveError}</InlineAlert></div>}
           </div>
 
           <DialogFooter className="gap-2 border-t border-slate-100 pt-3">
@@ -499,12 +528,19 @@ export default function ApprovalRulesPage() {
         open={deleteTargetId !== null}
         ariaLabel="Xác nhận xóa quy tắc duyệt"
         title="Xóa quy tắc duyệt?"
-        description="Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục."
+        description={deleteError
+          ? `Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục. Chưa thể xóa quy tắc. ${deleteError}`
+          : 'Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục.'}
         confirmLabel="Xóa quy tắc"
         busy={isDeleting}
         busyLabel="Đang xóa..."
         onConfirm={handleConfirmDelete}
-        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTargetId(null);
+            setDeleteError(null);
+          }
+        }}
       />
     </OperationalFrame>
   );

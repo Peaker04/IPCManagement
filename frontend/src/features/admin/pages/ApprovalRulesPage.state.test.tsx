@@ -1,18 +1,20 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
 
 const mocks = vi.hoisted(() => ({
   rules: vi.fn(),
   employees: vi.fn(),
+  createRule: vi.fn(),
+  updateRule: vi.fn(),
   deleteRule: vi.fn(),
   deleteState: { isLoading: false },
 }));
 
 vi.mock('@/api/workflowApi', () => ({
   useGetApprovalRulesQuery: mocks.rules,
-  useCreateApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
-  useUpdateApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
+  useCreateApprovalRuleMutation: () => [mocks.createRule, { isLoading: false }],
+  useUpdateApprovalRuleMutation: () => [mocks.updateRule, { isLoading: false }],
   useDeleteApprovalRuleMutation: () => [mocks.deleteRule, mocks.deleteState],
 }));
 
@@ -83,6 +85,8 @@ describe('ApprovalRulesPage query state boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.deleteState.isLoading = false;
+    mocks.createRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
+    mocks.updateRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
     mocks.deleteRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
     mocks.rules.mockReturnValue(readyQuery(rulesResponse()));
     mocks.employees.mockReturnValue(readyQuery(employeesResponse()));
@@ -178,5 +182,40 @@ describe('ApprovalRulesPage query state boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
 
     await waitFor(() => expect(mocks.deleteRule).toHaveBeenCalledWith('rule-1'));
+  });
+
+  it('associates missing rule-name validation with the field', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình' }));
+
+    const input = screen.getByLabelText('Tên quy tắc');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('Thiếu tên quy tắc Vui lòng nhập tên để dễ nhận biết luồng phê duyệt.');
+    expect(mocks.createRule).not.toHaveBeenCalled();
+  });
+
+  it('keeps a save failure inside the rule form dialog', async () => {
+    mocks.createRule.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({ data: { message: 'Tên quy tắc đã tồn tại.' } }) });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
+    fireEvent.change(screen.getByLabelText('Tên quy tắc'), { target: { value: 'Duyệt đề xuất mua' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' });
+    await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent('Chưa thể lưu quy tắc'));
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tên quy tắc đã tồn tại.');
+  });
+
+  it('keeps a delete failure inside the confirmation dialog', async () => {
+    mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
+    mocks.deleteRule.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({ data: { message: 'Quy tắc đang được sử dụng.' } }) });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' });
+    await waitFor(() => expect(dialog).toHaveTextContent('Chưa thể xóa quy tắc'));
+    expect(dialog).toHaveTextContent('Quy tắc đang được sử dụng.');
   });
 });
