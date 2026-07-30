@@ -10,8 +10,8 @@ existing `.planning/phases/` directories. v1.3 continues numbering at Phase 19.
 
 ## Phase overview
 
-- [ ] **Phase 19: Completeness registry expansion** — inventory operational state contracts and build the
-  approved `CoordinationOrderScopeLifecycle` plus scalable registry guards.
+- [x] **Phase 19: Completeness registry expansion** — inventory operational state contracts and build the
+  approved `CoordinationOrderScopeLifecycle` plus scalable registry guards (completed 2026-07-31).
 - [ ] **Phase 20: PC/PD action completeness** — measure all registry scenarios read-only and resolve every
   observed action mismatch.
 - [ ] **Phase 21: Semantic canon convergence** — make the PB inventory executable and converge state,

@@ -1200,3 +1200,20 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   và không tạo production/test/evidence code.
 - Root `AGENTS.md` được `.gitignore:95` loại khỏi version control; policy được áp dụng cho workspace hiện
   tại và không bị force-add. Năm file audit/state canonical là phần được commit.
+
+## Hoàn tất Phase 19 — completeness registry expansion — 31/07/2026
+
+- Phase 19 triển khai executable inventory cho 13 protected operational families. Sáu family có rows chiếu
+  trực tiếp từ model/policy hiện có; bảy family không import được giữ dưới dạng debt source-linked với exact
+  range/fragment drift guards.
+- `CoordinationOrderScopeLifecycle` đã được materialize ở test boundary với 20 rows, grain
+  `scenario × operation`, row-level `scope`, identity `object + scenarioId + operation` và hai field state
+  độc lập `entityState`/`projectionState`. Production không import registry; WeeklyMenu registry/projection
+  lịch sử không đổi.
+- FE và BE cùng đọc `frontend/tests/operationalRegistryFamilyManifest.json`. Chín debt descriptors trên tám
+  raw sources và 17 unique fragments được kiểm tra bằng bốn negative probes; verifier Phase 19 pass `6/6`.
+- Các commit triển khai là `8b6e0db`, `62d8641`, `cfccba3`, `0144bbd`, `46950be`, `f74abac`, `1ecf0ff`,
+  `2dd8a4a` và `7c849ce`. Gate ứng dụng/API/frontend, lint/build/dependency/architecture đều xanh; chi tiết
+  số liệu hiện hành được giữ ở `MEMORY.md`.
+- Phase 20 chuyển sang trạng thái ready-to-plan. Closeout chỉ cập nhật GSD/audit docs; không đổi policy,
+  UI, production behavior, runtime, database hoặc evidence lane.

@@ -19,8 +19,8 @@ same declared business state produces an equivalent, predictable UI.
 - PA-2B/PC proves the WeeklyMenuLifecycle registry and read-only browser fixture on five desktop viewports.
 - PB approved all eighteen UI concepts; Button uses ballot 8B and form controls use ballot 9B.
 - EmptyState, ConfirmDialog and contextual Feedback have completed initial PE slices.
-- DEC-06 approves the next registry schema: `CoordinationOrderScopeLifecycle`, row grain
-  `scenario × operation`, row-level `scope`, separate `entityState` and `projectionState`.
+- Phase 19 implements the DEC-06 `CoordinationOrderScopeLifecycle` registry with `scenario × operation`,
+  row-level `scope`, separate `entityState`/`projectionState`, cross-family inventory and drift-guarded debt.
 
 ## Current Milestone: v1.3 UI Completeness & Conformance
 
@@ -37,7 +37,6 @@ same declared business state produces an equivalent, predictable UI.
 
 ## Active requirements
 
-- [ ] Complete the state/action completeness oracle beyond WeeklyMenuLifecycle.
 - [ ] Converge every approved PB concept and make the variant inventory executable.
 - [ ] Establish binary UI conformance and source-addressable DOM evidence.
 - [ ] Enforce state purity and same-state UI equivalence in CI/local verify.
@@ -55,7 +54,9 @@ same declared business state produces an equivalent, predictable UI.
 ## Context
 
 The addendum reverses the old priority: completeness (Class A) before consistency (Class B), then visual
-conformance (Class C). Existing evidence proves only one lifecycle object and only three PE concepts.
+conformance (Class C). Phase 19 now proves the source-level completeness inventory and approved second
+registry; Phase 20 still must measure expected actions against rendered UI. Only three PE concepts have
+completed their initial slices.
 `docs/PB-UI-VARIANT-AUDIT.md` still identifies live residuals in formatting, table boundaries,
 buttons, form controls, validation and search ownership. `docs/UI-CONFORMANCE-MATRIX.md` and the PF hidden-
 state gate do not yet exist.
@@ -89,4 +90,4 @@ requirements move to completed evidence, new constraints are recorded, and activ
 the roadmap. After the milestone, review the core value, out-of-scope boundaries and evidence lineage.
 
 ---
-*Last updated: 2026-07-31 after starting milestone v1.3 UI Completeness & Conformance*
+*Last updated: 2026-07-31 after Phase 19 completeness-registry verification*

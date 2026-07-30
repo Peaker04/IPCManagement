@@ -162,18 +162,26 @@ implementation, route/menu/action gate or rendered UI behavior changed.
 1. Decide whether Manager should reach catalog-write UI. Current FE admin-only routing is stricter than `CatalogAccess`.
 2. Decide whether inventory-receipt approval should enter the centralized inbox or remain API-only.
 
-## DEC-06 format approved — 2026-07-31
+## DEC-06 format implemented — 2026-07-31
 
-DEC-06 approves only the format of the future `CoordinationOrderScopeLifecycle` object. One row has grain
+DEC-06 approved the format and Phase 19 now materializes it as a test-owned executable registry at
+`frontend/src/features/coordination/coordinationOrderScopeLifecycleRegistry.test.ts`. One row has grain
 `scenario × operation`; every row adds `scope`; and `entityState` and `projectionState` remain separate
-fields. This closeout does not create a CoordinationOrder registry or implement the second object. The
-audited `WeeklyMenuLifecycle` and PA-2B snapshots above remain unchanged.
+fields. The registry has 20 rows, exact `object + scenarioId + operation` identity, imported lifecycle/policy
+projections where available, and source/drift guards for copied literals. Production does not import it.
+The audited `WeeklyMenuLifecycle` and PA-2B snapshots above remain unchanged.
+
+Phase 19 also adds a deterministic inventory over 13 protected operational families: six families have
+executable rows, while seven non-importable/query/component-local families retain explicit source-linked debt.
+The shared `frontend/tests/operationalRegistryFamilyManifest.json` is consumed by both FE and BE parity tests;
+all nine debt descriptors cover exact ranges and 17 unique fragments, with four committed negative probes.
 
 ## Scalability assessment
 
-The row format scales when an object has one importable lifecycle model and importable permission policy.
-It will break down when expanding to objects whose state is split across query status, server entity status,
-local dialog state and generic approval target state. Role aliases and role-policy authorization are also
-not isomorphic to emitted permission strings. Before expanding broadly, the registry needs stable scenario
-identifiers and a generator/report step; otherwise source line references and handwritten audit prose will
-be expensive to keep current.
+The row format scales for another family when its scenario identifiers and operation vocabulary can be projected
+from existing code, and when its source-linked debt can be guarded by exact ranges/fragments. The shared schema,
+family manifest and FE/BE parity checks make that addition local without changing WeeklyMenu meaning.
+Expansion will still strain at families whose state is split across query status, server entity status, local
+dialog state and generic approval targets; role aliases and role-policy authorization are not isomorphic to
+emitted permission strings. The first likely failure is evidence mapping and scenario cardinality—not the row
+shape—so a future generator/report step should be added before broad Cartesian expansion.

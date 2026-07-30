@@ -9,11 +9,11 @@ produces an equivalent, predictable UI.
 
 ### Completeness oracle (PA–PD)
 
-- [ ] **ORCL-01**: Maintainers can enumerate every state-bearing object family exposed on protected
+- [x] **ORCL-01**: Maintainers can enumerate every state-bearing object family exposed on protected
   operational routes and see whether state, roles and valid operations are machine-readable, with source references.
-- [ ] **ORCL-02**: Every family with an importable lifecycle/action contract has an executable registry
+- [x] **ORCL-02**: Every family with an importable lifecycle/action contract has an executable registry
   whose rows project code rather than copy it; unknown cells and literal-source drift checks are explicit.
-- [ ] **ORCL-03**: `CoordinationOrderScopeLifecycle` uses the approved grain `scenario × operation`, includes
+- [x] **ORCL-03**: `CoordinationOrderScopeLifecycle` uses the approved grain `scenario × operation`, includes
   `scope`, and separates `entityState` from `projectionState` without production code importing the registry.
 - [ ] **ORCL-04**: A read-only PC fixture measures expected versus rendered actions for every registry
   scenario, relevant role and all five required desktop viewports, excluding the four false-missing causes.
@@ -86,7 +86,7 @@ produces an equivalent, predictable UI.
 
 | Requirement | Phase | Status |
 |---|---:|---|
-| ORCL-01, ORCL-02, ORCL-03 | 19 | Pending |
+| ORCL-01, ORCL-02, ORCL-03 | 19 | Complete |
 | ORCL-04, ORCL-05 | 20 | Pending |
 | CAN-01, CAN-02, CAN-03 | 21 | Pending |
 | CAN-04, CAN-05, CAN-06 | 22 | Pending |

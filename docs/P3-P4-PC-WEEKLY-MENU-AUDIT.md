@@ -6,6 +6,7 @@ behavior_change: remove unintended lifecycle panel and align two verified fronte
 status: pc-rerun-corrected-operational-e2e-pass
 baseline_pc_approved_at: 2026-07-30
 option_a_approved_at: 2026-07-31
+dec06_registry_implemented_at: 2026-07-31
 ---
 
 # P3 → P4 → PC — `WeeklyMenuLifecycle`
@@ -13,7 +14,8 @@ option_a_approved_at: 2026-07-31
 Các mục P3/P4 đầu tiên bên dưới là baseline chỉ-đọc trước khi Kỳ làm rõ “E2E lifecycle” là luồng
 nghiệp vụ, không phải một panel lifecycle mới. Closeout hiện hành đã gỡ panel ngoài ý muốn, giữ model và
 registry làm contract/test, sửa đúng hai gate PC đã xác minh và chạy E2E thật trên database disposable.
-Không mở đối tượng thứ hai và không sửa backend policy.
+Lượt WeeklyMenu này không mở đối tượng thứ hai và không sửa backend policy; Phase 19 sau đó triển khai
+registry test-owned riêng theo format DEC-06 mà không thay đổi snapshot WeeklyMenu.
 
 Quyết định D-01 / DEC-08 ngày `2026-07-31` khóa **Option A**: control `Publish` tiếp tục là
 **Admin-only** tại Admin Data → Contract. Hai context DRAFT × Manager/Coordinator được giữ nguyên như
@@ -312,11 +314,11 @@ Evidence authoritative:
    backend policy, frontend route/control placement, permission hoặc alignment FE/BE.
 3. `OPEN-11` và `DEC-08` đóng ngày `2026-07-31`. Quyết định này không cấp Publish cho Manager hoặc
    Coordinator, không mở PD và không mở object thứ hai.
-4. `DEC-06` duyệt riêng định dạng object tương lai `CoordinationOrderScopeLifecycle`: một hàng có grain
-   `scenario × operation`, mọi hàng thêm `scope`, còn `entityState` và `projectionState` là hai field tách
-   biệt. Đây chỉ là quyết định format; không tạo CoordinationOrder registry, không implement object thứ hai
-   và không thay đổi bất kỳ snapshot `WeeklyMenuLifecycle`/PA-2B nào đã audit.
+4. `DEC-06` duyệt định dạng `CoordinationOrderScopeLifecycle`: một hàng có grain `scenario × operation`,
+   mọi hàng thêm `scope`, còn `entityState` và `projectionState` là hai field tách biệt. Phase 19 đã
+   materialize registry test-owned theo format này, nhưng không đưa registry vào production và không thay
+   đổi bất kỳ snapshot `WeeklyMenuLifecycle`/PA-2B nào đã audit.
 
-**ĐÃ ĐÓNG:** panel ngoài ý muốn đã gỡ, hai gate cũ đã khớp, operational E2E đã pass và disposition
-Option A cùng format DEC-06 đã được duyệt. Không có thay đổi hành vi production, test, evidence, database
-hoặc runtime.
+**ĐÃ ĐÓNG:** panel ngoài ý muốn đã gỡ, hai gate cũ đã khớp, operational E2E đã pass, Option A cùng format
+DEC-06 đã được duyệt và Phase 19 registry đã pass verifier. Không có thay đổi hành vi production, policy,
+evidence, database hoặc runtime.

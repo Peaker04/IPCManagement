@@ -36,10 +36,11 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - Grain nghiệp vụ lấy `docs/DATA-GRAIN-MATRIX.md` làm contract. Nhu cầu ngày, tổng tuần, snapshot tồn, source-line chứng từ và movement audit không được trộn.
 - Không gộp, deduplicate hoặc dùng React key theo tên nguyên liệu. Dòng tổng chỉ là presentation; action phải drill down về ID nguồn.
 - Browser gate desktop hiện hành có đúng năm viewport: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
-- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. D-01 khóa Option A: WeeklyMenu DRAFT `Publish` vẫn **Admin-only**; việc Manager/Coordinator không có control là FE chặt hơn BE có chủ đích. PD và object thứ hai vẫn đóng.
-- DEC-06 khóa format tương lai `CoordinationOrderScopeLifecycle`: grain mỗi hàng là `scenario × operation`,
-  mọi hàng có `scope`, còn `entityState` và `projectionState` tách riêng. Chưa có CoordinationOrder
-  registry hoặc implementation object thứ hai; đây chỉ là invariant về schema cho plan tương lai.
+- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. D-01 khóa Option A: WeeklyMenu DRAFT `Publish` vẫn **Admin-only**; việc Manager/Coordinator không có control là FE chặt hơn BE có chủ đích. Phase 20 chưa mở; không có PD/UI lifecycle panel mới.
+- DEC-06 đã được materialize trong Phase 19 bằng registry test-owned `CoordinationOrderScopeLifecycle`: grain mỗi hàng là
+  `scenario × operation`, mọi hàng có `scope`, còn `entityState` và `projectionState` tách riêng. Registry có
+  20 rows, inventory 13 family và shared FE/BE manifest; production không import registry. WeeklyMenu snapshot
+  và hành vi production không đổi.
 - Không kết luận pass từ BE/API riêng lẻ; evidence phải nối FE control → API → DB transition → FE reload.
 - Trước khi chạy file `.sql`, phải soi `USE`, `CREATE DATABASE`, `DROP DATABASE` và `DROP TABLE`; database đích trên CLI không vô hiệu hóa `USE` bên trong file. Không chạy mutation nếu chưa có precondition và rollback.
 - UI giữ SAP Fiori compact: work object theo tab, action/status rõ, tab một dòng có overflow hợp lý, shell không remount, panel cũ được giữ khi refetch và loading/empty/error/permission không được đánh đồng.
@@ -68,10 +69,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 
 ## Gate hiện hành
 
-Gate chốt ngày `2026-07-31`: Application `49/49`; API `698 pass + 1 intentional skip`; checker PA-4
-riêng lẻ `1/1` pass và vẫn quét production, dev fixture cùng test không miễn trừ. Frontend giữ nguyên
-`95 file / 506 test`; ESLint và production build pass. Dependency-cruiser `0 violation / 363 module /
-1.242 dependency`; architecture-growth test và strict gate pass. Root `npm run verify` pass toàn bộ.
+Gate Phase 19 chốt ngày `2026-07-31`: Application `49/49`; API `705 pass + 1 intentional skip`; frontend
+`100 files / 560 tests`; ESLint, production build, architecture-growth và strict gate pass. Dependency-cruiser
+`0 violation / 365 modules / 1,246 dependencies`. Phase 19 verifier `6/6`, focused FE registry suite `57/57`
+và backend source/parity suite `9/9`; root `npm run verify` pass toàn bộ.
 Commit `8b87470` canonicalize đúng tám callsite; backend vocabulary/policy, guard implementation,
 route/menu/action gate và rendered UI không đổi. PA-4 closeout đã chuyển sang `HISTORY.md`.
 
@@ -99,6 +100,7 @@ Browser/DB evidence tương ứng chỉ lấy từ các dòng authoritative tron
 
 PA-2B/PC và operational E2E cho `WeeklyMenuLifecycle` đã đo xong. D-01 khóa Option A: control
 `Publish` tại Admin Data → Contract vẫn **Admin-only**; DRAFT × Manager/Coordinator là FE chặt hơn BE
-có chủ đích, không phải defect còn chờ alignment. PD và object thứ hai vẫn đóng.
+có chủ đích, không phải defect còn chờ alignment. Phase 19 đã hoàn tất registry object thứ hai ở test-only;
+Phase 20 (PC/PD action completeness) mới chỉ ở trạng thái ready-to-plan.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.
