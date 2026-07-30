@@ -1,5 +1,5 @@
 import { Download, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
-import { ContextStrip, FieldRow, InlineAlert, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, DataTableShell, ViewSwitcher } from '@/components/common';
+import { ConfirmDialog, ContextStrip, FieldRow, InlineAlert, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, DataTableShell, ViewSwitcher } from '@/components/common';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
@@ -414,22 +414,14 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
         </DialogContent>
       </Dialog>}
 
-      {closingBom && <Dialog open onOpenChange={(open) => { if (!open) setClosingBom(null); }}>
-        <DialogContent aria-label="Ngừng áp dụng dòng BOM" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ngừng áp dụng dòng BOM?</DialogTitle>
-            <DialogDescription>
-              {closingBom ? `${closingBom.dishName} · ${closingBom.line.name}` : ''}. Dữ liệu không bị xóa cứng và vẫn còn trong lịch sử/audit.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-5">
-            <button className="ipc-button ipc-button-ghost" type="button" disabled={closeDishBomLineState.isLoading} onClick={() => setClosingBom(null)}>Hủy</button>
-            <button className="ipc-button ipc-button-primary bg-rose-700 hover:bg-rose-800" type="button" disabled={closeDishBomLineState.isLoading} onClick={() => void handleCloseBomLine()}>
-              <Power size={15} /> {closeDishBomLineState.isLoading ? 'Đang xử lý...' : 'Ngừng áp dụng'}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>}
+      {closingBom && <ConfirmDialog open
+        title="Ngừng áp dụng dòng BOM?"
+        description={`${closingBom.dishName} · ${closingBom.line.name}. Dữ liệu không bị xóa cứng và vẫn còn trong lịch sử/audit.`}
+        confirmLabel="Ngừng áp dụng"
+        busy={closeDishBomLineState.isLoading}
+        onConfirm={() => void handleCloseBomLine()}
+        onOpenChange={(open) => { if (!open) setClosingBom(null); }}
+      />}
 
     </>
   );

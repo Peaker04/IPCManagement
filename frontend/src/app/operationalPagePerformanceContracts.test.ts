@@ -82,7 +82,7 @@ describe('operational page performance contracts', () => {
     expect(adminContractSource).toContain("{ skip: activeView !== 'contracts' || !selectedContract?.customerId }");
     expect(adminContractSource).toContain('if (!isBomView) return [];');
     expect(adminContractSource).toContain('{isBomDialogOpen && <Dialog open');
-    expect(adminContractSource).toContain('{closingBom && <Dialog open');
+    expect(adminContractSource).toContain('{closingBom && <ConfirmDialog open');
     expect(adminContractSource).not.toContain('useWorkflowOverview(');
   });
 
