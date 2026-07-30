@@ -1,88 +1,135 @@
-# Roadmap: IPCManagement architecture workflow
+# Roadmap: IPCManagement UI Completeness & Conformance
 
-## Milestone v1.2 — Architecture workflow 11–18
+## Milestone v1.3 — UI Completeness & Conformance
 
-**Goal:** Close the architecture audit through one sequential workflow with explicit gates and evidence.
-**Canonical source:** `docs/ARCHITECTURE-AUDIT-2026-07-26.md`, Part F, Steps 11–18.
-**Legacy notice:** `.planning/archive/v1.1-legacy/ROADMAP.md` and its archived Phase 08–09 artifacts are historical only and must never drive routing or implementation.
+**Goal:** Complete `.docs/UI-UX-ADDENDUM-KHONG-CO-FIGMA.md` through executable completeness,
+canon-convergence, binary conformance and state-purity gates.
+
+**Foundation:** Milestone v1.2 Phases 11–18 are complete and remain historical evidence in Git and their
+existing `.planning/phases/` directories. v1.3 continues numbering at Phase 19.
 
 ## Phase overview
 
-- [x] **Phase 11: Query state contract** — complete at `d2a5d62` plus supporting guardrails.
-- [x] **Phase 12: Material Demand and Warehouse pilot** — complete with headed-browser evidence.
-- [x] **Phase 13: State-boundary rollout** — complete across Purchasing, Approvals, Reports, Admin, Chef and Coordination.
-- [x] **Phase 14: VSA boundary** — complete; dependency cycles and controller-to-DbContext access removed.
-- [x] **Phase 15: Use-case and functional-core extraction** — complete through SampleData at `7ae0e67`.
-- [x] **Phase 16: Persistence and reliability** — complete at `59add79` plus prior mapping/runner/lineage checkpoints.
-- [x] **Phase 17: Frontend ownership** — complete, 8/8 plans; Gate 17 verified. (completed 2026-07-29)
-- [x] **Phase 18: Guardrails and workflow closeout** — complete, 8/8 plans; Gate 18 and milestone audit passed. (completed 2026-07-29)
+- [ ] **Phase 19: Completeness registry expansion** — inventory operational state contracts and build the
+  approved `CoordinationOrderScopeLifecycle` plus scalable registry guards.
+- [ ] **Phase 20: PC/PD action completeness** — measure all registry scenarios read-only and resolve every
+  observed action mismatch.
+- [ ] **Phase 21: Semantic canon convergence** — make the PB inventory executable and converge state,
+  feedback, search and formatting contracts.
+- [ ] **Phase 22: Control canon convergence** — finish Button 8B, form 9B, validation, table/status and
+  bounded contextual exceptions.
+- [ ] **Phase 23: Conformance contract and red oracle** — choose harm-ranked findings/goldens, write the
+  binary matrix, emit DOM source metadata and prove red-first assertions.
+- [ ] **Phase 24: Conformance fixes and headed evidence** — fix the ten measured failures and pass all five
+  desktop viewports with current-source headed evidence.
+- [ ] **Phase 25: UI=f(state) permanent gate and closeout** — enforce same-state equivalence, hidden-state
+  rules and full regression/documentation closure.
 
-### Phase 11: Query state contract
+### Phase 19: Completeness registry expansion
 
-**Goal:** Establish the shared `QueryView<T>` state algebra, exhaustive state tests and lint guardrail.
-**Depends on:** Phase 10
-**Status:** Complete
+**Goal:** Make the expected action surface derivable for every state-bearing protected-route family and
+materialize the approved second-object registry without production imports.
 
-### Phase 12: Material Demand and Warehouse pilot
+**Requirements:** ORCL-01, ORCL-02, ORCL-03
 
-**Goal:** Prove the state contract on two live workflow boundaries with three-viewport browser evidence.
-**Depends on:** Phase 11
-**Status:** Complete
+**Success criteria:**
 
-### Phase 13: State-boundary rollout
+1. A machine-readable inventory names every protected-route operational object family and classifies its
+   state, role and operation sources as importable, literal-guarded or not determinable.
+2. `CoordinationOrderScopeLifecycle` rows use `scenario × operation`, row-level `scope`, separate
+   `entityState`/`projectionState`, backend-authoritative permission evidence and source-drift tests.
+3. Production source imports no registry/audit fixture, and every copied literal has a failing drift guard.
+4. Registry format/generator can add another family without changing the meaning of existing WeeklyMenu rows.
 
-**Goal:** Apply the state contract to every remaining query-owning operational page without ownership churn.
-**Depends on:** Phase 12
-**Status:** Complete
+### Phase 20: PC/PD action completeness
 
-### Phase 14: VSA boundary
+**Goal:** Compare expected operations with the real rendered control surface and close every evidenced gap.
 
-**Goal:** Enforce the feature dependency DAG, remove cycles and direct controller-to-DbContext access.
-**Depends on:** Phase 13
-**Status:** Complete
+**Requirements:** ORCL-04, ORCL-05
 
-### Phase 15: Use-case and functional-core extraction
+**Success criteria:**
 
-**Goal:** Split Reports, Coordination, Purchasing, Catalog and SampleData by real responsibility and isolate pure policy from EF/I/O.
-**Depends on:** Phase 13, Phase 14
-**Status:** Complete
+1. Read-only fixtures cover each registry scenario, relevant role and all five desktop viewports.
+2. Every potential THIẾU result records exclusion of navigation, viewport, fixture-condition and role/state mismatch.
+3. Every THIẾU/MỒ CÔI/IM LẶNG/LỆCH VỊ TRÍ result is fixed or explicitly retained with evidence-backed rationale.
+4. Implemented PD actions have positive and negative permission/state tests and an observable post-action result.
 
-### Phase 16: Persistence and reliability
+### Phase 21: Semantic canon convergence
 
-**Goal:** Standardize EF mapping, transactions, exceptions, migration lineage and recoverability without resetting data.
-**Depends on:** Phase 15
-**Status:** Complete
+**Goal:** Convert the approved PB audit from prose into executable inventory and converge semantic/state presentation.
 
-**Scope:**
+**Requirements:** CAN-01, CAN-02, CAN-03
 
-- Extract entity mappings into feature-owned `IEntityTypeConfiguration<T>` classes; keep `IpcManagementContext` as registration root.
-- Standardize a transaction runner with EF execution strategy before enabling transient retry; prevent duplicate side effects.
-- Replace business `InvalidOperationException` paths with mapped domain/application exceptions.
-- Reconcile canonical fresh/upgrade migration lineage without rewriting applied migrations.
-- Preserve existing backups and add off-site copy plus disposable-clone restore rehearsal evidence.
+**Success criteria:**
 
-**Gate:** retry cannot duplicate side effects; fresh/upgrade lineage is explained and tested; restore rehearsal meets the documented recovery target; no production/lane reset, seed or import occurs.
+1. AST/source inventory reproduces live callsite counts and rejects new unapproved variants or stale residuals.
+2. Status, loading/refreshing, search, error/forbidden, empty, table and query-boundary contracts match PB canon.
+3. Quantity, percent, date-only, timestamp and currency output uses shared formatters with contract tests.
+4. No migration changes business state, authorization, API calls or action eligibility.
 
-### Phase 17: Frontend ownership
+### Phase 22: Control canon convergence
 
-**Goal:** Give every endpoint module, layout and page model a clear owner while keeping one API slice and stable public hooks/cache behavior.
-**Depends on:** Phase 13, Phase 15, Phase 16
-**Status:** Complete — 8/8 plans; verification passed 7/7 must-haves
+**Goal:** Finish the visual/control migration while preserving the semantic exceptions approved by PB.
 
-**Scope:** split `workflowApi.ts` by feature, move `MainLayout` to `app/layout`, resolve `projects→coordination`, retire the 54-violation baseline and split oversized Admin/Reports page models.
+**Requirements:** CAN-04, CAN-05, CAN-06
 
-**Gate:** zero unapproved cycle/reverse import; navigation, cache and state tests pass; OpenAPI-derived types and public hook surface do not drift; three-viewport headed-browser behavior remains stable.
+**Success criteria:**
 
-### Phase 18: Guardrails and workflow closeout
+1. Domain/form/dialog native buttons in the approved migration set use Button 8B; links and adapters remain bounded exceptions.
+2. Text/select/textarea controls in the approved migration set use form-control ballot 9B with accessible labels and states.
+3. Field errors, confirmations, rich decisions, action placement, feedback and pagination satisfy their contextual contracts.
+4. Recount reports one canonical contract or a named semantic exception for all eighteen PB concepts.
 
-**Goal:** Decompose test monoliths, enforce growth thresholds and close the workflow with reproducible evidence and synchronized documentation.
-**Depends on:** Phase 11, Phase 12, Phase 13, Phase 14, Phase 15, Phase 16, Phase 17
-**Status:** Complete — 8/8 plans; verification passed 8/8 must-haves
+### Phase 23: Conformance contract and red oracle
 
-**Gate:** full backend/frontend/contract/dependency/migration gates and required browser evidence are green; secret scan, `git diff --check` and staged GitNexus `detect_changes` are clean; no automatic push.
+**Goal:** Turn the ten most harmful current UI defects into source-addressable binary assertions before fixing them.
+
+**Requirements:** CONF-01, CONF-02, CONF-03, CONF-04
+
+**Success criteria:**
+
+1. Ten findings and three IPC golden screens have screenshots, selectors, harm and scoped principle IDs.
+2. `docs/UI-CONFORMANCE-MATRIX.md` contains only binary rules with layer, severity and autofix policy.
+3. Dev/test DOM metadata maps every critical finding selector to a component/source owner without leaking behavior changes.
+4. Each new oracle is captured failing against an isolated violation before its production fix is accepted.
+
+### Phase 24: Conformance fixes and headed evidence
+
+**Goal:** Resolve the ten matrix failures and prove stable Fiori/accessibility behavior across the required desktop matrix.
+
+**Requirements:** CONF-05, CONF-06
+
+**Success criteria:**
+
+1. Geometry, data-grain, disabled-reason, focus, contrast, target-size, loading, table and tab assertions pass at
+   `1920×1080`, `1440×900`, `1366×768`, `1365×900` and `1280×900`.
+2. Every production fix is traceable from matrix ID → failing evidence → source owner → green evidence.
+3. Headed Chrome current-source evidence records screenshots, action API traffic, console/page errors, CLS and long tasks.
+4. Verification is read-only or uses a disposable database clone; `ipc_lane1` lineage remains unchanged.
+
+### Phase 25: UI=f(state) permanent gate and closeout
+
+**Goal:** Prevent completeness and consistency debt from returning after the cleanup.
+
+**Requirements:** STATE-01, STATE-02, STATE-03, QUAL-01, DOC-01
+
+**Success criteria:**
+
+1. Same-kind displays given equivalent logical state have equivalent actions, status labels and mandatory facts.
+2. Static hidden-state inventory rejects unapproved visibility dependencies while allowing named ephemeral interaction state.
+3. Root `npm run verify` runs registry, canon, conformance/state-purity, regression, lint, dependency and build gates.
+4. Application/API/frontend test counts do not decrease; GitNexus final review has no undispositioned process or Deferred item.
+5. PA/PB/PC, matrix, MEMORY/HISTORY/STATE and evidence index agree and the addendum completion audit proves all 22 requirements.
 
 ## Execution rules
 
-- Execute strictly in order 17 → 18; do not route into archived v1.1 phases.
-- Each feature/use case is an atomic commit with focused regression coverage.
-- `docs/ARCHITECTURE-AUDIT-2026-07-26.md` owns detailed acceptance criteria; this file mirrors status for GSD routing.
+- Execute Phases 19 → 25 in order; each phase may contain multiple atomic plans but may not leave a migrated API/control set partial.
+- Brainstormed defaults are allowed by the current user authorization, but alternatives/rationale/acceptance criteria must be recorded.
+- No Figma invention, process-rule edit, automatic backend-policy reconciliation, push, destructive Git action or existing-lane mutation.
+- Every production symbol edit requires GitNexus impact in both directions; every commit requires final `detect_changes`.
+- Browser claims require headed current-source evidence; mock fixtures prove deterministic contracts only.
+
+## Historical milestones
+
+- **v1.2 — Architecture workflow 11–18:** complete before v1.3; source and verification history remain in Git and existing phase artifacts.
+- **v1.1 — legacy BOM/supplier roadmap:** archived under `.planning/archive/v1.1-legacy/` and not executable.

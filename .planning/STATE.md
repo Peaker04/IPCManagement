@@ -1,64 +1,62 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: — Architecture workflow 11–18
-status: completed
-stopped_at: Quick task 260731-3hj complete; DEC-06 format approved and GitNexus risk policy calibrated
-last_updated: "2026-07-31T02:46:07+07:00"
+milestone: v1.3
+milestone_name: UI Completeness & Conformance
+status: planning
+last_updated: "2026-07-30T20:16:20.423Z"
+last_activity: 2026-07-31
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 22
-  completed_plans: 22
-  percent: 100
-current_phase: 18
-current_phase_name: guardrails-and-workflow-closeout
+  total_phases: 7
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
+current_phase: 19
+current_phase_name: completeness-registry-expansion
 ---
 
 # Project State
 
 ## Project Reference
 
-See `.planning/PROJECT.md`. The sole active roadmap is `.planning/ROADMAP.md`, which mirrors Part F of `docs/ARCHITECTURE-AUDIT-2026-07-26.md`.
-
-The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in `.planning/archive/v1.1-legacy/` and are not executable work.
+See `.planning/PROJECT.md`. The sole active roadmap is milestone v1.3 in `.planning/ROADMAP.md`, derived
+from `.docs/UI-UX-ADDENDUM-KHONG-CO-FIGMA.md`. Phases 11–18 and the v1.1 archive are historical only.
 
 ## Current Position
 
-Phase: 18 — COMPLETE
-
-Plan: 8 of 8 complete
-
-Status: Milestone v1.2 verification and audit passed
-
-Milestone phase progress: ██████████ 100% (8/8 steps complete).
-
-Defined-plan progress: 8/8 plans defined and executed.
-
-Step 16 work-package progress: 5/5 complete.
+Phase: 19 — Completeness registry expansion
+Plan: —
+Status: Ready to plan
+Last activity: 2026-07-31 — Milestone v1.3 requirements and seven-phase roadmap defined
 
 ## Verified Baseline
 
 - Phase 18 is complete through `87e92fe` plus documentation/GSD closeout. Goal-backward verification
   passed 8/8 must-haves and milestone v1.2 audit passed 12/12 requirements, 8/8 phases, 7/7
   integrations and 4/4 end-to-end flows. No gap, undispositioned process or Deferred item remains.
+
 - Quick task `260730-wbx` closed at `fbb489e`: unintended WeeklyMenu lifecycle panel removed, two verified
   FE permission gates aligned, PA-2B corrected and operational E2E passed on a disposable clone with
   source lane unchanged. Current gate/evidence pointers are authoritative in `MEMORY.md` and
   `docs/EVIDENCE-INDEX.md`.
+
 - Quick task `260731-15j` records D-01 / Option A: WeeklyMenu DRAFT `Publish` remains intentionally
   **Admin-only**; Manager/Coordinator absence is accepted FE-chặt-hơn-BE, and `OPEN-11`/`DEC-08` are
   closed. This documentation-only closeout changed no production behavior, test, evidence, database or runtime.
+
 - Quick task `260731-27u` closed PA-4 at `8b87470`: all eight frontend literals now belong to the
   backend-generated vocabulary, the checker and root verify pass, and `OPEN-10`/`DEC-03` are closed.
   Backend policy, guard implementation and rendered UI behavior remain unchanged.
+
 - Quick task `260731-3hj` approves DEC-06 as a format-only contract for future
   `CoordinationOrderScopeLifecycle` rows and calibrates the gitignored local `AGENTS.md` GitNexus
   raw/effective risk handling from PA-4
   evidence. No second registry, production/test/evidence code, runtime or database behavior was opened.
+
 - Guarded `ipc_lane1` evidence for week `2026-07-27` is preserved: exact ANV workbook hash, rollback
   backup/mirror, protected lineage, 15 screenshots, 112 successful API responses and five desktop
   viewports. Do not rerun sanitizer/import/reset/seed for closeout.
+
 - Current source gate is authoritative in `MEMORY.md`; strict growth/dependency/lint/build gates remain
   green and PA-4 no longer intentionally stops the root verify pipeline.
 
@@ -164,8 +162,9 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Remaining Workflow
 
-- None for milestone v1.2. Start a new milestone before adding implementation work.
-- Operational follow-up only: configure and verify a genuinely physical off-site backup target.
+- Execute Phases 19 → 25 in order: registry expansion; PC/PD action completeness; semantic canon;
+  control canon; conformance red oracle; five-viewport fixes/evidence; state-purity gate and closeout.
+- Off-site backup remains an unrelated non-blocking operational follow-up outside milestone v1.3.
 
 ## Decisions Made
 
@@ -191,9 +190,14 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Quick 260731-3hj]: Approve DEC-06 format-only: `CoordinationOrderScopeLifecycle` uses
   `scenario × operation`, adds `scope`, and separates `entityState` from `projectionState`. — The schema is
   durable without opening a CoordinationOrder registry or implementation.
+
 - [Quick 260731-3hj]: Keep GitNexus raw risk as evidence while deriving effective rigor from verified
   directed production/control/data-flow impact. — PA-4 demonstrated that import-only transitive closure can
   falsely escalate docs/literal work; unresolved edges retain raw risk and full scope.
+- [Milestone v1.3]: Skip external design research and derive canon from the approved PB ballot/live code. —
+  The addendum explicitly warns that agent-authored canon would create another variant.
+- [Milestone v1.3]: Use the user's delegated brainstorm authority to close D-10/golden/PD decision gates,
+  recording alternatives and acceptance criteria instead of pausing execution.
 
 ## Blockers
 
@@ -218,11 +222,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-31T02:46:07+07:00
+**Last Date:** 2026-07-31T03:16:20+07:00
 
-**Stopped At:** quick task 260731-3hj complete; DEC-06 format is approved, GitNexus policy is calibrated, and DEC-04/05 remain open
+**Stopped At:** milestone v1.3 initialized; Phase 19 ready to plan
 
-Last activity: 2026-07-31 - Completed docs-only quick task 260731-3hj; DEC-06 format approved without implementing object two
+Last activity: 2026-07-31 - Defined 22 requirements across Phases 19–25 for full UI/UX addendum completion
 
 **Resume File:** .planning/ROADMAP.md
 
@@ -233,6 +237,7 @@ Last activity: 2026-07-31 - Completed docs-only quick task 260731-3hj; DEC-06 fo
 - Do not rewrite, delete or move applied migrations.
 - Follow the calibrated `AGENTS.md` policy: explicit repo/branch, two-way impact for executable symbol
   edits, raw/effective risk disposition, and final `detect_changes` before every commit.
+
 - Browser evidence is required only for frontend/route/UI behavior changes until the final workflow closeout.
 
 ## Performance Metrics
