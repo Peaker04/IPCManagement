@@ -84,7 +84,7 @@ describe('RoleGuard permission decisions', () => {
     expect(screen.getByText('Reports')).toBeInTheDocument();
 
     renderWithStore(
-      <RoleGuard requiredPermissions={['admin.only']}>
+      <RoleGuard requiredPermissions={['report.read']}>
         <span>Admin</span>
       </RoleGuard>,
       { user: buildUser({ role: 'admin', permissions: [] }), isAuthenticated: true },
@@ -125,7 +125,7 @@ describe('ActionGuard role and permission decisions', () => {
     rerender(
       <Provider store={buildStore({ user: buildUser({ role: 'thumua' }), isAuthenticated: true })}>
         <MemoryRouter>
-          <ActionGuard allowedRoles={['thukho']} requiredPermissions={['warehouse.issue']} fallback={<span>Hidden</span>}>
+          <ActionGuard allowedRoles={['thukho']} requiredPermissions={['report.read']} fallback={<span>Hidden</span>}>
             <button type="button">Approve</button>
           </ActionGuard>
         </MemoryRouter>
@@ -138,13 +138,13 @@ describe('ActionGuard role and permission decisions', () => {
 
   it('renders children when role and permission both pass, or admin wildcard is present', () => {
     renderWithStore(
-      <ActionGuard allowedRoles={['thukho']} requiredPermissions={['warehouse.issue']} fallback={<span>Hidden</span>}>
+      <ActionGuard allowedRoles={['thukho']} requiredPermissions={['report.read']} fallback={<span>Hidden</span>}>
         <button type="button">Approve</button>
       </ActionGuard>,
       {
         user: buildUser({
           role: 'thukho',
-          permissions: ['warehouse.issue'],
+          permissions: ['report.read'],
         }),
         isAuthenticated: true,
       },
@@ -152,7 +152,7 @@ describe('ActionGuard role and permission decisions', () => {
     expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
 
     renderWithStore(
-      <ActionGuard allowedRoles={['staff']} requiredPermissions={['admin.only']} fallback={<span>Hidden</span>}>
+      <ActionGuard allowedRoles={['staff']} requiredPermissions={['report.read']} fallback={<span>Hidden</span>}>
         <button type="button">Admin action</button>
       </ActionGuard>,
       {
