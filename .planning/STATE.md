@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
 stopped_at: Milestone v1.2 complete; Phase 18 verification and milestone audit passed
-last_updated: "2026-07-29T19:18:00+07:00"
+last_updated: "2026-07-30T19:08:24+07:00"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -179,11 +179,23 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 - Non-blocking operational gap: configure and verify a genuinely off-site production backup target; the current C:/D: mirror proves copy integrity and disposable restore only.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260730-jc9 | PE ConfirmDialog: inventory contracts and migrate the low-risk Admin BOM caller | 2026-07-30 | 37c04a1 | [260730-jc9-pe-confirmdialog-inventory-confirmation-](./quick/260730-jc9-pe-confirmdialog-inventory-confirmation-/) |
+| 260730-jvq | PE ConfirmDialog: migrate ApprovalRulesPage deletion confirmation | 2026-07-30 | bdbfa5b | [260730-jvq-pe-confirmdialog-migrate-approvalrulespa](./quick/260730-jvq-pe-confirmdialog-migrate-approvalrulespa/) |
+| 260730-k8i | PE ConfirmDialog: replace MaterialDemandSection window.confirm | 2026-07-30 | 3d0caee | [260730-k8i-pe-confirmdialog-replace-the-remaining-m](./quick/260730-k8i-pe-confirmdialog-replace-the-remaining-m/) |
+| 260730-la8 | PE Feedback: canonicalize feedback by context across continuous slices | 2026-07-30 | d61a96a | [260730-la8-canonicalize-pe-feedback-continuously-ac](./quick/260730-la8-canonicalize-pe-feedback-continuously-ac/) |
+| 260730-rfr | PA closeout: architecture-clean registry guards and durable permission evidence | 2026-07-30 | d26a452 | [260730-rfr-pa-closeout-make-registry-source-guards-](./quick/260730-rfr-pa-closeout-make-registry-source-guards-/) |
+
 ## Session
 
-**Last Date:** 2026-07-29T19:18:00+07:00
+**Last Date:** 2026-07-30T20:02:00+07:00
 
 **Stopped At:** Milestone v1.2 complete; Phase 18 verifier and milestone audit passed
+
+Last activity: 2026-07-30 - Completed quick task 260730-rfr: PA closeout and permission evidence
 
 **Resume File:** .planning/ROADMAP.md
 
