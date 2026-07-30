@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
 stopped_at: Milestone v1.2 complete; Phase 18 verification and milestone audit passed
-last_updated: "2026-07-30T19:08:24+07:00"
+last_updated: "2026-07-30T21:29:00+07:00"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -188,14 +188,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260730-k8i | PE ConfirmDialog: replace MaterialDemandSection window.confirm | 2026-07-30 | 3d0caee | [260730-k8i-pe-confirmdialog-replace-the-remaining-m](./quick/260730-k8i-pe-confirmdialog-replace-the-remaining-m/) |
 | 260730-la8 | PE Feedback: canonicalize feedback by context across continuous slices | 2026-07-30 | d61a96a | [260730-la8-canonicalize-pe-feedback-continuously-ac](./quick/260730-la8-canonicalize-pe-feedback-continuously-ac/) |
 | 260730-rfr | PA closeout: architecture-clean registry guards and durable permission evidence | 2026-07-30 | d26a452 | [260730-rfr-pa-closeout-make-registry-source-guards-](./quick/260730-rfr-pa-closeout-make-registry-source-guards-/) |
+| 260730-rws | PB inventory: discover every recurring UI concept, count variants and prepare canon ballot without changing production code | 2026-07-30 | 51b99db | [260730-rws-pb-inventory-discover-every-recurring-ui](./quick/260730-rws-pb-inventory-discover-every-recurring-ui/) |
 
 ## Session
 
-**Last Date:** 2026-07-30T20:02:00+07:00
+**Last Date:** 2026-07-30T21:29:00+07:00
 
-**Stopped At:** Milestone v1.2 complete; Phase 18 verifier and milestone audit passed
+**Stopped At:** PB canon approved; ready for the read-only P3 → P4 → PC gate
 
-Last activity: 2026-07-30 - Completed quick task 260730-rfr: PA closeout and permission evidence
+Last activity: 2026-07-30 - Completed quick task 260730-rws: PB inventory and approved canon ballot
 
 **Resume File:** .planning/ROADMAP.md
 
