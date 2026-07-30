@@ -1,5 +1,5 @@
 ---
-updated: 2026-07-30
+updated: 2026-07-31
 branch: feature/workflow-b17-b18
 runtime_ports:
   frontend: 3001
@@ -36,7 +36,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - Grain nghiệp vụ lấy `docs/DATA-GRAIN-MATRIX.md` làm contract. Nhu cầu ngày, tổng tuần, snapshot tồn, source-line chứng từ và movement audit không được trộn.
 - Không gộp, deduplicate hoặc dùng React key theo tên nguyên liệu. Dòng tổng chỉ là presentation; action phải drill down về ID nguồn.
 - Browser gate desktop hiện hành có đúng năm viewport: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
-- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. Chưa mở PD/object thứ hai trước khi Kỳ duyệt hai context draft còn lệch.
+- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. D-01 khóa Option A: WeeklyMenu DRAFT `Publish` vẫn **Admin-only**; việc Manager/Coordinator không có control là FE chặt hơn BE có chủ đích. PD và object thứ hai vẫn đóng.
 - Không kết luận pass từ BE/API riêng lẻ; evidence phải nối FE control → API → DB transition → FE reload.
 - Trước khi chạy file `.sql`, phải soi `USE`, `CREATE DATABASE`, `DROP DATABASE` và `DROP TABLE`; database đích trên CLI không vô hiệu hóa `USE` bên trong file. Không chạy mutation nếu chưa có precondition và rollback.
 - UI giữ SAP Fiori compact: work object theo tab, action/status rõ, tab một dòng có overflow hợp lý, shell không remount, panel cũ được giữ khi refetch và loading/empty/error/permission không được đánh đồng.
@@ -56,7 +56,6 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `OPEN-08` · owner `Backend/Import` · đóng khi batch hai khách hàng atomic hoặc có recovery protocol được test.
 - `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
 - `OPEN-10` · owner `Frontend/Auth` · đóng khi Kỳ duyệt canonical cho năm nhóm chuỗi PA-4 còn lại, checker vocabulary xanh và được đưa vào full gate mà không miễn production, dev fixture hoặc test.
-- `OPEN-11` · owner `QA/UI` · đóng khi Kỳ duyệt PC rerun đã sửa với hai context `THIẾU` DRAFT × Manager/Coordinator do publish thật nằm sau Admin Data wildcard; chưa mở PD/object thứ hai.
 
 ## Cần Kỳ quyết
 
@@ -66,7 +65,6 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
 - `DEC-06` · Duyệt định dạng registry một đối tượng trước khi mở object thứ hai; canon PB đã được duyệt và không còn nằm trong quyết định này.
-- `DEC-08` · Duyệt PC rerun PA-2B tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`: completion và purchasing đã khớp; còn hai context `THIẾU` (`draft × Manager/Coordinator`) vì publish thật nằm sau route admin; terminal không có action nghiệp vụ và chưa mở PD.
 
 ## Gate hiện hành
 
@@ -99,7 +97,8 @@ git diff --check
 
 Browser/DB evidence tương ứng chỉ lấy từ các dòng authoritative trong `docs/EVIDENCE-INDEX.md`.
 
-PA-2B/PC và operational E2E cho `WeeklyMenuLifecycle` đã đo xong. Chờ Kỳ duyệt hai context draft còn
-`THIẾU` tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`; không mở PD hoặc object thứ hai trước quyết định này.
+PA-2B/PC và operational E2E cho `WeeklyMenuLifecycle` đã đo xong. D-01 khóa Option A: control
+`Publish` tại Admin Data → Contract vẫn **Admin-only**; DRAFT × Manager/Coordinator là FE chặt hơn BE
+có chủ đích, không phải defect còn chờ alignment. PD và object thứ hai vẫn đóng.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.

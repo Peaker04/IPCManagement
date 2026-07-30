@@ -5,6 +5,7 @@ scope: WeeklyMenuLifecycle only
 behavior_change: remove unintended lifecycle panel and align two verified frontend permission gates
 status: pc-rerun-corrected-operational-e2e-pass
 baseline_pc_approved_at: 2026-07-30
+option_a_approved_at: 2026-07-31
 ---
 
 # P3 → P4 → PC — `WeeklyMenuLifecycle`
@@ -13,6 +14,10 @@ Các mục P3/P4 đầu tiên bên dưới là baseline chỉ-đọc trước kh
 nghiệp vụ, không phải một panel lifecycle mới. Closeout hiện hành đã gỡ panel ngoài ý muốn, giữ model và
 registry làm contract/test, sửa đúng hai gate PC đã xác minh và chạy E2E thật trên database disposable.
 Không mở đối tượng thứ hai và không sửa backend policy.
+
+Quyết định D-01 / DEC-08 ngày `2026-07-31` khóa **Option A**: control `Publish` tiếp tục là
+**Admin-only** tại Admin Data → Contract. Hai context DRAFT × Manager/Coordinator được giữ nguyên như
+phép đo FE chặt hơn BE có chủ đích; không cần thay đổi alignment FE/BE hoặc hành vi production.
 
 ## Contract và giới hạn đầu vào
 
@@ -210,16 +215,16 @@ Evidence authoritative:
 `.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730/pa2b-pc-weekly-menu-fixture.json` và archive
 `.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730.zip`.
 
-## PC rerun — kết quả
+## PC rerun — kết quả đo và disposition đã duyệt
 
 | Nhóm PC | Context lệch duy nhất | Phép đo | Kết luận |
 |---|---:|---:|---|
-| `THIẾU` | 2 | 10/10 (hai context × năm viewport) | `draft × Manager`; `draft × Coordinator` |
+| `THIẾU` | 2 | 10/10 (hai context × năm viewport) | `draft × Manager`; `draft × Coordinator`; được duyệt là FE chặt hơn BE có chủ đích theo Option A. |
 | `MỒ CÔI` | 0 | 0 | Không còn control FE lỏng hơn BE trong companion registry. |
 | `IM LẶNG` | 0 | 0 | Không có ca đã đo đủ điều kiện nhóm này. |
 | `LỆCH VỊ TRÍ` | 0 | 0 | Một page/object; không có cùng action ở vị trí thay thế. |
 
-### FE chặt hơn BE — `THIẾU`
+### FE chặt hơn BE — `THIẾU` được chấp nhận có chủ đích
 
 1. `WeeklyMenuLifecycle × DRAFT × Manager`.
 2. `WeeklyMenuLifecycle × DRAFT × Coordinator`.
@@ -228,6 +233,8 @@ Backend `CoordinationAccess → CoordinationRoles` cho phép cả Manager và Co
 Control thật `Publish` nằm trong Admin Data → Contract, trong khi route Admin Data yêu cầu wildcard admin.
 Vì vậy Admin có control, Manager/Coordinator bị route guard chặn ở cả năm viewport. Audit chỉ ghi nhận
 FE chặt hơn BE; không tự mở route hoặc chuyển control sang Weekly Menu vì đó là quyết định sản phẩm/policy.
+Theo Option A đã duyệt, đây là disposition chủ đích: `Publish` vẫn **Admin-only** và không cần thay đổi
+alignment FE/BE. Kết luận này không cấp quyền Publish cho Manager hoặc Coordinator.
 
 ### FE lỏng hơn BE — `MỒ CÔI`
 
@@ -255,7 +262,9 @@ viewport. Cả 20 phép đo đều không có enabled contextual `Mở thu mua`,
 4. **Sai vai/sai trạng thái:** login + `/auth/profile` trả đúng Manager/Coordinator; backend availability
    được chiếu từ `CoordinationAccess`, còn FE route guard được đo trực tiếp.
 
-Loại trừ đủ bốn ⇒ hai context draft được ghi `THIẾU`; không còn lệch completion/purchasing cũ.
+Loại trừ đủ bốn ⇒ hai context draft được ghi `THIẾU` trong phép đo; không còn lệch
+completion/purchasing cũ. D-01 / DEC-08 chấp nhận hai context này là FE chặt hơn BE có chủ đích theo
+Option A, không phải defect còn chờ xử lý.
 
 ## Operational E2E sau khi gỡ panel
 
@@ -294,11 +303,15 @@ Evidence authoritative:
   backend role policy. Object có nhiều workflow con sẽ vỡ trước ở khâu chứng minh source drift và mapping
   operation → control, không phải ở định dạng hàng.
 
-## CẦN QUYẾT
+## Quyết định được duyệt — 2026-07-31
 
-1. Duyệt hai context `THIẾU` còn lại: DRAFT × Manager/Coordinator do publish thật nằm sau route admin.
-2. Chưa mở PD. Nếu sau này mở, phải quyết định product/policy cho quyền publish; closeout này không mở
-   Admin Data cho Manager/Coordinator và không thêm control publish vào Weekly Menu.
+1. D-01 / DEC-08 khóa **Option A**: control `Publish` thật tiếp tục nằm tại Admin Data → Contract sau
+   wildcard-admin route và vẫn **Admin-only**.
+2. DRAFT × Manager và DRAFT × Coordinator được chấp nhận là hai context FE chặt hơn BE có chủ đích.
+   Backend `CoordinationAccess` có thể tiếp tục cho Manager/Coordinator update version; không cần đổi
+   backend policy, frontend route/control placement, permission hoặc alignment FE/BE.
+3. `OPEN-11` và `DEC-08` đóng ngày `2026-07-31`. Quyết định này không cấp Publish cho Manager hoặc
+   Coordinator, không mở PD và không mở object thứ hai.
 
-**DỪNG:** panel ngoài ý muốn đã gỡ, hai gate cũ đã khớp và operational E2E đã pass; chờ duyệt trước PD
-hoặc object thứ hai.
+**ĐÃ ĐÓNG:** panel ngoài ý muốn đã gỡ, hai gate cũ đã khớp, operational E2E đã pass và disposition
+Option A đã được duyệt. Không có thay đổi hành vi production, test, evidence, database hoặc runtime.

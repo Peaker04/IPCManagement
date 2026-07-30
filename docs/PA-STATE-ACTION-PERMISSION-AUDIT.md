@@ -45,7 +45,7 @@ Total projected unknown cells: 26 — ten role cells and sixteen operation/permi
 
 | Scenario | Observable difference | Evidence |
 |---|---|---|
-| Draft lifecycle publish | Backend `CoordinationAccess` accepts Manager/Coordinator, while the real `Publish` control is inside Admin Data behind wildcard admin routing. Do not reconcile automatically. | `weeklyMenuLifecyclePa2Registry.test.ts`; `AdminContractsPanel.tsx:240-304`; `AppRouter.tsx:62`; `MenuSchedulesController.cs:13,51-68` |
+| Draft lifecycle publish | 2026-07-31 disposition — Option A approved: backend `CoordinationAccess` accepts Manager/Coordinator, while the real `Publish` surface remains Admin-only inside Admin Data behind wildcard admin routing. DRAFT × Manager/Coordinator is intentional FE-tighter-than-BE; no reconciliation is required. | `weeklyMenuLifecyclePa2Registry.test.ts`; `AdminContractsPanel.tsx:240-304`; `AppRouter.tsx:62`; `MenuSchedulesController.cs:13,51-68` |
 
 Serving completion is no longer a difference: FE uses canonical `coordination.order.lock` and Manager dev
 fixture receives that same string. Purchasing handoff is gated by canonical `purchase.read`.
@@ -160,8 +160,6 @@ is the requested stopping point. No permission string is changed by PA.
 2. Decide whether Manager should reach catalog-write UI. Current FE admin-only routing is stricter than `CatalogAccess`.
 3. Decide whether inventory-receipt approval should enter the centralized inbox or remain API-only.
 4. Approve this one-object registry format before creating a registry for a second business object.
-5. Decide whether Manager/Coordinator should receive a non-admin publish surface; current backend
-   `CoordinationAccess` and frontend Admin Data route remain intentionally unreconciled.
 
 ## Scalability assessment
 

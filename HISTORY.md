@@ -1153,3 +1153,17 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   qua API/DB/reload tới handoff Thu mua. `ipc_lane1` chỉ được dùng làm nguồn clone/read; sau capture,
   template được clone lại từ lane và runtime do phiên tạo được teardown. Hash artifact nằm duy nhất trong
   `docs/EVIDENCE-INDEX.md`; gate hiện hành nằm trong `MEMORY.md`.
+
+## Chốt Option A cho WeeklyMenu DRAFT Publish — 2026-07-31
+
+- Quick task `260731-15j` ghi nhận D-01 / `DEC-08` theo **Option A**: control `Publish` thật tiếp tục
+  nằm tại Admin Data → Contract sau wildcard-admin route và vẫn **Admin-only**.
+- Hai context đã đo `WeeklyMenuLifecycle × DRAFT × Manager` và
+  `WeeklyMenuLifecycle × DRAFT × Coordinator` được chấp nhận là FE chặt hơn BE có chủ đích. Backend
+  `CoordinationAccess` vẫn có thể cho hai role update version; frontend không mở route/control Publish
+  cho hai role và không cần alignment FE/BE.
+- `OPEN-11` và `DEC-08` đóng ngày `2026-07-31`. PD và object thứ hai tiếp tục đóng; quyết định này
+  không cấp quyền Publish cho Manager hoặc Coordinator.
+- Đây là closeout chỉ-tài-liệu. Không production code, backend policy, frontend route/control, test,
+  evidence artifact, database hoặc runtime nào thay đổi; số đo và evidence pointer cũ được giữ nguyên
+  tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`.
