@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { MealQuantityPlanDto, MenuScheduleDto } from '@/types/coordination'
+import {
+  assertStateActionRegistryRows,
+  CORRESPONDENCE_VALUES,
+  UNKNOWN,
+  type Correspondence,
+  type RegistryRow,
+} from '../../../../../tests/stateActionRegistryContract'
 import { buildWeeklyMenuLifecycleModel, type WeeklyMenuLifecycleModel } from './weeklyMenuLifecycleModel'
 import materialDemandSource from '../demand/MaterialDemandSection.tsx?raw'
 
@@ -9,11 +16,6 @@ const adminContractsSources = import.meta.glob('../../../../app/pages/admin-data
   import: 'default',
 }) as Record<string, string>
 const adminContractsSource = Object.values(adminContractsSources)[0] ?? ''
-
-const UNKNOWN = 'KHÔNG-XÁC-ĐỊNH-ĐƯỢC'
-const CORRESPONDENCE_VALUES = ['KHỚP', 'FE-CHẶT-HƠN', 'FE-LỎNG-HƠN', 'CHỈ-CÓ-Ở-BE', 'CHỈ-CÓ-Ở-FE'] as const
-
-type Correspondence = typeof CORRESPONDENCE_VALUES[number]
 
 export type WeeklyMenuLifecyclePa2RegistryRow = {
   object: 'WeeklyMenuLifecycle'
@@ -236,6 +238,68 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
   }),
 ]
 
+const weeklyMenuScenarioIds = [
+  'empty',
+  'draft',
+  'active-incomplete',
+  'active-not-generated',
+  'active-loading',
+  'active-error',
+  'active-shortage',
+  'active-no-shortage',
+  'inconsistent',
+  'superseded',
+] as const
+
+export type WeeklyMenuLifecycleStateActionRegistryRow = Omit<RegistryRow, 'object' | 'actor'> & {
+  object: 'WeeklyMenuLifecycle'
+  actor: typeof UNKNOWN
+  action: string
+}
+
+const normalizeHistoricalRow = (
+  historicalRow: WeeklyMenuLifecyclePa2RegistryRow,
+  index: number,
+): WeeklyMenuLifecycleStateActionRegistryRow => {
+  const scenarioId = weeklyMenuScenarioIds[index]
+  if (!scenarioId) {
+    throw new Error(`Missing WeeklyMenuLifecycle scenario ID for historical row ${index}`)
+  }
+
+  return {
+    object: historicalRow.object,
+    scenarioId,
+    operation: historicalRow.operation,
+    scope: UNKNOWN,
+    entityState: UNKNOWN,
+    projectionState: historicalRow.state,
+    actor: historicalRow.role,
+    backendPermission: historicalRow.backendPermission,
+    frontendPermission: historicalRow.frontendPermission,
+    source: historicalRow.source,
+    correspondence: historicalRow.correspondence,
+    action: historicalRow.action,
+  }
+}
+
+export const weeklyMenuLifecycleStateActionRegistry = weeklyMenuLifecyclePa2Registry.map(
+  normalizeHistoricalRow,
+)
+
+const projectHistoricalRow = (
+  normalizedRow: WeeklyMenuLifecycleStateActionRegistryRow,
+): WeeklyMenuLifecyclePa2RegistryRow => ({
+  object: normalizedRow.object,
+  state: normalizedRow.projectionState,
+  role: normalizedRow.actor,
+  action: normalizedRow.action,
+  operation: normalizedRow.operation,
+  source: [...normalizedRow.source],
+  backendPermission: normalizedRow.backendPermission,
+  frontendPermission: normalizedRow.frontendPermission,
+  correspondence: normalizedRow.correspondence,
+})
+
 describe('PA-2 WeeklyMenuLifecycle registry', () => {
   it('derives every state and action cell from the existing lifecycle model', () => {
     const expected = [
@@ -257,6 +321,23 @@ describe('PA-2 WeeklyMenuLifecycle registry', () => {
     expect(weeklyMenuLifecyclePa2Registry.every((item) => CORRESPONDENCE_VALUES.includes(item.correspondence))).toBe(true)
   })
 
+  it('adopts the shared row contract without changing historical serialized bytes', () => {
+    assertStateActionRegistryRows(weeklyMenuLifecycleStateActionRegistry)
+
+    const historicalBytes = new TextEncoder().encode(JSON.stringify(weeklyMenuLifecyclePa2Registry))
+    const normalizedProjectionBytes = new TextEncoder().encode(JSON.stringify(
+      weeklyMenuLifecycleStateActionRegistry.map(projectHistoricalRow),
+    ))
+
+    expect(weeklyMenuLifecycleStateActionRegistry).toHaveLength(weeklyMenuLifecyclePa2Registry.length)
+    expect(normalizedProjectionBytes).toEqual(historicalBytes)
+    expect(weeklyMenuLifecycleStateActionRegistry.every((item) => (
+      item.scope === UNKNOWN
+      && item.entityState === UNKNOWN
+      && item.actor === UNKNOWN
+    ))).toBe(true)
+  })
+
   it('fails if the frontend action permission/status sources drift', () => {
     expect(adminContractsSource).toContain("handleUpdateScheduleVersion('ACTIVE')")
     expect(materialDemandSource).toContain("requiredPermissions={['demand.generate']}")
@@ -276,9 +357,13 @@ describe('PA-2 WeeklyMenuLifecycle registry', () => {
       import: 'default',
     }) as Record<string, string>
 
+    const registryNames = [
+      'weeklyMenuLifecyclePa2Registry',
+      'weeklyMenuLifecycleStateActionRegistry',
+    ]
     const registryImports = Object.entries(productionSources)
       .filter(([file]) => !file.includes('.test.'))
-      .filter(([, source]) => source.includes('weeklyMenuLifecyclePa2Registry'))
+      .filter(([, source]) => registryNames.some((registryName) => source.includes(registryName)))
 
     expect(registryImports).toEqual([])
   })
