@@ -46,7 +46,6 @@ import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
-import { WeeklyMenuLifecyclePanel } from '../weekly-menu/lifecycle/WeeklyMenuLifecyclePanel';
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
@@ -450,14 +449,6 @@ const WeeklyMenuPage = () => {
           ]}
           activeTab={selectedView}
           onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
-        />
-        <WeeklyMenuLifecyclePanel
-          schedules={menuSchedules}
-          quantityPlans={mealQuantityPlans}
-          demandLineCount={demandReadinessResult.data?.totalCount ?? 0}
-          shortageCount={demandReadinessResult.data?.shortageCount ?? 0}
-          isDemandLoading={demandReadinessResult.isLoading}
-          hasDemandError={demandReadinessResult.isError}
         />
         <WeeklyMenuReadiness readiness={readiness} />
         <WeeklyMenuAlerts

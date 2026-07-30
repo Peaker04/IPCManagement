@@ -2,15 +2,17 @@
 title: P3-P4-PC WeeklyMenuLifecycle UI action audit
 audited_at: 2026-07-30
 scope: WeeklyMenuLifecycle only
-behavior_change: none
-status: pa2b-fixture-complete-needs-user-review
+behavior_change: remove unintended lifecycle panel and align two verified frontend permission gates
+status: pc-rerun-corrected-operational-e2e-pass
 baseline_pc_approved_at: 2026-07-30
 ---
 
 # P3 → P4 → PC — `WeeklyMenuLifecycle`
 
-Audit này chỉ đo và báo cáo. Không source/policy/UI nào bị sửa, không mutation nghiệp vụ nào được gọi,
-và không mở đối tượng thứ hai.
+Các mục P3/P4 đầu tiên bên dưới là baseline chỉ-đọc trước khi Kỳ làm rõ “E2E lifecycle” là luồng
+nghiệp vụ, không phải một panel lifecycle mới. Closeout hiện hành đã gỡ panel ngoài ý muốn, giữ model và
+registry làm contract/test, sửa đúng hai gate PC đã xác minh và chạy E2E thật trên database disposable.
+Không mở đối tượng thứ hai và không sửa backend policy.
 
 ## Contract và giới hạn đầu vào
 
@@ -28,26 +30,26 @@ và không mở đối tượng thứ hai.
 ## P3 — đường DOM/control → source
 
 Route `/weekly-menu` được gate bằng `coordination.read` tại `AppRouter.tsx:55`, dựng
-`WeeklyMenuPage`, rồi nối CommandBar, sáu tab, LifecyclePanel và view đang active tại
-`WeeklyMenuPage.tsx:412-507`.
+`WeeklyMenuPage`, rồi nối CommandBar, sáu tab, readiness/alerts và view đang active. Production không còn
+import hoặc render `WeeklyMenuLifecyclePanel`.
 
 | Scenario PA | Next action kỳ vọng | Surface/selector đã tìm thấy | Source |
 |---|---|---|---|
 | `emptyModel` | Import và lưu thực đơn tuần | CommandBar `button "Nhập Excel"`; dialog `button "Lưu file hợp lệ"` sau khi có file hợp lệ | `WeeklyMenuCommandBar.tsx:31-39`; `WeeklyMenuPage.tsx:420-421,505`; `WeeklyMenuImportJobs.tsx:35-40,73-76`; `useWeeklyMenuImport.ts:157-169` |
-| `draftModel` | Phát hành thực đơn | LifecyclePanel `button "Phát hành thực đơn"`; disabled phụ thuộc `canPublish` | `WeeklyMenuLifecyclePanel.tsx:47-65,117-128` |
+| `draftModel` | Phát hành thực đơn | Admin Data → Contract → `button "Publish"`; UI thật chỉ có ở route wildcard admin | `AdminContractsPanel.tsx:240-304`; `useAdminContractsPanelModel.ts:47-58,199-216` |
 | `activeIncompleteModel` | Nhập và hoàn tất số suất theo ca | tab `#demand-tab` → `#demand-panel` → các button `Hoàn tất {ca}` | `WeeklyMenuPage.tsx:441-452`; `WeeklyMenuViewContent.tsx:64-65`; `MaterialDemandSection.tsx:245-258` |
 | `activeNotGeneratedModel` | Tạo nhu cầu vật tư | tab Nhu cầu → button `Tạo nhu cầu từ KHSX` khi `showGenerate` | `MaterialDemandSection.tsx:45-67,116-128`; `demandModel.ts:17-32` |
 | `activeLoadingModel` | Đang đối chiếu nhu cầu vật tư | Không phải mutation action; lifecycle text và loading status | `weeklyMenuLifecycleModel.ts:117-120`; `MaterialDemandSection.tsx:272-277` |
 | `activeErrorModel` | Tải lại nhu cầu vật tư | EmptyState error có retry callback | `weeklyMenuLifecycleModel.ts:119-120`; `MaterialDemandSection.tsx:282-289` |
 | `activeShortageModel` | Chuyển các dòng thiếu sang Thu mua | Link contextual `Mở thu mua` chỉ render khi approval status là `approved`; href mang `week` + `date`. Sidebar còn có link generic `Thu mua` | `MaterialDemandSection.tsx:33,107-115`; `demandModel.ts:22-31,53-60`; `MainLayout.tsx:60`; `AppRouter.tsx:60` |
 | `activeNoShortageModel` | Theo dõi cấp phát kho và bếp | Registry không có operation; source hiện có sidebar `Kho nguyên liệu` và `Bếp trưởng`, không có action contextual được model khai báo | `weeklyMenuLifecycleModel.ts:123-124`; `MainLayout.tsx:61-62` |
-| `inconsistentModel` | Kiểm tra lại dữ liệu lịch thực đơn | Không có operation; LifecyclePanel giữ publish button disabled và đưa `blockedReason` vào `title` + InlineAlert | `weeklyMenuLifecycleModel.ts:69-90`; `WeeklyMenuLifecyclePanel.tsx:119-135` |
-| `supersededModel` | Kiểm tra trạng thái version trên server | Không có operation; cùng blocked presentation như trên | `weeklyMenuLifecycleModel.ts:94-130`; `WeeklyMenuLifecyclePanel.tsx:119-135` |
+| `inconsistentModel` | Kiểm tra lại dữ liệu lịch thực đơn | Không có operation/control production suy ra được; chỉ giữ model presentation trong contract/test | `weeklyMenuLifecycleModel.ts:69-90`; `weeklyMenuLifecyclePa2Registry.test.ts` |
+| `supersededModel` | Kiểm tra trạng thái version trên server | Không có operation/control production suy ra được; chỉ giữ model presentation trong contract/test | `weeklyMenuLifecycleModel.ts:94-130`; `weeklyMenuLifecyclePa2Registry.test.ts` |
 
 Mapping này chứng minh nơi một control *có thể* render. Nó không chứng minh control đã render cho mọi
 state/role; việc đó thuộc P4.
 
-## P4 — phép đo Chrome headed
+## P4 baseline lịch sử — phép đo Chrome headed trước khi gỡ panel
 
 ### Runtime và bối cảnh quan sát được
 
@@ -88,6 +90,9 @@ Các control liên quan được quan sát nhất quán ở cả năm viewport:
 Evidence authoritative:
 `.artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730/p4-weekly-menu-capture.json` và archive
 `.artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730.zip`.
+
+Artifact này là baseline lịch sử trước correction. Các dòng mô tả LifecyclePanel trong mục P4 không còn
+đại diện UI production hiện tại; kết quả hiện hành nằm ở PA-2B rerun và Operational E2E phía dưới.
 
 ## PC — diff kỳ vọng với UI thực tế
 
@@ -158,12 +163,12 @@ registry; contract test quét toàn bộ `frontend/src/**/*.{ts,tsx}` để ch�
 | Scenario ID | Lifecycle projection | Downstream | Action kind / control kỳ vọng | Actor fixture | Oracle BE ↔ FE |
 |---|---|---|---|---|---|
 | `empty` | `EMPTY / empty / not-generated / 0/0` | không áp dụng | mutation · `Nhập Excel` | Admin, Manager, Coordinator | cả ba phía đều có đường vào |
-| `draft` | `DRAFT / draft / not-generated / 0/2` | không áp dụng | mutation · `Phát hành thực đơn` | Admin, Manager, Coordinator | cả ba phía đều có đường vào |
-| `active-incomplete` | `ACTIVE / active / not-generated / 1/2` | không áp dụng | mutation · `Hoàn tất Ca Sáng` | Admin, Manager, Coordinator | BE cho cả ba; FE chỉ hiện với Admin |
+| `draft` | `DRAFT / draft / not-generated / 0/2` | không áp dụng | mutation · Admin Contracts `Publish` | Admin, Manager, Coordinator | BE cho cả ba; FE chỉ có route/control với Admin |
+| `active-incomplete` | `ACTIVE / active / not-generated / 1/2` | không áp dụng | mutation · `Hoàn tất Ca Sáng` | Admin, Manager, Coordinator | khớp cả ba sau khi dùng `coordination.order.lock` |
 | `active-not-generated` | `ACTIVE / active / not-generated / 1/1` | `not-created → generate` | mutation · `Tạo nhu cầu từ KHSX` | Admin, Manager, Coordinator | khớp cả ba |
 | `active-loading` | `ACTIVE / active / loading / 1/1` | không áp dụng | presentation · không business action | Coordinator | không đối chiếu permission |
 | `active-error` | `ACTIVE / active / error / 1/1` | không áp dụng | presentation · không business action | Coordinator | không đối chiếu permission |
-| `active-shortage-approved` | `ACTIVE / active / generated / 1/1` | `approved → purchasing` | navigation · `Mở thu mua` | Admin, Manager, Coordinator | BE Admin/Manager; FE hiện cả ba |
+| `active-shortage-approved` | `ACTIVE / active / generated / 1/1` | `approved → purchasing` | navigation · `Mở thu mua` | Admin, Manager, Coordinator | khớp: Admin/Manager hiện, Coordinator bị `purchase.read` chặn |
 | `active-shortage-terminal` | `ACTIVE / active / generated / 1/1` | `terminal → none` | none · không business action | Admin, Manager, Coordinator | terminal không có action nghiệp vụ |
 | `active-no-shortage` | `ACTIVE / active / generated / 1/1` | `terminal → none` | none · không business action | Coordinator | terminal không có action nghiệp vụ |
 | `inconsistent` | `INCONSISTENT / blocked / not-generated / 0/2` | không áp dụng | presentation · blocked reason | Coordinator | không đối chiếu permission |
@@ -186,21 +191,20 @@ pass trong 2,4 phút**.
 
 | Viewport | Actor-scenario case | Interaction point | CLS max | Long task | Overflow |
 |---|---:|---:|---:|---:|---|
-| `1920×1080` | 23 | 541 | `0,06656` | 0 | 0 |
-| `1440×900` | 23 | 541 | `0,07410` | 3, max 56 ms | 0 |
-| `1366×768` | 23 | 541 | `0,06504` | 4, max 62 ms | 0 |
-| `1365×900` | 23 | 541 | `0,07718` | 7, max 108 ms | 0 |
-| `1280×900` | 23 | 541 | `0,07953` | 2, max 73 ms | 0 |
+| `1920×1080` | 23 | 535 | `0,04500` | 4 | 0 |
+| `1440×900` | 23 | 535 | `0,05394` | 2 | 0 |
+| `1366×768` | 23 | 535 | `0,05053` | 5 | 0 |
+| `1365×900` | 23 | 535 | `0,05685` | 2 | 0 |
+| `1280×900` | 23 | 535 | `0,05889` | 3 | 0 |
 
-Tổng cộng: 115 case, 2.705 interaction point, 115 screenshot và 1.345 API record. API gồm 1.320
-response 200, 15 login 503 để kích hoạt dev fixture, 5 readiness-error 503 và 5 request loading còn
-pending tại lúc capture. Business mutation = 0; unhandled API = 0; overflow = 0; page error = 0;
-unexpected browser issue = 0. Các console/request issue được giữ trong JSON nhưng đều được gắn nhãn expected:
-login/readiness 503, asset/font bị hủy khi fixture điều hướng và request loading bị hủy khi sang scenario kế.
+Tổng cộng: 11 scenario, 115 case, 2.675 interaction point, 115 screenshot và 1.235 API record.
+Business mutation = 0; unhandled API = 0; overflow = 0; page error = 0; unexpected browser issue = 0.
+Các console/request issue được giữ trong JSON nhưng đều được gắn nhãn expected: login/readiness fixture,
+asset/font bị hủy khi fixture điều hướng và request loading bị hủy khi sang scenario kế.
 
-Visual review trực tiếp đã kiểm tra tối thiểu ba ca biên: Manager thiếu direct-complete ở `1920×1080`,
-Coordinator có link `Mở thu mua` ở `1280×900`, và Coordinator terminal không có contextual business action
-ở `1366×768`.
+Visual review trực tiếp đã kiểm tra tối thiểu ba ca biên: Manager có direct-complete ở `1920×1080`,
+Coordinator không có link `Mở thu mua` ở `1280×900`, và Coordinator terminal không có contextual
+business action ở `1366×768`.
 
 Evidence authoritative:
 `.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730/pa2b-pc-weekly-menu-fixture.json` và archive
@@ -210,50 +214,70 @@ Evidence authoritative:
 
 | Nhóm PC | Context lệch duy nhất | Phép đo | Kết luận |
 |---|---:|---:|---|
-| `THIẾU` | 2 | 10/10 (hai context × năm viewport) | `active-incomplete × Manager`; `active-incomplete × Coordinator` |
-| `MỒ CÔI` | 1 | 5/5 | `active-shortage-approved × Coordinator` |
+| `THIẾU` | 2 | 10/10 (hai context × năm viewport) | `draft × Manager`; `draft × Coordinator` |
+| `MỒ CÔI` | 0 | 0 | Không còn control FE lỏng hơn BE trong companion registry. |
 | `IM LẶNG` | 0 | 0 | Không có ca đã đo đủ điều kiện nhóm này. |
 | `LỆCH VỊ TRÍ` | 0 | 0 | Một page/object; không có cùng action ở vị trí thay thế. |
 
 ### FE chặt hơn BE — `THIẾU`
 
-1. `WeeklyMenuLifecycle × ACTIVE/incomplete × Manager`.
-2. `WeeklyMenuLifecycle × ACTIVE/incomplete × Coordinator`.
+1. `WeeklyMenuLifecycle × DRAFT × Manager`.
+2. `WeeklyMenuLifecycle × DRAFT × Coordinator`.
 
-Backend `CoordinationAccess → CoordinationRoles` cho phép cả Manager và Coordinator hoàn tất số suất.
-UI lại dùng literal `orders.lock`; dev actor canonical có `coordination.order.lock`, nên ActionGuard loại bỏ
-`Hoàn tất Ca Sáng`. Ở cả năm viewport fixture đã dựng đúng `1/2` plan completed, KHSX ngày đang xem có
-100 suất nhưng `0/1 ca hoàn tất`; direct-complete vẫn không xuất hiện. Hậu quả nếu coi đây là lỗi thật:
-Manager/Coordinator mất đường hoàn tất ca trực tiếp dù backend cho phép. Nút `Tạo nhu cầu từ KHSX` còn có
-thể batch-complete trước generate, nên audit không kết luận toàn workflow bị chặn.
+Backend `CoordinationAccess → CoordinationRoles` cho phép cả Manager và Coordinator gọi version update.
+Control thật `Publish` nằm trong Admin Data → Contract, trong khi route Admin Data yêu cầu wildcard admin.
+Vì vậy Admin có control, Manager/Coordinator bị route guard chặn ở cả năm viewport. Audit chỉ ghi nhận
+FE chặt hơn BE; không tự mở route hoặc chuyển control sang Weekly Menu vì đó là quyết định sản phẩm/policy.
 
 ### FE lỏng hơn BE — `MỒ CÔI`
 
-`WeeklyMenuLifecycle × ACTIVE/generated/shortage × approved × Coordinator`: link enabled `Mở thu mua`
-render ở cả năm viewport với href
-`/purchasing?week=2026-07-27&date=2026-07-27`, nhưng Coordinator không có `PurchaseRead` ở backend và
-không có `purchase.read` cho route đích. Hậu quả nếu người dùng bấm là đi vào route bị từ chối thay vì vào
-đúng workbench theo scope. Đây là lỗi trải nghiệm, không phải bypass backend.
+Không còn ca này. `Mở thu mua` hiện được bọc `ActionGuard purchase.read`; Admin/Manager thấy link và
+Coordinator không thấy. Route đích vẫn giữ `purchase.read`, nên control và navigation gate cùng vocabulary.
+
+### Completion gate đã khớp
+
+`Hoàn tất Ca Sáng/Chiều` dùng `coordination.order.lock`; Manager fixture nhận cùng canonical string như
+backend. `active-incomplete` khớp cho Admin, Manager và Coordinator trên đủ năm viewport.
 
 ### Terminal đã khóa là không có action nghiệp vụ
 
 `active-shortage-terminal` chạy đủ ba actor × năm viewport; `active-no-shortage` chạy Coordinator × năm
 viewport. Cả 20 phép đo đều không có enabled contextual `Mở thu mua`, generate hoặc complete control.
-LifecyclePanel vẫn hiển thị advisory `Chuyển các dòng thiếu sang Thu mua` vì model lifecycle không nhận
-downstream state; đây là `REGISTRY-GAP-01` về presentation, không được nâng thành interaction mismatch và
-không được dùng để tự thêm nút.
+`WeeklyMenuLifecyclePanel` đã bị gỡ; advisory `nextAction` chỉ còn trong model/registry contract và không
+được render thành UI hoặc dùng để tự thêm nút.
 
-### Bốn phép loại trừ cho hai context `THIẾU`
+### Bốn phép loại trừ cho hai context `THIẾU` còn lại
 
-1. **Sau lớp điều hướng khác:** fixture mở tab Nhu cầu và JSON lưu toàn bộ control visible/enabled/href;
-   direct-complete không tồn tại cho hai actor, không chỉ bị đặt ở tab khác.
+1. **Sau lớp điều hướng khác:** fixture đi thẳng tới Admin Data → Contract; hai actor bị chuyển sang
+   `/forbidden`, không có surface publish thay thế trên Weekly Menu.
 2. **Viewport khác:** cùng kết quả ở đủ năm viewport bắt buộc.
-3. **Dữ liệu mẫu chưa đủ:** lifecycle model và UI cùng nhận hai schedule ACTIVE, một plan DRAFT 100 suất
-   và một plan COMPLETED; màn render `1/2` và `0/1 ca hoàn tất`.
-4. **Sai vai/sai trạng thái:** login + `/auth/profile` đều trả đúng Manager/Coordinator; source-drift test
-   khóa role/permission fixture và screenshot hiện role badge tương ứng.
+3. **Dữ liệu mẫu chưa đủ:** fixture có version DRAFT và schedule hợp lệ; Admin nhìn thấy `Publish` enabled.
+4. **Sai vai/sai trạng thái:** login + `/auth/profile` trả đúng Manager/Coordinator; backend availability
+   được chiếu từ `CoordinationAccess`, còn FE route guard được đo trực tiếp.
 
-Loại trừ đủ bốn ⇒ hai context được ghi `THIẾU`, không còn `chưa kết luận được`.
+Loại trừ đủ bốn ⇒ hai context draft được ghi `THIẾU`; không còn lệch completion/purchasing cũ.
+
+## Operational E2E sau khi gỡ panel
+
+Run authoritative dùng Chrome headed `1365×900`, source hiện tại và database disposable
+`ipc_e2e_template`; `ipc_lane1` chỉ được clone/read và count nguồn được kiểm trước/sau. Chuỗi control thật:
+
+1. Weekly Menu import wizard preview/commit workbook ANV canonical thành DRAFT.
+2. Admin Data → Contract → `Publish` chuyển version thành ACTIVE.
+3. Weekly Menu → Nhu cầu hoàn tất 12 ca bằng `Hoàn tất Ca Sáng/Chiều`.
+4. `Tạo nhu cầu từ KHSX` sinh 6 material request.
+5. Approval page duyệt đủ 6 demand.
+6. Reload Weekly Menu và `Mở thu mua` điều hướng đúng `week` + `date`.
+
+Kết quả: 28 mutation response, tất cả 2xx; 0 failed mutation, 0 console/page error, 0 unexpected request
+failure. DB sau action có 1 version ACTIVE đã publish, 12 schedule ACTIVE, 12 quantity plan COMPLETED,
+6 material request MANAGERAPPROVED, 350 line và 6 approval history. Sau capture, clone ngược từ
+`ipc_lane1` khôi phục `ipc_e2e_template`; 61 bảng và các count kiểm chứng khớp nguồn.
+
+Evidence authoritative:
+`.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/operational-weekly-menu-e2e.json`,
+`database-after-e2e.json`, `database-rollback.json` và archive
+`.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730.zip`.
 
 ## Ô chưa xác định và giới hạn mở rộng
 
@@ -272,8 +296,9 @@ Loại trừ đủ bốn ⇒ hai context được ghi `THIẾU`, không còn `ch
 
 ## CẦN QUYẾT
 
-1. Duyệt PC rerun với đúng ba context lệch: hai `THIẾU` direct-complete và một `MỒ CÔI` purchasing link.
-2. Chưa mở PD. Nếu sau này mở, phải chọn từng lệch một và trả lời đủ năm câu PD; audit này không sửa
-   `orders.lock`, không gate link và không thêm nút.
+1. Duyệt hai context `THIẾU` còn lại: DRAFT × Manager/Coordinator do publish thật nằm sau route admin.
+2. Chưa mở PD. Nếu sau này mở, phải quyết định product/policy cho quyền publish; closeout này không mở
+   Admin Data cho Manager/Coordinator và không thêm control publish vào Weekly Menu.
 
-**DỪNG:** PA-2B và PC rerun đã xong; chờ duyệt định dạng/kết quả trước PD hoặc object thứ hai.
+**DỪNG:** panel ngoài ý muốn đã gỡ, hai gate cũ đã khớp và operational E2E đã pass; chờ duyệt trước PD
+hoặc object thứ hai.

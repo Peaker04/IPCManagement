@@ -8,7 +8,6 @@ import purchasingDaySource from '../features/purchasing/PurchaseServiceDateWorkb
 import purchaseLinesSource from '../features/purchasing/PurchaseLineGroups.tsx?raw'
 import orderLinesSource from '../features/warehouse/PurchaseOrderLineGroups.tsx?raw'
 import chefChecklistSource from '../features/chef/components/material-checklist.tsx?raw'
-import lifecycleSource from '../features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx?raw'
 
 describe('whole-project ingredient data-grain UI contracts', () => {
   it('makes every multi-day demand view expose its service date', () => {
@@ -53,9 +52,9 @@ describe('whole-project ingredient data-grain UI contracts', () => {
     expect(dishMaterialsSource).toContain('Giá vốn nguyên liệu cho một khay')
   })
 
-  it('shows the daily-demand stage in the weekly lifecycle instead of stopping at servings', () => {
-    expect(lifecycleSource).toContain('4. Nhu cầu theo ngày')
-    expect(lifecycleSource).toContain('dòng ngày–nguyên liệu')
-    expect(lifecycleSource).toContain('dòng thiếu cần Thu mua xử lý')
+  it('shows daily demand on the operational demand surface instead of a separate lifecycle panel', () => {
+    expect(weeklyDemandSource).toContain('KHSX, kiểm tồn kho và nhu cầu xuất')
+    expect(weeklyDemandSource).toContain('Nguyên liệu trong ngày')
+    expect(weeklyDemandSource).toContain('Phạm vi ngày đang xem')
   })
 })

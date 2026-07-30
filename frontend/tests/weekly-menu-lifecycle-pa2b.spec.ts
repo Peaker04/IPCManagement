@@ -1,5 +1,5 @@
 import { expect, type Page, type Route, test } from '@playwright/test'
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ROUTES } from '../src/lib/routeConfig'
@@ -127,6 +127,7 @@ const actorProfile = (actorId: Pa2bActorId) => {
       isAdminFullAccess: false,
       permissions: [
         'coordination.read',
+        'coordination.order.lock',
         'catalog.read',
         'purchase.read',
         'purchase.generate',
@@ -564,9 +565,19 @@ const captureScenario = async ({
 }) => {
   const apiStart = apiCalls.length
   const issueStart = browserIssues.length
-  await page.goto(`${ROUTES.WEEKLY_MENU}?pa2b=${scenario.scenarioId}-${actor}`)
-  await expect(page.getByText('Lifecycle thực đơn tuần', { exact: true })).toBeVisible()
-  await expect(page.getByText(scenario.expectedAction, { exact: false }).first()).toBeVisible()
+  const isAdminContractSurface = scenario.expectedControl?.surface === 'admin-contracts'
+  const targetRoute = isAdminContractSurface
+    ? `${ROUTES.ADMIN_DATA}?view=contracts&pa2b=${scenario.scenarioId}-${actor}`
+    : `${ROUTES.WEEKLY_MENU}?pa2b=${scenario.scenarioId}-${actor}`
+  await page.goto(targetRoute)
+  if (isAdminContractSurface && actor !== 'admin') {
+    await expect(page).toHaveURL(ROUTES.FORBIDDEN)
+  } else if (isAdminContractSurface) {
+    await expect(page.locator('#admin-contracts-panel')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled()
+  } else {
+    await expect(page.getByRole('tab', { name: 'Kế hoạch tuần', exact: true })).toBeVisible()
+  }
 
   const needsDemand = scenario.expectedControl?.surface === 'demand-panel'
     || scenario.actionKind === 'none'
@@ -669,13 +680,18 @@ test.describe('PA-2B WeeklyMenuLifecycle read-only registry and PC fixture', () 
 
     const loginSource = source('frontend/src/features/auth/pages/LoginPage.tsx')
     expect(loginSource).toContain("admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] }")
-    expect(loginSource).toContain("quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] }")
+    expect(loginSource).toContain("quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'coordination.order.lock', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] }")
     expect(loginSource).toContain("dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'] }")
 
     const demandSource = source('frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx')
-    expect(demandSource).toContain("requiredPermissions={['orders.lock']}")
+    expect(demandSource).toContain("requiredPermissions={['coordination.order.lock']}")
+    expect(demandSource).toContain("requiredPermissions={['purchase.read']}")
     expect(demandSource).toContain("requiredPermissions={['demand.generate']}")
-    expect(demandSource).toContain('to={purchasingHref}><ShoppingCart size={16} />Mở thu mua</Link>')
+    expect(demandSource).toContain("<ActionGuard requiredPermissions={['purchase.read']}>")
+
+    expect(existsSync(resolve(FRONTEND_ROOT, 'src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx'))).toBe(false)
+    const weeklyMenuPageSource = source('frontend/src/features/projects/pages/WeeklyMenuPage.tsx')
+    expect(weeklyMenuPageSource).not.toContain('WeeklyMenuLifecyclePanel')
 
     const demandModelSource = source('frontend/src/features/projects/weekly-menu/demand/demandModel.ts')
     expect(demandModelSource).toContain("approvalStatus === 'terminal'\n    ? 'none' as const")
@@ -793,7 +809,7 @@ test.describe('PA-2B WeeklyMenuLifecycle read-only registry and PC fixture', () 
     const payload = {
       generatedAt: new Date().toISOString(),
       scope: 'WeeklyMenuLifecycle only',
-      behaviorChange: 'none',
+      behaviorChange: 'remove unintended lifecycle panel and align verified frontend permission gates',
       fixtureSemantics: 'frontend rendering with intercepted read-only API; not backend/DB E2E',
       requiredLaunchMode: 'Chrome/Chromium headed',
       viewports: PA2B_VIEWPORTS,

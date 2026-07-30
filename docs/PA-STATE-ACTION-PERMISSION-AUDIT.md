@@ -2,7 +2,7 @@
 title: PA state/action and BE-FE permission audit
 audited_at: 2026-07-30
 scope: WeeklyMenuLifecycle plus complete backend/frontend permission vocabulary
-behavior_change: none
+behavior_change: remove unintended lifecycle panel and align two verified frontend permission gates
 ---
 
 # PA state/action and permission audit
@@ -45,8 +45,10 @@ Total projected unknown cells: 26 — ten role cells and sixteen operation/permi
 
 | Scenario | Observable difference | Evidence |
 |---|---|---|
-| Draft lifecycle publish | FE requires the aggregate lifecycle to expose `canPublish`; the backend endpoint is protected by `CoordinationAccess` and updates one schedule. Do not reconcile automatically. | `weeklyMenuLifecyclePa2Registry.test.ts:140-150`; `MenuSchedulesController.cs:13,51-68` |
-| Complete serving quantities | FE additionally requires `orders.lock`, which is not in backend vocabulary; Manager/Coordinator receive canonical `coordination.order.lock`. The button is hidden before the backend role policy can decide. | `weeklyMenuLifecyclePa2Registry.test.ts:152-162`; `MaterialDemandSection.tsx:250`; `AuthorizationPolicies.cs:106,131,157,182` |
+| Draft lifecycle publish | Backend `CoordinationAccess` accepts Manager/Coordinator, while the real `Publish` control is inside Admin Data behind wildcard admin routing. Do not reconcile automatically. | `weeklyMenuLifecyclePa2Registry.test.ts`; `AdminContractsPanel.tsx:240-304`; `AppRouter.tsx:62`; `MenuSchedulesController.cs:13,51-68` |
+
+Serving completion is no longer a difference: FE uses canonical `coordination.order.lock` and Manager dev
+fixture receives that same string. Purchasing handoff is gated by canonical `purchase.read`.
 
 #### FE looser than BE
 
@@ -68,7 +70,7 @@ Frontend permission strings are handwritten, not generated from backend definiti
   `AuthService.BuildPermissionsForRole` (`AuthService.cs:304-313`).
 - Route and menu strings are literals (`AppRouter.tsx:55-63`, `MainLayout.tsx:57-65`).
 - Dev-login fixture strings are literals (`LoginPage.tsx:20-27`).
-- Action guards and guard tests also use literals (`MaterialDemandSection.tsx:117,250`,
+- Action guards and guard tests also use literals (`MaterialDemandSection.tsx:111-116,249-256`,
   `guards.test.tsx:69-155`).
 
 Therefore every FE literal is a potentially drifting copy. The PA-4 checker reads both frontend roots
@@ -112,13 +114,12 @@ The authoritative backend vocabulary contains 22 named permissions plus the admi
 | `KHỚP` | `*`, `auth.profile.read`, `catalog.read`, `coordination.order.adjust`, `coordination.order.lock`, `coordination.order.signoff`, `coordination.read`, `dashboard.read`, `demand.generate`, `inventory.read`, `production.read`, `purchase.generate`, `purchase.read`, `purchase.request.approve`, `report.read`, `warehouse.read` |
 | `CHỈ-CÓ-Ở-BE` | `catalog.write`, `inventory.adjustment.approve`, `inventory.issue.approve`, `inventory.receipt.approve`, `material-demand.approve`, `purchase.price-exception.approve`, `purchase.quotation.manage` |
 | `CHỈ-CÓ-Ở-FE` | `admin.only`, `warehouse.issue` |
-| `GẦN-GIỐNG` | `inventory:read` ↔ `inventory.read`; `production:read` ↔ `production.read`; `warehouse:read` ↔ `warehouse.read`; `orders.lock` ↔ `coordination.order.lock` |
+| `GẦN-GIỐNG` | `inventory:read` ↔ `inventory.read`; `production:read` ↔ `production.read`; `warehouse:read` ↔ `warehouse.read` |
 
 ### Observable consequences of FE-only/near-match strings
 
 | FE string | Location | Verified consequence | Canonical backend value |
 |---|---|---|---|
-| `orders.lock` | `MaterialDemandSection.tsx:250` | FE tighter: Manager/Coordinator do not receive this literal, so the serving-completion action is hidden; backend `CoordinationAccess` would accept those roles. Admin wildcard still passes. | `coordination.order.lock` |
 | `production:read` | `LoginPage.tsx:24` | In the dev-login fixture, Bếp trưởng receives a colon variant while menu/route require `production.read`; the Bếp screen is hidden/forbidden in that fixture. | `production.read` |
 | `warehouse:read` | `LoginPage.tsx:25` | In the dev-login fixture, Thủ kho does not satisfy the `warehouse.read` menu/route gate. | `warehouse.read` |
 | `inventory:read` | `LoginPage.tsx:25` | No current runtime gate consumes canonical `inventory.read`; the immediate visible consequence is not independently observable. | `inventory.read` |
@@ -137,7 +138,8 @@ Verified command:
 dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore --filter "FullyQualifiedName~FrontendPermissionVocabularyTests"
 ```
 
-Expected current result: one failed test with the six non-canonical literals listed above. This red result
+Expected current result: one failed test with the five remaining non-canonical literal groups listed above.
+`orders.lock` is no longer reported. This red result
 is the requested stopping point. No permission string is changed by PA.
 
 ## PA-5 — seven backend permissions without an exact FE runtime gate
@@ -154,10 +156,12 @@ is the requested stopping point. No permission string is changed by PA.
 
 ## Decisions still required
 
-1. Approve which PA-4 mismatches may be corrected; PA does not assume backend names are necessarily the desired product policy.
+1. Approve which five remaining PA-4 mismatches may be corrected; PA does not assume backend names are necessarily the desired product policy.
 2. Decide whether Manager should reach catalog-write UI. Current FE admin-only routing is stricter than `CatalogAccess`.
 3. Decide whether inventory-receipt approval should enter the centralized inbox or remain API-only.
 4. Approve this one-object registry format before creating a registry for a second business object.
+5. Decide whether Manager/Coordinator should receive a non-admin publish surface; current backend
+   `CoordinationAccess` and frontend Admin Data route remain intentionally unreconciled.
 
 ## Scalability assessment
 

@@ -42,7 +42,7 @@ export const PA2B_ACTORS = {
 export type Pa2bActorId = keyof typeof PA2B_ACTORS
 export type Pa2bDownstreamState = DemandApprovalPresentation['status'] | 'not-applicable'
 export type Pa2bActionKind = 'mutation' | 'navigation' | 'presentation' | 'none'
-export type Pa2bControlSurface = 'command-bar' | 'lifecycle-panel' | 'demand-panel'
+export type Pa2bControlSurface = 'command-bar' | 'admin-contracts' | 'demand-panel'
 
 export type Pa2bActorOracle = {
   backendAvailable: boolean | null
@@ -95,6 +95,12 @@ const presentationOnly = (): Readonly<Record<Pa2bActorId, Pa2bActorOracle>> => (
 
 const completionAvailability = (): Readonly<Record<Pa2bActorId, Pa2bActorOracle>> => ({
   admin: { backendAvailable: true, frontendAvailable: true },
+  manager: { backendAvailable: true, frontendAvailable: true },
+  coordinator: { backendAvailable: true, frontendAvailable: true },
+})
+
+const draftPublishAvailability = (): Readonly<Record<Pa2bActorId, Pa2bActorOracle>> => ({
+  admin: { backendAvailable: true, frontendAvailable: true },
   manager: { backendAvailable: true, frontendAvailable: false },
   coordinator: { backendAvailable: true, frontendAvailable: false },
 })
@@ -102,7 +108,7 @@ const completionAvailability = (): Readonly<Record<Pa2bActorId, Pa2bActorOracle>
 const purchasingAvailability = (): Readonly<Record<Pa2bActorId, Pa2bActorOracle>> => ({
   admin: { backendAvailable: true, frontendAvailable: true },
   manager: { backendAvailable: true, frontendAvailable: true },
-  coordinator: { backendAvailable: false, frontendAvailable: true },
+  coordinator: { backendAvailable: false, frontendAvailable: false },
 })
 
 const noBusinessAction = (): Readonly<Record<Pa2bActorId, Pa2bActorOracle>> => ({
@@ -269,12 +275,12 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     downstreamState: 'not-applicable',
     downstreamPrimaryAction: null,
     actionKind: 'mutation',
-    expectedControl: { surface: 'lifecycle-panel', role: 'button', name: 'Phát hành thực đơn' },
+    expectedControl: { surface: 'admin-contracts', role: 'button', name: 'Publish' },
     actors: allActors,
-    actorOracle: allAvailable(),
+    actorOracle: draftPublishAvailability(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-116',
-      'frontend/src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:47-65,117-128',
+      'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:240-304',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],
@@ -329,7 +335,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: presentationOnly(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:39-45,117-120',
-      'frontend/src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:97,102-114',
+      'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:117-120',
     ],
     schedules: activeSchedules,
     quantityPlans: completedPlans,
@@ -345,7 +351,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: presentationOnly(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:39-45,117-121',
-      'frontend/src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:97,102-114',
+      'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:117-121',
     ],
     schedules: activeSchedules,
     quantityPlans: completedPlans,
@@ -416,7 +422,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: presentationOnly(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:62-92',
-      'frontend/src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:119-135',
+      'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:62-92',
     ],
     schedules: [schedule(), schedule({ menuPrice: 30000 })],
     quantityPlans: [],
@@ -432,7 +438,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: presentationOnly(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-130',
-      'frontend/src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:119-135',
+      'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-130',
       'backend/src/IPCManagement.Api/Features/Coordination/Services/MenuSchedulePolicy.cs:61-67',
     ],
     schedules: [schedule({ menuVersionStatus: 'SUPERSEDED', status: 'SUPERSEDED' })],

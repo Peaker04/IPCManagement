@@ -111,7 +111,9 @@ export function MaterialDemandSection({
               </ActionGuard>
             )}
             {presentation.demandApprovalStatus.status === 'approved' && (
-              <Link className="ipc-button ipc-button-primary whitespace-nowrap" to={purchasingHref}><ShoppingCart size={16} />Mở thu mua</Link>
+              <ActionGuard requiredPermissions={['purchase.read']}>
+                <Link className="ipc-button ipc-button-primary whitespace-nowrap" to={purchasingHref}><ShoppingCart size={16} />Mở thu mua</Link>
+              </ActionGuard>
             )}
             {actionPresentation.showGenerate && (
               <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
@@ -247,7 +249,7 @@ export function MaterialDemandSection({
             {activeQuickServingRows.map((row) => {
               const disabled = servingBusy || row.isCompleted || Number(row.inputValue) <= 0
               return (
-                <ActionGuard key={`complete-${row.key}`} allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['orders.lock']}>
+                <ActionGuard key={`complete-${row.key}`} allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['coordination.order.lock']}>
                   <button type="button" className={cn('ipc-button min-w-[132px] whitespace-nowrap', row.isCompleted ? 'ipc-button-ghost' : 'ipc-button-primary')} disabled={disabled} onClick={() => void scheduleWorkflow.actions.completeQuickServing(row)}>
                     {row.isCompleted ? `Đã hoàn tất ${row.shiftLabel}` : `Hoàn tất ${row.shiftLabel}`}
                   </button>

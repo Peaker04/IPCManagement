@@ -151,12 +151,11 @@ formatting.
   timezone and is the proposed date-only algorithm.
 - Three duplicated Purchasing `formatIsoDate` definitions: 7 consumers.
 - Direct locale date/timestamp output outside those helper implementations: 29 calls.
-- Component-local guarded helpers: `chef-header.tsx:35` and
-  `WeeklyMenuLifecyclePanel.tsx:87` — 2 consumers.
+- Component-local guarded helper: `chef-header.tsx:35` — 1 consumer.
 - App-shell `Intl.DateTimeFormat` singleton: `MainLayout.tsx:152` — 1 consumer.
 - `formatDateVN` has 0 production consumers and is not treated as an active winning variant.
 
-Exact 39-place migration/review set:
+Exact 38-place migration/review set after removing the unintended lifecycle panel:
 
 ```text
 api/workflowDocumentsApi.ts:44
@@ -170,7 +169,6 @@ features/approvals/approvalsApi.ts:32
 features/approvals/pages/ApprovalPage.tsx:146,148,446
 features/chef/components/chef-header.tsx:35
 features/projects/weekly-menu/dish-materials/DishMaterialsSection.tsx:24
-features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:87
 features/projects/weekly-menu/production-plan/ProductionPlanSection.tsx:72
 features/projects/weekly-menu/purchasing/PurchaseSummarySection.tsx:78
 features/projects/weeklyMenuPlanning.ts:80
@@ -247,18 +245,18 @@ mutations. The approved PE feedback pass leaves no confirmed context violation.
 
 ### 11. Button primitives
 
-- CSS `ipc-button` primitive: 107 callsites in 31 files — 75 native `<button>` and 32 router `Link`;
-  state split 101 state-refactored, 1 shared, 5 legacy/unmodeled.
+- CSS `ipc-button` primitive: 106 callsites in 30 files — 74 native `<button>` and 32 router `Link`;
+  state split 100 state-refactored, 1 shared, 5 legacy/unmodeled.
 - shadcn `Button`: 56 callsites in 16 files — 53 state-refactored, 2 shared, 1 legacy/unmodeled.
 - Bespoke native `<button>` without `ipc-button`: 26 callsites in 20 files — 12 state-refactored,
   13 shared adapters, 1 legacy/unmodeled.
 
-Action-location recount across all 189 button/link controls: 24 in 9 CommandBars, 38 in rows,
-41 in dialogs, 6 in forms and 80 in local section/shell regions.
+Action-location recount across all 188 button/link controls: 24 in 9 CommandBars, 38 in rows,
+41 in dialogs, 6 in forms and 79 in local section/shell regions.
 
-Under the shadcn proposal, 80 native buttons require review/migration after retaining 10 native
+Under the shadcn proposal, 79 native buttons require review/migration after retaining 10 native
 CommandBar controls and 11 pagination/view-switcher/toast/shell adapter internals. All 32 router Links
-remain links. The exact 80-callsite set is:
+remain links. The exact 79-callsite set is:
 
 ```text
 app/pages/admin-data/AdminAuditPanel.tsx:68,81
@@ -286,7 +284,6 @@ features/projects/weekly-menu/import/WeeklyMenuImportHistory.tsx:62
 features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx:35,38,66,74,75,76
 features/projects/weekly-menu/import/WeeklyMenuImportReview.tsx:46
 features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:74,83,95,106,122
-features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:119
 features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx:12,52,53
 features/purchasing/PurchaseDecisionPanel.tsx:78
 features/purchasing/PurchaseLineGroups.tsx:110,124
@@ -399,6 +396,10 @@ primitives and **9B** for form-control primitives. Empty result, Mutation feedba
 Pagination were already approved; the route shell was already converged.
 
 PB has no remaining canon decision. This approval closes the inventory/ballot and authorizes the next
-read-only sequence `P3 → P4 → PC`. It does **not** authorize the 80 Button migrations, 69 form-control
+read-only sequence `P3 → P4 → PC`. It does **not** authorize the 79 Button migrations, 69 form-control
 migrations or any other PE slice before PC has measured missing actions and the user has reviewed the
 result.
+
+Post-audit correction ngày `2026-07-30`: `WeeklyMenuLifecyclePanel` là UI phát sinh do hiểu nhầm yêu cầu
+E2E và đã bị gỡ hoàn toàn. Các count/date/button set phía trên đã trừ đúng hai consumer của file đó; model
+lifecycle và PA registry vẫn tồn tại như contract/test, không phải production component.

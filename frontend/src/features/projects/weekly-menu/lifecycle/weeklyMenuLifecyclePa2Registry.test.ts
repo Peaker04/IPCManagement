@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { MealQuantityPlanDto, MenuScheduleDto } from '@/types/coordination'
 import { buildWeeklyMenuLifecycleModel, type WeeklyMenuLifecycleModel } from './weeklyMenuLifecycleModel'
-import lifecyclePanelSource from './WeeklyMenuLifecyclePanel.tsx?raw'
 import materialDemandSource from '../demand/MaterialDemandSection.tsx?raw'
+
+const adminContractsSources = import.meta.glob('../../../../app/pages/admin-data/AdminContractsPanel.tsx', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>
+const adminContractsSource = Object.values(adminContractsSources)[0] ?? ''
 
 const UNKNOWN = 'KHÔNG-XÁC-ĐỊNH-ĐƯỢC'
 const CORRESPONDENCE_VALUES = ['KHỚP', 'FE-CHẶT-HƠN', 'FE-LỎNG-HƠN', 'CHỈ-CÓ-Ở-BE', 'CHỈ-CÓ-Ở-FE'] as const
@@ -141,12 +147,12 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
     operation: 'PATCH /api/coordination/menu-schedules/{id}/version với status ACTIVE',
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:101-114',
-      'frontend/src/features/projects/weekly-menu/lifecycle/WeeklyMenuLifecyclePanel.tsx:48,122',
+      'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:240-304',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs:152-197',
     ],
     backendPermission: 'CoordinationAccess → CoordinationRoles',
-    frontendPermission: 'coordination.read ở route; không có ActionGuard riêng cho publish',
+    frontendPermission: 'Admin Data route yêu cầu wildcard; control Publish chỉ có trong Contract',
     correspondence: 'FE-CHẶT-HƠN',
   }),
   row(activeIncompleteModel, {
@@ -158,8 +164,8 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
       'backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs:149-156',
     ],
     backendPermission: 'CoordinationAccess → CoordinationRoles',
-    frontendPermission: 'ActionGuard: quanly/dieuphoi + orders.lock',
-    correspondence: 'FE-CHẶT-HƠN',
+    frontendPermission: 'ActionGuard: quanly/dieuphoi + coordination.order.lock',
+    correspondence: 'KHỚP',
   }),
   row(activeNotGeneratedModel, {
     operation: 'POST /api/material-demand/generate',
@@ -197,7 +203,7 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
       'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:31,97-99',
     ],
     backendPermission: UNKNOWN,
-    frontendPermission: 'purchase.read ở route đích; link không có ActionGuard riêng',
+    frontendPermission: 'ActionGuard purchase.read + purchase.read ở route đích',
     correspondence: 'CHỈ-CÓ-Ở-FE',
   }),
   row(activeNoShortageModel, {
@@ -252,9 +258,10 @@ describe('PA-2 WeeklyMenuLifecycle registry', () => {
   })
 
   it('fails if the frontend action permission/status sources drift', () => {
-    expect(lifecyclePanelSource).toContain('disabled={!lifecycle.canPublish || updateState.isLoading}')
+    expect(adminContractsSource).toContain("handleUpdateScheduleVersion('ACTIVE')")
     expect(materialDemandSource).toContain("requiredPermissions={['demand.generate']}")
-    expect(materialDemandSource).toContain("requiredPermissions={['orders.lock']}")
+    expect(materialDemandSource).toContain("requiredPermissions={['coordination.order.lock']}")
+    expect(materialDemandSource).toContain("requiredPermissions={['purchase.read']}")
   })
 
   it('proves production source does not import the audit registry', () => {

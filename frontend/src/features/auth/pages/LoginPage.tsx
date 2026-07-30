@@ -19,7 +19,7 @@ const getDevAccount = (value: string) => {
 
   const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
     admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },
-    quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
+    quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'coordination.order.lock', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
     dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'] },
     beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production:read'] },
     thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse:read', 'inventory:read'] },
