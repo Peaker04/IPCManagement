@@ -54,23 +54,34 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `OPEN-07` · owner `Import/Platform` · đóng khi preview có BOM diagnostics đúng scope, token/checksum commit và provenance cho dish do import tạo.
 - `OPEN-08` · owner `Backend/Import` · đóng khi batch hai khách hàng atomic hoặc có recovery protocol được test.
 - `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
+- `OPEN-10` · owner `Frontend/Auth` · đóng khi Kỳ duyệt canonical cho sáu chuỗi PA-4, checker vocabulary xanh và được đưa vào full gate mà không miễn production, dev fixture hoặc test.
+- `OPEN-11` · owner `QA/UI` · đóng khi bảng PB đầy đủ được Kỳ duyệt, sau đó P3 → P4 → PC đo xong thao tác UI thiếu trước khi mở PD.
 
 ## Cần Kỳ quyết
 
 - `DEC-01` · Xác nhận/gạch 7 UI candidate, bổ sung 3 lỗi còn thiếu và chọn 3 màn IPC golden theo `docs/UI-CONFORMANCE-CANDIDATES.md`.
 - `DEC-02` · Chọn/cấp tài khoản object storage R2 hoặc B2 và hai SSD luân phiên; codebase không tự tạo subscription/credential.
+- `DEC-03` · Chọn canonical cần sửa cho PA-4: `admin.only`, `inventory:read`, `orders.lock`, `production:read`, `warehouse.issue`, `warehouse:read`; `warehouse.issue` chưa suy ra được canonical từ test generic.
+- `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
+- `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
+- `DEC-06` · Duyệt định dạng registry một đối tượng và từng canon PB trước khi mở object thứ hai hoặc PE mới.
 
 ## Gate hiện hành
 
-Gate chốt ngày `2026-07-30`: Application `49/49`; API `695 pass + 1 intentional skip`;
-frontend `86 file / 470 test`; dependency-cruiser `0 violation / 355 module / 1.225 dependency`;
-ESLint, production build, architecture-growth strict và contract determinism đều pass.
+Gate chốt ngày `2026-07-30`: Application `49/49`; API baseline `697 pass + 1 intentional skip`
+khi tách checker PA-4; checker PA-4 riêng lẻ đỏ đúng thiết kế trên sáu chuỗi có file:dòng;
+frontend `95 file / 506 test`; ESLint và production build pass. Dependency-cruiser `0 violation /
+364 module / 1.251 dependency`; architecture-growth test và strict gate pass. Commit PA `d26a452`
+chỉ thêm test/tài liệu, không đổi production behavior. `npm run verify` hiện cố ý dừng ở PA-4 cho
+đến khi DEC-03 được chốt; không được skip fixture hoặc test để làm gate xanh.
 
 Chạy lại từ project root:
 
 ```powershell
-npm run verify
-npm run check:api-contract
+dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore --filter "FullyQualifiedName!~FrontendPermissionVocabularyTests"
+dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-build --no-restore --filter "FullyQualifiedName~FrontendPermissionVocabularyTests"
+npm run test:unit -w frontend -- --maxWorkers=1
+npm run depcruise -w frontend
 git diff --check
 ```
 
