@@ -176,7 +176,7 @@ const exportRows = coordinationOrderScopeLifecycleScenarios.map((scenario) => ro
   exportEvidence(scenario.projectionState.status === 'CONFIRMED' || scenario.projectionState.status === 'ADJUSTED'),
 ))
 
-const coordinationOrderScopeLifecycleRegistry: readonly CoordinationOrderScopeLifecycleRow[] = [
+export const coordinationOrderScopeLifecycleRegistry: readonly CoordinationOrderScopeLifecycleRow[] = [
   ...rowsForEditableScenarios,
   ...rowsForLockedScenarios,
   ...exportRows,

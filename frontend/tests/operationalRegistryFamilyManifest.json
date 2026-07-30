@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "families": [
+    {
+      "id": "AdminData",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Multi-panel administration shell has panel-local state and operations, not one importable lifecycle.",
+        "sources": [
+          "frontend/src/app/pages/AdminDataPage.tsx:1"
+        ]
+      },
+      "backendBacked": false,
+      "backendEvidence": []
+    },
+    {
+      "id": "ApprovalDocument",
+      "disposition": "registry",
+      "registryModule": "frontend/tests/operationalStateActionRegistry.test.ts",
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalInboxService.cs"
+        }
+      ]
+    },
+    {
+      "id": "ApprovalRules",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Configuration CRUD query and dialog state is not a business entity lifecycle.",
+        "sources": [
+          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:1"
+        ]
+      },
+      "backendBacked": false,
+      "backendEvidence": []
+    },
+    {
+      "id": "CoordinationOrderScopeLifecycle",
+      "disposition": "registry",
+      "registryModule": "frontend/src/features/coordination/coordinationOrderScopeLifecycleRegistry.test.ts",
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs"
+        }
+      ]
+    },
+    {
+      "id": "Dashboard",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Read-only overview query projections do not define an entity lifecycle.",
+        "sources": [
+          "frontend/src/features/dashboard/pages/DashboardPage.tsx:1"
+        ]
+      },
+      "backendBacked": false,
+      "backendEvidence": []
+    },
+    {
+      "id": "Forbidden",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Static access-denied presentation owns no business object or mutation.",
+        "sources": [
+          "frontend/src/features/auth/pages/ForbiddenPage.tsx:1"
+        ]
+      },
+      "backendBacked": false,
+      "backendEvidence": []
+    },
+    {
+      "id": "MaterialDemand",
+      "disposition": "registry",
+      "registryModule": "frontend/tests/operationalStateActionRegistry.test.ts",
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs"
+        }
+      ]
+    },
+    {
+      "id": "ProductionPlan",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "The imported chef model projects plan data; receive eligibility and action remain component-local.",
+        "sources": [
+          "frontend/src/features/chef/production/chefProductionModel.ts:112",
+          "frontend/src/features/chef/production/ChefProductionSection.tsx:37"
+        ]
+      },
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs"
+        }
+      ]
+    },
+    {
+      "id": "PurchasingWorkflow",
+      "disposition": "registry",
+      "registryModule": "frontend/tests/operationalStateActionRegistry.test.ts",
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestSubmissionPolicy.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseWorkbenchPolicy.cs"
+        }
+      ]
+    },
+    {
+      "id": "Reports",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
+        "sources": [
+          "frontend/src/features/reports/pages/ReportsPage.tsx:1"
+        ]
+      },
+      "backendBacked": false,
+      "backendEvidence": []
+    },
+    {
+      "id": "WarehouseFulfilment",
+      "disposition": "registry",
+      "registryModule": "frontend/tests/operationalStateActionRegistry.test.ts",
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs"
+        }
+      ]
+    },
+    {
+      "id": "WarehousePurchaseReceipt",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Receipt eligibility, validation, and confirmation are component-local while enforcement is server-only.",
+        "sources": [
+          "frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62"
+        ]
+      },
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs"
+        }
+      ]
+    },
+    {
+      "id": "WeeklyMenuLifecycle",
+      "disposition": "registry",
+      "registryModule": "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts",
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs"
+        },
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs"
+        },
+        {
+          "kind": "source",
+          "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs"
+        }
+      ]
+    }
+  ]
+}
