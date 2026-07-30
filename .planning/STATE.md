@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
-stopped_at: Quick task 260731-27u complete; PA-4 green and OPEN-10/DEC-03 closed
-last_updated: "2026-07-31T02:10:26+07:00"
+stopped_at: Quick task 260731-3hj complete; DEC-06 format approved and GitNexus risk policy calibrated
+last_updated: "2026-07-31T02:46:07+07:00"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -52,6 +52,10 @@ Step 16 work-package progress: 5/5 complete.
 - Quick task `260731-27u` closed PA-4 at `8b87470`: all eight frontend literals now belong to the
   backend-generated vocabulary, the checker and root verify pass, and `OPEN-10`/`DEC-03` are closed.
   Backend policy, guard implementation and rendered UI behavior remain unchanged.
+- Quick task `260731-3hj` approves DEC-06 as a format-only contract for future
+  `CoordinationOrderScopeLifecycle` rows and calibrates the gitignored local `AGENTS.md` GitNexus
+  raw/effective risk handling from PA-4
+  evidence. No second registry, production/test/evidence code, runtime or database behavior was opened.
 - Guarded `ipc_lane1` evidence for week `2026-07-27` is preserved: exact ANV workbook hash, rollback
   backup/mirror, protected lineage, 15 screenshots, 112 successful API responses and five desktop
   viewports. Do not rerun sanitizer/import/reset/seed for closeout.
@@ -184,6 +188,12 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Phase 17]: Keep Reports URL/permission/reset orchestration facade-owned and place query transforms plus CSV columns in five view owners. — Preserves cross-view navigation and export behavior without recreating a page-model monolith.
 - [Phase 17]: Close Gate 17 only when one-api-slice, public/cache, dependency, full regression, headed browser, GitNexus and documentation evidence agree. — Risk controls rigor rather than scope; every caller and affected process must be handled with no Deferred item.
 - [Phase 18]: Use five desktop browser-gate viewports: 1920x1080, 1440x900, 1366x768, 1365x900 and 1280x900; remove 768x1024. — User explicitly replaced the tablet viewport on 2026-07-29; tablet/mobile remain out of the default gate.
+- [Quick 260731-3hj]: Approve DEC-06 format-only: `CoordinationOrderScopeLifecycle` uses
+  `scenario × operation`, adds `scope`, and separates `entityState` from `projectionState`. — The schema is
+  durable without opening a CoordinationOrder registry or implementation.
+- [Quick 260731-3hj]: Keep GitNexus raw risk as evidence while deriving effective rigor from verified
+  directed production/control/data-flow impact. — PA-4 demonstrated that import-only transitive closure can
+  falsely escalate docs/literal work; unresolved edges retain raw risk and full scope.
 
 ## Blockers
 
@@ -204,14 +214,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260730-wbx | Remove unintended WeeklyMenuLifecyclePanel, align two verified FE gates and run real operational lifecycle E2E without mutating the source lane | 2026-07-31 | fbb489e | [260730-wbx-remove-unintended-weeklymenulifecyclepan](./quick/260730-wbx-remove-unintended-weeklymenulifecyclepan/) |
 | 260731-15j | Record Option A for WeeklyMenu DRAFT Publish and close OPEN-11/DEC-08 without behavior change | 2026-07-31 | 3e364a2 | [260731-15j-record-option-a-for-weeklymenu-draft-pub](./quick/260731-15j-record-option-a-for-weeklymenu-draft-pub/) |
 | 260731-27u | Resolve PA-4 by canonicalizing all eight frontend permission literal callsites without changing authorization behavior | 2026-07-31 | 8b87470 | [260731-27u-resolve-pa-4-by-canonicalizing-all-eight](./quick/260731-27u-resolve-pa-4-by-canonicalizing-all-eight/) |
+| 260731-3hj | Approve DEC-06 format-only and calibrate local branch-aware GitNexus raw/effective risk policy | 2026-07-31 | 94cf3c4 | [260731-3hj-approve-dec-06-format-and-calibrate-gitn](./quick/260731-3hj-approve-dec-06-format-and-calibrate-gitn/) |
 
 ## Session
 
-**Last Date:** 2026-07-31T02:10:26+07:00
+**Last Date:** 2026-07-31T02:46:07+07:00
 
-**Stopped At:** quick task 260731-27u complete; PA-4 checker/root verify are green, OPEN-10/DEC-03 are closed, and DEC-04/05/06 remain open
+**Stopped At:** quick task 260731-3hj complete; DEC-06 format is approved, GitNexus policy is calibrated, and DEC-04/05 remain open
 
-Last activity: 2026-07-31 - Completed PA-4 quick task 260731-27u at 8b87470; authorization behavior unchanged
+Last activity: 2026-07-31 - Completed docs-only quick task 260731-3hj; DEC-06 format approved without implementing object two
 
 **Resume File:** .planning/ROADMAP.md
 
@@ -220,7 +231,8 @@ Last activity: 2026-07-31 - Completed PA-4 quick task 260731-27u at 8b87470; aut
 - Do not push or reset.
 - Do not seed/import/reset or further mutate `ipc_lane1`; preserve the completed Phase 18 week/evidence.
 - Do not rewrite, delete or move applied migrations.
-- Run upstream impact before every symbol edit; warn on HIGH/CRITICAL; run staged `detect_changes` before every commit.
+- Follow the calibrated `AGENTS.md` policy: explicit repo/branch, two-way impact for executable symbol
+  edits, raw/effective risk disposition, and final `detect_changes` before every commit.
 - Browser evidence is required only for frontend/route/UI behavior changes until the final workflow closeout.
 
 ## Performance Metrics
