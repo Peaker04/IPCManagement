@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — Architecture workflow 11–18
 status: completed
-stopped_at: Milestone v1.2 complete; Phase 18 verification and milestone audit passed
-last_updated: "2026-07-30T21:57:00+07:00"
+stopped_at: Quick task 260731-15j complete; Option A Admin-only recorded and OPEN-11/DEC-08 closed
+last_updated: "2026-07-31T00:58:15+07:00"
 progress:
   total_phases: 8
   completed_phases: 8
@@ -46,6 +46,9 @@ Step 16 work-package progress: 5/5 complete.
   FE permission gates aligned, PA-2B corrected and operational E2E passed on a disposable clone with
   source lane unchanged. Current gate/evidence pointers are authoritative in `MEMORY.md` and
   `docs/EVIDENCE-INDEX.md`.
+- Quick task `260731-15j` records D-01 / Option A: WeeklyMenu DRAFT `Publish` remains intentionally
+  **Admin-only**; Manager/Coordinator absence is accepted FE-chặt-hơn-BE, and `OPEN-11`/`DEC-08` are
+  closed. This documentation-only closeout changed no production behavior, test, evidence, database or runtime.
 - Guarded `ipc_lane1` evidence for week `2026-07-27` is preserved: exact ANV workbook hash, rollback
   backup/mirror, protected lineage, 15 screenshots, 112 successful API responses and five desktop
   viewports. Do not rerun sanitizer/import/reset/seed for closeout.
@@ -196,14 +199,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260730-tx0 | Read-only P3 to P4 to PC audit: map WeeklyMenu DOM controls to source, capture headed Chrome interaction points across required viewports and compare against the approved one-object PA registry without changing behavior | 2026-07-30 | 8635ce4 | [260730-tx0-read-only-p3-to-p4-to-pc-audit-map-weekl](./quick/260730-tx0-read-only-p3-to-p4-to-pc-audit-map-weekl/) |
 | 260730-uno | PA-2B WeeklyMenuLifecycle: add actor/downstream registry, terminal-none contract, read-only fixture and PC rerun without opening PD | 2026-07-30 | 4e9ee5b | [260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe](./quick/260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe/) |
 | 260730-wbx | Remove unintended WeeklyMenuLifecyclePanel, align two verified FE gates and run real operational lifecycle E2E without mutating the source lane | 2026-07-31 | fbb489e | [260730-wbx-remove-unintended-weeklymenulifecyclepan](./quick/260730-wbx-remove-unintended-weeklymenulifecyclepan/) |
+| 260731-15j | Record Option A for WeeklyMenu DRAFT Publish and close OPEN-11/DEC-08 without behavior change | 2026-07-31 | 3e364a2 | [260731-15j-record-option-a-for-weeklymenu-draft-pub](./quick/260731-15j-record-option-a-for-weeklymenu-draft-pub/) |
 
 ## Session
 
-**Last Date:** 2026-07-31T00:36:19+07:00
+**Last Date:** 2026-07-31T00:58:15+07:00
 
-**Stopped At:** unintended lifecycle panel removed; corrected PA-2B and operational E2E complete; waiting for review of the two draft publish gaps before PD/object two
+**Stopped At:** quick task 260731-15j complete; Option A keeps WeeklyMenu DRAFT Publish Admin-only, OPEN-11/DEC-08 are closed, and PD/object two remain closed
 
-Last activity: 2026-07-31 - Completed quick task 260730-wbx at fbb489e
+Last activity: 2026-07-31 - Completed documentation-only quick task 260731-15j at 3e364a2; production behavior unchanged
 
 **Resume File:** .planning/ROADMAP.md
 
