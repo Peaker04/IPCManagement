@@ -1,17 +1,19 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
 
 const mocks = vi.hoisted(() => ({
   rules: vi.fn(),
   employees: vi.fn(),
+  deleteRule: vi.fn(),
+  deleteState: { isLoading: false },
 }));
 
 vi.mock('@/api/workflowApi', () => ({
   useGetApprovalRulesQuery: mocks.rules,
   useCreateApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
   useUpdateApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
-  useDeleteApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteApprovalRuleMutation: () => [mocks.deleteRule, mocks.deleteState],
 }));
 
 vi.mock('@/features/admin/adminApi', () => ({
@@ -80,6 +82,8 @@ const renderPage = () => render(
 describe('ApprovalRulesPage query state boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.deleteState.isLoading = false;
+    mocks.deleteRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
     mocks.rules.mockReturnValue(readyQuery(rulesResponse()));
     mocks.employees.mockReturnValue(readyQuery(employeesResponse()));
   });
@@ -154,5 +158,25 @@ describe('ApprovalRulesPage query state boundary', () => {
 
     expect(screen.getByText('Danh sách nhân viên bị giới hạn')).toBeInTheDocument();
     expect(screen.getByText(/1\/201 nhân viên/)).toBeInTheDocument();
+  });
+
+  it('requires explicit confirmation before deleting a rule and preserves the busy copy', async () => {
+    mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
+
+    const view = renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
+
+    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).toBeInTheDocument();
+    expect(mocks.deleteRule).not.toHaveBeenCalled();
+
+    mocks.deleteState.isLoading = true;
+    view.rerender(<ToastProvider><ApprovalRulesPage /></ToastProvider>);
+    expect(screen.getByRole('button', { name: 'Đang xóa...' })).toBeDisabled();
+
+    mocks.deleteState.isLoading = false;
+    view.rerender(<ToastProvider><ApprovalRulesPage /></ToastProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
+
+    await waitFor(() => expect(mocks.deleteRule).toHaveBeenCalledWith('rule-1'));
   });
 });

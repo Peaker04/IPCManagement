@@ -4,6 +4,7 @@ import {
   OperationalFrame,
   SectionPanel,
   CommandBar,
+  ConfirmDialog,
   EmptyState,
   InlineAlert,
   QueryErrorAlert,
@@ -494,22 +495,17 @@ export default function ApprovalRulesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteTargetId !== null} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
-        <DialogContent aria-label="Xác nhận xóa quy tắc duyệt" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Xóa quy tắc duyệt?</DialogTitle>
-            <DialogDescription>
-              Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => setDeleteTargetId(null)} disabled={isDeleting}>Hủy</Button>
-            <Button type="button" variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
-              {isDeleting ? 'Đang xóa...' : 'Xóa quy tắc'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        ariaLabel="Xác nhận xóa quy tắc duyệt"
+        title="Xóa quy tắc duyệt?"
+        description="Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục."
+        confirmLabel="Xóa quy tắc"
+        busy={isDeleting}
+        busyLabel="Đang xóa..."
+        onConfirm={handleConfirmDelete}
+        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+      />
     </OperationalFrame>
   );
 }

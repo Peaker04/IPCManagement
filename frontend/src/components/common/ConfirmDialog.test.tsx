@@ -45,4 +45,23 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('button', { name: 'Hủy' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Đang xử lý...' })).toBeDisabled();
   });
+
+  it('supports contextual busy copy without changing the default contract', () => {
+    render(
+      <ConfirmDialog
+        open
+        busy
+        ariaLabel="Xác nhận xóa quy tắc duyệt"
+        busyLabel="Đang xóa..."
+        title="Xóa quy tắc duyệt?"
+        description="Quy tắc sẽ không còn áp dụng cho chứng từ mới."
+        confirmLabel="Xóa quy tắc"
+        onConfirm={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đang xóa...' })).toBeDisabled();
+  });
 });
