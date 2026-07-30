@@ -1,6 +1,6 @@
 import { CheckCircle2, Search, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ContextStrip, InlineAlert, PaginationBar, QueryErrorAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
@@ -34,7 +34,11 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           <Input id="weekly-purchase-search" type="search" value={state.search} onChange={(event) => actions.setSearch(event.target.value)} placeholder="Tên hoặc mã nguyên liệu" className="h-9 pl-9" />
         </span>
       </label>
-      {status.isError && <InlineAlert title="Không tải được tổng hợp mua của tuần" variant="danger" className="mb-3"><button type="button" className="ipc-button ipc-button-ghost mt-2" onClick={() => void actions.retry()}>Thử tải lại</button></InlineAlert>}
+      {status.isError && (
+        <QueryErrorAlert title="Không tải được tổng hợp mua của tuần" onRetry={actions.retry} isRetrying={status.isFetching} className="mb-3">
+          Thử tải lại để tiếp tục đối chiếu dữ liệu mua của tuần.
+        </QueryErrorAlert>
+      )}
       {status.isLoading && <InlineAlert title="Đang tải tổng hợp mua của tuần" variant="info" className="mb-3">Đang đối chiếu từng ngày, khách hàng và đơn giá trước khi hiển thị.</InlineAlert>}
       {status.isFetching && !status.isLoading && <InlineAlert title="Đang cập nhật tổng hợp tuần" variant="info" className="mb-3">Giữ nguyên trang hiện tại cho tới khi dữ liệu mới tải xong.</InlineAlert>}
       {!status.isLoading && !status.isError && !presentation.usesDemand && <InlineAlert title="Chưa có số thiếu/đủ sau kiểm tồn" variant="warning" className="mb-3">Bảng dưới đây mới là định lượng nguyên liệu theo món. Bấm Tạo nhu cầu từ KHSX ở tab KHSX và nhu cầu để hệ thống kiểm tồn kho và trả ra Cần, Tồn khả dụng, Thiếu/Đủ.</InlineAlert>}
