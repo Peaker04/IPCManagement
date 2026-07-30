@@ -46,6 +46,8 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           <select
             id="quotation-ingredient"
             className="ipc-input ipc-quotation-ingredient"
+            aria-invalid={Boolean(workflow.validationErrors.ingredientId) || undefined}
+            aria-describedby={workflow.validationErrors.ingredientId ? 'quotation-ingredient-error' : undefined}
             value={workflow.selectedIngredientId}
             onChange={(event) => workflow.selectIngredient(event.target.value)}
           >
@@ -54,6 +56,12 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
               <option key={ingredient.ingredientId} value={ingredient.ingredientId}>{ingredient.ingredientName}</option>
             ))}
           </select>
+          {workflow.validationErrors.ingredientId && (
+            <p id="quotation-ingredient-error" className="mt-1 text-xs text-red-700">
+              <span className="font-semibold">{workflow.validationErrors.ingredientId.title}</span>{' '}
+              {workflow.validationErrors.ingredientId.message}
+            </p>
+          )}
           </div>
         </div>
 
@@ -112,14 +120,24 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
             <form onSubmit={workflow.submit} className="border-t border-slate-200 pt-4">
               <div className="mb-2 font-medium text-slate-700">{workflow.editingId ? 'Sửa báo giá' : 'Thêm báo giá mới'}</div>
               <div className="ipc-quotation-form-grid grid grid-cols-1 gap-3 md:grid-cols-5">
-                <select className="ipc-input" aria-label="Nhà cung cấp" value={workflow.form.supplierId} onChange={(event) => workflow.setForm({ ...workflow.form, supplierId: event.target.value })} disabled={Boolean(workflow.editingId)}>
-                  <option value="">-- Nhà cung cấp --</option>{workflow.suppliers.map((supplier) => <option key={supplier.supplierId} value={supplier.supplierId}>{supplier.supplierName}</option>)}
-                </select>
-                <input type="number" className="ipc-input" aria-label="Đơn giá" placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
-                <input type="date" className="ipc-input" aria-label="Hiệu lực từ" value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
+                <div>
+                  <select className="ipc-input" aria-label="Nhà cung cấp" aria-invalid={Boolean(workflow.validationErrors.supplierId) || undefined} aria-describedby={workflow.validationErrors.supplierId ? 'quotation-supplier-error' : undefined} value={workflow.form.supplierId} onChange={(event) => workflow.setForm({ ...workflow.form, supplierId: event.target.value })} disabled={Boolean(workflow.editingId)}>
+                    <option value="">-- Nhà cung cấp --</option>{workflow.suppliers.map((supplier) => <option key={supplier.supplierId} value={supplier.supplierId}>{supplier.supplierName}</option>)}
+                  </select>
+                  {workflow.validationErrors.supplierId && <p id="quotation-supplier-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.supplierId.title}</span>{' '}{workflow.validationErrors.supplierId.message}</p>}
+                </div>
+                <div>
+                  <input type="number" className="ipc-input" aria-label="Đơn giá" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
+                  {workflow.validationErrors.unitPrice && <p id="quotation-unit-price-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.unitPrice.title}</span>{' '}{workflow.validationErrors.unitPrice.message}</p>}
+                </div>
+                <div>
+                  <input type="date" className="ipc-input" aria-label="Hiệu lực từ" aria-invalid={Boolean(workflow.validationErrors.effectiveFrom) || undefined} aria-describedby={workflow.validationErrors.effectiveFrom ? 'quotation-effective-from-error' : undefined} value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
+                  {workflow.validationErrors.effectiveFrom && <p id="quotation-effective-from-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.effectiveFrom.title}</span>{' '}{workflow.validationErrors.effectiveFrom.message}</p>}
+                </div>
                 <input type="date" className="ipc-input" aria-label="Hiệu lực đến" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
                 <input type="text" className="ipc-input" aria-label="Ghi chú" placeholder="Ghi chú" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
               </div>
+              {workflow.saveError && <div role="alert" className="mt-3"><InlineAlert title="Chưa thể lưu báo giá" variant="danger">{workflow.saveError}</InlineAlert></div>}
               <div className="mt-3 flex gap-2">
                 <button type="submit" className="ipc-button ipc-button-primary" disabled={workflow.isCreating}>{workflow.editingId ? 'Cập nhật báo giá' : 'Thêm báo giá'}</button>
                 {workflow.editingId && <button type="button" className="ipc-button ipc-button-ghost" onClick={workflow.resetForm}>Hủy</button>}
@@ -127,7 +145,16 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
             </form>
           </>
         )}
-        <ConfirmDialog open={workflow.deactivateTargetId !== null} title="Ngừng báo giá này?" description="Báo giá sẽ không còn được chọn cho các giao dịch mới." confirmLabel="Ngừng báo giá" onConfirm={workflow.confirmDeactivate} onOpenChange={(open) => !open && workflow.setDeactivateTargetId(null)} />
+        <ConfirmDialog
+          open={workflow.deactivateTargetId !== null}
+          title="Ngừng báo giá này?"
+          description={workflow.deactivateError
+            ? `Báo giá sẽ không còn được chọn cho các giao dịch mới. Chưa thể ngừng báo giá. ${workflow.deactivateError}`
+            : 'Báo giá sẽ không còn được chọn cho các giao dịch mới.'}
+          confirmLabel="Ngừng báo giá"
+          onConfirm={workflow.confirmDeactivate}
+          onOpenChange={(open) => !open && workflow.setDeactivateTargetId(null)}
+        />
       </div>
     </SectionPanel>
   );

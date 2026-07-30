@@ -70,6 +70,9 @@ const buildWorkflow = (
   deactivateTargetId: null,
   setDeactivateTargetId: vi.fn(),
   confirmDeactivate: vi.fn(),
+  validationErrors: {},
+  saveError: null,
+  deactivateError: null,
   ...overrides,
 } as unknown as SupplierQuotationWorkflow);
 
@@ -114,5 +117,47 @@ describe('SupplierQuotationSection query state boundary', () => {
     expect(screen.getAllByText('Nhà cung cấp Minh An').length).toBeGreaterThan(0);
     expect(screen.getByText('Đang cập nhật báo giá')).toBeInTheDocument();
     expect(screen.queryByText('Chưa có báo giá nào cho nguyên liệu này')).toBeNull();
+  });
+
+  it('associates quotation validation feedback with the affected fields', () => {
+    render(<SupplierQuotationSection workflow={buildWorkflow(
+      readyView(quotationPage),
+      {
+        validationErrors: {
+          ingredientId: { title: 'Thiếu nguyên liệu', message: 'Vui lòng chọn nguyên liệu trước khi nhập báo giá.' },
+          supplierId: { title: 'Thiếu nhà cung cấp', message: 'Vui lòng chọn nhà cung cấp cho báo giá.' },
+          unitPrice: { title: 'Đơn giá chưa hợp lệ', message: 'Vui lòng nhập đơn giá lớn hơn 0.' },
+          effectiveFrom: { title: 'Thiếu ngày bắt đầu', message: 'Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.' },
+        },
+      },
+    )} />);
+
+    expect(screen.getByLabelText('Nguyên liệu:')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Nhà cung cấp')).toHaveAccessibleDescription('Thiếu nhà cung cấp Vui lòng chọn nhà cung cấp cho báo giá.');
+    expect(screen.getByLabelText('Đơn giá')).toHaveAccessibleDescription('Đơn giá chưa hợp lệ Vui lòng nhập đơn giá lớn hơn 0.');
+    expect(screen.getByLabelText('Hiệu lực từ')).toHaveAccessibleDescription('Thiếu ngày bắt đầu Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.');
+  });
+
+  it('keeps a save failure beside the quotation form', () => {
+    render(<SupplierQuotationSection workflow={buildWorkflow(
+      readyView(quotationPage),
+      { saveError: 'Khoảng hiệu lực bị trùng với báo giá hiện có.' },
+    )} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể lưu báo giá');
+    expect(screen.getByRole('alert')).toHaveTextContent('Khoảng hiệu lực bị trùng với báo giá hiện có.');
+  });
+
+  it('keeps a deactivate failure inside the open confirmation dialog', () => {
+    render(<SupplierQuotationSection workflow={buildWorkflow(
+      readyView(quotationPage),
+      {
+        deactivateTargetId: 'quotation-1',
+        deactivateError: 'Báo giá đang được dùng cho giao dịch mới.',
+      },
+    )} />);
+
+    expect(screen.getByRole('dialog', { name: 'Ngừng báo giá này?' })).toHaveTextContent('Chưa thể ngừng báo giá');
+    expect(screen.getByRole('dialog', { name: 'Ngừng báo giá này?' })).toHaveTextContent('Báo giá đang được dùng cho giao dịch mới.');
   });
 });

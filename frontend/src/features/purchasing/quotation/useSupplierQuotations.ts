@@ -7,6 +7,10 @@ import { getPurchasingErrorMessage } from '../purchasingModel';
 
 const EMPTY_FORM = { supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' };
 
+type QuotationField = 'ingredientId' | 'supplierId' | 'unitPrice' | 'effectiveFrom';
+type FieldFeedback = { title: string; message: string };
+type QuotationValidationErrors = Partial<Record<QuotationField, FieldFeedback>>;
+
 export function useSupplierQuotations(enabled = true) {
   const { toast } = useToast();
   const [ingredientSearch, setIngredientSearch] = useState('');
@@ -33,6 +37,9 @@ export function useSupplierQuotations(enabled = true) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<QuotationValidationErrors>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deactivateError, setDeactivateError] = useState<string | null>(null);
   const quotationQuery = useGetSupplierQuotationsByIngredientPageQuery({
     ingredientId: selectedIngredientId,
     pageNumber: page,
@@ -54,6 +61,8 @@ export function useSupplierQuotations(enabled = true) {
   const resetForm = () => {
     setForm(EMPTY_FORM);
     setEditingId(null);
+    setValidationErrors({});
+    setSaveError(null);
   };
 
   const selectIngredient = (ingredientId: string) => {
@@ -64,21 +73,23 @@ export function useSupplierQuotations(enabled = true) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    setValidationErrors({});
+    setSaveError(null);
     if (!selectedIngredientId) {
-      toast({ title: 'Thiếu nguyên liệu', description: 'Vui lòng chọn nguyên liệu trước khi nhập báo giá.', variant: 'warning' });
+      setValidationErrors({ ingredientId: { title: 'Thiếu nguyên liệu', message: 'Vui lòng chọn nguyên liệu trước khi nhập báo giá.' } });
       return;
     }
     if (!editingId && !form.supplierId) {
-      toast({ title: 'Thiếu nhà cung cấp', description: 'Vui lòng chọn nhà cung cấp cho báo giá.', variant: 'warning' });
+      setValidationErrors({ supplierId: { title: 'Thiếu nhà cung cấp', message: 'Vui lòng chọn nhà cung cấp cho báo giá.' } });
       return;
     }
     const unitPrice = Number(form.unitPrice);
     if (!unitPrice || unitPrice <= 0) {
-      toast({ title: 'Đơn giá chưa hợp lệ', description: 'Vui lòng nhập đơn giá lớn hơn 0.', variant: 'warning' });
+      setValidationErrors({ unitPrice: { title: 'Đơn giá chưa hợp lệ', message: 'Vui lòng nhập đơn giá lớn hơn 0.' } });
       return;
     }
     if (!form.effectiveFrom) {
-      toast({ title: 'Thiếu ngày bắt đầu', description: 'Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.', variant: 'warning' });
+      setValidationErrors({ effectiveFrom: { title: 'Thiếu ngày bắt đầu', message: 'Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.' } });
       return;
     }
 
@@ -100,11 +111,13 @@ export function useSupplierQuotations(enabled = true) {
       }
       resetForm();
     } catch (error) {
-      toast({ title: 'Chưa thể lưu báo giá', description: getPurchasingErrorMessage(error), variant: 'danger', durationMs: 0 });
+      setSaveError(getPurchasingErrorMessage(error));
     }
   };
 
   const edit = (quotation: SupplierQuotationDto) => {
+    setValidationErrors({});
+    setSaveError(null);
     setEditingId(quotation.quotationId);
     setForm({
       supplierId: quotation.supplierId,
@@ -120,9 +133,10 @@ export function useSupplierQuotations(enabled = true) {
     try {
       await deactivateQuotation(deactivateTargetId).unwrap();
       setDeactivateTargetId(null);
+      setDeactivateError(null);
       toast({ title: 'Đã ngừng báo giá', variant: 'success' });
     } catch (error) {
-      toast({ title: 'Chưa thể ngừng báo giá', description: getPurchasingErrorMessage(error), variant: 'danger', durationMs: 0 });
+      setDeactivateError(getPurchasingErrorMessage(error));
     }
   };
 
@@ -155,8 +169,14 @@ export function useSupplierQuotations(enabled = true) {
     submit,
     edit,
     isCreating,
+    validationErrors,
+    saveError,
     deactivateTargetId,
-    setDeactivateTargetId,
+    setDeactivateTargetId: (targetId: string | null) => {
+      setDeactivateTargetId(targetId);
+      setDeactivateError(null);
+    },
+    deactivateError,
     confirmDeactivate,
   };
 }
