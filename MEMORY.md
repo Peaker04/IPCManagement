@@ -28,7 +28,9 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 4. Phân loại dữ liệu theo `docs/DATA-GRAIN-MATRIX.md`: ngày, tuần, snapshot, source-line và movement audit. Không gộp theo tên; mutation luôn dùng source-line ID.
 5. Với nghi ngờ duplicate/double-count, đối chiếu cùng lúc FE row/caption, API key và quantity, DB source-line/movement chain và FE sau reload. Các dòng `Bột nở` khác ngày và movement audit hiện hành là hợp lệ; lỗi đã sửa là aggregate stock allocation `Max` → `Sum`.
 6. Browser gate phải chạy Chrome headed đủ ma trận viewport, lưu screenshot, API sau action, console/page error, CLS và long task. Không kết luận pass từ BE/API riêng lẻ.
-7. Trước khi sửa code, chạy GitNexus impact upstream và downstream cho từng symbol; trước commit chạy `detect_changes`, full gate phù hợp, secret scan và `git diff --check`.
+7. Trước khi sửa, phân loại intended final diff theo policy ba lane trong `AGENTS.md`: graph-free không gọi
+   GitNexus; lightweight dùng source-aware closure + targeted test + một final detect; full-analysis mới bắt
+   buộc impact hai chiều. Mọi lane vẫn chạy gate phù hợp, secret scan và `git diff --check`.
 8. Sau mỗi chuỗi thay đổi/E2E đáng kể, cập nhật front matter, evidence, gate và phần còn mở; việc đã đóng phải xóa khỏi file này và append sang `HISTORY.md`.
 
 ## Bất biến
@@ -47,6 +49,9 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - Không reset/seed/import lại lane để làm test xanh; artifact và DB lineage phải được bảo toàn.
 - Mỗi số liệu trạng thái chỉ khai trong một file: gate hiện hành ở đây, hash output artifact ở evidence index; nơi khác chỉ trỏ link.
 - `MEMORY.md` chỉ giữ trạng thái hiện hành; `HISTORY.md` append-only, `LESSONS.md` bất biến, `docs/EVIDENCE-INDEX.md` quản lý artifact và hash.
+- GitNexus rigor theo semantics, không theo đuôi file: docs/leaf assertion trơ là graph-free; shared harness
+  hoặc permission/route/state/API/cache/schema literals là lightweight; production/API/auth/migration hoặc
+  mixed diff là full-analysis. Graph-free risk ghi `N/A`, không tạo LOW giả bằng graph call.
 
 ## Còn mở
 

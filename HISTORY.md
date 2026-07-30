@@ -1217,3 +1217,19 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   số liệu hiện hành được giữ ở `MEMORY.md`.
 - Phase 20 chuyển sang trạng thái ready-to-plan. Closeout chỉ cập nhật GSD/audit docs; không đổi policy,
   UI, production behavior, runtime, database hoặc evidence lane.
+
+## Hiệu chỉnh GitNexus thành ba lane theo semantic risk — 31/07/2026
+
+- Phase 19 cho thấy lightweight policy cũ vẫn bị diễn giải thành impact hai chiều, re-index và symbol report
+  cho test-only helper dù final compare có 0 affected production process. Nguyên nhân là generated blanket
+  rule, custom lane và câu nhắc context bên dưới chồng lấn nhau.
+- Policy local nay có một classifier trước mọi graph call: **graph-free** cho docs/planning/rules, inert metadata
+  và leaf assertions/snapshots trơ; **lightweight graph** cho shared harness/source checker và behavior-bearing
+  permission/role/route/state/action/API/cache/serializer/schema literals; **full analysis** cho production,
+  public/API, auth/policy, migration/data-integrity, refactor hoặc mixed diff.
+- Graph-free chạy không GitNexus tool và ghi risk `N/A`; lightweight dùng source-aware closure, targeted tests
+  và một final explicit-branch detect; full giữ impact hai chiều, pagination/includeTests, affected-process
+  disposition, HIGH/CRITICAL review và PDG khi thực sự áp dụng.
+- Generated `gitnexus:start/end` block vẫn byte-identical; `AGENTS.md` tiếp tục bị ignore và không force-add.
+  GSD vẫn là process owner duy nhất. Thay đổi governance này không mở Phase 20 và không chạm source/test/UI,
+  backend policy, runtime, database hoặc evidence.
