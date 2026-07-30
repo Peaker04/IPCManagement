@@ -1,17 +1,16 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { useGetAuditChangePageQuery, type ReportCursor } from '@/api/workflowApi';
-import { useToast } from '@/components/common';
 import { getTodayInputValue, type AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 
 export function useAdminAuditPanelModel(activeView: AdminView) {
-  const { toast } = useToast();
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
   const [auditEntity, setAuditEntity] = useState('');
   const [auditField, setAuditField] = useState('');
+  const [exportError, setExportError] = useState<string | null>(null);
   const authToken = useAppSelector((state) => state.auth.token);
   const deferredAuditActor = useDeferredValue(auditActor);
   const deferredAuditArea = useDeferredValue(auditArea);
@@ -39,6 +38,7 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
   const auditView = toAdminView(auditResult, 'nhật ký audit');
 
   const handleExportAuditCsv = async () => {
+    setExportError(null);
     const params = new URLSearchParams();
     if (auditActor) params.append('actor', auditActor.trim());
     if (auditArea) params.append('businessArea', auditArea.trim());
@@ -61,7 +61,7 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      toast({ title: 'Chưa thể tải file CSV', description: String(err), variant: 'danger', durationMs: 0 });
+      setExportError(String(err));
     }
   };
 
@@ -74,6 +74,7 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
     auditField,
     auditResult,
     displayLogs: auditView.phase === 'ready' ? auditView.data.items : [],
+    exportError,
     handleExportAuditCsv,
     setAuditActor,
     setAuditArea,

@@ -1,12 +1,12 @@
 import { History } from 'lucide-react';
-import { CursorPaginationBar, PaginatedTableFrame, SectionPanel } from '@/components/common';
+import { CursorPaginationBar, InlineAlert, PaginatedTableFrame, SectionPanel } from '@/components/common';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminAuditPanelProps = { model: AdminDataPageModel };
 
 export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
-  const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, handleExportAuditCsv, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
+  const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
     <>
       {effectiveActiveView === 'audit' && (
@@ -87,6 +87,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 </button>
               </div>
             </div>
+            {exportError && <div role="alert"><InlineAlert title="Chưa thể tải file CSV" variant="danger">{exportError}</InlineAlert></div>}
 
             <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
               <PaginatedTableFrame ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">

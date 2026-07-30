@@ -1,0 +1,75 @@
+import { act, render, renderHook, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({ toast: vi.fn() }));
+
+vi.mock('@/components/common', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/components/common')>(),
+  useToast: () => ({ toast: mocks.toast }),
+}));
+
+vi.mock('@/app/hooks', () => ({
+  useAppSelector: () => 'token-1',
+}));
+
+vi.mock('@/api/workflowApi', () => ({
+  useGetAuditChangePageQuery: () => ({
+    data: { items: [], hasNext: false },
+    currentData: { items: [], hasNext: false },
+    isUninitialized: false,
+    isLoading: false,
+    isFetching: false,
+    isSuccess: true,
+    isError: false,
+    error: undefined,
+    refetch: vi.fn(),
+  }),
+}));
+
+import { AdminAuditPanel } from './AdminAuditPanel';
+import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { useAdminAuditPanelModel } from './useAdminAuditPanelModel';
+
+describe('Admin audit export feedback', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('keeps a CSV export failure in the audit model instead of a toast', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Mất kết nối')));
+    const { result } = renderHook(() => useAdminAuditPanelModel('audit'));
+
+    await act(() => result.current.handleExportAuditCsv());
+
+    expect(result.current.exportError).toBe('Error: Mất kết nối');
+    expect(mocks.toast).not.toHaveBeenCalled();
+  });
+
+  it('renders the export failure beside the audit controls', () => {
+    const readyView = { phase: 'ready', data: { items: [], hasNext: false }, isRefreshing: false, truncation: null } as const;
+    const model = {
+      effectiveActiveView: 'audit',
+      auditActor: '',
+      auditArea: '',
+      auditCursors: [],
+      auditEntity: '',
+      auditField: '',
+      auditResult: { data: { hasNext: false } },
+      displayLogs: [],
+      exportError: 'Error: Mất kết nối',
+      handleExportAuditCsv: vi.fn(),
+      queryViews: { audit: readyView },
+      setAuditActor: vi.fn(),
+      setAuditArea: vi.fn(),
+      setAuditCursors: vi.fn(),
+      setAuditEntity: vi.fn(),
+      setAuditField: vi.fn(),
+    } as unknown as AdminDataPageModel;
+
+    render(<AdminAuditPanel model={model} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tải file CSV');
+    expect(screen.getByRole('alert')).toHaveTextContent('Error: Mất kết nối');
+  });
+});
