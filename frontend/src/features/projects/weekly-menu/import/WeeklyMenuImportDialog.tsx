@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { InlineAlert } from '@/components/common'
+import { InlineAlert, QueryErrorAlert } from '@/components/common'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getImportWizardStepClass, importWizardSteps } from './importValidation'
 import { WeeklyMenuImportHistory } from './WeeklyMenuImportHistory'
@@ -34,7 +34,11 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
               ))}
             </div>
             <WeeklyMenuImportSetup workflow={workflow} />
-            {status.isCustomerError && <InlineAlert title="Chưa tải được danh sách khách hàng" variant="warning">Kiểm tra kết nối hoặc quyền truy cập trước khi nhập thực đơn.</InlineAlert>}
+            {status.isCustomerError && (
+              <QueryErrorAlert title="Chưa tải được danh sách khách hàng" onRetry={actions.retryCustomers} isRetrying={status.isCustomerLoading}>
+                Kiểm tra kết nối hoặc quyền truy cập trước khi nhập thực đơn.
+              </QueryErrorAlert>
+            )}
             {state.feedback && !hiddenFeedbackByDetail && <InlineAlert title={state.feedback.title} variant={state.feedback.variant}>{state.feedback.message}</InlineAlert>}
             <WeeklyMenuImportJobs workflow={workflow} />
             <WeeklyMenuImportHistory workflow={workflow} />

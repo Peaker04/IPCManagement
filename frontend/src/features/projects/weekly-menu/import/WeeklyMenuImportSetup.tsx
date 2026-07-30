@@ -7,6 +7,9 @@ import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
   const { state, customers, selectedCustomer, fileInputRef, status, actions } = workflow
   const fileMeta = state.selectedFile ? `${state.selectedFile.name} • ${formatFileSize(state.selectedFile.size)}` : 'Chưa chọn file Excel'
+  const customerError = state.setupErrors.customer
+  const weekError = state.setupErrors.weekStartDate
+  const fileError = state.setupErrors.file
 
   return (
     <>
@@ -15,6 +18,8 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
           <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <select
               aria-label="Khách hàng"
+              aria-invalid={Boolean(customerError) || undefined}
+              aria-describedby={customerError ? 'weekly-menu-import-customer-error' : undefined}
               value={state.draftCustomerId}
               onChange={(event) => actions.selectDraftCustomer(event.target.value)}
               className="ipc-select h-9 min-h-9"
@@ -28,15 +33,19 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               ))}
               {customers.length === 0 && <option value="">Chưa có khách hàng</option>}
             </select>
+            {customerError && <p id="weekly-menu-import-customer-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{customerError.title}</span>{' '}{customerError.message}</p>}
           </FieldRow>
           <FieldRow label="Tuần bắt đầu" hint="Chọn thứ 2 của tuần" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <input
               aria-label="Tuần bắt đầu"
+              aria-invalid={Boolean(weekError) || undefined}
+              aria-describedby={weekError ? 'weekly-menu-import-week-error' : undefined}
               type="date"
               value={state.weekStartDate}
               onChange={(event) => actions.selectWeek(event.target.value)}
               className="ipc-input h-9 min-h-9"
             />
+            {weekError && <p id="weekly-menu-import-week-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{weekError.title}</span>{' '}{weekError.message}</p>}
           </FieldRow>
           <FieldRow label="Định mức BOM" hint="Chọn tier cho file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <select
@@ -57,7 +66,8 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               accept=".xlsx,.xlsm,.xls"
               onChange={(event) => actions.selectFile(event.target.files?.[0] ?? null)}
               className="sr-only"
-              aria-describedby="weekly-menu-import-file-meta"
+              aria-invalid={Boolean(fileError) || undefined}
+              aria-describedby={fileError ? 'weekly-menu-import-file-error weekly-menu-import-file-meta' : 'weekly-menu-import-file-meta'}
               disabled={status.isImporting}
             />
             <div className="grid min-w-0 grid-cols-1 gap-2 2xl:grid-cols-[minmax(170px,1fr)_minmax(138px,0.8fr)]">
@@ -79,6 +89,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
                 Chọn file Excel
               </button>
             </div>
+            {fileError && <p id="weekly-menu-import-file-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{fileError.title}</span>{' '}{fileError.message}</p>}
           </FieldRow>
           <div className="flex flex-col gap-1.5 md:pt-10">
             <button

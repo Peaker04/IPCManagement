@@ -17,7 +17,7 @@ import { getBlockingImportIssues, getImportWizardStep, hasBlockingImportIssues }
 import { buildImportPresentation } from './importPresentation'
 import type { ImportDisplayDay } from './importPresentation'
 import { initialWeeklyMenuImportState, weeklyMenuImportReducer } from './importState'
-import type { ImportFeedback } from './importState'
+import type { ImportFeedback, ImportSetupErrors } from './importState'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 type UseWeeklyMenuImportOptions = {
@@ -69,6 +69,7 @@ export const useWeeklyMenuImport = ({
     || (state.feedback?.variant === 'warning' && presentation.warningMessages.length > 0)
   const clearFileInput = () => { if (fileInputRef.current) fileInputRef.current.value = '' }
   const setFeedback = (title: string, message: string, variant: ImportFeedback['variant']) => dispatch({ type: 'set-feedback', feedback: makeFeedback(title, message, variant) })
+  const setSetupErrors = (errors: ImportSetupErrors) => dispatch({ type: 'set-setup-errors', errors })
   const close = () => { clearFileInput(); dispatch({ type: 'close' }) }
   const open = () => {
     clearFileInput()
@@ -76,8 +77,8 @@ export const useWeeklyMenuImport = ({
   }
 
   const downloadWeeklyMenuTemplate = async () => {
-    if (!selectedCustomer) return setFeedback('Chọn khách hàng', 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.', 'warning')
-    if (!isValidWeekStartDate(state.weekStartDate)) return setFeedback('Chọn tuần bắt đầu', 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.', 'warning')
+    if (!selectedCustomer) return setSetupErrors({ customer: { title: 'Chọn khách hàng', message: 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.' } })
+    if (!isValidWeekStartDate(state.weekStartDate)) return setSetupErrors({ weekStartDate: { title: 'Chọn tuần bắt đầu', message: 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.' } })
     try {
       const url = await downloadTemplate({ customerId: selectedCustomer.customerId, weekStartDate: state.weekStartDate }).unwrap()
       const link = document.createElement('a')
@@ -109,8 +110,14 @@ export const useWeeklyMenuImport = ({
   }
 
   const addJob = () => {
-    if (!selectedCustomer || !state.selectedFile) return setFeedback('Thiếu thông tin', 'Vui lòng chọn khách hàng và file Excel trước khi kiểm tra.', 'warning')
-    if (!isValidWeekStartDate(state.weekStartDate)) return setFeedback('Ngày bắt đầu tuần không hợp lệ', 'Vui lòng chọn ngày thứ 2 để hệ thống đọc đúng các cột trong tuần.', 'warning')
+    if (!selectedCustomer || !state.selectedFile) {
+      const error = { title: 'Thiếu thông tin', message: 'Vui lòng chọn khách hàng và file Excel trước khi kiểm tra.' }
+      return setSetupErrors({
+        ...(!selectedCustomer && { customer: error }),
+        ...(!state.selectedFile && { file: error }),
+      })
+    }
+    if (!isValidWeekStartDate(state.weekStartDate)) return setSetupErrors({ weekStartDate: { title: 'Ngày bắt đầu tuần không hợp lệ', message: 'Vui lòng chọn ngày thứ 2 để hệ thống đọc đúng các cột trong tuần.' } })
     const job: WeeklyMenuImportJob = {
       jobId: `import-${selectedCustomer.customerId}`, customerId: selectedCustomer.customerId,
       customerCode: selectedCustomer.customerCode, customerName: selectedCustomer.customerName,
@@ -218,6 +225,7 @@ export const useWeeklyMenuImport = ({
       setQuickCustomerCode: (value: string) => dispatch({ type: 'edit', field: 'quickCustomerCode', value }),
       setQuickCustomerName: (value: string) => dispatch({ type: 'edit', field: 'quickCustomerName', value }),
       toggleQuickCustomer: () => dispatch({ type: 'toggle-quick-customer' }), downloadWeeklyMenuTemplate, createQuickCustomer, addJob,
+      retryCustomers: refetchCustomers,
       removeJob: (jobId: string) => dispatch({ type: 'remove-job', jobId }), selectJob: (jobId: string) => dispatch({ type: 'select-job', jobId }),
       previewJob, previewAllJobs, commitJob, commitReadyJobs, saveMapping,
       requestRollback: (menuVersionId: string, label: string) => dispatch({ type: 'request-rollback', target: { menuVersionId, label } }),
