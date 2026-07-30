@@ -3,7 +3,9 @@ title: PB hidden design-system inventory and canon ballot
 audited_commit: df05520
 production_baseline: 757f2c8
 audited_at: 2026-07-30
-status: awaiting_user_approval
+status: approved
+approved_at: 2026-07-30
+approved_ballot: "1-13; button=8B; form-controls=9B"
 production_changes: none
 ---
 
@@ -54,22 +56,22 @@ proposal in that row; it is not authorization to start PE.
 
 | Concept | Variants | Proposed canon | Why | Places to change | Risk / ballot state |
 |---|---:|---|---|---:|---|
-| Status presentation | 5 | `StatusBadge` for compact object/row status; `ContextStrip` for page summary; retain shell/scope banners | `StatusBadge` has 47 uses and 41 are in state-refactored regions; the five residual compact badges are also state-refactored but expose no extra edge case | 5 | MEDIUM · NEEDS VOTE |
-| Loading vs refreshing | 5 | `QueryView` initial-load branch; stale content plus refresh notice; table placeholder only inside a table; skeleton/spinner only when geometry or control focus must remain stable | The state algebra distinguishes loading from ready+refreshing; contextual placeholders are not interchangeable | 1 duplicate loading row | HIGH · NEEDS VOTE |
-| Search/filter ownership | 5 | Deferred server search, immediate client filtering, URL state only for shareable scope; reset the owned page/cursor when the filtered collection is paginated | There are 23 rendered search controls but five ownership patterns; two timer debounces and three immediate server searches duplicate the dominant deferred contract | 5 owners | MEDIUM · NEEDS VOTE |
-| Quantity/count/percent formatting | 5 | Existing shared context formatters (`formatNumber`, `formatQuantity*`, `formatPercent`) with explicit unit/precision; file size remains its own formatter | Shared formatters cover 67 callsites; display-layer `toFixed`, direct locale output and one local percent helper disagree on precision | 26 | HIGH · NEEDS VOTE |
-| Date/time formatting | 5 | Promote the existing date-only algorithm from `formatImportDate` and the guarded timestamp algorithm from `formatPublishedAt` into separate shared contracts | Date-only and timestamp values cannot share timezone rules; 39 consumers currently bypass those existing guarded algorithms | 39 | HIGH · NEEDS VOTE |
-| Query error/forbidden | 4 | Retryable errors use `QueryErrorAlert`/error `EmptyState` or an equally visible state-owned retry action; forbidden uses fixed danger feedback; never encode either as empty | Purchasing already has a state-owned command-bar retry; the only duplicated residual is the quotation table's forbidden/error rows | 2 duplicate rows | HIGH · NEEDS VOTE |
+| Status presentation | 5 | `StatusBadge` for compact object/row status; `ContextStrip` for page summary; retain shell/scope banners | `StatusBadge` has 47 uses and 41 are in state-refactored regions; the five residual compact badges are also state-refactored but expose no extra edge case | 5 | MEDIUM · APPROVED |
+| Loading vs refreshing | 5 | `QueryView` initial-load branch; stale content plus refresh notice; table placeholder only inside a table; skeleton/spinner only when geometry or control focus must remain stable | The state algebra distinguishes loading from ready+refreshing; contextual placeholders are not interchangeable | 1 duplicate loading row | HIGH · APPROVED |
+| Search/filter ownership | 5 | Deferred server search, immediate client filtering, URL state only for shareable scope; reset the owned page/cursor when the filtered collection is paginated | There are 23 rendered search controls but five ownership patterns; two timer debounces and three immediate server searches duplicate the dominant deferred contract | 5 owners | MEDIUM · APPROVED |
+| Quantity/count/percent formatting | 5 | Existing shared context formatters (`formatNumber`, `formatQuantity*`, `formatPercent`) with explicit unit/precision; file size remains its own formatter | Shared formatters cover 67 callsites; display-layer `toFixed`, direct locale output and one local percent helper disagree on precision | 26 | HIGH · APPROVED |
+| Date/time formatting | 5 | Promote the existing date-only algorithm from `formatImportDate` and the guarded timestamp algorithm from `formatPublishedAt` into separate shared contracts | Date-only and timestamp values cannot share timezone rules; 39 consumers currently bypass those existing guarded algorithms | 39 | HIGH · APPROVED |
+| Query error/forbidden | 4 | Retryable errors use `QueryErrorAlert`/error `EmptyState` or an equally visible state-owned retry action; forbidden uses fixed danger feedback; never encode either as empty | Purchasing already has a state-owned command-bar retry; the only duplicated residual is the quotation table's forbidden/error rows | 2 duplicate rows | HIGH · APPROVED |
 | Empty-result presentation | 4 | `EmptyState` outside tables; semantic empty row inside tables; `InlineAlert` for missing prerequisite; compact text only inside constrained detail/dialog regions | These variants occupy different legal DOM and recovery contexts | 0 | LOW · APPROVED |
-| Table boundary | 4 | `TableViewport` base; `PaginatedTableFrame` pagination adapter; shadcn `Table` may live inside the viewport; retire `DataTableShell` | The newer adapters retain native table semantics, caption and keyboard scroll ownership | 1 | LOW · NEEDS VOTE |
-| Query-state boundary | 4 | Canon is the `QueryView<T>` algebra plus domain boundary renderers, not one universal renderer | Generic, Admin, Chef and Reports boundaries aggregate different query sets while preserving one algebra | 0 | MEDIUM · NEEDS VOTE |
+| Table boundary | 4 | `TableViewport` base; `PaginatedTableFrame` pagination adapter; shadcn `Table` may live inside the viewport; retire `DataTableShell` | The newer adapters retain native table semantics, caption and keyboard scroll ownership | 1 | LOW · APPROVED |
+| Query-state boundary | 4 | Canon is the `QueryView<T>` algebra plus domain boundary renderers, not one universal renderer | Generic, Admin, Chef and Reports boundaries aggregate different query sets while preserving one algebra | 0 | MEDIUM · APPROVED |
 | Mutation feedback | 4 | Query feedback by query boundary; short success by Toast; actionable mutation error persistent in-screen; validation field-adjacent | This is the approved context matrix; duration and recovery differ by category | 0 | LOW · APPROVED |
 | Pagination/navigation | 4 | Keep page/offset, cursor, finite grouped page and calendar-week navigation as separate contracts | Total counts, opaque cursors, finite groups and calendar movement are not isomorphic | 0 | LOW · APPROVED |
-| Button primitives | 3 | Decision required: keep the `ipc-button` CSS primitive for breadth, or use shadcn `Button` for domain/form/dialog actions while retaining Link, CommandBar and compact-control adapters | `ipc-button` wins volume and state-region count; shadcn `Button` has the clearer disabled/variant/size contract in newer dialogs. Priority (b) does not produce one winner | 80 under the shadcn proposal | HIGH · NEEDS VOTE |
-| Form-control primitives | 3 | Decision required: keep `ipc-*` raw controls, or use shadcn `Input`/`Select`/`Textarea` while retaining checkbox, file and pagination internals | Both families are concentrated in state-refactored code; shadcn exposes the clearer accessible-state contract but is not the majority | 69 under the shadcn proposal | HIGH · NEEDS VOTE |
-| Action placement | 3 | Page actions in `CommandBar`; row actions in the row; selected-object/form/dialog actions next to that object | Scope is visible at the action site and matches `UI = f(state)` | 0 | HIGH · NEEDS VOTE |
-| Validation feedback | 3 | Field error adjacent to its control with `aria-invalid`/`aria-describedby`; form alert only for cross-field/server errors; native `required` is supplementary | The field-adjacent contract identifies the failing recovery point; two older Chef dialogs still use one dialog-level string | 2 | MEDIUM · NEEDS VOTE |
-| Currency formatting | 3 | Shared `formatCurrency`; ranges compose formatted endpoints; no local helper or bare locale-money output | The shared helper has 32 callsites and one VND contract; 12 residual displays duplicate it | 12 | MEDIUM · NEEDS VOTE |
+| Button primitives | 3 | shadcn `Button` for domain/form/dialog actions; retain router Link, CommandBar and compact-control adapters | Choice 8B favors the clearer disabled/variant/size contract in newer dialogs while preserving contracts that are not buttons-in-disguise | 80 under the approved 8B canon | HIGH · APPROVED 8B |
+| Form-control primitives | 3 | shadcn `Input`/`Select`/`Textarea`; retain checkbox, file and pagination internals | Choice 9B favors the clearer accessible-state contract while preserving controls with a different semantic contract | 69 under the approved 9B canon | HIGH · APPROVED 9B |
+| Action placement | 3 | Page actions in `CommandBar`; row actions in the row; selected-object/form/dialog actions next to that object | Scope is visible at the action site and matches `UI = f(state)` | 0 | HIGH · APPROVED |
+| Validation feedback | 3 | Field error adjacent to its control with `aria-invalid`/`aria-describedby`; form alert only for cross-field/server errors; native `required` is supplementary | The field-adjacent contract identifies the failing recovery point; two older Chef dialogs still use one dialog-level string | 2 | MEDIUM · APPROVED |
+| Currency formatting | 3 | Shared `formatCurrency`; ranges compose formatted endpoints; no local helper or bare locale-money output | The shared helper has 32 callsites and one VND contract; 12 residual displays duplicate it | 12 | MEDIUM · APPROVED |
 | Confirmation contracts | 2 | `ConfirmDialog` for simple yes/no mutation; rich `Dialog` when reason, validation, evidence or recoverable error is part of the decision | The simple component cannot absorb business decision forms safely | 0 | LOW · APPROVED |
 | Work-object switching / route shell | 1 | `OperationalFrame` plus `ViewSwitcher`; pages without tabs omit the switcher | All operational route pages have converged | 0 | LOW · CONVERGED |
 
@@ -390,25 +392,13 @@ variants are sanctioned by the already-approved pagination decision.
 
 No competing production variant remains.
 
-## Approval checkpoint
+## Approval record
 
-Already approved: Empty result, Mutation feedback, Confirmation contracts and Pagination/navigation.
-The route shell is already converged.
+Approved by the user on 2026-07-30: all thirteen pending concepts, with choice **8B** for Button
+primitives and **9B** for form-control primitives. Empty result, Mutation feedback, Confirmation and
+Pagination were already approved; the route shell was already converged.
 
-The user must approve or replace the proposal for these thirteen concepts before any new PE work:
-
-1. Status presentation.
-2. Loading vs refreshing.
-3. Search/filter ownership and reset.
-4. Quantity/count/percent formatting.
-5. Query error/forbidden.
-6. Table boundary.
-7. Query-state boundary.
-8. Button primitives — explicitly choose the CSS-majority or shadcn proposal.
-9. Form-control primitives — explicitly choose the raw-majority or shadcn proposal.
-10. Action placement.
-11. Validation feedback.
-12. Date/time formatting.
-13. Currency formatting.
-
-No PE migration, P3, P4 or PC work is authorized by this artifact. The next step is this ballot.
+PB has no remaining canon decision. This approval closes the inventory/ballot and authorizes the next
+read-only sequence `P3 → P4 → PC`. It does **not** authorize the 80 Button migrations, 69 form-control
+migrations or any other PE slice before PC has measured missing actions and the user has reviewed the
+result.

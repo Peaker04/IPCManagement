@@ -36,6 +36,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - Grain nghiệp vụ lấy `docs/DATA-GRAIN-MATRIX.md` làm contract. Nhu cầu ngày, tổng tuần, snapshot tồn, source-line chứng từ và movement audit không được trộn.
 - Không gộp, deduplicate hoặc dùng React key theo tên nguyên liệu. Dòng tổng chỉ là presentation; action phải drill down về ID nguồn.
 - Browser gate desktop hiện hành có đúng năm viewport: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
+- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. Chưa mở PE mới trước khi chạy xong `P3 → P4 → PC`.
 - Không kết luận pass từ BE/API riêng lẻ; evidence phải nối FE control → API → DB transition → FE reload.
 - Trước khi chạy file `.sql`, phải soi `USE`, `CREATE DATABASE`, `DROP DATABASE` và `DROP TABLE`; database đích trên CLI không vô hiệu hóa `USE` bên trong file. Không chạy mutation nếu chưa có precondition và rollback.
 - UI giữ SAP Fiori compact: work object theo tab, action/status rõ, tab một dòng có overflow hợp lý, shell không remount, panel cũ được giữ khi refetch và loading/empty/error/permission không được đánh đồng.
@@ -55,7 +56,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `OPEN-08` · owner `Backend/Import` · đóng khi batch hai khách hàng atomic hoặc có recovery protocol được test.
 - `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
 - `OPEN-10` · owner `Frontend/Auth` · đóng khi Kỳ duyệt canonical cho sáu chuỗi PA-4, checker vocabulary xanh và được đưa vào full gate mà không miễn production, dev fixture hoặc test.
-- `OPEN-11` · owner `QA/UI` · đóng khi bảng PB đầy đủ được Kỳ duyệt, sau đó P3 → P4 → PC đo xong thao tác UI thiếu trước khi mở PD.
+- `OPEN-11` · owner `QA/UI` · đóng khi P3 → P4 → PC đo xong thao tác UI thiếu và Kỳ duyệt kết quả trước khi mở PD.
 
 ## Cần Kỳ quyết
 
@@ -64,7 +65,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `DEC-03` · Chọn canonical cần sửa cho PA-4: `admin.only`, `inventory:read`, `orders.lock`, `production:read`, `warehouse.issue`, `warehouse:read`; `warehouse.issue` chưa suy ra được canonical từ test generic.
 - `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
-- `DEC-06` · Duyệt định dạng registry một đối tượng và từng canon PB trước khi mở object thứ hai hoặc PE mới.
+- `DEC-06` · Duyệt định dạng registry một đối tượng trước khi mở object thứ hai; canon PB đã được duyệt và không còn nằm trong quyết định này.
 
 ## Gate hiện hành
 
