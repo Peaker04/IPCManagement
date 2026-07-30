@@ -66,6 +66,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
 - `DEC-06` · Duyệt định dạng registry một đối tượng trước khi mở object thứ hai; canon PB đã được duyệt và không còn nằm trong quyết định này.
+- `DEC-07` · Duyệt PC một-object tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`: hiện 0 lệch được xác nhận và 10 bối cảnh chưa kết luận được; chọn bổ sung approval/downstream state + actor vào registry hay cấp browser fixture read-only trước khi chạy lại.
 
 ## Gate hiện hành
 
@@ -87,5 +88,8 @@ git diff --check
 ```
 
 Browser/DB evidence tương ứng chỉ lấy từ các dòng authoritative trong `docs/EVIDENCE-INDEX.md`.
+
+P3 → P4 → PC cho `WeeklyMenuLifecycle` đã đo xong và đang chờ Kỳ duyệt tại
+`docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`. Không mở PD, object thứ hai hoặc PE mới trước quyết định này.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.

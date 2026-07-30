@@ -6,6 +6,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730/p4-weekly-menu-capture.json` | `B7E8BE033EBAA70E2010AEBA0E32B13063426DE53AAB1C5D1D26333EE97970E2` | P4 interaction/API/performance capture cho `WeeklyMenuLifecycle` trên năm viewport hiện hành. |
+| `.artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730.zip` | `77BEB3738A3D980C13E65B1581F0228BBD725C124CA7849D4A3BD963156ECBCC` | Archive JSON + 15 screenshot của P3→P4→PC; chỉ dùng cho đúng scope một object và actor admin. |
 | `docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md` | `D91535134D31A42852F979DE5CE12C76293AC29D7B8ABB9C8B9696DD28A80F7F` | Phản chứng brief, baseline UI oracle và audit skill trên source/lane hiện hành. |
 | `.artifacts/shipyard-live/goal-runtime-20260729-round2/browser-grain-audit/headed-grain-audit.json` | `7852D18CD38474CED42BAA85F994D89D4D11ECF50F029975FCFB25F4A7D077E6` | Grain ngày/tuần, stock snapshot, movement và checklist Bếp. |
 | `.artifacts/shipyard-live/phase-18-guardrails-20260729/browser/phase18-headed-audit.json` | `E4032FCF00B2F9DE087007DBEA70680FC2113C8E9414007DE04E710F4025817B` | Weekly E2E, reload render và visual gate. |
