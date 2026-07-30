@@ -1121,3 +1121,18 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Target backup off-site là object storage versioned/immutable có write-only credential, mã hóa
   dump + binlog, manifest tách trust boundary và hai SSD luân phiên off-premises. Chưa đóng
   rủi ro cho tới khi restore drill chỉ từ off-site pass.
+
+## Duyệt PC đầu và hoàn tất PA-2B `WeeklyMenuLifecycle` — 30/07/2026
+
+- Kỳ duyệt PC một-object đầu, giữ PD đóng và chọn cả hai refinement: thêm actor/downstream state vào
+  companion registry và dựng browser fixture deterministic read-only. `DEC-07` vì vậy đã đóng và được
+  thay bằng quyết định duyệt kết quả PC rerun.
+- PA-2 gốc không bị sửa. PA-2B giữ đúng một object, 10 scenario cũ và thêm
+  `active-shortage-terminal`; terminal import `getDemandActionPresentation('terminal')` và khóa
+  `primaryAction = none`.
+- Fixture chạy production `/weekly-menu` với response API intercept, không truy cập/mutate `ipc_lane1`,
+  không gọi business mutation và không được coi là backend/DB E2E. Kết quả/gate hiện hành nằm trong
+  `MEMORY.md`; artifact/hash nằm duy nhất trong `docs/EVIDENCE-INDEX.md`.
+- PC rerun xác nhận hai context `THIẾU` direct-complete cho Manager/Coordinator và một context `MỒ CÔI`
+  purchasing link cho Coordinator; không sửa permission string, policy, gate hay UI. PD và object thứ hai
+  vẫn đóng chờ Kỳ duyệt kết quả mới.

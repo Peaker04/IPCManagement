@@ -3,7 +3,8 @@ title: P3-P4-PC WeeklyMenuLifecycle UI action audit
 audited_at: 2026-07-30
 scope: WeeklyMenuLifecycle only
 behavior_change: none
-status: needs-user-decision
+status: pa2b-fixture-complete-needs-user-review
+baseline_pc_approved_at: 2026-07-30
 ---
 
 # P3 → P4 → PC — `WeeklyMenuLifecycle`
@@ -141,14 +142,138 @@ Ngoài ra, PA registry là một next-action projection chứ chưa phải vocab
 Nó không đủ căn cứ để nhận diện `MỒ CÔI` cho các control như chỉnh sửa, export, filter, tab hay document
 navigation.
 
+## Quyết định sau PC đầu
+
+Kỳ đã duyệt PC đầu ngày `2026-07-30`, chọn mở rộng registry bằng actor + downstream state và cấp fixture
+read-only trước khi chạy lại. PA-2 gốc được giữ nguyên như snapshot đã duyệt; PD, object thứ hai và PE mới
+không được mở trong lượt này.
+
+## PA-2B — companion registry cho `WeeklyMenuLifecycle`
+
+Registry thực thi nằm ở `frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts`. Nó import trực tiếp
+`buildWeeklyMenuLifecycleModel` và `getDemandActionPresentation`; riêng terminal được khóa bằng
+`getDemandActionPresentation('terminal').primaryAction === 'none'`. Production source không import
+registry; contract test quét toàn bộ `frontend/src/**/*.{ts,tsx}` để chứng minh boundary này.
+
+| Scenario ID | Lifecycle projection | Downstream | Action kind / control kỳ vọng | Actor fixture | Oracle BE ↔ FE |
+|---|---|---|---|---|---|
+| `empty` | `EMPTY / empty / not-generated / 0/0` | không áp dụng | mutation · `Nhập Excel` | Admin, Manager, Coordinator | cả ba phía đều có đường vào |
+| `draft` | `DRAFT / draft / not-generated / 0/2` | không áp dụng | mutation · `Phát hành thực đơn` | Admin, Manager, Coordinator | cả ba phía đều có đường vào |
+| `active-incomplete` | `ACTIVE / active / not-generated / 1/2` | không áp dụng | mutation · `Hoàn tất Ca Sáng` | Admin, Manager, Coordinator | BE cho cả ba; FE chỉ hiện với Admin |
+| `active-not-generated` | `ACTIVE / active / not-generated / 1/1` | `not-created → generate` | mutation · `Tạo nhu cầu từ KHSX` | Admin, Manager, Coordinator | khớp cả ba |
+| `active-loading` | `ACTIVE / active / loading / 1/1` | không áp dụng | presentation · không business action | Coordinator | không đối chiếu permission |
+| `active-error` | `ACTIVE / active / error / 1/1` | không áp dụng | presentation · không business action | Coordinator | không đối chiếu permission |
+| `active-shortage-approved` | `ACTIVE / active / generated / 1/1` | `approved → purchasing` | navigation · `Mở thu mua` | Admin, Manager, Coordinator | BE Admin/Manager; FE hiện cả ba |
+| `active-shortage-terminal` | `ACTIVE / active / generated / 1/1` | `terminal → none` | none · không business action | Admin, Manager, Coordinator | terminal không có action nghiệp vụ |
+| `active-no-shortage` | `ACTIVE / active / generated / 1/1` | `terminal → none` | none · không business action | Coordinator | terminal không có action nghiệp vụ |
+| `inconsistent` | `INCONSISTENT / blocked / not-generated / 0/2` | không áp dụng | presentation · blocked reason | Coordinator | không đối chiếu permission |
+| `superseded` | `SUPERSEDED / blocked / not-generated / 0/1` | không áp dụng | presentation · blocked reason | Coordinator | không đối chiếu permission |
+
+Nguồn role/permission không export được được giữ kèm `file:dòng` trong từng registry row và có exact
+source-drift assertion cho `LoginPage.tsx:20-24`, `MaterialDemandSection.tsx:107-128,245-258`,
+`AppRouter.tsx:60`, `AuthorizationPolicies.cs:42-47,150-187` và `Program.cs:165-177`. Vì vậy PA-2B
+không tạo vocabulary/policy thứ hai im lặng.
+
+## Fixture read-only và P4 rerun
+
+Fixture chạy production route `/weekly-menu`, production store, route guard và components; chỉ response API
+được intercept trong Playwright. Mọi non-auth request khác `GET/HEAD/OPTIONS` bị chặn 405 và làm test đỏ;
+mọi GET chưa khai báo bị chặn 501 và làm test đỏ. Fixture không kết nối backend/DB, không dùng hoặc mutate
+`ipc_lane1`, và không được gọi là backend/DB E2E.
+
+Lệnh final: `npx playwright test tests/weekly-menu-lifecycle-pa2b.spec.ts --headed --workers=1` — **6/6
+pass trong 2,4 phút**.
+
+| Viewport | Actor-scenario case | Interaction point | CLS max | Long task | Overflow |
+|---|---:|---:|---:|---:|---|
+| `1920×1080` | 23 | 541 | `0,06656` | 0 | 0 |
+| `1440×900` | 23 | 541 | `0,07410` | 3, max 56 ms | 0 |
+| `1366×768` | 23 | 541 | `0,06504` | 4, max 62 ms | 0 |
+| `1365×900` | 23 | 541 | `0,07718` | 7, max 108 ms | 0 |
+| `1280×900` | 23 | 541 | `0,07953` | 2, max 73 ms | 0 |
+
+Tổng cộng: 115 case, 2.705 interaction point, 115 screenshot và 1.345 API record. API gồm 1.320
+response 200, 15 login 503 để kích hoạt dev fixture, 5 readiness-error 503 và 5 request loading còn
+pending tại lúc capture. Business mutation = 0; unhandled API = 0; overflow = 0; page error = 0;
+unexpected browser issue = 0. Các console/request issue được giữ trong JSON nhưng đều được gắn nhãn expected:
+login/readiness 503, asset/font bị hủy khi fixture điều hướng và request loading bị hủy khi sang scenario kế.
+
+Visual review trực tiếp đã kiểm tra tối thiểu ba ca biên: Manager thiếu direct-complete ở `1920×1080`,
+Coordinator có link `Mở thu mua` ở `1280×900`, và Coordinator terminal không có contextual business action
+ở `1366×768`.
+
+Evidence authoritative:
+`.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730/pa2b-pc-weekly-menu-fixture.json` và archive
+`.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730.zip`.
+
+## PC rerun — kết quả
+
+| Nhóm PC | Context lệch duy nhất | Phép đo | Kết luận |
+|---|---:|---:|---|
+| `THIẾU` | 2 | 10/10 (hai context × năm viewport) | `active-incomplete × Manager`; `active-incomplete × Coordinator` |
+| `MỒ CÔI` | 1 | 5/5 | `active-shortage-approved × Coordinator` |
+| `IM LẶNG` | 0 | 0 | Không có ca đã đo đủ điều kiện nhóm này. |
+| `LỆCH VỊ TRÍ` | 0 | 0 | Một page/object; không có cùng action ở vị trí thay thế. |
+
+### FE chặt hơn BE — `THIẾU`
+
+1. `WeeklyMenuLifecycle × ACTIVE/incomplete × Manager`.
+2. `WeeklyMenuLifecycle × ACTIVE/incomplete × Coordinator`.
+
+Backend `CoordinationAccess → CoordinationRoles` cho phép cả Manager và Coordinator hoàn tất số suất.
+UI lại dùng literal `orders.lock`; dev actor canonical có `coordination.order.lock`, nên ActionGuard loại bỏ
+`Hoàn tất Ca Sáng`. Ở cả năm viewport fixture đã dựng đúng `1/2` plan completed, KHSX ngày đang xem có
+100 suất nhưng `0/1 ca hoàn tất`; direct-complete vẫn không xuất hiện. Hậu quả nếu coi đây là lỗi thật:
+Manager/Coordinator mất đường hoàn tất ca trực tiếp dù backend cho phép. Nút `Tạo nhu cầu từ KHSX` còn có
+thể batch-complete trước generate, nên audit không kết luận toàn workflow bị chặn.
+
+### FE lỏng hơn BE — `MỒ CÔI`
+
+`WeeklyMenuLifecycle × ACTIVE/generated/shortage × approved × Coordinator`: link enabled `Mở thu mua`
+render ở cả năm viewport với href
+`/purchasing?week=2026-07-27&date=2026-07-27`, nhưng Coordinator không có `PurchaseRead` ở backend và
+không có `purchase.read` cho route đích. Hậu quả nếu người dùng bấm là đi vào route bị từ chối thay vì vào
+đúng workbench theo scope. Đây là lỗi trải nghiệm, không phải bypass backend.
+
+### Terminal đã khóa là không có action nghiệp vụ
+
+`active-shortage-terminal` chạy đủ ba actor × năm viewport; `active-no-shortage` chạy Coordinator × năm
+viewport. Cả 20 phép đo đều không có enabled contextual `Mở thu mua`, generate hoặc complete control.
+LifecyclePanel vẫn hiển thị advisory `Chuyển các dòng thiếu sang Thu mua` vì model lifecycle không nhận
+downstream state; đây là `REGISTRY-GAP-01` về presentation, không được nâng thành interaction mismatch và
+không được dùng để tự thêm nút.
+
+### Bốn phép loại trừ cho hai context `THIẾU`
+
+1. **Sau lớp điều hướng khác:** fixture mở tab Nhu cầu và JSON lưu toàn bộ control visible/enabled/href;
+   direct-complete không tồn tại cho hai actor, không chỉ bị đặt ở tab khác.
+2. **Viewport khác:** cùng kết quả ở đủ năm viewport bắt buộc.
+3. **Dữ liệu mẫu chưa đủ:** lifecycle model và UI cùng nhận hai schedule ACTIVE, một plan DRAFT 100 suất
+   và một plan COMPLETED; màn render `1/2` và `0/1 ca hoàn tất`.
+4. **Sai vai/sai trạng thái:** login + `/auth/profile` đều trả đúng Manager/Coordinator; source-drift test
+   khóa role/permission fixture và screenshot hiện role badge tương ứng.
+
+Loại trừ đủ bốn ⇒ hai context được ghi `THIẾU`, không còn `chưa kết luận được`.
+
+## Ô chưa xác định và giới hạn mở rộng
+
+- PA-2 gốc giữ nguyên mười role cell `KHÔNG-XÁC-ĐỊNH-ĐƯỢC`; PA-2B là companion, không sửa lịch sử đã
+  duyệt. Trong 11 scenario PA-2B không còn ô actor/downstream/action-oracle
+  `KHÔNG-XÁC-ĐỊNH-ĐƯỢC`.
+- Backend availability của PA-2B là phép chiếu source policy có drift test, không phải runtime authorization
+  E2E. Fixture chỉ chứng minh FE render và request interception.
+- `WeeklyMenuLifecycleModel` vẫn thiếu approval/downstream state, nên nếu mở object khác hoặc sinh action
+  chỉ từ `nextAction`, terminal có thể tiếp tục tạo false positive.
+- Registry hiện là test fixture một object. Mở rộng được về schema, nhưng số case tăng theo
+  `state × downstream × actor × viewport`; cần chọn scenario pairwise có căn cứ thay vì tích Descartes mù.
+- Action vocabulary vẫn nằm rải giữa lifecycle model, demand model, route guard, dev login fixture và
+  backend role policy. Object có nhiều workflow con sẽ vỡ trước ở khâu chứng minh source drift và mapping
+  operation → control, không phải ở định dạng hàng.
+
 ## CẦN QUYẾT
 
-1. Duyệt kết quả PC hiện tại là **0 lệch đã xác nhận, 10 bối cảnh chưa kết luận được**; không mở PD từ
-   audit này.
-2. Chọn có mở rộng scenario key bằng approval/downstream state và actor/role trước khi chạy lại PC hay
-   cung cấp một browser harness fixture read-only, deterministic cho mười state. Cả hai đều phải tránh
-   mutate `ipc_lane1`.
-3. Quyết định nghiệp vụ riêng: khi demand đã terminal `Đã xuất kho`, có cần giữ contextual deep-link
-   `Mở thu mua` để tra cứu hay generic sidebar là đủ. Audit không tự chọn.
+1. Duyệt PC rerun với đúng ba context lệch: hai `THIẾU` direct-complete và một `MỒ CÔI` purchasing link.
+2. Chưa mở PD. Nếu sau này mở, phải chọn từng lệch một và trả lời đủ năm câu PD; audit này không sửa
+   `orders.lock`, không gate link và không thêm nút.
 
-**DỪNG:** chờ duyệt trước PD, đối tượng thứ hai hoặc PE mới.
+**DỪNG:** PA-2B và PC rerun đã xong; chờ duyệt định dạng/kết quả trước PD hoặc object thứ hai.

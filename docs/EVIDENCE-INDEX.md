@@ -6,6 +6,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730/pa2b-pc-weekly-menu-fixture.json` | `4D7A87E4E28675585FEF1BCC395319E8B928EEB85B84D3E7080F1D854D24DEF8` | PA-2B registry + PC fixture read-only cho 11 `WeeklyMenuLifecycle` scenario, 3 actor và năm viewport; chỉ chứng minh FE rendering/interception, không phải backend/DB E2E. |
+| `.artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730.zip` | `FCF7522AEC90960D6EED2E68C06F4EBC0E1DA84CC00C7563B1A48730355A7BA0` | Archive JSON + 115 screenshot của PA-2B/PC rerun. |
 | `.artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730/p4-weekly-menu-capture.json` | `B7E8BE033EBAA70E2010AEBA0E32B13063426DE53AAB1C5D1D26333EE97970E2` | P4 interaction/API/performance capture cho `WeeklyMenuLifecycle` trên năm viewport hiện hành. |
 | `.artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730.zip` | `77BEB3738A3D980C13E65B1581F0228BBD725C124CA7849D4A3BD963156ECBCC` | Archive JSON + 15 screenshot của P3→P4→PC; chỉ dùng cho đúng scope một object và actor admin. |
 | `docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md` | `D91535134D31A42852F979DE5CE12C76293AC29D7B8ABB9C8B9696DD28A80F7F` | Phản chứng brief, baseline UI oracle và audit skill trên source/lane hiện hành. |
