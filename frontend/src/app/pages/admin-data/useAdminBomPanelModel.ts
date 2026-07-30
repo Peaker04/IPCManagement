@@ -25,6 +25,9 @@ import {
 } from './adminDataPageTypes';
 import { EMPTY_ADMIN_LIST, toAdminView } from './adminDataPageModelShared';
 
+type BomFormField = 'dishId' | 'ingredientId' | 'grossQtyPerServing' | 'wasteRatePercent' | 'effectiveTo' | 'reason';
+type BomFormErrors = Partial<Record<BomFormField, string>>;
+
 export function useAdminBomPanelModel(
   activeView: AdminView,
   bomTemplateDishId: string | undefined,
@@ -39,6 +42,7 @@ export function useAdminBomPanelModel(
   const [bomSearch, setBomSearch] = useState('');
   const deferredBomSearch = useDeferredValue(bomSearch);
   const [bomForm, setBomForm] = useState<BomFormState>(createDefaultBomForm);
+  const [bomFormErrors, setBomFormErrors] = useState<BomFormErrors>({});
   const [editingBom, setEditingBom] = useState<{ dishId: string; line: CatalogIngredient } | null>(null);
   const [closingBom, setClosingBom] = useState<{ dishId: string; dishName: string; line: CatalogIngredient } | null>(null);
   const [isBomDialogOpen, setIsBomDialogOpen] = useState(false);
@@ -155,6 +159,7 @@ export function useAdminBomPanelModel(
     const preferredDish = dishCatalog.find((dish) => dish.id === bomTemplateDishId && dish.isActive)
       ?? dishCatalog.find((dish) => dish.isActive);
     setEditingBom(null);
+    setBomFormErrors({});
     setBomForm({
       ...createDefaultBomForm(),
       dishId: preferredDish?.id ?? '',
@@ -170,6 +175,7 @@ export function useAdminBomPanelModel(
       ? [today, getNextDayInputValue(line.effectiveFrom)].sort().at(-1) ?? today
       : line.effectiveFrom;
     setEditingBom({ dishId, line });
+    setBomFormErrors({});
     setBomForm({
       dishId,
       ingredientId: line.ingredientId,
@@ -186,23 +192,33 @@ export function useAdminBomPanelModel(
 
   const handleSaveBomLine = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setBomFormErrors({});
     const ingredient = ingredientCatalog.find((item) => item.ingredientId === bomForm.ingredientId);
     const quantity = Number(bomForm.grossQtyPerServing);
     const wasteRate = Number(bomForm.wasteRatePercent);
     if (!bomForm.dishId || !ingredient?.ingredientId) {
-      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn món và nguyên liệu.' });
+      setBomFormErrors({
+        ...(!bomForm.dishId ? { dishId: 'Vui lòng chọn món và nguyên liệu.' } : {}),
+        ...(!ingredient?.ingredientId ? { ingredientId: 'Vui lòng chọn món và nguyên liệu.' } : {}),
+      });
       return;
     }
-    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(wasteRate) || wasteRate < 0 || wasteRate > 100) {
-      setBomImportFeedback({ type: 'error', message: 'Qty/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.' });
+    const quantityInvalid = !Number.isFinite(quantity) || quantity <= 0;
+    const wasteRateInvalid = !Number.isFinite(wasteRate) || wasteRate < 0 || wasteRate > 100;
+    if (quantityInvalid || wasteRateInvalid) {
+      const message = 'Qty/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.';
+      setBomFormErrors({
+        ...(quantityInvalid ? { grossQtyPerServing: message } : {}),
+        ...(wasteRateInvalid ? { wasteRatePercent: message } : {}),
+      });
       return;
     }
     if (bomForm.effectiveTo && bomForm.effectiveTo < bomForm.effectiveFrom) {
-      setBomImportFeedback({ type: 'error', message: 'Ngày hết hiệu lực phải sau ngày bắt đầu.' });
+      setBomFormErrors({ effectiveTo: 'Ngày hết hiệu lực phải sau ngày bắt đầu.' });
       return;
     }
     if (editingBom && !bomForm.reason.trim()) {
-      setBomImportFeedback({ type: 'error', message: 'Cần nhập lý do khi điều chỉnh dòng BOM.' });
+      setBomFormErrors({ reason: 'Cần nhập lý do khi điều chỉnh dòng BOM.' });
       return;
     }
 
@@ -248,6 +264,7 @@ export function useAdminBomPanelModel(
   return {
     queryViews: { dishCatalog: dishCatalogView, ingredientCatalog: ingredientCatalogView },
     bomForm,
+    bomFormErrors,
     bomImportCustomerId,
     bomImportEffectiveFrom,
     bomImportFeedback,

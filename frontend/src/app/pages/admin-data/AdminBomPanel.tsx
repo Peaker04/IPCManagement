@@ -9,7 +9,7 @@ import { AdminQueryBoundary } from './AdminQueryBoundary';
 type AdminBomPanelProps = { model: AdminDataPageModel };
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
-  const { bomForm, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
   return (
     <>
       {effectiveActiveView === 'bom-import' && (
@@ -334,6 +334,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 <select
                   id="manual-bom-dish"
                   className="ipc-select"
+                  aria-invalid={Boolean(bomFormErrors.dishId) || undefined}
+                  aria-describedby={bomFormErrors.dishId ? 'manual-bom-dish-error' : undefined}
                   value={bomForm.dishId}
                   disabled={Boolean(editingBom)}
                   required
@@ -344,12 +346,15 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     <option key={dish.id} value={dish.id}>{dish.code} - {dish.name}</option>
                   ))}
                 </select>
+                {bomFormErrors.dishId && <span id="manual-bom-dish-error" className="text-xs font-normal text-red-700">{bomFormErrors.dishId}</span>}
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-ingredient">
                 Nguyên liệu <span className="text-rose-600" aria-hidden="true">*</span>
                 <select
                   id="manual-bom-ingredient"
                   className="ipc-select"
+                  aria-invalid={Boolean(bomFormErrors.ingredientId) || undefined}
+                  aria-describedby={bomFormErrors.ingredientId ? 'manual-bom-ingredient-error' : undefined}
                   value={bomForm.ingredientId}
                   required
                   disabled={isIngredientCatalogLoading}
@@ -362,17 +367,20 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     </option>
                   ))}
                 </select>
+                {bomFormErrors.ingredientId && <span id="manual-bom-ingredient-error" className="text-xs font-normal text-red-700">{bomFormErrors.ingredientId}</span>}
               </label>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-qty">
                 Qty/suất <span className="text-rose-600" aria-hidden="true">*</span>
-                <input id="manual-bom-qty" className="ipc-input" type="number" min="0.000001" step="0.000001" required value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
+                <input id="manual-bom-qty" className="ipc-input" type="number" min="0.000001" step="0.000001" required aria-invalid={Boolean(bomFormErrors.grossQtyPerServing) || undefined} aria-describedby={bomFormErrors.grossQtyPerServing ? 'manual-bom-qty-error' : undefined} value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
+                {bomFormErrors.grossQtyPerServing && <span id="manual-bom-qty-error" className="text-xs font-normal text-red-700">{bomFormErrors.grossQtyPerServing}</span>}
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-waste">
                 Hao hụt (%)
-                <input id="manual-bom-waste" className="ipc-input" type="number" min="0" max="100" step="0.01" value={bomForm.wasteRatePercent} onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))} />
+                <input id="manual-bom-waste" className="ipc-input" type="number" min="0" max="100" step="0.01" aria-invalid={Boolean(bomFormErrors.wasteRatePercent) || undefined} aria-describedby={bomFormErrors.wasteRatePercent ? 'manual-bom-waste-error' : undefined} value={bomForm.wasteRatePercent} onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))} />
+                {bomFormErrors.wasteRatePercent && <span id="manual-bom-waste-error" className="text-xs font-normal text-red-700">{bomFormErrors.wasteRatePercent}</span>}
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-status">
                 Trạng thái
@@ -390,13 +398,15 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-to">
                 Hiệu lực đến
-                <input id="manual-bom-to" className="ipc-input" type="date" value={bomForm.effectiveTo} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))} />
+                <input id="manual-bom-to" className="ipc-input" type="date" aria-invalid={Boolean(bomFormErrors.effectiveTo) || undefined} aria-describedby={bomFormErrors.effectiveTo ? 'manual-bom-to-error' : undefined} value={bomForm.effectiveTo} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))} />
+                {bomFormErrors.effectiveTo && <span id="manual-bom-to-error" className="text-xs font-normal text-red-700">{bomFormErrors.effectiveTo}</span>}
               </label>
             </div>
 
             <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-reason">
               Lý do điều chỉnh {editingBom && <span className="text-rose-600">*</span>}
-              <textarea id="manual-bom-reason" className="ipc-input min-h-20 py-2" maxLength={500} required={Boolean(editingBom)} value={bomForm.reason} onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))} placeholder={editingBom ? 'Ví dụ: cập nhật định lượng theo bảng tháng 07/2026' : 'Ghi chú nếu cần'} />
+              <textarea id="manual-bom-reason" className="ipc-input min-h-20 py-2" maxLength={500} required={Boolean(editingBom)} aria-invalid={Boolean(bomFormErrors.reason) || undefined} aria-describedby={bomFormErrors.reason ? 'manual-bom-reason-error' : undefined} value={bomForm.reason} onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))} placeholder={editingBom ? 'Ví dụ: cập nhật định lượng theo bảng tháng 07/2026' : 'Ghi chú nếu cần'} />
+              {bomFormErrors.reason && <span id="manual-bom-reason-error" className="text-xs font-normal text-red-700">{bomFormErrors.reason}</span>}
             </label>
 
             {bomImportFeedback?.type === 'error' && (
