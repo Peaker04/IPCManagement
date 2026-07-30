@@ -9,7 +9,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Multi-panel administration shell has panel-local state and operations, not one importable lifecycle.",
         "sources": [
-          "frontend/src/app/pages/AdminDataPage.tsx:1"
+          "frontend/src/app/pages/AdminDataPage.tsx:15-60"
         ]
       },
       "backendBacked": false,
@@ -39,7 +39,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Configuration CRUD query and dialog state is not a business entity lifecycle.",
         "sources": [
-          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:1"
+          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:61-102"
         ]
       },
       "backendBacked": false,
@@ -69,7 +69,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Read-only overview query projections do not define an entity lifecycle.",
         "sources": [
-          "frontend/src/features/dashboard/pages/DashboardPage.tsx:1"
+          "frontend/src/features/dashboard/pages/DashboardPage.tsx:62-75"
         ]
       },
       "backendBacked": false,
@@ -83,7 +83,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Static access-denied presentation owns no business object or mutation.",
         "sources": [
-          "frontend/src/features/auth/pages/ForbiddenPage.tsx:1"
+          "frontend/src/features/auth/pages/ForbiddenPage.tsx:6-22"
         ]
       },
       "backendBacked": false,
@@ -113,8 +113,8 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "The imported chef model projects plan data; receive eligibility and action remain component-local.",
         "sources": [
-          "frontend/src/features/chef/production/chefProductionModel.ts:112",
-          "frontend/src/features/chef/production/ChefProductionSection.tsx:37"
+          "frontend/src/features/chef/production/chefProductionModel.ts:113-125",
+          "frontend/src/features/chef/production/ChefProductionSection.tsx:37-58"
         ]
       },
       "backendBacked": true,
@@ -157,7 +157,8 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
-          "frontend/src/features/reports/pages/ReportsPage.tsx:1"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:44-66",
+          "frontend/src/features/reports/pages/ReportsPage.tsx:129-133"
         ]
       },
       "backendBacked": false,

@@ -21,6 +21,12 @@ import importStateSource from '../src/features/projects/weekly-menu/import/impor
 import scheduleStateSource from '../src/features/projects/weekly-menu/schedule/scheduleState.ts?raw'
 import approvalPageSource from '../src/features/approvals/pages/ApprovalPage.tsx?raw'
 import warehousePageSource from '../src/features/warehouse/pages/WarehousePage.tsx?raw'
+import adminDataPageSource from '../src/app/pages/AdminDataPage.tsx?raw'
+import approvalRulesPageSource from '../src/features/admin/pages/ApprovalRulesPage.tsx?raw'
+import dashboardPageSource from '../src/features/dashboard/pages/DashboardPage.tsx?raw'
+import forbiddenPageSource from '../src/features/auth/pages/ForbiddenPage.tsx?raw'
+import reportsPageSource from '../src/features/reports/pages/ReportsPage.tsx?raw'
+import chefProductionModelSource from '../src/features/chef/production/chefProductionModel.ts?raw'
 import chefProductionSectionSource from '../src/features/chef/production/ChefProductionSection.tsx?raw'
 import warehouseReceiptSource from '../src/features/warehouse/WarehousePurchaseReceiptDialog.tsx?raw'
 import manifestJson from './operationalRegistryFamilyManifest.json'
@@ -61,11 +67,151 @@ type FamilyManifest = {
   families: Array<RegistryFamily | DebtFamily>
 }
 
+type DebtSourceExpectations = Record<string, Record<string, string[]>>
+
+const manifestDebtRawSources: Record<string, string> = {
+  'frontend/src/app/pages/AdminDataPage.tsx': adminDataPageSource,
+  'frontend/src/features/admin/pages/ApprovalRulesPage.tsx': approvalRulesPageSource,
+  'frontend/src/features/auth/pages/ForbiddenPage.tsx': forbiddenPageSource,
+  'frontend/src/features/chef/production/ChefProductionSection.tsx': chefProductionSectionSource,
+  'frontend/src/features/chef/production/chefProductionModel.ts': chefProductionModelSource,
+  'frontend/src/features/dashboard/pages/DashboardPage.tsx': dashboardPageSource,
+  'frontend/src/features/reports/pages/ReportsPage.tsx': reportsPageSource,
+  'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx': warehouseReceiptSource,
+}
+
+const manifestDebtExpectations: DebtSourceExpectations = {
+  AdminData: {
+    'frontend/src/app/pages/AdminDataPage.tsx:15-60': [
+      'const model = useAdminDataPageModel();',
+      '<ViewSwitcher',
+      "onTabChange={(id) => startViewTransition(() => setActiveView(id.replace('admin-', '') as AdminView))}",
+    ],
+  },
+  ApprovalRules: {
+    'frontend/src/features/admin/pages/ApprovalRulesPage.tsx:61-102': [
+      'const rulesQuery = useGetApprovalRulesQuery();',
+      'const [isModalOpen, setIsModalOpen] = useState(false);',
+    ],
+  },
+  Dashboard: {
+    'frontend/src/features/dashboard/pages/DashboardPage.tsx:62-75': [
+      'useWorkflowOverview();',
+      'useGetOperationalKpisQuery();',
+    ],
+  },
+  Forbidden: {
+    'frontend/src/features/auth/pages/ForbiddenPage.tsx:6-22': [
+      'Không đủ quyền truy cập',
+      '<Link to={ROUTES.DASHBOARD}',
+    ],
+  },
+  ProductionPlan: {
+    'frontend/src/features/chef/production/chefProductionModel.ts:113-125': [
+      'export function buildChefProductionPlan({',
+      '}: BuildChefProductionPlanOptions): ProductionPlan {',
+    ],
+    'frontend/src/features/chef/production/ChefProductionSection.tsx:37-58': [
+      'const canReceivePlan =',
+      'onClick={() => void onReceivePlan()}',
+    ],
+  },
+  Reports: {
+    'frontend/src/features/reports/pages/ReportsPage.tsx:44-66': [
+      'const model = useReportsPageModel({',
+      'onClick={handleExportActiveReport}',
+    ],
+    'frontend/src/features/reports/pages/ReportsPage.tsx:129-133': [
+      '<ReportQueryBoundary view={activeReportView}>',
+    ],
+  },
+  WarehousePurchaseReceipt: {
+    'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62': [
+      'export function WarehousePurchaseReceiptDialog({',
+    ],
+  },
+}
+
+export function assertManifestDebtSources(
+  manifest: FamilyManifest,
+  expectations: DebtSourceExpectations,
+  rawSources: Readonly<Record<string, string>>,
+): void {
+  const debtFamilies = manifest.families.filter((family): family is DebtFamily => (
+    family.disposition === 'debt'
+  ))
+  const manifestFamilyIds = debtFamilies.map((family) => family.id).sort((left, right) => left.localeCompare(right))
+  const expectationFamilyIds = Object.keys(expectations).sort((left, right) => left.localeCompare(right))
+  if (JSON.stringify(manifestFamilyIds) !== JSON.stringify(expectationFamilyIds)) {
+    throw new Error('Manifest debt families and source expectations do not reconcile')
+  }
+
+  const expectedRawPaths = new Set<string>()
+  for (const family of debtFamilies) {
+    const descriptorExpectations = expectations[family.id]
+    const manifestDescriptors = [...family.debt.sources].sort((left, right) => left.localeCompare(right))
+    const expectedDescriptors = Object.keys(descriptorExpectations).sort((left, right) => left.localeCompare(right))
+    if (JSON.stringify(manifestDescriptors) !== JSON.stringify(expectedDescriptors)) {
+      throw new Error(`Manifest debt sources and expectations do not reconcile for family "${family.id}"`)
+    }
+
+    for (const descriptor of family.debt.sources) {
+      const match = /^(frontend\/src\/[A-Za-z0-9_./-]+):(\d+)(?:-(\d+))?$/.exec(descriptor)
+      if (!match) throw new Error(`Debt source "${descriptor}" has an invalid descriptor`)
+
+      const [, sourcePath, startValue, endValue] = match
+      expectedRawPaths.add(sourcePath)
+      const rawSource = rawSources[sourcePath]
+      if (rawSource === undefined) {
+        throw new Error(`Missing raw source coverage for manifest debt path "${sourcePath}".`)
+      }
+
+      const lines = rawSource.split(/\r?\n/)
+      const startLine = Number(startValue)
+      const endLine = Number(endValue ?? startValue)
+      if (startLine < 1 || endLine < startLine || endLine > lines.length) {
+        throw new Error(`Debt source "${descriptor}" has an invalid or out-of-bounds declared range.`)
+      }
+
+      const rangeSource = lines.slice(startLine - 1, endLine).join('\n')
+      const fragments = descriptorExpectations[descriptor]
+      if (!Array.isArray(fragments) || fragments.length === 0) {
+        throw new Error(`Debt source "${descriptor}" has no expected fragments`)
+      }
+      for (const fragment of fragments) {
+        const rawCount = rawSource.split(fragment).length - 1
+        if (rawCount !== 1) {
+          throw new Error(
+            `Debt source "${descriptor}" expected fragment "${fragment}" exactly once in raw source, found ${rawCount}.`,
+          )
+        }
+
+        const rangeCount = rangeSource.split(fragment).length - 1
+        if (rangeCount !== 1) {
+          throw new Error(
+            `Debt source "${descriptor}" expected fragment "${fragment}" exactly once in declared range, found ${rangeCount}.`,
+          )
+        }
+      }
+    }
+  }
+
+  const rawSourcePaths = Object.keys(rawSources).sort((left, right) => left.localeCompare(right))
+  const expectedPaths = [...expectedRawPaths].sort((left, right) => left.localeCompare(right))
+  if (JSON.stringify(rawSourcePaths) !== JSON.stringify(expectedPaths)) {
+    throw new Error('Manifest debt paths and raw source coverage do not reconcile')
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   typeof value === 'object' && value !== null && !Array.isArray(value)
 )
 
-export function assertOperationalFamilyManifest(value: unknown): asserts value is FamilyManifest {
+export function assertOperationalFamilyManifest(
+  value: unknown,
+  debtExpectations: DebtSourceExpectations,
+  rawSources: Readonly<Record<string, string>>,
+): asserts value is FamilyManifest {
   if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.families)) {
     throw new Error('Unsupported operational family manifest schema')
   }
@@ -135,6 +281,8 @@ export function assertOperationalFamilyManifest(value: unknown): asserts value i
   if (JSON.stringify([...ids]) !== JSON.stringify(sortedIds)) {
     throw new Error('Operational family manifest must be sorted by family ID')
   }
+
+  assertManifestDebtSources(value, debtExpectations, rawSources)
 }
 
 const registryRow = (row: RegistryRow): RegistryRow => row
@@ -362,7 +510,7 @@ export function compareOperationalFamilyCoverage(
 }
 
 const manifest = manifestJson as unknown
-assertOperationalFamilyManifest(manifest)
+assertOperationalFamilyManifest(manifest, manifestDebtExpectations, manifestDebtRawSources)
 
 const registryModuleSources: Record<string, string> = {
   'frontend/tests/operationalStateActionRegistry.test.ts': import.meta.url,
@@ -417,10 +565,94 @@ const componentLocalDebt = [
 
 describe('operational state/action family coverage', () => {
   it('schema-checks the single FE/BE manifest without copying state or permission vocabulary', () => {
-    expect(() => assertOperationalFamilyManifest(manifestJson)).not.toThrow()
+    expect(() => assertOperationalFamilyManifest(
+      manifestJson,
+      manifestDebtExpectations,
+      manifestDebtRawSources,
+    )).not.toThrow()
     const serialized = JSON.stringify(manifestJson)
     ;['entityState', 'projectionState', 'actor', 'operation', 'backendPermission', 'frontendPermission']
       .forEach((field) => expect(serialized).not.toContain(`"${field}"`))
+  })
+
+  it('raw-loads and uniquely range-guards every manifest debt descriptor', () => {
+    expect(() => assertManifestDebtSources(
+      manifest,
+      manifestDebtExpectations,
+      manifestDebtRawSources,
+    )).not.toThrow()
+  })
+
+  it('rejects a stale ProductionPlan model range after expectation re-keying', () => {
+    const staleDescriptor = 'frontend/src/features/chef/production/chefProductionModel.ts:114-125'
+    const originalDescriptor = 'frontend/src/features/chef/production/chefProductionModel.ts:113-125'
+    const mutatedManifest = structuredClone(manifest)
+    const productionPlan = mutatedManifest.families.find((family) => family.id === 'ProductionPlan')
+    if (!productionPlan || productionPlan.disposition !== 'debt') throw new Error('ProductionPlan debt missing')
+    productionPlan.debt.sources = productionPlan.debt.sources.map((source) => (
+      source === originalDescriptor ? staleDescriptor : source
+    ))
+    const mutatedExpectations = structuredClone(manifestDebtExpectations)
+    mutatedExpectations.ProductionPlan[staleDescriptor] = mutatedExpectations.ProductionPlan[originalDescriptor]
+    delete mutatedExpectations.ProductionPlan[originalDescriptor]
+
+    expect(() => assertManifestDebtSources(
+      mutatedManifest,
+      mutatedExpectations,
+      manifestDebtRawSources,
+    )).toThrow(
+      'Debt source "frontend/src/features/chef/production/chefProductionModel.ts:114-125" expected fragment "export function buildChefProductionPlan({" exactly once in declared range, found 0.',
+    )
+  })
+
+  it('rejects a missing AdminData fragment in raw source', () => {
+    const descriptor = 'frontend/src/app/pages/AdminDataPage.tsx:15-60'
+    const mutatedExpectations = structuredClone(manifestDebtExpectations)
+    mutatedExpectations.AdminData[descriptor] = [
+      '__missing_admin_data_fragment__',
+      ...mutatedExpectations.AdminData[descriptor].slice(1),
+    ]
+
+    expect(() => assertManifestDebtSources(
+      manifest,
+      mutatedExpectations,
+      manifestDebtRawSources,
+    )).toThrow(
+      'Debt source "frontend/src/app/pages/AdminDataPage.tsx:15-60" expected fragment "__missing_admin_data_fragment__" exactly once in raw source, found 0.',
+    )
+  })
+
+  it('rejects an unrelated Forbidden import line after expectation re-keying', () => {
+    const unrelatedDescriptor = 'frontend/src/features/auth/pages/ForbiddenPage.tsx:1'
+    const originalDescriptor = 'frontend/src/features/auth/pages/ForbiddenPage.tsx:6-22'
+    const mutatedManifest = structuredClone(manifest)
+    const forbidden = mutatedManifest.families.find((family) => family.id === 'Forbidden')
+    if (!forbidden || forbidden.disposition !== 'debt') throw new Error('Forbidden debt missing')
+    forbidden.debt.sources = [unrelatedDescriptor]
+    const mutatedExpectations = structuredClone(manifestDebtExpectations)
+    mutatedExpectations.Forbidden[unrelatedDescriptor] = mutatedExpectations.Forbidden[originalDescriptor]
+    delete mutatedExpectations.Forbidden[originalDescriptor]
+
+    expect(() => assertManifestDebtSources(
+      mutatedManifest,
+      mutatedExpectations,
+      manifestDebtRawSources,
+    )).toThrow(
+      'Debt source "frontend/src/features/auth/pages/ForbiddenPage.tsx:1" expected fragment "Không đủ quyền truy cập" exactly once in declared range, found 0.',
+    )
+  })
+
+  it('rejects missing raw coverage for the chef production model', () => {
+    const rawSourcesWithoutChefModel = { ...manifestDebtRawSources }
+    delete rawSourcesWithoutChefModel['frontend/src/features/chef/production/chefProductionModel.ts']
+
+    expect(() => assertManifestDebtSources(
+      manifest,
+      manifestDebtExpectations,
+      rawSourcesWithoutChefModel,
+    )).toThrow(
+      'Missing raw source coverage for manifest debt path "frontend/src/features/chef/production/chefProductionModel.ts".',
+    )
   })
 
   it('reconciles every route-discovered family and independent source dimension', () => {
