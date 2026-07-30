@@ -161,7 +161,11 @@ public partial class SupplierDecisionWorkflowTests
             return;
         }
 
-        const string database = "ipc_lane9";
+        const string database = "ipc_lane8";
+        await PurchaseHistoryReconciliationTests.PrepareUpgradeMigrationFixtureAsync(
+            database,
+            "20260722160000_MakePurchaseRequestLineSupplierOptional");
+        await PurchaseHistoryReconciliationTests.SeedSupplierUpgradeFixtureAsync(database);
         await using var context = CreateMySqlContext(database);
         var appliedBefore = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
         appliedBefore.Should().NotContain("20260722163000_AddSupplierDecisionsAndPriceExceptions");

@@ -467,6 +467,66 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task StockLedgerReconciliation_Should_ConvertMixedMovementUnits_ToCurrentStockUnit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var gramUnitId = GuidHelper.NewId();
+        context.Units.Add(new Unit
+        {
+            UnitId = gramUnitId,
+            UnitCode = "G",
+            UnitName = "Gram",
+            BaseUnitCode = "KG",
+            ConvertRateToBase = 0.001m
+        });
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 2m,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow
+        });
+        context.Stockmovements.AddRange(
+            new StockMovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = DateTime.UtcNow.AddMinutes(-2),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = gramUnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 1000m,
+                PerformedBy = fixture.UserId
+            },
+            new StockMovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = DateTime.UtcNow.AddMinutes(-1),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 1m,
+                PerformedBy = fixture.UserId
+            });
+        await context.SaveChangesAsync();
+
+        var row = (await new StockLedgerReportService(context).GetStockLedgerReconciliationAsync(
+            new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
+
+        row.UnitId.Should().Be(GuidHelper.ToGuidString(fixture.UnitId));
+        row.CurrentQty.Should().Be(2m);
+        row.LedgerQty.Should().Be(2m);
+        row.DifferenceQty.Should().Be(0m);
+        row.IsMatched.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task StockLedgerReconciliation_Should_IgnoreSubPrecisionImportNoise()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -758,7 +818,7 @@ public partial class WorkflowGenerationTests
         secondPage.Should().ContainSingle(row => row.Note == "older");
         secondPage.Should().NotContain(row => row.Note == "newest" || row.Note == "cursor");
 
-        var firstCursorPage = await service.GetStockMovementPageAsync(new WorkflowReportQueryDto
+        var firstCursorPage = await service.GetStockMovementPageAsync(new StockMovementPageQueryDto
         {
             DateFrom = "2026-07-01",
             DateTo = "2026-07-31",
@@ -769,7 +829,7 @@ public partial class WorkflowGenerationTests
         firstCursorPage.HasNext.Should().BeTrue();
         firstCursorPage.NextCursorDate.Should().NotBeNullOrWhiteSpace();
 
-        var ascendingCursorPage = await service.GetStockMovementPageAsync(new WorkflowReportQueryDto
+        var ascendingCursorPage = await service.GetStockMovementPageAsync(new StockMovementPageQueryDto
         {
             DateFrom = "2026-07-01",
             DateTo = "2026-07-31",
@@ -779,6 +839,16 @@ public partial class WorkflowGenerationTests
 
         ascendingCursorPage.Items.Select(row => row.Note).Should().Equal("older", "cursor");
         ascendingCursorPage.HasNext.Should().BeTrue();
+
+        var searchedCursorPage = await service.GetStockMovementPageAsync(new StockMovementPageQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            SearchKeyword = "cursor",
+            Limit = 10,
+        });
+
+        searchedCursorPage.Items.Should().ContainSingle().Which.Note.Should().Be("cursor");
     }
 
 }

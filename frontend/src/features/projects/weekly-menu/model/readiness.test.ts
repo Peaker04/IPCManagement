@@ -5,6 +5,7 @@ const readyInput: WeeklyMenuReadinessInput = {
   hasSelectedCustomer: true,
   isSyncing: false,
   hasCatalogIssue: false,
+  hasDemandIssue: false,
   menuCount: 86,
   missingServingCount: 0,
   missingBomCount: 0,
@@ -17,6 +18,7 @@ describe('buildWeeklyMenuReadiness', () => {
     [{ hasSelectedCustomer: false }, 'neutral', 'Chọn khách hàng để bắt đầu'],
     [{ isSyncing: true }, 'info', 'Đang đồng bộ dữ liệu tuần'],
     [{ hasCatalogIssue: true }, 'warning', 'Thiếu dữ liệu danh mục món'],
+    [{ hasDemandIssue: true }, 'danger', 'Không tải được nhu cầu theo ngày'],
     [{ menuCount: 0, demandMaterialCount: 0 }, 'warning', 'Chưa có thực đơn tuần'],
     [{ missingServingCount: 2 }, 'warning', 'Cần bổ sung số lượng khách'],
     [{ missingBomCount: 3 }, 'danger', 'Chưa thể tính nhu cầu'],
@@ -34,7 +36,17 @@ describe('buildWeeklyMenuReadiness', () => {
       expect.objectContaining({ key: 'menu', value: '86 dòng món', state: 'complete' }),
       expect.objectContaining({ key: 'servings', value: '2 dòng thiếu suất', state: 'warning' }),
       expect.objectContaining({ key: 'bom', value: '3 món thiếu BOM · 1 lịch/ca sai đơn giá', state: 'danger' }),
-      expect.objectContaining({ key: 'demand', value: 'Chưa tính', state: 'pending' }),
+      expect.objectContaining({ key: 'demand', label: 'Nhu cầu theo ngày', value: 'Chưa tính', state: 'pending' }),
     ])
+  })
+
+  it('labels aggregate counts as day–ingredient rows instead of unique ingredients', () => {
+    const result = buildWeeklyMenuReadiness(readyInput)
+
+    expect(result.detail).toContain('50 dòng ngày–nguyên liệu')
+    expect(result.checkpoints).toContainEqual(expect.objectContaining({
+      key: 'demand',
+      value: '50 dòng ngày–nguyên liệu',
+    }))
   })
 })

@@ -380,6 +380,27 @@ public partial class WorkflowGenerationTests
             await new MaterialDemandService(context).GenerateAsync(
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
+
+            var firstLine = await context.Materialrequestlines.SingleAsync();
+            firstLine.CurrentStockQty = 2m;
+            context.Materialrequestlines.Add(new MaterialRequestLine
+            {
+                RequestLineId = GuidHelper.NewId(),
+                RequestId = firstLine.RequestId,
+                PlanLineId = firstLine.PlanLineId,
+                IngredientId = firstLine.IngredientId,
+                UnitId = firstLine.UnitId,
+                BomId = firstLine.BomId,
+                PriceTierAmount = firstLine.PriceTierAmount,
+                BomScope = firstLine.BomScope,
+                TotalServings = 10,
+                GrossQtyPerServing = 1m,
+                BomRatePercent = 100m,
+                TotalRequiredQty = 6m,
+                CurrentStockQty = 3m,
+                SuggestedPurchaseQty = 3m,
+            });
+            await context.SaveChangesAsync();
         }
 
         await using var reportContext = fixture.CreateContext();
@@ -395,8 +416,49 @@ public partial class WorkflowGenerationTests
         page.TotalCount.Should().Be(1);
         page.Items.Should().ContainSingle();
         page.Items[0].RequestDate.Should().Be(new DateOnly(2026, 6, 15));
-        page.Items[0].TotalRequiredQty.Should().Be(200m);
-        page.Items[0].LineCount.Should().Be(1);
+        page.Items[0].TotalRequiredQty.Should().Be(206m);
+        page.Items[0].CurrentStockQty.Should().Be(5m);
+        page.Items[0].LineCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetIngredientDemandAggregatePageAsync_Should_SearchIngredientBeforePaging()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var service = new DemandReportService(reportContext);
+        var baseline = await service.GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto { PageNumber = 1, PageSize = 20 });
+        var ingredientName = baseline.Items.Should().ContainSingle().Subject.IngredientName!;
+
+        var matching = await service.GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                SearchKeyword = ingredientName,
+                PageNumber = 1,
+                PageSize = 1,
+            });
+        var missing = await service.GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                SearchKeyword = "KHÔNG-CÓ-NGUYÊN-LIỆU-NÀY",
+                PageNumber = 1,
+                PageSize = 1,
+            });
+
+        matching.Items.Should().ContainSingle().Which.IngredientName.Should().Be(ingredientName);
+        matching.TotalCount.Should().Be(1);
+        missing.Items.Should().BeEmpty();
+        missing.TotalCount.Should().Be(0);
     }
 
     [Fact]

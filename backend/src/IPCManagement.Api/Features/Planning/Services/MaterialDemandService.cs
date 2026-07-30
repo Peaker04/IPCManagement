@@ -98,6 +98,13 @@ public class MaterialDemandService : IMaterialDemandService
                 g => g.OrderBy(stock => Convert.ToBase64String(stock.WarehouseId), StringComparer.Ordinal)
                     .ThenBy(stock => Convert.ToBase64String(stock.UnitId), StringComparer.Ordinal)
                     .ToList());
+        await MaterialDemandStockReservation.ReserveAsync(
+            _context,
+            stockDict,
+            materialRequest.RequestId,
+            serviceDate,
+            requiredIngredientIds,
+            cancellationToken);
         var effectivePortionRules = await LoadEffectivePortionRulesAsync(serviceDate, cancellationToken);
 
         var outputLines = new Dictionary<string, MaterialDemandLineDto>();
@@ -107,7 +114,9 @@ public class MaterialDemandService : IMaterialDemandService
         var generatedRequestLineKeys = new HashSet<string>();
         foreach (var quantityLine in quantityLines)
         {
-            foreach (var menuItem in quantityLine.Menu.Menuitems.OrderBy(item => item.DisplayOrder))
+            foreach (var menuItem in quantityLine.Menu.Menuitems
+                         .OrderBy(item => item.DisplayOrder)
+                         .DistinctBy(item => Convert.ToBase64String(item.DishId)))
             {
                 var productionLine = EnsureProductionPlanLine(plan, quantityLine, menuItem);
                 generatedPlanLineIds.Add(BuildKey(productionLine.PlanLineId));
@@ -126,7 +135,7 @@ public class MaterialDemandService : IMaterialDemandService
                 foreach (var bom in activeBomLines)
                 {
                     var ingredientStocks = stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), []);
-                    var stockConversion = CalculateStockInBomUnit(ingredientStocks, bom.Unit);
+                    var stockConversion = MaterialDemandStockConversion.Calculate(ingredientStocks, bom.Unit);
                     missingConversionIssues.AddRange(stockConversion.MissingConversionIssues.Select(issue =>
                     {
                         var ingredientId = GuidHelper.ToGuidString(bom.IngredientId);
@@ -142,7 +151,8 @@ public class MaterialDemandService : IMaterialDemandService
                         stockConversion.Quantity,
                         portionRule.PortionRatePercent,
                         portionRule.YieldLossPercent);
-                    MaterialStockPool.ConsumeInBomUnit(ingredientStocks, bom.Unit, numbers.CurrentStockQty);
+                    var stockAllocatedToLine = Math.Min(numbers.TotalRequiredQty, numbers.CurrentStockQty);
+                    MaterialStockPool.ConsumeInBomUnit(ingredientStocks, bom.Unit, stockAllocatedToLine);
                     var requestLine = EnsureMaterialRequestLine(
                         materialRequest,
                         productionLine,
@@ -187,7 +197,7 @@ public class MaterialDemandService : IMaterialDemandService
             ProductionPlanLineCount = plan.Productionplanlines.Count,
             Lines = outputLines.Values.ToList(),
             MissingBomDishes = missingBomDishes,
-            MissingConversionIssues = DeduplicateConversionIssues(missingConversionIssues)
+            MissingConversionIssues = MaterialDemandStockConversion.Deduplicate(missingConversionIssues)
         };
     }
 
@@ -1293,8 +1303,6 @@ public class MaterialDemandService : IMaterialDemandService
             ? null
             : value.Trim();
 
-    private sealed record StockConversionResult(decimal Quantity, IReadOnlyList<MissingUnitConversionIssueDto> MissingConversionIssues);
-
     private static string BuildMaterialRequestLineKey(byte[] planLineId, byte[] ingredientId)
         => $"{BuildKey(planLineId)}:{BuildKey(ingredientId)}";
 
@@ -1334,50 +1342,6 @@ public class MaterialDemandService : IMaterialDemandService
             _ => throw new BusinessRuleException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
         };
     }
-
-    private static StockConversionResult CalculateStockInBomUnit(IReadOnlyList<CurrentStock> stocks, Unit bomUnit)
-    {
-        if (stocks.Count == 0)
-        {
-            return new StockConversionResult(0m, []);
-        }
-
-        var total = 0m;
-        var issues = new List<MissingUnitConversionIssueDto>();
-        foreach (var stock in stocks)
-        {
-            if (MaterialStockPool.TryConvertQuantity(stock.CurrentQty, stock.Unit, bomUnit, out var convertedQty))
-            {
-                total += convertedQty;
-                continue;
-            }
-
-            issues.Add(BuildMissingConversionIssue(stock.Unit, bomUnit));
-        }
-
-        return new StockConversionResult(DecimalPolicy.RoundQuantity(total), DeduplicateConversionIssues(issues));
-    }
-
-    private static MissingUnitConversionIssueDto BuildMissingConversionIssue(Unit sourceUnit, Unit targetUnit)
-    {
-        var sourceUnitId = GuidHelper.ToGuidString(sourceUnit.UnitId);
-        var targetUnitId = GuidHelper.ToGuidString(targetUnit.UnitId);
-        return new MissingUnitConversionIssueDto
-        {
-            IssueId = $"missing_conversion:{sourceUnitId}:{targetUnitId}",
-            SourceUnitId = sourceUnitId,
-            SourceUnitName = sourceUnit.UnitName,
-            TargetUnitId = targetUnitId,
-            TargetUnitName = targetUnit.UnitName,
-            Message = $"Thiếu cấu hình quy đổi từ {sourceUnit.UnitName} sang {targetUnit.UnitName}."
-        };
-    }
-
-    private static IReadOnlyList<MissingUnitConversionIssueDto> DeduplicateConversionIssues(IEnumerable<MissingUnitConversionIssueDto> issues)
-        => issues
-            .GroupBy(issue => issue.IssueId)
-            .Select(group => group.First())
-            .ToList();
 
     private static string NormalizeScope(string? scope, string? shiftName)
     {

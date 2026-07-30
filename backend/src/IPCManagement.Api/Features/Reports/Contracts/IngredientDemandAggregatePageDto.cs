@@ -4,11 +4,16 @@ namespace IPCManagement.Api.Features.Reports.Contracts;
 
 public sealed class IngredientDemandAggregatePageQueryDto : WorkflowReportPageQueryDto
 {
+    public string? SearchKeyword { get; set; }
 }
 
 public sealed class IngredientDemandAggregateDto
 {
     public DateOnly RequestDate { get; set; }
+    public string CustomerId { get; set; } = string.Empty;
+    public string? CustomerCode { get; set; }
+    public string? CustomerName { get; set; }
+    public decimal PriceTierAmount { get; set; }
     public string IngredientId { get; set; } = string.Empty;
     public string? IngredientName { get; set; }
     public string UnitId { get; set; } = string.Empty;

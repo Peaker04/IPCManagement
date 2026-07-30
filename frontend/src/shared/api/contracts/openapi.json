@@ -745,6 +745,41 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "TargetType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TargetId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Week",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Date",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9803,6 +9838,13 @@
         ],
         "parameters": [
           {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -11377,6 +11419,13 @@
           "WorkflowReports"
         ],
         "parameters": [
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "PageNumber",
             "in": "query",
@@ -13134,6 +13183,13 @@
         ],
         "parameters": [
           {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -13902,6 +13958,13 @@
         ],
         "parameters": [
           {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -14293,6 +14356,13 @@
           "WorkflowReports"
         ],
         "parameters": [
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "ServiceDate",
             "in": "query",
@@ -20324,9 +20394,11 @@
       "IngredientDemandAggregateDto": {
         "required": [
           "currentStockQty",
+          "customerId",
           "hasCancelledLine",
           "ingredientId",
           "lineCount",
+          "priceTierAmount",
           "requestDate",
           "suggestedPurchaseQty",
           "totalRequiredQty",
@@ -20337,6 +20409,21 @@
           "requestDate": {
             "type": "string",
             "format": "date"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double"
           },
           "ingredientId": {
             "type": "string"

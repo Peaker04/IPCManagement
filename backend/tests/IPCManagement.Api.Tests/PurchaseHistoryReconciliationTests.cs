@@ -195,7 +195,10 @@ public partial class PurchaseHistoryReconciliationTests
         }
 
         const string database = "ipc_lane9";
-        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        await PrepareUpgradeMigrationFixtureAsync(
+            database,
+            "20260719143000_AddSupplementalMaterialRequests");
+        await SeedReceiptUpgradeFixtureAsync(database);
         await using var context = CreateMySqlContext(database);
         var appliedBefore = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
         appliedBefore.Should().NotContain("20260721120000_AddPurchaseHistoryReconciliation");

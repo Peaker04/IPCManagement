@@ -96,6 +96,51 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_NotConsumeSharedStockTwice_WhenMenuRepeatsDish()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var existingItem = await context.Menuitems.AsNoTracking().SingleAsync();
+            context.Menuitems.Add(new MenuItem
+            {
+                MenuItemId = GuidHelper.NewId(),
+                MenuId = existingItem.MenuId,
+                DishId = existingItem.DishId,
+                DishSlot = "merged-cell-continuation",
+                DisplayOrder = existingItem.DisplayOrder + 1
+            });
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 250m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            var line = result!.Lines.Should().ContainSingle().Subject;
+            line.TotalRequiredQty.Should().Be(200m);
+            line.CurrentStockQty.Should().Be(250m);
+            line.SuggestedPurchaseQty.Should().Be(0m);
+            (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+            (await context.Productionplanlines.AsNoTracking().CountAsync()).Should().Be(1);
+        }
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ReportMissingBom_And_WriteDemandAudit()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -600,6 +645,258 @@ public partial class WorkflowGenerationTests
             result.Lines.Sum(line => line.TotalRequiredQty).Should().Be(300m);
             result.Lines.Sum(line => line.CurrentStockQty).Should().Be(150m);
             result.Lines.Sum(line => line.SuggestedPurchaseQty).Should().Be(150m);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_NotConsumeMoreSharedStockThanEachLineRequires()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var menu = await context.Menus.SingleAsync();
+            var secondDish = new Dish
+            {
+                DishId = GuidHelper.NewId(),
+                DishCode = "DISH-SHARED-STOCK-SUFFICIENT",
+                DishName = "Second dish with sufficient shared stock",
+                IsActive = true
+            };
+            context.Dishes.Add(secondDish);
+            context.Menuitems.Add(new MenuItem
+            {
+                MenuItemId = GuidHelper.NewId(),
+                MenuId = menu.MenuId,
+                DishId = secondDish.DishId,
+                DisplayOrder = 2
+            });
+            context.Dishboms.Add(new DishBom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = secondDish.DishId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                GrossQtyPerServing = 1,
+                WasteRatePercent = 0,
+                BomStatus = "PUBLISHED",
+                EffectiveFrom = new DateOnly(2026, 1, 1)
+            });
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 350m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            result!.Lines.Should().HaveCount(2);
+            result.Lines.Sum(line => line.TotalRequiredQty).Should().Be(300m);
+            result.Lines.Should().OnlyContain(line => line.SuggestedPurchaseQty == 0m);
+            result.Lines.Select(line => line.CurrentStockQty).Should().BeEquivalentTo([350m, 150m]);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_ReserveSharedStockAcrossServiceDates()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var firstSchedule = await context.Menuschedules.SingleAsync();
+            var secondScheduleId = GuidHelper.NewId();
+            var secondQuantityPlanId = GuidHelper.NewId();
+            context.Menuschedules.Add(new MenuSchedule
+            {
+                MenuScheduleId = secondScheduleId,
+                CustomerId = firstSchedule.CustomerId,
+                MenuId = firstSchedule.MenuId,
+                ServiceDate = new DateOnly(2026, 6, 16),
+                WeekStartDate = firstSchedule.WeekStartDate,
+                ShiftName = firstSchedule.ShiftName,
+                MenuPrice = firstSchedule.MenuPrice,
+                BomRatePercent = firstSchedule.BomRatePercent,
+                Status = "ACTIVE"
+            });
+            context.Mealquantityplans.Add(new MealQuantityPlan
+            {
+                QuantityPlanId = secondQuantityPlanId,
+                PlanCode = "QTY-20260616",
+                ServiceDate = new DateOnly(2026, 6, 16),
+                Status = OrderStatus.Completed,
+                ForecastReceivedAt = DateTime.UtcNow.AddHours(-3),
+                ConfirmedAt = DateTime.UtcNow.AddHours(-2),
+                ConfirmationTime = new TimeOnly(9, 0),
+                ConfirmedBy = fixture.UserId
+            });
+            context.Mealquantityplanlines.Add(new MealQuantityPlanLine
+            {
+                QuantityPlanLineId = GuidHelper.NewId(),
+                QuantityPlanId = secondQuantityPlanId,
+                MenuScheduleId = secondScheduleId,
+                CustomerId = firstSchedule.CustomerId,
+                MenuId = firstSchedule.MenuId,
+                ShiftName = firstSchedule.ShiftName,
+                ForecastServings = 100,
+                ConfirmedServings = 100,
+                FinalServings = 100
+            });
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 250m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new MaterialDemandService(context);
+            var first = await service.GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var second = await service.GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-16", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            first!.Lines.Single().CurrentStockQty.Should().Be(250m);
+            first.Lines.Single().SuggestedPurchaseQty.Should().Be(0m);
+            second!.Lines.Single().CurrentStockQty.Should().Be(50m);
+            second.Lines.Single().SuggestedPurchaseQty.Should().Be(150m);
+        }
+
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_ReserveSharedStockAcrossCustomersOnSameDate()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string secondCustomerId;
+        await using (var context = fixture.CreateContext())
+        {
+            var firstSchedule = await context.Menuschedules.SingleAsync();
+            var quantityPlan = await context.Mealquantityplans.SingleAsync();
+            var baseBom = await context.Dishboms.SingleAsync();
+            var secondCustomer = new Customer
+            {
+                CustomerId = GuidHelper.NewId(),
+                CustomerCode = "CUS-2",
+                CustomerName = "Customer 2",
+                IsActive = true
+            };
+            var secondScheduleId = GuidHelper.NewId();
+            context.Customers.Add(secondCustomer);
+            context.Dishboms.Add(new DishBom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = baseBom.DishId,
+                IngredientId = baseBom.IngredientId,
+                UnitId = baseBom.UnitId,
+                PriceTierAmount = 30000,
+                GrossQtyPerServing = baseBom.GrossQtyPerServing,
+                WasteRatePercent = baseBom.WasteRatePercent,
+                BomStatus = baseBom.BomStatus,
+                EffectiveFrom = baseBom.EffectiveFrom
+            });
+            context.Menuschedules.Add(new MenuSchedule
+            {
+                MenuScheduleId = secondScheduleId,
+                CustomerId = secondCustomer.CustomerId,
+                MenuId = firstSchedule.MenuId,
+                ServiceDate = firstSchedule.ServiceDate,
+                WeekStartDate = firstSchedule.WeekStartDate,
+                ShiftName = firstSchedule.ShiftName,
+                MenuPrice = 30000,
+                BomRatePercent = firstSchedule.BomRatePercent,
+                Status = "ACTIVE"
+            });
+            context.Mealquantityplanlines.Add(new MealQuantityPlanLine
+            {
+                QuantityPlanLineId = GuidHelper.NewId(),
+                QuantityPlanId = quantityPlan.QuantityPlanId,
+                MenuScheduleId = secondScheduleId,
+                CustomerId = secondCustomer.CustomerId,
+                MenuId = firstSchedule.MenuId,
+                ShiftName = firstSchedule.ShiftName,
+                ForecastServings = 100,
+                ConfirmedServings = 100,
+                FinalServings = 100
+            });
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 250m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+            secondCustomerId = GuidHelper.ToGuidString(secondCustomer.CustomerId);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new MaterialDemandService(context);
+            var first = await service.GenerateAsync(
+                new GenerateMaterialDemandRequest
+                {
+                    ServiceDate = "2026-06-15",
+                    CustomerId = fixture.CustomerIdString,
+                    Scope = "FULLDAY"
+                },
+                fixture.UserIdString);
+            var second = await service.GenerateAsync(
+                new GenerateMaterialDemandRequest
+                {
+                    ServiceDate = "2026-06-15",
+                    CustomerId = secondCustomerId,
+                    Scope = "FULLDAY"
+                },
+                fixture.UserIdString);
+
+            first!.Lines.Single().CurrentStockQty.Should().Be(250m);
+            first.Lines.Single().SuggestedPurchaseQty.Should().Be(0m);
+            second!.Lines.Single().CurrentStockQty.Should().Be(50m);
+            second.Lines.Single().SuggestedPurchaseQty.Should().Be(150m);
+        }
+
+        await using (var reportContext = fixture.CreateContext())
+        {
+            var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+                new IngredientDemandAggregatePageQueryDto
+                {
+                    DateFrom = "2026-06-15",
+                    DateTo = "2026-06-15",
+                    PageNumber = 1,
+                    PageSize = 20
+                });
+
+            page.Items.Should().HaveCount(2);
+            page.Items.Select(item => item.CustomerId).Should().BeEquivalentTo(
+                [fixture.CustomerIdString, secondCustomerId]);
+            page.Items.Select(item => item.PriceTierAmount).Should().BeEquivalentTo([25000m, 30000m]);
+            page.Items.Sum(item => item.TotalRequiredQty).Should().Be(400m);
         }
     }
 

@@ -186,7 +186,7 @@ này **dù hành vi đúng**, và cách sửa rẻ nhất (chỉnh chuỗi kỳ 
 2. **Guardrail H7 tự tắt khi đổi tên hook (nguy cấp)** — `eslint.config.js:8` khớp regex `^use...Query$`.
    Đặt tên kiểu `useDemandService()` là rule khớp **0 chỗ**, tắt trong im lặng. Phải nâng rule **trước** khi migrate,
    và mỗi giai đoạn chứng minh rule còn sống bằng một vi phạm cố ý.
-3. **Backlog nuốt lỗi đang đếm thiếu** — con số 15 trong `CURRENT-STATE.md:293` đếm bằng chính cổng đang mù. Số thật ≥ 17.
+3. **Backlog nuốt lỗi đang đếm thiếu** — phép đếm trong snapshot cũ ở `HISTORY.md` dùng chính cổng đang mù; xem record lịch sử thay vì lấy nó làm gate hiện hành.
 4. **Chuẩn hóa trạng thái có thể làm CHẬM ĐI nếu sai thứ tự** — bắt render skeleton khi `isFetching` mà chưa làm nhỏ tag
    → mỗi mutation đẩy toàn bộ panel về loading → flash trang.
 5. **Thêm React provider là gãy cổng CI** — `cache-navigation.spec.ts:215` chốt `mainLayoutRenders ≤ 4`.
@@ -330,7 +330,7 @@ Kết quả Bước 10 không đổi cây FE sang `shared/`: Reports còn 799 d�
 còn shell 74 dòng + model/panel; 138 file backend vào 10 `Features/*` và 2 contract vào
 `Shared/Contracts`; 6.607 dòng CSS
 được tách thành 13 file. Chi tiết commit, gate và evidence runtime desktop nằm trong
-`docs/CURRENT-STATE.md`.
+`HISTORY.md`.
 
 > **Điểm dừng an toàn: DỪNG SAU BƯỚC 5 vẫn có giá trị trọn vẹn** — rào chắn đã dựng, bug số liệu đã sửa,
 > tên đã chuẩn, contract đã có nguồn sự thật. Phần còn lại là dọn cấu trúc chứ không phải sửa lỗi.

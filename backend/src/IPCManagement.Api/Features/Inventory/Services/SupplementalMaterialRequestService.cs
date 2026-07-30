@@ -5,7 +5,6 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
-
 using IPCManagement.Api.Exceptions;
 
 namespace IPCManagement.Api.Features.Inventory.Services;
@@ -67,6 +66,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 (status == PendingStatus && item.Status == "PENDING"));
         }
 
+        query = SupplementalMaterialRequestQueryPolicy.ApplySearch(query, _context, request.SearchKeyword);
         var totalCount = await query.CountAsync();
         var entities = await query
             .OrderByDescending(item => item.RequestedAt)
@@ -199,7 +199,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 {
                     IssueId = issueId,
                     IssueCode = issueCode,
-                    IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    IssueDate = source.Issue.IssueDate,
                     ShiftName = source.Issue.ShiftName,
                     WarehouseId = entity.WarehouseId,
                     MaterialRequestId = source.Issue.MaterialRequestId,
@@ -303,7 +303,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     PurchaseRequestId = purchaseRequestId,
                     PurchaseRequestCode = purchaseRequestCode,
                     RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                    PurchaseForDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    PurchaseForDate = source.Issue.IssueDate,
                     ShiftName = source.Issue.ShiftName,
                     Status = "DRAFT",
                     CreatedBy = actorId,

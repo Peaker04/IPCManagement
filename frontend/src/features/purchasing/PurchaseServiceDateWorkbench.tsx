@@ -8,6 +8,7 @@ import {
   TableViewport,
 } from '@/components/common';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
+import { PurchaseLineGroups } from './PurchaseLineGroups';
 
 interface PurchaseServiceDateWorkbenchProps {
   serviceDates: PurchaseWorkbenchServiceDate[];
@@ -117,67 +118,7 @@ export function PurchaseServiceDateWorkbench({
           caption="Bảng có cuộn ngang cục bộ và giữ chiều cao ổn định."
           className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
         >
-          <table className="ipc-data-table min-w-[900px] table-fixed">
-            <thead>
-              <tr>
-                <th>Nguyên liệu</th>
-                <th>Số lượng mua</th>
-                <th>Nhà cung cấp</th>
-                <th>Bằng chứng hiện tại</th>
-                <th>Giá đề xuất</th>
-                <th>Ngày giao</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading
-                ? Array.from({ length: 8 }, (_, index) => (
-                    <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true">
-                      <td colSpan={7}><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td>
-                    </tr>
-                  ))
-                : activeDate?.purchaseLines.length
-                  ? activeDate.purchaseLines.map((line) => {
-                      const currentDecision = line.currentSupplierDecision;
-                      return (
-                        <tr key={line.purchaseRequestLineId}>
-                          <td>
-                            <span className="block font-semibold text-slate-900">{line.ingredientName}</span>
-                            <span className="text-[12px] text-slate-500">{line.purchaseRequestLineId}</span>
-                          </td>
-                          <td>{line.purchaseQty} {line.unitName}</td>
-                          <td>{line.supplierName || 'Chưa chọn nhà cung cấp'}</td>
-                          <td>
-                            {currentDecision
-                              ? `${currentDecision.evidenceType} ngày ${formatIsoDate(currentDecision.evidenceDate)}`
-                              : 'Chưa có bằng chứng được xác nhận'}
-                          </td>
-                          <td>{currentDecision ? currentDecision.proposedUnitPrice.toLocaleString('vi-VN') : 'Chưa có'}</td>
-                          <td>{currentDecision ? formatIsoDate(currentDecision.proposedDeliveryDate) : 'Chưa có'}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="ipc-button min-h-9 whitespace-nowrap max-md:min-h-11"
-                              aria-pressed={selectedLineId === line.purchaseRequestLineId}
-                              onClick={() => onLineChange(line.purchaseRequestLineId)}
-                            >
-                              {currentDecision ? 'Xem quyết định' : 'Xem bằng chứng'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  : (
-                      <tr>
-                        <td colSpan={7} className="h-[320px] text-center text-slate-600">
-                          {serviceDates.length === 0
-                            ? 'Chưa có nhu cầu đã duyệt trong tuần này.'
-                            : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}
-                        </td>
-                      </tr>
-                    )}
-            </tbody>
-          </table>
+          {isLoading ? <table className="ipc-data-table min-w-[900px]"><tbody>{Array.from({ length: 8 }, (_, index) => <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true"><td><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td></tr>)}</tbody></table> : activeDate?.purchaseLines.length ? <PurchaseLineGroups lines={activeDate.purchaseLines} selectedLineId={selectedLineId} onLineChange={onLineChange} /> : <table className="ipc-data-table min-w-[900px]"><tbody><tr><td className="h-[320px] text-center text-slate-600">{serviceDates.length === 0 ? 'Chưa có nhu cầu đã duyệt trong tuần này.' : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}</td></tr></tbody></table>}
         </TableViewport>
         <PaginationBar
           page={page}

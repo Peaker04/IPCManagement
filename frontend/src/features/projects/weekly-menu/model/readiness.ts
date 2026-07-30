@@ -5,6 +5,7 @@ export type WeeklyMenuReadinessInput = {
   hasSelectedCustomer: boolean
   isSyncing: boolean
   hasCatalogIssue: boolean
+  hasDemandIssue: boolean
   menuCount: number
   missingServingCount: number
   missingBomCount: number
@@ -36,6 +37,7 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     hasSelectedCustomer,
     isSyncing,
     hasCatalogIssue,
+    hasDemandIssue,
     menuCount,
     missingServingCount,
     missingBomCount,
@@ -69,9 +71,13 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     },
     {
       key: 'demand',
-      label: 'Nhu cầu mua',
-      value: demandMaterialCount > 0 ? `${demandMaterialCount} nguyên liệu` : 'Chưa tính',
-      state: checkpointState(demandMaterialCount > 0, false, 'warning'),
+      label: 'Nhu cầu theo ngày',
+      value: hasDemandIssue
+        ? 'Không tải được'
+        : demandMaterialCount > 0
+          ? `${demandMaterialCount} dòng ngày–nguyên liệu`
+          : 'Chưa tính',
+      state: checkpointState(demandMaterialCount > 0, hasDemandIssue, 'danger'),
     },
   ]
 
@@ -79,10 +85,13 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     return { label: 'Chọn khách hàng để bắt đầu', detail: 'Chưa xác định phạm vi thực đơn tuần.', tone: 'neutral', checkpoints }
   }
   if (isSyncing) {
-    return { label: 'Đang đồng bộ dữ liệu tuần', detail: 'Hệ thống đang tải thực đơn, suất ăn và danh mục BOM.', tone: 'info', checkpoints }
+    return { label: 'Đang đồng bộ dữ liệu tuần', detail: 'Hệ thống đang tải thực đơn, suất ăn, danh mục BOM và nhu cầu theo ngày.', tone: 'info', checkpoints }
   }
   if (hasCatalogIssue) {
     return { label: 'Thiếu dữ liệu danh mục món', detail: 'Kiểm tra danh mục trước khi phân tích BOM và giá vốn.', tone: 'warning', checkpoints }
+  }
+  if (hasDemandIssue) {
+    return { label: 'Không tải được nhu cầu theo ngày', detail: 'Không thể xác nhận trạng thái thiếu/đủ của tuần. Hãy tải lại trước khi tiếp tục thu mua.', tone: 'danger', checkpoints }
   }
   if (menuCount === 0) {
     return { label: 'Chưa có thực đơn tuần', detail: 'Nhập Excel hoặc chỉnh sửa thực đơn để tiếp tục.', tone: 'warning', checkpoints }
@@ -96,5 +105,5 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
   if (demandMaterialCount === 0) {
     return { label: 'Sẵn sàng tính nhu cầu', detail: 'Thực đơn, số lượng khách và BOM đã đầy đủ.', tone: 'info', checkpoints }
   }
-  return { label: 'Dữ liệu tuần sẵn sàng', detail: `${demandMaterialCount} nguyên liệu đã được tổng hợp cho thu mua.`, tone: 'success', checkpoints }
+  return { label: 'Dữ liệu tuần sẵn sàng', detail: `${demandMaterialCount} dòng ngày–nguyên liệu đã được tổng hợp cho thu mua.`, tone: 'success', checkpoints }
 }

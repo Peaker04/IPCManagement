@@ -25,14 +25,25 @@ export type WorkflowReportPageQueryWire = WorkflowReportQueryWire
 export type WorkflowReportQuery = LowerCamelQuery<WorkflowReportQueryWire>;
 
 export type WorkflowReportPageQuery = LowerCamelQuery<WorkflowReportPageQueryWire>;
+export type IngredientDemandAggregatePageQuery = LowerCamelQuery<NonNullable<
+  paths['/api/workflow-reports/ingredient-demand/aggregate/page']['get']['parameters']['query']
+>>;
+export type PurchasePlanPageQuery = LowerCamelQuery<NonNullable<
+  paths['/api/workflow-reports/purchase-plan/page']['get']['parameters']['query']
+>>;
 export type DataQualityPageQuery = WorkflowReportPageQuery & { searchKeyword?: string };
 
 export type MaterialRequestCandidatePageQuery = LowerCamelQuery<NonNullable<
   paths['/api/workflow-reports/material-request-candidates/page']['get']['parameters']['query']
 >>;
 
-export type CurrentStockPageQuery = WorkflowReportPageQuery;
-export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery;
+export type CurrentStockPageQuery = LowerCamelQuery<NonNullable<
+  paths['/api/workflow-reports/current-stock/page']['get']['parameters']['query']
+>>;
+export type StockMovementPageQuery = LowerCamelQuery<NonNullable<
+  paths['/api/workflow-reports/stock-movements/page']['get']['parameters']['query']
+>>;
+export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery & { searchKeyword?: string };
 export type PriceVarianceAggregatePageQuery = WorkflowReportPageQuery;
 
 export interface PageNumberPage<T> {
@@ -378,6 +389,9 @@ export interface PriceVarianceRow {
   id: string;
   name: string;
   unit: string;
+  receiptCode: string;
+  receiptDate: string;
+  quantity: number;
   pricePrev: number;
   priceCurrent: number;
   supplier: string;

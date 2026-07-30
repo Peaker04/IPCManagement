@@ -37,7 +37,7 @@ public sealed class CustomerContractsController : ControllerBase
         try
         {
             var result = await _service.CreateCustomerContractAsync(request, _currentUserService.GetUserId(User));
-            return CreatedAtAction(nameof(GetCustomerContractsAsync),
+            return CreatedAtAction("GetCustomerContracts",
                 ApiResponse<CustomerContractDto>.SuccessResult(result, "Đã tạo khách hàng và contract."));
         }
         catch (ArgumentException ex)

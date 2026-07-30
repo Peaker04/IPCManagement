@@ -79,14 +79,24 @@ internal static class PurchaseWorkbenchPolicy
 
     internal static bool HasPriceException(PurchaseRequestLine line)
     {
-        if (line.SupplierId is null || line.EstimatedUnitPrice <= 0 || line.Ingredient.ReferencePrice <= 0)
+        if (line.SupplierId is null)
+        {
+            return false;
+        }
+
+        var currentDecision = line.SupplierDecisions.SingleOrDefault(decision =>
+            string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal) &&
+            decision.SupplierId.SequenceEqual(line.SupplierId));
+        if (currentDecision is null ||
+            currentDecision.ProposedUnitPrice <= 0 ||
+            currentDecision.EvidenceReferencePrice <= 0)
         {
             return false;
         }
 
         var variance = PurchasePricePolicy.CalculateVariancePercent(
-            DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice),
-            DecimalPolicy.RoundMoney(line.EstimatedUnitPrice));
+            DecimalPolicy.RoundMoney(currentDecision.EvidenceReferencePrice),
+            DecimalPolicy.RoundMoney(currentDecision.ProposedUnitPrice));
         return PurchasePricePolicy.RequiresException(variance);
     }
 

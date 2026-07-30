@@ -82,13 +82,12 @@ export function useAdminBomPanelModel(
     }
 
     try {
-      const blob = await downloadBomTemplate({
+      const url = await downloadBomTemplate({
         priceTier: bomImportTier,
         customerId: bomImportCustomerId.trim() || undefined,
         dishId: templateType === 'dish' ? bomTemplateDishId : undefined,
         templateType,
       }).unwrap();
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `bom-template-${templateType}-${bomImportTier}-${bomImportCustomerId.trim() || 'global'}.xlsx`;

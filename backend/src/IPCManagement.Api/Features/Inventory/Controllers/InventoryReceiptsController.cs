@@ -61,7 +61,7 @@ public class InventoryReceiptsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
         return CreatedAtAction(
-            nameof(GetByIdAsync),
+            "GetById",
             new { id = result.ReceiptId },
             ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Tạo phiếu nhập kho thành công."));
     }
@@ -81,7 +81,7 @@ public class InventoryReceiptsController : ControllerBase
             }
 
             return CreatedAtAction(
-                nameof(GetByIdAsync),
+                "GetById",
                 new { id = result.ReceiptId },
                 ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Đã nhập kho từ phiếu mua."));
         }

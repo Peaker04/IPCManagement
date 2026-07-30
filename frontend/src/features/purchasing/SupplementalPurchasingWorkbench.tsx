@@ -189,6 +189,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
         {serviceDate && selectedLine ? (
           <PurchaseDecisionPanel
             key={`${serviceDate.purchaseRequestId}-${selectedLine.purchaseRequestLineId}-${selectedStage}`}
+            panelId="supplemental-purchase-decision-panel"
             week={week}
             selectedStage={selectedStage}
             serviceDate={serviceDate}

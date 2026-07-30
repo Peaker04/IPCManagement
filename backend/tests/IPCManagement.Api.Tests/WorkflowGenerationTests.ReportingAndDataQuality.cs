@@ -530,6 +530,30 @@ public partial class WorkflowGenerationTests
         weekRow.PendingReceiptQty.Should().Be(dayRows.Sum(row => row.PendingReceiptQty));
         weekRow.ShortageQty.Should().Be(dayRows.Sum(row => row.ShortageQty));
         weekRows.Select(row => (row.PeriodKey, row.IngredientId, row.UnitId)).Should().OnlyHaveUniqueItems();
+
+        var reportService = new PurchasingReportService(context);
+        var searchedPage = await reportService.GetPurchasePlanPageAsync(new PurchasePlanPageQueryDto
+        {
+            DateFrom = "2026-06-15",
+            DateTo = "2026-06-16",
+            GroupBy = "day",
+            SearchKeyword = dayRows[0].IngredientName,
+            PageNumber = 1,
+            PageSize = 20,
+        });
+        searchedPage.TotalCount.Should().Be(2);
+        searchedPage.TotalShortageQty.Should().Be(19);
+
+        var emptySearchPage = await reportService.GetPurchasePlanPageAsync(new PurchasePlanPageQueryDto
+        {
+            DateFrom = "2026-06-15",
+            DateTo = "2026-06-16",
+            SearchKeyword = "nguyên liệu không tồn tại",
+            PageNumber = 1,
+            PageSize = 20,
+        });
+        emptySearchPage.TotalCount.Should().Be(0);
+        emptySearchPage.TotalShortageQty.Should().Be(0);
     }
 
     [Fact]

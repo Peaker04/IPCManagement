@@ -20,7 +20,6 @@ export function useChefExceptions(
   const [createSupplemental, supplementalState] = useCreateSupplementalMaterialRequestMutation()
   const returnsQuery = useGetInventoryReturnsQuery({
     returnDate: scope.serviceDate,
-    shiftName: scope.activeShift,
     pageNumber: 1,
     pageSize: 100,
   }, { skip: !enabled })
@@ -30,6 +29,14 @@ export function useChefExceptions(
       : null,
   })
   const persistedReturnPage = returnsView.phase === 'ready' ? returnsView.data : undefined
+  const persistedReturns = (persistedReturnPage?.items ?? []).filter((item) => {
+    const normalizedShift = item.shiftName?.trim().toUpperCase()
+    const isFullDay = !normalizedShift || normalizedShift === 'FULLDAY'
+    return item.returnDate.slice(0, 10) === scope.serviceDate
+      && (normalizedShift === scope.apiShiftName
+        || item.shiftName === scope.activeShift
+        || (isFullDay && scope.apiShiftName === 'MORNING'))
+  })
 
   const requestSupplemental = async (data: SupplementalRequest) => {
     const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
@@ -123,7 +130,7 @@ export function useChefExceptions(
 
   return {
     activeReturns: persistedReturnPage
-      ? persistedReturnPage.items.flatMap((item) => item.lines.map((line) => ({
+      ? persistedReturns.flatMap((item) => item.lines.map((line) => ({
           ingredientId: line.ingredientId,
           ingredientName: line.ingredientName || line.ingredientId,
           unit: line.unitName || '',

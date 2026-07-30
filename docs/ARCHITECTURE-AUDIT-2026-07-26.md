@@ -239,7 +239,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 >
 > Phần đã làm được của 2.10 tính đến 27/07: CI **có** replay migration trên MySQL thật và **có** so khớp schema
 > sinh từ migration với schema sinh từ model (723/723 dòng khớp). Đường cài mới đã đúng bằng model. Chi tiết và
-> giới hạn đã biết của phép so ở `docs/CURRENT-STATE.md`, mục "Sự cố mất dữ liệu và củng cố tầng database".
+> giới hạn đã biết của phép so ở `HISTORY.md`, mục "Sự cố mất dữ liệu và củng cố tầng database".
 >
 > Quan sát ở dòng 167 ("2 migration mồ côi trong DB; 1 migration chưa apply nhưng schema đã đúng") đã được xác
 > nhận lại: 2 ID mồ côi là `20260626043000_SeedTemporaryBomData` và
@@ -452,8 +452,8 @@ acceptance criteria của chính hàng đợi này, không phải một plan th�
   deterministic và không sửa type FE viết tay thay cho generated contract.
 - Không push, không reset/seed database, không di chuyển migrations. Mọi DB gate chạy trên đúng
   lane/database hiện hành sau khi kiểm tra lineage và evidence cần bảo toàn.
-- Browser gate mới chỉ kiểm website tại `1920×1080`, `1440×900`, `1366×768`, `1365×900`,
-  `1280×900`; `768×1024`, tablet và mobile ngoài scope mặc định kể từ 29/07/2026.
+- Browser gate mới chỉ kiểm ma trận website desktop khai trong `MEMORY.md`; tablet và mobile
+  ngoài scope mặc định cho tới khi có quyết định khác.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
 - Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
   Gate 13 nay đã xanh; Bước 15 đã hoàn tất cả Reports, Coordination, Purchasing, Catalog và SampleData;
@@ -807,11 +807,11 @@ và baseline expansion đều bị chặn. Lượt full gate cuối: Application
 433/433, lint/dependency/build xanh, OpenAPI/generated TypeScript không drift, EF pending-model sạch và
 migration contract 5/5.
 
-Guarded E2E chỉ mutate `ipc_lane1` sau backup/checksum/lineage gate, dùng đúng workbook ANV SHA-256
-`A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01` cho tuần `2026-07-27`.
+Guarded E2E chỉ mutate `ipc_lane1` sau backup/checksum/lineage gate, dùng workbook authoritative
+khai trong `MEMORY.md` cho tuần `2026-07-27`.
 Evidence cuối có 15 screenshot ở `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`;
 112 API response thành công, không console/page/request/API error, overflow hoặc long-task failure, reload
 ổn định. DB có 1 menu version, 12 schedule/meal plan, 6 material request, 7 purchase request/order,
-13 inventory issue và một supplemental request `FULFILLED`, orphan 0. Backup mirror SHA-256
-`027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13` hợp lệ; gap off-site vật lý
+13 inventory issue và một supplemental request `FULFILLED`, orphan 0. Backup mirror digest trong
+`docs/EVIDENCE-INDEX.md` hợp lệ; gap off-site vật lý
 từ Bước 16 vẫn là concern vận hành, không bị mô tả sai là đã đóng. Không push/reset/seed/restore.

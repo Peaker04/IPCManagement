@@ -78,6 +78,18 @@ public class StockMovementReportService : IStockMovementReportService
             stocks = stocks.Where(item => item.IngredientId == ingredientId);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.SearchKeyword))
+        {
+            var keyword = query.SearchKeyword.Trim();
+            stocks = stocks.Where(item =>
+                item.Warehouse.WarehouseName.Contains(keyword) ||
+                item.Warehouse.WarehouseCode.Contains(keyword) ||
+                item.Ingredient.IngredientName.Contains(keyword) ||
+                item.Ingredient.IngredientCode.Contains(keyword) ||
+                item.Unit.UnitName.Contains(keyword) ||
+                item.Unit.UnitCode.Contains(keyword));
+        }
+
         var projectedStocks = stocks.Select(item => new CurrentStockSummaryDto
         {
             WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
@@ -116,7 +128,12 @@ public class StockMovementReportService : IStockMovementReportService
         return PagedResponseDto<CurrentStockSummaryDto>.Create(items, totalCount, pageNumber, pageSize);
     }
 
-    public async Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query)
+    public Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query)
+        => GetStockMovementsCoreAsync(query, searchKeyword: null);
+
+    private async Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsCoreAsync(
+        WorkflowReportQueryDto query,
+        string? searchKeyword)
     {
         var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
         var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
@@ -146,6 +163,22 @@ public class StockMovementReportService : IStockMovementReportService
         {
             var movementType = query.MovementType.Trim().ToUpperInvariant();
             movements = movements.Where(item => item.MovementType.ToUpper() == movementType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            var keyword = searchKeyword.Trim();
+            movements = movements.Where(item =>
+                item.Warehouse.WarehouseName.Contains(keyword) ||
+                item.Warehouse.WarehouseCode.Contains(keyword) ||
+                item.Ingredient.IngredientName.Contains(keyword) ||
+                item.Ingredient.IngredientCode.Contains(keyword) ||
+                item.Unit.UnitName.Contains(keyword) ||
+                item.Unit.UnitCode.Contains(keyword) ||
+                item.MovementType.Contains(keyword) ||
+                (item.RefTable != null && item.RefTable.Contains(keyword)) ||
+                (item.Reason != null && item.Reason.Contains(keyword)) ||
+                (item.Note != null && item.Note.Contains(keyword)));
         }
 
         movements = movements.Where(item =>
@@ -189,10 +222,10 @@ public class StockMovementReportService : IStockMovementReportService
             .ToListAsync();
     }
 
-    public async Task<CursorPageDto<StockMovementViewDto>> GetStockMovementPageAsync(WorkflowReportQueryDto query)
+    public async Task<CursorPageDto<StockMovementViewDto>> GetStockMovementPageAsync(StockMovementPageQueryDto query)
     {
         var limit = NormalizePageLimit(query.Limit);
-        var rows = await GetStockMovementsAsync(CloneQuery(query, limit + 1));
+        var rows = await GetStockMovementsCoreAsync(CloneQuery(query, limit + 1), query.SearchKeyword);
         return BuildCursorPage(rows, limit, row => row.MovementDate, row => row.MovementId, query);
     }
 

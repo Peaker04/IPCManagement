@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ExcessMaterialDialog } from './excess-material-dialog';
 
@@ -22,5 +23,27 @@ describe('ExcessMaterialDialog responsive contract', () => {
     expect(screen.getByText('Hư hỏng')).toBeInTheDocument();
     expect(conditionLabel).not.toHaveClass('uppercase');
     expect(screen.queryByText('Tình Trạng Nguyên Liệu')).not.toBeInTheDocument();
+  });
+
+  it('shows the selected material label instead of its source-line id', async () => {
+    const user = userEvent.setup();
+    render(
+      <ExcessMaterialDialog
+        open
+        onOpenChange={vi.fn()}
+        onSubmit={vi.fn()}
+        materials={[{
+          id: 'issue-line-guid', name: 'Lá lốt', unit: 'kg', quantity: 5.186,
+          status: 'Đã nhận', signed: true,
+        }]}
+      />,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: /Chọn nguyên liệu/ }));
+    await user.click(screen.getByRole('option', { name: /Lá lốt/ }));
+
+    const trigger = screen.getByRole('combobox', { name: /Chọn nguyên liệu/ });
+    expect(trigger).toHaveTextContent('Lá lốt (kg)');
+    expect(trigger).not.toHaveTextContent('issue-line-guid');
   });
 });

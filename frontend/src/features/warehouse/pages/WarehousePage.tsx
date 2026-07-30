@@ -1,28 +1,12 @@
 import { useDeferredValue, useState } from 'react';
-import { ClipboardList, PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
+import { ClipboardList, PackageOpen, ReceiptText, Search, Warehouse } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
-import {
-  CommandBar,
-  ContextStrip,
-  DemandSummary,
-  DocumentRail,
-  EmptyState,
-  InlineAlert,
-  OperationalFrame,
-  PaginationBar,
-  QueryErrorAlert,
-  RoleInbox,
-  SectionPanel,
-  SplitWorkbench,
-  StockMovementTable,
-  TableViewport,
-  ViewSwitcher,
-} from '@/components/common';
+import { CommandBar, ContextStrip, DocumentRail, EmptyState, InlineAlert, OperationalFrame, PaginationBar, QueryErrorAlert, SectionPanel, SplitWorkbench, StockMovementTable, TableViewport, ViewSwitcher } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { useCreateInventoryIssueMutation, useGetCurrentStockQuery, useGetCurrentStockPageQuery, useGetIngredientDemandQuery, useGetIngredientDemandPageQuery, useGetMaterialRequestCandidatePageQuery, useGetKitchenIssuesQuery, useGetStockMovementPageQuery, useGetWorkflowDocumentsQuery, useWorkflowOverview } from '@/api/workflowApi';
+import { useCreateInventoryIssueMutation, useGetCurrentStockQuery, useGetCurrentStockPageQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialRequestCandidatePageQuery, useGetKitchenIssuesQuery, useGetStockMovementPageQuery, useGetWorkflowDocumentsQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
-import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
+import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import {
@@ -34,13 +18,16 @@ import {
 import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialog';
 import { buildWarehouseIssueAllocation } from '../warehouseIssueAllocation';
 import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
+import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
+import { WarehouseDemandPanel } from '../WarehouseDemandPanel';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { addIsoDays } from '../warehouseDateRange';
 
 const EMPTY_QUERY_ROWS: never[] = [];
-
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
     const data = (error as { data?: { message?: unknown } }).data;
@@ -62,12 +49,18 @@ export default function WarehousePage() {
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<string | null>(searchParams.get('purchaseOrderId'));
   const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [currentStockSearch, setCurrentStockSearch] = useState('');
+  const deferredCurrentStockSearch = useDeferredValue(currentStockSearch.trim());
   const [demandPage, setDemandPage] = useState(1);
+  const [demandSearch, setDemandSearch] = useState('');
+  const deferredDemandSearch = useDeferredValue(demandSearch.trim());
   const [issueCandidatePageNumber, setIssueCandidatePageNumber] = useState(1);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
+  const [stockMovementSearch, setStockMovementSearch] = useState('');
+  const deferredStockMovementSearch = useDeferredValue(stockMovementSearch.trim());
   const [warehouseFeedback, setWarehouseFeedback] = useState<{
     title: string;
     message: string;
@@ -90,20 +83,28 @@ export default function WarehousePage() {
     isFetching: isFetchingSupplementalRequests,
     refetch: refetchSupplementalRequests,
   } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
+  const requestedDemandDate = searchParams.get('date');
+  const requestedDemandWeek = searchParams.get('week');
+  const demandDateFrom = requestedDemandDate ?? requestedDemandWeek ?? undefined;
+  const demandDateTo = requestedDemandDate ?? (requestedDemandWeek ? addIsoDays(requestedDemandWeek, 6) : undefined);
   const {
     data: demandPageResponse,
     isError: isDemandPageError,
     isFetching: isFetchingDemandPage,
     refetch: refetchDemandPage,
-  } = useGetIngredientDemandPageQuery({
+  } = useGetIngredientDemandAggregatePageQuery({
     pageNumber: demandPage,
     pageSize: 8,
+    dateFrom: demandDateFrom,
+    dateTo: demandDateTo,
+    searchKeyword: deferredDemandSearch || undefined,
   }, { skip: activeView !== 'demand' });
   const demandLines = demandPageResponse?.items ?? [];
   const {
     data: issueCandidatePage,
     isFetching: isFetchingIssueCandidates,
     isError: isIssueCandidateError,
+    refetch: refetchIssueCandidates,
   } = useGetMaterialRequestCandidatePageQuery({
     purpose: 'issue',
     pageNumber: issueCandidatePageNumber,
@@ -114,6 +115,7 @@ export default function WarehousePage() {
     cursorDate: stockMovementCursor?.cursorDate,
     cursorId: stockMovementCursor?.cursorId,
     cursorOffset: stockMovementCursor?.cursorOffset,
+    searchKeyword: deferredStockMovementSearch || undefined,
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'movement' });
@@ -125,6 +127,7 @@ export default function WarehousePage() {
   });
   const stockMovementPage = stockMovementView.phase === 'ready' ? stockMovementView.data : undefined;
   const currentStockQuery = useGetCurrentStockPageQuery({
+    searchKeyword: deferredCurrentStockSearch || undefined,
     pageNumber: currentStockPage,
     pageSize: 8,
   }, { skip: activeView !== 'movement' });
@@ -137,7 +140,12 @@ export default function WarehousePage() {
   const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
   const currentStockRows = currentStockPageResponse ? currentStockPageResponse.items : EMPTY_QUERY_ROWS;
   const isCurrentStockError = currentStockView.phase === 'error' || currentStockView.phase === 'forbidden';
-  const { data: kitchenIssueRows = [], isError: isKitchenIssueError } = useGetKitchenIssuesQuery({ limit: 100 });
+  const {
+    data: kitchenIssueRows = [],
+    isError: isKitchenIssueError,
+    isFetching: isFetchingKitchenIssues,
+    refetch: refetchKitchenIssues,
+  } = useGetKitchenIssuesQuery({ limit: 500 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
   const { roleInboxItems } = useWorkflowOverview({ skip: activeView !== 'demand' });
   const warehouseDocuments = [
@@ -153,7 +161,7 @@ export default function WarehousePage() {
   const issueCandidates = issueCandidatePage?.items ?? [];
   const issueCreationAvailability = resolveIssueCreationAvailability({
     canManageWarehouse: canReceivePurchases,
-    isFetching: isFetchingIssueCandidates,
+    isFetching: isFetchingIssueCandidates || isFetchingKitchenIssues,
     candidateCount: issueCandidatePage?.totalCount,
     isError: isIssueCandidateError,
   });
@@ -168,7 +176,7 @@ export default function WarehousePage() {
     isError: isSelectedDemandError,
   } = useGetIngredientDemandQuery(
     selectedIssueCandidate
-      ? { dateFrom: selectedIssueCandidate.requestDate, dateTo: selectedIssueCandidate.requestDate, limit: 100 }
+      ? { dateFrom: selectedIssueCandidate.requestDate, dateTo: selectedIssueCandidate.requestDate, limit: 500 }
       : undefined,
     { skip: !selectedIssueCandidate },
   );
@@ -176,6 +184,7 @@ export default function WarehousePage() {
     data: selectedWarehouseStockRows = [],
     isFetching: isFetchingSelectedWarehouseStock,
     isError: isSelectedWarehouseStockError,
+    refetch: refetchSelectedWarehouseStock,
   } = useGetCurrentStockQuery(
     selectedWarehouseId ? { warehouseId: selectedWarehouseId, limit: -1 } : undefined,
     { skip: !selectedWarehouseId },
@@ -183,6 +192,9 @@ export default function WarehousePage() {
   // Nhu cầu hoặc tồn kho lỗi => phân bổ ra 0 dòng. Đó KHÔNG phải bằng chứng kho
   // thiếu hàng, nên không được hiển thị như vậy và không được cho xác nhận xuất.
   const isAllocationSourceError = isSelectedDemandError || isSelectedWarehouseStockError;
+  const isIssueAllocationRefreshing = isFetchingSelectedDemand
+    || isFetchingSelectedWarehouseStock
+    || isFetchingKitchenIssues;
   const selectedWarehouseAllocation = selectedIssueCandidate
     ? buildWarehouseIssueAllocation(
         selectedIssueCandidate.materialRequestId,
@@ -218,6 +230,15 @@ export default function WarehousePage() {
 
   const handleCreateInventoryIssue = async () => {
     setWarehouseFeedback(null);
+
+    if (isIssueAllocationRefreshing) {
+      setWarehouseFeedback({
+        title: 'Đang đồng bộ số lượng còn lại',
+        message: 'Chờ nhu cầu, tồn kho và các phiếu đã xuất tải xong trước khi xác nhận để tránh dùng số liệu cũ.',
+        variant: 'warning',
+      });
+      return;
+    }
 
     if (!selectedIssueCandidate) {
       setWarehouseFeedback({
@@ -255,6 +276,12 @@ export default function WarehousePage() {
         materialRequestId: selectedIssueCandidate.materialRequestId,
         lines: selectedWarehouseAllocation.lines,
       }).unwrap();
+
+      await Promise.all([
+        refetchIssueCandidates(),
+        refetchKitchenIssues(),
+        refetchSelectedWarehouseStock(),
+      ]);
 
       setWarehouseFeedback({
         title: 'Đã tạo phiếu xuất kho',
@@ -422,7 +449,7 @@ export default function WarehousePage() {
                   }`}
                   role={isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock ? 'alert' : 'status'}
                 >
-                  {isFetchingSelectedDemand || isFetchingSelectedWarehouseStock
+                  {isIssueAllocationRefreshing
                     ? 'Đang đối chiếu nhu cầu còn lại với tồn kho đã chọn...'
                     : isAllocationSourceError
                       ? 'Không đối chiếu được nhu cầu với tồn kho vì lỗi tải dữ liệu. Chưa thể kết luận kho này thiếu hàng; hãy tải lại trang trước khi xuất.'
@@ -438,9 +465,9 @@ export default function WarehousePage() {
             <Button
               type="button"
               onClick={() => void handleCreateInventoryIssue()}
-              disabled={!selectedMaterialRequestId || !selectedWarehouseId || isFetchingSelectedDemand || isFetchingSelectedWarehouseStock || isAllocationSourceError || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue}
+              disabled={!selectedMaterialRequestId || !selectedWarehouseId || isIssueAllocationRefreshing || isAllocationSourceError || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue}
             >
-              {isCreatingIssue ? 'Đang tạo phiếu...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
+              {isCreatingIssue || isIssueAllocationRefreshing ? 'Đang đồng bộ số lượng...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -551,45 +578,7 @@ export default function WarehousePage() {
               <span className="text-xs font-medium text-slate-600">{selectedPurchaseOrder.orderDate}</span>
             </div>
             <TableViewport ariaLabel={`Chi tiết đơn mua ${selectedPurchaseOrder.purchaseOrderCode}`} caption="Các dòng và yêu cầu bằng chứng nhập kho do máy chủ cung cấp." className="max-h-[320px]">
-              <table className="ipc-data-table min-w-[900px]">
-                <thead>
-                  <tr>
-                    <th>Nguyên liệu</th>
-                    <th>Đã nhận / đặt</th>
-                    <th>Đơn giá đặt</th>
-                    <th>Bằng chứng bắt buộc</th>
-                    <th>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedPurchaseOrder.lines.map((line) => {
-                    const remaining = Math.max(line.orderedQty - line.receivedQty, 0);
-                    const requirements = [
-                      line.lotNumberRequired ? 'số lô' : null,
-                      line.manufactureDateRequired ? 'ngày sản xuất' : null,
-                      line.expiryDateRequired ? 'hạn sử dụng' : null,
-                    ].filter(Boolean).join(', ');
-                    return (
-                      <tr key={line.purchaseOrderLineId}>
-                        <td>
-                          <span className="block font-semibold text-slate-900">{line.ingredientName}</span>
-                          {line.blockerReason && <span className="mt-1 block text-xs text-red-700">{line.blockerReason}</span>}
-                        </td>
-                        <td>{line.receivedQty}/{line.orderedQty} {line.unitName}<span className="block text-xs text-slate-500">Còn {remaining} {line.unitName}</span></td>
-                        <td>{formatCurrency(line.unitPrice)}</td>
-                        <td>{requirements || 'Không có yêu cầu bổ sung'}</td>
-                        <td>
-                          {canReceivePurchases && (
-                            <Button type="button" size="sm" disabled={remaining <= 0 || Boolean(line.blockerReason)} onClick={() => setSelectedReceiptLine(line)}>
-                              {remaining <= 0 ? 'Đã nhận đủ' : 'Ghi nhận nhập kho'}
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <PurchaseOrderLineGroups lines={selectedPurchaseOrder.lines} canReceive={canReceivePurchases} onReceive={setSelectedReceiptLine} />
             </TableViewport>
           </div>
         )}
@@ -631,6 +620,13 @@ export default function WarehousePage() {
           >
             <div className="flex flex-col gap-4">
               <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
+                <label htmlFor="warehouse-current-stock-search" className="mb-3 grid gap-1 text-xs font-semibold text-slate-700">
+                  Tìm trong snapshot tồn kho hiện tại
+                  <span className="relative block">
+                    <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <Input id="warehouse-current-stock-search" type="search" value={currentStockSearch} onChange={(event) => { setCurrentStockSearch(event.target.value); setCurrentStockPage(1); }} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 pl-9" />
+                  </span>
+                </label>
                 {currentStockView.phase === 'forbidden' && (
                   <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">
                     {currentStockView.message}
@@ -692,6 +688,13 @@ export default function WarehousePage() {
               </SectionPanel>
 
               <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
+                <label htmlFor="warehouse-stock-movement-search" className="mb-3 grid gap-1 text-xs font-semibold text-slate-700">
+                  Tìm bút toán theo chứng từ nguồn
+                  <span className="relative block">
+                    <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <Input id="warehouse-stock-movement-search" type="search" value={stockMovementSearch} onChange={(event) => { setStockMovementSearch(event.target.value); setStockMovementCursors([]); }} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" className="h-9 pl-9" />
+                  </span>
+                </label>
                 {stockMovementView.phase === 'forbidden' && (
                   <InlineAlert title="Không có quyền xem sổ luân chuyển kho" variant="danger" className="mb-3">
                     {stockMovementView.message}
@@ -737,36 +740,22 @@ export default function WarehousePage() {
       )}
 
       {activeView === 'demand' && (
-        <SectionPanel title="Nhu cầu xuất và thiếu hàng">
-          <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab">
-          {isDemandPageError ? (
-            <EmptyState
-              variant="error"
-              title="Không tải được nhu cầu xuất kho"
-              description="Chưa lấy được danh sách nhu cầu và thiếu hàng, nên không thể kết luận là không còn gì phải xuất. Hãy tải lại trước khi lập phiếu xuất."
-              onRetry={refetchDemandPage}
-              isRetrying={isFetchingDemandPage}
-            />
-          ) : <DemandSummary lines={demandLines} />}
-          <PaginationBar
-            page={demandPageResponse?.pageNumber ?? demandPage}
-            pageSize={demandPageResponse?.pageSize ?? 8}
-            totalItems={demandPageResponse?.totalCount ?? 0}
-            onPageChange={setDemandPage}
-          />
-          <div className="mt-4">
-            <RoleInbox
-              items={warehouseInbox}
-              title={null}
-              actionForItem={(item) => (
-                <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                  {formatWorkflowStatus(item.nextAction)}
-                </Link>
-              )}
-            />
-          </div>
-          </div>
-        </SectionPanel>
+        <WarehouseDemandPanel
+          demandSearch={demandSearch}
+          onDemandSearchChange={(value) => { setDemandSearch(value); setDemandPage(1); }}
+          requestedDemandDate={requestedDemandDate}
+          requestedDemandWeek={requestedDemandWeek}
+          demandDateTo={demandDateTo}
+          isError={isDemandPageError}
+          isFetching={isFetchingDemandPage}
+          onRetry={refetchDemandPage}
+          lines={demandLines}
+          page={demandPageResponse?.pageNumber ?? demandPage}
+          pageSize={demandPageResponse?.pageSize ?? 8}
+          totalItems={demandPageResponse?.totalCount ?? 0}
+          onPageChange={setDemandPage}
+          inboxItems={warehouseInbox}
+        />
       )}
 
       {activeView === 'exceptions' && (

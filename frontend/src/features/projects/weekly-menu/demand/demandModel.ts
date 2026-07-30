@@ -26,8 +26,8 @@ export const getDemandActionPresentation = (
     : approvalStatus === 'pending'
       ? 'approval' as const
       : 'generate' as const,
-  showGenerate: canRegenerate && (approvalStatus === 'not-created' || approvalStatus === 'rejected' || approvalStatus === 'cancelled' || (approvalStatus === 'approved' && isStale)),
-  generateIsSecondary: approvalStatus === 'approved' && isStale,
+  showGenerate: canRegenerate && (approvalStatus === 'not-created' || approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'cancelled' || (approvalStatus === 'approved' && isStale)),
+  generateIsSecondary: approvalStatus === 'pending' || (approvalStatus === 'approved' && isStale),
   requiresRegenerateConfirmation: approvalStatus === 'approved',
 })
 
@@ -138,8 +138,13 @@ export const partitionDemandLines = (lines: DemandLine[]) => ({
   sufficientLines: lines.filter((line) => !isDemandLineException(line)),
 })
 
-const demandDishSourceKey = (line: DemandLine) =>
-  `${line.ingredientId ?? line.material.trim().toLocaleLowerCase('vi-VN')}__${line.unit.trim().toLocaleLowerCase('vi-VN')}`
+const demandDishSourceKey = (line: DemandLine, fallbackServiceDate?: string) => {
+  const date = line.serviceDate || fallbackServiceDate
+  const unitIdentity = line.unitId || line.unit
+  return date && line.ingredientId && unitIdentity
+    ? `${date}__${line.ingredientId}__${unitIdentity}__${line.priceTierAmount ?? 'no-tier'}`
+    : `source__${line.id}`
+}
 
 export const attachDemandDishSources = (
   aggregateLines: DemandLine[],
@@ -149,7 +154,7 @@ export const attachDemandDishSources = (
   const sourcesByMaterial = new Map<string, Set<string>>()
 
   detailLines.filter((line) => line.serviceDate === serviceDate).forEach((line) => {
-    const key = demandDishSourceKey(line)
+    const key = demandDishSourceKey(line, serviceDate)
     const sources = sourcesByMaterial.get(key) ?? new Set<string>()
     if (line.source) sources.add(line.source)
     sourcesByMaterial.set(key, sources)
@@ -157,7 +162,7 @@ export const attachDemandDishSources = (
 
   return aggregateLines.map((line) => ({
     ...line,
-    source: formatMaterialDishSource(Array.from(sourcesByMaterial.get(demandDishSourceKey(line)) ?? [])),
+    source: formatMaterialDishSource(Array.from(sourcesByMaterial.get(demandDishSourceKey(line, serviceDate)) ?? [])),
   }))
 }
 

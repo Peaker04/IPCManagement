@@ -9,6 +9,7 @@ interface DemandSummaryProps {
   lines: DemandLine[];
   className?: string;
   sourceLabel?: string;
+  showServiceDate?: boolean;
 }
 
 const formatVariance = (value: number, unit: string) => {
@@ -45,19 +46,20 @@ const shortenNextAction = (action: string) => {
   return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;
 };
 
-export function DemandSummary({ lines, className, sourceLabel = 'Nguồn' }: DemandSummaryProps) {
+export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showServiceDate = false }: DemandSummaryProps) {
   if (!lines.length) {
     return <div className={cn('ipc-demand-summary is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
   return (
     <div className={cn('ipc-demand-summary', className)}>
-      <TableViewport className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu" caption="Tổng hợp nhu cầu nguyên liệu theo ngày và ca">
+      <TableViewport className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu" caption={showServiceDate ? 'Tổng hợp theo từng ngày trong khoảng đang xem' : 'Tổng hợp trong ngày đang xem'}>
         <table className="ipc-data-table ipc-demand-table ipc-status-action-table table-fixed w-full">
           <thead>
             <tr>
-              <th style={{ width: '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
-              <th style={{ width: '22%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
+              {showServiceDate && <th style={{ width: '11%' }} className="whitespace-nowrap text-left">Ngày</th>}
+              <th style={{ width: showServiceDate ? '15%' : '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
+              <th style={{ width: showServiceDate ? '18%' : '22%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Cần</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Khả dụng</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
@@ -72,6 +74,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn' }: Dem
 
               return (
                 <tr key={`${line.id}-${index}`}>
+                  {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? new Date(`${line.serviceDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa xác định'}</td>}
                   <td className="truncate" title={line.material}>{line.material}</td>
                   <td className="truncate" title={line.source}>{line.source}</td>
                   <td className="ipc-numeric-cell text-right whitespace-nowrap">

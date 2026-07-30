@@ -517,6 +517,53 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetReceiptPriceVariancePageAsync_Should_SearchByVisibleReceiptIdentity()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierId = GuidHelper.NewId();
+        var targetIngredientId = GuidHelper.NewId();
+        var otherIngredientId = GuidHelper.NewId();
+
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-PRICE", WarehouseName = "Kho giá", WarehouseType = "DRY" });
+        context.Suppliers.Add(new Supplier { SupplierId = supplierId, SupplierCode = "SUP-SEARCH", SupplierName = "Nhà cung cấp tìm kiếm", IsActive = true });
+        context.Ingredients.Add(new Ingredient { IngredientId = targetIngredientId, IngredientCode = "BUN-TUOI", IngredientName = "Bún tươi", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 10_000, IsFreshDaily = true, IsActive = true });
+        context.Ingredients.Add(new Ingredient { IngredientId = otherIngredientId, IngredientCode = "GAO-TE", IngredientName = "Gạo tẻ", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 20_000, IsFreshDaily = false, IsActive = true });
+        context.Inventoryreceipts.AddRange(
+            new InventoryReceipt
+            {
+                ReceiptId = GuidHelper.NewId(), ReceiptCode = "PN-TARGET-001", ReceiptDate = new DateOnly(2026, 7, 29),
+                WarehouseId = fixture.WarehouseId, SupplierId = supplierId, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+                Inventoryreceiptlines = [new InventoryReceiptLine { ReceiptLineId = GuidHelper.NewId(), IngredientId = targetIngredientId, UnitId = fixture.UnitId, Quantity = 12, UnitPrice = 11_000 }]
+            },
+            new InventoryReceipt
+            {
+                ReceiptId = GuidHelper.NewId(), ReceiptCode = "PN-OTHER-001", ReceiptDate = new DateOnly(2026, 7, 28),
+                WarehouseId = fixture.WarehouseId, SupplierId = supplierId, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+                Inventoryreceiptlines = [new InventoryReceiptLine { ReceiptLineId = GuidHelper.NewId(), IngredientId = otherIngredientId, UnitId = fixture.UnitId, Quantity = 20, UnitPrice = 21_000 }]
+            });
+        await context.SaveChangesAsync();
+
+        var service = new PriceVarianceReportService(context);
+        var byReceipt = await service.GetReceiptPriceVariancePageAsync(new ReceiptPriceVariancePageQueryDto
+        {
+            PageNumber = 1,
+            PageSize = 20,
+            SearchKeyword = "PN-TARGET"
+        });
+        var byIngredient = await service.GetReceiptPriceVariancePageAsync(new ReceiptPriceVariancePageQueryDto
+        {
+            PageNumber = 1,
+            PageSize = 20,
+            SearchKeyword = "Bún tươi"
+        });
+
+        byReceipt.Items.Should().ContainSingle().Which.ReceiptCode.Should().Be("PN-TARGET-001");
+        byIngredient.Items.Should().ContainSingle().Which.IngredientName.Should().Be("Bún tươi");
+    }
+
+    [Fact]
     public async Task GetOperationalKpisAsync_Should_ExcludeOverduePurchaseRequest_WhenAlreadyFullyReceivedViaPurchaseOrder()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -667,12 +714,16 @@ public partial class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
         await using var context = fixture.CreateContext();
         context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        var gramUnitId = GuidHelper.NewId();
+        context.Units.Add(new Unit { UnitId = gramUnitId, UnitCode = "G", UnitName = "Gram", BaseUnitCode = "KG", ConvertRateToBase = 0.001m });
         context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-KPI", WarehouseName = "Kho KPI", WarehouseType = "DRY" });
 
         var lowStockIngredientId = GuidHelper.NewId();
         var healthyStockIngredientId = GuidHelper.NewId();
+        var mixedUnitIngredientId = GuidHelper.NewId();
         context.Ingredients.Add(new Ingredient { IngredientId = lowStockIngredientId, IngredientCode = "ING-LOW", IngredientName = "NL tồn thấp", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
         context.Ingredients.Add(new Ingredient { IngredientId = healthyStockIngredientId, IngredientCode = "ING-OK", IngredientName = "NL tồn ổn", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+        context.Ingredients.Add(new Ingredient { IngredientId = mixedUnitIngredientId, IngredientCode = "ING-MIXED", IngredientName = "NL đa đơn vị", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
 
         // Nhu cầu trung bình 7 ngày: 70 / 7 = 10 mỗi ngày cho mỗi nguyên liệu
         var planId = GuidHelper.NewId();
@@ -689,13 +740,15 @@ public partial class WorkflowGenerationTests
             Materialrequestlines =
             [
                 new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 },
-                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 }
+                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 },
+                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = mixedUnitIngredientId, UnitId = gramUnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 7000, CurrentStockQty = 0, SuggestedPurchaseQty = 0 }
             ]
         });
 
         // Tồn kho hiện tại: NL tồn thấp chỉ còn 5 (< 10/ngày) -> tồn thấp; NL tồn ổn còn 50 (>= 10/ngày) -> không tính
         context.Currentstocks.Add(new CurrentStock { WarehouseId = fixture.WarehouseId, IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 5, LastUpdated = DateTime.UtcNow });
         context.Currentstocks.Add(new CurrentStock { WarehouseId = fixture.WarehouseId, IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 50, LastUpdated = DateTime.UtcNow });
+        context.Currentstocks.Add(new CurrentStock { WarehouseId = fixture.WarehouseId, IngredientId = mixedUnitIngredientId, UnitId = fixture.UnitId, CurrentQty = 5, LastUpdated = DateTime.UtcNow });
 
         await context.SaveChangesAsync();
 

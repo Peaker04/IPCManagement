@@ -5,6 +5,8 @@ import adminBomSource from './pages/admin-data/AdminBomPanel.tsx?raw';
 import adminBomModelSource from './pages/admin-data/useAdminBomPanelModel.ts?raw';
 import adminContractsModelSource from './pages/admin-data/useAdminContractsPanelModel.ts?raw';
 import adminModelSource from './pages/admin-data/useAdminDataPageModel.ts?raw';
+import adminInventorySource from './pages/admin-data/AdminInventoryPanel.tsx?raw';
+import adminInventoryModelSource from './pages/admin-data/useAdminInventoryPanelModel.ts?raw';
 import chefSource from '../features/chef/pages/ChefDashboardPage.tsx?raw';
 import chefReceiptsSource from '../features/chef/receipts/useKitchenReceipts.ts?raw';
 import chefProductionSource from '../features/chef/production/useChefProductionPlan.ts?raw';
@@ -12,11 +14,14 @@ import chefExceptionsSource from '../features/chef/exceptions/useChefExceptions.
 import chefJournalSource from '../features/chef/journal/useChefJournal.ts?raw';
 import reportsSource from '../features/reports/pages/ReportsPage.tsx?raw';
 import reportsModelSource from '../features/reports/pages/useReportsPageModel.ts?raw';
+import reportsStockModelSource from '../features/reports/pages/useReportsStockMovementViewModel.ts?raw';
 import reportsPriceSource from '../features/reports/pages/ReportsPricePanel.tsx?raw';
 import reportsPriceModelSource from '../features/reports/pages/useReportsPriceViewModel.ts?raw';
 import weeklyMenuSource from '../features/projects/pages/WeeklyMenuPage.tsx?raw';
 import materialDemandSource from '../features/projects/weekly-menu/demand/useMaterialDemand.ts?raw';
+import purchaseSummaryModelSource from '../features/projects/weekly-menu/purchasing/usePurchaseSummary.ts?raw';
 import warehouseSource from '../features/warehouse/pages/WarehousePage.tsx?raw';
+import warehouseDemandPanelSource from '../features/warehouse/WarehouseDemandPanel.tsx?raw';
 
 describe('operational page performance contracts', () => {
   it('keeps supplier quotations as an isolated purchasing work object', () => {
@@ -32,9 +37,16 @@ describe('operational page performance contracts', () => {
   });
 
   it('does not fetch hidden weekly-menu work views', () => {
-    expect(weeklyMenuSource).toContain("enabled: activeView === 'demand' || activeView === 'purchase-summary'");
+    expect(weeklyMenuSource).toContain("enabled: activeView === 'demand'");
+    expect(weeklyMenuSource).toContain("enabled: activeView === 'purchase-summary'");
+    expect(weeklyMenuSource).toContain('const demandReadinessResult = useGetIngredientDemandAggregatePageQuery({');
+    expect(weeklyMenuSource).toContain('pageSize: 10');
+    expect(weeklyMenuSource).toContain('demandMaterialCount: demandReadinessResult.data?.totalCount ?? 0');
     expect(weeklyMenuSource).toContain("activeView === 'production-plan'");
     expect(materialDemandSource).toContain('skip: !enabled || !scope.customerId');
+    expect(purchaseSummaryModelSource).toContain('useGetIngredientDemandAggregatePageQuery({');
+    expect(purchaseSummaryModelSource).toContain('pageSize: 10');
+    expect(purchaseSummaryModelSource).toContain('searchKeyword: deferredSearch || undefined');
     expect(materialDemandSource).toContain('skip: !stalenessEnabled || !scope.customerId');
     expect(weeklyMenuSource).toContain("connection?.saveData || connection?.effectiveType === 'slow-2g'");
     expect(weeklyMenuSource).toContain('.finally(preloadNext)');
@@ -49,10 +61,11 @@ describe('operational page performance contracts', () => {
   });
 
   it('gates warehouse work-view queries and keeps panel geometry stable', () => {
-    expect(warehouseSource).toContain("{ skip: activeView !== 'demand' }");
-    expect(warehouseSource).toContain("useWorkflowOverview({ skip: activeView !== 'demand' })");
-    expect(warehouseSource).toContain('min-h-[420px]');
-    expect(warehouseSource).toContain('duration-150 motion-reduce:transition-none');
+    const warehouseContractSource = `${warehouseSource}\n${warehouseDemandPanelSource}`;
+    expect(warehouseContractSource).toContain("{ skip: activeView !== 'demand' }");
+    expect(warehouseContractSource).toContain("useWorkflowOverview({ skip: activeView !== 'demand' })");
+    expect(warehouseContractSource).toContain('min-h-[420px]');
+    expect(warehouseContractSource).toContain('duration-150 motion-reduce:transition-none');
   });
 
   it('only fetches and renders the selected price analysis', () => {
@@ -71,5 +84,14 @@ describe('operational page performance contracts', () => {
     expect(adminContractSource).toContain('{isBomDialogOpen && <Dialog open');
     expect(adminContractSource).toContain('{closingBom && <Dialog open');
     expect(adminContractSource).not.toContain('useWorkflowOverview(');
+  });
+
+  it('keeps large stock and movement searches server-side before pagination', () => {
+    const searchContractSource = `${reportsSource}\n${reportsStockModelSource}\n${warehouseSource}\n${adminInventorySource}\n${adminInventoryModelSource}`;
+    expect(searchContractSource).toContain('searchKeyword: deferredStockSearch || undefined');
+    expect(searchContractSource).toContain('searchKeyword: deferredMovementSearch || undefined');
+    expect(searchContractSource).toContain('searchKeyword: deferredCurrentStockSearch || undefined');
+    expect(searchContractSource).toContain('searchKeyword: deferredStockMovementSearch || undefined');
+    expect(searchContractSource).toContain('searchKeyword: deferredInventoryMovementSearch || undefined');
   });
 });

@@ -34,6 +34,7 @@ interface PurchaseDecisionPanelProps {
   selectedStage: PurchasingStageId;
   serviceDate?: PurchaseWorkbenchServiceDate;
   selectedLine?: PurchaseRequestWorkflowLine;
+  panelId?: string;
 }
 
 type Confirmation =
@@ -150,6 +151,7 @@ export function PurchaseDecisionPanel({
   selectedStage,
   serviceDate,
   selectedLine,
+  panelId = 'purchase-decision-panel',
 }: PurchaseDecisionPanelProps) {
   const [selectedEvidence, setSelectedEvidence] = useState<SupplierEvidenceCandidate>();
   const [proposedUnitPrice, setProposedUnitPrice] = useState('');
@@ -291,7 +293,7 @@ export function PurchaseDecisionPanel({
       description={`${formatIsoDate(serviceDate.serviceDate)}. Cả ngày (FULLDAY). Dữ liệu trạng thái do máy chủ xác định.`}
       className="mt-4 min-w-0"
     >
-      <div id="purchase-decision-panel" className="space-y-4" tabIndex={-1}>
+      <div id={panelId} className="space-y-4" tabIndex={-1}>
         {errorMessage ? <InlineAlert title="Không thể hoàn tất thao tác" variant="danger"><span role="alert">{errorMessage}</span></InlineAlert> : null}
         {successMessage ? <InlineAlert title="Đã cập nhật" variant="info"><span role="status">{successMessage}</span></InlineAlert> : null}
 

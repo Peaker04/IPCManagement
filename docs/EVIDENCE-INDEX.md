@@ -1,0 +1,61 @@
+# Chỉ mục evidence
+
+File này là nơi duy nhất khai báo hash output artifact. Digest của workbook input là ngoại lệ bắt buộc trong front matter `MEMORY.md`. `Authoritative` được dùng để kết luận cho đúng phạm vi ghi trong cột Mục đích; `Historical` chỉ dùng điều tra; `Attempt` không được dùng làm gate.
+
+## Authoritative
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md` | `D91535134D31A42852F979DE5CE12C76293AC29D7B8ABB9C8B9696DD28A80F7F` | Phản chứng brief, baseline UI oracle và audit skill trên source/lane hiện hành. |
+| `.artifacts/shipyard-live/goal-runtime-20260729-round2/browser-grain-audit/headed-grain-audit.json` | `7852D18CD38474CED42BAA85F994D89D4D11ECF50F029975FCFB25F4A7D077E6` | Grain ngày/tuần, stock snapshot, movement và checklist Bếp. |
+| `.artifacts/shipyard-live/phase-18-guardrails-20260729/browser/phase18-headed-audit.json` | `E4032FCF00B2F9DE087007DBEA70680FC2113C8E9414007DE04E710F4025817B` | Weekly E2E, reload render và visual gate. |
+| `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json` | `B5CB0AB87821BD32F173FFB1E87364BCDC9B694D1AB0E18F228927A80930AA13` | Frontend ownership, route/tab interaction và warm revisit. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/all-tabs/headed-all-tabs-audit.json` | `D748D0AD84EA146720F9B73919B9379D420E8C17D3476A0C7612F1412B37DE0E` | SAP Fiori tab/layout/accessibility sweep. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/import-e2e-summary.json` | `FAF0BDE7A21E796FFD5832F1843D65BF001EA025555143A1A23C54F08A85857F` | Import cùng tuần cho nhiều customer/tier. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/menu-lifecycle-finalization.json` | `656B50B01726054720CD9235D86FA34B82659982B42E5CCCAE7A60D905E126C6` | Finalization version/schedule và audit transition. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/browser/headed-weekly-customer-lifecycle-audit.json` | `890C5CDC95709CC48A6205A53A7FCCF13145EAA7BC67ABA7562E4FE3495DF935` | FE reload của lifecycle theo customer/week. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/import-isolation.json` | `AD7FD5C67F6A94270FF6F947E59375FF77E2B40FB0814AD44C77BDF8A4AAED34` | Isolation customer/tier của import đã commit. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/tier-preview-matrix-repeat.json` | `9FB52478D7F7C8817A3E6236809E7D65922AC8FE549921DD8E7537B86A007255` | Preview lặp theo tier và sheet selection. |
+| `.artifacts/shipyard-live/goal-runtime-20260729/workbook-case-manifest.json` | `EF61E46B9665C14C2F79ECC7DB9B8892DA0C19A88A80CD42A76A7612BE2A9F27` | Manifest cho workbook-authoring còn mở; không tự nó chứng minh E2E pass. |
+| `.artifacts/shipyard-live/phase-18-guardrails-20260729/preflight.json` | `27A0BD5428F8D1E0D5200508C1F3D8D4D5BB4B5A87474453DB5D0CFDAD49EE1B` | Preflight lane, migration và guard trước mutation. |
+| `.artifacts/shipyard-live/phase-18-guardrails-20260729/import-transition.json` | `5C7538E78A961F285B6CB3559CCB2954CA02D29C0BB56199388F975D7AF34F6D` | DB transition của weekly import. |
+| `.artifacts/shipyard-live/phase-18-guardrails-20260729/supplemental-kitchen-confirm.json` | `B94054EEBDA1038706C9936CB445671AEB544D99F2AD5DFD7D5303FB6B133957` | Terminal confirmation của supplemental lifecycle. |
+
+## Historical
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/production-report-debug.json` | `3813B9CADD4BA76759A3D5FECDEBDD9454FE2A157C07E6677A97C2B6B0B5D323` | Điều tra production report sau restore. |
+| `.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/current-runtime-desktop-audit.json` | `975EEAC84626AA7B9CDEC559621728BEE83FD3BC5954021B7766004D8425C9EA` | Desktop audit trước ma trận viewport hiện hành. |
+| `.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/warehouse-desktop-cls-probe.json` | `5B7AD31365FC31B4BBA13AA977392220D555BC58696899A7E684BD8681027A97` | Probe CLS cold/warm cũ. |
+| `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json` | `4A3B0892066CCD51DF5FEA006C0E1348AA6F1E7D3CA95D3A1C8463DFD6A89096` | Baseline điều hướng sidebar. |
+| `.artifacts/shipyard-live/live-visual-performance.json` | `C525292F627593105648E93944D48593B110A8D10708825B7543B99C2D056B22` | Performance visual lịch sử. |
+| `.artifacts/shipyard-live/live-visual-performance-before-admin-dialog-fix.json` | `8A7FC57FADA9BB0277A75C8C6D0E55D3710543A87F81D8A2418852E137904383` | Baseline trước khi sửa dialog Admin. |
+| `.artifacts/shipyard-live/production-bom-debug.json` | `1770D555A92B43DDC39A97F5E13AA7ADC762FD9C5B4887399980E0D03DDB8A4C` | Điều tra BOM trên production snapshot. |
+| `.artifacts/p19-error-matrix/p19-matrix-results.json` | `6BF2E19B9CCD3DC9B660402CD02BFCBA804C3F16108307DAD796A45EF4B4C797` | Ma trận error/permission P1.9. |
+| `.artifacts/shipyard-live/query-view-pilot-performance.json` | `E92D4FD594C0DDAFE3FECB12552C876E3A2B63E3E084C1B459F04B5C63E1F3C7` | Pilot QueryView Material Demand/Warehouse. |
+| `.artifacts/shipyard-live/query-view-purchasing-performance.json` | `58919E39B18DF643385DB7AA1C7CA306064F20C31851F469E012D2DD5E85B742` | QueryView rollout Thu mua. |
+| `.artifacts/shipyard-live/query-view-approvals-performance.json` | `7C603BAB4F8407430A62A2892535AFFB8F3C91EF322C36EE69AFD8F7FEAC9CC2` | QueryView rollout Duyệt. |
+| `.artifacts/shipyard-live/query-view-reports-performance.json` | `C8B122DFD9ACCF1E38EEC062A8E90F4FCAD386C1E03F707E3CE0ADD00D78F3CD` | QueryView rollout Báo cáo. |
+| `.artifacts/shipyard-live/query-view-admin-performance.json` | `976B1B561CEBA53703756271B81FE6DFC8DE340C61CFC274114FB0825A5C8C5E` | QueryView rollout Admin. |
+| `.artifacts/shipyard-live/query-view-chef-performance.json` | `915306C9ECDC5C58A77BBE98BE0AFB207B7914A1B689D49DF0109785247BDBD2` | QueryView rollout Bếp. |
+| `.artifacts/shipyard-live/query-view-coordination-performance.json` | `26CFF37F7DBB6450477E296C26EBACD5ABF0902C3B6350D3C838D30D525664D4` | QueryView rollout Điều phối. |
+| `.artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json` | `6908D1E62B0871281235FDD32C30D3E5A245AE34B1F946FECC6835F4BF8783A9` | Lazy tab/navigation baseline. |
+| Phase 18 tracked OpenAPI | `DF09371F71C7CF9A524CD58C6C89A4443870DA6743ACC3E5F85C95E9FB7BB9E5` | Digest contract tại closeout Phase 18; không phải digest current tree. |
+| Phase 18 generated schema | `E1FF2980B16D62EA3375AE30C3C8DF682C2DC18BE26A09778036B48EAD74EFA1` | Digest generated contract tại closeout Phase 18. |
+| `D:\Backups\ipc-phase18-20260729\ipc_lane1-20260729-173035.zip` và mirror | `027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13` | Rollback checkpoint lịch sử; off-site vật lý chưa được chứng minh. |
+| Phase 18 protected dataset fingerprint | `EA62337AE966B980D19746E1741C4A223010F65E42F5E748D24BBCDAF03CF17B` | Fingerprint trước mutation cho lineage guard. |
+
+## Attempt cũ, không authoritative
+
+| Artifact | SHA-256 | Lý do loại |
+|---|---|---|
+| `.artifacts/shipyard-live/goal-runtime-20260729-round2/browser-grain-audit/headed-grain-audit-error.png` | `34D9C360D8B17B20FDF78437D0A6BF9F78FF02259F9027E07971EE0C95ADA92A` | Ảnh lỗi của attempt trước final run. |
+| `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit-error.json` | `7E15E9833E905AFF34DCAF19742CE53F55C16797A8E5A7D53B9FDE18B32F81E2` | Locator attempt cũ; file final cùng thư mục mới authoritative. |
+
+## Quy tắc cập nhật
+
+- Tính SHA-256 từ file trên disk sau khi run đã kết thúc; không copy hash từ log trung gian.
+- Mỗi artifact chỉ có một trạng thái. Khi thay thế gate, hạ dòng cũ xuống `Historical`; không sửa hash cũ.
+- File tên `error` hoặc `fatal` mặc định là `Attempt` trừ khi có ghi chú điều tra rõ ràng.
+- Kết luận gate hiện hành nằm trong `MEMORY.md`; file này chỉ định danh evidence, không lặp lại số đo.

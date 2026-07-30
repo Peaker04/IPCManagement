@@ -190,12 +190,13 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         workflowCacheTags.purchasePlan,
       ],
     }),
-    downloadBomTemplate: builder.mutation<Blob, { priceTier: number; customerId?: string; dishId?: string; templateType?: 'missing' | 'blank' | 'dish' }>({
+    downloadBomTemplate: builder.mutation<string, { priceTier: number; customerId?: string; dishId?: string; templateType?: 'missing' | 'blank' | 'dish' }>({
       query: ({ priceTier, customerId, dishId, templateType }) => ({
         url: '/dishes/bom-template',
         params: { priceTier, customerId, dishId, templateType },
         responseHandler: (response) => response.blob(),
       }),
+      transformResponse: (blob: Blob) => URL.createObjectURL(blob),
     }),
     previewBomImport: builder.mutation<BomImportPreview, BomImportFileRequest>({
       query: (request) => ({

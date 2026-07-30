@@ -193,42 +193,28 @@ Nếu muốn điều khiển Chrome đã mở sẵn, Chrome đó phải expose r
 
 ### Ma trận viewport hiện hành
 
-Mọi browser gate mới kể từ 29/07/2026 phải chạy đủ `1920×1080`, `1440×900`, `1366×768`,
-`1365×900` và `1280×900`. `768×1024` không còn thuộc ma trận; tablet/mobile chỉ được thêm lại
-khi có yêu cầu mới. Các mục evidence bên dưới vẫn ghi kích thước lịch sử thực tế và không được sửa
-ngược để giả thành coverage của ma trận mới.
+Ma trận duy nhất được khai trong `MEMORY.md`. Các evidence lịch sử giữ nguyên viewport
+thực tế của run và không được sửa ngược để giả thành coverage hiện hành.
 
 ### Gate Phase 17 — Frontend ownership (29/07/2026)
 
-- Contract frontend giữ đúng một production `apiSlice`/`createApi`, 75 endpoint key, 75 public generated hook và 22 cache ID.
-- `npm run verify` xanh trên HEAD `1ca2bbb`: Application **49/49**; API **680 pass + 1 intentional skip**; frontend **80 file, 433/433 test**. Backend/frontend build, ESLint và dependency-cruiser đều pass; dependency graph có **0 violation trên 342 module/1.169 dependency**.
-- `npm run check:api-contract` chạy lặp giữ nguyên SHA-256 của OpenAPI và generated TypeScript, không có contract drift; lint, build, dependency và contract gate đều deterministic.
-- Evidence authoritative của Chrome headed là `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json`: 3 viewport (`1365×900`, `1280×900`, `768×1024`), 30 app-route capture, 3 Shipyard capture, 96 tab interaction, 64 API response đều 2xx và 48 warm revisit không phát sinh request mới. Console/page/request error, horizontal overflow, CLS và long task đều bằng 0.
+- Mục tiêu của gate là khóa ownership của API slice, public hook/cache contract, dependency boundary và warm-navigation behavior.
+- Kết quả lịch sử nằm trong `HISTORY.md`; artifact và SHA nằm trong `docs/EVIDENCE-INDEX.md`.
 
 ### Gate Phase 18 — Guardrails và weekly E2E (29/07/2026)
 
-- `npm run test:architecture-growth` pass 6/6 comparator case; strict current-tree gate pass với đúng
-  10 finding production, không có test debt hoặc baseline expansion. Ba backend monolith và route-smoke
-  monolith đã được tách; route-smoke discovery/focused Chromium giữ 17/17 scenario.
-- `npm run verify` cuối xanh: Application **49/49**, API **682 pass + 1 intentional skip**, frontend
-  **80 file / 433/433**; ESLint, backend/frontend build và dependency-cruiser **0 violation trên
-  342 module / 1.169 dependency** đều pass. OpenAPI và generated TypeScript giữ lần lượt SHA-256
-  `DF09371F71C7CF9A524CD58C6C89A4443870DA6743ACC3E5F85C95E9FB7BB9E5` và
-  `E1FF2980B16D62EA3375AE30C3C8DF682C2DC18BE26A09778036B48EAD74EFA1`; EF pending-model sạch,
-  migration contracts 5/5.
-- Guarded runner chỉ sanitize `ipc_lane1` sau khi xác nhận đúng database, 61 bảng, 130 FK, 41 migration,
-  orphan 0 và backup mirror cùng SHA-256. Workbook tuần `2026-07-27` là
-  `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx`, SHA-256
-  `A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01`; import chỉ chạy một lần.
-- Evidence authoritative ở `.artifacts/shipyard-live/phase-18-guardrails-20260729`: 15 screenshot tại
-  đủ năm viewport hiện hành, 112 API response thành công, 0 console/page/request/API error, 0 whole-page
-  horizontal overflow, 0 long-task failure và CLS tối đa xấp xỉ `0,04567`. Giá trị CLS này là số đo
-  được lưu, không phải gate `0,02` của các probe tab lịch sử. Reload render ổn định và manual screenshot
-  review đã pass.
-- DB transition cuối: 1 menu version, 12 schedule, 12 meal plan, 6 material request, 7 purchase
-  request/order, 13 inventory issue và 1 supplemental request `FULFILLED`; orphan vẫn 0. Không chạy lại
-  sanitizer/import khi cần kiểm tra evidence đã lưu; dùng `scripts/Assert-Phase18Evidence.ps1` để xác minh
-  artifact mà không mutate database.
+- Mục tiêu của gate làm rõ architecture-growth, weekly import, lifecycle thiếu → mua → nhập → cấp → Bếp xác nhận, reload render và rollback guard.
+- Kết quả lịch sử nằm trong `HISTORY.md`; artifact và SHA nằm trong `docs/EVIDENCE-INDEX.md`. Dùng `scripts/Assert-Phase18Evidence.ps1` để kiểm tra artifact read-only.
+
+### Gate grain ngày/tuần và lifecycle (30/07/2026)
+
+- Contract cần kiểm tra nằm trong `docs/DATA-GRAIN-MATRIX.md`. Test phải phân biệt nhu cầu theo
+  `serviceDate + customerId + priceTierAmount + ingredientId + unitId`, tổng BOM tuần, current-stock
+  snapshot, document source-line và stock movement audit event.
+- Bộ số gate hiện hành và lệnh chạy lại chỉ nằm trong `MEMORY.md`; artifact và SHA chỉ nằm trong `docs/EVIDENCE-INDEX.md`.
+- Fixture `Bột nở` là regression oracle cho việc phân biệt dòng khác ngày, aggregate BOM source-line, current-stock snapshot và movement audit; không deduplicate theo tên.
+- Không rerun sanitizer/seed/import chỉ để chạy gate này. Nếu cần E2E mới, boot source-backed,
+  xác minh `/health/ready` đọc đúng `ipc_lane1`, sau đó đối chiếu FE → API → DB → FE reload.
 
 ## CI integration
 

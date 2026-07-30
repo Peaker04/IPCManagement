@@ -79,8 +79,7 @@ export const useWeeklyMenuImport = ({
     if (!selectedCustomer) return setFeedback('Chọn khách hàng', 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.', 'warning')
     if (!isValidWeekStartDate(state.weekStartDate)) return setFeedback('Chọn tuần bắt đầu', 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.', 'warning')
     try {
-      const blob = await downloadTemplate({ customerId: selectedCustomer.customerId, weekStartDate: state.weekStartDate }).unwrap()
-      const url = window.URL.createObjectURL(blob)
+      const url = await downloadTemplate({ customerId: selectedCustomer.customerId, weekStartDate: state.weekStartDate }).unwrap()
       const link = document.createElement('a')
       link.href = url
       link.download = `weekly-menu-template-${selectedCustomer.customerCode}-${state.weekStartDate}.xlsx`

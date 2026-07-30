@@ -55,7 +55,7 @@ của profile; không chạy `lane-reset.sh` vì lệnh đó còn reset Git củ
 Trước khi test, đối chiếu commit/working tree của checkout lane với source thật và gọi
 `/health/ready` để xác nhận database/migration. Không coi lane cũ là runtime đúng chỉ vì
 port đang listen. Nếu checkout lane có thay đổi chưa commit, không reset/ghi đè; xem
-`docs/CURRENT-STATE.md` để biết lane hiện boot từ checkout nào và DB nào. Mọi lần đồng bộ
+`MEMORY.md` để biết lane hiện boot từ checkout nào và DB nào. Mọi lần đồng bộ
 database lane từ database chính phải backup cả source/target và so exact row count + checksum
 trước khi chạy app; không dùng seed/reset để che schema hoặc dữ liệu cũ.
 
@@ -105,20 +105,11 @@ Remove-Item Env:K6_PASSWORD
 ```
 
 Helper dùng Playwright từ `node_modules/@playwright/test`, mở Google Chrome `headless: false`,
-đi thẳng vào FE lane thật, đăng nhập bằng credential đã xoay và ghi evidence cho 10 route.
-Ma trận browser gate hiện hành gồm `1920×1080`, `1440×900`, `1366×768`, `1365×900` và
-`1280×900`. Không dùng `768×1024`; tablet/mobile nằm ngoài gate mặc định cho tới khi Kỳ yêu cầu lại.
-Không dùng mock login/API hoặc snapshot visual cũ để kết luận runtime pass.
+đi thẳng vào FE lane thật và đăng nhập bằng credential đã xoay. Port, lane và ma trận
+viewport hiện hành chỉ lấy từ `MEMORY.md`; không dùng mock login/API hoặc snapshot cũ để kết luận pass.
 
-Evidence Phase 18 hiện được giữ tại `.artifacts/shipyard-live/phase-18-guardrails-20260729`. Kiểm tra lại
-artifact theo cách read-only từ project root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Assert-Phase18Evidence.ps1 `
-  -EvidenceRoot .artifacts/shipyard-live/phase-18-guardrails-20260729 `
-  -ExpectedDatabase ipc_lane1 -ExpectedWeek 2026-07-27 `
-  -ExpectedViewports '1920x1080,1440x900,1366x768,1365x900,1280x900'
-```
+Evidence Phase 18 và SHA authoritative nằm trong `docs/EVIDENCE-INDEX.md`. Kiểm tra artifact read-only
+từ project root bằng `scripts/Assert-Phase18Evidence.ps1`; lấy expected lane/viewport từ `MEMORY.md`.
 
 Không chạy lại `Invoke-Phase18LaneE2E.ps1`, sanitizer hoặc weekly import chỉ để tái kiểm tra lượt đã hoàn tất:
 `ipc_lane1` đang giữ chính transition/evidence đó. Một lượt mới phải có authorization riêng, database identity

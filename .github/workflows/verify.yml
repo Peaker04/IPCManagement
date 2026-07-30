@@ -148,9 +148,8 @@ jobs:
       # Test Supplier bên dưới gọi luôn proof fresh-install của PurchaseHistory trước khi kiểm
       # schema supplier/exception. Không chọn cả hai entry point cùng lúc: xUnit sẽ chạy song
       # song và hai lượt cùng DROP/CREATE ipc_lane8, tạo race "database exists".
-      # Hai test Migration_upgrade_* còn lại CHƯA bật được: chúng đòi một lane đã seed sẵn ở
-      # trạng thái TRƯỚC migration, CI chưa dựng được fixture đó. Xem B13 trong
-      # docs/ARCHITECTURE-REDESIGN-2026-07-26.md.
+      # Hai test Migration_upgrade_* tự dựng lane disposable ở đúng predecessor migration
+      # và chạy ở bước riêng bên dưới. Không dùng chung database với fresh-install.
       - name: Replay migration trên MySQL thật (B13)
         id: migration_replay
         env:
@@ -161,6 +160,17 @@ jobs:
           --filter "FullyQualifiedName~Migration_fresh_install_applies_decision_exception_and_legacy_marker_schema"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=migration-replay.trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results"
+
+      - name: Upgrade migration trên fixture có dữ liệu (B13)
+        env:
+          IPC_RUN_MYSQL_MIGRATION_TESTS: "1"
+        run: >
+          dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
+          --no-build
+          --filter "FullyQualifiedName~Migration_upgrade_populated_clone_preserves_receipt_history|FullyQualifiedName~Migration_upgrade_preserves_supplier_snapshots_and_rejects_duplicate_purchase_order_keys"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=migration-upgrade-replay.trx"
           --results-directory "${{ github.workspace }}/.artifacts/test-results"
 
       # B13 (phan 2) — schema tu MIGRATION phai bang schema tu MODEL.

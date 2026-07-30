@@ -612,7 +612,12 @@ export interface paths {
             readonly parameters: {
                 readonly query?: {
                     readonly Cursor?: string;
+                    readonly Date?: string;
                     readonly Limit?: number;
+                    readonly SearchKeyword?: string;
+                    readonly TargetId?: string;
+                    readonly TargetType?: string;
+                    readonly Week?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -6786,6 +6791,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly PriceTier?: number;
+                    readonly SearchKeyword?: string;
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
@@ -7117,6 +7123,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly PriceTier?: number;
+                    readonly SearchKeyword?: string;
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
@@ -8131,6 +8138,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly PriceTier?: number;
+                    readonly SearchKeyword?: string;
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
@@ -8253,6 +8261,7 @@ export interface paths {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly PriceTier?: number;
+                    readonly SearchKeyword?: string;
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
@@ -8433,6 +8442,7 @@ export interface paths {
                     readonly Limit?: number;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
+                    readonly SearchKeyword?: string;
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
@@ -10018,11 +10028,16 @@ export interface components {
         readonly IngredientDemandAggregateDto: {
             /** Format: double */
             readonly currentStockQty: number;
+            readonly customerCode?: string | null;
+            readonly customerId: string;
+            readonly customerName?: string | null;
             readonly hasCancelledLine: boolean;
             readonly ingredientId: string;
             readonly ingredientName?: string | null;
             /** Format: int32 */
             readonly lineCount: number;
+            /** Format: double */
+            readonly priceTierAmount: number;
             /** Format: date */
             readonly requestDate: string;
             /** Format: double */

@@ -56,7 +56,7 @@ public class AdminEmployeesController : ControllerBase
     {
         var created = await _employeeService.CreateAsync(request);
         return CreatedAtAction(
-            nameof(GetByIdAsync),
+            "GetById",
             new { id = created.UserId },
             ApiResponse<EmployeeDto>.SuccessResult(created, "Tạo tài khoản nhân viên thành công."));
     }

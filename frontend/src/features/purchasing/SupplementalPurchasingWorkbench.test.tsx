@@ -125,6 +125,7 @@ describe('SupplementalPurchasingWorkbench', () => {
     expect(screen.getByText('PR-SUP-001')).toBeInTheDocument();
     expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
     expect(mocks.decisionPanel).toHaveBeenCalledWith(expect.objectContaining({
+      panelId: 'supplemental-purchase-decision-panel',
       week: '2026-07-20',
       selectedStage: 'submitted',
       serviceDate: expect.objectContaining({

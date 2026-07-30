@@ -65,6 +65,11 @@ export const approvalsApi = apiSlice.injectEndpoints({
         params: {
           limit: query?.limit ?? 20,
           ...(query?.cursor ? { cursor: query.cursor } : {}),
+          ...(query?.targetType ? { targetType: query.targetType } : {}),
+          ...(query?.targetId ? { targetId: query.targetId } : {}),
+          ...(query?.week ? { week: query.week } : {}),
+          ...(query?.date ? { date: query.date } : {}),
+          ...(query?.searchKeyword ? { searchKeyword: query.searchKeyword } : {}),
         },
       }),
       transformResponse: (response: ApiResponse<ApprovalInboxPageDto>): ApprovalInboxPage => {

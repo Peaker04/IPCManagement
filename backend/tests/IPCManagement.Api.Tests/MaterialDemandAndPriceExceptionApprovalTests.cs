@@ -391,6 +391,37 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     }
 
     [Fact]
+    public async Task Inbox_FiltersDeepLinkByTargetWeekDateAndSearchBeforePaging()
+    {
+        await using var context = CreateInboxContext();
+        var requested = await SeedInboxDemandAsync(context, 1, "DRAFT");
+        await SeedInboxDemandAsync(context, 2, "DRAFT");
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+
+        var page = await service.GetPendingPageAsync(
+            BuildPrincipal("Manager"),
+            new ApprovalInboxQueryDto
+            {
+                Limit = 1,
+                TargetType = "material-demand",
+                TargetId = GuidHelper.ToGuidString(requested.RequestId),
+                Week = "2026-07-20",
+                Date = "2026-07-22",
+                SearchKeyword = "NGUYÊN LIỆU 1"
+            });
+
+        page.Items.Should().ContainSingle()
+            .Which.TargetId.Should().Be(GuidHelper.ToGuidString(requested.RequestId));
+        page.HasNext.Should().BeFalse();
+
+        var invalidWeek = async () => await service.GetPendingPageAsync(
+            BuildPrincipal("Manager"),
+            new ApprovalInboxQueryDto { Week = "2026-07-21" });
+        await invalidWeek.Should().ThrowAsync<ArgumentException>()
+            .WithParameterName("Week");
+    }
+
+    [Fact]
     public async Task Inbox_PagingIsStableAndPurchasingCannotMutateDemand()
     {
         await using var context = CreateInboxContext();

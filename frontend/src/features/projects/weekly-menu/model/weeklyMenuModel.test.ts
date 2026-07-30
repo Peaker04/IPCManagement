@@ -52,15 +52,15 @@ describe('weekly menu pure model', () => {
 
   it('aggregates material demand and derives the next action from real stock', () => {
     const result = aggregateDemandLinesByMaterial([
-      demandLine({ id: 'a', ingredientId: 'rice', required: 7, available: 4, reserved: 1, source: 'Cơm', materialRequestId: 'mr-1' }),
-      demandLine({ id: 'b', ingredientId: 'rice', required: 2, available: 4, reserved: 0, source: 'Cháo', materialRequestId: 'mr-1' }),
+      demandLine({ id: 'a', serviceDate: '2026-07-20', ingredientId: 'rice', unitId: 'kg', required: 7, available: 2, reserved: 1, source: 'Cơm', materialRequestId: 'mr-1' }),
+      demandLine({ id: 'b', serviceDate: '2026-07-20', ingredientId: 'rice', unitId: 'kg', required: 2, available: 3, reserved: 0, source: 'Cháo', materialRequestId: 'mr-1' }),
     ])
 
     expect(result).toHaveLength(1)
     expect(result[0]).toMatchObject({
       materialRequestId: 'mr-1',
       required: 9,
-      available: 4,
+      available: 5,
       reserved: 1,
       status: 'Thiếu nguyên liệu',
       nextAction: 'Đề xuất mua thêm',
@@ -68,6 +68,18 @@ describe('weekly menu pure model', () => {
     })
     expect(result[0].source).toBe('Cơm, Cháo')
     expect(getQuickServingKey('2026-07-20', 'MORNING')).toBe('2026-07-20|MORNING')
+  })
+
+  it('keeps weekly demand separated by service date', () => {
+    const result = aggregateDemandLinesByMaterial([
+      demandLine({ id: 'a', serviceDate: '2026-07-20', ingredientId: 'rice', unitId: 'kg', required: 3 }),
+      demandLine({ id: 'b', serviceDate: '2026-07-21', ingredientId: 'rice', unitId: 'kg', required: 4 }),
+    ])
+
+    expect(result.map((line) => [line.serviceDate, line.required])).toEqual([
+      ['2026-07-20', 3],
+      ['2026-07-21', 4],
+    ])
   })
 
   it('does not merge two materials whose names differ only by Vietnamese diacritics', () => {
@@ -101,8 +113,8 @@ describe('weekly menu pure model', () => {
     ])
 
     const demand = aggregateDemandLinesByMaterial([
-      demandLine({ id: 'a', ingredientId: 'ingredient-a', material: 'Bột', required: 3 }),
-      demandLine({ id: 'b', ingredientId: 'ingredient-b', material: 'Bột', required: 6 }),
+      demandLine({ id: 'a', serviceDate: '2026-07-20', ingredientId: 'ingredient-a', unitId: 'unit-kg', material: 'Bột', required: 3 }),
+      demandLine({ id: 'b', serviceDate: '2026-07-20', ingredientId: 'ingredient-b', unitId: 'unit-kg', material: 'Bột', required: 6 }),
     ])
     expect(demand.map((line) => [line.id, line.required])).toHaveLength(2)
   })

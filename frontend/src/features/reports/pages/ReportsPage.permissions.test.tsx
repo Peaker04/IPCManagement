@@ -1,8 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '@/components/common';
 
 import authReducer from '@/lib/auth/authSlice';
 import type { User } from '@/lib/auth/authTypes';
@@ -87,6 +88,7 @@ vi.mock('@/api/workflowApi', () => ({
   useGetCurrentStockPageQuery: mocks.currentStockPage,
   useGetDataQualityPageQuery: mocks.dataQualityPage,
   useGetIngredientDemandPageQuery: mocks.ingredientDemandPage,
+  useGetIngredientDemandAggregatePageQuery: mocks.ingredientDemandPage,
   useGetIssueVsReturnUsagePageQuery: mocks.issueVsReturnPage,
   useGetKitchenIssuesPageQuery: mocks.kitchenIssuesPage,
   useGetPriceVariancePageQuery: mocks.priceVariancePage,
@@ -130,7 +132,7 @@ const renderReportsPage = (role: TestRole, initialPath = '/reports') => {
   return render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[initialPath]}>
-        <ReportsPage />
+        <ToastProvider><ReportsPage /></ToastProvider>
       </MemoryRouter>
     </Provider>,
   );
@@ -301,6 +303,9 @@ describe('ReportsPage query state boundary', () => {
         id: 'price-1',
         name: 'Gạo tẻ',
         unit: 'kg',
+        receiptCode: 'PN-20260729-01',
+        receiptDate: '2026-07-29',
+        quantity: 120,
         pricePrev: 20_000,
         priceCurrent: 22_000,
         supplier: 'NCC A',
@@ -318,6 +323,35 @@ describe('ReportsPage query state boundary', () => {
     renderReportsPage('admin');
 
     expect(screen.getAllByText('Gạo tẻ').length).toBeGreaterThan(0);
+    expect(screen.getByText('PN-20260729-01')).toBeInTheDocument();
+    expect(screen.getByText('29/7/2026')).toBeInTheDocument();
+    expect(screen.getByText('120 kg')).toBeInTheDocument();
     expect(screen.getByText('Đang cập nhật báo cáo')).toBeInTheDocument();
+  });
+});
+
+describe('ReportsPage server-side stock search', () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
+  });
+
+  it('filters the current-stock snapshot before page-number pagination', async () => {
+    renderReportsPage('admin', '/reports?view=stock');
+    fireEvent.change(screen.getByLabelText('Tìm trong snapshot tồn kho hiện tại'), { target: { value: 'Lá lốt' } });
+
+    await waitFor(() => expect(mocks.currentStockPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ searchKeyword: 'Lá lốt', pageNumber: 1 }),
+      { skip: false },
+    ));
+  });
+
+  it('filters stock movements before cursor pagination', async () => {
+    renderReportsPage('admin', '/reports?view=movement');
+    fireEvent.change(screen.getByLabelText('Tìm bút toán trong khoảng ngày'), { target: { value: 'RETURN' } });
+
+    await waitFor(() => expect(mocks.stockMovementPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ searchKeyword: 'RETURN', cursorDate: undefined, cursorOffset: undefined }),
+      { skip: false },
+    ));
   });
 });

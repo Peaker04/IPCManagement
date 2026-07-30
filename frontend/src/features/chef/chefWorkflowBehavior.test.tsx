@@ -82,7 +82,7 @@ describe('chef workflow service-date behavior', () => {
     mocks.getInventoryReturns.mockReturnValue({ data: undefined, isLoading: false, isError: false })
   })
 
-  it('queries receipts by service date and shift and cannot confirm a non-matching issue', async () => {
+  it('queries every receipt for the service date and filters the selected shift locally', async () => {
     const unrelatedIssue = issue({ issueDate: '2026-07-19', shiftName: 'AFTERNOON' })
     mocks.getKitchenIssues.mockReturnValue({
       data: { items: [unrelatedIssue], totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false },
@@ -94,7 +94,6 @@ describe('chef workflow service-date behavior', () => {
     expect(mocks.getKitchenIssues).toHaveBeenCalledWith({
       dateFrom: '2026-07-20',
       dateTo: '2026-07-20',
-      shiftName: 'MORNING',
       pageNumber: 1,
       pageSize: 100,
     }, { skip: false })
@@ -110,6 +109,39 @@ describe('chef workflow service-date behavior', () => {
       issueId: unrelatedIssue.issueId,
     }, true))
     expect(mocks.confirmReceipt).not.toHaveBeenCalled()
+  })
+
+  it('queries returns by service date and presents FULLDAY returns only in the morning shift', () => {
+    mocks.getInventoryReturns.mockReturnValue({
+      data: {
+        items: [{
+          returnId: 'return-1', returnCode: 'PT-001', returnDate: '2026-07-20', shiftName: null,
+          returnType: 'RETURN', warehouseId: 'warehouse-1', reason: 'Còn nguyên vẹn', isReceived: false,
+          createdAt: '2026-07-20T10:00:00Z',
+          lines: [{ returnLineId: 'return-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', quantity: 1, unitId: 'unit-1', unitName: 'kg' }],
+        }],
+        totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false,
+      },
+      isLoading: false,
+      isError: false,
+    })
+    const productionPlan: ProductionPlan = {
+      date: scope.serviceDate, shift: scope.activeShift,
+      kitchenAssignment: { kitchenName: 'Bếp', kitchenCode: 'B01', responsibleChefs: [] },
+      totalMeals: 1, activeDishes: [], receivedMaterials: [], plannedMaterials: [],
+    }
+
+    const morning = renderHook(() => useChefExceptions(scope, productionPlan, [], vi.fn()))
+    expect(mocks.getInventoryReturns).toHaveBeenCalledWith({
+      returnDate: '2026-07-20', pageNumber: 1, pageSize: 100,
+    }, { skip: false })
+    expect(morning.result.current.activeReturns).toHaveLength(1)
+    morning.unmount()
+
+    const afternoon = renderHook(() => useChefExceptions({
+      ...scope, activeShift: 'Ca Chiều', apiShiftName: 'AFTERNOON',
+    }, { ...productionPlan, shift: 'Ca Chiều' }, [], vi.fn()))
+    expect(afternoon.result.current.activeReturns).toEqual([])
   })
 
   it('exposes server totals and page navigation when a receipt has more than 100 lines', () => {

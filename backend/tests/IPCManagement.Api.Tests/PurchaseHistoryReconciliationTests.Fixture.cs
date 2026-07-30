@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -149,6 +150,97 @@ public partial class PurchaseHistoryReconciliationTests
             """);
     }
 
+    internal static async Task PrepareUpgradeMigrationFixtureAsync(
+        string database,
+        string targetMigration)
+    {
+        await RecreateDisposableDatabaseAsync(database);
+        await BootstrapFreshInstallAsync(database);
+        await using var context = CreateMySqlContext(database);
+        await context.Database.GetService<IMigrator>().MigrateAsync(targetMigration);
+    }
+
+    internal static Task SeedReceiptUpgradeFixtureAsync(string database)
+        => ExecuteSqlScriptAsync(
+            database,
+            """
+            SET @role_id = UNHEX('71000000000000000000000000000001');
+            SET @user_id = UNHEX('71000000000000000000000000000002');
+            SET @warehouse_id = UNHEX('71000000000000000000000000000003');
+            SET @supplier_id = UNHEX('71000000000000000000000000000004');
+            SET @ingredient_id = UNHEX('71000000000000000000000000000005');
+            SET @receipt_id = UNHEX('71000000000000000000000000000006');
+            SET @receipt_line_id = UNHEX('71000000000000000000000000000007');
+            SET @unit_id = (SELECT `unitId` FROM `units` ORDER BY `unitCode` LIMIT 1);
+
+            INSERT INTO `roles` (`roleId`, `roleCode`, `roleName`)
+            VALUES (@role_id, 'MIGRATION_FIXTURE', 'Migration fixture');
+            INSERT INTO `users` (`userId`, `fullName`, `username`, `passwordHash`, `roleId`, `isActive`)
+            VALUES (@user_id, 'Migration fixture', 'migration-fixture', 'not-used', @role_id, 1);
+            INSERT INTO `warehouses` (`warehouseId`, `warehouseCode`, `warehouseName`, `warehouseType`)
+            VALUES (@warehouse_id, 'MIG-FIXTURE-WH', 'Migration fixture warehouse', 'KHAC');
+            INSERT INTO `suppliers` (`supplierId`, `supplierCode`, `supplierName`, `isActive`)
+            VALUES (@supplier_id, 'MIG-FIXTURE-SUP', 'Migration fixture supplier', 1);
+            INSERT INTO `ingredients`
+                (`ingredientId`, `ingredientCode`, `ingredientName`, `unitId`, `warehouseId`, `referencePrice`, `isFreshDaily`, `isActive`)
+            VALUES
+                (@ingredient_id, 'MIG-FIXTURE-ING', 'Migration fixture ingredient', @unit_id, @warehouse_id, 10000, 0, 1);
+            INSERT INTO `inventoryreceipts`
+                (`receiptId`, `receiptCode`, `receiptDate`, `warehouseId`, `supplierId`, `createdBy`, `createdAt`)
+            VALUES
+                (@receipt_id, 'MIG-FIXTURE-REC', '2026-07-20', @warehouse_id, @supplier_id, @user_id, '2026-07-20 08:00:00');
+            INSERT INTO `inventoryreceiptlines`
+                (`receiptLineId`, `receiptId`, `ingredientId`, `unitId`, `quantity`, `unitPrice`, `lotNumber`)
+            VALUES
+                (@receipt_line_id, @receipt_id, @ingredient_id, @unit_id, 5, 10000, 'MIG-FIXTURE-LOT');
+            """);
+
+    internal static Task SeedSupplierUpgradeFixtureAsync(string database)
+        => ExecuteSqlScriptAsync(
+            database,
+            """
+            SET @role_id = UNHEX('72000000000000000000000000000001');
+            SET @user_id = UNHEX('72000000000000000000000000000002');
+            SET @warehouse_id = UNHEX('72000000000000000000000000000003');
+            SET @supplier_id = UNHEX('72000000000000000000000000000004');
+            SET @ingredient_id = UNHEX('72000000000000000000000000000005');
+            SET @purchase_request_id = UNHEX('72000000000000000000000000000006');
+            SET @purchase_line_id = UNHEX('72000000000000000000000000000007');
+            SET @purchase_order_id = UNHEX('72000000000000000000000000000008');
+            SET @material_line_id = UNHEX('72000000000000000000000000000009');
+            SET @unit_id = (SELECT `unitId` FROM `units` ORDER BY `unitCode` LIMIT 1);
+
+            SET FOREIGN_KEY_CHECKS = 0;
+            INSERT INTO `roles` (`roleId`, `roleCode`, `roleName`)
+            VALUES (@role_id, 'MIGRATION_FIXTURE', 'Migration fixture');
+            INSERT INTO `users` (`userId`, `fullName`, `username`, `passwordHash`, `roleId`, `isActive`)
+            VALUES (@user_id, 'Migration fixture', 'migration-fixture', 'not-used', @role_id, 1);
+            INSERT INTO `warehouses` (`warehouseId`, `warehouseCode`, `warehouseName`, `warehouseType`)
+            VALUES (@warehouse_id, 'MIG-FIXTURE-WH', 'Migration fixture warehouse', 'KHAC');
+            INSERT INTO `suppliers` (`supplierId`, `supplierCode`, `supplierName`, `isActive`)
+            VALUES (@supplier_id, 'MIG-FIXTURE-SUP', 'Migration fixture supplier', 1);
+            INSERT INTO `ingredients`
+                (`ingredientId`, `ingredientCode`, `ingredientName`, `unitId`, `warehouseId`, `referencePrice`, `isFreshDaily`, `isActive`)
+            VALUES
+                (@ingredient_id, 'MIG-FIXTURE-ING', 'Migration fixture ingredient', @unit_id, @warehouse_id, 10000, 0, 1);
+            INSERT INTO `purchaserequests`
+                (`purchaseRequestId`, `purchaseRequestCode`, `requestDate`, `purchaseForDate`, `status`, `createdBy`)
+            VALUES
+                (@purchase_request_id, 'MIG-FIXTURE-PR', '2026-07-20', '2026-07-21', 'APPROVED', @user_id);
+            INSERT INTO `purchaserequestlines`
+                (`purchaseRequestLineId`, `purchaseRequestId`, `materialRequestLineId`, `ingredientId`, `supplierId`, `unitId`,
+                 `requiredQty`, `currentStockQty`, `purchaseQty`, `estimatedUnitPrice`)
+            VALUES
+                (@purchase_line_id, @purchase_request_id, @material_line_id, @ingredient_id, @supplier_id, @unit_id,
+                 5, 0, 5, 10000);
+            INSERT INTO `purchaseorders`
+                (`purchaseOrderId`, `purchaseOrderCode`, `purchaseRequestId`, `supplierId`, `orderDate`, `status`, `createdBy`, `createdAt`, `updatedAt`)
+            VALUES
+                (@purchase_order_id, 'MIG-FIXTURE-PO', @purchase_request_id, @supplier_id, '2026-07-20', 'ORDERED', @user_id,
+                 '2026-07-20 08:00:00', '2026-07-20 08:00:00');
+            SET FOREIGN_KEY_CHECKS = 1;
+            """);
+
     private static async Task ExecuteSqlScriptAsync(string database, string sql)
     {
         await using var connection = new MySqlConnection(DisposableConnectionString(database));
@@ -180,7 +272,8 @@ public partial class PurchaseHistoryReconciliationTests
 
         return new MySqlConnectionStringBuilder(configured)
         {
-            Database = database
+            Database = database,
+            AllowUserVariables = true
         }.ConnectionString;
     }
 

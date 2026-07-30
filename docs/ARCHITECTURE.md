@@ -1,6 +1,8 @@
 <!-- generated-by: gsd-doc-writer -->
 # Kiến trúc hệ thống
 
+Tổng quan nghiệp vụ và bốn vai trò vận hành nằm tại [DOMAIN.md](DOMAIN.md). Contract phân biệt dữ liệu theo ngày, tuần, snapshot, chứng từ và audit event được duy trì tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md). Mọi bảng nguyên liệu và phép aggregate mới phải tuân theo ma trận này.
+
 ## Tổng quan
 
 IPC Management là monorepo cho hệ thống quản lý bếp ăn công nghiệp. Hệ thống dùng một backend ASP.NET Core 9 dạng modular monolith, frontend React/Vite/TypeScript và MySQL thông qua Entity Framework Core với Pomelo. Backend nhận request HTTP từ frontend, áp dụng middleware xác thực/ủy quyền/rate limit, điều phối qua controller và service, rồi đọc ghi dữ liệu qua repository/Unit of Work và `IpcManagementContext`.

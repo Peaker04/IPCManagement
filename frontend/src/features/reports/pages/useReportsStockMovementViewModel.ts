@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import {
   toNextReportCursor,
   useGetCurrentStockPageQuery,
@@ -30,8 +30,13 @@ export function useReportsStockMovementViewModel({ activeView, initialPage, repo
   const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
   const [stockPageSize, setStockPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [stockPage, setStockPage] = useState(initialPage);
+  const [stockSearch, setStockSearchState] = useState('');
+  const [movementSearch, setMovementSearchState] = useState('');
+  const deferredStockSearch = useDeferredValue(stockSearch.trim());
+  const deferredMovementSearch = useDeferredValue(movementSearch.trim());
   const currentStockResult = useGetCurrentStockPageQuery({
     ...reportQuery,
+    searchKeyword: deferredStockSearch || undefined,
     pageNumber: stockPage,
     pageSize: stockPageSize,
   }, { skip: activeView !== 'stock' });
@@ -41,6 +46,7 @@ export function useReportsStockMovementViewModel({ activeView, initialPage, repo
     cursorDate: movementCursor?.cursorDate,
     cursorId: movementCursor?.cursorId,
     cursorOffset: movementCursor?.cursorOffset,
+    searchKeyword: deferredMovementSearch || undefined,
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'movement' });
@@ -53,6 +59,14 @@ export function useReportsStockMovementViewModel({ activeView, initialPage, repo
       ? toNextReportCursor(stockMovementView.data)
       : null;
     if (nextCursor) setMovementCursors((current) => [...current, nextCursor]);
+  };
+  const setStockSearch = (value: string) => {
+    setStockSearchState(value);
+    setStockPage(1);
+  };
+  const setMovementSearch = (value: string) => {
+    setMovementSearchState(value);
+    setMovementCursors([]);
   };
   const exportConfigs: Record<'stock' | 'movement', ReportExportConfig> = {
     stock: {
@@ -87,14 +101,18 @@ export function useReportsStockMovementViewModel({ activeView, initialPage, repo
     exportConfigs,
     movementCursor,
     movementCursors,
+    movementSearch,
     openNextMovementPage,
+    setMovementSearch,
     setMovementCursors,
+    setStockSearch,
     setStockPage,
     setStockPageSize,
     stockMovementResult,
     stockMovementRows,
     stockPage,
     stockPageSize,
+    stockSearch,
     views: { movement: stockMovementView, stock: currentStockView },
   };
 }

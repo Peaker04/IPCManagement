@@ -29,7 +29,7 @@
       "files": [
         "frontend/src/features/reports/reportsApi.ts"
       ],
-      "lines": 858,
+      "lines": 839,
       "level": "WARNING"
     },
     {
@@ -39,7 +39,7 @@
       "files": [
         "frontend/src/features/warehouse/pages/WarehousePage.tsx"
       ],
-      "lines": 781,
+      "lines": 770,
       "level": "WARNING"
     },
     {
@@ -49,7 +49,7 @@
       "files": [
         "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
       ],
-      "lines": 1446,
+      "lines": 1410,
       "level": "PLAN_REQUIRED"
     },
     {

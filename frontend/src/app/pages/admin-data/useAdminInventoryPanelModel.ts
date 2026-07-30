@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import {
   useGetCurrentStockPageQuery,
   useGetStockMovementPageQuery,
@@ -10,9 +10,12 @@ import { toAdminView } from './adminDataPageModelShared';
 export function useAdminInventoryPanelModel(activeView: AdminView) {
   const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [inventoryMovementSearch, setInventoryMovementSearchState] = useState('');
+  const deferredInventoryMovementSearch = useDeferredValue(inventoryMovementSearch.trim());
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
     movementType: 'adjustment',
+    searchKeyword: deferredInventoryMovementSearch || undefined,
     cursorDate: stockMovementCursor?.cursorDate,
     cursorId: stockMovementCursor?.cursorId,
     cursorOffset: stockMovementCursor?.cursorOffset,
@@ -28,6 +31,10 @@ export function useAdminInventoryPanelModel(activeView: AdminView) {
   const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
   const adjustmentMovements = stockMovementView.phase === 'ready' ? stockMovementView.data.items : [];
   const currentStockRows = currentStockPageResponse?.items ?? [];
+  const setInventoryMovementSearch = (value: string) => {
+    setInventoryMovementSearchState(value);
+    setStockMovementCursors([]);
+  };
 
   return {
     queryViews: {
@@ -38,6 +45,8 @@ export function useAdminInventoryPanelModel(activeView: AdminView) {
     currentStockPage,
     currentStockPageResponse,
     currentStockRows,
+    inventoryMovementSearch,
+    setInventoryMovementSearch,
     setCurrentStockPage,
     setStockMovementCursors,
     stockMovementCursors,

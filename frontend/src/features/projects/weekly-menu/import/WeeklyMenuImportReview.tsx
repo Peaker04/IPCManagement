@@ -34,7 +34,7 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
         </InlineAlert>
       )}
 
-      {preview && (
+      {preview && preview.detectedLayout.dayColumns.length > 0 && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <ContextStrip

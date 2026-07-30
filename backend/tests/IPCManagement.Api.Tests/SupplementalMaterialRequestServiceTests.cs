@@ -62,10 +62,49 @@ public sealed class SupplementalMaterialRequestServiceTests
     }
 
     [Fact]
+    public async Task GetPagedAsync_ShouldSearchByIngredientName()
+    {
+        await using var context = CreateContext();
+        var rice = SeedReceivedIssueLine(context, DateTime.UtcNow, ingredientCode: "GAO", ingredientName: "Gạo");
+        var salt = SeedReceivedIssueLine(context, DateTime.UtcNow, ingredientCode: "MUOI", ingredientName: "Muối");
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        await service.CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                IssueId = GuidHelper.ToGuidString(rice.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(rice.IssueLineId),
+                RequestedQty = 1,
+            },
+            GuidHelper.ToGuidString(rice.UserId),
+            GuidHelper.ToGuidString(rice.WarehouseId));
+        await service.CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                IssueId = GuidHelper.ToGuidString(salt.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(salt.IssueLineId),
+                RequestedQty = 1,
+            },
+            GuidHelper.ToGuidString(salt.UserId),
+            GuidHelper.ToGuidString(salt.WarehouseId));
+
+        var result = await service.GetPagedAsync(new SupplementalMaterialRequestFilterDto
+        {
+            PageNumber = 1,
+            PageSize = 20,
+            SearchKeyword = "Muối",
+        });
+
+        result.TotalCount.Should().Be(1);
+        result.Items.Should().ContainSingle().Which.IngredientName.Should().Be("Muối");
+    }
+
+    [Fact]
     public async Task FulfillAsync_ShouldCreateSupplementalIssue_DecreaseStock_AndExposeRemainingQuantity()
     {
         await using var context = CreateContext();
-        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        var sourceIssueDate = new DateOnly(2024, 1, 15);
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow, issueDate: sourceIssueDate);
         var stock = new CurrentStock
         {
             WarehouseId = seed.WarehouseId,
@@ -127,14 +166,16 @@ public sealed class SupplementalMaterialRequestServiceTests
         result.RemainingQty.Should().Be(0);
         result.ActionDisabledReason.Should().Be("Kho đã cấp đủ; đang chờ bếp kiểm đếm và ký nhận.");
         stock.CurrentQty.Should().Be(2.5m);
-        (await context.Inventoryissues.CountAsync(item => item.IssueCode.StartsWith("ISS-SUP-"))).Should().Be(1);
+        var supplementalIssue = await context.Inventoryissues.SingleAsync(item => item.IssueCode.StartsWith("ISS-SUP-"));
+        supplementalIssue.IssueDate.Should().Be(sourceIssueDate);
     }
 
     [Fact]
     public async Task RouteToPurchasingAsync_ShouldCreateTraceableDraftForOnlyMissingQuantity()
     {
         await using var context = CreateContext();
-        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        var sourceIssueDate = new DateOnly(2024, 1, 15);
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow, issueDate: sourceIssueDate);
         context.Materialrequestlines.Add(new MaterialRequestLine
         {
             RequestLineId = GuidHelper.NewId(),
@@ -173,6 +214,8 @@ public sealed class SupplementalMaterialRequestServiceTests
         var purchaseLine = await context.Purchaserequestlines.SingleAsync();
         purchaseLine.PurchaseQty.Should().Be(3);
         purchaseLine.IngredientId.Should().Equal(seed.IngredientId);
+        var purchaseRequest = await context.Purchaserequests.SingleAsync();
+        purchaseRequest.PurchaseForDate.Should().Be(sourceIssueDate);
     }
 
     private static IpcManagementContext CreateContext()
@@ -198,7 +241,10 @@ public sealed class SupplementalMaterialRequestServiceTests
 
     private static (byte[] IssueId, byte[] IssueLineId, byte[] WarehouseId, byte[] UserId, byte[] IngredientId, byte[] UnitId, byte[] MaterialRequestId) SeedReceivedIssueLine(
         IpcManagementContext context,
-        DateTime? receivedAt)
+        DateTime? receivedAt,
+        DateOnly? issueDate = null,
+        string ingredientCode = "GAO",
+        string ingredientName = "Gạo")
     {
         var issueId = GuidHelper.NewId();
         var issueLineId = GuidHelper.NewId();
@@ -207,13 +253,13 @@ public sealed class SupplementalMaterialRequestServiceTests
         var warehouseId = GuidHelper.NewId();
         var userId = GuidHelper.NewId();
         var materialRequestId = GuidHelper.NewId();
-        var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "GAO", IngredientName = "Gạo", UnitId = unitId, WarehouseId = warehouseId, IsActive = true };
+        var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = ingredientCode, IngredientName = ingredientName, UnitId = unitId, WarehouseId = warehouseId, IsActive = true };
         var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", ConvertRateToBase = 1 };
         var issue = new InventoryIssue
         {
             IssueId = issueId,
             IssueCode = "ISS-TEST",
-            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            IssueDate = issueDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
             WarehouseId = warehouseId,
             MaterialRequestId = materialRequestId,
             IssuedBy = userId,

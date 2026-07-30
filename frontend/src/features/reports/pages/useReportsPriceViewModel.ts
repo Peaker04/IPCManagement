@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   useGetPriceVarianceByDishGroupPageQuery,
   useGetPriceVarianceByPeriodPageQuery,
@@ -27,14 +27,26 @@ type ReportsPriceViewModelArgs = {
 export function useReportsPriceViewModel({ activeView, initialPage, priceSubView, reportQuery, searchParams }: ReportsPriceViewModelArgs) {
   const [pricePageSize, setPricePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 6, pricePageSizeOptions));
   const [pricePage, setPricePage] = useState(initialPage);
+  const [priceSearch, setPriceSearch] = useState('');
+  const [debouncedPriceSearch, setDebouncedPriceSearch] = useState('');
   const [priceAggregatePageSize, setPriceAggregatePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [supplierPage, setSupplierPage] = useState(initialPage);
   const [periodPage, setPeriodPage] = useState(initialPage);
   const [dishGroupPage, setDishGroupPage] = useState(initialPage);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedPriceSearch(priceSearch.trim());
+      setPricePage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [priceSearch]);
+
   const priceVarianceResult = useGetPriceVariancePageQuery({
     ...reportQuery,
     pageNumber: pricePage,
     pageSize: pricePageSize,
+    searchKeyword: debouncedPriceSearch || undefined,
   }, { skip: activeView !== 'price' || priceSubView !== 'lines' });
   const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierPageQuery({ ...reportQuery, pageNumber: supplierPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
   const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodPageQuery({ ...reportQuery, pageNumber: periodPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'period' });
@@ -62,6 +74,9 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
     columns: [
       ['Tên nguyên liệu', (row) => row.name],
       ['Nhà cung cấp', (row) => row.supplier],
+      ['Mã phiếu nhập', (row) => row.receiptCode],
+      ['Ngày nhập', (row) => row.receiptDate],
+      ['Số lượng', (row) => row.quantity],
       ['ĐVT', (row) => row.unit],
       ['Giá tham chiếu', (row) => row.pricePrev],
       ['Giá nhập', (row) => row.priceCurrent],
@@ -78,6 +93,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
     priceAggregatePageSize,
     pricePage,
     pricePageSize,
+    priceSearch,
     priceVarianceByDishGroupResult,
     priceVarianceByDishGroupRows,
     priceVarianceByPeriodResult,
@@ -92,6 +108,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
     setPriceAggregatePageSize,
     setPricePage,
     setPricePageSize,
+    setPriceSearch,
     setSupplierPage,
     supplierPage,
     view: priceVarianceView,

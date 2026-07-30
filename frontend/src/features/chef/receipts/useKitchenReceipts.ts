@@ -14,7 +14,6 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
   const query = useGetKitchenIssuesPageQuery({
     dateFrom: scope.serviceDate,
     dateTo: scope.serviceDate,
-    shiftName: scope.apiShiftName,
     pageNumber: page,
     pageSize: 100,
   }, { skip: !enabled })

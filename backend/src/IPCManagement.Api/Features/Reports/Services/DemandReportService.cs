@@ -198,12 +198,20 @@ public class DemandReportService : IDemandReportService
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
+        var searchKeyword = query.SearchKeyword?.Trim();
 
         var lines = _context.Materialrequestlines.AsNoTracking().AsQueryable();
 
         if (ingredientId is not null)
         {
             lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            lines = lines.Where(item =>
+                item.Ingredient.IngredientName.Contains(searchKeyword) ||
+                item.Ingredient.IngredientCode.Contains(searchKeyword));
         }
 
         if (dateFrom is not null)
@@ -229,6 +237,10 @@ public class DemandReportService : IDemandReportService
         var grouped = lines.GroupBy(item => new
         {
             item.Request.RequestDate,
+            item.PlanLine.CustomerId,
+            CustomerCode = item.PlanLine.Customer.CustomerCode,
+            CustomerName = item.PlanLine.Customer.CustomerName,
+            item.PriceTierAmount,
             item.IngredientId,
             IngredientName = item.Ingredient.IngredientName,
             item.UnitId,
@@ -247,14 +259,20 @@ public class DemandReportService : IDemandReportService
             .Select(group => new IngredientDemandAggregateDto
             {
                 RequestDate = group.Key.RequestDate,
+                CustomerId = GuidHelper.ToGuidString(group.Key.CustomerId),
+                CustomerCode = group.Key.CustomerCode,
+                CustomerName = group.Key.CustomerName,
+                PriceTierAmount = group.Key.PriceTierAmount,
                 IngredientId = GuidHelper.ToGuidString(group.Key.IngredientId),
                 IngredientName = group.Key.IngredientName,
                 UnitId = GuidHelper.ToGuidString(group.Key.UnitId),
                 UnitName = group.Key.UnitName,
                 TotalRequiredQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.TotalRequiredQty : 0m),
-                CurrentStockQty = (decimal)group
-                    .Where(item => item.Request.Status != "CANCELLED")
-                    .Max(item => (double)item.CurrentStockQty),
+                // CurrentStockQty is the quantity allocated to each BOM source line after
+                // MaterialDemandService consumes the shared stock pool. It is additive at
+                // the daily ingredient/unit grain, not a repeated snapshot value.
+                CurrentStockQty = group.Sum(item =>
+                    item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
                 SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
                 LineCount = group.Count(item => item.Request.Status != "CANCELLED"),
                 // Cancelled history must not mark a successfully regenerated active group as stale.

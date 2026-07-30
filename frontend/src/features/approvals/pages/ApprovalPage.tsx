@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -19,6 +19,7 @@ import type { ApprovalRecord } from '@/types/workflow';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
 import { resolveApprovalAvailability } from '@/lib/actionEligibility';
@@ -34,13 +35,25 @@ export default function ApprovalPage() {
   const queueFocusRef = useRef<HTMLDivElement>(null);
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
-  const [approvalCursors, setApprovalCursors] = useState<string[]>([]);
+  const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
-  
-  const approvalCursor = approvalCursors.at(-1);
+  const [approvalSearch, setApprovalSearch] = useState('');
+  const deferredApprovalSearch = useDeferredValue(approvalSearch.trim());
+  const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
+  const requestedTargetId = searchParams.get('id') ?? searchParams.get('targetId');
+  const requestedWeek = searchParams.get('week');
+  const requestedDate = searchParams.get('date');
+  const approvalScopeKey = [requestedTargetType, requestedTargetId, requestedWeek, requestedDate, deferredApprovalSearch].join('|');
+  const scopedApprovalCursors = approvalPagination.scopeKey === approvalScopeKey ? approvalPagination.cursors : [];
+  const approvalCursor = scopedApprovalCursors.at(-1);
   const approvalQuery = useGetApprovalRecordsQuery({
     limit: 20,
     cursor: approvalCursor,
+    targetType: requestedTargetType ?? undefined,
+    targetId: requestedTargetId ?? undefined,
+    week: requestedWeek ?? undefined,
+    date: requestedDate ?? undefined,
+    searchKeyword: deferredApprovalSearch || undefined,
   });
   const approvalView = toQueryView(approvalQuery, {
     instruction: 'Mở trang duyệt vận hành để tải hàng đợi phê duyệt.',
@@ -73,13 +86,13 @@ export default function ApprovalPage() {
     errorMessage: 'Không tải được danh sách đề xuất mua hàng.',
     forbiddenMessage: 'Bạn không có quyền xem danh sách đề xuất mua hàng.',
   });
-  const approvalPageNumber = approvalCursors.length + 1;
+  const approvalPageNumber = scopedApprovalCursors.length + 1;
   const goToPreviousApprovalPage = () => {
-    setApprovalCursors((current) => current.slice(0, -1));
+    setApprovalPagination({ scopeKey: approvalScopeKey, cursors: scopedApprovalCursors.slice(0, -1) });
   };
   const goToNextApprovalPage = () => {
     if (approvalPage?.hasNext && approvalPage.nextCursor) {
-      setApprovalCursors((current) => [...current, approvalPage.nextCursor!]);
+      setApprovalPagination({ scopeKey: approvalScopeKey, cursors: [...scopedApprovalCursors, approvalPage.nextCursor] });
     }
   };
 
@@ -126,10 +139,13 @@ export default function ApprovalPage() {
     isDeciding,
   });
   const firstActionableRecord = approvalAvailability.firstActionableRecord;
-  const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
-  const requestedTargetId = searchParams.get('id') ?? searchParams.get('targetId');
   const requestedRecord = approvalRecords.find((record) =>
     record.targetType === requestedTargetType && record.targetId === requestedTargetId);
+  const approvalScopeLabel = requestedDate
+    ? `Ngày ${new Date(`${requestedDate}T00:00:00`).toLocaleDateString('vi-VN')}`
+    : requestedWeek
+      ? `Tuần từ ${new Date(`${requestedWeek}T00:00:00`).toLocaleDateString('vi-VN')}`
+      : 'Tất cả ngày đang chờ duyệt';
 
   useEffect(() => {
     if (!requestedRecord) return;
@@ -297,6 +313,22 @@ export default function ApprovalPage() {
             detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
           >
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
+              <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <label htmlFor="approval-inbox-search" className="grid gap-1 text-xs font-semibold text-slate-700">
+                  Tìm chứng từ hoặc nguyên liệu
+                  <Input
+                    id="approval-inbox-search"
+                    value={approvalSearch}
+                    onChange={(event) => {
+                      setApprovalSearch(event.target.value);
+                      setApprovalPagination({ scopeKey: '', cursors: [] });
+                    }}
+                    placeholder="Mã phiếu, nhà cung cấp, nguyên liệu..."
+                    className="h-9"
+                  />
+                </label>
+                <p className="text-xs text-slate-600 md:pb-2">Phạm vi: {approvalScopeLabel}</p>
+              </div>
               <ApprovalQueueState
                 view={approvalView}
                 records={approvalRecords}
@@ -320,6 +352,22 @@ export default function ApprovalPage() {
       {activeView === 'role' && (
         <SectionPanel title="Việc đang chờ quản lí" icon={<ClipboardCheck size={18} />}>
           <div id="approval-role-panel" role="tabpanel" aria-labelledby="approval-role-tab">
+            <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+              <label htmlFor="approval-role-search" className="grid gap-1 text-xs font-semibold text-slate-700">
+                Tìm chứng từ hoặc nguyên liệu
+                <Input
+                  id="approval-role-search"
+                  value={approvalSearch}
+                  onChange={(event) => {
+                    setApprovalSearch(event.target.value);
+                    setApprovalPagination({ scopeKey: '', cursors: [] });
+                  }}
+                  placeholder="Mã phiếu, nhà cung cấp, nguyên liệu..."
+                  className="h-9"
+                />
+              </label>
+              <p className="text-xs text-slate-600 md:pb-2">Phạm vi: {approvalScopeLabel}</p>
+            </div>
             <ApprovalQueueState
               view={approvalView}
               records={approvalRecords}

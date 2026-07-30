@@ -141,29 +141,87 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
     /// (chưa có ngưỡng tối thiểu cấu hình theo từng nguyên liệu, nên suy ra từ lịch sử nhu cầu thay vì hardcode).</summary>
     private async Task<int> ComputeLowStockCountAsync(DateOnly demandWindowStart, DateOnly today)
     {
-        var avgDailyDemandByIngredient = await _context.Materialrequestlines
+        var demandRows = await _context.Materialrequestlines
             .AsNoTracking()
             .Where(line => line.Request.RequestDate >= demandWindowStart && line.Request.RequestDate <= today)
-            .GroupBy(line => line.IngredientId)
-            .Select(group => new { IngredientId = group.Key, TotalRequiredQty = group.Sum(line => line.TotalRequiredQty) })
+            .Select(line => new KpiUnitQuantityProjection
+            {
+                IngredientId = line.IngredientId,
+                SourceUnitId = line.UnitId,
+                TargetUnitId = line.Ingredient.UnitId,
+                SourceUnitCode = line.Unit.UnitCode,
+                SourceBaseUnitCode = line.Unit.BaseUnitCode,
+                SourceRateToBase = line.Unit.ConvertRateToBase,
+                TargetUnitCode = line.Ingredient.Unit.UnitCode,
+                TargetBaseUnitCode = line.Ingredient.Unit.BaseUnitCode,
+                TargetRateToBase = line.Ingredient.Unit.ConvertRateToBase,
+                Quantity = line.TotalRequiredQty
+            })
             .ToListAsync();
 
-        if (avgDailyDemandByIngredient.Count == 0)
+        if (demandRows.Count == 0)
         {
             return 0;
         }
 
-        var currentStockByIngredient = await _context.Currentstocks
+        var stockRows = await _context.Currentstocks
             .AsNoTracking()
-            .GroupBy(stock => stock.IngredientId)
-            .Select(group => new { IngredientId = group.Key, CurrentQty = group.Sum(stock => stock.CurrentQty) })
-            .ToDictionaryAsync(item => Convert.ToBase64String(item.IngredientId), item => item.CurrentQty);
+            .Select(stock => new KpiUnitQuantityProjection
+            {
+                IngredientId = stock.IngredientId,
+                SourceUnitId = stock.UnitId,
+                TargetUnitId = stock.Ingredient.UnitId,
+                SourceUnitCode = stock.Unit.UnitCode,
+                SourceBaseUnitCode = stock.Unit.BaseUnitCode,
+                SourceRateToBase = stock.Unit.ConvertRateToBase,
+                TargetUnitCode = stock.Ingredient.Unit.UnitCode,
+                TargetBaseUnitCode = stock.Ingredient.Unit.BaseUnitCode,
+                TargetRateToBase = stock.Ingredient.Unit.ConvertRateToBase,
+                Quantity = stock.CurrentQty
+            })
+            .ToListAsync();
 
-        return avgDailyDemandByIngredient.Count(demand =>
+        var totalDemandByIngredient = demandRows
+            .GroupBy(item => Convert.ToBase64String(item.IngredientId), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(ConvertKpiQuantity)),
+                StringComparer.Ordinal);
+        var currentStockByIngredient = stockRows
+            .GroupBy(item => Convert.ToBase64String(item.IngredientId), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(ConvertKpiQuantity)),
+                StringComparer.Ordinal);
+
+        return totalDemandByIngredient.Count(demand =>
         {
-            var currentQty = currentStockByIngredient.GetValueOrDefault(Convert.ToBase64String(demand.IngredientId), 0);
-            return OperationalKpiPolicy.IsLowStock(demand.TotalRequiredQty, currentQty);
+            var currentQty = currentStockByIngredient.GetValueOrDefault(demand.Key, 0);
+            return OperationalKpiPolicy.IsLowStock(demand.Value, currentQty);
         });
+    }
+
+    private static decimal ConvertKpiQuantity(KpiUnitQuantityProjection item)
+    {
+        if (item.SourceUnitId.SequenceEqual(item.TargetUnitId))
+        {
+            return item.Quantity;
+        }
+
+        var sourceBase = string.IsNullOrWhiteSpace(item.SourceBaseUnitCode)
+            ? item.SourceUnitCode
+            : item.SourceBaseUnitCode;
+        var targetBase = string.IsNullOrWhiteSpace(item.TargetBaseUnitCode)
+            ? item.TargetUnitCode
+            : item.TargetBaseUnitCode;
+        if (item.SourceRateToBase <= 0 || item.TargetRateToBase <= 0 ||
+            !string.Equals(sourceBase.Trim(), targetBase.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            // Giữ hành vi legacy và để data-quality phát hiện unit không hợp lệ; không được bỏ dòng.
+            return item.Quantity;
+        }
+
+        return DecimalPolicy.RoundQuantity(item.Quantity * item.SourceRateToBase / item.TargetRateToBase);
     }
 
     private IQueryable<InventoryIssueLine> QueryIssueLines(WorkflowReportQueryDto query)
@@ -210,6 +268,20 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
         }
 
         return lines;
+    }
+
+    private sealed class KpiUnitQuantityProjection
+    {
+        public byte[] IngredientId { get; init; } = [];
+        public byte[] SourceUnitId { get; init; } = [];
+        public byte[] TargetUnitId { get; init; } = [];
+        public string SourceUnitCode { get; init; } = string.Empty;
+        public string? SourceBaseUnitCode { get; init; }
+        public decimal SourceRateToBase { get; init; }
+        public string TargetUnitCode { get; init; } = string.Empty;
+        public string? TargetBaseUnitCode { get; init; }
+        public decimal TargetRateToBase { get; init; }
+        public decimal Quantity { get; init; }
     }
 
     private static DateOnly? ParseDateOnly(string? value)

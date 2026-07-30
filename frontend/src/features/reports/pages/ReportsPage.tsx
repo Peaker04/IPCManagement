@@ -46,7 +46,7 @@ const ReportsPage = () => {
   const canReadWarehouseReports = useHasPermission('warehouse.read');
   const canReadAuditChanges = useHasRole(['admin']);
   const model = useReportsPageModel({ canReadAuditChanges, canReadPurchaseReports, canReadWarehouseReports });
-  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dataQualityPage, dataQualityReport, dataQualityResult, dataQualityRows, dataQualitySearch, dateFrom, dateTo, demandPage, demandPageSize, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, reportContextItems, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDataQualityPage, setDataQualitySearch, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setKitchenPage, setMovementCursors, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setShiftName, setSortDirection, setStockPage, setStockPageSize, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, usagePage, usageResult, usageRows } = model;
+  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dataQualityPage, dataQualityReport, dataQualityResult, dataQualityRows, dataQualitySearch, dateFrom, dateTo, demandPage, demandPageSize, demandSearch, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, movementSearch, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, purchaseSearch, reportContextItems, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDataQualityPage, setDataQualitySearch, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setDemandSearch, setKitchenPage, setMovementCursors, setMovementSearch, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setPurchaseSearch, setShiftName, setSortDirection, setStockPage, setStockPageSize, setStockSearch, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, stockSearch, usagePage, usageResult, usageRows } = model;
 return (
     <OperationalFrame
       className="ipc-reports-page"
@@ -133,11 +133,26 @@ return (
           <ReportQueryBoundary view={activeReportView}>
 
       {activeView === 'demand' && (
-        <SectionPanel title="Nhu cầu nguyên liệu theo ngày, ca, khách hàng và món" icon={<Utensils size={18} />}>
+        <SectionPanel title="Tổng hợp nhu cầu theo từng ngày trong khoảng đã chọn" icon={<Utensils size={18} />}>
+          <label htmlFor="report-demand-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
+            Tìm nguyên liệu trong khoảng ngày
+            <span className="relative block">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="report-demand-search"
+                type="search"
+                value={demandSearch}
+                onChange={(event) => { setDemandSearch(event.target.value); setDemandPage(1); }}
+                placeholder="Tên hoặc mã nguyên liệu"
+                className="h-9 pl-9"
+              />
+            </span>
+          </label>
           <TableViewport ariaLabel="Bảng nhu cầu nguyên liệu">
             <table className="ipc-data-table ipc-status-action-table min-w-[720px]">
               <thead>
                 <tr>
+                  <th>Ngày</th>
                   <th>Nguyên liệu</th>
                   <th>Nguồn</th>
                   <th>Cần</th>
@@ -148,8 +163,9 @@ return (
                 </tr>
               </thead>
               <tbody>
-                {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : ingredientDemandRows.map((row, index) => (
+                {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={8} /> : ingredientDemandRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
+                    <td className="whitespace-nowrap">{row.serviceDate ? new Date(`${row.serviceDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa xác định'}</td>
                     <td>{row.material}</td>
                     <td>{row.source}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
@@ -194,6 +210,13 @@ return (
             </div>
           )}
         >
+          <label htmlFor="report-purchase-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
+            Tìm trong kế hoạch thu mua
+            <span className="relative block">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input id="report-purchase-search" type="search" value={purchaseSearch} onChange={(event) => setPurchaseSearch(event.target.value)} placeholder="Nguyên liệu, nhà cung cấp, kỳ hoặc cảnh báo" className="h-9 pl-9" />
+            </span>
+          </label>
           <ContextStrip
             items={[
               { label: 'Dòng kế hoạch', value: String(purchasePlanSummary.rowCount), tone: purchasePlanSummary.rowCount ? 'info' : 'neutral' },
@@ -250,7 +273,14 @@ return (
       )}
 
       {activeView === 'stock' && (
-        <SectionPanel title="Tồn kho hiện tại và xu hướng luân chuyển" icon={<Warehouse size={18} />}>
+        <SectionPanel title="Tồn kho hiện tại theo kho" icon={<Warehouse size={18} />}>
+          <label htmlFor="report-stock-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
+            Tìm trong snapshot tồn kho hiện tại
+            <span className="relative block">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input id="report-stock-search" type="search" value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 pl-9" />
+            </span>
+          </label>
           <TableViewport ariaLabel="Bảng tồn kho hiện tại">
             <table className="ipc-data-table min-w-[720px]">
               <thead>
@@ -289,7 +319,14 @@ return (
       )}
 
       {activeView === 'movement' && (
-        <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
+        <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày" icon={<ArrowLeftRight size={18} />}>
+          <label htmlFor="report-movement-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
+            Tìm bút toán trong khoảng ngày
+            <span className="relative block">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input id="report-movement-search" type="search" value={movementSearch} onChange={(event) => setMovementSearch(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" className="h-9 pl-9" />
+            </span>
+          </label>
           <StockMovementTable
             movements={stockMovementRows}
             cursorPagination={{

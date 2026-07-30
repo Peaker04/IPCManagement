@@ -1,7 +1,14 @@
-<!-- generated-by: gsd-doc-writer -->
-# Trạng thái làm việc hiện tại
+<!-- migrated-from: docs/CURRENT-STATE.md -->
+# Lịch sử triển khai và sự cố
 
-Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 29/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+File này là nhật ký append-only. Chỉ đọc khi điều tra một thay đổi, phase, sự cố hoặc
+evidence cũ; không dùng bất kỳ trạng thái hay quality-gate lịch sử nào ở đây để ghi đè
+`MEMORY.md`. Phần bên dưới được nhập nguyên vẹn một lần từ handoff cũ; từ sau mốc tách này
+chỉ được append, không viết lại số cũ.
+
+## Snapshot handoff cũ trước khi phân tầng
+
+Phần trạng thái hiện hành và checklist tiếp tục đã được cắt sang `MEMORY.md`; không lặp lại ở đây.
 
 ## Dọn lịch sử và CI ngày 29/07/2026
 
@@ -26,20 +33,22 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
   tablet/mobile nằm ngoài phạm vi mặc định cho tới khi Kỳ yêu cầu lại.
 - Không dùng mock API, mock login, snapshot/baseline visual cũ hoặc tự update snapshot để kết luận UI hiện tại pass. Phải boot đúng working tree/source hiện tại, xác minh database qua runtime health và chạy Chrome headed trực tiếp vào URL thật.
 
-## Môi trường Shipyard hiện tại
+## Snapshot môi trường Shipyard ngày 30/07/2026
 
-| Thành phần | Giá trị đã kiểm tra ngày 28/07/2026 |
+| Thành phần | Giá trị đã kiểm tra ngày 30/07/2026 |
 |---|---|
 | Git branch | `feature/workflow-b17-b18` (checkout chính; lane checkout cũ vẫn có thể ở `feature/production-plan`) |
-| Shipyard UI | `http://localhost:8090` — **không listen khi kiểm tra đầu phiên 28/07** |
-| Frontend lane 1 | `http://localhost:3001` — **không listen khi kiểm tra đầu phiên 28/07** |
-| API lane 1 | `http://localhost:8001` — **không listen khi kiểm tra đầu phiên 28/07** |
-| Database | `ipc_lane1`, đã đồng bộ từ `ipcmanagement` sau khôi phục |
+| Shipyard UI | `http://localhost:8090` — **không listen** |
+| Frontend lane 1 | `http://localhost:3001` — **không listen** |
+| API lane 1 | `http://localhost:8001` — **không listen** |
+| Runtime audit tạm | FE `3010`, API `8010` — **đã teardown, không listen** |
+| MySQL | Port `3306` đang listen; không coi việc port mở là bằng chứng `ipc_lane1` Healthy |
+| Database evidence | `ipc_lane1`, lineage/evidence gần nhất được giữ nguyên; phiên cập nhật docs này không query hoặc mutate DB |
 | Tài khoản demo | username `admin`; mật khẩu phải lấy từ credential đã xoay, không dùng giá trị mặc định |
 | Template happy path | `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx` |
 
 Evidence runtime gần nhất trước phiên này từng xác nhận ba port `8090`, `3001`, `8001` và
-`/health/ready` xanh. Tuy nhiên kiểm tra đầu phiên hiện tại cho thấy **cả ba port đều không listen**;
+`/health/ready` xanh. Tuy nhiên kiểm tra ngày 30/07/2026 cho thấy **cả ba port đều không listen**;
 không được dùng trạng thái runtime cũ để kết luận E2E. Hai lát SampleData dưới đây chỉ chạy test host/
 quality gate, không boot Shipyard và không đọc/ghi `ipc_lane1`.
 
@@ -182,7 +191,7 @@ Ghi chú vận hành:
 - KPI `/operational-kpis` đã có cache controller TTL 15 s + single-flight + invalidate theo remediation (khối P0); đo tay: cold 123 ms → cache hit 4–5 ms. Điểm nóng KPI coi như đã xử lý ở tầng cache, phần fan-out ~12 query chỉ còn chạy mỗi 15 s.
 - Evidence trước/sau giữ tại `tools/perf/k6/results-{smoke,stress}-before-fix.json` và `results-{smoke,load,stress}.json`.
 
-## Browser runtime và quy ước evidence hiện tại
+## Browser runtime và quy ước evidence tại thời điểm audit
 
 - Evidence cũ ngày 25–26/07 chỉ là lịch sử, không được dùng để kết luận Bước 10 hiện tại pass. `frontend/playwright.config.ts` vẫn bật `VITE_ENABLE_MOCK_LOGIN=true`, nên các visual snapshot spec cũ không phải gate runtime cho lượt này.
 - Kể từ 29/07/2026, mọi helper browser gate mới phải cấu hình đủ năm viewport `1920×1080`,
@@ -210,7 +219,7 @@ Khóa đúng theo ngữ cảnh:
 - Tồn kho: thêm warehouse ID.
 - Tên giống nhưng ID khác: cảnh báo data quality, không phải khóa deduplication.
 
-## Quality gates gần nhất
+## Quality gates tại thời điểm audit
 
 | Phạm vi | Tests | Line | Branch | Function/method |
 |---|---:|---:|---:|---:|
@@ -407,7 +416,7 @@ Database chính đã chạy `dotnet ef database update`: **38 → 40 migration**
 2. **KHÔNG chạy `dotnet ef migrations remove` khi migration cuối thiếu `.Designer.cs`.** EF không có snapshot để lùi về và sẽ reset snapshot gần như rỗng; lệnh `add` kế tiếp sinh ra migration tạo lại **toàn bộ database**. Đã xảy ra trong phiên này, khôi phục bằng `git checkout`.
 3. **Trước khi thêm ID vào danh sách "baseline đã có sẵn"** (trong `Init_EF_History_For_Old_DB.sql` hoặc fixture test), phải đối chiếu **từng** `AddColumn`/`CreateTable` của migration đó với baseline. Khai sai làm migration bị bỏ qua và database cài mới thiếu cột — đã xảy ra với `20260702061320_AddImportAuditFields` (5 cột) và `20260702121000_AddProductionPlanMetadata` (1 cột).
 
-## Phần còn hở, không được mô tả là đã hoàn tất
+## Backlog tại thời điểm audit
 
 Còn hở sau đợt P1 ngày 26/07/2026:
 
@@ -629,6 +638,8 @@ growth reporter `c549bd2` và contract build cô lập `6a5259b` là guardrail �
 Bước 14/18, không có nghĩa hai bước đó đã hoàn tất. Gate đã xác minh gần nhất: BE
 **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**, dependency không có vi phạm
 mới, contract deterministic, EF migration snapshot sạch và production build xanh.
+
+### Bước 12 — pilot Material Demand và Warehouse (hoàn tất ngày 27/07/2026)
 
 Bước 12 có hai pilot đã commit: Material Demand `71656bc` và Warehouse `87ad944`.
 Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với ANV tuần 20/07:
@@ -863,6 +874,9 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - GSD active hiện là milestone `v1.2`, **6/8 bước hoàn tất**; sáu plan đã định nghĩa đều có summary
   (**6/6, 100% defined-plan progress**). **Phase/Step 17 — Frontend ownership** là bước active tiếp theo
   và chưa có executable plan; Step 18 vẫn pending.
+
+### Bước 16 — persistence, transaction và restore guardrails (hoàn tất)
+
 - Step 16 đã hoàn tất đủ **5/5 task**. Task 1 chuyển đủ **53 mapping**
   vào 11 file feature-owned `IEntityTypeConfiguration<T>` và đóng tại `7e94eb3`; context chỉ còn assembly
   registration. Task 2 thêm `IEfTransactionRunner`, phân loại domain/application exception, canonicalize
@@ -903,46 +917,10 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Lifecycle phiên: parity → backup → cleanup → preview/commit hai khách → repair catalog → quantity plan → historical lock/signoff → publish version/schedule → DB/API/browser reconciliation → toàn-route UI audit → quality gates → docs/GitNexus → shutdown đúng các process do phiên tạo. Không reset lane, không chép dữ liệu test ngược về base và không ghi credential vào evidence.
 - Sau teardown, FE `3001`, API `8001`, Shipyard `8090` đều không còn listen; MySQL `3306` vẫn chạy để giữ nguyên `ipc_lane1` và toàn bộ evidence/lineage.
 
-## Quy trình tiếp tục ở phiên mới
+## Routing sau khi phân tầng
 
-1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
-2. Chạy `git status --short --branch`; branch hiện hành của checkout chính là `feature/workflow-b17-b18`, tách từ `main` tại `6c9931a`. Không reset hoặc ghi đè thay đổi chưa rõ ownership; lane checkout cũ vẫn có thể hiển thị `feature/production-plan` và không phải source of truth của runtime goal này.
-3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
-3b. Bước 17 đã qua full automated/browser gate và đang ở closeout verifier. Sau khi
-   `.planning/phases/17-frontend-ownership/VERIFICATION.md` có status `passed`, tiếp tục
-   **Step 18 — Guardrails and workflow closeout**; không dùng roadmap v1.1 trong archive.
-4. Kiểm tra port `8090`, `3001`, `8001` và trạng thái Shipyard lane. Không khởi tạo database mới nếu lane hiện tại còn evidence cần bảo toàn.
-4b. **Trước khi chạy bất kỳ file `.sql` nào vào MySQL**: `grep -n '^USE\|DROP TABLE\|DROP DATABASE'` file đó trước. `backend/database/IPCmanagement.sql` nay có chốt an toàn nhưng các file khác thì chưa. Muốn biết database có tụt hậu migration không thì gọi `/health/ready` — check `migrations` sẽ báo Degraded kèm danh sách ID còn thiếu.
-5. Mở UI bằng browser headed; đăng nhập demo `admin` với mật khẩu lấy từ biến môi trường `K6_PASSWORD`
-   (mật khẩu đã xoay, không thử `admin/admin`). Không chỉ gọi API rồi kết luận FE pass.
-6. Khi tiếp tục E2E, dùng tuần ANV 25k làm baseline, kiểm tra toàn bộ tab và đối chiếu FE/BE/DB. Nếu thay đổi dữ liệu test, ghi lại document lineage và correction/audit.
-7. Sau sửa: chạy targeted test, full frontend unit, lint, production build; chạy backend regression khi contract/service thay đổi; chụp lại evidence và cập nhật coverage nếu đã chạy lại coverage.
-8. Cập nhật tài liệu này và E2E audit sau mỗi thay đổi đáng kể; ghi rõ phần đã xác minh và phần chỉ là giả định.
-
-## Evidence cần đọc
-
-- `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md`
-- `.artifacts/shipyard-live/purchasing-tabs.png`
-- `.artifacts/shipyard-live/chef-summary-above-plan.png`
-- `.artifacts/shipyard-live/report-price-tabs.png`
-- `.artifacts/shipyard-live/admin-data-tabs.png`
-- `.artifacts/shipyard-live/warehouse-final-supplemental-status.png`
-- `.artifacts/shipyard-live/live-visual-performance.json`
-- `.artifacts/shipyard-live/production-reports-after-local-sync.png`
-- `.artifacts/shipyard-live/production-report-debug.json`
-- `.artifacts/shipyard-live/production-weekly-menu-bom-debug.png`
-- `.artifacts/shipyard-live/production-bom-debug.json`
-- `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`
-- `.artifacts/shipyard-live/coverage-be-20260725/report/index.html`
-- `frontend/coverage/index.html`
-
-## Tài liệu nền liên quan
-
-- `docs/MVP_WEB_FLOW.md`: thứ tự thao tác web và hành vi khi bị block.
-- `docs/TESTING.md`: test suite, coverage và Shipyard E2E.
-- `docs/DEVELOPMENT.md`: command, lane mapping và quy tắc phát triển.
-- `docs/ARCHITECTURE.md`: boundary FE/BE/DB và data flow.
-- `docs/CONFIGURATION.md`: cấu hình local/lane và biến môi trường.
+Checklist hiện hành nằm trong `MEMORY.md`; artifact và hash nằm trong `docs/EVIDENCE-INDEX.md`;
+bài học bất biến nằm trong `LESSONS.md`.
 
 ## Undo request P0 Điều phối — 2026-07-29
 
@@ -1048,19 +1026,15 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   worsening/stale improvement. `MaterialDemandService` giảm 1.470 → 1.446 dòng và baseline giảm theo.
 - Full gate cuối: Application 49/49; API 682 pass + 1 intentional skip; frontend 80 file/433 test;
   ESLint, dependency-cruiser 0 violation trên 342 module/1.169 dependency, backend/frontend build,
-  OpenAPI/generated TypeScript determinism, EF pending-model và migration 5/5 đều xanh. Contract hash:
-  `DF09371F71C7CF9A524CD58C6C89A4443870DA6743ACC3E5F85C95E9FB7BB9E5`; generated schema hash:
-  `E1FF2980B16D62EA3375AE30C3C8DF682C2DC18BE26A09778036B48EAD74EFA1`.
+  OpenAPI/generated TypeScript determinism, EF pending-model và migration 5/5 đều xanh. Digest lịch sử
+  được chuyển sang `docs/EVIDENCE-INDEX.md`.
 - Plan 18-07 chỉ mutate `ipc_lane1`; không reset/seed/restore và không import lần hai. Workbook
-  `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx`, SHA-256
-  `A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01`, tuần `2026-07-27`.
+  authoritative và digest chỉ khai trong front matter của `MEMORY.md`, tuần `2026-07-27`.
   Sanitizer xóa menu/import transaction chain theo dependency order, giữ protected master/reference/BOM;
   migration vẫn 41 và dynamic FK orphan audit bằng 0.
 - Backup rollback checkpoint ở `D:\Backups\ipc-phase18-20260729\ipc_lane1-20260729-173035.zip`
   và mirror `C:\Users\Administrator\ipc-phase18-20260729\ipc_lane1-20260729-173035.zip` có cùng
-  SHA-256 `027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13`.
-  Protected fingerprint trước mutation là
-  `EA62337AE966B980D19746E1741C4A223010F65E42F5E748D24BBCDAF03CF17B`; protected hash/lineage guard pass.
+  digest và protected fingerprint được chuyển sang `docs/EVIDENCE-INDEX.md`; lineage guard pass.
 - DB evidence cuối: 1 menu version, 12 schedule, 12 meal plan, 6 material request, 7 purchase
   request/order, 13 inventory issue và 1 supplemental request đã đi đủ route → supplier decision → submit
   → approve → PO → receipt → issue → kitchen confirmation → `FULFILLED`; orphan 0.
@@ -1084,3 +1058,66 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   không có gap, affected process chưa xử lý hoặc Deferred item.
 - Không push. Closeout cuối phải giữ docs secret scan, `git diff --check` và GitNexus staged
   `detect_changes` xanh trước commit cục bộ; sau commit re-index và final clean detect.
+
+## Audit toàn dự án về grain nguyên liệu và lifecycle — 2026-07-30
+
+### Đã xác minh
+
+- Contract chung nằm ở `docs/DATA-GRAIN-MATRIX.md`. Grain nhu cầu chuẩn là
+  `serviceDate + customerId + priceTierAmount + ingredientId + unitId`; chứng từ/audit giữ source-line ID,
+  tồn hiện tại là snapshot theo kho và tên nguyên liệu không phải khóa deduplication.
+- Màn nhiều ngày có cột ngày; màn tổng BOM không có cột ngày phải ghi rõ “tổng cả tuần”. Thu mua chọn một
+  ngày trong tuần rồi mới thao tác source-line; Bếp gộp trình bày theo ingredient/unit trong ngày/ca nhưng
+  mở lại được từng phiếu xuất; current stock, stock movement, issue/usage và BOM một khay được tách ngữ nghĩa.
+- Lỗi double-count thật đã sửa ở aggregate tồn phân bổ: `CurrentStockQty` của các BOM/source-line là phần
+  phân bổ riêng nên tổng ngày dùng `Sum`, không dùng `Max`. Tier và customer được giữ trong demand lineage.
+- Lifecycle Kế hoạch tuần đọc aggregate độc lập với tab đang mở. Readiness và bước 4 hiện ghi đúng
+  `161 dòng ngày–nguyên liệu`, `42 dòng thiếu cần Thu mua xử lý`; không còn “Chưa tính” hoặc “Tạo nhu cầu
+  vật tư” khi backend đã có demand. Source-contract frontend khóa các nhãn/grain này.
+- `Bột nở` trên `ipc_lane1` không phải duplicate:
+  - 29/07 và 30/07 mỗi ngày có một dòng aggregate, mỗi dòng gồm 2 BOM source-line và tổng
+    `2,7132 + 2,8101 = 5,5233 kg`.
+  - Current stock có đúng 1 snapshot `0 kg` tại kho mẫu gia vị BOM.
+  - Stock movement có 6 audit event hợp lệ: 4 receipt theo hai source quantity và 2 issue `5,5233 kg`;
+    chuỗi before/after kết thúc ở 0, không bị cộng hai lần.
+  - Checklist Bếp ngày/ca hiện một dòng Bột nở `5,5233 kg`, gắn đúng phiếu xuất và trạng thái đã nhận.
+- Search server-side/FE áp dụng cho các bảng nhiều dữ liệu liên quan: demand/purchase/current stock/movement,
+  warehouse, supplemental và source-line group. Search chạy trước paging/KPI ở backend.
+
+### Evidence và quality gates
+
+Gate này được promote thành gate hiện hành trong `MEMORY.md`; artifact authoritative và SHA-256
+nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành trong nhật ký.
+
+### Còn hở và checklist tiếp tục
+
+- Không còn gap nghiệp vụ hoặc test trong phạm vi grain ngày/tuần và lifecycle. Workbook-authoring E2E bằng
+  spreadsheet artifact tool vẫn là blocker môi trường đã ghi ở Goal audit trước đó; không liên quan đến kết
+  luận Bột nở/double-count của dữ liệu hiện hành.
+- Không reset/seed/import lại `ipc_lane1`; dữ liệu evidence và audit chain được giữ nguyên.
+- Runtime kiểm chứng do phiên tạo đã teardown: `3010/8010` không còn listen. Tại lúc
+  cập nhật docs ngày 30/07, runtime chuẩn `3001/8001`, Shipyard `8090` và API `8005` cũng
+  không listen; chỉ MySQL `3306` còn listen.
+- GitNexus PDG final: 58.157 node, 105.980 edge, 499 cluster, 300 flow. Final detect trên uncommitted diff:
+  237 changed symbol / 71 affected / 92 file, CRITICAL; compare `main`: 1.010 / 110 / 270, CRITICAL.
+  Các flow được xử lý bằng full BE/FE test, contract determinism, architecture gate và browser E2E ở trên;
+  disposition symbol chính có Deferred rỗng trong báo cáo bàn giao.
+## Đánh giá Agent Brief 30/07/2026
+
+- Đã phản chứng hai mục stale: `SupplementalMaterialRequestService.FulfillAsync` đã bọc stock ledger, audit và workflow state trong transaction; năm tên component Thu mua mà brief gọi là dead code không còn definition/reference trong checkout hiện tại. Hai mục đã bị xóa khỏi memory hiện hành.
+- Đã xác minh BOM workbook hỏng còn rơi vào HTTP generic, hai migration upgrade chưa chạy CI, hai migration ID mồ côi có thật trong `ipc_lane1`, diagnostics catalog đếm nhiều bảng tuần tự và invariant tier chưa được enforce đồng nhất ở DB.
+- UI harness headed chỉ kiểm tra sự tồn tại của screenshot và counter runtime, không đọc lại ảnh; Playwright `ui-audit` tuy nhiên đã có một phần oracle hình học cho overflow, action, dialog và tab nên nhận định “chỉ có CLS + overflow” trong brief là quá rộng.
+- Setup mattpocock đã chạy từ trước và không có collision với nhóm skill dự án tracked; config local đã đổi con trỏ `CURRENT-STATE.md`/`CONTEXT.md` stale sang `MEMORY.md` và `docs/DOMAIN.md`. Việc ghim upstream commit và quyền sở hữu process vẫn chờ quyết định.
+
+## Chốt governance, migration lineage và backup 30/07/2026
+
+- GSD được chốt là process owner duy nhất; hotfix vẫn dùng GSD. Handoff chỉ sinh
+  draft tạm, các orchestrator mattpocock và router của chúng bị vô hiệu hóa.
+- Hai migration upgrade test được đổi sang predecessor fixture tự dựng trên lane
+  disposable và được thêm vào CI. Fresh-install và cả hai upgrade path đều pass.
+- Hai migration ID mồ côi được khôi phục bằng no-op; lineage read-only trên
+  `ipc_lane1` không còn database-only/source-only/stale manifest. Ba ID legacy hợp nhất giữ
+  nguyên SQL và được ghi rõ trong ledger.
+- Target backup off-site là object storage versioned/immutable có write-only credential, mã hóa
+  dump + binlog, manifest tách trust boundary và hai SSD luân phiên off-premises. Chưa đóng
+  rủi ro cho tới khi restore drill chỉ từ off-site pass.

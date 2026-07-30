@@ -52,6 +52,29 @@ describe('Chef operational copy', () => {
     expect(screen.queryByText('Nguyên Liệu')).not.toBeInTheDocument();
   });
 
+  it('shows customer and price tier on each daily dish grain', () => {
+    render(
+      <ActiveDishesGrid
+        dishes={[{
+          id: 'customer-2__30000__dish-copy',
+          name: 'Món mẫu',
+          code: 'DISH-COPY',
+          customerName: 'Nhà máy B',
+          priceTierAmount: 30_000,
+          portions: 120,
+          hasBom: true,
+          ingredients: [],
+        }]}
+        expandedDishId={null}
+        onDishExpand={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Khách: Nhà máy B')).toBeInTheDocument();
+    expect(screen.getByText('Đơn giá: 30k')).toBeInTheDocument();
+    expect(screen.getByText('120 suất')).toBeInTheDocument();
+  });
+
   it('uses sentence-case headers in the material checklist', () => {
     render(<MaterialChecklist materials={[]} />);
 
@@ -84,6 +107,25 @@ describe('Chef operational copy', () => {
     expect(screen.getByText('ISS-SUP-001')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Đã kiểm đếm và nhận' }));
     expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true);
+  });
+
+  it('groups repeated material presentation but keeps source-line signoff ids', () => {
+    const onMaterialSignoff = vi.fn();
+    render(<MaterialChecklist materials={[
+      { id: 'line-a', ingredientId: 'bot-no', unitId: 'kg', name: 'Bột nở', unit: 'kg', quantity: 2.7132, status: 'Chờ giao', signed: false, issueCode: 'ISS-A' },
+      { id: 'line-b', ingredientId: 'bot-no', unitId: 'kg', name: 'Bột nở', unit: 'kg', quantity: 2.8101, status: 'Chờ giao', signed: false, issueCode: 'ISS-B' },
+    ]} onMaterialSignoff={onMaterialSignoff} />);
+
+    expect(screen.getByText('Bột nở', { exact: true })).toBeInTheDocument();
+    expect(screen.getByText('5,523')).toBeInTheDocument();
+    expect(screen.getByText('2 dòng nguồn')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mở 2 dòng nguồn của Bột nở' }));
+    expect(screen.getByText('ISS-A')).toBeInTheDocument();
+    expect(screen.getByText('ISS-B')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ký nhận Bột nở từ ISS-A' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đã kiểm đếm và nhận' }));
+    expect(onMaterialSignoff).toHaveBeenCalledWith('line-a', true);
   });
 
   it('does not force the quick-guide heading into uppercase styling', () => {

@@ -318,7 +318,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         body: buildWeeklyMenuImportFormData(request),
       }),
     }),
-    downloadWeeklyMenuTemplate: builder.mutation<Blob, WeeklyMenuTemplateRequest | void>({
+    downloadWeeklyMenuTemplate: builder.mutation<string, WeeklyMenuTemplateRequest | void>({
       query: (request) => ({
         url: '/coordination/weekly-menu/template',
         method: 'GET',
@@ -328,6 +328,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         },
         responseHandler: async (response) => response.blob(),
       }),
+      transformResponse: (blob: Blob) => URL.createObjectURL(blob),
     }),
     commitWeeklyMenuImport: builder.mutation<ApiResponse<WeeklyMenuImportResult>, WeeklyMenuImportRequest>({
       query: (request) => ({

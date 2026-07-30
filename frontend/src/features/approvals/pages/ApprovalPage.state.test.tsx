@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
@@ -163,6 +163,30 @@ describe('ApprovalPage query state boundary', () => {
 
     expect(screen.getByText('Duyệt đề xuất mua PR-001')).toBeInTheDocument();
     expect(screen.getByText('Đang cập nhật hàng đợi')).toBeInTheDocument();
+  });
+
+  it('sends deep-link week target and server search filters to the inbox query', async () => {
+    render(
+      <MemoryRouter initialEntries={['/approvals?targetType=material-demand&targetId=demand-1&week=2026-07-20']}>
+        <ToastProvider>
+          <ApprovalPage />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    expect(mocks.getApprovals).toHaveBeenCalledWith(expect.objectContaining({
+      targetType: 'material-demand',
+      targetId: 'demand-1',
+      week: '2026-07-20',
+    }));
+    expect(screen.getByText('Phạm vi: Tuần từ 20/7/2026')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Tìm chứng từ hoặc nguyên liệu'), {
+      target: { value: 'Bột nở' },
+    });
+    await waitFor(() => expect(mocks.getApprovals).toHaveBeenLastCalledWith(expect.objectContaining({
+      searchKeyword: 'Bột nở',
+    })));
   });
 
   it('renders workflow-document forbidden without pretending the rail is empty', () => {

@@ -1,4 +1,4 @@
-import { AlertTriangle, ClipboardList, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Search, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   ExceptionLane,
@@ -9,8 +9,9 @@ import {
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { formatCurrency, formatPercent, formatUnit } from '@/lib/formatters';
+import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
+import { Input } from '@/components/ui/input';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import {
@@ -32,6 +33,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
     priceAggregatePageSize,
     pricePage,
     pricePageSize,
+    priceSearch,
     priceSubView,
     priceVarianceByDishGroupResult,
     priceVarianceByDishGroupRows,
@@ -50,6 +52,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
     setPriceAggregatePageSize,
     setPricePage,
     setPricePageSize,
+    setPriceSearch,
     setRequestedPriceSubView,
     setSupplierPage,
     startViewTransition,
@@ -255,11 +258,30 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
 
       {priceSubView === 'lines' && (
         <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
+          <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
+            <label className="grid max-w-xl gap-1 text-xs font-semibold text-slate-600" htmlFor="price-variance-search">
+              Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập
+              <span className="relative block">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+                <Input
+                  id="price-variance-search"
+                  type="search"
+                  value={priceSearch}
+                  onChange={(event) => setPriceSearch(event.target.value)}
+                  placeholder="Ví dụ: Bún, SUP-001, PN-20260729..."
+                  className="h-9 bg-white pl-9"
+                />
+              </span>
+            </label>
+          </div>
           <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
-            <table className="ipc-data-table ipc-report-table min-w-[720px]">
+            <table className="ipc-data-table ipc-report-table min-w-[980px]">
               <thead>
                 <tr>
                   <th>Tên nguyên liệu</th>
+                  <th>Phiếu nhập</th>
+                  <th>Ngày nhập</th>
+                  <th>Số lượng</th>
                   <th>ĐV</th>
                   <th>Giá tham chiếu</th>
                   <th>Giá nhập</th>
@@ -270,7 +292,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
               </thead>
               <tbody>
                 {priceVarianceRows.length === 0 ? (
-                  <EmptyRow colSpan={7} isError={priceVarianceResult.isError} />
+                  <EmptyRow colSpan={10} isError={priceVarianceResult.isError} />
                 ) : (
                   priceVarianceRows.map((item, index) => (
                     <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -283,6 +305,9 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                           </span>
                         </span>
                       </td>
+                      <td>{item.receiptCode}</td>
+                      <td>{new Date(`${item.receiptDate}T00:00:00`).toLocaleDateString('vi-VN')}</td>
+                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
                       <td>{formatUnit(item.unit)}</td>
                       <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
                       <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>

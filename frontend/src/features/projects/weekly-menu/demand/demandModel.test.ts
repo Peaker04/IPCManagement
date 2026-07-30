@@ -119,12 +119,13 @@ describe('material demand model', () => {
 
   it('replaces aggregate source counts with dish names from the active day', () => {
     const aggregateLines = [
-      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: '2 dòng nhu cầu trong ngày' },
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', priceTierAmount: 25_000, source: '2 dòng nhu cầu trong ngày' },
       { ingredientId: 'ingredient-2', material: 'Tôm', unit: 'kg', source: '1 dòng nhu cầu trong ngày' },
     ] as DemandLine[]
     const detailLines = [
-      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: 'Bí đao nấu tôm', serviceDate: '2026-07-24' },
-      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: 'Canh bí đao', serviceDate: '2026-07-24' },
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', priceTierAmount: 25_000, source: 'Bí đao nấu tôm', serviceDate: '2026-07-24' },
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', priceTierAmount: 25_000, source: 'Canh bí đao', serviceDate: '2026-07-24' },
+      { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', priceTierAmount: 30_000, source: 'Món tier khác', serviceDate: '2026-07-24' },
       { ingredientId: 'ingredient-1', material: 'Bí đao', unit: 'kg', source: 'Món ngày khác', serviceDate: '2026-07-25' },
     ] as DemandLine[]
 
@@ -177,7 +178,7 @@ describe('material demand model', () => {
 
   it.each([
     ['not-created', false, 'generate', true, false],
-    ['pending', false, 'approval', false, false],
+    ['pending', false, 'approval', true, true],
     ['approved', false, 'purchasing', false, false],
     ['approved', true, 'purchasing', true, true],
     ['rejected', false, 'generate', true, false],

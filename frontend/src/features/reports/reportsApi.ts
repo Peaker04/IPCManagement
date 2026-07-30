@@ -1,10 +1,9 @@
 import { apiSlice } from '@/api/apiSlice';
 import type {
-  WorkflowReportQuery,
-  WorkflowReportPageQuery,
+  WorkflowReportQuery, WorkflowReportPageQuery, IngredientDemandAggregatePageQuery, PurchasePlanPageQuery,
   DataQualityPageQuery,
   MaterialRequestCandidatePageQuery,
-  CurrentStockPageQuery,
+  CurrentStockPageQuery, StockMovementPageQuery,
   ReceiptPriceVariancePageQuery,
   PriceVarianceAggregatePageQuery,
   PageNumberPage,
@@ -12,7 +11,6 @@ import type {
   IngredientDemandReportDto,
   IngredientDemandPageResponseDto,
   MaterialRequestCandidate,
-  IngredientDemandAggregateReportDto,
   IngredientDemandAggregatePageResponseDto,
   PurchasePlanRow,
   PurchasePlanReportDto,
@@ -63,6 +61,7 @@ import {
   workflowLaneDefinitions,
 } from '@/lib/workflowConfig';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
+import { mapDemandAggregateLine } from './reportMappers';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 const queryWithLimit = (query?: WorkflowReportQuery) => ({
@@ -99,27 +98,6 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
     bomRatePercent: item.bomRatePercent,
     yieldLossPercent: item.yieldLossPercent,
     ...presentation,
-  };
-};
-
-const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto): DemandLine => {
-  const shortage = Math.max(item.suggestedPurchaseQty, 0);
-  const serviceDate = item.requestDate?.split('T')[0];
-  const isCancelled = item.hasCancelledLine;
-
-  return {
-    id: `aggregate-${serviceDate}-${item.ingredientId}-${item.unitId}`,
-    ingredientId: item.ingredientId,
-    serviceDate,
-    material: item.ingredientName ?? item.ingredientId,
-    required: item.totalRequiredQty,
-    available: item.currentStockQty,
-    reserved: 0,
-    unit: item.unitName ?? '',
-    source: `${item.lineCount} dòng nhu cầu trong ngày`,
-    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-    nextAction: isCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
-    tone: isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
   };
 };
 
@@ -164,9 +142,12 @@ const mapStockMovement = (item: StockMovementViewDto): StockMovement => {
 };
 
 const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow => ({
-  id: `${item.receiptId}-${item.ingredientId}`,
+  id: `${item.receiptId}-${item.ingredientId}-${item.unitId}`,
   name: item.ingredientName ?? item.ingredientId,
   unit: item.unitName ?? '',
+  receiptCode: item.receiptCode,
+  receiptDate: item.receiptDate,
+  quantity: item.quantity,
   pricePrev: item.referencePrice,
   priceCurrent: item.unitPrice,
   supplier: item.supplierName ?? item.supplierId,
@@ -221,7 +202,7 @@ const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
 });
 
 const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
-  id: `${item.issueId}-${item.ingredientId}`,
+  id: `${item.issueId}-${item.ingredientId}-${item.unitId}`,
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName ?? undefined,
@@ -335,7 +316,7 @@ export const reportsApi = apiSlice.injectEndpoints({
         workflowCacheTags.purchaseRequests,
       ],
     }),
-    getPurchasePlanPage: builder.query<PageNumberPage<PurchasePlanRow> & { totalShortageQty: number; totalEstimatedAmount: number }, WorkflowReportPageQuery | void>({
+    getPurchasePlanPage: builder.query<PageNumberPage<PurchasePlanRow> & { totalShortageQty: number; totalEstimatedAmount: number }, PurchasePlanPageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-plan/page',
         params: {
@@ -411,7 +392,7 @@ export const reportsApi = apiSlice.injectEndpoints({
       },
       providesTags: [workflowCacheTags.materialRequestCandidates],
     }),
-    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, IngredientDemandAggregatePageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand/aggregate/page',
         params: {
@@ -443,7 +424,7 @@ export const reportsApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<StockMovementViewDto[]>) => getData(response).map(mapStockMovement),
       providesTags: [workflowCacheTags.stockMovements],
     }),
-    getStockMovementPage: builder.query<CursorPage<StockMovement>, WorkflowReportQuery | void>({
+    getStockMovementPage: builder.query<CursorPage<StockMovement>, StockMovementPageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/stock-movements/page',
         params: { ...queryWithLimit(query || undefined), limit: query?.limit ?? 20 },

@@ -53,7 +53,7 @@ export function MaterialDemandSection({
         ? 'Đang kiểm tra độ mới...'
         : status.stalenessState === 'error'
           ? 'Chưa xác minh được độ mới'
-          : presentation.demandApprovalStatus.status === 'rejected' || presentation.demandApprovalStatus.status === 'cancelled' || presentation.activeStaleness?.isStale
+          : presentation.demandApprovalStatus.status === 'pending' || presentation.demandApprovalStatus.status === 'rejected' || presentation.demandApprovalStatus.status === 'cancelled' || presentation.activeStaleness?.isStale
             ? 'Tính lại nhu cầu'
             : 'Tạo nhu cầu từ KHSX'
   const handleGenerate = () => {

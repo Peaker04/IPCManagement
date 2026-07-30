@@ -49,4 +49,16 @@ public class DatabaseClonePolicyTests
 
         action.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void TransactionTables_ShouldIncludeSupplierDecisionsBeforePurchaseRequestLines()
+    {
+        var tables = DatabaseSanitizePolicy.TransactionTables;
+        var orderedTables = tables.ToList();
+
+        tables.Should().Contain("purchaselinesupplierdecisions");
+        orderedTables.IndexOf("purchaselinesupplierdecisions")
+            .Should().BeLessThan(orderedTables.IndexOf("purchaserequestlines"));
+        tables.Should().OnlyHaveUniqueItems();
+    }
 }

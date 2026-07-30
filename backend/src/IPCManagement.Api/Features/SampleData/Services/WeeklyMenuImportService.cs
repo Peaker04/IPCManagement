@@ -43,7 +43,9 @@ internal sealed class WeeklyMenuImportService(
         }
 
         var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
-        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
+        var mapping = ResolveCustomerImportMapping(
+            await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken),
+            customer.CustomerCode);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
@@ -91,7 +93,9 @@ internal sealed class WeeklyMenuImportService(
     {
         var customer = await customerResolver.ResolveAsync(customerId, cancellationToken);
         var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
-        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
+        var mapping = ResolveCustomerImportMapping(
+            await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken),
+            customer.CustomerCode);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
@@ -163,6 +167,17 @@ internal sealed class WeeklyMenuImportService(
             .FirstOrDefaultAsync(
                 item => item.CustomerId.SequenceEqual(customerId),
                 cancellationToken);
+
+    private static CustomerImportMapping ResolveCustomerImportMapping(
+        CustomerImportMapping? mapping,
+        string customerCode)
+        => !string.IsNullOrWhiteSpace(mapping?.SheetNameHint)
+            ? mapping
+            : new CustomerImportMapping
+            {
+                SheetNameHint = customerCode,
+                LabelColumn = mapping?.LabelColumn
+            };
 
     private static decimal NormalizeWeeklyMenuPriceTier(decimal? priceTierAmount)
     {

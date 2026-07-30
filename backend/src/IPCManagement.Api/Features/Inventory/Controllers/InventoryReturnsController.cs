@@ -71,7 +71,7 @@ public class InventoryReturnsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
         return CreatedAtAction(
-            nameof(GetByIdAsync),
+            "GetById",
             new { id = result.ReturnId },
             ApiResponse<InventoryReturnCreatedDto>.SuccessResult(result, "Tạo phiếu trả nguyên liệu thành công."));
     }

@@ -13,15 +13,7 @@ if (args.Length == 5 &&
     {
         DatabaseClonePolicy.ValidateSanitizeTarget(database);
         await using var connection = await OpenServerConnectionAsync(sanitizeSettingsPath);
-        var transactionTables = new[]
-        {
-            "approvalassignments", "approvalhistories", "auditlogs", "inventoryreturnlines", "inventoryreturns",
-            "supplementalmaterialrequests", "inventoryissuelines", "inventoryissues", "inventoryreceiptlines",
-            "inventoryreceipts", "purchaseorderlines", "purchaseorders", "purchaserequestlines", "purchaserequests",
-            "materialrequestlines", "materialrequests", "productionplanlines", "productionplans", "quantityadjustments",
-            "mealquantityplanlines", "mealquantityplans", "quantityimportbatches", "menuschedules", "menuversions",
-            "stockmovements", "stocksnapshots", "stocktakelines", "stocktakes", "supplierquotations", "refreshtokens"
-        };
+        var transactionTables = DatabaseSanitizePolicy.TransactionTables;
 
         var importedMenuIdsTable = $"phase18_imported_menu_ids_{Environment.ProcessId}";
         await ExecuteAsync(connection, $"""
@@ -75,17 +67,21 @@ if (args.Length == 5 &&
                 throw new InvalidOperationException($"E2E sanitization left {count} rows in {table}.");
             }
         }
-        var importedMenuArtifactsLeft = await ReadScalarAsync(
+        var importedMenusLeft = await ReadScalarAsync(
             connection,
             $"""
-            SELECT
-                (SELECT COUNT(*)
-                 FROM {Quote(database)}.{Quote("menus")} AS menu
-                 INNER JOIN {Quote(importedMenuIdsTable)} AS imported ON imported.menuId = menu.menuId) +
-                (SELECT COUNT(*)
-                 FROM {Quote(database)}.{Quote("menuitems")} AS item
-                 INNER JOIN {Quote(importedMenuIdsTable)} AS imported ON imported.menuId = item.menuId);
+            SELECT COUNT(*)
+            FROM {Quote(database)}.{Quote("menus")} AS menu
+            INNER JOIN {Quote(importedMenuIdsTable)} AS imported ON imported.menuId = menu.menuId;
             """);
+        var importedMenuItemsLeft = await ReadScalarAsync(
+            connection,
+            $"""
+            SELECT COUNT(*)
+            FROM {Quote(database)}.{Quote("menuitems")} AS item
+            INNER JOIN {Quote(importedMenuIdsTable)} AS imported ON imported.menuId = item.menuId;
+            """);
+        var importedMenuArtifactsLeft = importedMenusLeft + importedMenuItemsLeft;
         if (importedMenuArtifactsLeft != 0)
         {
             throw new InvalidOperationException(
@@ -93,7 +89,7 @@ if (args.Length == 5 &&
         }
 
         Console.WriteLine($"SANITIZE={database}");
-        Console.WriteLine($"TRANSACTION_TABLES={transactionTables.Length}");
+        Console.WriteLine($"TRANSACTION_TABLES={transactionTables.Count}");
         Console.WriteLine($"IMPORTED_MENUS_REMOVED={importedMenuCount}");
         Console.WriteLine("VERIFY=PASS");
         return 0;

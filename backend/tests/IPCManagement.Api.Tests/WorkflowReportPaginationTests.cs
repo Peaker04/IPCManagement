@@ -93,5 +93,15 @@ public class WorkflowReportPaginationTests
         result.HasNext.Should().BeTrue();
         result.Items.Should().HaveCount(2);
         result.Items.Select(row => row.IngredientName).Should().ContainInOrder("Nguyên liệu 1", "Nguyên liệu 2");
+
+        var searched = await new StockMovementReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
+        {
+            PageNumber = 1,
+            PageSize = 20,
+            SearchKeyword = "Nguyên liệu 3",
+        });
+
+        searched.TotalCount.Should().Be(1);
+        searched.Items.Should().ContainSingle().Which.IngredientName.Should().Be("Nguyên liệu 3");
     }
 }

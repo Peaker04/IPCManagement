@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import {
-  useGetIngredientDemandPageQuery,
+  useGetIngredientDemandAggregatePageQuery,
   useGetPurchasePlanPageQuery,
   type WorkflowReportQuery,
 } from '@/api/workflowApi';
@@ -25,16 +25,22 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
   const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
   const [demandPageSize, setDemandPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [demandPage, setDemandPage] = useState(initialPage);
+  const [demandSearch, setDemandSearch] = useState('');
+  const deferredDemandSearch = useDeferredValue(demandSearch.trim());
   const [purchasePageSize, setPurchasePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [purchasePage, setPurchasePage] = useState(initialPage);
-  const ingredientDemandResult = useGetIngredientDemandPageQuery({
+  const [purchaseSearch, setPurchaseSearchState] = useState('');
+  const deferredPurchaseSearch = useDeferredValue(purchaseSearch.trim());
+  const ingredientDemandResult = useGetIngredientDemandAggregatePageQuery({
     ...reportQuery,
+    searchKeyword: deferredDemandSearch || undefined,
     pageNumber: demandPage,
     pageSize: demandPageSize,
   }, { skip: activeView !== 'demand' });
   const purchasePlanResult = useGetPurchasePlanPageQuery({
     ...reportQuery,
     groupBy: purchasePlanGroupBy,
+    searchKeyword: deferredPurchaseSearch || undefined,
     pageNumber: purchasePage,
     pageSize: purchasePageSize,
   }, { skip: activeView !== 'purchase' });
@@ -49,11 +55,16 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
     shortageTone: purchasePlanView.phase === 'ready' && purchasePlanView.data.totalShortageQty > 0 ? 'danger' as const : 'success' as const,
   };
   const shortageCount = ingredientDemandView.phase === 'ready' ? ingredientDemandView.data.shortageCount : 0;
+  const setPurchaseSearch = (value: string) => {
+    setPurchaseSearchState(value);
+    setPurchasePage(1);
+  };
   const exportConfigs: Record<'demand' | 'purchase', ReportExportConfig> = {
     demand: {
       filename: 'nhu-cau-nguyen-lieu',
       rows: ingredientDemandRows,
       columns: [
+        ['Ngày', (row) => row.serviceDate],
         ['Nguyên liệu', (row) => row.material],
         ['Nguồn', (row) => row.source],
         ['Cần', (row) => row.required],
@@ -83,19 +94,23 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
   return {
     demandPage,
     demandPageSize,
+    demandSearch,
     exportConfigs,
     ingredientDemandResult,
     ingredientDemandRows,
     purchasePage,
     purchasePageSize,
+    purchaseSearch,
     purchasePlanGroupBy,
     purchasePlanResult,
     purchasePlanRows,
     purchasePlanSummary,
     setDemandPage,
     setDemandPageSize,
+    setDemandSearch,
     setPurchasePage,
     setPurchasePageSize,
+    setPurchaseSearch,
     setPurchasePlanGroupBy,
     shortageCount,
     views: { demand: ingredientDemandView, purchase: purchasePlanView },

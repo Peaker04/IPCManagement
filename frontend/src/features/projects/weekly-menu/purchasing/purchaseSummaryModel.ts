@@ -17,6 +17,7 @@ export const buildPurchaseSummaryPresentation = (
     const rightShortage = Math.max(right.required - (right.available - right.reserved), 0)
     return Number(rightShortage > 0) - Number(leftShortage > 0)
       || rightShortage - leftShortage
+      || (left.serviceDate ?? '').localeCompare(right.serviceDate ?? '')
       || left.material.localeCompare(right.material, 'vi-VN')
   })
   const totalItems = usesDemand ? orderedDemandLines.length : materialEntries.length
@@ -55,16 +56,18 @@ export const buildWarehouseCsv = (
   const rows = Object.entries(materialSummary)
     .filter(([, data]) => data.theory !== 0)
     .map(([, data]) => [
-      weekStartDate,
+      `Tổng tuần từ ${weekStartDate}`,
       customerCode,
+      data.ingredientId,
       data.ingredientName,
       data.theory.toFixed(2),
       data.actual.toFixed(2),
+      data.unitId,
       data.unit,
       data.referencePrice,
       Math.round(data.actual * data.referencePrice),
     ])
   if (rows.length === 0) return null
-  const header = 'Tuần,Khách hàng,Nguyên liệu,Số lượng LT,Số lượng TT,Đơn vị,Đơn giá (đ),Thành tiền (đ)'
+  const header = 'Phạm vi,Khách hàng,Ingredient ID,Nguyên liệu,Số lượng LT cả tuần,Số lượng TT cả tuần,Unit ID,Đơn vị,Đơn giá (đ),Thành tiền (đ)'
   return `\uFEFF${header}\n${rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n')}\n`
 }

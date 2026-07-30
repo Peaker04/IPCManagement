@@ -148,6 +148,7 @@ Các script migration/seed/release được khai báo trong `package.json` nhưn
 
 Các tài liệu nghiệp vụ hiện có:
 
+- [Domain overview](docs/DOMAIN.md): IPC làm gì, bốn vai trò vận hành và luồng thiếu → bổ sung → mua → kho → bếp.
 - [MVP Web Flow](docs/MVP_WEB_FLOW.md): hướng dẫn thao tác trên web từ đăng nhập đến demand, duyệt, thu mua, kho và bếp.
 - [MVP Demo Runbook](.docs/MVP_DEMO_RUNBOOK.md): runbook demo và kiểm tra luồng thực tế.
 - Các ghi chú nghiên cứu/đối chiếu trong `.docs/` là nguồn tham chiếu nghiệp vụ, không phải dữ liệu runtime của ứng dụng.
@@ -163,7 +164,10 @@ Các tài liệu nghiệp vụ hiện có:
 - [Frontend workspace](frontend/README.md)
 - [Quy tắc đóng góp](CONTRIBUTING.md)
 - [Rule cho các phiên chat và codebase](AGENTS.md)
-- [Trạng thái làm việc và handoff cho phiên mới](docs/CURRENT-STATE.md)
+- [Memory hiện hành](MEMORY.md)
+- [Lịch sử phase/sự cố](HISTORY.md)
+- [Bài học bất biến](LESSONS.md)
+- [Chỉ mục evidence](docs/EVIDENCE-INDEX.md)
 
 ## 🧪 Testing
 

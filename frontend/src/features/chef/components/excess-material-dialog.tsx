@@ -15,7 +15,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -100,7 +99,11 @@ export function ExcessMaterialDialog({
             </label>
             <Select value={selectedMaterialId} onValueChange={(val) => setSelectedMaterialId(val || '')}>
               <SelectTrigger aria-labelledby="excess-material-label" className="h-10 rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
-                <SelectValue placeholder="Nhấp để chọn nguyên liệu..." />
+                <span data-slot="select-value" className={selectedMaterial ? 'flex flex-1 text-left' : 'flex flex-1 text-left text-slate-400'}>
+                  {selectedMaterial
+                    ? `${selectedMaterial.name} (${formatUnit(selectedMaterial.unit)})`
+                    : 'Nhấp để chọn nguyên liệu...'}
+                </span>
               </SelectTrigger>
               <SelectContent className="rounded-lg border border-slate-200 bg-white shadow-lg max-h-60">
                 {materials.map((material) => (

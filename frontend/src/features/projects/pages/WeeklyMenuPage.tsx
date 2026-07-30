@@ -5,6 +5,7 @@ import { setWeeklyMenu } from '@/lib/coordinationActions';
 import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
+import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi';
 import {
   useGetCoordinationCustomersQuery,
   useGetCustomerContractsQuery,
@@ -45,6 +46,7 @@ import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
+import { WeeklyMenuLifecyclePanel } from '../weekly-menu/lifecycle/WeeklyMenuLifecyclePanel';
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
@@ -333,7 +335,7 @@ const WeeklyMenuPage = () => {
   });
 
   const demandWorkflow = useMaterialDemand({
-    enabled: activeView === 'demand' || activeView === 'purchase-summary',
+    enabled: activeView === 'demand',
     stalenessEnabled: activeView === 'demand',
     scope: weeklyScheduleScope,
     reportDateFrom: committedMenu?.weekStartDate?.split('T')[0],
@@ -348,15 +350,27 @@ const WeeklyMenuPage = () => {
   });
   const demandLines = demandWorkflow.presentation.demandLines;
   const aggregatedDemandLines = demandWorkflow.presentation.aggregatedDemandLines;
+  const demandReadinessResult = useGetIngredientDemandAggregatePageQuery({
+    customerId: weeklyScheduleScope.customerId,
+    dateFrom: weeklyScheduleScope.weekStartDate || undefined,
+    dateTo: committedMenu?.weekEndDate?.split('T')[0],
+    pageNumber: 1,
+    pageSize: 10,
+  }, {
+    skip: !weeklyScheduleScope.customerId
+      || !weeklyScheduleScope.weekStartDate
+      || !committedMenu?.weekEndDate,
+  });
   const readiness = buildWeeklyMenuReadiness({
     hasSelectedCustomer: Boolean(effectiveMenuCustomerId),
-    isSyncing: isCatalogLoading || isCommittedMenuFetching,
+    isSyncing: isCatalogLoading || isCommittedMenuFetching || demandReadinessResult.isLoading,
     hasCatalogIssue: isCatalogError || isCatalogEmpty,
+    hasDemandIssue: demandReadinessResult.isError,
     menuCount: weeklyPlanRows.length,
     missingServingCount: weeklyRowsMissingOperationalServings.length,
     missingBomCount: weeklyRowsMissingBom.length,
     invalidBomTierCount,
-    demandMaterialCount: demandLines.length ? aggregatedDemandLines.length : 0,
+    demandMaterialCount: demandReadinessResult.data?.totalCount ?? 0,
   });
   const readOnlyScopeKey = `${weeklyScheduleScope.customerId}:${weeklyScheduleScope.weekStartDate}`;
   const sourceLabel = selectedCustomer?.customerCode ?? committedMenu?.customerCode ?? 'Chưa chọn';
@@ -364,10 +378,12 @@ const WeeklyMenuPage = () => {
     scope: weeklyScheduleScope, sourceLabel, weeklyPlanRows, dishesById, dishesByName,
   });
   const purchaseSummaryWorkflow = usePurchaseSummary({
+    enabled: activeView === 'purchase-summary',
     scopeKey: readOnlyScopeKey,
+    customerId: weeklyScheduleScope.customerId,
     customerCode: selectedCustomer?.customerCode ?? committedMenu?.customerCode ?? 'UNKNOWN',
     customerLabel: sourceLabel,
-    weekStartDate: committedMenuWeekStartDate,
+    weekStartDate: weeklyScheduleScope.weekStartDate,
     weekLabel: weeklyScheduleScope.weekLabel,
     materialSummary,
     demandLines,
@@ -434,6 +450,14 @@ const WeeklyMenuPage = () => {
           ]}
           activeTab={selectedView}
           onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
+        />
+        <WeeklyMenuLifecyclePanel
+          schedules={menuSchedules}
+          quantityPlans={mealQuantityPlans}
+          demandLineCount={demandReadinessResult.data?.totalCount ?? 0}
+          shortageCount={demandReadinessResult.data?.shortageCount ?? 0}
+          isDemandLoading={demandReadinessResult.isLoading}
+          hasDemandError={demandReadinessResult.isError}
         />
         <WeeklyMenuReadiness readiness={readiness} />
         <WeeklyMenuAlerts
