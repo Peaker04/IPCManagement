@@ -1136,3 +1136,20 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - PC rerun xác nhận hai context `THIẾU` direct-complete cho Manager/Coordinator và một context `MỒ CÔI`
   purchasing link cho Coordinator; không sửa permission string, policy, gate hay UI. PD và object thứ hai
   vẫn đóng chờ Kỳ duyệt kết quả mới.
+
+## Sửa hiểu nhầm E2E và gỡ `WeeklyMenuLifecyclePanel` — 30/07/2026
+
+- Kỳ làm rõ “E2E lifecycle” là chạy luồng nghiệp vụ thật, không phải thêm UI mô tả lifecycle, và yêu cầu
+  gỡ luôn panel đã phát sinh. Commit `fbb489e` xóa component cùng caller duy nhất; không tạo selector/panel
+  thay thế. `weeklyMenuLifecycleModel` và PA registry tiếp tục tồn tại như contract/test không được
+  production import.
+- Hai lệch PC cũ được sửa đúng phạm vi: completion dùng `coordination.order.lock`, Manager dev fixture nhận
+  cùng canonical string, và `Mở thu mua` được gate bằng `purchase.read`. Không sửa backend policy và không
+  chạm năm nhóm PA-4 còn lại.
+- PA-2B rerun sau correction không còn lệch completion/purchasing. Hai context còn `THIẾU` chuyển thành
+  DRAFT × Manager/Coordinator vì backend CoordinationAccess cho phép nhưng control Publish thật nằm trong
+  Admin Data wildcard. Audit chỉ ghi nhận; chưa mở PD hoặc object thứ hai.
+- Operational E2E dùng source hiện tại và Chrome headed trên `ipc_e2e_template` disposable, nối control FE
+  qua API/DB/reload tới handoff Thu mua. `ipc_lane1` chỉ được dùng làm nguồn clone/read; sau capture,
+  template được clone lại từ lane và runtime do phiên tạo được teardown. Hash artifact nằm duy nhất trong
+  `docs/EVIDENCE-INDEX.md`; gate hiện hành nằm trong `MEMORY.md`.

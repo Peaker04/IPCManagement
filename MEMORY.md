@@ -36,7 +36,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - Grain nghiệp vụ lấy `docs/DATA-GRAIN-MATRIX.md` làm contract. Nhu cầu ngày, tổng tuần, snapshot tồn, source-line chứng từ và movement audit không được trộn.
 - Không gộp, deduplicate hoặc dùng React key theo tên nguyên liệu. Dòng tổng chỉ là presentation; action phải drill down về ID nguồn.
 - Browser gate desktop hiện hành có đúng năm viewport: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
-- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. P3 → P4 → PC và PA-2B fixture đã chạy xong; chưa mở PD/object thứ hai trước khi Kỳ duyệt PC rerun.
+- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. Chưa mở PD/object thứ hai trước khi Kỳ duyệt hai context draft còn lệch.
 - Không kết luận pass từ BE/API riêng lẻ; evidence phải nối FE control → API → DB transition → FE reload.
 - Trước khi chạy file `.sql`, phải soi `USE`, `CREATE DATABASE`, `DROP DATABASE` và `DROP TABLE`; database đích trên CLI không vô hiệu hóa `USE` bên trong file. Không chạy mutation nếu chưa có precondition và rollback.
 - UI giữ SAP Fiori compact: work object theo tab, action/status rõ, tab một dòng có overflow hợp lý, shell không remount, panel cũ được giữ khi refetch và loading/empty/error/permission không được đánh đồng.
@@ -55,32 +55,37 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `OPEN-07` · owner `Import/Platform` · đóng khi preview có BOM diagnostics đúng scope, token/checksum commit và provenance cho dish do import tạo.
 - `OPEN-08` · owner `Backend/Import` · đóng khi batch hai khách hàng atomic hoặc có recovery protocol được test.
 - `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
-- `OPEN-10` · owner `Frontend/Auth` · đóng khi Kỳ duyệt canonical cho sáu chuỗi PA-4, checker vocabulary xanh và được đưa vào full gate mà không miễn production, dev fixture hoặc test.
-- `OPEN-11` · owner `QA/UI` · đóng khi Kỳ duyệt PC rerun PA-2B với hai context `THIẾU` direct-complete và một context `MỒ CÔI` purchasing link; chưa mở PD/object thứ hai.
+- `OPEN-10` · owner `Frontend/Auth` · đóng khi Kỳ duyệt canonical cho năm nhóm chuỗi PA-4 còn lại, checker vocabulary xanh và được đưa vào full gate mà không miễn production, dev fixture hoặc test.
+- `OPEN-11` · owner `QA/UI` · đóng khi Kỳ duyệt PC rerun đã sửa với hai context `THIẾU` DRAFT × Manager/Coordinator do publish thật nằm sau Admin Data wildcard; chưa mở PD/object thứ hai.
 
 ## Cần Kỳ quyết
 
 - `DEC-01` · Xác nhận/gạch 7 UI candidate, bổ sung 3 lỗi còn thiếu và chọn 3 màn IPC golden theo `docs/UI-CONFORMANCE-CANDIDATES.md`.
 - `DEC-02` · Chọn/cấp tài khoản object storage R2 hoặc B2 và hai SSD luân phiên; codebase không tự tạo subscription/credential.
-- `DEC-03` · Chọn canonical cần sửa cho PA-4: `admin.only`, `inventory:read`, `orders.lock`, `production:read`, `warehouse.issue`, `warehouse:read`; `warehouse.issue` chưa suy ra được canonical từ test generic.
+- `DEC-03` · Chọn canonical cần sửa cho PA-4: `admin.only`, `inventory:read`, `production:read`, `warehouse.issue`, `warehouse:read`; `warehouse.issue` chưa suy ra được canonical từ test generic. `orders.lock` đã được đổi sang canonical `coordination.order.lock` tại commit `fbb489e`.
 - `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
 - `DEC-06` · Duyệt định dạng registry một đối tượng trước khi mở object thứ hai; canon PB đã được duyệt và không còn nằm trong quyết định này.
-- `DEC-08` · Duyệt PC rerun PA-2B tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`: hai context `THIẾU` (`active-incomplete × Manager/Coordinator`), một context `MỒ CÔI` (`active-shortage-approved × Coordinator`), terminal không có action nghiệp vụ; chưa mở PD.
+- `DEC-08` · Duyệt PC rerun PA-2B tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`: completion và purchasing đã khớp; còn hai context `THIẾU` (`draft × Manager/Coordinator`) vì publish thật nằm sau route admin; terminal không có action nghiệp vụ và chưa mở PD.
 
 ## Gate hiện hành
 
 Gate chốt ngày `2026-07-30`: Application `49/49`; API baseline `697 pass + 1 intentional skip`
-khi tách checker PA-4; checker PA-4 riêng lẻ đỏ đúng thiết kế trên sáu chuỗi có file:dòng;
+khi tách checker PA-4; checker PA-4 riêng lẻ đỏ đúng thiết kế trên năm nhóm chuỗi có file:dòng;
 frontend `95 file / 506 test`; ESLint và production build pass. Dependency-cruiser `0 violation /
-364 module / 1.251 dependency`; architecture-growth test và strict gate pass. Commit PA `d26a452`
-chỉ thêm test/tài liệu, không đổi production behavior. `npm run verify` hiện cố ý dừng ở PA-4 cho
+363 module / 1.242 dependency`; architecture-growth test và strict gate pass. Commit `fbb489e` gỡ
+panel ngoài ý muốn và sửa đúng hai frontend gate đã xác minh. `npm run verify` hiện cố ý dừng ở PA-4 cho
 đến khi DEC-03 được chốt; không được skip fixture hoặc test để làm gate xanh.
 
 PA-2B/PC fixture final chạy Chrome headed `6/6` trên đúng năm viewport: 11 scenario, 115
-actor-scenario case, 2.705 interaction point, 115 screenshot, 1.345 API record, 0 business mutation,
+actor-scenario case, 2.675 interaction point, 115 screenshot, 1.235 API record, 0 business mutation,
 0 unhandled API, 0 overflow/page error/unexpected browser issue. Nó chỉ chứng minh FE rendering với API
 intercept, không phải backend/DB E2E. Evidence/hash authoritative ở `docs/EVIDENCE-INDEX.md`.
+
+Operational E2E riêng chạy Chrome headed trên disposable `ipc_e2e_template`: import → Admin Contracts
+publish → hoàn tất 12 ca → sinh/duyệt 6 demand → handoff Thu mua; 28 mutation đều 2xx, DB đạt 12 plan
+COMPLETED, 6 request MANAGERAPPROVED và 350 line. `ipc_lane1` không đổi; template đã rollback bằng clone
+61 bảng và runtime `3001/8001/8090` đã teardown.
 
 Chạy lại từ project root:
 
@@ -94,7 +99,7 @@ git diff --check
 
 Browser/DB evidence tương ứng chỉ lấy từ các dòng authoritative trong `docs/EVIDENCE-INDEX.md`.
 
-P3 → P4 → PC và PA-2B companion registry cho `WeeklyMenuLifecycle` đã đo xong và đang chờ Kỳ duyệt
-PC rerun tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`. Không mở PD hoặc object thứ hai trước quyết định này.
+PA-2B/PC và operational E2E cho `WeeklyMenuLifecycle` đã đo xong. Chờ Kỳ duyệt hai context draft còn
+`THIẾU` tại `docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md`; không mở PD hoặc object thứ hai trước quyết định này.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.

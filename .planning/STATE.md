@@ -42,6 +42,10 @@ Step 16 work-package progress: 5/5 complete.
 - Phase 18 is complete through `87e92fe` plus documentation/GSD closeout. Goal-backward verification
   passed 8/8 must-haves and milestone v1.2 audit passed 12/12 requirements, 8/8 phases, 7/7
   integrations and 4/4 end-to-end flows. No gap, undispositioned process or Deferred item remains.
+- Quick task `260730-wbx` closed at `fbb489e`: unintended WeeklyMenu lifecycle panel removed, two verified
+  FE permission gates aligned, PA-2B corrected and operational E2E passed on a disposable clone with
+  source lane unchanged. Current gate/evidence pointers are authoritative in `MEMORY.md` and
+  `docs/EVIDENCE-INDEX.md`.
 - Guarded `ipc_lane1` evidence for week `2026-07-27` is preserved: exact ANV workbook hash, rollback
   backup/mirror, protected lineage, 15 screenshots, 112 successful API responses and five desktop
   viewports. Do not rerun sanitizer/import/reset/seed for closeout.
@@ -191,14 +195,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | 260730-rws | PB inventory: discover every recurring UI concept, count variants and prepare canon ballot without changing production code | 2026-07-30 | 51b99db | [260730-rws-pb-inventory-discover-every-recurring-ui](./quick/260730-rws-pb-inventory-discover-every-recurring-ui/) |
 | 260730-tx0 | Read-only P3 to P4 to PC audit: map WeeklyMenu DOM controls to source, capture headed Chrome interaction points across required viewports and compare against the approved one-object PA registry without changing behavior | 2026-07-30 | 8635ce4 | [260730-tx0-read-only-p3-to-p4-to-pc-audit-map-weekl](./quick/260730-tx0-read-only-p3-to-p4-to-pc-audit-map-weekl/) |
 | 260730-uno | PA-2B WeeklyMenuLifecycle: add actor/downstream registry, terminal-none contract, read-only fixture and PC rerun without opening PD | 2026-07-30 | 4e9ee5b | [260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe](./quick/260730-uno-pa-2b-weeklymenulifecycle-extend-the-exe/) |
+| 260730-wbx | Remove unintended WeeklyMenuLifecyclePanel, align two verified FE gates and run real operational lifecycle E2E without mutating the source lane | 2026-07-31 | fbb489e | [260730-wbx-remove-unintended-weeklymenulifecyclepan](./quick/260730-wbx-remove-unintended-weeklymenulifecyclepan/) |
 
 ## Session
 
-**Last Date:** 2026-07-30T22:56:40+07:00
+**Last Date:** 2026-07-31T00:36:19+07:00
 
-**Stopped At:** PA-2B and PC rerun complete for WeeklyMenuLifecycle; waiting for Kỳ's review before PD/object two
+**Stopped At:** unintended lifecycle panel removed; corrected PA-2B and operational E2E complete; waiting for review of the two draft publish gaps before PD/object two
 
-Last activity: 2026-07-30 - Completed quick task 260730-uno: PA-2B registry, read-only fixture and PC rerun for WeeklyMenuLifecycle
+Last activity: 2026-07-31 - Completed quick task 260730-wbx at fbb489e
 
 **Resume File:** .planning/ROADMAP.md
 
