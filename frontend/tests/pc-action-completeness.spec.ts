@@ -62,6 +62,8 @@ const screenshotEvidence: Array<{
   family: string
   actor: PcActorId
   path: string
+  kind: 'family-final' | 'scenario-exclusion'
+  scenarioId?: string
 }> = []
 const requestEvidence: Array<{
   viewport: string
@@ -72,6 +74,7 @@ const requestEvidence: Array<{
   mutation: boolean
   scenario: string
 }> = []
+const collectorDiagnostics: string[] = []
 
 const normalizeLabel = (value: string) => value
   .normalize('NFKC')
@@ -111,10 +114,8 @@ const installPerformanceProbe = async (page: Page) => {
 const expectedLocator = (page: Page, row: PcProjectedRegistryRow): Locator | null => {
   const control = row.expectedControl
   if (!control) return null
-  if (control.role === 'spinbutton') {
-    const inputs = page.getByRole('spinbutton')
-    return row.operation === 'request-adjustment' ? inputs.nth(1) : inputs.nth(0)
-  }
+  if (row.operation === 'update-forecast') return page.getByLabel(/^Suất dự kiến của /).first()
+  if (row.operation === 'request-adjustment') return page.getByLabel(/^Suất thực tế của /).first()
   return page.getByRole(control.role, { name: control.name, exact: typeof control.name === 'string' })
 }
 
@@ -122,20 +123,41 @@ const readControl = async (
   locator: Locator | null,
   row: PcProjectedRegistryRow,
   route: string,
+  timeout: number,
 ): Promise<PcActualControl[]> => {
   if (!locator) return []
-  const visible = await locator.first().waitFor({ state: 'visible', timeout: 2_500 })
+  const strictVisible = await locator.first().waitFor({ state: 'visible', timeout })
     .then(() => true)
     .catch(() => false)
-  if (!visible) return []
-  const control = locator.first()
-  const evidence = await control.evaluate((element, operation) => {
+  const expectedName = row.expectedControl?.name
+  const fallback = typeof expectedName === 'string'
+    ? locator.page().locator('button, a[href], [role="button"], [role="link"]')
+        .filter({ hasText: expectedName })
+    : null
+  const fallbackVisible = !strictVisible && fallback
+    ? await fallback.first().waitFor({ state: 'visible', timeout: 2_500 })
+        .then(() => true)
+        .catch(() => false)
+    : false
+  if (!strictVisible && !fallbackVisible) {
+    collectorDiagnostics.push(`${row.family}/${row.scenarioId}: no interactive ${String(expectedName)} candidate`)
+    return []
+  }
+  const control = strictVisible ? locator.first() : fallback!.first()
+  const evidence = await control.evaluate((element) => {
     const input = element as HTMLInputElement
     const explicitLabel = input.id
       ? document.querySelector<HTMLLabelElement>(`label[for="${CSS.escape(input.id)}"]`)?.textContent
       : null
     return {
-      role: element.getAttribute('role') ?? element.tagName.toLowerCase(),
+      role: element.getAttribute('role')
+        ?? (element instanceof HTMLAnchorElement
+          ? 'link'
+          : element instanceof HTMLButtonElement
+            ? 'button'
+            : element instanceof HTMLInputElement && element.type === 'number'
+              ? 'spinbutton'
+              : element.tagName.toLowerCase()),
       accessibleName: [
         element.getAttribute('aria-label'),
         element.getAttribute('title'),
@@ -143,18 +165,23 @@ const readControl = async (
         element.textContent,
         input.value,
       ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim(),
-      selector: element.id
-        ? `#${CSS.escape(element.id)}`
-        : `${element.tagName.toLowerCase()}[data-pc-operation="${operation}"]`,
+      selector: element.id ? `#${CSS.escape(element.id)}` : null,
       enabled: !input.disabled && element.getAttribute('aria-disabled') !== 'true',
       disabledReason: element.getAttribute('aria-description')
         ?? element.getAttribute('title')
         ?? element.closest('[data-disabled-reason]')?.getAttribute('data-disabled-reason')
         ?? null,
     }
-  }, row.operation)
+  })
+  if (evidence.role !== row.expectedControl?.role) {
+    collectorDiagnostics.push(`${row.family}/${row.scenarioId}: expected role ${row.expectedControl?.role}, observed ${evidence.role} for ${evidence.accessibleName}`)
+    return []
+  }
   return [{
     ...evidence,
+    selector: evidence.selector ?? (row.expectedControl?.role === 'spinbutton'
+      ? `label=${String(row.expectedControl.name)}`
+      : `role=${row.expectedControl?.role}[name=${String(row.expectedControl?.name)}]`),
     accessibleName: evidence.accessibleName || String(row.expectedControl?.name ?? row.operation),
     source: row.expectedControl?.source ?? row.source[0],
     route,
@@ -192,6 +219,21 @@ const openScenario = async (page: Page, scenarioRows: PcProjectedRegistryRow[]) 
     await tabLocator.first().click()
     if (tab === 'Nhu cầu') {
       await page.locator('#demand-panel').waitFor({ state: 'visible', timeout: 10_000 })
+    }
+  }
+  if (scenarioRows[0].family === 'MaterialDemand') {
+    const statusByScenario: Record<string, string> = {
+      'not-created': 'Chưa tạo',
+      pending: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
+      cancelled: 'Đã hủy',
+    }
+    const expectedStatus = statusByScenario[scenarioRows[0].scenarioId]
+    if (expectedStatus) {
+      await page.getByText(expectedStatus, { exact: true })
+        .first()
+        .waitFor({ state: 'visible', timeout: 15_000 })
     }
   }
   const loadingSurface = page.locator('[class*="skeleton"], [data-slot="skeleton"], [aria-busy="true"]')
@@ -256,14 +298,17 @@ for (const viewport of PC_VIEWPORTS) {
         const actualRoute = new URL(page.url()).pathname
         const routeDenied = actualRoute === '/forbidden'
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)
+        const groupRowStart = rows.length
 
         for (const projected of group) {
+          const expected = projected.expectedControl !== null
+            && (projected.expectedActors?.includes(actor) ?? true)
           const actualControls = await readControl(
             expectedLocator(page, projected),
             projected,
             actualRoute,
+            expected ? 10_000 : 2_500,
           )
-          const expected = projected.expectedControl !== null
           const fixtureConditionRuledOut = !expected || actualControls.length > 0
           const exclusions = {
             navigation: {
@@ -318,6 +363,26 @@ for (const viewport of PC_VIEWPORTS) {
           })
         }
 
+        const groupMeasurements = rows.slice(groupRowStart)
+        const needsScenarioEvidence = groupMeasurements.some((measurement) => (
+          (measurement.expected && measurement.actualControls.length === 0)
+          || measurement.mismatch === 'CHƯA-KẾT-LUẬN-ĐƯỢC'
+        ))
+        if (needsScenarioEvidence) {
+          const screenshotRelative = `${viewport.id}/${current.family}/${current.scenarioId}-${actor}-exclusion.png`
+          const screenshotAbsolute = resolve(EVIDENCE_ROOT, screenshotRelative)
+          mkdirSync(dirname(screenshotAbsolute), { recursive: true })
+          await page.screenshot({ path: screenshotAbsolute, fullPage: true })
+          screenshotEvidence.push({
+            viewport: viewport.id,
+            family: current.family,
+            scenarioId: current.scenarioId,
+            actor,
+            kind: 'scenario-exclusion',
+            path: screenshotRelative.replace(/\\/g, '/'),
+          })
+        }
+
         const nextFamily = groups[groupIndex + 1]?.[0].family
         if (nextFamily !== current.family) {
           const screenshotRelative = `${viewport.id}/${current.family}-${actor}-final.png`
@@ -328,6 +393,7 @@ for (const viewport of PC_VIEWPORTS) {
             viewport: viewport.id,
             family: current.family,
             actor,
+            kind: 'family-final',
             path: screenshotRelative.replace(/\\/g, '/'),
           })
         }
@@ -380,6 +446,73 @@ test.afterAll(() => {
       .reduce((count, row) => count + row.actualControls.length, 0)
     expect(visibleControlCount, `${family} must capture at least one visible semantic control`).toBeGreaterThan(0)
   }
+  const fullyResolvable = rows.filter((row) => (
+    (row.family === 'MaterialDemand' && row.scenarioId !== 'terminal')
+    || (row.family === 'PurchasingWorkflow' && ['submitted', 'receiving'].includes(row.scenarioId))
+    || (row.family === 'WeeklyMenuLifecycle'
+      && ['active-incomplete', 'active-shortage'].includes(row.scenarioId)
+      && row.expected)
+  ))
+  expect(fullyResolvable.length).toBeGreaterThan(0)
+  const missingResolvableControls = fullyResolvable
+    .filter((row) => row.actualControls.length === 0)
+    .map((row) => {
+      const prefix = `${row.family}/${row.scenarioId}`
+      const diagnostics = collectorDiagnostics.filter((item) => item.startsWith(prefix))
+      return `${prefix}/${row.actor}/${row.viewport.id}${diagnostics.length > 0 ? ` — ${diagnostics.join(' | ')}` : ''}`
+    })
+  expect(
+    missingResolvableControls,
+    'resolvable MaterialDemand, Purchasing navigation, and WeeklyMenu controls must render for every frontend-expected actor/viewport',
+  ).toEqual([])
+
+  const projectedRow = (row: PcMeasurementRow) => PC_PROJECTED_REGISTRY_ROWS.find((candidate) => (
+    candidate.family === row.family
+    && candidate.scenarioId === row.scenarioId
+    && candidate.operation === row.operation
+  ))
+  const canonicalDimensionsKnown = (row: PcMeasurementRow) => {
+    const projected = projectedRow(row)
+    return Boolean(projected && [
+      projected.operation,
+      projected.registryActor,
+      projected.backendPermission,
+      projected.frontendPermission,
+    ].every((value) => value !== UNKNOWN))
+  }
+  expect(fullyResolvable
+    .filter(canonicalDimensionsKnown)
+    .filter((row) => row.mismatch !== 'KHỚP')
+    .map((row) => `${row.family}/${row.scenarioId}/${row.actor}/${row.viewport.id}`)).toEqual([])
+
+  const coordinationUnknownInputs = rows.filter((row) => (
+    row.family === 'CoordinationOrderScopeLifecycle'
+    && ['update-forecast', 'request-adjustment'].includes(row.operation)
+  ))
+  expect(coordinationUnknownInputs).toHaveLength(measuredViewports.length * 12)
+  expect(coordinationUnknownInputs
+    .filter((row) => (
+      row.actualControls.length !== 1
+      || row.mismatch !== 'CHƯA-KẾT-LUẬN-ĐƯỢC'
+    ))
+    .map((row) => `${row.scenarioId}/${row.operation}/${row.actor}/${row.viewport.id}`)).toEqual([])
+  expect(fullyResolvable
+    .filter((row) => !canonicalDimensionsKnown(row))
+    .filter((row) => row.mismatch !== 'CHƯA-KẾT-LUẬN-ĐƯỢC')
+    .map((row) => `${row.family}/${row.scenarioId}/${row.actor}/${row.viewport.id}`)).toEqual([])
+
+  const intentionalWeeklyAbsence = rows.filter((row) => (
+    row.family === 'WeeklyMenuLifecycle'
+    && ((row.scenarioId === 'draft' && row.actor !== 'admin')
+      || (row.scenarioId === 'active-shortage' && row.actor === 'coordinator'))
+  ))
+  expect(intentionalWeeklyAbsence.length).toBeGreaterThan(0)
+  expect(intentionalWeeklyAbsence.every((row) => (
+    !row.expected && row.actualControls.length === 0 && row.mismatch === 'KHỚP'
+  ))).toBe(true)
+
+  const observedControls = rows.flatMap((row) => row.actualControls)
+  expect(observedControls.every((control) => control.request === null && control.postAction === null)).toBe(true)
 
   const summary = Object.fromEntries(PC_EXECUTABLE_FAMILIES.map((family) => {
     const familyRows = rows.filter((row) => row.family === family)

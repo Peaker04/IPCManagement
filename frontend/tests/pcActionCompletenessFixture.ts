@@ -36,6 +36,7 @@ export type PcProjectedRegistryRow = {
   backendPermission: string
   frontendPermission: string
   actors: readonly PcActorId[]
+  expectedActors?: readonly PcActorId[]
   expectedControl: PcControlExpectation | null
   source: readonly string[]
   disposition: string
@@ -106,8 +107,8 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       actors: ['admin', 'manager', 'coordinator'] as const,
       expectedControl: coordinationControl(
         'spinbutton',
-        'Số suất dự báo',
-        'frontend/src/features/coordination/components/order-table.tsx',
+        /^Suất dự kiến của /,
+        'frontend/src/features/coordination/components/order-table.tsx:327',
       ),
       source: coordinationSource(
         'update-forecast',
@@ -168,8 +169,8 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       actors: ['admin', 'manager', 'coordinator'] as const,
       expectedControl: coordinationControl(
         'spinbutton',
-        'Số suất thực tế',
-        'frontend/src/features/coordination/components/order-table.tsx',
+        /^Suất thực tế của /,
+        'frontend/src/features/coordination/components/order-table.tsx:355',
       ),
       source: coordinationSource(
         'request-adjustment',
@@ -263,7 +264,7 @@ const purchasingRows: PcProjectedRegistryRow[] = purchasingOperations.map(([scen
   frontendPermission: 'purchase.read with stage-specific control',
   actors: ['admin', 'manager', 'procurement'],
   expectedControl: {
-    role: ['submitted', 'receiving'].includes(scenarioId) ? 'link' : 'button',
+    role: 'button',
     name: operation,
     source: 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438',
     route: '/purchasing',
@@ -331,6 +332,9 @@ const weeklyRows: PcProjectedRegistryRow[] = weeklyCanonicalScenarioIds.map((sce
     backendPermission: scenario.actorOracle.admin.backendAvailable === null ? UNKNOWN : 'source-linked PA2B policy evidence',
     frontendPermission: expectedControl ? 'source-linked PA2B route/control evidence' : UNKNOWN,
     actors: scenario.actors.map((actor) => actor === 'manager' ? 'manager' : actor === 'coordinator' ? 'coordinator' : 'admin'),
+    expectedActors: scenario.actors
+      .filter((actor) => scenario.actorOracle[actor].frontendAvailable)
+      .map((actor) => actor === 'manager' ? 'manager' : actor === 'coordinator' ? 'coordinator' : 'admin'),
     expectedControl,
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts:119-240',
@@ -432,6 +436,20 @@ export const PC_SOURCE_GUARD_DECLARATIONS = [
   {
     sourcePath: 'frontend/src/features/purchasing/purchasingModel.ts',
     fragments: purchasingOperations.map(([, operation]) => `label: '${operation}'`),
+  },
+  {
+    sourcePath: 'frontend/tests/control-surface.spec.ts',
+    fragments: [
+      "for (const name of ['Tuần trước', 'Tuần hiện tại', 'Tuần sau', 'Mở màn hình nhập kho'])",
+      "await expect(actionGroup.getByRole('button', { name })).toBeVisible()",
+    ],
+  },
+  {
+    sourcePath: 'frontend/src/features/coordination/components/order-table.tsx',
+    fragments: [
+      'aria-label={`Suất dự kiến của ${order.customerName}`}',
+      'aria-label={`Suất thực tế của ${order.customerName}`}',
+    ],
   },
 ] as const
 
@@ -629,6 +647,62 @@ const ingredientDemandRows = (runtime: PcFixtureRuntime) => {
   }]
 }
 
+const committedWeeklyMenu = (scenario?: WeeklyMenuLifecyclePa2bScenario) => {
+  if (!scenario || scenario.scenarioId === 'empty') return null
+  const dates = Array.from(new Set(scenario.schedules.map((schedule) => schedule.serviceDate)))
+  const rows = (dates.length > 0 ? dates : ['2026-07-27']).map((serviceDate, index) => ({
+    serviceDate,
+    dayKey: index === 0 ? 't2' : 't3',
+    sourceRowNumber: index + 1,
+    sourceColumn: index === 0 ? 'B' : 'C',
+    sourceSection: 'Mặn',
+    sourceShift: 'Ca sáng',
+    dbShiftName: 'MORNING',
+    variant: 'savory',
+    slot: 'main',
+    slotLabel: 'Món chính',
+    dishName: `Món kiểm thử PC ${index + 1}`,
+    rowSpan: 1,
+    isMergedContinuation: false,
+    existingDish: false,
+  }))
+  return {
+    committed: true,
+    fileName: 'pc-read-only-fixture.xlsx',
+    customerId: 'customer-pc',
+    customerCode: 'PC',
+    customerName: 'Khách hàng PC',
+    weekStartDate: '2026-07-27',
+    weekEndDate: '2026-08-01',
+    detectedLayout: {
+      sheetName: 'PC',
+      labelColumn: 'A',
+      dayColumns: [],
+      sections: [],
+      rowsScanned: rows.length,
+      rowsImported: rows.length,
+      rowsSkipped: 0,
+    },
+    warnings: [],
+    validation: {
+      isValid: true,
+      hasCriticalErrors: false,
+      errorCount: 0,
+      warningCount: 0,
+      issues: [],
+    },
+    rows,
+    previewDiff: {
+      addedSlots: 0,
+      changedSlots: 0,
+      removedSlots: 0,
+      unchangedSlots: rows.length,
+      rows: [],
+    },
+    importedWeeklyMenu: {},
+  }
+}
+
 const purchasingWorkbench = (scenarioId: string) => {
   const serviceDate = phase09Workbench.serviceDates[0]
   return {
@@ -693,7 +767,7 @@ const resolvePcApiData = (path: string, runtime: PcFixtureRuntime): { matched: b
   if (path === '/api/coordination/customers') return { matched: true, data: [{ customerId: 'customer-pc', customerCode: 'PC', customerName: 'Khách hàng PC' }] }
   if (path === '/api/coordination/customer-contracts') return { matched: true, data: [{ contractId: 'contract-pc', customerId: 'customer-pc', customerCode: 'PC', customerName: 'Khách hàng PC', isActive: true, contractStatus: 'ACTIVE', menuScheduleCount: weeklyScenario?.schedules.length ?? 0, activeWeekDays: ['MONDAY'], shiftNames: ['MORNING'], defaultMenuPrice: 25000, defaultBomRatePercent: 100 }] }
   if (path === '/api/coordination/weekly-menu/import-history') return { matched: true, data: [] }
-  if (path === '/api/coordination/weekly-menu') return { matched: true, data: null }
+  if (path === '/api/coordination/weekly-menu') return { matched: true, data: committedWeeklyMenu(weeklyScenario) }
   if (path === '/api/purchase-workflow/workbench') return { matched: true, data: purchasingWorkbench(scenarioId) }
   if (path.startsWith('/api/purchase-requests')) return { matched: true, data: path.endsWith('/page') ? emptyPage(8) : [] }
   if (path.startsWith('/api/purchase-orders')) return {

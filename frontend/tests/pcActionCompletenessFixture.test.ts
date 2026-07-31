@@ -5,6 +5,8 @@ import coordinationRegistrySource from '../src/features/coordination/coordinatio
 import weeklyRegistrySource from '../src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts?raw'
 import demandModelSource from '../src/features/projects/weekly-menu/demand/demandModel.ts?raw'
 import purchasingModelSource from '../src/features/purchasing/purchasingModel.ts?raw'
+import controlSurfaceSource from './control-surface.spec.ts?raw'
+import coordinationOrderTableSource from '../src/features/coordination/components/order-table.tsx?raw'
 import { PC_VIEWPORTS } from './pcActionCompletenessContract'
 import {
   assertPcFirewallClosed,
@@ -41,6 +43,8 @@ const rawSources: Record<string, string> = {
   'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts': weeklyRegistrySource,
   'frontend/src/features/projects/weekly-menu/demand/demandModel.ts': demandModelSource,
   'frontend/src/features/purchasing/purchasingModel.ts': purchasingModelSource,
+  'frontend/tests/control-surface.spec.ts': controlSurfaceSource,
+  'frontend/src/features/coordination/components/order-table.tsx': coordinationOrderTableSource,
 }
 
 const fakeRoute = (method: string, path: string) => {
@@ -121,6 +125,24 @@ describe('PC aggregate read-only fixture', () => {
         unknownDimensions: ['operation', 'actor', 'backendPermission', 'frontendPermission'],
       })).toBe('CHƯA-KẾT-LUẬN-ĐƯỢC')
     }
+  })
+
+  it('locks actor-aware Weekly expectations and button semantics for purchasing navigation actions', () => {
+    const weekly = Object.fromEntries(PC_PROJECTED_REGISTRY_ROWS
+      .filter((row) => row.family === 'WeeklyMenuLifecycle')
+      .map((row) => [row.scenarioId, row]))
+    expect(weekly.draft.expectedActors).toEqual(['admin'])
+    expect(weekly['active-shortage'].expectedActors).toEqual(['admin', 'manager'])
+    expect(weekly['active-incomplete'].expectedActors).toEqual(['admin', 'manager', 'coordinator'])
+
+    const purchasingNavigationRows = PC_PROJECTED_REGISTRY_ROWS.filter((row) => (
+      row.family === 'PurchasingWorkflow'
+      && ['submitted', 'receiving'].includes(row.scenarioId)
+    ))
+    expect(purchasingNavigationRows.map((row) => row.expectedControl?.role)).toEqual([
+      'button',
+      'button',
+    ])
   })
 
   it('classifies all six outcomes and never turns an unresolved exclusion into THIẾU', () => {
