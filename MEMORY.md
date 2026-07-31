@@ -38,7 +38,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - Grain nghiệp vụ lấy `docs/DATA-GRAIN-MATRIX.md` làm contract. Nhu cầu ngày, tổng tuần, snapshot tồn, source-line chứng từ và movement audit không được trộn.
 - Không gộp, deduplicate hoặc dùng React key theo tên nguyên liệu. Dòng tổng chỉ là presentation; action phải drill down về ID nguồn.
 - Browser gate desktop hiện hành có đúng năm viewport: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
-- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. D-01 khóa Option A: WeeklyMenu DRAFT `Publish` vẫn **Admin-only**; việc Manager/Coordinator không có control là FE chặt hơn BE có chủ đích. Phase 20 chưa mở; không có PD/UI lifecycle panel mới.
+- PB canon đã được Kỳ duyệt toàn bộ ngày `2026-07-30`; Button chọn 8B và form controls chọn 9B theo `docs/PB-UI-VARIANT-AUDIT.md`. `WeeklyMenuLifecyclePanel` phát sinh do hiểu nhầm E2E đã bị gỡ; lifecycle model/registry chỉ còn là contract/test. D-01 khóa Option A: WeeklyMenu DRAFT `Publish` vẫn **Admin-only**; việc Manager/Coordinator không có control là FE chặt hơn BE có chủ đích. Phase 20 Plan 20-01 đã đóng; đang chờ aggregate fixture ở Plan 20-02 và chưa có PD/UI lifecycle panel mới.
 - DEC-06 đã được materialize trong Phase 19 bằng registry test-owned `CoordinationOrderScopeLifecycle`: grain mỗi hàng là
   `scenario × operation`, mọi hàng có `scope`, còn `entityState` và `projectionState` tách riêng. Registry có
   20 rows, inventory 13 family và shared FE/BE manifest; production không import registry. WeeklyMenu snapshot
@@ -106,6 +106,9 @@ Browser/DB evidence tương ứng chỉ lấy từ các dòng authoritative tron
 PA-2B/PC và operational E2E cho `WeeklyMenuLifecycle` đã đo xong. D-01 khóa Option A: control
 `Publish` tại Admin Data → Contract vẫn **Admin-only**; DRAFT × Manager/Coordinator là FE chặt hơn BE
 có chủ đích, không phải defect còn chờ alignment. Phase 19 đã hoàn tất registry object thứ hai ở test-only;
-Phase 20 (PC/PD action completeness) mới chỉ ở trạng thái ready-to-plan.
+Phase 20 (PC/PD action completeness) có bốn plan được checker xác nhận phủ ORCL-04/05. Plan 20-01 đã thêm
+contract/source guard test-owned tại `4059298`, full frontend `101 files / 568 tests` và GitNexus final detect
+không có affected process. Plan 20-03 chứa blocking human checkpoint trước mọi production PD candidate; trạng
+thái hiện hành là ready-to-execute Plan 20-02.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.
