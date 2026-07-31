@@ -512,7 +512,7 @@ const actorProfile = (actor: PcActorId) => {
     manager: { username: 'quanly', roleCode: 'MANAGER', roleName: 'Quản lý', permissions: ['coordination.read', 'coordination.order.lock', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate', 'purchase.request.approve'], isAdminFullAccess: false },
     coordinator: { username: 'dieuphoi', roleCode: 'COORDINATOR', roleName: 'Điều phối', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'], isAdminFullAccess: false },
     procurement: { username: 'muahang', roleCode: 'PROCUREMENT', roleName: 'Thu mua', permissions: ['purchase.read', 'purchase.generate'], isAdminFullAccess: false },
-    warehouse: { username: 'thukho', roleCode: 'WAREHOUSE', roleName: 'Thủ kho', permissions: ['warehouse.read', 'warehouse.manage'], isAdminFullAccess: false },
+    warehouse: { username: 'thukho', roleCode: 'WAREHOUSE', roleName: 'Thủ kho', permissions: ['warehouse.read', 'inventory.read'], isAdminFullAccess: false },
   } as const
   const profile = profiles[actor]
   return {
