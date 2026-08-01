@@ -20,7 +20,7 @@ oracle hình học được tự bổ sung. Các chiều chưa có nguồn trong
 | P5 | HOÀN TẤT | [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) là ma trận normative; giá trị không có nguồn vẫn là `UNRESOLVED`. |
 | P6 | HOÀN TẤT — ZERO RED | [`UI-CONFORMANCE-FAILURE-SELECTION.md`](UI-CONFORMANCE-FAILURE-SELECTION.md) ghi đúng tập failure còn tồn tại; tập chọn rỗng nên không chế assertion đỏ. |
 | P7 | HOÀN TẤT — ZERO FIX | [`UI-CONFORMANCE-FIX-RESULT.md`](UI-CONFORMANCE-FIX-RESULT.md) giữ no-op vì P6 không cấp phép production fix. |
-| P8 | HOÀN TẤT | Root `npm run verify` gọi `test:ui-completeness`, khóa operational registry, source canon, P5/P6 ledger và state-purity contract mà không bỏ gate cũ. |
+| P8 | HOÀN TẤT | Root `npm run verify` gọi `test:ui-completeness`, khóa operational registry, PC disposition, source canon, P5/P6 provenance/ledger và state-purity contract mà không bỏ gate cũ. |
 | PF | HOÀN TẤT | `frontend/tests/uiStatePurityContract.test.ts` khóa ba same-kind pair và baseline exact cho local/global/time/order/cache; negative probe mới hoặc production import test inventory đều làm gate fail. |
 
 ## Gate đóng
@@ -30,4 +30,3 @@ oracle hình học được tự bổ sung. Các chiều chưa có nguồn trong
   browser error hoặc overflow. Hash chỉ nằm trong [`EVIDENCE-INDEX.md`](EVIDENCE-INDEX.md).
 - Backend policy, lifecycle, route, UI action eligibility và dữ liệu `ipc_lane1` không bị thay đổi.
 - Các requirement tương lai trong planning là ngoài phạm vi addendum, không phải phase tiếp theo của closeout này.
-
