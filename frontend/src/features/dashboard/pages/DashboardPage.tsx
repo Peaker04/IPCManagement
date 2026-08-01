@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { CommandBar, EmptyState, OperationalFrame, QueryErrorAlert } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
 import { workflowApi } from '@/api/workflowApi';
@@ -321,16 +322,18 @@ const DashboardPage = () => {
               const count = filter.key === 'all' ? actionQueue.length : actionQueue.filter((item) => item.category === filter.key).length;
 
               return (
-                <button
+                <Button
                   key={filter.key}
                   type="button"
+                  variant="outline"
+                  size="sm"
                   className={filter.key === activeQueueFilter ? 'is-active' : undefined}
                   onClick={() => setActiveQueueFilter(filter.key)}
                   aria-pressed={filter.key === activeQueueFilter}
                 >
                   {filter.label}
                   {filter.key !== 'all' && <span>{count}</span>}
-                </button>
+                </Button>
               );
             })}
           </div>

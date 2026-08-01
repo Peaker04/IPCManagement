@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/lib/formatters';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCurrency, formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { ROUTES } from '@/lib/routeConfig';
 import type {
@@ -43,15 +44,12 @@ type Confirmation =
   | { type: 'submit-request'; purchaseRequestId: string }
   | { type: 'create-orders'; purchaseRequestId: string };
 
+const EMPTY_DEMAND_SELECT_VALUE = '__no-approved-demand__';
+
 const evidenceLabel = (candidate: SupplierEvidenceCandidate) =>
   candidate.evidenceType === 'EffectiveQuotation'
-    ? `Báo giá hiệu lực đến ${candidate.effectiveTo ? formatIsoDate(candidate.effectiveTo) : 'không giới hạn'}`
-    : `Phiếu nhập gần nhất ngày ${formatIsoDate(candidate.evidenceDate)}`;
-
-const formatIsoDate = (value: string) => {
-  const [year, month, day] = value.slice(0, 10).split('-');
-  return year && month && day ? `${day}/${month}/${year}` : value;
-};
+    ? `Báo giá hiệu lực đến ${candidate.effectiveTo ? formatDateOnly(candidate.effectiveTo) : 'không giới hạn'}`
+    : `Phiếu nhập gần nhất ngày ${formatDateOnly(candidate.evidenceDate)}`;
 
 export function SupplierEvidenceList({
   candidates,
@@ -75,10 +73,13 @@ export function SupplierEvidenceList({
       {candidates.map((candidate) => {
         const selected = candidate.evidenceId === selectedEvidenceId;
         return (
-          <button
+          <Button
             key={`${candidate.evidenceType}-${candidate.evidenceId}`}
             type="button"
-            className={`min-h-11 rounded-[3px] border px-3 py-2 text-left text-[14px] transition-colors motion-reduce:transition-none ${
+            variant="outline"
+            size="sm"
+            textWrap="wrap"
+            className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-3 py-2 text-left text-[14px] leading-normal transition-colors motion-reduce:transition-none ${
               selected
                 ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-950'
                 : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
@@ -96,7 +97,7 @@ export function SupplierEvidenceList({
             <span className="mt-1 block text-[12px] leading-[1.4] text-slate-600">
               {evidenceLabel(candidate)}. {formatCurrency(candidate.unitPrice)}/{candidate.unitName}
             </span>
-          </button>
+          </Button>
         );
       })}
     </div>
@@ -290,7 +291,7 @@ export function PurchaseDecisionPanel({
     <SectionPanel
       title="Quyết định thu mua"
       icon={<ShieldCheck size={18} aria-hidden="true" />}
-      description={`${formatIsoDate(serviceDate.serviceDate)}. Cả ngày (FULLDAY). Dữ liệu trạng thái do máy chủ xác định.`}
+      description={`${formatDateOnly(serviceDate.serviceDate)}. Cả ngày (FULLDAY). Dữ liệu trạng thái do máy chủ xác định.`}
       className="mt-4 min-w-0"
     >
       <div id={panelId} className="space-y-4" tabIndex={-1}>
@@ -300,22 +301,29 @@ export function PurchaseDecisionPanel({
         {selectedStage === 'demand' ? (
           <div className="space-y-3">
             <label className="block text-[14px] font-semibold text-slate-900" htmlFor="approved-demand-selection">Nhu cầu nguyên liệu đã duyệt</label>
-            <select
-              id="approved-demand-selection"
-              className="ipc-select min-h-11 w-full sm:min-h-9"
-              value={selectedDemandId}
-              onChange={(event) => setSelectedDemandId(event.target.value)}
+            <Select
+              value={selectedDemandId || EMPTY_DEMAND_SELECT_VALUE}
+              onValueChange={(value) => setSelectedDemandId(value === EMPTY_DEMAND_SELECT_VALUE ? '' : (value ?? ''))}
             >
-              <option value="">Chọn nhu cầu để tạo đề xuất</option>
+              <SelectTrigger id="approved-demand-selection" className="min-h-11 w-full sm:min-h-9">
+                <SelectValue>
+                  {selectedDemand
+                    ? `${selectedDemand.requestCode} - ${selectedDemand.shortageLineCount} dòng thiếu`
+                    : 'Chọn nhu cầu để tạo đề xuất'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={EMPTY_DEMAND_SELECT_VALUE}>Chọn nhu cầu để tạo đề xuất</SelectItem>
               {serviceDate.approvedDemands.map((demand) => (
-                <option key={demand.materialRequestId} value={demand.materialRequestId}>
+                <SelectItem key={demand.materialRequestId} value={demand.materialRequestId}>
                   {demand.requestCode} - {demand.shortageLineCount} dòng thiếu
-                </option>
+                </SelectItem>
               ))}
-            </select>
+              </SelectContent>
+            </Select>
             <p id="purchase-demand-action-guidance" className="text-[12px] text-slate-600">
               {selectedDemand
-                ? `${selectedDemand.requestCode}. ${formatIsoDate(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).`
+                ? `${selectedDemand.requestCode}. ${formatDateOnly(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).`
                 : serviceDate.approvedDemands.length === 0
                   ? 'Không còn nhu cầu đã duyệt đủ điều kiện tạo đề xuất mua cho ngày này.'
                   : 'Chọn một nhu cầu đã duyệt để tiếp tục.'}
@@ -457,7 +465,7 @@ export function PurchaseDecisionPanel({
               <p><strong>Nhà cung cấp:</strong> {selectedEvidence.supplierName}</p>
               <p><strong>Bằng chứng:</strong> {evidenceLabel(selectedEvidence)}</p>
               <p><strong>Giá đề xuất:</strong> {formatCurrency(Number(proposedUnitPrice))}</p>
-              <p><strong>Ngày giao:</strong> {formatIsoDate(proposedDeliveryDate)}</p>
+              <p><strong>Ngày giao:</strong> {formatDateOnly(proposedDeliveryDate)}</p>
             </div>
           ) : null}
           {errorMessage ? <InlineAlert title="Chưa thể lưu thay đổi" variant="danger"><span role="alert">{errorMessage}</span></InlineAlert> : null}

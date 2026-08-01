@@ -41,6 +41,7 @@ export type PcActualControl = {
   selector: string
   source: string
   route: string
+  surface: string
   enabled: boolean
   disabledReason: string | null
   request: PcRequestEvidence | null
@@ -51,6 +52,7 @@ export type PcMeasurementRow = {
   family: string
   scenarioId: string
   actor: string
+  registryActor: string
   viewport: PcViewport
   operation: string
   backendPermission: string
@@ -58,6 +60,9 @@ export type PcMeasurementRow = {
   expected: boolean
   actualControls: readonly PcActualControl[]
   exclusions: PcFalseMissingExclusions
+  routeMismatch: boolean
+  requestExpected: boolean
+  requestObserved: boolean
   mismatch: PcMismatch
   source: readonly string[]
   disposition: string
@@ -78,7 +83,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 )
 
 const isNonEmptyString = (value: unknown): value is string => (
-  typeof value === 'string' && value.length > 0
+  typeof value === 'string' && value.trim().length > 0
 )
 
 const isKnownViewport = (value: unknown): value is PcViewport => (
@@ -108,7 +113,7 @@ const assertActualControl = (value: unknown, rowIndex: number, controlIndex: num
     throw new Error(`PC row ${rowIndex} control ${controlIndex} must be an object`)
   }
 
-  const requiredStrings = ['role', 'accessibleName', 'selector', 'source', 'route'] as const
+  const requiredStrings = ['role', 'accessibleName', 'selector', 'source', 'route', 'surface'] as const
   requiredStrings.forEach((field) => {
     if (!isNonEmptyString(value[field])) {
       throw new Error(`PC row ${rowIndex} control ${controlIndex} has invalid ${field}`)
@@ -120,6 +125,9 @@ const assertActualControl = (value: unknown, rowIndex: number, controlIndex: num
   }
   if (value.disabledReason !== null && !isNonEmptyString(value.disabledReason)) {
     throw new Error(`PC row ${rowIndex} control ${controlIndex} has invalid disabledReason`)
+  }
+  if (!value.enabled && value.disabledReason === null) {
+    throw new Error(`PC row ${rowIndex} control ${controlIndex} is disabled without a visible reason`)
   }
   if (value.postAction !== null && !isNonEmptyString(value.postAction)) {
     throw new Error(`PC row ${rowIndex} control ${controlIndex} has invalid postAction`)
@@ -136,6 +144,37 @@ const assertActualControl = (value: unknown, rowIndex: number, controlIndex: num
   }
 }
 
+export type PcClassificationInput = {
+  expected: boolean
+  actualCount: number
+  exclusions: PcFalseMissingExclusions
+  unknownDimensions?: readonly string[]
+  routeMismatch?: boolean
+  requestExpected?: boolean
+  requestObserved?: boolean
+}
+
+export const classifyPcMeasurement = ({
+  expected,
+  actualCount,
+  exclusions,
+  unknownDimensions = [],
+  routeMismatch = false,
+  requestExpected = false,
+  requestObserved = false,
+}: PcClassificationInput): PcMismatch => {
+  if (unknownDimensions.length > 0) return 'CHƯA-KẾT-LUẬN-ĐƯỢC'
+  if (routeMismatch && actualCount > 0) return 'LỆCH VỊ TRÍ'
+  if (!expected && actualCount > 0) return 'MỒ CÔI'
+  if (expected && actualCount === 0) {
+    return Object.values(exclusions).every((exclusion) => exclusion.ruledOut)
+      ? 'THIẾU'
+      : 'CHƯA-KẾT-LUẬN-ĐƯỢC'
+  }
+  if (expected && actualCount > 0 && requestExpected && !requestObserved) return 'IM LẶNG'
+  return 'KHỚP'
+}
+
 export const pcMeasurementRowKey = (
   row: Pick<PcMeasurementRow, 'family' | 'scenarioId' | 'actor' | 'viewport' | 'operation'>,
 ) => [
@@ -150,6 +189,9 @@ export function assertPcMeasurementRows(rows: unknown): asserts rows is readonly
   if (!Array.isArray(rows)) {
     throw new Error('PC measurement rows must be an array')
   }
+  if (rows.length === 0) {
+    throw new Error('PC measurement rows cannot be empty for an aggregate')
+  }
 
   const keys = new Set<string>()
 
@@ -162,6 +204,7 @@ export function assertPcMeasurementRows(rows: unknown): asserts rows is readonly
       'family',
       'scenarioId',
       'actor',
+      'registryActor',
       'operation',
       'backendPermission',
       'frontendPermission',
@@ -179,6 +222,12 @@ export function assertPcMeasurementRows(rows: unknown): asserts rows is readonly
     }
     if (typeof row.expected !== 'boolean') {
       throw new Error(`PC row ${index} has invalid expected flag`)
+    }
+    if (typeof row.routeMismatch !== 'boolean') {
+      throw new Error(`PC row ${index} has invalid routeMismatch flag`)
+    }
+    if (typeof row.requestExpected !== 'boolean' || typeof row.requestObserved !== 'boolean') {
+      throw new Error(`PC row ${index} has invalid request evidence flags`)
     }
     if (!Array.isArray(row.actualControls)) {
       throw new Error(`PC row ${index} has invalid actualControls`)
@@ -205,6 +254,25 @@ export function assertPcMeasurementRows(rows: unknown): asserts rows is readonly
     ] as const
     exclusionFields.forEach((field) => assertExclusionEvidence(row.exclusions[field], index, field))
 
+    const unknownDimensions = [
+      ['operation', row.operation],
+      ['actor', row.registryActor],
+      ['backendPermission', row.backendPermission],
+      ['frontendPermission', row.frontendPermission],
+    ].filter(([, value]) => value === UNKNOWN).map(([field]) => field)
+    const expectedMismatch = classifyPcMeasurement({
+      expected: row.expected,
+      actualCount: row.actualControls.length,
+      exclusions: row.exclusions,
+      unknownDimensions,
+      routeMismatch: row.routeMismatch,
+      requestExpected: row.requestExpected,
+      requestObserved: row.requestObserved,
+    })
+    if (row.mismatch !== expectedMismatch) {
+      throw new Error(`PC row ${index} classification ${row.mismatch} contradicts evidence; expected ${expectedMismatch}`)
+    }
+
     if (row.mismatch === 'THIẾU') {
       const unresolved = exclusionFields.filter((field) => !row.exclusions[field].ruledOut)
       if (unresolved.length > 0) {
@@ -214,7 +282,7 @@ export function assertPcMeasurementRows(rows: unknown): asserts rows is readonly
 
     if (row.mismatch === 'KHỚP') {
       const positiveEvidence = [
-        row.actor,
+        row.registryActor,
         row.operation,
         row.backendPermission,
         row.frontendPermission,
@@ -225,6 +293,30 @@ export function assertPcMeasurementRows(rows: unknown): asserts rows is readonly
       if (row.expected !== (row.actualControls.length > 0)) {
         throw new Error(`PC row ${index} cannot be KHỚP when expected and actual presence differ`)
       }
+      if (row.expected && row.actualControls.some((control) => !control.enabled)) {
+        throw new Error(`PC row ${index} cannot be KHỚP with a disabled expected control`)
+      }
+      if (row.requestExpected) {
+        if (!row.requestObserved || row.actualControls.some((control) => control.request === null || control.postAction === null)) {
+          throw new Error(`PC row ${index} cannot be KHỚP without request and post-action evidence`)
+        }
+      }
+    }
+
+    if (row.mismatch === 'IM LẶNG' && (row.actualControls.length === 0 || !row.requestExpected || row.requestObserved)) {
+      throw new Error(`PC row ${index} has invalid IM LẶNG evidence`)
+    }
+    if (row.mismatch === 'LỆCH VỊ TRÍ' && (!row.routeMismatch || row.actualControls.length === 0)) {
+      throw new Error(`PC row ${index} has invalid LỆCH VỊ TRÍ evidence`)
+    }
+    if (row.mismatch === 'MỒ CÔI' && (row.expected || row.actualControls.length === 0)) {
+      throw new Error(`PC row ${index} has invalid MỒ CÔI evidence`)
+    }
+    if (row.mismatch === 'THIẾU' && (row.expected === false || row.actualControls.length !== 0)) {
+      throw new Error(`PC row ${index} has invalid THIẾU evidence`)
+    }
+    if (row.mismatch === 'CHƯA-KẾT-LUẬN-ĐƯỢC' && unknownDimensions.length === 0 && Object.values(row.exclusions).every((exclusion) => exclusion.ruledOut) && !row.routeMismatch && !(row.expected && row.actualControls.length > 0 && row.requestExpected && !row.requestObserved)) {
+      throw new Error(`PC row ${index} has unresolved classification without unresolved evidence`)
     }
 
     const key = pcMeasurementRowKey(row as PcMeasurementRow)

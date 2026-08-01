@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { formatImportDate } from '../model/formatters'
@@ -59,15 +60,16 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                     </td>
                     <td>{item.createdByName ?? '-'}</td>
                     <td className="text-right">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="xs"
                         onClick={() => actions.requestRollback(item.menuVersionId, label)}
                         disabled={!item.canRollback || status.isRollingBack}
                         title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể rollback'}
-                        className="ipc-button ipc-button-ghost ipc-button-bounded"
                       >
                         Rollback
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 )

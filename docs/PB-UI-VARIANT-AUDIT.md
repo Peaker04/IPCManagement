@@ -389,6 +389,40 @@ variants are sanctioned by the already-approved pagination decision.
 
 No competing production variant remains.
 
+## Post-PE live-source recount — 2026-08-02
+
+The ballot above remains the decision record; this section is the current projection after Phase 21
+convergence. “Residual” means a production presentation that still violates the approved canon, not the
+number of valid canon consumers. Counts come from executable AST/owner tests rather than the historical line
+list, whose line numbers moved during convergence.
+
+| Approved concept | Live residual | Canon / exact exception disposition |
+|---|---:|---|
+| Status presentation | 0 | `StatusBadge`/`ContextStrip`; exactly one non-status Badge in `chef-header` |
+| Initial loading vs background refresh | 0 | stale content stays rendered during background refresh |
+| Search/filter ownership | 0 | all five audited server-search owners pass deferred query values; the two Reports owners retain their existing 300 ms request debounce before deferral as a behavior-preserving compatibility layer, while client/URL owners retain their contracts |
+| Quantity/count/percent | 0 | shared quantity/percent formatters; exactly four model-rounding `toFixed` calls remain |
+| Date-only vs timestamp | 0 | shared timezone-free `formatDateOnly` and guarded `formatDateTime` fixed to the audited business timezone `Asia/Bangkok`; MainLayout clock and transport/date arithmetic remain semantic exceptions |
+| Query error/forbidden vs empty | 0 | `QueryErrorAlert`/`InlineAlert` branches remain distinct from empty state |
+| Empty-result presentation | 0 | approved page/table/prerequisite/detail context variants remain |
+| Table boundary | 0 | `TableViewport`/approved adapters; `DataTableShell` callers remain zero |
+| Query-state algebra | 0 | domain renderers retain exhaustive query-state contracts without a universal component |
+| Mutation feedback | 0 | toast, persistent actionable error and field validation remain context-owned |
+| Pagination/navigation | 0 | offset, cursor, finite-step and calendar adapters remain separate contracts |
+| Button primitive (8B) | 0 | 77 migrated; exactly 10 CommandBar and 11 adapter/shell native controls remain |
+| Form-control primitive (9B) | 0 | 39 Input, 26 Select and 4 Textarea migrated; exactly 11 semantic exceptions remain |
+| Action placement | 0 | page, row and selected-object placement remains scope-owned |
+| Validation feedback | 0 | field-adjacent Chef residuals migrated; ARIA wiring retained |
+| Currency formatting | 0 | shared `formatCurrency`; local/bare presentation residuals remain zero |
+| Confirmation contracts | 0 | native `window.confirm` remains zero; simple and rich decision contracts stay distinct |
+| Work-object switching / route shell | 0 | `OperationalFrame` and conditional `ViewSwitcher` contract retained |
+
+Executable closure is in `frontend/tests/uiCanonSourceInventory.test.ts`,
+`buttonPrimitiveConvergence.test.ts`, `formPrimitiveConvergence.test.ts`,
+`dateFormattingConvergence.test.ts`, `quantityFormattingConvergence.test.ts` and
+`currencyFormattingConvergence.test.ts`. The exact shared/file-size `toLocaleString` exception set is three;
+any new occurrence changes a count-locked test.
+
 ## Approval record
 
 Approved by the user on 2026-07-30: all thirteen pending concepts, with choice **8B** for Button

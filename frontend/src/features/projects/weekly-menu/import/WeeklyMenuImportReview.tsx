@@ -1,7 +1,8 @@
-import { ContextStrip, InlineAlert } from '@/components/common'
+import { ContextStrip, InlineAlert, StatusBadge } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { ImportedLayoutMatrix } from '../../components/ImportedLayoutMatrix'
 import { formatImportDate, getImportJobStatusLabel } from '../model/formatters'
-import { getImportJobStatusClass } from './importValidation'
+import { getImportJobStatusTone } from './importValidation'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 
 type Props = { workflow: WeeklyMenuImportWorkflow }
@@ -18,7 +19,7 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
           <h3 className="text-base font-bold text-slate-900">Kết quả kiểm tra {job.customerCode}</h3>
           <p className="text-sm font-medium text-slate-500">{job.fileName}</p>
         </div>
-        <span className={getImportJobStatusClass(job.status)}>{getImportJobStatusLabel(job.status)}</span>
+        <StatusBadge variant={getImportJobStatusTone(job.status)}>{getImportJobStatusLabel(job.status)}</StatusBadge>
       </div>
 
       {problemMessages.length > 0 && (
@@ -43,15 +44,17 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
                 { label: 'Số món đọc được', value: preview.detectedLayout.rowsImported.toString(), tone: 'success' },
               ]}
             />
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              textWrap="wrap"
               onClick={() => void actions.saveMapping()}
               disabled={status.isSavingMapping}
-              className="ipc-button ipc-button-ghost ipc-button-bounded"
               title="Ghi nhớ cách đọc file này cho khách hàng, dùng lại cho lần sau"
             >
               {status.isSavingMapping ? 'Đang ghi nhớ...' : 'Ghi nhớ cách đọc file'}
-            </button>
+            </Button>
           </div>
 
           {diffRows.length > 0 && (

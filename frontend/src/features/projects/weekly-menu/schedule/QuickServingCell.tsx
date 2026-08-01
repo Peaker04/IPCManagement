@@ -1,10 +1,11 @@
 import type { QuickServingRow, WeeklyScheduleEditorWorkflow } from './types'
 import { StatusBadge } from '@/components/common'
+import { Input } from '@/components/ui/input'
 
 export function QuickServingCell({ row, workflow }: { row: QuickServingRow; workflow: WeeklyScheduleEditorWorkflow }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <input
+      <Input
         type="number"
         min={0}
         step={1}
@@ -20,7 +21,7 @@ export function QuickServingCell({ row, workflow }: { row: QuickServingRow; work
             workflow.actions.discardQuickServing(row.key)
           }
         }}
-        className="ipc-input h-8 w-24 text-center"
+        className="h-8 w-24 text-center"
         disabled={row.isConfirmed}
         aria-label={`Số suất ${row.dayLabel} ${row.shiftLabel}`}
       />

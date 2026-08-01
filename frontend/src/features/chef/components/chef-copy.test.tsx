@@ -109,6 +109,19 @@ describe('Chef operational copy', () => {
     expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true);
   });
 
+  it('renders material state through the canonical compact status contract', () => {
+    render(<MaterialChecklist materials={[{
+      id: 'issue-line-status',
+      name: 'Bầu',
+      unit: 'kg',
+      quantity: 2,
+      status: 'Chờ giao',
+      signed: false,
+    }]} />);
+
+    expect(screen.getByText('Chờ ký nhận').closest('.ipc-status-badge')).toBeInTheDocument();
+  });
+
   it('groups repeated material presentation but keeps source-line signoff ids', () => {
     const onMaterialSignoff = vi.fn();
     render(<MaterialChecklist materials={[

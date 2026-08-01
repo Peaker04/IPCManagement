@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
 
@@ -162,6 +163,30 @@ describe('ApprovalRulesPage query state boundary', () => {
 
     expect(screen.getByText('Danh sách nhân viên bị giới hạn')).toBeInTheDocument();
     expect(screen.getByText(/1\/201 nhân viên/)).toBeInTheDocument();
+  });
+
+  it('renders document, role, and employee labels in closed select triggers', async () => {
+    const user = userEvent.setup();
+    mocks.employees.mockReturnValue(readyQuery(employeesResponse([
+      { userId: 'employee-1', fullName: 'Nguyễn An', username: 'nguyenan' },
+    ])));
+
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' });
+    const triggers = within(dialog).getAllByRole('combobox');
+    expect(triggers[0]).toHaveTextContent('Đơn mua thêm (PR)');
+    expect(triggers[0]).not.toHaveTextContent('purchase-request');
+    expect(triggers[1]).toHaveTextContent('Quản lý');
+    expect(triggers[1]).not.toHaveTextContent('quanly');
+    expect(triggers[2]).toHaveTextContent('Gửi chung cho cả vai trò');
+    expect(triggers[2]).not.toHaveTextContent('__empty_approver_user__');
+
+    await user.click(triggers[2]);
+    await user.click(await screen.findByRole('option', { name: 'Nguyễn An (nguyenan)' }));
+    expect(triggers[2]).toHaveTextContent('Nguyễn An (nguyenan)');
+    expect(triggers[2]).not.toHaveTextContent('employee-1');
   });
 
   it('requires explicit confirmation before deleting a rule and preserves the busy copy', async () => {

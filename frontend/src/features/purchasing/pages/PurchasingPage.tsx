@@ -3,6 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from
 import { useSearchParams } from 'react-router-dom';
 import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
+import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import {
   useGetPurchaseWorkbenchQuery,
@@ -43,13 +44,7 @@ const formatWeekRange = (week: string) => {
   const start = new Date(`${week}T00:00:00Z`);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 6);
-  const formatter = new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-  return `${formatter.format(start)} - ${formatter.format(end)}`;
+  return `${formatDateOnly(start.toISOString())} - ${formatDateOnly(end.toISOString())}`;
 };
 
 export default function PurchasingPage() {

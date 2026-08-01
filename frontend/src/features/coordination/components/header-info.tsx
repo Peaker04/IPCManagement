@@ -1,6 +1,8 @@
 'use client'
 
 import { CalendarClock, Sun, Sunset } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import type { ShiftType } from '../types'
 import { SHIFT_LABELS } from '@/lib/constants'
 import { useAppDispatch } from '@/lib/reduxHooks'
@@ -35,7 +37,7 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
         <div className="flex flex-wrap items-end gap-4">
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             <span>Ngày phục vụ</span>
-            <input
+            <Input
               aria-label="Ngày phục vụ"
               type="date"
               value={currentServiceDate}
@@ -51,20 +53,18 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
                 const active = shift === key
                 const ShiftIcon = key === 'Ca Sáng' ? Sun : Sunset
                 return (
-                  <button
+                  <Button
                     key={key}
                     type="button"
+                    variant={active ? 'default' : 'outline'}
+                    size="sm"
                     aria-pressed={active}
                     onClick={() => handleShiftChange(key as ShiftType)}
-                    className={`inline-flex min-w-28 items-center justify-center gap-1.5 rounded px-3 text-sm font-semibold transition-colors ${
-                      active
-                        ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-200'
-                        : 'text-slate-600 hover:bg-white/70 hover:text-slate-800'
-                    }`}
+                    className="min-w-28"
                   >
                     <ShiftIcon className="size-4" aria-hidden="true" />
                     {label}
-                  </button>
+                  </Button>
                 )
               })}
             </div>

@@ -3,25 +3,13 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { ProductionPlan } from '@/lib/types'
+import { formatDateOnly } from '@/lib/formatters'
 
 interface ChefHeaderProps {
   productionPlan: ProductionPlan
 }
 
 export function ChefHeader({ productionPlan }: ChefHeaderProps) {
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('vi-VN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    } catch {
-      return dateStr
-    }
-  }
-
   const chefNames = productionPlan.kitchenAssignment.responsibleChefs
     .map((c) => c.shortName)
     .join(', ')
@@ -32,7 +20,7 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
       <Card className="rounded-md border-slate-200 bg-white">
         <CardContent className="pt-4">
           <p className="text-xs text-slate-500 tracking-wider mb-1">Ngày làm việc</p>
-          <p className="text-lg font-semibold text-slate-900">{formatDate(productionPlan.date)}</p>
+          <p className="text-lg font-semibold text-slate-900">{formatDateOnly(productionPlan.date)}</p>
         </CardContent>
       </Card>
 

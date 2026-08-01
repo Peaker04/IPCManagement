@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/formatters';
 import type {
   PurchaseOrderDto,
   PurchaseOrderLineDto,
@@ -39,6 +41,8 @@ interface ReceiptFormErrors {
   expiryDate?: string;
   packageSnapshot?: string;
 }
+
+const EMPTY_WAREHOUSE_SELECT_VALUE = '__no-warehouse__';
 
 const createIdempotencyKey = () => {
   const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -71,6 +75,7 @@ export function WarehousePurchaseReceiptDialog({
 }: WarehousePurchaseReceiptDialogProps) {
   const remainingQuantity = Math.max(line.orderedQty - line.receivedQty, 0);
   const idempotencyKey = useRef(createIdempotencyKey());
+  const backButtonRef = useRef<HTMLButtonElement>(null);
   const preferredWarehouse = warehouses.find((warehouse) => warehouse.warehouseId === preferredWarehouseId);
   const [warehouseId, setWarehouseId] = useState(preferredWarehouse?.warehouseId ?? '');
   const [receiptDate, setReceiptDate] = useState('');
@@ -87,6 +92,10 @@ export function WarehousePurchaseReceiptDialog({
   const [errors, setErrors] = useState<ReceiptFormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [recordReceipt, { isLoading }] = useRecordWarehousePurchaseReceiptMutation();
+
+  useEffect(() => {
+    if (isConfirming) backButtonRef.current?.focus();
+  }, [isConfirming]);
 
   const validate = () => {
     const nextErrors: ReceiptFormErrors = {};
@@ -204,7 +213,7 @@ export function WarehousePurchaseReceiptDialog({
               <dt className="text-slate-500">Số lượng thực nhận</dt>
               <dd>{actualQuantity} {line.unitName}</dd>
               <dt className="text-slate-500">Đơn giá thực nhận</dt>
-              <dd>{Number(actualUnitPrice).toLocaleString('vi-VN')} đ/{line.unitName}</dd>
+              <dd>{formatCurrency(Number(actualUnitPrice), 2)}/{line.unitName}</dd>
               <dt className="text-slate-500">Số lô</dt>
               <dd>{lotNumber || 'Không cung cấp'}</dd>
               {manufactureDate && <><dt className="text-slate-500">Ngày sản xuất</dt><dd>{manufactureDate}</dd></>}
@@ -215,20 +224,28 @@ export function WarehousePurchaseReceiptDialog({
           <div className="grid gap-4 py-1 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <label className="text-sm font-medium" htmlFor="purchase-receipt-warehouse">Kho nhận <span className="text-red-600">*</span></label>
-              <select
-                id="purchase-receipt-warehouse"
-                className="ipc-select h-8 w-full"
-                value={warehouseId}
-                onChange={(event) => setWarehouseId(event.target.value)}
+              <Select
+                value={warehouseId || EMPTY_WAREHOUSE_SELECT_VALUE}
+                onValueChange={(value) => setWarehouseId(value === EMPTY_WAREHOUSE_SELECT_VALUE ? '' : (value ?? ''))}
                 disabled={Boolean(preferredWarehouse)}
-                aria-invalid={Boolean(errors.warehouseId)}
-                aria-describedby={errors.warehouseId ? 'purchase-receipt-warehouse-error' : undefined}
               >
-                <option value="">Chọn kho nhận</option>
+                <SelectTrigger
+                  id="purchase-receipt-warehouse"
+                  className="h-8 w-full"
+                  aria-invalid={Boolean(errors.warehouseId)}
+                  aria-describedby={errors.warehouseId ? 'purchase-receipt-warehouse-error' : undefined}
+                >
+                  <SelectValue>
+                    {warehouses.find((warehouse) => warehouse.warehouseId === warehouseId)?.warehouseName ?? 'Chọn kho nhận'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={EMPTY_WAREHOUSE_SELECT_VALUE}>Chọn kho nhận</SelectItem>
                 {warehouses.map((warehouse) => (
-                  <option key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouseName}</option>
+                  <SelectItem key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouseName}</SelectItem>
                 ))}
-              </select>
+                </SelectContent>
+              </Select>
               {preferredWarehouse && <p className="text-xs text-sky-700">Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.</p>}
               {errors.warehouseId && <p id="purchase-receipt-warehouse-error" className="text-xs text-red-700">{errors.warehouseId}</p>}
             </div>
@@ -300,7 +317,7 @@ export function WarehousePurchaseReceiptDialog({
         <DialogFooter>
           {isConfirming ? (
             <>
-              <Button type="button" variant="outline" autoFocus disabled={isLoading} onClick={() => setIsConfirming(false)}>Quay lại chỉnh sửa</Button>
+              <Button ref={backButtonRef} type="button" variant="outline" autoFocus disabled={isLoading} onClick={() => setIsConfirming(false)}>Quay lại chỉnh sửa</Button>
               <Button type="button" disabled={isLoading || Boolean(line.blockerReason)} onClick={() => void submitReceipt()}>
                 {isLoading ? 'Đang lưu...' : 'Ghi nhận nhập kho'}
               </Button>

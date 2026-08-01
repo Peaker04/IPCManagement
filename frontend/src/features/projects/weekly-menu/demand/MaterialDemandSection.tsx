@@ -2,15 +2,16 @@ import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, ChevronDown, ClipboardList, PackageSearch, Scale, ShoppingCart, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 import { ConfirmDialog, DemandSummary, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { ActionGuard } from '@/components/common/ActionGuard'
+import { Button } from '@/components/ui/button'
 import { ROUTES } from '@/lib/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
 import type { WeeklyScheduleEditorWorkflow } from '../schedule/types'
 import type { WeeklyScheduleFeedback } from '../schedule/types'
 import type { MaterialDemandWorkflow } from './useMaterialDemand'
 import { getDemandActionPresentation } from './demandModel'
-
 const tableHeadClass = 'text-center'
 const tableCellClass = 'text-center'
 
@@ -117,21 +118,22 @@ export function MaterialDemandSection({
             )}
             {actionPresentation.showGenerate && (
               <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
-                <button
-                  className={cn('ipc-button whitespace-nowrap', actionPresentation.generateIsSecondary ? 'ipc-button-ghost' : 'ipc-button-primary')}
+                <Button
+                  variant={actionPresentation.generateIsSecondary ? 'outline' : 'default'}
+                  size="sm"
                   type="button"
                   onClick={handleGenerate}
                   disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}
                 >
                   <Scale size={16} />
                   {generateLabel}
-                </button>
+                </Button>
               </ActionGuard>
             )}
           </div>
           <nav className="ipc-demand-day-buttons" aria-label="Chuyển ngày KHSX">
-            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</button>
-            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</button>
+            <Button type="button" variant="outline" size="sm" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</Button>
+            <Button type="button" variant="outline" size="sm" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</Button>
           </nav>
         </section>
 
@@ -228,10 +230,10 @@ export function MaterialDemandSection({
                     <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
                     <td className={`${tableCellClass} text-left font-semibold text-slate-900`}>{row.dishName}</td>
                     <td className={tableCellClass} title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
-                      {quickServingRow?.isCompleted ? <span className="font-semibold text-slate-800">{row.portions.toLocaleString('vi-VN')}</span> : quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
+                      {quickServingRow?.isCompleted ? <span className="font-semibold text-slate-800">{formatNumber(row.portions)}</span> : quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
                         <span className="inline-flex flex-col items-center gap-0.5"><span className="font-semibold text-amber-700">Chưa chốt</span></span>
                       ) : (
-                        <span className="inline-flex flex-col items-center gap-0.5"><span>{row.portions.toLocaleString('vi-VN')}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
+                        <span className="inline-flex flex-col items-center gap-0.5"><span>{formatNumber(row.portions)}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
                       )}
                     </td>
                     <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}</td>
@@ -250,9 +252,9 @@ export function MaterialDemandSection({
               const disabled = servingBusy || row.isCompleted || Number(row.inputValue) <= 0
               return (
                 <ActionGuard key={`complete-${row.key}`} allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['coordination.order.lock']}>
-                  <button type="button" className={cn('ipc-button min-w-[132px] whitespace-nowrap', row.isCompleted ? 'ipc-button-ghost' : 'ipc-button-primary')} disabled={disabled} onClick={() => void scheduleWorkflow.actions.completeQuickServing(row)}>
+                  <Button type="button" variant={row.isCompleted ? 'outline' : 'default'} size="sm" className="min-w-[132px]" disabled={disabled} onClick={() => void scheduleWorkflow.actions.completeQuickServing(row)}>
                     {row.isCompleted ? `Đã hoàn tất ${row.shiftLabel}` : `Hoàn tất ${row.shiftLabel}`}
-                  </button>
+                  </Button>
                 </ActionGuard>
               )
             })}
@@ -267,8 +269,8 @@ export function MaterialDemandSection({
         )}
         {demandView.phase === 'ready' && demandView.truncation && (
           <InlineAlert title="Dữ liệu nhu cầu chưa đầy đủ" variant="warning">
-            Đang hiển thị {demandView.truncation.shown.toLocaleString('vi-VN')}
-            {demandView.truncation.total !== undefined ? `/${demandView.truncation.total.toLocaleString('vi-VN')}` : ''} dòng. Hãy thu hẹp bộ lọc trước khi ra quyết định.
+            Đang hiển thị {formatNumber(demandView.truncation.shown)}
+            {demandView.truncation.total !== undefined ? `/${formatNumber(demandView.truncation.total)}` : ''} dòng. Hãy thu hẹp bộ lọc trước khi ra quyết định.
           </InlineAlert>
         )}
         {demandView.phase === 'uninitialized' ? (

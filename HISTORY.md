@@ -1233,3 +1233,66 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Generated `gitnexus:start/end` block vẫn byte-identical; `AGENTS.md` tiếp tục bị ignore và không force-add.
   GSD vẫn là process owner duy nhất. Thay đổi governance này không mở Phase 20 và không chạm source/test/UI,
   backend policy, runtime, database hoặc evidence.
+
+## Hoàn tất Phase 20 — PC/PD action completeness — 31/07/2026
+
+- Aggregate Chrome headed fixture đo sáu executable family, 34 scenario, 44 canonical row và năm desktop
+  viewport; 535 measurement tách 265 `KHỚP`, 255 canonical unresolved và 15 `LỆCH VỊ TRÍ`; `THIẾU`,
+  `MỒ CÔI` và `IM LẶNG` đều bằng 0. Evidence được giữ đúng nhãn `FE-fixture-read-only`, không được coi là
+  backend/DB E2E.
+- 300 screenshot path, 4.565 intercepted read, 255 intercepted mutation và 435 performance record được kiểm
+  lại từ artifact; mọi request có status 200, không có browser issue hoặc overflow. Canonical operations có
+  control đã được exercise với request/post-action evidence.
+- Ledger 22 group expand đúng toàn bộ 255 unresolved identity, không đoán operation/actor/permission, giữ D-01
+  intentional FE-stricter và checkpoint `DEFERRED` với zero production PD candidate. ORCL-04/05 đã complete.
+- PA-4 bắt thêm literal `warehouse.manage` do fixture mới ở Plan 20-02. Commit `6032fea` thay duy nhất literal
+  đó bằng backend-canonical `inventory.read`; focused PA-4, PC suites và full root verify đều pass, không sửa
+  backend policy, route, UI gate/control hoặc production behavior.
+- Root gate chốt Application 49/49, API 705 pass + 1 intentional skip, frontend 103 file/603 test, architecture,
+  lint, dependency-cruiser và hai production build xanh. Không chạy lại browser, không mutate database/runtime;
+  hash artifact chỉ khai tại `docs/EVIDENCE-INDEX.md`.
+
+## Thu gọn roadmap về ánh xạ trực tiếp với addendum — 31/07/2026
+
+- Kỳ yêu cầu loại cách chia semantic/control/conformance tự mở rộng. Phase 21–25 nay ánh xạ trực tiếp lần lượt
+  tới `PE`, `P5`, `P6`, `P7` và `P8 + PF`; Phase 19–20 tiếp tục là lịch sử PA/PC-PD đã hoàn tất.
+- Các quota/đòi hỏi không có nguồn trực tiếp như 10 finding, ba golden screen và chương trình DOM metadata bị
+  gỡ khỏi active roadmap. Chi tiết thiếu từ bộ prompt cũ phải giữ unresolved hoặc chờ duyệt, không được tự điền.
+- Requirement ID được giữ để không phá traceability, nhưng `CAN-01..06` cùng thuộc PE, `CONF-01..02` thuộc P5,
+  `CONF-03..04` thuộc P6, `CONF-05..06` thuộc P7, còn state/quality/docs thuộc P8+PF.
+- Đây là thay đổi planning/docs-only: không mở thư mục Phase 21–25, không sửa code/UI/policy/runtime/database và
+  không thay evidence Phase 20.
+
+## Phase 21 Plan 01 — PE date-only formatter — 31/07/2026
+
+- Ba helper `formatIsoDate` trùng nhau trong Purchasing được hội tụ vào `formatDateOnly` tại shared formatter;
+  output `DD/MM/YYYY` và fallback input không hợp lệ được giữ nguyên.
+- Focused suite `29/29`, frontend `606/606`, root verify, lint, dependency-cruiser và hai production build đều
+  xanh. Browser PC không chạy lại vì slice chỉ thay presentation date-only, không thay action/state/API surface.
+- Đây chỉ là một PE slice; phase còn mở. Không thay backend policy, route, permission, database hoặc PC aggregate.
+
+## Phase 21 Plan 02 — PE Admin BOM table boundary — 31/07/2026
+
+- Admin BOM là production caller duy nhất còn dùng `DataTableShell`; đã chuyển wrapper hiện tại sang
+  `TableViewport`, giữ nguyên table/row actions và để `PaginationBar` bên ngoài. Primitive legacy không bị xóa.
+- Render contract `5/5`, frontend `607/607`, root verify, lint, dependency-cruiser và hai production build đều
+  xanh. Browser PC không chạy lại vì không thay action/state/API surface; boundary đã có render-level evidence.
+- Phase 21 vẫn mở; đây là PE slice thứ hai trong phiên này, không thay backend policy, route, permission,
+  database hoặc PC aggregate.
+
+## Hoàn tất Phase 21 — PE canon convergence — 02/08/2026
+
+- Hoàn tất 15/15 plan và goal-backward verifier pass `27/27`. Mười tám concept PB đã được chiếu lại từ
+  production source; date giảm 31→0, Button 8B 77→0, Form 9B 39/26/4→0, quantity 26→0 và currency 12→0.
+- Hai gap verifier ban đầu đã đóng: `formatDateOnly` kiểm tra ISO/calendar trước khi đổi thứ tự và date AST
+  gate bắt variable/property receiver cùng direct `Intl.DateTimeFormat`. Exact model/adapter exceptions tiếp
+  tục được count-lock; production không import test registry.
+- Root gate pass Application `49/49`, API `705 pass + 1 intentional skip`, frontend `117 files / 653 tests`,
+  architecture `6/6`, strict đúng 10 finding, lint/dependency/build xanh. Hai Select portal test được đổi sang
+  async query để loại race full-suite; production component không đổi vì việc này.
+- GitNexus explicit branch báo raw CRITICAL với 237 symbol, 97 file và 28 process; tất cả 28 process đã được
+  disposition, Deferred none. Deep review không còn finding production; hai compatibility decision được ghi rõ:
+  Reports giữ request debounce 300 ms trước deferred value và timestamp cố định business timezone `Asia/Bangkok`.
+- `OPEN-03` đóng: import commit/rollback và employee activate/deactivate đều có confirmation nêu scope/tác động.
+  Không sửa backend policy/API/route/cache/lifecycle/database, không mutate runtime/database và không push.
+- Phase 22 là P5 — Ma trận chuẩn. Không tạo phase mới ngoài chuỗi 22–25 ánh xạ trực tiếp addendum.

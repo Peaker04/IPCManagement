@@ -1,9 +1,9 @@
 # Phase 20 — PC mismatch disposition
 
-Nguồn đo duy nhất của ledger này là artifact `FE-fixture-read-only`
-`.artifacts/shipyard-live/pc-action-completeness-20-02/pc-action-completeness.json` sinh lúc
-`2026-07-31T02:30:31.403Z`. Artifact có 535 identity, 360 control quan sát được, 280 `KHỚP`, 255
-`CHƯA-KẾT-LUẬN-ĐƯỢC`, và không có `THIẾU`, `MỒ CÔI`, `IM LẶNG` hay `LỆCH VỊ TRÍ`.
+Nguồn đo duy nhất của ledger này là aggregate `FE-fixture-read-only`
+`.planning/phases/20-pc-pd-action-completeness/20-PC-AGGREGATE.json` sinh lúc
+`2026-07-31T11:09:06.214Z`. Aggregate có 535 identity, 375 control quan sát được, 265 `KHỚP`, 255
+`CHƯA-KẾT-LUẬN-ĐƯỢC`, 15 `LỆCH VỊ TRÍ` và không có `THIẾU`, `MỒ CÔI` hay `IM LẶNG`.
 
 Ledger không biến control nhìn thấy thành bằng chứng quyền backend. Mỗi nhóm bên dưới được bung thành mọi
 `actor × viewport` đã khai để phủ đúng 255 identity unresolved. `ALL-PC-VIEWPORTS` trỏ tới năm viewport
@@ -14,8 +14,8 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
 - Production candidate: **0**.
 - Checkpoint: **DEFERRED** theo chỉ thị “không mở PD”.
 - Không sửa UI, policy, gate, backend operation hay registry.
-- Các operation không được exercise trong PC; `request` và `postAction` vẫn `null`. Đây không phải backend/DB
-  E2E.
+- Các operation canonical có control đã được exercise trong fixture, có request bị intercept và post-action
+  evidence. Đây vẫn không phải backend/DB E2E; không có mutation nào chạm database.
 
 ## Ledger máy đọc
 
@@ -24,21 +24,22 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
   "schemaVersion": 1,
   "artifact": {
     "evidenceKind": "FE-fixture-read-only",
-    "path": ".artifacts/shipyard-live/pc-action-completeness-20-02/pc-action-completeness.json",
+    "generatedAt": "2026-07-31T11:09:06.214Z",
+    "path": ".planning/phases/20-pc-pd-action-completeness/20-PC-AGGREGATE.json",
     "measurementRows": 535,
-    "matched": 280,
+    "matched": 265,
     "unresolved": 255,
     "missing": 0,
     "orphan": 0,
     "silent": 0,
-    "wrongPlace": 0,
-    "controlsObserved": 360,
-    "operationsExercised": false
+    "wrongPlace": 15,
+    "controlsObserved": 375,
+    "operationsExercised": true
   },
   "checkpoint": {
     "outcome": "DEFERRED",
     "productionCandidates": [],
-    "reason": "Không có actionable mismatch; mọi non-match còn lại chứa canonical UNKNOWN. Người vận hành đã yêu cầu không mở PD."
+    "reason": "Không có THIẾU, MỒ CÔI hoặc IM LẶNG. 15 LỆCH VỊ TRÍ là downstream route denial đã được ghi nhận trong disposition; mọi unresolved còn lại chứa canonical UNKNOWN. Người vận hành đã yêu cầu không mở PD."
   },
   "acceptedExceptions": [
     {
@@ -216,7 +217,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["backendPermission"],
       "controlEvidence": { "status": "OBSERVED", "selector": "role=link[name=\"Mở hàng đợi duyệt\"]", "source": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128" },
       "sources": ["frontend/tests/operationalStateActionRegistry.test.ts:315-356", "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Weekly-menu demand tab được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Link approval được quan sát cho actor khai báo." }, "roleState": { "status": "UNRESOLVED", "evidence": "Backend permission canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Weekly-menu demand tab được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Link approval được quan sát cho actor khai báo." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actors admin và quanly đã được registry xác định; backend permission vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -226,7 +227,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["backendPermission"],
       "controlEvidence": { "status": "OBSERVED", "selector": "role=link[name=\"Mở thu mua\"]", "source": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128" },
       "sources": ["frontend/tests/operationalStateActionRegistry.test.ts:315-356", "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Weekly-menu demand tab được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Link purchasing được quan sát cho actor khai báo." }, "roleState": { "status": "UNRESOLVED", "evidence": "Backend permission canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Weekly-menu demand tab được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Link purchasing được quan sát cho actor khai báo." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actors admin và quanly đã được registry xác định; backend permission vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -236,7 +237,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["backendPermission", "frontendPermission"],
       "controlEvidence": { "status": "ABSENT-AS-PROJECTED", "selector": "none", "source": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128" },
       "sources": ["frontend/tests/operationalStateActionRegistry.test.ts:315-356", "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Demand tab được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Terminal projection không khai action." }, "roleState": { "status": "UNRESOLVED", "evidence": "Backend và frontend permission canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Demand tab được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Terminal projection không khai action." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actors admin, quanly và dieuphoi đã được registry xác định; backend và frontend permission vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -256,7 +257,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["operation", "backendPermission", "frontendPermission"],
       "controlEvidence": { "status": "ABSENT-AS-PROJECTED", "selector": "none", "source": "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:39-45" },
       "sources": ["frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts:119-240", "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:39-45"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Loading projection không khai action." }, "roleState": { "status": "UNRESOLVED", "evidence": "Operation và permissions canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Loading projection không khai action." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actor dieuphoi đã được registry xác định; operation và permissions vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -266,7 +267,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["operation", "backendPermission", "frontendPermission"],
       "controlEvidence": { "status": "ABSENT-AS-PROJECTED", "selector": "none", "source": "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:39-45" },
       "sources": ["frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts:119-240", "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:39-45"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Error projection không khai action." }, "roleState": { "status": "UNRESOLVED", "evidence": "Operation và permissions canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Error projection không khai action." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actor dieuphoi đã được registry xác định; operation và permissions vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -276,7 +277,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["operation", "backendPermission", "frontendPermission"],
       "controlEvidence": { "status": "ABSENT-AS-PROJECTED", "selector": "none", "source": "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:123-124" },
       "sources": ["frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts:119-240", "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:123-124"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "No-shortage projection không khai action." }, "roleState": { "status": "UNRESOLVED", "evidence": "Operation và permissions canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "No-shortage projection không khai action." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actor dieuphoi đã được registry xác định; operation và permissions vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -286,7 +287,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["operation", "backendPermission", "frontendPermission"],
       "controlEvidence": { "status": "ABSENT-AS-PROJECTED", "selector": "none", "source": "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:62-92" },
       "sources": ["frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts:119-240", "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:62-92"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Inconsistent projection không khai action." }, "roleState": { "status": "UNRESOLVED", "evidence": "Operation và permissions canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Inconsistent projection không khai action." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actor dieuphoi đã được registry xác định; operation và permissions vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     },
     {
@@ -296,7 +297,7 @@ canonical được import bởi PC contract; test fail-closed kiểm phép bung 
       "canonicalUnknown": ["operation", "backendPermission", "frontendPermission"],
       "controlEvidence": { "status": "ABSENT-AS-PROJECTED", "selector": "none", "source": "frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-130" },
       "sources": ["frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts:119-240", "backend/src/IPCManagement.Api/Features/Coordination/Services/MenuSchedulePolicy.cs:61-67"],
-      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Superseded projection không khai action." }, "roleState": { "status": "UNRESOLVED", "evidence": "Operation và permissions canonical vẫn UNKNOWN." } },
+      "exclusions": { "navigation": { "status": "RESOLVED", "evidence": "Route weekly-menu được render." }, "viewport": { "status": "RESOLVED", "evidence": "Năm viewport không overflow." }, "fixtureCondition": { "status": "RESOLVED", "evidence": "Superseded projection không khai action." }, "roleState": { "status": "RESOLVED", "evidence": "Canonical actor dieuphoi đã được registry xác định; operation và permissions vẫn UNKNOWN." } },
       "consequence": "CHƯA-KẾT-LUẬN-ĐƯỢC", "disposition": "DEFERRED-CANONICAL-UNKNOWN", "pdCandidate": false
     }
   ]

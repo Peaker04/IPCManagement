@@ -16,6 +16,7 @@ import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '.
 import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function ChefDashboardPage() {
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
@@ -162,16 +163,28 @@ type ShiftControlsProps = {
 }
 
 function ShiftControls({ activeDay, activeShift, onDayChange, onShiftChange }: ShiftControlsProps) {
+  const activeDayLabel = DAYS_OF_WEEK.find((day) => day.key === activeDay)?.label ?? activeDay
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
       <div className="flex items-center gap-2">
-        <select aria-label="Chọn ngày sản xuất" value={activeDay} onChange={(event) => onDayChange(event.target.value)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
-          {DAYS_OF_WEEK.map((day) => <option key={day.key} value={day.key}>{day.label}</option>)}
-        </select>
-        <select aria-label="Chọn ca sản xuất" value={activeShift} onChange={(event) => onShiftChange(event.target.value as ShiftType)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
-          {SHIFTS.map((shift) => <option key={shift} value={shift}>{shift}</option>)}
-        </select>
+        <Select value={activeDay} onValueChange={(value) => { if (value !== null) onDayChange(value) }}>
+          <SelectTrigger aria-label="Chọn ngày sản xuất" className="min-h-8 w-28 cursor-pointer rounded-md border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+            <SelectValue>{activeDayLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {DAYS_OF_WEEK.map((day) => <SelectItem key={day.key} value={day.key}>{day.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={activeShift} onValueChange={(value) => { if (value !== null) onShiftChange(value as ShiftType) }}>
+          <SelectTrigger aria-label="Chọn ca sản xuất" className="min-h-8 w-28 cursor-pointer rounded-md border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+            <SelectValue>{activeShift}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {SHIFTS.map((shift) => <SelectItem key={shift} value={shift}>{shift}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   )

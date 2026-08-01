@@ -4,6 +4,7 @@ import {
   useGetKitchenIssuesPageQuery,
   type WorkflowReportQuery,
 } from '@/api/workflowApi';
+import { formatDateOnly } from '@/lib/formatters';
 import {
   readPageSize,
   standardPageSizeOptions,
@@ -35,7 +36,7 @@ export function useReportsKitchenUsageViewModel({ activeView, initialPage, repor
       rows: kitchenIssueRows,
       columns: [
         ['Phiếu xuất', (row) => row.issueCode],
-        ['Ngày', (row) => new Date(row.issueDate).toLocaleDateString('vi-VN')],
+        ['Ngày', (row) => formatDateOnly(row.issueDate)],
         ['Ca', (row) => row.shiftName ?? 'Cả ngày'],
         ['Kho', (row) => row.warehouse],
         ['Nguyên liệu', (row) => row.ingredient],
@@ -49,7 +50,7 @@ export function useReportsKitchenUsageViewModel({ activeView, initialPage, repor
       rows: usageRows,
       columns: [
         ['Phiếu xuất', (row) => row.issueCode],
-        ['Ngày', (row) => new Date(row.issueDate).toLocaleDateString('vi-VN')],
+        ['Ngày', (row) => formatDateOnly(row.issueDate)],
         ['Ca', (row) => row.shiftName ?? 'Cả ngày'],
         ['Nguyên liệu', (row) => row.ingredient],
         ['Đã xuất', (row) => row.issuedQty],

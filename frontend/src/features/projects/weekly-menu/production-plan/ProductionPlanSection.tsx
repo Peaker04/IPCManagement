@@ -2,11 +2,18 @@ import { CalendarDays, Scale } from 'lucide-react'
 import { EmptyState, InlineAlert, PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
+import { formatDateOnly, formatNumber } from '@/lib/formatters'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { WeeklyProductionPlanWorkflow } from './useWeeklyProductionPlan'
+
+const ALL_DAYS_VALUE = '__all-days__'
 
 export function ProductionPlanSection({ workflow }: { workflow: WeeklyProductionPlanWorkflow }) {
   const { scope, state, status, actions, presentation } = workflow
   const activePage = presentation.activePage
+  const selectedDayLabel = state.selectedDayKey
+    ? scope.displayDays.find((day) => day.key === state.selectedDayKey)?.label ?? 'Chọn ngày'
+    : 'Cả tuần'
   return (
     <SectionPanel title="Kế hoạch sản xuất" headingLevel={2} icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
       <div className="relative flex flex-col gap-3">
@@ -21,16 +28,19 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
             <div>
               <span>Ngày phục vụ</span>
               <strong>{activePage ? `${activePage.label} ${activePage.dateLabel}` : 'Chưa có kế hoạch'}</strong>
-              <small>{activePage ? `${activePage.plans.length} KHSX · ${activePage.totalLines} dòng · ${activePage.totalServings.toLocaleString('vi-VN')} suất` : 'Chọn khách hàng và tuần để xem dữ liệu'}</small>
+              <small>{activePage ? `${activePage.plans.length} KHSX · ${activePage.totalLines} dòng · ${formatNumber(activePage.totalServings)} suất` : 'Chọn khách hàng và tuần để xem dữ liệu'}</small>
             </div>
           </div>
           <div className="ipc-fiori-command-actions">
             <label className="ipc-fiori-field">
               <span>Phạm vi</span>
-              <select className="ipc-input" value={state.selectedDayKey || ''} onChange={(event) => actions.selectDay(event.target.value || null)}>
-                <option value="">Cả tuần</option>
-                {scope.displayDays.map((day) => <option key={day.key} value={day.key}>{day.label}</option>)}
-              </select>
+              <Select value={state.selectedDayKey || ALL_DAYS_VALUE} onValueChange={(value) => actions.selectDay(value === ALL_DAYS_VALUE || value === null ? null : value)}>
+                <SelectTrigger className="w-full"><SelectValue>{selectedDayLabel}</SelectValue></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_DAYS_VALUE}>Cả tuần</SelectItem>
+                  {scope.displayDays.map((day) => <SelectItem key={day.key} value={day.key}>{day.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </label>
             {presentation.pages.length > 0 && <PageStepper page={state.pageIndex + 1} totalPages={presentation.pages.length} label="Nhóm KHSX" ariaLabel="Điều hướng kế hoạch sản xuất" onPageChange={actions.setPage} />}
           </div>
@@ -69,10 +79,10 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                   <StatusBadge variant={planStatus.tone}>{planStatus.label}</StatusBadge>
                 </div>
                 <dl className="ipc-fiori-meta">
-                  <div><dt>Ngày phục vụ</dt><dd>{new Date(plan.planDate).toLocaleDateString('vi-VN')}</dd></div>
+                  <div><dt>Ngày phục vụ</dt><dd>{formatDateOnly(plan.planDate)}</dd></div>
                   <div><dt>Khách hàng</dt><dd title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
                   <div><dt>Số dòng món</dt><dd>{plan.lines.length}</dd></div>
-                  <div><dt>Tổng số suất</dt><dd>{plan.lines.reduce((total, line) => total + line.totalServings, 0).toLocaleString('vi-VN')}</dd></div>
+                  <div><dt>Tổng số suất</dt><dd>{formatNumber(plan.lines.reduce((total, line) => total + line.totalServings, 0))}</dd></div>
                 </dl>
                 <TableViewport
                   caption="Chi tiết kế hoạch sản xuất theo ca và món ăn"

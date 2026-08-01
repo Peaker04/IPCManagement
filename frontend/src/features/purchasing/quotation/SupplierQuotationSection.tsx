@@ -1,8 +1,14 @@
 import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
 import type { IngredientLookup } from '@/api/dishCatalogApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/formatters';
 import type { useSupplierQuotations } from './useSupplierQuotations';
 
 type SupplierQuotationWorkflow = ReturnType<typeof useSupplierQuotations>;
+
+const EMPTY_SELECT_VALUE = '__empty__';
 
 export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuotationWorkflow }) {
   const retryLookups = () => {
@@ -33,9 +39,8 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           </InlineAlert>
         ) : null}
         <div className="grid gap-3 md:grid-cols-[minmax(220px,0.6fr)_minmax(280px,1fr)]">
-          <input
+          <Input
             type="search"
-            className="ipc-input"
             aria-label="Tìm nguyên liệu"
             placeholder="Tìm theo tên hoặc mã nguyên liệu"
             value={workflow.ingredientSearch}
@@ -43,19 +48,28 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           />
           <div>
             <label className="mr-2 text-sm font-medium text-slate-700" htmlFor="quotation-ingredient">Nguyên liệu:</label>
-          <select
-            id="quotation-ingredient"
-            className="ipc-input ipc-quotation-ingredient"
-            aria-invalid={Boolean(workflow.validationErrors.ingredientId) || undefined}
-            aria-describedby={workflow.validationErrors.ingredientId ? 'quotation-ingredient-error' : undefined}
-            value={workflow.selectedIngredientId}
-            onChange={(event) => workflow.selectIngredient(event.target.value)}
+          <Select
+            value={workflow.selectedIngredientId || EMPTY_SELECT_VALUE}
+            onValueChange={(value) => workflow.selectIngredient(value === EMPTY_SELECT_VALUE ? '' : (value ?? ''))}
           >
-            <option value="">-- Chọn nguyên liệu --</option>
+            <SelectTrigger
+              id="quotation-ingredient"
+              className="w-full"
+              aria-invalid={Boolean(workflow.validationErrors.ingredientId) || undefined}
+              aria-describedby={workflow.validationErrors.ingredientId ? 'quotation-ingredient-error' : undefined}
+            >
+              <SelectValue>
+                {workflow.ingredients.find((ingredient) => ingredient.ingredientId === workflow.selectedIngredientId)?.ingredientName
+                  ?? '-- Chọn nguyên liệu --'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={EMPTY_SELECT_VALUE}>-- Chọn nguyên liệu --</SelectItem>
             {workflow.ingredients.map((ingredient: IngredientLookup) => (
-              <option key={ingredient.ingredientId} value={ingredient.ingredientId}>{ingredient.ingredientName}</option>
+              <SelectItem key={ingredient.ingredientId} value={ingredient.ingredientId}>{ingredient.ingredientName}</SelectItem>
             ))}
-          </select>
+            </SelectContent>
+          </Select>
           {workflow.validationErrors.ingredientId && (
             <p id="quotation-ingredient-error" className="mt-1 text-xs text-red-700">
               <span className="font-semibold">{workflow.validationErrors.ingredientId.title}</span>{' '}
@@ -98,18 +112,15 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                   {workflow.rows.map((quotation) => (
                     <tr key={quotation.quotationId} className={quotation.isBestPrice ? 'bg-emerald-50' : ''}>
                       <td>{quotation.supplierName}{quotation.isBestPrice && <span className="ml-2 text-xs font-medium text-emerald-700">Tốt nhất</span>}</td>
-                      <td className="text-right">{quotation.unitPrice.toLocaleString('vi-VN')}</td>
+                      <td className="text-right">{formatCurrency(quotation.unitPrice)}</td>
                       <td>{quotation.effectiveFrom}</td><td>{quotation.effectiveTo ?? '—'}</td><td>{quotation.note ?? ''}</td>
                       <td>{quotation.isActive ? <span className="text-emerald-600">Đang hoạt động</span> : <span className="text-slate-400">Đã ngừng</span>}</td>
                       <td className="space-x-2">
-                        <button type="button" className="ipc-button ipc-button-ghost" onClick={() => workflow.edit(quotation)}>Sửa</button>
-                        {quotation.isActive && <button type="button" className="ipc-button ipc-button-danger" onClick={() => workflow.setDeactivateTargetId(quotation.quotationId)}>Ngừng</button>}
+                        <Button type="button" variant="outline" size="xs" onClick={() => workflow.edit(quotation)}>Sửa</Button>
+                        {quotation.isActive && <Button type="button" variant="destructive" size="xs" onClick={() => workflow.setDeactivateTargetId(quotation.quotationId)}>Ngừng</Button>}
                       </td>
                     </tr>
                   ))}
-                  {workflow.quotationView.phase === 'loading' && <tr><td colSpan={7} className="py-4 text-center text-slate-600">Đang tải báo giá...</td></tr>}
-                  {workflow.quotationView.phase === 'forbidden' && <tr><td colSpan={7} className="py-4 text-center font-semibold text-red-700">Không có quyền xem báo giá</td></tr>}
-                  {workflow.quotationView.phase === 'error' && <tr><td colSpan={7} className="py-4 text-center font-semibold text-red-700">Không tải được báo giá</td></tr>}
                   {workflow.quotationView.phase === 'ready' && workflow.rows.length === 0 && !workflow.quotationView.isRefreshing && (
                     <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>
                   )}
@@ -121,26 +132,35 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
               <div className="mb-2 font-medium text-slate-700">{workflow.editingId ? 'Sửa báo giá' : 'Thêm báo giá mới'}</div>
               <div className="ipc-quotation-form-grid grid grid-cols-1 gap-3 md:grid-cols-5">
                 <div>
-                  <select className="ipc-input" aria-label="Nhà cung cấp" aria-invalid={Boolean(workflow.validationErrors.supplierId) || undefined} aria-describedby={workflow.validationErrors.supplierId ? 'quotation-supplier-error' : undefined} value={workflow.form.supplierId} onChange={(event) => workflow.setForm({ ...workflow.form, supplierId: event.target.value })} disabled={Boolean(workflow.editingId)}>
-                    <option value="">-- Nhà cung cấp --</option>{workflow.suppliers.map((supplier) => <option key={supplier.supplierId} value={supplier.supplierId}>{supplier.supplierName}</option>)}
-                  </select>
+                  <Select value={workflow.form.supplierId || EMPTY_SELECT_VALUE} onValueChange={(value) => workflow.setForm({ ...workflow.form, supplierId: value === EMPTY_SELECT_VALUE ? '' : (value ?? '') })} disabled={Boolean(workflow.editingId)}>
+                    <SelectTrigger className="w-full" aria-label="Nhà cung cấp" aria-invalid={Boolean(workflow.validationErrors.supplierId) || undefined} aria-describedby={workflow.validationErrors.supplierId ? 'quotation-supplier-error' : undefined}>
+                      <SelectValue>
+                        {workflow.suppliers.find((supplier) => supplier.supplierId === workflow.form.supplierId)?.supplierName
+                          ?? '-- Nhà cung cấp --'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={EMPTY_SELECT_VALUE}>-- Nhà cung cấp --</SelectItem>
+                      {workflow.suppliers.map((supplier) => <SelectItem key={supplier.supplierId} value={supplier.supplierId}>{supplier.supplierName}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   {workflow.validationErrors.supplierId && <p id="quotation-supplier-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.supplierId.title}</span>{' '}{workflow.validationErrors.supplierId.message}</p>}
                 </div>
                 <div>
-                  <input type="number" className="ipc-input" aria-label="Đơn giá" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
+                  <Input type="number" aria-label="Đơn giá" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
                   {workflow.validationErrors.unitPrice && <p id="quotation-unit-price-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.unitPrice.title}</span>{' '}{workflow.validationErrors.unitPrice.message}</p>}
                 </div>
                 <div>
-                  <input type="date" className="ipc-input" aria-label="Hiệu lực từ" aria-invalid={Boolean(workflow.validationErrors.effectiveFrom) || undefined} aria-describedby={workflow.validationErrors.effectiveFrom ? 'quotation-effective-from-error' : undefined} value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
+                  <Input type="date" aria-label="Hiệu lực từ" aria-invalid={Boolean(workflow.validationErrors.effectiveFrom) || undefined} aria-describedby={workflow.validationErrors.effectiveFrom ? 'quotation-effective-from-error' : undefined} value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
                   {workflow.validationErrors.effectiveFrom && <p id="quotation-effective-from-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.effectiveFrom.title}</span>{' '}{workflow.validationErrors.effectiveFrom.message}</p>}
                 </div>
-                <input type="date" className="ipc-input" aria-label="Hiệu lực đến" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
-                <input type="text" className="ipc-input" aria-label="Ghi chú" placeholder="Ghi chú" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
+                <Input type="date" aria-label="Hiệu lực đến" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
+                <Input type="text" aria-label="Ghi chú" placeholder="Ghi chú" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
               </div>
               {workflow.saveError && <div role="alert" className="mt-3"><InlineAlert title="Chưa thể lưu báo giá" variant="danger">{workflow.saveError}</InlineAlert></div>}
               <div className="mt-3 flex gap-2">
-                <button type="submit" className="ipc-button ipc-button-primary" disabled={workflow.isCreating}>{workflow.editingId ? 'Cập nhật báo giá' : 'Thêm báo giá'}</button>
-                {workflow.editingId && <button type="button" className="ipc-button ipc-button-ghost" onClick={workflow.resetForm}>Hủy</button>}
+                <Button type="submit" size="sm" disabled={workflow.isCreating}>{workflow.editingId ? 'Cập nhật báo giá' : 'Thêm báo giá'}</Button>
+                {workflow.editingId && <Button type="button" variant="outline" size="sm" onClick={workflow.resetForm}>Hủy</Button>}
               </div>
             </form>
           </>

@@ -6,10 +6,13 @@ import adminContractsSource from '../src/app/pages/admin-data/AdminContractsPane
 import appRouterSource from '../src/routes/AppRouter.tsx?raw'
 import weeklyFixtureSource from './weekly-menu-lifecycle-pa2b-fixture.ts?raw'
 import {
+  assertPcMeasurementRows,
   PC_VIEWPORTS,
   pcMeasurementRowKey,
+  type PcMeasurementRow,
 } from './pcActionCompletenessContract'
 import {
+  getPcActionExpectation,
   PC_PROJECTED_REGISTRY_ROWS,
   type PcActorId,
   type PcProjectedRegistryRow,
@@ -47,6 +50,7 @@ type DispositionLedger = {
   schemaVersion: number
   artifact: {
     evidenceKind: string
+    generatedAt: string
     measurementRows: number
     matched: number
     unresolved: number
@@ -75,6 +79,21 @@ type DispositionLedger = {
   groups: LedgerGroup[]
 }
 
+type AggregateSnapshot = {
+  schemaVersion: 1
+  generatedAt: string
+  evidenceKind: string
+  scope: string
+  canonical: { measuredViewportCount: number }
+  rows: PcMeasurementRow[]
+  requests: Array<{ scenario: string; method: string; path: string; status: number; mutation: boolean }>
+  screenshots: Array<{ family: string; scenarioId?: string; actor: PcActorId; viewport: string; path: string; kind: 'family-final' | 'scenario-exclusion' }>
+  performance: Array<{ family: string; scenarioId: string; actor: PcActorId; viewport: string; overflow: boolean }>
+  browserIssueCount: number
+  overflowCount: number
+  sourceArtifact: string
+}
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const dispositionSource = readFileSync(resolve(
   REPO_ROOT,
@@ -83,6 +102,13 @@ const dispositionSource = readFileSync(resolve(
   '20-pc-pd-action-completeness',
   '20-DISPOSITION.md',
 ), 'utf8').replace(/\r\n/g, '\n')
+const aggregateSnapshot = JSON.parse(readFileSync(resolve(
+  REPO_ROOT,
+  '.planning',
+  'phases',
+  '20-pc-pd-action-completeness',
+  '20-PC-AGGREGATE.json',
+), 'utf8')) as AggregateSnapshot
 
 const parseDispositionLedger = (source: string): DispositionLedger => {
   const match = source.match(/```json disposition-ledger\n([\s\S]*?)\n```/)
@@ -106,6 +132,7 @@ const unresolvedProjectedRows = PC_PROJECTED_REGISTRY_ROWS.filter((row) => (
 ))
 
 const sorted = (items: readonly string[]) => [...items].sort((left, right) => left.localeCompare(right))
+const hasText = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
 
 const assertSameStrings = (actual: readonly string[], expected: readonly string[], label: string) => {
   if (JSON.stringify(sorted(actual)) !== JSON.stringify(sorted(expected))) {
@@ -113,25 +140,62 @@ const assertSameStrings = (actual: readonly string[], expected: readonly string[
   }
 }
 
-const assertDispositionLedger = (ledger: DispositionLedger) => {
+const countMismatch = (rows: readonly PcMeasurementRow[], mismatch: PcMeasurementRow['mismatch']) => (
+  rows.filter((row) => row.mismatch === mismatch).length
+)
+
+const assertAggregateSnapshot = (aggregate: AggregateSnapshot) => {
+  if (aggregate.schemaVersion !== 1 || aggregate.scope !== 'aggregate-five-viewport') {
+    throw new Error('Disposition requires the tracked five-viewport aggregate snapshot')
+  }
+  if (!Number.isFinite(Date.parse(aggregate.generatedAt))) throw new Error('Aggregate snapshot has an invalid timestamp')
+  if (aggregate.evidenceKind !== 'FE-fixture-read-only' || aggregate.canonical.measuredViewportCount !== 5) {
+    throw new Error('Aggregate snapshot has invalid evidence scope')
+  }
+  assertPcMeasurementRows(aggregate.rows)
+  if (aggregate.rows.length !== 535) throw new Error(`Aggregate snapshot has ${aggregate.rows.length} rows, expected 535`)
+  if (aggregate.browserIssueCount !== 0 || aggregate.overflowCount !== 0 || aggregate.performance.some((item) => item.overflow)) {
+    throw new Error('Aggregate snapshot contains a browser issue or overflow')
+  }
+  const exercised = aggregate.rows.filter((row) => {
+    const projected = PC_PROJECTED_REGISTRY_ROWS.find((candidate) => (
+      candidate.family === row.family
+      && candidate.scenarioId === row.scenarioId
+      && candidate.operation === row.operation
+    ))
+    return row.expected && row.actualControls.length > 0 && projected && getPcActionExpectation(projected) !== null
+  })
+  if (exercised.length === 0 || exercised.some((row) => row.actualControls.some((control) => control.postAction === null))) {
+    throw new Error('Aggregate snapshot does not prove exercised operations')
+  }
+  if (exercised.some((row) => row.requestExpected && !row.requestObserved)) {
+    throw new Error('Aggregate snapshot has an exercised mutation without an intercepted request')
+  }
+}
+
+const assertDispositionLedger = (ledger: DispositionLedger, aggregate: AggregateSnapshot = aggregateSnapshot) => {
+  assertAggregateSnapshot(aggregate)
+  const aggregateRows = aggregate.rows
   if (ledger.schemaVersion !== 1) throw new Error('Unsupported disposition schema')
   if (
     ledger.artifact.evidenceKind !== 'FE-fixture-read-only'
-    || ledger.artifact.measurementRows !== 535
-    || ledger.artifact.matched !== 280
-    || ledger.artifact.unresolved !== 255
-    || ledger.artifact.controlsObserved !== 360
-    || ledger.artifact.operationsExercised !== false
+    || ledger.artifact.generatedAt !== aggregate.generatedAt
+    || ledger.artifact.measurementRows !== aggregateRows.length
+    || ledger.artifact.matched !== countMismatch(aggregateRows, 'KHỚP')
+    || ledger.artifact.unresolved !== countMismatch(aggregateRows, 'CHƯA-KẾT-LUẬN-ĐƯỢC')
+    || ledger.artifact.controlsObserved !== aggregateRows.reduce((count, row) => count + row.actualControls.length, 0)
+    || ledger.artifact.operationsExercised !== true
   ) {
     throw new Error('Disposition artifact summary drifted from the final PC aggregate')
   }
-  if ([
-    ledger.artifact.missing,
-    ledger.artifact.orphan,
-    ledger.artifact.silent,
-    ledger.artifact.wrongPlace,
-  ].some((count) => count !== 0)) {
-    throw new Error('Actionable mismatch count must remain zero for this ledger')
+  const actionableCounts = [
+    ['missing', 'THIẾU'],
+    ['orphan', 'MỒ CÔI'],
+    ['silent', 'IM LẶNG'],
+    ['wrongPlace', 'LỆCH VỊ TRÍ'],
+  ] as const
+  if (actionableCounts.some(([field, mismatch]) => ledger.artifact[field] !== countMismatch(aggregateRows, mismatch))) {
+    throw new Error('Actionable mismatch counts do not match the aggregate')
   }
   if (
     ledger.checkpoint.outcome !== 'DEFERRED'
@@ -142,11 +206,12 @@ const assertDispositionLedger = (ledger: DispositionLedger) => {
   }
 
   const projectedByKey = new Map(unresolvedProjectedRows.map((row) => [projectedGroupKey(row), row]))
+  const aggregateByKey = new Map(aggregateRows.map((row) => [pcMeasurementRowKey(row), row]))
   const ledgerIds = new Set<string>()
   const expandedKeys = new Set<string>()
 
   ledger.groups.forEach((group) => {
-    if (!group.id || ledgerIds.has(group.id)) throw new Error(`Invalid disposition group id: ${group.id}`)
+    if (!hasText(group.id) || ledgerIds.has(group.id)) throw new Error(`Invalid disposition group id: ${group.id}`)
     ledgerIds.add(group.id)
     const projected = projectedByKey.get(projectedGroupKey(group))
     if (!projected) throw new Error(`${group.id} does not map to a canonical unresolved row`)
@@ -167,15 +232,16 @@ const assertDispositionLedger = (ledger: DispositionLedger) => {
     const exclusionNames = ['navigation', 'viewport', 'fixtureCondition', 'roleState'] as const
     exclusionNames.forEach((name) => {
       const exclusion = group.exclusions?.[name]
-      if (!exclusion || !exclusion.evidence) throw new Error(`${group.id} is missing ${name} exclusion`)
+      if (!exclusion || !hasText(exclusion.evidence)) throw new Error(`${group.id} is missing ${name} exclusion`)
     })
+    const expectedRoleStateStatus = projected.registryActor === UNKNOWN ? 'UNRESOLVED' : 'RESOLVED'
     if (
       group.exclusions.navigation.status !== 'RESOLVED'
       || group.exclusions.viewport.status !== 'RESOLVED'
       || group.exclusions.fixtureCondition.status !== 'RESOLVED'
-      || group.exclusions.roleState.status !== 'UNRESOLVED'
+      || group.exclusions.roleState.status !== expectedRoleStateStatus
     ) {
-      throw new Error(`${group.id} resolves an UNKNOWN role/permission condition`)
+      throw new Error(`${group.id} roleState exclusion does not match canonical actor evidence`)
     }
 
     if (projected.expectedControl) {
@@ -204,6 +270,38 @@ const assertDispositionLedger = (ledger: DispositionLedger) => {
         })
         if (expandedKeys.has(key)) throw new Error(`Duplicate disposition identity: ${key}`)
         expandedKeys.add(key)
+        const measured = aggregateByKey.get(key)
+        if (!measured || measured.mismatch !== UNRESOLVED) {
+          throw new Error(`${group.id} has no matching unresolved aggregate row for ${actor}/${viewport.id}`)
+        }
+        if (group.controlEvidence.status === 'OBSERVED') {
+          if (measured.actualControls.length === 0 || measured.actualControls.some((control) => control.source !== group.controlEvidence.source)) {
+            throw new Error(`${group.id} control evidence does not match the aggregate`)
+          }
+        } else if (measured.actualControls.length !== 0) {
+          throw new Error(`${group.id} claims projected absence but the aggregate observed a control`)
+        }
+        const expectedExclusionStatus = {
+          navigation: measured.exclusions.navigation.ruledOut ? 'RESOLVED' : 'UNRESOLVED',
+          viewport: measured.exclusions.viewport.ruledOut ? 'RESOLVED' : 'UNRESOLVED',
+          fixtureCondition: measured.exclusions.fixtureCondition.ruledOut ? 'RESOLVED' : 'UNRESOLVED',
+          roleState: measured.exclusions.roleState.ruledOut ? 'RESOLVED' : 'UNRESOLVED',
+        }
+        for (const name of ['navigation', 'viewport', 'fixtureCondition', 'roleState'] as const) {
+          if (group.exclusions[name].status !== expectedExclusionStatus[name]) {
+            throw new Error(`${group.id} ${name} exclusion does not match the aggregate`)
+          }
+        }
+        const screenshot = aggregate.screenshots.find((item) => (
+          item.kind !== 'family-final'
+          && item.viewport === viewport.id
+          && item.family === group.family
+          && item.scenarioId === group.scenarioId
+          && item.actor === actor
+        ))
+        if (!screenshot || !hasText(screenshot.path)) {
+          throw new Error(`${group.id} is missing aggregate screenshot evidence for ${actor}/${viewport.id}`)
+        }
       })
     })
   })
@@ -217,8 +315,14 @@ const assertDispositionLedger = (ledger: DispositionLedger) => {
       operation: row.operation,
     }))
   )))
-  if (expandedKeys.size !== 255) throw new Error(`Disposition identity count is ${expandedKeys.size}, expected 255`)
+  const aggregateNonMatchKeys = aggregateRows
+    .filter((row) => row.mismatch === UNRESOLVED)
+    .map(pcMeasurementRowKey)
+  if (expandedKeys.size !== aggregateNonMatchKeys.length) {
+    throw new Error(`Disposition identity count is ${expandedKeys.size}, aggregate has ${aggregateNonMatchKeys.length} non-match rows`)
+  }
   assertSameStrings([...expandedKeys], expectedKeys, 'Expanded disposition identities')
+  assertSameStrings([...expandedKeys], aggregateNonMatchKeys, 'Disposition versus aggregate identities')
 
   const d01 = ledger.acceptedExceptions.find((item) => item.id === 'D-01')
   if (
@@ -272,7 +376,9 @@ describe('PC action completeness disposition ledger', () => {
     expect(appRouterSource).toContain("<RoleGuard requiredPermissions={['*']}")
 
     const drifted = structuredClone(validLedger)
-    drifted.acceptedExceptions[0].decision = 'ALIGN-WITH-BACKEND'
+    const d01Index = drifted.acceptedExceptions.findIndex((item) => item.id === 'D-01')
+    expect(d01Index).toBeGreaterThanOrEqual(0)
+    drifted.acceptedExceptions[d01Index].decision = 'ALIGN-WITH-BACKEND'
     expect(() => assertDispositionLedger(drifted)).toThrow('D-01 intentional FE-stricter disposition drifted')
   })
 

@@ -1,7 +1,7 @@
 import { CheckCircle2, Search, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContextStrip, InlineAlert, PaginationBar, QueryErrorAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
-import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters'
+import { formatCurrency, formatDateOnly, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
 import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'
@@ -75,7 +75,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               const available = line.available - line.reserved
               const variance = available - line.required
               return <tr key={`${line.id}-${presentation.pageIndex}-${index}`} className="table-row">
-                <td className={`${tableCellClass} whitespace-nowrap`}>{line.serviceDate ? new Date(`${line.serviceDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa xác định'}</td>
+                <td className={`${tableCellClass} whitespace-nowrap`}>{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>
                 <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
                 <td className={tableCellClass}>{formatQuantityWithUnit(line.required, line.unit)}</td><td className={tableCellClass}>{formatQuantityWithUnit(available, line.unit)}</td>
                 <td className={`${tableCellClass} font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{formatQuantityVariance(variance, line.unit)}</td>
@@ -86,8 +86,8 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               </tr>
             })}
             {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey} className="table-row">
-              <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td><td className={tableCellClass}>{data.theory.toFixed(2)}</td>
-              <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{data.actual.toFixed(2)}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
+              <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td><td className={tableCellClass}>{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
+              <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
               <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
             </tr>)}
             {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 8 : 7}>Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.</td></tr>}

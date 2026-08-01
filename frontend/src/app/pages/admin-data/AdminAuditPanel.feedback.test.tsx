@@ -51,7 +51,7 @@ describe('Admin audit export feedback', () => {
     const model = {
       effectiveActiveView: 'audit',
       auditActor: '',
-      auditArea: '',
+      auditArea: 'InventoryReceipt',
       auditCursors: [],
       auditEntity: '',
       auditField: '',
@@ -69,6 +69,8 @@ describe('Admin audit export feedback', () => {
 
     render(<AdminAuditPanel model={model} />);
 
+    expect(screen.getByRole('combobox')).toHaveTextContent('Nhập kho');
+    expect(screen.getByRole('combobox')).not.toHaveTextContent('InventoryReceipt');
     expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tải file CSV');
     expect(screen.getByRole('alert')).toHaveTextContent('Error: Mất kết nối');
   });

@@ -2,6 +2,7 @@ import { BarChart3, PackageCheck, TrendingUp } from 'lucide-react';
 import { TableViewport, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
+import { formatCurrency, formatDateTime, formatPercent, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
@@ -83,14 +84,14 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                   </tr>
                   <tr>
                     <td className="font-semibold">Mua hàng</td>
-                    <td className="ipc-numeric-cell">{totalPurchaseQty.toLocaleString('vi-VN')} đơn vị</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(totalPurchaseQty, 'đơn vị', { maximumFractionDigits: 3 })}</td>
                     <td className="text-left">Kế hoạch thu mua dự kiến theo ngày từ demand, tồn kho và pending receipt.</td>
                     <td className="ipc-badge-cell">{renderKpiStatus(totalPurchaseQty > 0, 'Có phát sinh', 'Không phát sinh', 'warning')}</td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Theo dõi thu mua</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Xuất bếp</td>
-                    <td className="ipc-numeric-cell">{totalIssuedQty.toLocaleString('vi-VN')} đơn vị</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(totalIssuedQty, 'đơn vị', { maximumFractionDigits: 3 })}</td>
                     <td className="text-left">Theo phiếu xuất kho cho bếp, phục vụ kiểm tra luồng thủ kho.</td>
                     <td className="ipc-badge-cell">
                       <StatusBadge variant={totalIssuedQty > 0 ? 'neutral' : 'warning'}>
@@ -101,7 +102,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                   </tr>
                   <tr>
                     <td className="font-semibold">Sử dụng thực tế</td>
-                    <td className="ipc-numeric-cell">{totalUsedQty.toLocaleString('vi-VN')} dùng / {totalReturnedQty.toLocaleString('vi-VN')} hoàn</td>
+                    <td className="ipc-numeric-cell">{formatQuantity(totalUsedQty, { maximumFractionDigits: 3 })} dùng / {formatQuantity(totalReturnedQty, { maximumFractionDigits: 3 })} hoàn</td>
                     <td className="text-left">Ghép xuất kho và hoàn kho để tránh tách trùng bước kiểm nguyên liệu dư.</td>
                     <td className="ipc-badge-cell">
                       <StatusBadge variant={totalUsedQty > 0 || totalReturnedQty > 0 ? 'success' : 'neutral'}>
@@ -139,7 +140,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
                       <td className="ipc-numeric-cell">{row.currentQty} {row.unit}</td>
-                      <td>{new Date(row.lastUpdated).toLocaleString('vi-VN')}</td>
+                      <td>{formatDateTime(row.lastUpdated)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -170,9 +171,9 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.name}</td>
                       <td>{row.supplier}</td>
-                      <td className="ipc-numeric-cell">{row.pricePrev.toLocaleString('vi-VN')} đ</td>
-                      <td className="ipc-numeric-cell">{row.priceCurrent.toLocaleString('vi-VN')} đ</td>
-                      <td className="ipc-numeric-cell font-bold text-[var(--ipc-danger)]">+{row.change.toFixed(1)}%</td>
+                      <td className="ipc-numeric-cell">{formatCurrency(row.pricePrev)}</td>
+                      <td className="ipc-numeric-cell">{formatCurrency(row.priceCurrent)}</td>
+                      <td className="ipc-numeric-cell font-bold text-[var(--ipc-danger)]">+{formatPercent(row.change, 1)}</td>
                     </tr>
                   ))}
                 </tbody>

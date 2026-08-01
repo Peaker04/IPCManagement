@@ -1,7 +1,11 @@
 import { Edit, Upload } from 'lucide-react'
 import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
+
+const EMPTY_CUSTOMER_VALUE = '__empty-customer__'
 
 type CommandProps = {
   customers: CoordinationCustomerOption[]
@@ -27,7 +31,13 @@ export const WeeklyMenuCommandBar = ({
   onExport,
   onCustomerChange,
   onWeekChange,
-}: CommandProps) => (
+}: CommandProps) => {
+  const selectedCustomer = customers.find((customer) => customer.customerId === selectedCustomerId)
+  const selectedCustomerLabel = selectedCustomer
+    ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}`
+    : 'Chọn khách hàng'
+
+  return (
   <CommandBar actions={<>
     <button type="button" onClick={onEdit} className="ipc-button ipc-button-ghost font-semibold whitespace-nowrap">
       <Edit size={14} className="text-[var(--ipc-slate-500)]" />
@@ -42,20 +52,24 @@ export const WeeklyMenuCommandBar = ({
     </button>
   </>}>
     <FieldRow label="Khách hàng">
-      <select value={selectedCustomerId} onChange={(event) => onCustomerChange(event.target.value)} className="ipc-select min-w-[200px]" disabled={isCustomerLoading}>
-        <option value="">Chọn khách hàng</option>
-        {customers.map((customer) => (
-          <option key={customer.customerId} value={customer.customerId}>
-            {customer.customerCode} - {customer.customerName}
-          </option>
-        ))}
-      </select>
+      <Select value={selectedCustomerId || EMPTY_CUSTOMER_VALUE} onValueChange={(value) => onCustomerChange(value === EMPTY_CUSTOMER_VALUE || value === null ? '' : value)} disabled={isCustomerLoading}>
+        <SelectTrigger className="min-w-[200px]"><SelectValue>{selectedCustomerLabel}</SelectValue></SelectTrigger>
+        <SelectContent>
+          <SelectItem value={EMPTY_CUSTOMER_VALUE}>Chọn khách hàng</SelectItem>
+          {customers.map((customer) => (
+            <SelectItem key={customer.customerId} value={customer.customerId}>
+              {customer.customerCode} - {customer.customerName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </FieldRow>
     <FieldRow label="Tuần bắt đầu">
-      <input type="date" value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} className="ipc-input" />
+      <Input type="date" value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} />
     </FieldRow>
   </CommandBar>
-)
+  )
+}
 
 export const WeeklyMenuPricingContext = ({
   menuPrice,

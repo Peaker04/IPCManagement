@@ -12,6 +12,7 @@ import type { ApprovalRecord, WorkflowTone } from '@/types/workflow';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { toneFromStatus } from '@/lib/workflowConfig';
+import { formatDateOnly } from '@/lib/formatters';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 const normalizeWorkflowTone = (tone: string, status: string): WorkflowTone =>
@@ -29,7 +30,7 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   source: item.source || item.targetCode,
   owner: item.ownerRole,
   submittedBy: item.submittedBy,
-  deadline: item.dueDate ? new Date(item.dueDate).toLocaleDateString('vi-VN') : 'Trong ca',
+  deadline: item.dueDate ? formatDateOnly(item.dueDate) : 'Trong ca',
   status: item.status,
   reason: item.reason,
   nextAction: item.nextAction,

@@ -7,6 +7,8 @@ import { normalizeUserRole, type AppRole } from '../roleUtils';
 import { ROUTES } from '@/lib/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // Explicit local-only fallback for UI smoke/demo runs without a backend.
 const isDevLoginFallbackEnabled =
@@ -147,7 +149,7 @@ const LoginPage = () => {
           {error && <div className="ipc-auth-alert" role="alert">{error}</div>}
 
           <FieldRow label="Tài khoản" htmlFor="username">
-            <input
+            <Input
               type="text"
               id="username"
               value={username}
@@ -158,14 +160,13 @@ const LoginPage = () => {
                 setMissingFields((current) => ({ ...current, username: false }));
               }}
               placeholder="Nhập tên đăng nhập"
-              className="ipc-input"
               disabled={isSubmitting}
             />
             {missingFields.username && <p id="username-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 
           <FieldRow label="Mật khẩu" htmlFor="password">
-            <input
+            <Input
               type="password"
               id="password"
               value={password}
@@ -176,15 +177,14 @@ const LoginPage = () => {
                 setMissingFields((current) => ({ ...current, password: false }));
               }}
               placeholder="Nhập mật khẩu"
-              className="ipc-input"
               disabled={isSubmitting}
             />
             {missingFields.password && <p id="password-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 
-          <button type="submit" className="ipc-button ipc-button-primary w-full" disabled={isSubmitting}>
+          <Button type="submit" variant="default" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </button>
+          </Button>
         </form>
 
         <DevLoginFallbackHint />

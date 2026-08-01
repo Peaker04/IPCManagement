@@ -6,6 +6,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.planning/phases/20-pc-pd-action-completeness/20-PC-AGGREGATE.json` | `C07A2D7C0695A3A3C2BF6E8F689C5779CFAB4BEE24D72117EDE0E11CA8712A28` | Phase 20 aggregate `FE-fixture-read-only` cuối trên sáu executable family và năm desktop viewport; canonical operations có control đã được exercise, gồm intercepted read/mutation, post-action, screenshot và performance evidence; không phải backend/DB E2E. |
 | `.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/operational-weekly-menu-e2e.json` | `F2AE20CCF34C7FD3D1A36E6D67495C17A89142318EA9DA6C47F4BFBAF9A83493` | Chrome headed operational E2E trên source hiện tại: import → publish ở Admin Contracts → hoàn tất 12 ca → sinh/duyệt 6 demand → handoff Thu mua; 28 mutation đều 2xx và không chứa credential/token. |
 | `.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/database-after-e2e.json` | `B2C6DE7E813512FE063673EA7D4B0E61E17E1E979E00D0A8A325D2FCDB0FD55D` | DB transition trên `ipc_e2e_template`: version/schedule ACTIVE, 12 plan COMPLETED, 6 demand MANAGERAPPROVED, 350 line và 6 approval history; `ipc_lane1` count nguồn không đổi. |
 | `.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/database-rollback.json` | `DAD543A9411E3EF518E144DDB46701B54E7E4350AD6000993D8F5C38B74C9743` | Rollback evidence: clone lại 61 bảng từ `ipc_lane1` sang disposable template và kiểm các row count nguồn/đích khớp. |

@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.3
-milestone_name: UI Completeness & Conformance
+milestone_name: — UI Completeness & Conformance
 status: executing
-stopped_at: Completed Plan 20-01; ready to execute Plan 20-02
-last_updated: "2026-07-31T07:34:33+07:00"
-last_activity: 2026-07-31 — Plan 20-01 committed the fail-closed PC contract; ready for aggregate fixture
+stopped_at: Phase 21 verified 27/27; Phase 22 P5 matrix ready
+last_updated: "2026-08-01T20:05:51.119Z"
+last_activity: 2026-08-01
 progress:
   total_phases: 7
-  completed_phases: 1
-  total_plans: 8
-  completed_plans: 5
-  percent: 14
-current_phase: 20
-current_phase_name: pc/pd-action-completeness
+  completed_phases: 3
+  total_plans: 23
+  completed_plans: 23
+  percent: 43
+current_phase: 22
+current_phase_name: p5-conformance-matrix
 ---
 
 # Project State
@@ -25,10 +25,10 @@ from `.docs/UI-UX-ADDENDUM-KHONG-CO-FIGMA.md`. Phases 11–18 and the v1.1 archi
 
 ## Current Position
 
-Phase: 20
-Plan: 20-02
+Phase: 22
+Plan: Not started
 Status: In progress
-Last activity: 2026-07-31 — Plan 20-01 passed 101/568 frontend tests and GitNexus found 0 affected process
+Last activity: 2026-08-02 — Phase 21 PE completed 15/15 plans and verified 27/27 truths
 
 ## Verified Baseline
 
@@ -163,8 +163,8 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Remaining Workflow
 
-- Execute Phases 20 → 25 in order: PC/PD action completeness; semantic canon; control canon;
-  conformance red oracle; five-viewport fixes/evidence; state-purity gate and closeout.
+- Execute Phases 22 → 25 as a direct addendum mapping: P5; P6; P7; P8 + PF.
+
 - Off-site backup remains an unrelated non-blocking operational follow-up outside milestone v1.3.
 
 ## Decisions Made
@@ -195,17 +195,30 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Quick 260731-3hj]: Keep GitNexus raw risk as evidence while deriving effective rigor from verified
   directed production/control/data-flow impact. — PA-4 demonstrated that import-only transitive closure can
   falsely escalate docs/literal work; unresolved edges retain raw risk and full scope.
+
 - [Phase 19]: Materialize `CoordinationOrderScopeLifecycle` as a test-owned executable registry with
   `scenario × operation` rows, row-level `scope`, separate `entityState`/`projectionState`, and shared FE/BE
   family coverage. — The registry projects importable code and guards the remaining source-linked debt without
   entering production.
+
 - [Quick 260731-8me]: Classify intended diffs as graph-free, lightweight graph or full analysis before any
   GitNexus call. — Semantic risk now selects rigor; docs/leaf assertions avoid graph ceremony, behavior-bearing
   test/config contracts keep source-aware closure, and production/API/auth/migration work retains full impact.
+
 - [Milestone v1.3]: Skip external design research and derive canon from the approved PB ballot/live code. —
   The addendum explicitly warns that agent-authored canon would create another variant.
-- [Milestone v1.3]: Use the user's delegated brainstorm authority to close D-10/golden/PD decision gates,
-  recording alternatives and acceptance criteria instead of pausing execution.
+
+- [Milestone v1.3]: Use delegated brainstorm authority only to resolve a choice inside an authorized
+  addendum block; record alternatives and evidence, but do not derive new scope from the choice.
+
+- [Milestone v1.3]: Map Phase 21–25 directly to PE, P5, P6, P7 and P8+PF. — GSD may split execution
+  inside a named block, but may not create unsourced phase goals, finding quotas, golden-screen quotas,
+  DOM-instrumentation programs or acceptance criteria.
+
+- [Phase 20]: Visible frontend controls do not resolve canonical UNKNOWN dimensions; KHỚP requires known operation, actor, backend permission and frontend permission.
+- [Phase 20]: Plan 20-02 evidence is FE-fixture-read-only; canonical operations with controls are exercised through intercepted requests and post-action evidence, without backend/DB mutation.
+- [Phase 20]: Aggregate control evidence uses truthful accessible role/name or label selectors guarded against production source drift.
+- [Phase 20]: Defer all production PD candidates: THIẾU/MỒ CÔI/IM LẶNG are zero, 15 LỆCH VỊ TRÍ are downstream route denials with explicit disposition, and visible controls do not resolve canonical UNKNOWN debt.
 
 ## Blockers
 
@@ -231,11 +244,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-31T07:34:33+07:00
+**Last Date:** 2026-07-31T03:27:03.259Z
 
-**Stopped At:** Completed Plan 20-01; ready to execute Plan 20-02
+**Stopped At:** Phase 21 complete; Phase 22 P5 matrix ready
 
-Last activity: 2026-07-31 - Committed the normalized PC contract and source guards; no production process affected
+Last activity: 2026-08-02 - Phase 21 verified 27/27; root gate and 28-process disposition pass
 
 **Resume File:** .planning/ROADMAP.md
 
@@ -271,3 +284,8 @@ Last activity: 2026-07-31 - Committed the normalized PC contract and source guar
 | Phase 19 P02 | 10 min | 1 task | Coordination lifecycle scenarios and format |
 | Phase 19 P03 | 17 min | 1 task | executable family registry and FE/BE parity |
 | Phase 19 P04 | 7m 40s | 1 task | exact debt ranges and drift probes |
+| Phase 20 P02 | 1h 58m | 3 tasks | 3 files |
+| Phase 20 P03 | 18 min | 3 tasks | 2 files |
+| Phase 20 P04 | 25 min | 3 tasks | verification and closeout |
+| Phase 21 P01 | 14 min | 2 tasks | date-only formatter canon slice |
+| Phase 21 P02 | 12 min | 2 tasks | Admin BOM table boundary canon slice |

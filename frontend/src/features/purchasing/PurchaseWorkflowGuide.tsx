@@ -1,5 +1,6 @@
 import { Check, CircleAlert, CircleDot } from 'lucide-react';
 import { StatusBadge } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { PurchaseWorkflowStageCounts } from '@/api/workflowApi';
 import {
@@ -36,10 +37,13 @@ export function PurchaseWorkflowGuide({
 
           return (
             <li key={stage.id} className="min-w-0">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                textWrap="wrap"
                 className={cn(
-                  'flex h-full min-h-11 w-full flex-col gap-1.5 rounded-[3px] border px-3 py-2 text-left text-[14px] font-semibold leading-[1.35] transition-colors motion-reduce:transition-none sm:min-h-[7.5rem]',
+                  'h-full min-h-11 w-full flex-col items-stretch justify-start gap-1.5 rounded-[3px] px-3 py-2 text-left text-[14px] font-semibold leading-[1.35] transition-colors motion-reduce:transition-none sm:min-h-[7.5rem]',
                   isSelected
                     ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-900'
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
@@ -69,7 +73,7 @@ export function PurchaseWorkflowGuide({
                     </span>
                   ) : null}
                 </span>
-              </button>
+              </Button>
             </li>
           );
         })}

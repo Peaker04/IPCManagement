@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import {
   useGetPriceVarianceByDishGroupPageQuery,
   useGetPriceVarianceByPeriodPageQuery,
@@ -27,26 +27,31 @@ type ReportsPriceViewModelArgs = {
 export function useReportsPriceViewModel({ activeView, initialPage, priceSubView, reportQuery, searchParams }: ReportsPriceViewModelArgs) {
   const [pricePageSize, setPricePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 6, pricePageSizeOptions));
   const [pricePage, setPricePage] = useState(initialPage);
-  const [priceSearch, setPriceSearch] = useState('');
+  const [priceSearch, setPriceSearchState] = useState('');
   const [debouncedPriceSearch, setDebouncedPriceSearch] = useState('');
+  const deferredPriceSearch = useDeferredValue(debouncedPriceSearch);
   const [priceAggregatePageSize, setPriceAggregatePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [supplierPage, setSupplierPage] = useState(initialPage);
   const [periodPage, setPeriodPage] = useState(initialPage);
   const [dishGroupPage, setDishGroupPage] = useState(initialPage);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       setDebouncedPriceSearch(priceSearch.trim());
       setPricePage(1);
     }, 300);
-    return () => window.clearTimeout(timer);
+    return () => globalThis.clearTimeout(timer);
   }, [priceSearch]);
+
+  const setPriceSearch = (value: string) => {
+    setPriceSearchState(value);
+  };
 
   const priceVarianceResult = useGetPriceVariancePageQuery({
     ...reportQuery,
     pageNumber: pricePage,
     pageSize: pricePageSize,
-    searchKeyword: debouncedPriceSearch || undefined,
+    searchKeyword: deferredPriceSearch || undefined,
   }, { skip: activeView !== 'price' || priceSubView !== 'lines' });
   const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierPageQuery({ ...reportQuery, pageNumber: supplierPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
   const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodPageQuery({ ...reportQuery, pageNumber: periodPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'period' });

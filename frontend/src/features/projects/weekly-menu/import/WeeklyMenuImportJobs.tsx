@@ -1,16 +1,21 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { TableViewport } from '@/components/common'
+import { ConfirmDialog, StatusBadge, TableViewport } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/formatters'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import { formatFileSize, formatImportDate, getImportJobStatusLabel } from '../model/formatters'
-import { getImportJobStatusClass } from './importValidation'
+import { getImportJobStatusTone } from './importValidation'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 
 export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
   const { state, selectedJob, readyJobs, status, actions } = workflow
   const [search, setSearch] = useState('')
+  const [commitTarget, setCommitTarget] = useState<{ kind: 'all' } | { kind: 'job'; jobId: string } | null>(null)
+  const commitJob = commitTarget?.kind === 'job' ? state.jobs.find((job) => job.jobId === commitTarget.jobId) : undefined
+  const readyRowCount = readyJobs.reduce((total, job) => total + (job.previewResult?.detectedLayout.rowsImported ?? 0), 0)
   const filteredJobs = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('vi-VN')
     if (!needle) return state.jobs
@@ -32,12 +37,12 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
           <p className="text-sm font-medium text-slate-500">Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => void actions.previewAllJobs()} disabled={status.isImporting || state.jobs.length === 0} className="ipc-button ipc-button-ghost">
+          <Button type="button" variant="outline" size="sm" onClick={() => void actions.previewAllJobs()} disabled={status.isImporting || state.jobs.length === 0}>
             {status.isPreviewing ? 'Đang kiểm tra...' : 'Kiểm tra tất cả'}
-          </button>
-          <button type="button" onClick={() => void actions.commitReadyJobs()} disabled={status.isImporting || readyJobs.length === 0} className="ipc-button ipc-button-primary">
+          </Button>
+          <Button type="button" size="sm" onClick={() => setCommitTarget({ kind: 'all' })} disabled={status.isImporting || readyJobs.length === 0}>
             {status.isCommitting ? 'Đang lưu...' : 'Lưu file hợp lệ'}
-          </button>
+          </Button>
         </div>
       </div>
       <div className="relative max-w-md">
@@ -63,17 +68,17 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
               const preview = job.previewResult
               return (
                 <tr key={job.jobId} className={cn(selectedJob?.jobId === job.jobId && 'bg-blue-50/70')}>
-                  <td className="text-left min-w-[140px]"><button type="button" onClick={() => actions.selectJob(job.jobId)} className="text-left font-bold text-slate-900 hover:text-blue-700">{job.customerCode} - {job.customerName}</button></td>
+                  <td className="text-left min-w-[140px]"><Button type="button" variant="outline" size="xs" textWrap="wrap" onClick={() => actions.selectJob(job.jobId)} className="justify-start text-left font-bold text-slate-900 hover:text-blue-700">{job.customerCode} - {job.customerName}</Button></td>
                   <td className="text-left font-medium whitespace-nowrap">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</td>
                   <td className="text-center whitespace-nowrap"><span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{formatBomTierLabel(job.priceTierAmount)}</span></td>
                   <td className="text-left min-w-[280px]"><div className="flex flex-col"><span className="font-semibold text-slate-800 whitespace-nowrap">{job.fileName}</span><span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span></div></td>
                   <td className="text-center whitespace-nowrap">{preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}</td>
-                  <td className="text-center whitespace-nowrap">{preview ? preview.detectedLayout.rowsImported.toLocaleString('vi-VN') : '-'}</td>
-                  <td className="text-center whitespace-nowrap"><span className={cn(getImportJobStatusClass(job.status), 'whitespace-nowrap')}>{getImportJobStatusLabel(job.status)}</span></td>
+                  <td className="text-center whitespace-nowrap">{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
+                  <td className="text-center whitespace-nowrap"><StatusBadge variant={getImportJobStatusTone(job.status)} className="min-w-[116px] justify-center whitespace-nowrap">{getImportJobStatusLabel(job.status)}</StatusBadge></td>
                   <td className="text-right min-w-[220px]"><div className="flex flex-nowrap justify-end gap-2">
-                    <button type="button" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'} className="ipc-button ipc-button-ghost min-w-[76px] whitespace-nowrap">Kiểm tra</button>
-                    <button type="button" onClick={() => void actions.commitJob(job.jobId)} disabled={status.isImporting || job.status !== 'previewed'} className="ipc-button ipc-button-primary min-w-[52px] whitespace-nowrap">Lưu</button>
-                    <button type="button" onClick={() => actions.removeJob(job.jobId)} disabled={status.isImporting} className="ipc-button ipc-button-ghost min-w-[52px] whitespace-nowrap">Xóa</button>
+                    <Button type="button" variant="outline" size="xs" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'} className="min-w-[76px]">Kiểm tra</Button>
+                    <Button type="button" size="xs" onClick={() => setCommitTarget({ kind: 'job', jobId: job.jobId })} disabled={status.isImporting || job.status !== 'previewed'} className="min-w-[52px]">Lưu</Button>
+                    <Button type="button" variant="outline" size="xs" onClick={() => actions.removeJob(job.jobId)} disabled={status.isImporting} className="min-w-[52px]">Xóa</Button>
                   </div></td>
                 </tr>
               )
@@ -83,6 +88,25 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
           </tbody>
         </table>
       </TableViewport>
+      <ConfirmDialog
+        open={commitTarget !== null}
+        title={commitTarget?.kind === 'all' ? `Lưu ${readyJobs.length} file hợp lệ?` : 'Lưu file thực đơn này?'}
+        description={commitTarget?.kind === 'all'
+          ? `${readyJobs.length} file với ${readyRowCount} dòng món sẽ được lưu tuần tự theo từng khách hàng và tuần; dữ liệu ở cùng phạm vi có thể được cập nhật. Nếu một file sau bị lỗi, các file trước đó có thể đã được lưu.`
+          : commitJob
+            ? `${commitJob.customerCode} · tuần ${commitJob.weekStartDate || 'tự nhận theo file'} · ${commitJob.fileName} · ${commitJob.previewResult?.detectedLayout.rowsImported ?? 0} dòng món. Thực đơn đang lưu ở cùng phạm vi có thể được cập nhật.`
+            : 'File đã chọn sẽ được ghi vào thực đơn của khách hàng và tuần tương ứng.'}
+        confirmLabel={commitTarget?.kind === 'all' ? 'Lưu các file hợp lệ' : 'Lưu file'}
+        busy={status.isCommitting}
+        busyLabel="Đang lưu..."
+        onConfirm={() => {
+          const target = commitTarget
+          setCommitTarget(null)
+          if (target?.kind === 'all') void actions.commitReadyJobs()
+          if (target?.kind === 'job') void actions.commitJob(target.jobId)
+        }}
+        onOpenChange={(open) => !open && setCommitTarget(null)}
+      />
     </div>
   )
 }

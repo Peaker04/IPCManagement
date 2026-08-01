@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -324,9 +325,21 @@ describe('ReportsPage query state boundary', () => {
 
     expect(screen.getAllByText('Gạo tẻ').length).toBeGreaterThan(0);
     expect(screen.getByText('PN-20260729-01')).toBeInTheDocument();
-    expect(screen.getByText('29/7/2026')).toBeInTheDocument();
+    expect(screen.getByText('29/07/2026')).toBeInTheDocument();
     expect(screen.getByText('120 kg')).toBeInTheDocument();
     expect(screen.getByText('Đang cập nhật báo cáo')).toBeInTheDocument();
+  });
+
+  it('renders the report shift label instead of its enum value', async () => {
+    const user = userEvent.setup();
+    renderReportsPage('admin');
+
+    const shift = screen.getByRole('combobox', { name: 'Ca' });
+    await user.click(shift);
+    await user.click(await screen.findByRole('option', { name: 'Ca sáng' }));
+
+    expect(shift).toHaveTextContent('Ca sáng');
+    expect(shift).not.toHaveTextContent('MORNING');
   });
 });
 

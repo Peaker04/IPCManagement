@@ -8,6 +8,8 @@ import {
   TableViewport,
 } from '@/components/common';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
+import { Button } from '@/components/ui/button';
+import { formatDateOnly } from '@/lib/formatters';
 import { PurchaseLineGroups } from './PurchaseLineGroups';
 
 interface PurchaseServiceDateWorkbenchProps {
@@ -35,11 +37,6 @@ const demandStatusLabel = (serviceDate: PurchaseWorkbenchServiceDate) => {
   if (serviceDate.currentStage === 'approved-order') return 'Đã duyệt';
   if (serviceDate.currentStage === 'submitted') return 'Đã gửi duyệt';
   return serviceDate.approvedDemandCount > 0 ? 'Đã duyệt' : 'Chưa tạo';
-};
-
-const formatIsoDate = (value: string) => {
-  const [year, month, day] = value.slice(0, 10).split('-');
-  return year && month && day ? `${day}/${month}/${year}` : value;
 };
 
 const receivingStatus = (serviceDate: PurchaseWorkbenchServiceDate) => {
@@ -76,10 +73,13 @@ export function PurchaseServiceDateWorkbench({
           const active = serviceDate.serviceDate === selectedDate;
           const supplierLineCount = Math.max(serviceDate.shortageLineCount, serviceDate.purchaseLines.length);
           return (
-            <button
+            <Button
               key={serviceDate.serviceDate}
               type="button"
-              className={`min-h-11 rounded-[3px] border px-3 py-2 text-left text-[14px] transition-colors motion-reduce:transition-none ${
+              variant="outline"
+              size="sm"
+              textWrap="wrap"
+              className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-3 py-2 text-left text-[14px] leading-normal transition-colors motion-reduce:transition-none ${
                 active
                   ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-950'
                   : 'border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100'
@@ -89,7 +89,7 @@ export function PurchaseServiceDateWorkbench({
               onClick={() => onDateChange(serviceDate)}
             >
               <span className="flex flex-wrap items-center justify-between gap-2 font-semibold">
-                <span>{formatIsoDate(serviceDate.serviceDate)}</span>
+                <span>{formatDateOnly(serviceDate.serviceDate)}</span>
                 <StatusBadge variant={active ? 'warning' : 'neutral'}>{demandStatusLabel(serviceDate)}</StatusBadge>
               </span>
               <span className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] leading-[1.4] text-slate-600">
@@ -98,7 +98,7 @@ export function PurchaseServiceDateWorkbench({
                 <span>Ngoại lệ: {serviceDate.blockingExceptionCount}</span>
                 <span>Nhập kho: {receivingStatus(serviceDate)}</span>
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

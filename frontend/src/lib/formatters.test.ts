@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getDayLabel, getTodayDayCode } from './dateUtils';
 import {
+  formatDateOnly,
+  formatDateTime,
   formatPercent,
   formatQuantity,
   formatQuantityWithUnit,
@@ -68,3 +70,30 @@ describe('number formatter BVA', () => {
     expect(formatPercent(12.345)).toBe('12,3%');
   });
 });
+
+describe('date-only formatter BVA', () => {
+  it.each([
+    ['2026-07-20', '20/07/2026'],
+    ['2026-07-20T08:30:00+07:00', '20/07/2026'],
+  ])('formats %s without changing the date parts', (value, expected) => {
+    expect(formatDateOnly(value)).toBe(expected);
+  });
+
+  it('returns the original value when the date-only shape is incomplete', () => {
+    expect(formatDateOnly('2026-07')).toBe('2026-07');
+    expect(formatDateOnly('not-a-date')).toBe('not-a-date');
+    expect(formatDateOnly('2026-02-30')).toBe('2026-02-30');
+  });
+});
+
+describe('timestamp formatter BVA', () => {
+  it('uses padded Vietnamese date parts and a 24-hour clock', () => {
+    expect(formatDateTime('2026-07-20T08:30:45+07:00')).toBe('08:30:45 20/07/2026')
+  })
+
+  it('guards missing and invalid values', () => {
+    expect(formatDateTime()).toBe('Chưa xác định')
+    expect(formatDateTime('not-a-date')).toBe('not-a-date')
+    expect(formatDateTime(new Date(Number.NaN))).toBe('Chưa xác định')
+  })
+})

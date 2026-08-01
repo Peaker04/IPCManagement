@@ -1,4 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi'
@@ -324,6 +325,7 @@ describe('purchasing hook behavior', () => {
   })
 
   it('keeps receipt evidence and idempotency key stable after a conflict', async () => {
+    const user = userEvent.setup()
     mocks.recordWarehouseReceipt.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ data: { message: 'Phiếu nhập đã được xử lý với dữ liệu khác.' } }),
     })
@@ -367,7 +369,8 @@ describe('purchasing hook behavior', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Kho nhận *'), { target: { value: 'warehouse-1' } })
+    await user.click(screen.getByRole('combobox', { name: 'Kho nhận *' }))
+    await user.click(await screen.findByRole('option', { name: 'Kho trung tâm' }))
     fireEvent.change(screen.getByLabelText('Ngày nhận *'), { target: { value: '2026-07-22' } })
     fireEvent.change(screen.getByLabelText('Số lượng thực nhận *'), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText('Số lô *'), { target: { value: 'LOT-2207' } })
@@ -437,8 +440,8 @@ describe('purchasing hook behavior', () => {
       />,
     )
 
-    expect(screen.getByLabelText('Kho nhận *')).toHaveValue('warehouse-supplemental')
-    expect(screen.getByLabelText('Kho nhận *')).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: 'Kho nhận *' })).toHaveTextContent('Kho xử lý yêu cầu bổ sung')
+    expect(screen.getByRole('combobox', { name: 'Kho nhận *' })).toBeDisabled()
     expect(screen.getByText('Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.')).toBeInTheDocument()
   })
 })

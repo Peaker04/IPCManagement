@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { EmptyState } from './EmptyState';
@@ -72,15 +73,17 @@ export function DocumentRail({ documents, title = 'Chứng từ vận hành', ac
                 <span className="ipc-document-code" title={document.id}>
                   {document.id}
                 </span>
-                <button
+                <Button
                   type="button"
-                  className="ipc-document-copy-button"
+                  variant="outline"
+                  size="icon-xs"
+                  className="size-7"
                   aria-label={`Sao chép mã chứng từ ${document.id}`}
                   title="Sao chép mã chứng từ"
                   onClick={() => void handleCopyDocumentId(document.id)}
                 >
                   <Copy size={14} />
-                </button>
+                </Button>
               </dd>
             </div>
             {document.lines.map((line) => {

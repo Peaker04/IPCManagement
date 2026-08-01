@@ -3,6 +3,7 @@ import type { MaterialDemandStaleness } from '@/api/workflowApi'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 import { formatMaterialDishSource } from '../model/formatters'
+import { formatNumber } from '@/lib/formatters'
 
 export type DemandApprovalPresentation = {
   status: 'not-created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'terminal'
@@ -286,7 +287,7 @@ export const buildKhsxDraftDocument = ({
       { label: 'Ngày', value: `${activeDay.label} ${activeDay.date}` },
       { label: 'Ngày tuần', value: serviceDates.length.toString() },
       { label: 'Dòng KHSX', value: activeDay.rows.length.toString() },
-      { label: 'Tổng suất ngày', value: totalPortions.toLocaleString('vi-VN') },
+      { label: 'Tổng suất ngày', value: formatNumber(totalPortions) },
       { label: 'Thiếu BOM ngày', value: missingBom.toString(), tone: missingBom > 0 ? 'warning' : 'success' },
     ],
   }

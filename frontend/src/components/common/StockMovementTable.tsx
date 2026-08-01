@@ -1,4 +1,5 @@
 import { Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { CursorPaginationBar } from './CursorPaginationBar';
@@ -123,15 +124,17 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                     <span title={movement.documentNo}>
                       {shortenDocumentNo(movement.documentNo)}
                     </span>
-                    <button
+                    <Button
                       type="button"
-                      className="ipc-document-copy-button flex-shrink-0"
+                      variant="outline"
+                      size="icon-xs"
+                      className="size-7"
                       aria-label={`Sao chép mã chứng từ ${movement.documentNo}`}
                       title="Sao chép mã chứng từ"
                       onClick={() => void handleCopyDocumentNo(movement.documentNo)}
                     >
                       <Copy size={11} />
-                    </button>
+                    </Button>
                   </div>
                 </td>
                 <td className="ipc-badge-cell">

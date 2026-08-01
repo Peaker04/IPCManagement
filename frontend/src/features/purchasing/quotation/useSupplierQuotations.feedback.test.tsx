@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createQuotation: vi.fn(),
   updateQuotation: vi.fn(),
   deactivateQuotation: vi.fn(),
+  ingredients: vi.fn(),
 }));
 
 vi.mock('@/components/common', () => ({
@@ -13,7 +14,7 @@ vi.mock('@/components/common', () => ({
 }));
 
 vi.mock('@/api/dishCatalogApi', () => ({
-  useGetIngredientsQuery: () => ({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, isUninitialized: false, refetch: vi.fn() }),
+  useGetIngredientsQuery: mocks.ingredients,
 }));
 
 vi.mock('@/api/workflowApi', () => ({
@@ -25,12 +26,31 @@ vi.mock('@/api/workflowApi', () => ({
 }));
 
 import { useSupplierQuotations } from './useSupplierQuotations';
+import supplierQuotationSource from './useSupplierQuotations.ts?raw';
 
 const submitEvent = { preventDefault: vi.fn() } as never;
 
 describe('useSupplierQuotations feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.ingredients.mockReturnValue({ data: [], isSuccess: true, isLoading: false, isFetching: false, isError: false, isUninitialized: false, refetch: vi.fn() });
+  });
+
+  it('defers the trimmed ingredient server search and retains quotation page reset', async () => {
+    expect(supplierQuotationSource).toContain('const deferredIngredientSearch = useDeferredValue(ingredientSearch.trim());');
+    expect(supplierQuotationSource).toContain('deferredIngredientSearch ? { searchKeyword: deferredIngredientSearch } : undefined');
+
+    const { result } = renderHook(() => useSupplierQuotations());
+    act(() => result.current.setPage(3));
+    act(() => result.current.setIngredientSearch('  Gạo  '));
+
+    await waitFor(() => expect(mocks.ingredients).toHaveBeenLastCalledWith(
+      { searchKeyword: 'Gạo' },
+      { skip: false },
+    ));
+
+    act(() => result.current.selectIngredient('ingredient-1'));
+    expect(result.current.page).toBe(1);
   });
 
   it('keeps validation field-local and preserves first-failure ordering', async () => {

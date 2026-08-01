@@ -1,5 +1,6 @@
 import { ClipboardList, ShieldCheck } from 'lucide-react'
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import { getChefReadiness } from '../chefReadiness'
 import type { DailyPlanLine } from './chefProductionModel'
@@ -53,10 +54,10 @@ export function ChefProductionSection({
         isComplete ? (
           <StatusBadge variant="success">Kế hoạch đã gửi bếp</StatusBadge>
         ) : (
-          <button className="ipc-button ipc-button-primary" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
+          <Button size="sm" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
             <ShieldCheck size={15} aria-hidden="true" />
             {isSending ? 'Đang nhận...' : 'Nhận kế hoạch'}
-          </button>
+          </Button>
         )
       )}
     >

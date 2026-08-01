@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DemandSummary, EmptyState, PaginationBar, RoleInbox, SectionPanel } from '@/components/common';
 import { Input } from '@/components/ui/input';
+import { formatDateOnly } from '@/lib/formatters';
 import type { DemandLine, RoleInboxItem } from '@/types/workflow';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
@@ -38,9 +39,9 @@ export function WarehouseDemandPanel({
   inboxItems,
 }: WarehouseDemandPanelProps) {
   const scopeLabel = requestedDemandDate
-    ? `Ngày ${new Date(`${requestedDemandDate}T00:00:00`).toLocaleDateString('vi-VN')}`
+    ? `Ngày ${formatDateOnly(requestedDemandDate)}`
     : requestedDemandWeek
-      ? `Tuần ${new Date(`${requestedDemandWeek}T00:00:00`).toLocaleDateString('vi-VN')}–${demandDateTo ? new Date(`${demandDateTo}T00:00:00`).toLocaleDateString('vi-VN') : ''}`
+      ? `Tuần ${formatDateOnly(requestedDemandWeek)}–${demandDateTo ? formatDateOnly(demandDateTo) : ''}`
       : 'Tất cả ngày';
 
   return (

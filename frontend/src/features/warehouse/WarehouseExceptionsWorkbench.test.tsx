@@ -6,8 +6,11 @@ const mocks = vi.hoisted(() => ({
   route: vi.fn(),
   reject: vi.fn(),
   confirmReturn: vi.fn(),
+  recordReceipt: vi.fn(),
   refetchSupplemental: vi.fn(),
   refetchReturns: vi.fn(),
+  supplementalQuery: vi.fn(),
+  returnsQuery: vi.fn(),
 }));
 
 const supplemental = {
@@ -53,34 +56,67 @@ const inventoryReturn = {
 };
 
 vi.mock('@/api/workflowApi', () => ({
-  useGetSupplementalMaterialRequestsQuery: () => ({
-    data: { items: [supplemental], totalCount: 1, pageNumber: 1, pageSize: 8, totalPages: 1, hasPrev: false, hasNext: false },
-    isFetching: false,
-    isError: false,
-    refetch: mocks.refetchSupplemental,
-  }),
-  useGetInventoryReturnsQuery: () => ({
-    data: { items: [inventoryReturn], totalCount: 1, pageNumber: 1, pageSize: 8, totalPages: 1, hasPrev: false, hasNext: false },
-    isFetching: false,
-    isError: false,
-    refetch: mocks.refetchReturns,
-  }),
+  useGetSupplementalMaterialRequestsQuery: mocks.supplementalQuery,
+  useGetInventoryReturnsQuery: mocks.returnsQuery,
   useGetInventoryReturnByIdQuery: (id: string) => ({ data: id ? inventoryReturn : undefined, isFetching: false, isError: false, refetch: vi.fn() }),
   useFulfillSupplementalMaterialRequestMutation: () => [mocks.fulfill, { isLoading: false }],
   useRouteSupplementalMaterialRequestToPurchasingMutation: () => [mocks.route, { isLoading: false }],
   useRejectSupplementalMaterialRequestMutation: () => [mocks.reject, { isLoading: false }],
   useConfirmInventoryReturnReceiptMutation: () => [mocks.confirmReturn, { isLoading: false }],
+  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordReceipt, { isLoading: false }],
 }));
 
 import { WarehouseExceptionsWorkbench } from './WarehouseExceptionsWorkbench';
+import { WarehousePurchaseReceiptDialog } from './WarehousePurchaseReceiptDialog';
+import warehouseSource from './WarehouseExceptionsWorkbench.tsx?raw';
+import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApi';
 
 describe('WarehouseExceptionsWorkbench', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.supplementalQuery.mockImplementation(({ pageNumber }: { pageNumber: number }) => ({
+      data: { items: [supplemental], totalCount: 16, pageNumber, pageSize: 8, totalPages: 2, hasPrev: pageNumber > 1, hasNext: pageNumber < 2 },
+      isFetching: false,
+      isError: false,
+      refetch: mocks.refetchSupplemental,
+    }));
+    mocks.returnsQuery.mockImplementation(({ pageNumber }: { pageNumber: number }) => ({
+      data: { items: [inventoryReturn], totalCount: 16, pageNumber, pageSize: 8, totalPages: 2, hasPrev: pageNumber > 1, hasNext: pageNumber < 2 },
+      isFetching: false,
+      isError: false,
+      refetch: mocks.refetchReturns,
+    }));
     mocks.fulfill.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, fulfilledQty: 3, remainingQty: 2 } }) });
     mocks.route.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, purchaseRequestCode: 'PR-SUP-001' } }) });
     mocks.reject.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, status: 'REJECTED' } }) });
     mocks.confirmReturn.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) });
+    mocks.recordReceipt.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) });
+  });
+
+  it('renders the warehouse name in the closed receipt select trigger', () => {
+    render(<WarehousePurchaseReceiptDialog
+      open
+      order={{ purchaseOrderId: 'po-1', purchaseOrderCode: 'PO-001', supplierName: 'Nhà cung cấp Minh An' } as PurchaseOrderDto}
+      line={{
+        purchaseOrderLineId: 'line-1',
+        ingredientName: 'Gạo',
+        orderedQty: 5,
+        receivedQty: 0,
+        unitPrice: 20_000,
+        unitName: 'kg',
+        unitId: 'unit-1',
+        lotNumberRequired: false,
+        manufactureDateRequired: false,
+        expiryDateRequired: false,
+      } as PurchaseOrderLineDto}
+      warehouses={[{ warehouseId: 'warehouse-1', warehouseCode: 'KHO-01', warehouseName: 'Kho chính' }]}
+      preferredWarehouseId="warehouse-1"
+      onOpenChange={vi.fn()}
+      onSuccess={vi.fn()}
+    />);
+
+    expect(screen.getByRole('combobox', { name: /Kho nhận/ })).toHaveTextContent('Kho chính');
+    expect(screen.getByRole('combobox', { name: /Kho nhận/ })).not.toHaveTextContent('__no-warehouse__');
   });
 
   it('shows server-authoritative actions and creates a partial supplemental issue', async () => {
@@ -112,6 +148,24 @@ describe('WarehouseExceptionsWorkbench', () => {
       discrepancyNote: 'Chỉ nhận 1.5 kg còn sử dụng được',
       adjustedLines: [{ returnLineId: 'return-line-1', newQuantity: 1.5 }],
     }));
+  });
+
+  it('defers both server searches and resets each owned page', async () => {
+    expect(warehouseSource).toContain('searchKeyword: deferredSupplementalSearch || undefined');
+    expect(warehouseSource).toContain('searchKeyword: deferredReturnSearch || undefined');
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+    const paginations = screen.getAllByRole('navigation', { name: 'Phân trang danh sách' });
+
+    fireEvent.click(within(paginations[0]).getByRole('button', { name: /trang 2 trong 2/i }));
+    await waitFor(() => expect(mocks.supplementalQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2 })));
+    fireEvent.change(screen.getByLabelText('Tìm yêu cầu, nguyên liệu hoặc trạng thái'), { target: { value: '  Gạo  ' } });
+    await waitFor(() => expect(mocks.supplementalQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 1, searchKeyword: 'Gạo' })));
+
+    fireEvent.click(within(paginations[1]).getByRole('button', { name: /trang 2 trong 2/i }));
+    await waitFor(() => expect(mocks.returnsQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2 })));
+    fireEvent.change(screen.getByLabelText('Tìm phiếu trả, ngày hoặc lý do'), { target: { value: '  Dư ca  ' } });
+    await waitFor(() => expect(mocks.returnsQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 1, searchKeyword: 'Dư ca' })));
   });
 
   it('associates supplemental quantity and rejection validation with their fields', () => {

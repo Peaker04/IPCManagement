@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import {
   toNextReportCursor,
   useGetAuditChangePageQuery,
@@ -7,6 +7,7 @@ import {
   type WorkflowReportQuery,
 } from '@/api/workflowApi';
 import { uiCopy } from '@/lib/uiCopy';
+import { formatDateTime } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import {
   toReportView,
@@ -26,12 +27,13 @@ type ReportsAuditQualityViewModelArgs = {
 export function useReportsAuditQualityViewModel({ activeView, initialPage, operationalPageSize, reportPageSize, reportQuery, sortDirection }: ReportsAuditQualityViewModelArgs) {
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const [dataQualityPage, setDataQualityPage] = useState(initialPage);
-  const [dataQualitySearch, setDataQualitySearch] = useState('');
+  const [dataQualitySearch, setDataQualitySearchState] = useState('');
   const [debouncedDataQualitySearch, setDebouncedDataQualitySearch] = useState('');
+  const deferredDataQualitySearch = useDeferredValue(debouncedDataQualitySearch);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedDataQualitySearch(dataQualitySearch.trim()), 300);
-    return () => window.clearTimeout(timer);
+    const timer = globalThis.setTimeout(() => setDebouncedDataQualitySearch(dataQualitySearch.trim()), 300);
+    return () => globalThis.clearTimeout(timer);
   }, [dataQualitySearch]);
 
   const auditCursor = auditCursors.at(-1);
@@ -47,7 +49,7 @@ export function useReportsAuditQualityViewModel({ activeView, initialPage, opera
     ...reportQuery,
     pageNumber: dataQualityPage,
     pageSize: operationalPageSize,
-    searchKeyword: debouncedDataQualitySearch || undefined,
+    searchKeyword: deferredDataQualitySearch || undefined,
   }, { skip: activeView !== 'data-quality' });
   const auditView = toReportView(auditResult, 'nhật ký thay đổi');
   const dataQualityView = toReportView(dataQualityResult, 'chất lượng dữ liệu');
@@ -60,12 +62,16 @@ export function useReportsAuditQualityViewModel({ activeView, initialPage, opera
       : null;
     if (nextCursor) setAuditCursors((current) => [...current, nextCursor]);
   };
+  const setDataQualitySearch = (value: string) => {
+    setDataQualitySearchState(value);
+    setDataQualityPage(1);
+  };
   const exportConfigs: Record<'audit' | 'data-quality', ReportExportConfig> = {
     audit: {
       filename: 'audit',
       rows: auditRows,
       columns: [
-        ['Thời gian', (row) => new Date(row.timestamp).toLocaleString('vi-VN')],
+        ['Thời gian', (row) => formatDateTime(row.timestamp)],
         ['Người thực hiện', (row) => row.actor],
         ['Mảng nghiệp vụ', (row) => row.businessArea],
         ['Đối tượng', (row) => row.fieldAffected],

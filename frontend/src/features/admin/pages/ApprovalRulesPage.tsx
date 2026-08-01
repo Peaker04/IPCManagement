@@ -13,9 +13,11 @@ import {
 } from '@/components/common';
 import { useGetApprovalRulesQuery, useCreateApprovalRuleMutation, useUpdateApprovalRuleMutation, useDeleteApprovalRuleMutation, type ApprovalAssignmentDto, type ApprovalRuleDto, type ApprovalRuleRequestDto } from '@/api/workflowApi';
 import { useGetAdminEmployeesQuery, type AdminEmployee } from '@/features/admin/adminApi';
+import { formatCurrency } from '@/lib/formatters';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toQueryView } from '@/lib/queryView';
 
 interface RuleAssignmentForm {
@@ -24,6 +26,8 @@ interface RuleAssignmentForm {
   approverUserId: string;
   isRequired: boolean;
 }
+
+const EMPTY_APPROVER_USER_VALUE = '__empty_approver_user__';
 
 const formatMutationError = (error: unknown) => {
   const candidate = error as {
@@ -295,7 +299,7 @@ export default function ApprovalRulesPage() {
                       <div>Loại chứng từ: <span className="font-semibold text-slate-700">{formatApprovalDocumentType(rule.documentType)}</span></div>
                       <div>Thời hạn xử lý (SLA): <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
                       {rule.minAmount !== null && (
-                        <div className="col-span-2">Ngưỡng tiền: <span className="font-semibold text-slate-700">{rule.minAmount?.toLocaleString('vi-VN')} đ {rule.maxAmount ? ` - ${rule.maxAmount?.toLocaleString('vi-VN')} đ` : ' trở lên'}</span></div>
+                        <div className="col-span-2">Ngưỡng tiền: <span className="font-semibold text-slate-700">{rule.minAmount === undefined ? '' : formatCurrency(rule.minAmount)} {rule.maxAmount ? ` - ${formatCurrency(rule.maxAmount)}` : ' trở lên'}</span></div>
                       )}
                     </div>
                     <div className="mt-3 pt-3 border-t border-slate-100">
@@ -313,23 +317,25 @@ export default function ApprovalRulesPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end mt-4 pt-3 border-t border-slate-100">
-                    <button
+                    <Button
                       onClick={() => handleOpenEdit(rule)}
-                      className="ipc-button ipc-button-ghost py-1 px-2.5 text-xs flex items-center gap-1"
+                      variant="outline"
+                      size="xs"
                       type="button"
                     >
                       <Edit2 size={12} />
                       Sửa
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => rule.ruleId && handleDelete(rule.ruleId)}
                       disabled={isDeleting || !rule.ruleId}
-                      className="ipc-button ipc-button-ghost py-1 px-2.5 text-xs flex items-center gap-1 text-red-600 hover:bg-red-50"
+                      variant="destructive"
+                      size="xs"
                       type="button"
                     >
                       <Trash2 size={12} />
                       Xóa
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -376,15 +382,19 @@ export default function ApprovalRulesPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-600">Loại chứng từ</label>
-                <select
+                <Select
                   value={documentType}
-                  onChange={e => setDocumentType(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-slate-900"
-                >
-                  <option value="purchase-request">Đơn mua thêm (PR)</option>
-                  <option value="inventory-issue">Phiếu xuất kho</option>
-                  <option value="order-adjustment">Điều chỉnh suất ăn</option>
-                </select>
+                  onValueChange={value => setDocumentType(value ?? '')}
+                  >
+                    <SelectTrigger className="h-10 w-full">
+                    <SelectValue>{documentType === 'purchase-request' ? 'Đơn mua thêm (PR)' : formatApprovalDocumentType(documentType)}</SelectValue>
+                    </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="purchase-request">Đơn mua thêm (PR)</SelectItem>
+                    <SelectItem value="inventory-issue">Phiếu xuất kho</SelectItem>
+                    <SelectItem value="order-adjustment">Điều chỉnh suất ăn</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -415,14 +425,14 @@ export default function ApprovalRulesPage() {
                   <Shield size={16} />
                   Các bước phê duyệt tuần tự
                 </h4>
-                <button
+                <Button
                   type="button"
                   onClick={handleAddStep}
-                  className="ipc-button ipc-button-primary text-xs py-1 px-2.5 flex items-center gap-1"
+                  size="xs"
                 >
                   <Plus size={12} />
                   Thêm bước duyệt
-                </button>
+                </Button>
               </div>
 
               {employeesView.phase === 'forbidden' ? (
@@ -462,31 +472,43 @@ export default function ApprovalRulesPage() {
                     <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Vai trò phê duyệt</label>
-                        <select
+                        <Select
                           value={assignment.approverRole}
-                          onChange={e => handleAssignmentChange(idx, 'approverRole', e.target.value)}
-                          className="w-full h-8 px-2 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
-                        >
-                          <option value="quanly">Quản lý</option>
-                          <option value="beptruong">Bếp trưởng</option>
-                          <option value="thumua">Thu mua</option>
-                          <option value="thukho">Thủ kho</option>
-                        </select>
+                          onValueChange={value => handleAssignmentChange(idx, 'approverRole', value ?? '')}
+                          >
+                            <SelectTrigger className="h-8 w-full text-xs">
+                            <SelectValue>{formatApproverRole(assignment.approverRole)}</SelectValue>
+                            </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="quanly">Quản lý</SelectItem>
+                            <SelectItem value="beptruong">Bếp trưởng</SelectItem>
+                            <SelectItem value="thumua">Thu mua</SelectItem>
+                            <SelectItem value="thukho">Thủ kho</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Nhân viên chỉ định (Tùy chọn)</label>
-                        <select
-                          value={assignment.approverUserId}
-                          onChange={e => handleAssignmentChange(idx, 'approverUserId', e.target.value)}
+                        <Select
+                          value={assignment.approverUserId || EMPTY_APPROVER_USER_VALUE}
+                          onValueChange={value => handleAssignmentChange(
+                            idx,
+                            'approverUserId',
+                            !value || value === EMPTY_APPROVER_USER_VALUE ? '' : value,
+                          )}
                           disabled={employeesView.phase !== 'ready'}
-                          className="w-full h-8 px-2 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
-                        >
-                          <option value="">Gửi chung cho cả vai trò</option>
-                          {employees.map((emp: AdminEmployee) => (
-                            <option key={emp.userId} value={emp.userId}>{emp.fullName} ({emp.username})</option>
-                          ))}
-                        </select>
+                          >
+                            <SelectTrigger className="h-8 w-full text-xs">
+                            <SelectValue>{formatApproverUser(assignment.approverUserId, employees)}</SelectValue>
+                            </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={EMPTY_APPROVER_USER_VALUE}>Gửi chung cho cả vai trò</SelectItem>
+                            {employees.map((emp: AdminEmployee) => (
+                              <SelectItem key={emp.userId} value={emp.userId}>{emp.fullName} ({emp.username})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -501,14 +523,16 @@ export default function ApprovalRulesPage() {
                     </div>
 
                     {assignments.length > 1 && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleRemoveStep(idx)}
-                        className="self-end p-1 text-red-500 hover:text-red-700 sm:mt-4 sm:self-auto"
+                        variant="destructive"
+                        size="icon-xs"
+                        className="self-end sm:mt-4 sm:self-auto"
                         title="Xóa bước duyệt này"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 ))}
@@ -545,3 +569,8 @@ export default function ApprovalRulesPage() {
     </OperationalFrame>
   );
 }
+
+const formatApproverUser = (userId: string, employees: readonly AdminEmployee[]) => {
+  const employee = employees.find((item) => item.userId === userId);
+  return employee ? `${employee.fullName} (${employee.username})` : 'Gửi chung cho cả vai trò';
+};

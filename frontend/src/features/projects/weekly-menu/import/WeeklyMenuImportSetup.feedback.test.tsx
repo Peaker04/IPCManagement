@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   refetchCustomers: vi.fn(),
+  rollbackImport: vi.fn(),
 }))
 
 const readyQuery = <T,>(data: T) => ({
@@ -23,7 +24,7 @@ vi.mock('@/api/coordinationApi', () => ({
   useDownloadWeeklyMenuTemplateMutation: () => [vi.fn(), { isLoading: false }],
   useGetWeeklyMenuImportHistoryQuery: () => readyQuery({ data: [] }),
   usePreviewWeeklyMenuImportMutation: () => [vi.fn(), { isLoading: false }],
-  useRollbackWeeklyMenuImportMutation: () => [vi.fn(), { isLoading: false }],
+  useRollbackWeeklyMenuImportMutation: () => [mocks.rollbackImport, { isLoading: false }],
   useSaveCustomerImportMappingMutation: () => [vi.fn(), { isLoading: false }],
 }))
 
@@ -55,6 +56,7 @@ const makeOptions = (overrides: Record<string, unknown> = {}) => ({
 describe('Weekly Menu Import setup feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.rollbackImport.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({}) })
   })
 
   it('keeps missing customer and file validation beside both affected fields', () => {
@@ -137,5 +139,34 @@ describe('Weekly Menu Import setup feedback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }))
 
     expect(mocks.refetchCustomers).toHaveBeenCalledOnce()
+  })
+
+  it('renders import job status through the canonical compact status contract', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => {
+      result.current.actions.open()
+      result.current.actions.selectFile(new File(['menu'], 'menu.xlsx'))
+    })
+    act(() => result.current.actions.addJob())
+
+    render(<WeeklyMenuImportDialog workflow={result.current} />)
+
+    const statusLabels = screen.getAllByText('Chưa kiểm tra', { exact: true })
+    expect(statusLabels).toHaveLength(2)
+    statusLabels.forEach((label) => expect(label.closest('.ipc-status-badge')).toBeInTheDocument())
+  })
+
+  it('uses the simple confirmation contract for rollback', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => {
+      result.current.actions.open()
+      result.current.actions.requestRollback('menu-version-1', 'ANV · tuần 27/07/2026')
+    })
+
+    render(<WeeklyMenuImportDialog workflow={result.current} />)
+
+    expect(screen.getByRole('dialog', { name: 'Xác nhận hủy phiên import' })).toHaveTextContent('ANV · tuần 27/07/2026')
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))
+    expect(mocks.rollbackImport).toHaveBeenCalledWith('menu-version-1')
   })
 })

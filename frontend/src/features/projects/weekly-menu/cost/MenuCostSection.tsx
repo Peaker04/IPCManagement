@@ -1,7 +1,8 @@
 import { CalendarDays, CheckCircle2, ChevronDown, Scale, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContextStrip, SectionPanel, TableViewport } from '@/components/common'
-import { formatCurrency } from '@/lib/formatters'
+import { Button } from '@/components/ui/button'
+import { formatCurrency, formatNumber, formatQuantity } from '@/lib/formatters'
 import { formatMaterialDishSource } from '../model/formatters'
 import type { MenuCostWorkflow } from './useMenuCost'
 
@@ -27,8 +28,8 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
             </div>
           </div>
           <nav className="ipc-fiori-segmented" aria-label="Chuyển ngày tính giá vốn">
-            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</button>
-            <button type="button" className="ipc-button ipc-button-ghost" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</button>
+            <Button type="button" variant="outline" size="sm" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</Button>
+            <Button type="button" variant="outline" size="sm" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</Button>
           </nav>
         </section>
 
@@ -57,7 +58,7 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                 <td className={tableCellClass}>{row.shiftLabel}</td>
                 <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
                 <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
-                <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
+                <td className={tableCellClass}>{formatNumber(row.portions)}</td>
                 <td className={tableCellClass}>{row.hasCatalogBom ? formatCurrency(row.unitCost) : '-'}</td>
                 <td className={`${tableCellClass} font-semibold`}>{row.hasCatalogBom ? formatCurrency(row.unitCost * row.portions) : '-'}</td>
                 {showBomStatus && <td className={tableCellClass}>{row.hasCatalogBom
@@ -86,7 +87,7 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                 if (data.theory === 0) return null
                 return <tr key={`day-material-${identityKey}`} className="table-row">
                   <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td>
-                  <td className={tableCellClass}>{data.theory.toFixed(2)}</td><td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{data.actual.toFixed(2)}</td>
+                  <td className={tableCellClass}>{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td><td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
                   <td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
                   <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
                 </tr>

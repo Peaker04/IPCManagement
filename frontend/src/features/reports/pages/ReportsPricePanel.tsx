@@ -9,7 +9,7 @@ import {
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
+import { formatCurrency, formatDateOnly, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
 import { Input } from '@/components/ui/input';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
@@ -306,7 +306,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                         </span>
                       </td>
                       <td>{item.receiptCode}</td>
-                      <td>{new Date(`${item.receiptDate}T00:00:00`).toLocaleDateString('vi-VN')}</td>
+                      <td>{formatDateOnly(item.receiptDate)}</td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
                       <td>{formatUnit(item.unit)}</td>
                       <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>

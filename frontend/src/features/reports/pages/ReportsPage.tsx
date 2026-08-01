@@ -24,10 +24,11 @@ import {
   StatusBadge,
   StockMovementTable,
 } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/routeConfig';
 import { useHasPermission } from '@/lib/useHasPermission';
 import { useHasRole } from '@/lib/useHasRole';
-import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
+import { formatCurrency, formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
@@ -40,6 +41,9 @@ import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import { ReportsPricePanel } from './ReportsPricePanel';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const EMPTY_SHIFT_SELECT_VALUE = '__all-shifts__';
 
 const ReportsPage = () => {
   const canReadPurchaseReports = useHasPermission('purchase.read');
@@ -72,10 +76,9 @@ return (
             <span>Bộ lọc báo cáo</span>
           </div>
           <FieldRow label="Từ ngày" htmlFor="report-date-from">
-            <input
+            <Input
               id="report-date-from"
               type="date"
-              className="ipc-input"
               value={dateFrom}
               onChange={(event) => {
                 setDateFrom(event.target.value);
@@ -84,10 +87,9 @@ return (
             />
           </FieldRow>
           <FieldRow label="Đến ngày" htmlFor="report-date-to">
-            <input
+            <Input
               id="report-date-to"
               type="date"
-              className="ipc-input"
               value={dateTo}
               onChange={(event) => {
                 setDateTo(event.target.value);
@@ -96,26 +98,36 @@ return (
             />
           </FieldRow>
           <FieldRow label="Ca" htmlFor="report-shift">
-            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => { setShiftName(event.target.value); resetReportPagesAndUrl(); }}>
-              <option value="">Tất cả</option>
-              <option value="MORNING">Ca sáng</option>
-              <option value="AFTERNOON">Ca chiều</option>
-            </select>
+            <Select value={shiftName || EMPTY_SHIFT_SELECT_VALUE} onValueChange={(value) => { setShiftName(value === EMPTY_SHIFT_SELECT_VALUE ? '' : (value ?? '')); resetReportPagesAndUrl(); }}>
+              <SelectTrigger id="report-shift" className="w-full">
+                <SelectValue>
+                  {shiftName === 'MORNING' ? 'Ca sáng' : shiftName === 'AFTERNOON' ? 'Ca chiều' : 'Tất cả'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={EMPTY_SHIFT_SELECT_VALUE}>Tất cả</SelectItem>
+                <SelectItem value="MORNING">Ca sáng</SelectItem>
+                <SelectItem value="AFTERNOON">Ca chiều</SelectItem>
+              </SelectContent>
+            </Select>
           </FieldRow>
           {(activeView === 'movement' || activeView === 'audit') && (
             <FieldRow label="Sắp xếp" htmlFor="report-sort-direction">
-              <select
-                id="report-sort-direction"
-                className="ipc-select"
+              <Select
                 value={sortDirection}
-                onChange={(event) => {
-                  setSortDirection(event.target.value as 'desc' | 'asc');
+                onValueChange={(value) => {
+                  setSortDirection(value as 'desc' | 'asc');
                   resetCursorPages();
                 }}
               >
-                <option value="desc">Mới nhất trước</option>
-                <option value="asc">Cũ nhất trước</option>
-              </select>
+                <SelectTrigger id="report-sort-direction" className="w-full">
+                  <SelectValue>{sortDirection === 'asc' ? 'Cũ nhất trước' : 'Mới nhất trước'}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Mới nhất trước</SelectItem>
+                  <SelectItem value="asc">Cũ nhất trước</SelectItem>
+                </SelectContent>
+              </Select>
             </FieldRow>
           )}
         </CommandBar>
@@ -165,7 +177,7 @@ return (
               <tbody>
                 {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={8} /> : ingredientDemandRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
-                    <td className="whitespace-nowrap">{row.serviceDate ? new Date(`${row.serviceDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa xác định'}</td>
+                    <td className="whitespace-nowrap">{row.serviceDate ? formatDateOnly(row.serviceDate) : 'Chưa xác định'}</td>
                     <td>{row.material}</td>
                     <td>{row.source}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
@@ -198,14 +210,15 @@ return (
           badge={(
             <div className="flex flex-wrap gap-2">
               {(['day', 'week'] as const).map((mode) => (
-                <button
+                <Button
                   key={mode}
                   type="button"
-                  className={`ipc-button ${purchasePlanGroupBy === mode ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
-                    onClick={() => setPurchasePlanGroupBy(normalizePurchasePlanGroupBy(mode))}
-                  >
+                  variant={purchasePlanGroupBy === mode ? 'default' : 'outline'}
+                  size="xs"
+                  onClick={() => setPurchasePlanGroupBy(normalizePurchasePlanGroupBy(mode))}
+                >
                   {mode === 'day' ? 'Theo ngày' : 'Theo tuần'}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -298,7 +311,7 @@ return (
                     <td>{row.warehouse}</td>
                     <td>{row.ingredient}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
-                    <td>{new Date(row.lastUpdated).toLocaleString('vi-VN')}</td>
+                    <td>{formatDateTime(row.lastUpdated)}</td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                   </tr>
                 ))}
@@ -360,7 +373,7 @@ return (
                 {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
-                    <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
+                    <td>{formatDateOnly(row.issueDate)}</td>
                     <td>{row.shiftName ?? 'Cả ngày'}</td>
                     <td>{row.warehouse}</td>
                     <td>{row.ingredient}</td>
@@ -403,7 +416,7 @@ return (
                 {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
-                    <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
+                    <td>{formatDateOnly(row.issueDate)}</td>
                     <td>{row.shiftName ?? 'Cả ngày'}</td>
                     <td>{row.ingredient}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.issuedQty, row.unit)}</td>
@@ -445,7 +458,7 @@ return (
               <tbody>
                 {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
-                    <td>{new Date(row.timestamp).toLocaleString('vi-VN')}</td>
+                    <td>{formatDateTime(row.timestamp)}</td>
                     <td>{row.actor}</td>
                     <td>{row.businessArea}</td>
                     <td>{row.fieldAffected}</td>

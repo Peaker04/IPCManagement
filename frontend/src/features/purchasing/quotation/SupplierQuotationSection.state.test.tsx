@@ -94,6 +94,7 @@ describe('SupplierQuotationSection query state boundary', () => {
     })} />);
 
     expect(screen.getByText('Bạn không có quyền xem báo giá nhà cung cấp.')).toBeInTheDocument();
+    expect(screen.getAllByText('Không có quyền xem báo giá', { exact: true })).toHaveLength(1);
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
     expect(screen.queryByText('Chưa có báo giá nào cho nguyên liệu này')).toBeNull();
   });
@@ -109,6 +110,13 @@ describe('SupplierQuotationSection query state boundary', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }));
     expect(retry).toHaveBeenCalledOnce();
+    expect(screen.getAllByText('Không tải được báo giá của nguyên liệu này', { exact: true })).toHaveLength(1);
+  });
+
+  it('renders the initial quotation loading state once', () => {
+    render(<SupplierQuotationSection workflow={buildWorkflow({ phase: 'loading' })} />);
+
+    expect(screen.getAllByText('Đang tải báo giá', { exact: true })).toHaveLength(1);
   });
 
   it('keeps stale quotation rows visible while refreshing', () => {
@@ -136,6 +144,16 @@ describe('SupplierQuotationSection query state boundary', () => {
     expect(screen.getByLabelText('Nhà cung cấp')).toHaveAccessibleDescription('Thiếu nhà cung cấp Vui lòng chọn nhà cung cấp cho báo giá.');
     expect(screen.getByLabelText('Đơn giá')).toHaveAccessibleDescription('Đơn giá chưa hợp lệ Vui lòng nhập đơn giá lớn hơn 0.');
     expect(screen.getByLabelText('Hiệu lực từ')).toHaveAccessibleDescription('Thiếu ngày bắt đầu Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.');
+  });
+
+  it('renders ingredient and supplier labels in closed select triggers', () => {
+    render(<SupplierQuotationSection workflow={buildWorkflow(
+      readyView(quotationPage),
+      { form: { supplierId: 'supplier-1', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' } },
+    )} />);
+
+    expect(screen.getByRole('combobox', { name: 'Nguyên liệu:' })).toHaveTextContent('Gạo');
+    expect(screen.getByRole('combobox', { name: 'Nhà cung cấp' })).toHaveTextContent('Nhà cung cấp Minh An');
   });
 
   it('keeps a save failure beside the quotation form', () => {

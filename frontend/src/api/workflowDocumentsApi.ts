@@ -7,6 +7,7 @@ import type { WorkflowDocument, WorkflowDocumentType } from '@/types/workflow';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
+import { formatDateOnly } from '@/lib/formatters';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 
@@ -41,7 +42,7 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
     route: item.route || routeByLaneId[laneId],
     tone,
     lines: [
-      { label: 'Ngày', value: new Date(item.documentDate).toLocaleDateString('vi-VN') },
+      { label: 'Ngày', value: formatDateOnly(item.documentDate) },
       ...(item.shiftName ? [{ label: 'Ca', value: item.shiftName }] : []),
     ],
   };

@@ -2,30 +2,37 @@
 
 ## Milestone v1.3 — UI Completeness & Conformance
 
-**Goal:** Complete `.docs/UI-UX-ADDENDUM-KHONG-CO-FIGMA.md` through executable completeness,
-canon-convergence, binary conformance and state-purity gates.
+**Goal:** Execute the work blocks in `.docs/UI-UX-ADDENDUM-KHONG-CO-FIGMA.md` directly, without adding
+new design programs or acceptance criteria that are not sourced by the addendum and the approved PB audit.
 
 **Foundation:** Milestone v1.2 Phases 11–18 are complete and remain historical evidence in Git and their
-existing `.planning/phases/` directories. v1.3 continues numbering at Phase 19.
+existing `.planning/phases/` directories. PB was approved before this roadmap. v1.3 continues numbering at
+Phase 19 and maps the addendum blocks without renumbering the project's historical phases.
 
 ## Phase overview
 
-- [x] **Phase 19: Completeness registry expansion** — inventory operational state contracts and build the
+- [x] **Phase 19: PA — Completeness registry expansion** — inventory operational state contracts and build the
   approved `CoordinationOrderScopeLifecycle` plus scalable registry guards (completed 2026-07-31).
-- [ ] **Phase 20: PC/PD action completeness** — measure all registry scenarios read-only and resolve every
-  observed action mismatch.
-- [ ] **Phase 21: Semantic canon convergence** — make the PB inventory executable and converge state,
-  feedback, search and formatting contracts.
-- [ ] **Phase 22: Control canon convergence** — finish Button 8B, form 9B, validation, table/status and
-  bounded contextual exceptions.
-- [ ] **Phase 23: Conformance contract and red oracle** — choose harm-ranked findings/goldens, write the
-  binary matrix, emit DOM source metadata and prove red-first assertions.
-- [ ] **Phase 24: Conformance fixes and headed evidence** — fix the ten measured failures and pass all five
-  desktop viewports with current-source headed evidence.
-- [ ] **Phase 25: UI=f(state) permanent gate and closeout** — enforce same-state equivalence, hidden-state
-  rules and full regression/documentation closure.
 
-### Phase 19: Completeness registry expansion
+- [x] **Phase 20: P3/P4 + PC/PD — Action completeness** — use source-addressable controls and the capturer to
+  measure all registry scenarios and disposition every observed mismatch (completed 2026-07-31).
+
+- [x] **Phase 21: PE — Hợp nhất về canon** — finish the approved PB concepts one concept at a time, (completed 2026-08-01)
+  preserving the contextual exceptions already approved.
+
+- [ ] **Phase 22: P5 — Ma trận chuẩn** — turn the approved PB choices into the standard matrix required
+  by the addendum; do not invent a new visual canon.
+
+- [ ] **Phase 23: P6 — Assertion hình học đỏ trước** — add a failing assertion for each selected P5 rule
+  before changing the corresponding production presentation.
+
+- [ ] **Phase 24: P7 — Sửa theo ma trận** — fix only the failures demonstrated by P6, then rerun PC and
+  the existing verification gates to ensure no new mismatch.
+
+- [ ] **Phase 25: P8 + PF — Khóa gate và bảo vệ UI=f(state)** — put the approved matrix assertions and
+  state-purity checks into the permanent gate, then close the addendum.
+
+### Phase 19: PA — Completeness registry expansion
 
 **Goal:** Make the expected action surface derivable for every state-bearing protected-route family and
 materialize the approved second-object registry without production imports.
@@ -36,12 +43,14 @@ materialize the approved second-object registry without production imports.
 
 1. A machine-readable inventory names every protected-route operational object family and classifies its
    state, role and operation sources as importable, literal-guarded or not determinable.
+
 2. `CoordinationOrderScopeLifecycle` rows use `scenario × operation`, row-level `scope`, separate
    `entityState`/`projectionState`, backend-authoritative permission evidence and source-drift tests.
+
 3. Production source imports no registry/audit fixture, and every copied literal has a failing drift guard.
 4. Registry format/generator can add another family without changing the meaning of existing WeeklyMenu rows.
 
-### Phase 20: PC/PD action completeness
+### Phase 20: P3/P4 + PC/PD — Action completeness
 
 **Goal:** Compare expected operations with the real rendered control surface and close every evidenced gap.
 
@@ -54,77 +63,79 @@ materialize the approved second-object registry without production imports.
 3. Every THIẾU/MỒ CÔI/IM LẶNG/LỆCH VỊ TRÍ result is fixed or explicitly retained with evidence-backed rationale.
 4. Implemented PD actions have positive and negative permission/state tests and an observable post-action result.
 
-### Phase 21: Semantic canon convergence
+### Phase 21: PE — Hợp nhất về canon
 
-**Goal:** Convert the approved PB audit from prose into executable inventory and converge semantic/state presentation.
+**Goal:** Apply PE exactly as written: converge each approved PB concept without changing business behavior or
+creating a new presentation variant.
 
-**Requirements:** CAN-01, CAN-02, CAN-03
-
-**Success criteria:**
-
-1. AST/source inventory reproduces live callsite counts and rejects new unapproved variants or stale residuals.
-2. Status, loading/refreshing, search, error/forbidden, empty, table and query-boundary contracts match PB canon.
-3. Quantity, percent, date-only, timestamp and currency output uses shared formatters with contract tests.
-4. No migration changes business state, authorization, API calls or action eligibility.
-
-### Phase 22: Control canon convergence
-
-**Goal:** Finish the visual/control migration while preserving the semantic exceptions approved by PB.
-
-**Requirements:** CAN-04, CAN-05, CAN-06
+**Requirements:** CAN-01, CAN-02, CAN-03, CAN-04, CAN-05, CAN-06
 
 **Success criteria:**
 
-1. Domain/form/dialog native buttons in the approved migration set use Button 8B; links and adapters remain bounded exceptions.
-2. Text/select/textarea controls in the approved migration set use form-control ballot 9B with accessible labels and states.
-3. Field errors, confirmations, rich decisions, action placement, feedback and pagination satisfy their contextual contracts.
-4. Recount reports one canonical contract or a named semantic exception for all eighteen PB concepts.
+1. Every PB concept is migrated or retained as a named contextual exception with source evidence.
+2. Callsite inventory is regenerated from current source and the post-migration count is checked.
+3. Tests cover the approved canonical contract and every retained semantic exception.
+4. PC is rerun after each completed concept; no new mismatch, business-state, authorization or API behavior change is introduced.
 
-### Phase 23: Conformance contract and red oracle
+### Phase 22: P5 — Ma trận chuẩn
 
-**Goal:** Turn the ten most harmful current UI defects into source-addressable binary assertions before fixing them.
+**Goal:** Materialize the standard matrix from PB decisions already approved by the user.
 
-**Requirements:** CONF-01, CONF-02, CONF-03, CONF-04
+**Requirements:** CONF-01, CONF-02
 
 **Success criteria:**
 
-1. Ten findings and three IPC golden screens have screenshots, selectors, harm and scoped principle IDs.
-2. `docs/UI-CONFORMANCE-MATRIX.md` contains only binary rules with layer, severity and autofix policy.
-3. Dev/test DOM metadata maps every critical finding selector to a component/source owner without leaking behavior changes.
-4. Each new oracle is captured failing against an isolated violation before its production fix is accepted.
+1. Every matrix row points to an approved PB decision or an explicit addendum rule.
+2. Each row states the concept, canonical/contextual rule, measurement layer and binary PASS condition.
+3. Missing information is marked unresolved instead of being supplied from an absent prior prompt set.
+4. The matrix does not introduce a new component, visual style, viewport or product requirement.
 
-### Phase 24: Conformance fixes and headed evidence
+### Phase 23: P6 — Assertion hình học đỏ trước
 
-**Goal:** Resolve the ten matrix failures and prove stable Fiori/accessibility behavior across the required desktop matrix.
+**Goal:** Demonstrate each selected P5 conformance failure with a red assertion before applying its fix.
+
+**Requirements:** CONF-03, CONF-04
+
+**Success criteria:**
+
+1. Each assertion maps to one P5 matrix row and an existing source/control owner.
+2. The assertion is captured red against the current failing case before any production fix.
+3. Test-only source mapping is preferred; production DOM metadata is added only if separately justified by the selected rule.
+4. This phase changes no business state, permission, operation or action eligibility.
+
+### Phase 24: P7 — Sửa theo ma trận
+
+**Goal:** Fix only the failures established by P6 and verify that the fixes do not create a PC regression.
 
 **Requirements:** CONF-05, CONF-06
 
 **Success criteria:**
 
-1. Geometry, data-grain, disabled-reason, focus, contrast, target-size, loading, table and tab assertions pass at
-   `1920×1080`, `1440×900`, `1366×768`, `1365×900` and `1280×900`.
-2. Every production fix is traceable from matrix ID → failing evidence → source owner → green evidence.
-3. Headed Chrome current-source evidence records screenshots, action API traffic, console/page errors, CLS and long tasks.
-4. Verification is read-only or uses a disposable database clone; `ipc_lane1` lineage remains unchanged.
+1. Every fix traces from P5 row to P6 red evidence, changed source and green evidence.
+2. Only the selected presentation failure is changed; PB contextual exceptions remain intact.
+3. PC and the existing required desktop/browser gates pass after the fix.
+4. Verification preserves the database/evidence lane and does not infer backend success from frontend rendering alone.
 
-### Phase 25: UI=f(state) permanent gate and closeout
+### Phase 25: P8 + PF — Khóa gate và bảo vệ UI=f(state)
 
-**Goal:** Prevent completeness and consistency debt from returning after the cleanup.
+**Goal:** Lock the approved P5–P7 work and the addendum's O3 state-purity oracle into the permanent gate.
 
 **Requirements:** STATE-01, STATE-02, STATE-03, QUAL-01, DOC-01
 
 **Success criteria:**
 
-1. Same-kind displays given equivalent logical state have equivalent actions, status labels and mandatory facts.
-2. Static hidden-state inventory rejects unapproved visibility dependencies while allowing named ephemeral interaction state.
-3. Root `npm run verify` runs registry, canon, conformance/state-purity, regression, lint, dependency and build gates.
-4. Application/API/frontend test counts do not decrease; GitNexus final review has no undispositioned process or Deferred item.
-5. PA/PB/PC, matrix, MEMORY/HISTORY/STATE and evidence index agree and the addendum completion audit proves all 22 requirements.
+1. Equivalent logical state in same-kind displays yields equivalent actions, status labels and mandatory facts.
+2. Undeclared local presentation state that changes visibility fails the gate; named ephemeral interaction state remains allowed.
+3. Root verification runs the approved registry, canon, P5/P6 assertions and PF state-purity checks.
+4. Existing regression counts do not decrease and canonical status/evidence documents agree.
+5. Closeout reports completion against PA, PB, P3, P4, PC, PD, PE, P5, P6, P7, P8 and PF directly.
 
 ## Execution rules
 
-- Execute Phases 19 → 25 in order; each phase may contain multiple atomic plans but may not leave a migrated API/control set partial.
-- Brainstormed defaults are allowed by the current user authorization, but alternatives/rationale/acceptance criteria must be recorded.
+- Execute Phases 19 → 25 in order; Phase 21–25 map directly to PE, P5, P6, P7 and P8+PF respectively.
+- Brainstorming may resolve a choice inside an authorized addendum block, but may not create a new phase, finding quota,
+  golden-screen quota, DOM-instrumentation program or acceptance criterion without a source or explicit user approval.
+
 - No Figma invention, process-rule edit, automatic backend-policy reconciliation, push, destructive Git action or existing-lane mutation.
 - Every production symbol edit requires GitNexus impact in both directions; every commit requires final `detect_changes`.
 - Browser claims require headed current-source evidence; mock fixtures prove deterministic contracts only.

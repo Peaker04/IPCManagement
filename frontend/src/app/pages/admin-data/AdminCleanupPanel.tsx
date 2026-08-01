@@ -1,10 +1,12 @@
 import { XCircle } from 'lucide-react';
 import { ContextStrip, InlineAlert, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
+import { formatDateTime } from '@/lib/formatters';
 
 type AdminCleanupPanelProps = { model: AdminDataPageModel };
 
@@ -69,7 +71,7 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                         </StatusBadge>
                         {issue.remediationAt && (
                           <div className="text-xs text-slate-500">
-                            {new Date(issue.remediationAt).toLocaleString('vi-VN')}
+                            {formatDateTime(issue.remediationAt)}
                           </div>
                         )}
                       </td>
@@ -96,14 +98,16 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                         </Link>
                       </td>
                       <td className="ipc-row-action-cell">
-                        <button
-                          className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control"
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          className="ipc-table-action-control"
                           type="button"
                           disabled={updateDataQualityIssueRemediationState.isLoading}
                           onClick={() => void handleDataQualityRemediation(issue, issue.remediationStatus === 'resolved' ? 'reopen' : 'resolve')}
                         >
                           {issue.remediationStatus === 'resolved' ? 'Reopen' : 'Resolve'}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}

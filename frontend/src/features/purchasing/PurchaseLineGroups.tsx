@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatCurrency, formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 
 type PurchaseLine = PurchaseWorkbenchServiceDate['purchaseLines'][number];
 
@@ -11,11 +13,6 @@ type PurchaseLineGroup = {
   unitName: string;
   purchaseQty: number;
   lines: PurchaseLine[];
-};
-
-const formatIsoDate = (value: string) => {
-  const [year, month, day] = value.slice(0, 10).split('-');
-  return year && month && day ? `${day}/${month}/${year}` : value;
 };
 
 const groupPurchaseLines = (lines: PurchaseLine[]): PurchaseLineGroup[] => {
@@ -96,20 +93,20 @@ export function PurchaseLineGroups({
             const priceLabel = prices.length === 0
               ? 'Chưa có'
               : Math.min(...prices) === Math.max(...prices)
-                ? prices[0].toLocaleString('vi-VN')
-                : `${Math.min(...prices).toLocaleString('vi-VN')}–${Math.max(...prices).toLocaleString('vi-VN')}`;
+                ? formatCurrency(prices[0])
+                : `${formatCurrency(Math.min(...prices))}–${formatCurrency(Math.max(...prices))}`;
             const summary = (
               <tr key={group.key} className={group.lines.some((line) => line.purchaseRequestLineId === selectedLineId) ? 'bg-blue-50/60' : undefined}>
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
-                <td>{group.purchaseQty.toLocaleString('vi-VN')} {group.unitName}</td>
+                <td>{formatQuantityWithUnit(group.purchaseQty, group.unitName, { maximumFractionDigits: 3 })}</td>
                 <td>{uniqueText(group.lines.map((line) => line.supplierName), 'Chưa chọn nhà cung cấp')}</td>
                 <td>{readyCount}/{group.lines.length} dòng đã xác nhận</td>
                 <td>{priceLabel}</td>
-                <td>{uniqueText(group.lines.map((line) => line.currentSupplierDecision?.proposedDeliveryDate ? formatIsoDate(line.currentSupplierDecision.proposedDeliveryDate) : null), 'Chưa có')}</td>
+                <td>{uniqueText(group.lines.map((line) => line.currentSupplierDecision?.proposedDeliveryDate ? formatDateOnly(line.currentSupplierDecision.proposedDeliveryDate) : null), 'Chưa có')}</td>
                 <td>
-                  <button type="button" className="ipc-button min-h-9 whitespace-nowrap max-md:min-h-11" aria-expanded={group.lines.length > 1 ? expanded : undefined} onClick={() => group.lines.length === 1 ? onLineChange(group.lines[0].purchaseRequestLineId) : setExpandedGroupKey(expanded ? undefined : group.key)}>
+                  <Button type="button" variant="outline" size="sm" className="min-h-9 whitespace-nowrap max-md:min-h-11" aria-expanded={group.lines.length > 1 ? expanded : undefined} onClick={() => group.lines.length === 1 ? onLineChange(group.lines[0].purchaseRequestLineId) : setExpandedGroupKey(expanded ? undefined : group.key)}>
                     {group.lines.length === 1 ? (readyCount ? 'Xem quyết định' : 'Xem bằng chứng') : (expanded ? 'Đóng nguồn' : `Xem ${group.lines.length} nguồn`)}
-                  </button>
+                  </Button>
                 </td>
               </tr>
             );
@@ -121,7 +118,7 @@ export function PurchaseLineGroups({
                     {group.lines.map((line) => (
                       <li key={line.purchaseRequestLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
                         <span className="min-w-0 text-xs text-slate-600"><strong className="text-slate-900">{line.purchaseQty} {line.unitName}</strong> · {line.supplierName || 'Chưa chọn NCC'}<span className="block break-all">{line.purchaseRequestLineId}</span></span>
-                        <button type="button" className="ipc-button min-h-9" aria-pressed={selectedLineId === line.purchaseRequestLineId} onClick={() => onLineChange(line.purchaseRequestLineId)}>Mở dòng nguồn</button>
+                        <Button type="button" variant="outline" size="sm" className="min-h-9" aria-pressed={selectedLineId === line.purchaseRequestLineId} onClick={() => onLineChange(line.purchaseRequestLineId)}>Mở dòng nguồn</Button>
                       </li>
                     ))}
                   </ul>

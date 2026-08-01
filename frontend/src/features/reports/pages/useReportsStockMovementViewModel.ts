@@ -7,6 +7,7 @@ import {
   type WorkflowReportQuery,
 } from '@/api/workflowApi';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { formatDateTime } from '@/lib/formatters';
 import type { StockMovement } from '@/types/workflow';
 import {
   movementTypeLabel,
@@ -77,7 +78,7 @@ export function useReportsStockMovementViewModel({ activeView, initialPage, repo
         ['Nguyên liệu', (row) => row.ingredient],
         ['Số lượng hiện tại', (row) => row.currentQty],
         ['Đơn vị', (row) => row.unit],
-        ['Cập nhật', (row) => new Date(row.lastUpdated).toLocaleString('vi-VN')],
+        ['Cập nhật', (row) => formatDateTime(row.lastUpdated)],
       ],
     },
     movement: {

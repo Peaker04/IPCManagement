@@ -21,26 +21,31 @@ same declared business state produces an equivalent, predictable UI.
 - EmptyState, ConfirmDialog and contextual Feedback have completed initial PE slices.
 - Phase 19 implements the DEC-06 `CoordinationOrderScopeLifecycle` registry with `scenario × operation`,
   row-level `scope`, separate `entityState`/`projectionState`, cross-family inventory and drift-guarded debt.
+- Phase 20 measures all six executable families on five desktop viewports, dispositions every unresolved
+  identity, and closes ORCL-04/05 without opening a production PD action. Phase 21 completes all eighteen
+  approved PB concepts with live-source gates and exact semantic exceptions.
 
 ## Current Milestone: v1.3 UI Completeness & Conformance
 
-**Goal:** Finish PA→PF and P5→P8 so completeness, canon convergence, geometry/accessibility and
-`UI = f(state)` are continuously machine-verifiable.
+**Goal:** Finish the remaining addendum blocks directly: PE, then P5, P6, P7, and P8 together with PF.
 
 **Target features:**
 
 - Complete state/action registries and PC/PD disposition for all protected-route operational object families.
-- Migrate every approved PB canon or record a narrowly evidenced semantic exception.
-- Create a ten-rule harm-ranked conformance matrix, red-first DOM assertions and five-viewport fixes.
-- Add same-state UI equivalence and hidden-state checks to the normal verification pipeline.
-- Produce headed-browser evidence from the current source without mutating the preserved database lane.
+- Finish every approved PB canon or record a narrowly evidenced contextual exception in PE.
+- Build P5 only from approved PB/addendum rules, prove P6 red assertions, and apply only the corresponding P7 fixes.
+- Put the approved P8 checks and PF same-state/hidden-state oracle into the normal verification pipeline.
+- Preserve current-source browser and database/evidence constraints already established by the project.
+
+## Validated in Phase 21
+
+- [x] PE: all approved PB concepts converge without changing business/auth/API behavior or adding a new variant.
 
 ## Active requirements
 
-- [ ] Converge every approved PB concept and make the variant inventory executable.
-- [ ] Establish binary UI conformance and source-addressable DOM evidence.
-- [ ] Enforce state purity and same-state UI equivalence in CI/local verify.
-- [ ] Close the milestone with reproducible tests, headed evidence and synchronized canonical docs.
+- [ ] P5: record the approved standard matrix without unsourced quotas or new design requirements.
+- [ ] P6 → P7: prove each selected failure red, then fix only that evidenced failure and rerun PC.
+- [ ] P8 + PF: lock the approved assertions and state-purity checks into verification and close the addendum.
 
 ## Out of Scope
 
@@ -54,16 +59,15 @@ same declared business state produces an equivalent, predictable UI.
 ## Context
 
 The addendum reverses the old priority: completeness (Class A) before consistency (Class B), then visual
-conformance (Class C). Phase 19 now proves the source-level completeness inventory and approved second
-registry; Phase 20 still must measure expected actions against rendered UI. Only three PE concepts have
-completed their initial slices.
-`docs/PB-UI-VARIANT-AUDIT.md` still identifies live residuals in formatting, table boundaries,
-buttons, form controls, validation and search ownership. `docs/UI-CONFORMANCE-MATRIX.md` and the PF hidden-
-state gate do not yet exist.
+conformance (Class C). Phases 19–20 now prove the source-level registry, rendered-control aggregate, and
+evidenced no-PD disposition. Phase 21 is exactly PE; Phases 22–25 map directly to P5, P6, P7 and P8+PF.
+Phase 21 completes PE: Date is 31→0, Button 8B is 77→0, Form 9B is 39/26/4→0, quantity is 26→0 and
+currency is 12→0, with exact semantic exceptions protected by current-source tests. Phase 22 now owns P5.
+`docs/UI-CONFORMANCE-MATRIX.md` and the PF hidden-state gate do not yet exist.
 
-The user explicitly authorized this task to brainstorm and select evidence-backed defaults when a
-decision gate would otherwise block progress. Each such decision must be recorded with alternatives,
-rationale and observable acceptance criteria.
+Brainstorming may select an evidence-backed option inside one of these named blocks, but it may not create
+another phase, quota, golden-screen set, DOM-instrumentation program or acceptance criterion without an
+addendum/PB source or explicit user approval.
 
 ## Non-negotiable constraints
 
@@ -80,7 +84,8 @@ rationale and observable acceptance criteria.
 | Continue phase numbering at 19 | v1.2 already owns Phases 11–18 and their artifacts remain historical evidence | Active |
 | Skip external ecosystem research | This milestone converges approved in-repo canon; external research risks creating another variant | Active |
 | Use v1.3 | The work is a substantial quality/capability milestone without changing the product's primary domain | Active |
-| Replace user gates with recorded brainstorm decisions in this task | The user explicitly delegated those choices so progress must not stop on D-10/golden/PD-style gates | Active |
+| Map Phase 21–25 directly to PE, P5, P6, P7 and P8+PF | Prevent GSD decomposition from becoming new product/design scope | Active |
+| Bound brainstorm decisions to an authorized block | Missing details stay unresolved unless addendum/PB evidence or explicit user approval supplies them | Active |
 | Keep five desktop viewports only | `MEMORY.md` is authoritative; tablet/mobile were explicitly removed from the default gate | Active |
 
 ## Evolution
@@ -90,4 +95,4 @@ requirements move to completed evidence, new constraints are recorded, and activ
 the roadmap. After the milestone, review the core value, out-of-scope boundaries and evidence lineage.
 
 ---
-*Last updated: 2026-07-31 after Phase 19 completeness-registry verification*
+*Last updated: 2026-08-02 after Phase 21 PE canon convergence*

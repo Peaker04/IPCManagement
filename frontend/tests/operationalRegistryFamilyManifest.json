@@ -158,7 +158,7 @@
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
           "frontend/src/features/reports/pages/ReportsPage.tsx:44-66",
-          "frontend/src/features/reports/pages/ReportsPage.tsx:129-133"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:144-146"
         ]
       },
       "backendBacked": false,
@@ -184,7 +184,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Receipt eligibility, validation, and confirmation are component-local while enforcement is server-only.",
         "sources": [
-          "frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62"
+          "frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:66"
         ]
       },
       "backendBacked": true,

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import type { StatusTone } from '@/lib/statusPresentation'
 import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import {
@@ -25,15 +26,17 @@ export const importWizardSteps: Array<{ key: ImportWizardStep; label: string; hi
   { key: 'commit', label: 'Lưu thực đơn', hint: 'Lưu các file đã kiểm tra xong' },
 ]
 
-export const getImportJobStatusClass = (status: WeeklyMenuImportJobStatus) =>
-  cn(
-    'inline-flex min-w-[116px] items-center justify-center rounded border px-2 py-1 text-xs font-bold',
-    status === 'committed' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    status === 'previewed' && 'border-blue-200 bg-blue-50 text-blue-800',
-    (status === 'previewing' || status === 'committing') && 'border-amber-200 bg-amber-50 text-amber-800',
-    status === 'failed' && 'border-red-200 bg-red-50 text-red-700',
-    status === 'idle' && 'border-slate-200 bg-slate-50 text-slate-700',
-  )
+const importJobStatusTones: Record<WeeklyMenuImportJobStatus, StatusTone> = {
+  idle: 'neutral',
+  previewing: 'warning',
+  previewed: 'info',
+  committing: 'warning',
+  committed: 'success',
+  failed: 'danger',
+}
+
+export const getImportJobStatusTone = (status: WeeklyMenuImportJobStatus): StatusTone =>
+  importJobStatusTones[status]
 
 export const getImportWizardStep = (jobs: WeeklyMenuImportJob[]): ImportWizardStep => {
   if (jobs.some((job) => job.status === 'committed')) return 'commit'

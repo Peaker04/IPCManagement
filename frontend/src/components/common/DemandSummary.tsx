@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
-import { formatQuantityWithUnit } from '@/lib/formatters';
+import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/types/workflow';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
@@ -80,7 +80,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
 
               return (
                 <tr key={`${line.id}-${index}`}>
-                  {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? new Date(`${line.serviceDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa xác định'}</td>}
+                  {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>}
                   <td className="truncate" title={line.material}>{line.material}</td>
                   <td className="truncate" title={line.source}>{line.source}</td>
                   <td className="ipc-numeric-cell text-right whitespace-nowrap">

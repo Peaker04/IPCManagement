@@ -1,13 +1,27 @@
+import { useRef, useState } from 'react';
 import { Pencil, Power, Search, UserPlus, Users } from 'lucide-react';
-import { FieldRow, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
+import { ConfirmDialog, FieldRow, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
+import { formatDateOnly } from '@/lib/formatters';
 
 type AdminEmployeesPanelProps = { model: AdminDataPageModel };
 
+const EMPTY_EMPLOYEE_ROLE_VALUE = '__empty_employee_role__';
+
 export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
   const { canManageEmployees, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeeRoles, employeeRows, employeeSearch, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, isEmployeeLoading, isRolesLoading, isSavingEmployee, isUpdatingStatus, queryViews, resetEmployeeForm, setEmployeeForm, setEmployeePage, setEmployeeSearch } = model;
+  const [statusTarget, setStatusTarget] = useState<{
+    employee: AdminDataPageModel['employeeRows'][number];
+    nextActive: boolean;
+    source: 'row' | 'form';
+  } | null>(null);
+  const employeeFormRef = useRef<HTMLFormElement>(null);
+  const skipNextStatusConfirmation = useRef(false);
   return (
     <>
       {canManageEmployees && effectiveActiveView === 'employees' && (
@@ -18,7 +32,20 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
           ]}>
           <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
             <SectionPanel title={editingEmployeeId ? 'Cập nhật nhân viên' : 'Tạo tài khoản nhân viên'} icon={<UserPlus size={18} />}>
-              <form className="flex flex-col gap-4" onSubmit={handleEmployeeSubmit}>
+              <form ref={employeeFormRef} className="flex flex-col gap-4" onSubmit={(event) => {
+                if (skipNextStatusConfirmation.current) {
+                  skipNextStatusConfirmation.current = false;
+                  void handleEmployeeSubmit(event);
+                  return;
+                }
+                const editedEmployee = employeeRows.find((employee) => employee.userId === editingEmployeeId);
+                if (editedEmployee && editedEmployee.isActive !== employeeForm.isActive) {
+                  event.preventDefault();
+                  setStatusTarget({ employee: editedEmployee, nextActive: employeeForm.isActive, source: 'form' });
+                  return;
+                }
+                void handleEmployeeSubmit(event);
+              }}>
                 {employeeNotice && (
                   <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                     {employeeNotice}
@@ -26,9 +53,8 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 )}
 
                 <FieldRow label="Họ và tên" htmlFor="employee-full-name">
-                  <input
+                  <Input
                     id="employee-full-name"
-                    className="ipc-input"
                     value={employeeForm.fullName}
                     onChange={(event) => setEmployeeForm((current) => ({ ...current, fullName: event.target.value }))}
                     placeholder="Ví dụ: Nguyễn Văn A"
@@ -36,9 +62,8 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 </FieldRow>
 
                 <FieldRow label="Tên đăng nhập" htmlFor="employee-username">
-                  <input
+                  <Input
                     id="employee-username"
-                    className="ipc-input"
                     value={employeeForm.username}
                     onChange={(event) => setEmployeeForm((current) => ({ ...current, username: event.target.value }))}
                     placeholder="Ví dụ: nguyenvana"
@@ -46,10 +71,9 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 </FieldRow>
 
                 <FieldRow label={editingEmployeeId ? 'Đổi mật khẩu (không bắt buộc)' : 'Mật khẩu'} htmlFor="employee-password">
-                  <input
+                  <Input
                     id="employee-password"
                     type="password"
-                    className="ipc-input"
                     value={employeeForm.password}
                     onChange={(event) => setEmployeeForm((current) => ({ ...current, password: event.target.value }))}
                     placeholder={editingEmployeeId ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'}
@@ -57,20 +81,26 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 </FieldRow>
 
                 <FieldRow label="Vai trò" htmlFor="employee-role">
-                  <select
-                    id="employee-role"
-                    className="ipc-select"
-                    value={employeeForm.roleId}
-                    onChange={(event) => setEmployeeForm((current) => ({ ...current, roleId: event.target.value }))}
+                  <Select
+                    value={employeeForm.roleId || EMPTY_EMPLOYEE_ROLE_VALUE}
+                    onValueChange={(value) => setEmployeeForm((current) => ({
+                      ...current,
+                      roleId: !value || value === EMPTY_EMPLOYEE_ROLE_VALUE ? '' : value,
+                    }))}
                     disabled={isRolesLoading}
-                  >
-                    <option value="">Chọn vai trò</option>
-                    {employeeRoles.map((role) => (
-                      <option key={role.roleId} value={role.roleId}>
-                        {role.roleName} - {role.roleCode}
-                      </option>
-                    ))}
-                  </select>
+                    >
+                      <SelectTrigger id="employee-role" className="w-full">
+                      <SelectValue>{formatEmployeeRole(employeeForm.roleId, employeeRoles)}</SelectValue>
+                      </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={EMPTY_EMPLOYEE_ROLE_VALUE}>Chọn vai trò</SelectItem>
+                      {employeeRoles.map((role) => (
+                        <SelectItem key={role.roleId} value={role.roleId}>
+                          {role.roleName} - {role.roleCode}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </FieldRow>
 
                 <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
@@ -83,12 +113,12 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 </label>
 
                 <div className="flex flex-wrap gap-2">
-                  <button type="submit" className="ipc-button ipc-button-primary" disabled={isSavingEmployee}>
+                  <Button type="submit" variant="default" disabled={isSavingEmployee}>
                     {editingEmployeeId ? 'Cập nhật' : 'Tạo tài khoản'}
-                  </button>
-                  <button type="button" className="ipc-button ipc-button-ghost" onClick={() => resetEmployeeForm()} disabled={isSavingEmployee}>
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => resetEmployeeForm()} disabled={isSavingEmployee}>
                     Hủy / làm mới
-                  </button>
+                  </Button>
                 </div>
               </form>
             </SectionPanel>
@@ -98,9 +128,9 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 <FieldRow label="Tìm kiếm" htmlFor="employee-search">
                   <div className="relative">
                     <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
+                    <Input
                       id="employee-search"
-                      className="ipc-input pl-9"
+                      className="pl-9"
                       value={employeeSearch}
                       onChange={(event) => {
                         setEmployeeSearch(event.target.value);
@@ -148,27 +178,31 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                               </StatusBadge>
                             </td>
                             <td className="text-slate-500">
-                              {employee.createdAt ? new Date(employee.createdAt).toLocaleDateString('vi-VN') : '—'}
+                              {employee.createdAt ? formatDateOnly(employee.createdAt) : '—'}
                             </td>
                             <td>
                               <div className="flex flex-wrap justify-center gap-2">
-                                <button
+                                <Button
                                   type="button"
-                                  className="ipc-button ipc-button-ghost ipc-button-bounded"
+                                  variant="outline"
+                                  size="xs"
+                                  textWrap="wrap"
                                   onClick={() => handleEditEmployee(employee)}
                                 >
                                   <Pencil size={14} />
                                   Sửa
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   type="button"
-                                  className="ipc-button ipc-button-bounded"
-                                  onClick={() => void handleEmployeeStatusToggle(employee)}
+                                  variant="outline"
+                                  size="xs"
+                                  textWrap="wrap"
+                                  onClick={() => setStatusTarget({ employee, nextActive: !employee.isActive, source: 'row' })}
                                   disabled={isUpdatingStatus}
                                 >
                                   <Power size={14} />
                                   {employee.isActive ? 'Khóa' : 'Mở'}
-                                </button>
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -190,6 +224,28 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
             </SectionPanel>
           </div>
           </AdminQueryBoundary>
+          <ConfirmDialog
+            open={statusTarget !== null}
+            title={statusTarget?.nextActive ? 'Mở lại tài khoản nhân viên?' : 'Khóa tài khoản nhân viên?'}
+            description={statusTarget
+              ? statusTarget.nextActive
+                ? `${statusTarget.employee.fullName} (${statusTarget.employee.username}) sẽ có thể đăng nhập lại theo vai trò hiện tại.`
+                : `${statusTarget.employee.fullName} (${statusTarget.employee.username}) sẽ không thể đăng nhập cho tới khi tài khoản được mở lại.`
+              : ''}
+            confirmLabel={statusTarget?.nextActive ? 'Mở tài khoản' : 'Khóa tài khoản'}
+            busy={isUpdatingStatus}
+            busyLabel="Đang cập nhật..."
+            onConfirm={() => {
+              const target = statusTarget;
+              setStatusTarget(null);
+              if (target?.source === 'row') void handleEmployeeStatusToggle(target.employee);
+              if (target?.source === 'form') {
+                skipNextStatusConfirmation.current = true;
+                employeeFormRef.current?.requestSubmit();
+              }
+            }}
+            onOpenChange={(open) => !open && setStatusTarget(null)}
+          />
         </div>
       )}
 
@@ -197,3 +253,8 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
     </>
   );
 }
+
+const formatEmployeeRole = (roleId: string, roles: AdminDataPageModel['employeeRoles']) => {
+  const role = roles.find((item) => item.roleId === roleId);
+  return role ? `${role.roleName} - ${role.roleCode}` : 'Chọn vai trò';
+};

@@ -5,7 +5,7 @@ import { EmptyState } from './EmptyState';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
 import { StatusBadge } from './StatusBadge';
-import { formatQuantityWithUnit } from '@/lib/formatters';
+import { formatCurrency, formatPercent, formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/types/workflow';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
@@ -30,10 +30,6 @@ const getTargetLabel = (targetType?: string) => {
   if (targetType === 'purchase-price-exception') return 'Ngoại lệ giá';
   return null;
 };
-
-const formatCurrency = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
-
-const formatSignedPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toLocaleString('vi-VN')}%`;
 
 const getEvidenceLabel = (value?: string | null) => {
   const normalized = value?.replaceAll(/[-_\s]/g, '').toUpperCase();
@@ -147,7 +143,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
                   <div><dt className="text-xs font-medium text-slate-500">Nguyên liệu</dt><dd className="font-semibold text-slate-800">{record.materials[0]?.name ?? 'Chưa có'}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Giá tham chiếu</dt><dd className="tabular-nums font-semibold text-slate-800">{record.referencePrice == null ? 'Chưa có' : formatCurrency(record.referencePrice)}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Giá đề xuất</dt><dd className="tabular-nums font-semibold text-slate-800">{record.proposedPrice == null ? 'Chưa có' : formatCurrency(record.proposedPrice)}</dd></div>
-                  <div><dt className="text-xs font-medium text-slate-500">Chênh lệch do server tính</dt><dd className="tabular-nums font-semibold text-red-700">{record.variancePercent == null ? 'Chưa có' : formatSignedPercent(record.variancePercent)}</dd></div>
+                  <div><dt className="text-xs font-medium text-slate-500">Chênh lệch do server tính</dt><dd className="tabular-nums font-semibold text-red-700">{record.variancePercent == null ? 'Chưa có' : `${record.variancePercent > 0 ? '+' : ''}${formatPercent(record.variancePercent, 2)}`}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Bằng chứng</dt><dd className="font-semibold text-slate-800">{getEvidenceLabel(record.evidenceType)}{record.evidenceDate ? `, ngày ${record.evidenceDate}` : ''}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Đề xuất mua</dt><dd className="font-mono text-xs font-semibold text-slate-800">{record.source}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Phiên bản</dt><dd className="font-semibold text-slate-800">{record.proposalVersion == null ? 'Chưa có' : `Phiên bản ${record.proposalVersion}`}</dd></div>

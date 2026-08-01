@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useToast } from '@/components/common';
 import { useGetIngredientsQuery } from '@/api/dishCatalogApi';
 import { useCreateSupplierQuotationMutation, useDeactivateSupplierQuotationMutation, useGetSupplierQuotationsByIngredientPageQuery, useGetSuppliersQuery, useUpdateSupplierQuotationMutation, type SupplierQuotationDto } from '@/api/workflowApi';
@@ -14,9 +14,9 @@ type QuotationValidationErrors = Partial<Record<QuotationField, FieldFeedback>>;
 export function useSupplierQuotations(enabled = true) {
   const { toast } = useToast();
   const [ingredientSearch, setIngredientSearch] = useState('');
-  const normalizedIngredientSearch = ingredientSearch.trim();
+  const deferredIngredientSearch = useDeferredValue(ingredientSearch.trim());
   const ingredientQuery = useGetIngredientsQuery(
-    normalizedIngredientSearch ? { searchKeyword: normalizedIngredientSearch } : undefined,
+    deferredIngredientSearch ? { searchKeyword: deferredIngredientSearch } : undefined,
     { skip: !enabled },
   );
   const ingredientView = toQueryView(ingredientQuery, {

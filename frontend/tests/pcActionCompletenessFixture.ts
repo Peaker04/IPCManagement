@@ -1,6 +1,7 @@
 import type { Page, Route } from '@playwright/test'
 import { phase09PurchaseOrdersPage, phase09Workbench } from './phase9-test-fixture'
-import { PC_VIEWPORTS, type PcFalseMissingExclusions, type PcMismatch } from './pcActionCompletenessContract'
+import { PC_VIEWPORTS } from './pcActionCompletenessContract'
+export { classifyPcMeasurement } from './pcActionCompletenessContract'
 import { UNKNOWN } from './stateActionRegistryContract'
 import {
   PA2B_ACTORS,
@@ -26,6 +27,14 @@ export type PcControlExpectation = {
   source: string
   route: string
   tab?: string
+  surface?: string
+}
+
+export type PcActionExpectation = {
+  kind: 'mutation' | 'navigation' | 'open-surface' | 'fill'
+  method?: string
+  path?: string
+  postAction: string
 }
 
 export type PcProjectedRegistryRow = {
@@ -40,6 +49,7 @@ export type PcProjectedRegistryRow = {
   expectedControl: PcControlExpectation | null
   source: readonly string[]
   disposition: string
+  action?: PcActionExpectation
 }
 
 const coordinationRoute = '/meal-orders'
@@ -88,7 +98,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Chốt đơn cả ngày',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:378',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:378-388',
       ),
       source: coordinationSource(
         'lock-to-confirmed',
@@ -130,7 +140,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Hoàn tất ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:391',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:391-401',
       ),
       source: coordinationSource(
         'signoff-to-completed',
@@ -150,7 +160,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Mở khóa ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:404',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:404-414',
       ),
       source: coordinationSource(
         'unlock-to-draft',
@@ -196,7 +206,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
         ? coordinationControl(
             'button',
             'Xuất báo cáo',
-            'frontend/src/features/coordination/components/action-toolbar.tsx:417',
+            'frontend/src/features/coordination/components/action-toolbar.tsx:417-427',
           )
         : null,
       source: coordinationSource(
@@ -224,7 +234,11 @@ const materialRows: PcProjectedRegistryRow[] = [
   family: 'MaterialDemand',
   scenarioId: scenarioId as string,
   operation: operation as string,
-  registryActor: actors.join('|'),
+  registryActor: actors.map((actor) => ({
+    admin: 'admin',
+    manager: 'quanly',
+    coordinator: 'dieuphoi',
+  } as const)[actor as 'admin' | 'manager' | 'coordinator']).join('|'),
   backendPermission: operation === 'generate' ? 'DemandGenerateAccess' : UNKNOWN,
   frontendPermission: operation === 'purchasing' ? 'purchase.read' : operation === 'approval' ? 'approval route' : operation === 'generate' ? 'demand.generate' : UNKNOWN,
   actors: actors as PcActorId[],
@@ -247,15 +261,15 @@ const materialRows: PcProjectedRegistryRow[] = [
 }))
 
 const purchasingOperations = [
-  ['demand', 'Tạo đề xuất mua'],
-  ['supplier-price', 'Xác nhận nhà cung cấp'],
-  ['exception', 'Gửi duyệt ngoại lệ giá'],
-  ['submitted', 'Mở phê duyệt đề xuất'],
-  ['approved-order', 'Tạo đơn đặt hàng'],
-  ['receiving', 'Mở màn hình nhập kho'],
+  ['demand', 'create-purchase-request', 'Tạo đề xuất mua'],
+  ['supplier-price', 'confirm-supplier', 'Xác nhận nhà cung cấp'],
+  ['exception', 'submit-price-exception', 'Gửi duyệt ngoại lệ giá'],
+  ['submitted', 'open-purchase-approval', 'Mở phê duyệt đề xuất'],
+  ['approved-order', 'create-purchase-orders', 'Tạo đơn đặt hàng'],
+  ['receiving', 'open-receiving', 'Mở màn hình nhập kho'],
 ] as const
 
-const purchasingRows: PcProjectedRegistryRow[] = purchasingOperations.map(([scenarioId, operation]) => ({
+const purchasingRows: PcProjectedRegistryRow[] = purchasingOperations.map(([scenarioId, operation, label]) => ({
   family: 'PurchasingWorkflow',
   scenarioId,
   operation,
@@ -265,8 +279,10 @@ const purchasingRows: PcProjectedRegistryRow[] = purchasingOperations.map(([scen
   actors: ['admin', 'manager', 'procurement'],
   expectedControl: {
     role: 'button',
-    name: operation,
-    source: 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438',
+    name: label,
+    source: scenarioId === 'receiving'
+      ? 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:128-145'
+      : 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438',
     route: '/purchasing',
   },
   source: [
@@ -316,10 +332,15 @@ const weeklyFixtureScenario = (scenarioId: typeof weeklyCanonicalScenarioIds[num
 const weeklyRows: PcProjectedRegistryRow[] = weeklyCanonicalScenarioIds.map((scenarioId) => {
   const scenario = weeklyFixtureScenario(scenarioId)
   if (!scenario) throw new Error(`Missing PA2B projection for WeeklyMenuLifecycle/${scenarioId}`)
+  const controlSourcePath = scenario.expectedControl?.surface === 'admin-contracts'
+    ? 'AdminContractsPanel.tsx'
+    : scenario.expectedControl?.surface === 'demand-panel'
+      ? 'MaterialDemandSection.tsx'
+      : 'WeeklyMenuCommandBar.tsx'
   const expectedControl = scenario.expectedControl
     ? {
         ...scenario.expectedControl,
-        source: scenario.source.find((item) => item.startsWith('frontend/')) ?? scenario.source[0],
+        source: scenario.source.find((item) => item.includes(controlSourcePath)) ?? scenario.source[0],
         route: scenario.expectedControl.surface === 'admin-contracts' ? '/admin-data?view=contracts' : weeklyMenuRoute,
         tab: scenario.expectedControl.surface === 'demand-panel' ? 'Nhu cầu' : undefined,
       }
@@ -399,6 +420,46 @@ export const PC_PROJECTED_REGISTRY_ROWS: readonly PcProjectedRegistryRow[] = [
   ...weeklyRows,
 ]
 
+const action = (
+  kind: PcActionExpectation['kind'],
+  postAction: string,
+  method?: string,
+  path?: string,
+): PcActionExpectation => ({ kind, method, path, postAction })
+
+export const getPcActionExpectation = (row: PcProjectedRegistryRow): PcActionExpectation | null => {
+  if (row.expectedControl === null || row.operation === UNKNOWN) return null
+  if (row.family === 'CoordinationOrderScopeLifecycle') {
+    if (row.operation === 'lock-to-confirmed') return action('mutation', 'text=Đã ghi nhận chốt đơn cả ngày', 'POST', '/api/coordination/orders/lock')
+    if (row.operation === 'signoff-to-completed') return action('mutation', 'text=Đã hoàn tất ca', 'POST', '/api/coordination/orders/signoff')
+    if (row.operation === 'unlock-to-draft') return action('mutation', 'text=Đã mở khóa ca', 'POST', '/api/coordination/orders/unlock')
+    if (row.operation === 'export') return action('mutation', 'text=Đã tải báo cáo điều phối', 'POST', '/api/coordination/orders/export')
+    if (row.operation === 'update-forecast') return action('fill', 'input value changed', 'PATCH', '/api/coordination/orders/{id}/forecast')
+    if (row.operation === 'request-adjustment') return action('fill', 'role=alert:Không lưu được số suất', 'POST', '/api/coordination/orders/adjust')
+  }
+  if (row.family === 'MaterialDemand') {
+    if (row.operation === 'generate') return action('mutation', 'text=Đã tạo nhu cầu', 'POST', '/api/material-demand/generate')
+    if (row.operation === 'approval') return action('navigation', 'route=/approvals')
+    if (row.operation === 'purchasing') return action('navigation', 'route=/purchasing')
+  }
+  if (row.family === 'PurchasingWorkflow') {
+    if (row.operation === 'create-purchase-request') return action('mutation', 'role=status:Đã tạo đề xuất mua', 'POST', '/api/purchase-workflow/from-demand')
+    if (row.operation === 'confirm-supplier') return action('mutation', 'role=status:Đã xác nhận nhà cung cấp', 'POST', '/api/purchase-workflow/requests/{id}/lines/{lineId}/supplier-decision')
+    if (row.operation === 'submit-price-exception') return action('navigation', 'route=/approvals')
+    if (row.operation === 'open-purchase-approval') return action('navigation', 'route=/approvals')
+    if (row.operation === 'create-purchase-orders') return action('mutation', 'role=status:Đã tạo', 'POST', '/api/purchase-orders/from-request/{id}')
+    if (row.operation === 'open-receiving') return action('navigation', 'route=/warehouse')
+  }
+  if (row.family === 'WeeklyMenuLifecycle') {
+    if (row.scenarioId === 'empty') return action('open-surface', 'text=Nhập thực đơn từ Excel')
+    if (row.scenarioId === 'draft') return action('mutation', 'text=Đã chuyển version thực đơn sang ACTIVE.', 'PATCH', '/api/coordination/menu-schedules/{id}/version')
+    if (row.scenarioId === 'active-incomplete') return action('mutation', 'text=Đã hoàn tất', 'POST', '/api/coordination/meal-quantity-plans/quick-servings')
+    if (row.scenarioId === 'active-not-generated') return action('mutation', 'text=Đã tạo nhu cầu', 'POST', '/api/material-demand/generate')
+    if (row.scenarioId === 'active-shortage') return action('navigation', 'route=/purchasing')
+  }
+  return null
+}
+
 export const PC_SOURCE_GUARD_DECLARATIONS = [
   {
     sourcePath: 'frontend/tests/operationalStateActionRegistry.test.ts',
@@ -435,7 +496,7 @@ export const PC_SOURCE_GUARD_DECLARATIONS = [
   },
   {
     sourcePath: 'frontend/src/features/purchasing/purchasingModel.ts',
-    fragments: purchasingOperations.map(([, operation]) => `label: '${operation}'`),
+    fragments: purchasingOperations.map(([, , label]) => `label: '${label}'`),
   },
   {
     sourcePath: 'frontend/tests/control-surface.spec.ts',
@@ -453,37 +514,6 @@ export const PC_SOURCE_GUARD_DECLARATIONS = [
   },
 ] as const
 
-export type PcClassificationInput = {
-  expected: boolean
-  actualCount: number
-  exclusions: PcFalseMissingExclusions
-  unknownDimensions?: readonly string[]
-  routeMismatch?: boolean
-  requestExpected?: boolean
-  requestObserved?: boolean
-}
-
-export const classifyPcMeasurement = ({
-  expected,
-  actualCount,
-  exclusions,
-  unknownDimensions = [],
-  routeMismatch = false,
-  requestExpected = false,
-  requestObserved = false,
-}: PcClassificationInput): PcMismatch => {
-  if (unknownDimensions.length > 0) return 'CHƯA-KẾT-LUẬN-ĐƯỢC'
-  if (routeMismatch && actualCount > 0) return 'LỆCH VỊ TRÍ'
-  if (!expected && actualCount > 0) return 'MỒ CÔI'
-  if (expected && actualCount === 0) {
-    return Object.values(exclusions).every((exclusion) => exclusion.ruledOut)
-      ? 'THIẾU'
-      : 'CHƯA-KẾT-LUẬN-ĐƯỢC'
-  }
-  if (expected && actualCount > 0 && requestExpected && !requestObserved) return 'IM LẶNG'
-  return 'KHỚP'
-}
-
 export type PcFirewallRecord = {
   method: string
   path: string
@@ -499,12 +529,22 @@ export type PcFixtureRuntime = {
   requests: PcFirewallRecord[]
   unmatchedApi: PcFirewallRecord[]
   mutations: PcFirewallRecord[]
+  observedServiceRequests: Array<{ method: string; url: string; resourceType: string }>
+  mutationState: Record<string, string>
 }
 
 export const createPcFixtureRuntime = (
   row: PcProjectedRegistryRow = PC_PROJECTED_REGISTRY_ROWS[0],
   actor: PcActorId = 'admin',
-): PcFixtureRuntime => ({ row, actor, requests: [], unmatchedApi: [], mutations: [] })
+): PcFixtureRuntime => ({
+  row,
+  actor,
+  requests: [],
+  unmatchedApi: [],
+  mutations: [],
+  observedServiceRequests: [],
+  mutationState: {},
+})
 
 const actorProfile = (actor: PcActorId) => {
   const profiles = {
@@ -543,13 +583,14 @@ const emptyPage = (pageSize = 100) => ({
   items: [], totalCount: 0, pageNumber: 1, pageSize, totalPages: 0, hasPrev: false, hasNext: false,
 })
 
-const coordinationStatuses = (scenarioId: string) => {
+const coordinationStatuses = (scenarioId: string, runtime?: PcFixtureRuntime) => {
+  if (runtime?.mutationState.coordinationStatus) return [runtime.mutationState.coordinationStatus]
   if (scenarioId === 'mixed-confirmed-completed') return ['CONFIRMED', 'COMPLETED']
   if (scenarioId === 'empty') return []
   return [scenarioId === 'loading-draft' ? 'DRAFT' : scenarioId.toUpperCase()]
 }
 
-const coordinationOrders = (scenarioId: string) => coordinationStatuses(scenarioId).map((status, index) => ({
+const coordinationOrders = (scenarioId: string, runtime?: PcFixtureRuntime) => coordinationStatuses(scenarioId, runtime).map((status, index) => ({
   id: `pc-order-${index}`,
   quantityPlanLineId: `pc-line-${index}`,
   quantityPlanId: `pc-plan-${index}`,
@@ -606,8 +647,20 @@ const effectiveWeeklyScenario = (runtime: PcFixtureRuntime) => (
     : weeklyScenarioForRuntime(runtime.row.scenarioId)
 )
 
+const weeklyQuantityPlans = (runtime: PcFixtureRuntime) => (
+  effectiveWeeklyScenario(runtime)?.quantityPlans.map((plan) => ({
+    ...plan,
+    lines: plan.lines.map((line) => ({
+      ...line,
+      customerId: 'customer-pc',
+      customerCode: 'PC',
+      customerName: 'Khách hàng PC',
+    })),
+  })) ?? []
+)
+
 const demandRequestStatus = (runtime: PcFixtureRuntime) => (
-  effectiveWeeklyScenario(runtime)?.demandRequestStatus
+  runtime.mutationState.demandStatus ?? effectiveWeeklyScenario(runtime)?.demandRequestStatus
 )
 
 const ingredientDemandRows = (runtime: PcFixtureRuntime) => {
@@ -715,12 +768,26 @@ const purchasingWorkbench = (scenarioId: string) => {
       currentStage: scenarioId,
       approvedDemandCount: scenarioId === 'demand' ? 1 : 0,
       shortageLineCount: scenarioId === 'supplier-price' ? 1 : 0,
-      supplierReadyLineCount: 0,
+      supplierReadyLineCount: scenarioId === 'exception' ? 1 : 0,
       blockingExceptionCount: scenarioId === 'exception' ? 1 : 0,
+      purchaseRequestId: `pc-purchase-request-${scenarioId}`,
+      purchaseRequestCode: `PR-PC-${scenarioId.toUpperCase()}`,
       purchaseRequestStatus: scenarioId === 'submitted' ? 'SUBMITTED' : scenarioId === 'approved-order' ? 'APPROVED' : 'DRAFT',
       orderCount: scenarioId === 'approved-order' ? 0 : 1,
       receivingLineCount: scenarioId === 'receiving' ? 1 : 0,
       fullyReceivedLineCount: 0,
+      approvedDemands: scenarioId === 'demand' ? [{
+        materialRequestId: `pc-material-request-${scenarioId}`,
+        requestCode: `MR-PC-${scenarioId.toUpperCase()}`,
+        serviceDate: '2026-07-27',
+        scope: 'FULLDAY',
+        status: 'APPROVED',
+        shortageLineCount: 1,
+        currentStage: scenarioId,
+        purchaseRequestId: null,
+        purchaseRequestCode: null,
+        purchaseRequestStatus: null,
+      }] : [],
     }],
   }
 }
@@ -755,20 +822,46 @@ const resolvePcApiData = (path: string, runtime: PcFixtureRuntime): { matched: b
   if (path === '/api/auth/profile') return { matched: true, data: actorProfile(runtime.actor) }
   if (path === '/api/approvals/inbox') return { matched: true, data: family === 'ApprovalDocument' ? approvalInbox() : { items: [], limit: 20, hasNext: false, nextCursor: null } }
   if (path === '/api/approval-rules') return { matched: true, data: [] }
+  if (path === '/api/admin/employees/roles') return { matched: true, data: [] }
+  if (path === '/api/admin/employees') return { matched: true, data: emptyPage(200) }
   if (path.startsWith('/api/approval-history/')) return { matched: true, data: [] }
-  if (path === '/api/coordination/orders') return { matched: true, data: family === 'CoordinationOrderScopeLifecycle' ? coordinationOrders(scenarioId) : [] }
+  if (path === '/api/coordination/orders') return { matched: true, data: family === 'CoordinationOrderScopeLifecycle' ? coordinationOrders(scenarioId, runtime) : [] }
   if (path === '/api/coordination/meal-quantity-plans') {
     if (family === 'CoordinationOrderScopeLifecycle') {
-      return { matched: true, data: coordinationStatuses(scenarioId).map((status, index) => ({ quantityPlanId: `pc-plan-${index}`, planCode: `PC-${index}`, serviceDate: '2026-07-27', dayOfWeek: 't2', status, lines: [] })) }
+      return { matched: true, data: coordinationStatuses(scenarioId, runtime).map((status, index) => ({ quantityPlanId: `pc-plan-${index}`, planCode: `PC-${index}`, serviceDate: '2026-07-27', dayOfWeek: 't2', status, lines: [] })) }
     }
-    return { matched: true, data: weeklyScenario?.quantityPlans ?? [] }
+    const quantityPlans = weeklyQuantityPlans(runtime)
+    return {
+      matched: true,
+      data: runtime.mutationState.quickServingsStatus === 'COMPLETED'
+        ? quantityPlans.map((plan, index) => index === 0 ? { ...plan, status: 'COMPLETED' } : plan)
+        : quantityPlans,
+    }
   }
   if (path === '/api/coordination/menu-schedules') return { matched: true, data: weeklyScenario?.schedules ?? [] }
   if (path === '/api/coordination/customers') return { matched: true, data: [{ customerId: 'customer-pc', customerCode: 'PC', customerName: 'Khách hàng PC' }] }
   if (path === '/api/coordination/customer-contracts') return { matched: true, data: [{ contractId: 'contract-pc', customerId: 'customer-pc', customerCode: 'PC', customerName: 'Khách hàng PC', isActive: true, contractStatus: 'ACTIVE', menuScheduleCount: weeklyScenario?.schedules.length ?? 0, activeWeekDays: ['MONDAY'], shiftNames: ['MORNING'], defaultMenuPrice: 25000, defaultBomRatePercent: 100 }] }
   if (path === '/api/coordination/weekly-menu/import-history') return { matched: true, data: [] }
+  if (path === '/api/coordination/orders/export-data') return { matched: true, data: coordinationOrders(scenarioId, runtime) }
   if (path === '/api/coordination/weekly-menu') return { matched: true, data: committedWeeklyMenu(weeklyScenario) }
   if (path === '/api/purchase-workflow/workbench') return { matched: true, data: purchasingWorkbench(scenarioId) }
+  if (path.startsWith('/api/purchase-workflow/requests/') && path.endsWith('/supplier-evidence')) return {
+    matched: true,
+    data: {
+      candidates: [{
+        evidenceId: 'pc-evidence-1',
+        evidenceType: 'EffectiveQuotation',
+        supplierId: 'supplier-pc',
+        supplierName: 'Nhà cung cấp PC',
+        unitPrice: 125000,
+        evidenceDate: '2026-07-26',
+        referencePrice: 120000,
+        referenceLabel: 'Báo giá fixture',
+        isExpired: false,
+      }],
+      blocker: null,
+    },
+  }
   if (path.startsWith('/api/purchase-requests')) return { matched: true, data: path.endsWith('/page') ? emptyPage(8) : [] }
   if (path.startsWith('/api/purchase-orders')) return {
     matched: true,
@@ -807,7 +900,40 @@ export const handlePcApiRoute = async (route: Route, runtime: PcFixtureRuntime) 
     const record = { method, path, status: 200, intercepted: true, mutation: true, scenario: `${runtime.row.family}/${runtime.row.scenarioId}` }
     runtime.requests.push(record)
     runtime.mutations.push(record)
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(wrap({ fixtureMutation: true })) })
+    if (path.endsWith('/orders/lock')) runtime.mutationState.coordinationStatus = 'CONFIRMED'
+    if (path.endsWith('/orders/signoff')) runtime.mutationState.coordinationStatus = 'COMPLETED'
+    if (path.endsWith('/orders/unlock')) runtime.mutationState.coordinationStatus = 'DRAFT'
+    if (path.endsWith('/material-demand/generate')) runtime.mutationState.demandStatus = 'DRAFT'
+    if (path.endsWith('/meal-quantity-plans/quick-servings')) {
+      const body = request.postDataJSON() as { complete?: boolean } | null
+      if (body?.complete === true) runtime.mutationState.quickServingsStatus = 'COMPLETED'
+    }
+    const data = path.endsWith('/orders/lock')
+      ? { lockedShiftNames: ['MORNING'], lockedLineCount: coordinationOrders(runtime.row.scenarioId, runtime).length }
+      : path.endsWith('/orders/signoff')
+        ? { affectedPlanCount: 1, serviceDate: '2026-07-27', newStatus: 'COMPLETED' }
+        : path.endsWith('/orders/unlock')
+          ? { affectedPlanCount: 1 }
+          : path.endsWith('/orders/export')
+            ? { downloadUrl: '/api/coordination/orders/export-data' }
+              : path.includes('/purchase-orders/from-request/')
+                ? []
+                : path.includes('/purchase-workflow/from-demand')
+                  ? { purchaseRequestCode: 'PR-PC-FIXTURE' }
+                  : path.endsWith('/material-demand/generate')
+                    ? {
+                        materialRequestId: `pc-material-request-${runtime.row.scenarioId}`,
+                        requestCode: `MR-PC-${runtime.row.scenarioId.toUpperCase()}`,
+                        serviceDate: '2026-07-27',
+                        scope: 'FULLDAY',
+                        status: 'DRAFT',
+                        productionPlanLineCount: 1,
+                        lines: ingredientDemandRows(runtime),
+                        missingBomDishes: [],
+                        missingConversionIssues: [],
+                      }
+                  : { fixtureMutation: true }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(wrap(data)) })
     return
   }
 
@@ -824,12 +950,67 @@ export const handlePcApiRoute = async (route: Route, runtime: PcFixtureRuntime) 
 }
 
 export const installPcApiFirewall = async (page: Page, runtime: PcFixtureRuntime) => {
+  page.on('request', (request) => {
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/') || request.resourceType() === 'websocket') {
+      runtime.observedServiceRequests.push({
+        method: request.method().toUpperCase(),
+        url: request.url(),
+        resourceType: request.resourceType(),
+      })
+    }
+  })
+  await page.route('https://fonts.googleapis.com/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'text/css',
+    body: '',
+  }))
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const serviceRequest = request.resourceType() === 'websocket'
+      || (['xhr', 'fetch'].includes(request.resourceType()) && !url.pathname.startsWith('/api/'))
+    if (serviceRequest) {
+      const record = {
+        method: request.method().toUpperCase(),
+        path: url.pathname,
+        status: 0,
+        intercepted: false,
+        mutation: !['GET', 'HEAD', 'OPTIONS'].includes(request.method().toUpperCase()),
+        scenario: `${runtime.row.family}/${runtime.row.scenarioId}`,
+      }
+      runtime.requests.push(record)
+      await route.abort('blockedbyclient')
+      return
+    }
+    await route.continue()
+  })
   await page.route(/^https?:\/\/[^/]+\/api\//, (route) => handlePcApiRoute(route, runtime))
 }
 
-export const assertPcFirewallClosed = (records: readonly PcFirewallRecord[]) => {
+export const assertPcFirewallClosed = (
+  records: readonly PcFirewallRecord[],
+  observedServiceRequests: readonly { method: string; url: string; resourceType: string }[] = [],
+) => {
   const escaped = records.filter((record) => !record.intercepted || !record.path.startsWith('/api/'))
   if (escaped.length > 0) throw new Error(`PC request escaped interception: ${escaped.map((record) => `${record.method} ${record.path}`).join(', ')}`)
+  const observedApi = observedServiceRequests.filter((request) => new URL(request.url).pathname.startsWith('/api/'))
+  const interceptedCounts = new Map<string, number>()
+  records.forEach((record) => {
+    const key = `${record.method.toUpperCase()} ${record.path}`
+    interceptedCounts.set(key, (interceptedCounts.get(key) ?? 0) + 1)
+  })
+  const observedCounts = new Map<string, number>()
+  observedApi.forEach((request) => {
+    const url = new URL(request.url)
+    const key = `${request.method.toUpperCase()} ${url.pathname}`
+    observedCounts.set(key, (observedCounts.get(key) ?? 0) + 1)
+  })
+  observedCounts.forEach((count, key) => {
+    if ((interceptedCounts.get(key) ?? 0) < count) {
+      throw new Error(`PC observed API request bypassed the route handler: ${key}`)
+    }
+  })
 }
 
 export const PC_FIXTURE_CONTRACT = {

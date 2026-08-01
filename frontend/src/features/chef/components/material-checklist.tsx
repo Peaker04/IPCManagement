@@ -12,8 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
-import { SectionPanel, TableViewport } from '@/components/common'
+import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { ChefMaterial } from '../chefDashboardTypes'
 import { Button } from '@/components/ui/button'
@@ -101,7 +100,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                         <TableCell className="text-slate-500">{material.issueCode ?? 'Theo kế hoạch'}</TableCell>
                         <TableCell className="text-slate-500 text-right">{formatUnit(material.unit)}</TableCell>
                         <TableCell className="text-slate-800 font-semibold text-right">{formatQuantity(material.quantity)}</TableCell>
-                        <TableCell><Badge variant="outline" className={material.status === 'Đã nhận' ? 'border-teal-200 bg-teal-50 text-teal-800' : 'border-amber-200 bg-amber-50 text-amber-800'}><span className="flex items-center gap-1">{material.status === 'Đã nhận' && <Check className="w-3 h-3" />}{material.status === 'Chờ giao' ? 'Chờ ký nhận' : material.status}</span></Badge></TableCell>
+                        <TableCell><StatusBadge variant={material.status === 'Đã nhận' ? 'success' : 'warning'}><span className="flex items-center gap-1">{material.status === 'Đã nhận' && <Check className="w-3 h-3" />}{material.status === 'Chờ giao' ? 'Chờ ký nhận' : material.status}</span></StatusBadge></TableCell>
                       </TableRow>
                     )]
                   }
@@ -109,12 +108,12 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                   const issueCount = new Set(group.lines.map((line) => line.issueCode ?? line.issueId ?? line.id)).size
                   const summary = (
                     <TableRow key={group.key} className="border-slate-200 bg-slate-50/70">
-                      <TableCell className="text-center"><button type="button" className="inline-flex size-8 items-center justify-center rounded-sm border border-slate-200 bg-white text-slate-600" aria-label={`${expanded ? 'Đóng' : 'Mở'} ${group.lines.length} dòng nguồn của ${group.name}`} aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? null : group.key)}><ChevronDown className={cn('size-4 transition-transform', expanded && 'rotate-180')} /></button></TableCell>
+                      <TableCell className="text-center"><Button type="button" variant="outline" size="icon-xs" className="text-slate-600" aria-label={`${expanded ? 'Đóng' : 'Mở'} ${group.lines.length} dòng nguồn của ${group.name}`} aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? null : group.key)}><ChevronDown className={cn('size-4 transition-transform', expanded && 'rotate-180')} /></Button></TableCell>
                       <TableCell><span className="block font-semibold text-slate-900">{group.name}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></TableCell>
                       <TableCell className="text-slate-500">{issueCount} phiếu xuất</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(group.unit)}</TableCell>
                       <TableCell className="text-right font-semibold text-slate-900">{formatQuantity(group.quantity)}</TableCell>
-                      <TableCell><Badge variant="outline" className={signedLines === group.lines.length ? 'border-teal-200 bg-teal-50 text-teal-800' : 'border-amber-200 bg-amber-50 text-amber-800'}>{signedLines}/{group.lines.length} dòng đã ký</Badge></TableCell>
+                      <TableCell><StatusBadge variant={signedLines === group.lines.length ? 'success' : 'warning'}>{signedLines}/{group.lines.length} dòng đã ký</StatusBadge></TableCell>
                     </TableRow>
                   )
                   if (!expanded) return [summary]
@@ -126,7 +125,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                       <TableCell className="font-mono text-xs text-slate-600">{material.issueCode ?? material.issueId ?? material.id}</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(material.unit)}</TableCell>
                       <TableCell className="text-right font-semibold text-slate-800">{formatQuantity(material.quantity)}</TableCell>
-                      <TableCell><Badge variant="outline" className={material.status === 'Đã nhận' ? 'border-teal-200 bg-teal-50 text-teal-800' : 'border-amber-200 bg-amber-50 text-amber-800'}>{material.status === 'Chờ giao' ? 'Chờ ký nhận' : material.status}</Badge></TableCell>
+                      <TableCell><StatusBadge variant={material.status === 'Đã nhận' ? 'success' : 'warning'}>{material.status === 'Chờ giao' ? 'Chờ ký nhận' : material.status}</StatusBadge></TableCell>
                     </TableRow>
                   ))]
                 })

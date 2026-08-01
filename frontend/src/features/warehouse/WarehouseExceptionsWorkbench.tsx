@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { ArrowRight, PackageCheck, RefreshCw, Undo2 } from 'lucide-react';
 import {
   InlineAlert,
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import {
@@ -46,6 +47,8 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
   const [returnPage, setReturnPage] = useState(1);
   const [supplementalSearch, setSupplementalSearch] = useState('');
   const [returnSearch, setReturnSearch] = useState('');
+  const deferredSupplementalSearch = useDeferredValue(supplementalSearch.trim());
+  const deferredReturnSearch = useDeferredValue(returnSearch.trim());
   const [selectedSupplemental, setSelectedSupplemental] = useState<SupplementalMaterialRequestResult>();
   const [fulfillQty, setFulfillQty] = useState('');
   const [rejecting, setRejecting] = useState<SupplementalMaterialRequestResult>();
@@ -63,8 +66,8 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
   const [adjustedQuantityErrors, setAdjustedQuantityErrors] = useState<Record<string, FieldFeedback>>({});
   const [returnError, setReturnError] = useState<FieldFeedback>();
 
-  const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: 8, searchKeyword: supplementalSearch.trim() || undefined });
-  const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: 8, isReceived: false, searchKeyword: returnSearch.trim() || undefined });
+  const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: 8, searchKeyword: deferredSupplementalSearch || undefined });
+  const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: 8, isReceived: false, searchKeyword: deferredReturnSearch || undefined });
   const returnDetailQuery = useGetInventoryReturnByIdQuery(selectedReturnId, { skip: !selectedReturnId });
   const [fulfill, fulfillState] = useFulfillSupplementalMaterialRequestMutation();
   const [routeToPurchasing, routeState] = useRouteSupplementalMaterialRequestToPurchasingMutation();
@@ -303,7 +306,7 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
       <Dialog open={Boolean(rejecting)} onOpenChange={(open) => { if (!open) { setRejecting(undefined); setRejectValidation(undefined); setRejectError(undefined); } }}>
         <DialogContent aria-labelledby="supplemental-reject-title" aria-describedby="supplemental-reject-description">
           <DialogHeader><DialogTitle id="supplemental-reject-title">Từ chối yêu cầu bổ sung</DialogTitle><DialogDescription id="supplemental-reject-description">Lý do là bắt buộc và sẽ hiển thị trong audit để bếp có hướng xử lý.</DialogDescription></DialogHeader>
-          <div className="grid gap-2"><label htmlFor="supplemental-reject-reason" className="text-sm font-medium text-slate-900">Lý do từ chối</label><textarea id="supplemental-reject-reason" className="min-h-24 rounded-sm border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600" aria-invalid={Boolean(rejectValidation) || undefined} aria-describedby={rejectValidation ? 'supplemental-reject-reason-error' : undefined} value={rejectReason} onChange={(event) => { setRejectReason(event.target.value); setRejectValidation(undefined); }} />{rejectValidation && <p id="supplemental-reject-reason-error" className="text-xs text-red-700"><span className="font-semibold">{rejectValidation.title}</span>{' '}{rejectValidation.message}</p>}</div>
+          <div className="grid gap-2"><label htmlFor="supplemental-reject-reason" className="text-sm font-medium text-slate-900">Lý do từ chối</label><Textarea id="supplemental-reject-reason" className="min-h-24" aria-invalid={Boolean(rejectValidation) || undefined} aria-describedby={rejectValidation ? 'supplemental-reject-reason-error' : undefined} value={rejectReason} onChange={(event) => { setRejectReason(event.target.value); setRejectValidation(undefined); }} />{rejectValidation && <p id="supplemental-reject-reason-error" className="text-xs text-red-700"><span className="font-semibold">{rejectValidation.title}</span>{' '}{rejectValidation.message}</p>}</div>
           {rejectError && <div role="alert"><InlineAlert title={rejectError.title} variant="danger">{rejectError.message}</InlineAlert></div>}
           <DialogFooter><Button type="button" variant="outline" onClick={() => setRejecting(undefined)}>Hủy</Button><Button type="button" variant="destructive" disabled={rejectState.isLoading} onClick={() => void submitReject()}>Xác nhận từ chối</Button></DialogFooter>
         </DialogContent>
@@ -319,7 +322,7 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
               return <div key={line.returnLineId} className="grid gap-2 rounded-sm border border-slate-200 p-3 sm:grid-cols-[1fr_180px]"><div><p className="font-medium text-slate-950">{line.ingredientName}</p><p className="text-xs text-slate-600">Bếp khai báo {formatQuantityWithUnit(line.quantity, line.unitName || '')}</p></div><div><label htmlFor={`return-line-${line.returnLineId}`} className="text-xs font-medium text-slate-700">Số thực nhận ({line.unitName})</label><Input id={`return-line-${line.returnLineId}`} type="number" min="0" step="any" aria-invalid={Boolean(quantityError) || undefined} aria-describedby={quantityError ? `return-line-${line.returnLineId}-error` : undefined} value={adjustedQuantities[line.returnLineId] ?? String(line.quantity)} onChange={(event) => { setAdjustedQuantities((current) => ({ ...current, [line.returnLineId]: event.target.value })); setAdjustedQuantityErrors((current) => { const next = { ...current }; delete next[line.returnLineId]; return next; }); }} />{quantityError && <p id={`return-line-${line.returnLineId}-error`} className="mt-1 text-xs text-red-700"><span className="font-semibold">{quantityError.title}</span>{' '}{quantityError.message}</p>}</div></div>;
             })}
             <label className="flex min-h-11 items-center gap-2 text-sm font-medium text-slate-900"><input type="checkbox" checked={hasDiscrepancy} onChange={(event) => setHasDiscrepancy(event.target.checked)} /> Có chênh lệch so với bếp khai báo</label>
-            {hasDiscrepancy && <div className="grid gap-2"><label htmlFor="return-discrepancy-note" className="text-sm font-medium text-slate-900">Mô tả chênh lệch</label><textarea id="return-discrepancy-note" className="min-h-24 rounded-sm border border-slate-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600" aria-invalid={Boolean(discrepancyValidation) || undefined} aria-describedby={discrepancyValidation ? 'return-discrepancy-note-error' : undefined} value={discrepancyNote} onChange={(event) => { setDiscrepancyNote(event.target.value); setDiscrepancyValidation(undefined); }} />{discrepancyValidation && <p id="return-discrepancy-note-error" className="text-xs text-red-700"><span className="font-semibold">{discrepancyValidation.title}</span>{' '}{discrepancyValidation.message}</p>}</div>}
+            {hasDiscrepancy && <div className="grid gap-2"><label htmlFor="return-discrepancy-note" className="text-sm font-medium text-slate-900">Mô tả chênh lệch</label><Textarea id="return-discrepancy-note" className="min-h-24" aria-invalid={Boolean(discrepancyValidation) || undefined} aria-describedby={discrepancyValidation ? 'return-discrepancy-note-error' : undefined} value={discrepancyNote} onChange={(event) => { setDiscrepancyNote(event.target.value); setDiscrepancyValidation(undefined); }} />{discrepancyValidation && <p id="return-discrepancy-note-error" className="text-xs text-red-700"><span className="font-semibold">{discrepancyValidation.title}</span>{' '}{discrepancyValidation.message}</p>}</div>}
           </div>}
           {returnDetailQuery.isError && <QueryErrorAlert title="Không tải được chi tiết phiếu trả" onRetry={() => void returnDetailQuery.refetch()}>Không thể xác nhận khi chưa có dữ liệu dòng.</QueryErrorAlert>}
           {returnError && <div role="alert"><InlineAlert title={returnError.title} variant="danger">{returnError.message}</InlineAlert></div>}

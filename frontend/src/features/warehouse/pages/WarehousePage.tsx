@@ -6,7 +6,7 @@ import { CommandBar, ContextStrip, DocumentRail, EmptyState, InlineAlert, Operat
 import { ROUTES } from '@/lib/routeConfig';
 import { useCreateInventoryIssueMutation, useGetCurrentStockQuery, useGetCurrentStockPageQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialRequestCandidatePageQuery, useGetKitchenIssuesQuery, useGetStockMovementPageQuery, useGetWorkflowDocumentsQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
-import { formatQuantityWithUnit } from '@/lib/formatters';
+import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import {
@@ -673,7 +673,7 @@ export default function WarehousePage() {
                           <td>{row.warehouse}</td>
                           <td>{row.ingredient}</td>
                           <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
-                          <td>{new Date(row.lastUpdated).toLocaleString('vi-VN')}</td>
+                          <td>{formatDateTime(row.lastUpdated)}</td>
                         </tr>
                       ))}
                     </tbody>

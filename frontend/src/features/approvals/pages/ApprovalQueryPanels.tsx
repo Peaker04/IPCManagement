@@ -18,6 +18,7 @@ import type {
 import type { QueryView } from '@/lib/queryView';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import type { ApprovalRecord, WorkflowDocument } from '@/types/workflow';
+import { Button } from '@/components/ui/button';
 
 interface ApprovalQueueStateProps {
   view: QueryView<ApprovalInboxPage>;
@@ -214,10 +215,12 @@ export function PurchaseRequestHistoryState({
       ) : (
         <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
           {purchaseRequests.map((purchaseRequest) => (
-            <button
+            <Button
               key={purchaseRequest.purchaseRequestId}
               onClick={() => onSelect(purchaseRequest.purchaseRequestId)}
-              className={`w-full text-left p-3 hover:bg-slate-50 transition-colors flex flex-col gap-1 ${
+              variant="outline"
+              textWrap="wrap"
+              className={`w-full items-stretch justify-start p-3 text-left transition-colors flex flex-col gap-1 ${
                 selectedId === purchaseRequest.purchaseRequestId ? 'bg-blue-50/50' : ''
               }`}
             >
@@ -231,7 +234,7 @@ export function PurchaseRequestHistoryState({
                 <span>Ngày mua: {purchaseRequest.purchaseForDate} {purchaseRequest.shiftName ? `(${purchaseRequest.shiftName})` : ''}</span>
                 <span>{purchaseRequest.lines.length} dòng</span>
               </div>
-            </button>
+            </Button>
           ))}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { formatQuantityWithUnit } from '@/lib/formatters'
+import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters'
 import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { WeeklyMenuImportJobStatus } from './types'
 
@@ -103,12 +103,7 @@ export const formatQuantityVariance = (value: number, unit: string) => {
 
 export const formatImportDate = (value?: string | null) => {
   if (!value) return 'Chưa xác định'
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
-  if (dateOnlyMatch) return `${Number(dateOnlyMatch[3])}/${Number(dateOnlyMatch[2])}/${dateOnlyMatch[1]}`
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleDateString('vi-VN')
+  return formatDateOnly(value)
 }
 
 export const formatFileSize = (bytes?: number) => {

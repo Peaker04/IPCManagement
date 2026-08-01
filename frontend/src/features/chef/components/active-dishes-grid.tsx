@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import { EmptyState, SectionPanel, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Dish } from '@/lib/types'
@@ -47,8 +48,10 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
           <div className="ipc-chef-dish-list">
             {dishes.map((dish) => (
               <div key={dish.id} className="ipc-chef-dish-card">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  textWrap="wrap"
                   aria-expanded={expandedDishId === dish.id}
                   aria-controls={`dish-bom-${dish.id}`}
                   onClick={() =>
@@ -79,7 +82,7 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                       expandedDishId === dish.id ? 'rotate-180' : ''
                     }`}
                   />
-                </button>
+                </Button>
 
                 {/* Expanded BOM Table */}
                 {expandedDishId === dish.id && (

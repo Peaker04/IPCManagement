@@ -121,12 +121,12 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:129-133': [
+  'frontend/src/features/reports/pages/ReportsPage.tsx:144-146': [
       '<ReportQueryBoundary view={activeReportView}>',
     ],
   },
   WarehousePurchaseReceipt: {
-    'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62': [
+    'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:66': [
       'export function WarehousePurchaseReceiptDialog({',
     ],
   },
@@ -557,7 +557,7 @@ const componentLocalDebt = [
   {
     id: 'WarehousePurchaseReceiptOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62-173',
+      source: 'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:66-177',
     sourceText: warehouseReceiptSource,
     fragment: 'const validate =',
   },

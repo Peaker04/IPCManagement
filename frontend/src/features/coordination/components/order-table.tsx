@@ -323,7 +323,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
               </td>
 
               <td className="border-r border-slate-200 text-center">
-                <input
+                <Input
                   aria-label={`Suất dự kiến của ${order.customerName}`}
                   type="number"
                   min="0"
@@ -351,7 +351,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
               </td>
 
               <td className="border-r border-slate-200 text-center">
-                <input
+                <Input
                   aria-label={`Suất thực tế của ${order.customerName}`}
                   type="number"
                   min="0"

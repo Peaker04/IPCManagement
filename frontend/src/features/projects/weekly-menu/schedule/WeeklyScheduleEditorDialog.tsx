@@ -1,6 +1,10 @@
 import { Lock, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { WeeklyScheduleEditorWorkflow } from './types'
+
+const EMPTY_DISH_VALUE = '__empty-dish__'
 
 export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklyScheduleEditorWorkflow }) {
   const { scope, state, status, actions, presentation } = workflow
@@ -9,9 +13,9 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
       <DialogContent aria-label="Chỉnh sửa thực đơn tuần" className="ipc-weekly-dialog max-w-5xl overflow-hidden">
         <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
           <DialogTitle className="text-lg font-bold text-slate-900">Chỉnh sửa Thực đơn tuần (T2 - T7)</DialogTitle>
-          <button type="button" onClick={actions.closeEditor} className="ipc-button ipc-button-ghost ipc-button-bounded" aria-label="Đóng modal chỉnh sửa thực đơn" title="Đóng">
+          <Button type="button" variant="outline" size="sm" onClick={actions.closeEditor} aria-label="Đóng modal chỉnh sửa thực đơn" title="Đóng">
             <X size={16} /><span>Đóng</span>
-          </button>
+          </Button>
         </DialogHeader>
 
         <div className="mt-4 flex max-h-[68vh] flex-col gap-6 overflow-y-auto pr-1">
@@ -22,6 +26,9 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                 {scope.displayDays.map((day) => {
                   const locked = presentation.isLocked(day.key, section.slotType)
                   const slot = state.draftMenu[day.key]?.[section.slotType]
+                  const selectedDishId = slot?.dishId || section.defaultDishId || EMPTY_DISH_VALUE
+                  const selectedDishLabel = section.dishes.find((dish) => dish.id === selectedDishId)?.name
+                    ?? (selectedDishId === EMPTY_DISH_VALUE ? 'Chưa có món trong danh mục' : 'Chọn món')
                   return (
                     <div key={day.key} className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-white p-2 shadow-sm">
                       <div className="flex flex-col"><span className="text-xs font-semibold text-slate-700">{day.label}</span><span className="text-xs text-slate-500">{day.date}</span></div>
@@ -30,15 +37,17 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                           <Lock size={10} className="text-slate-400" /><span>Đã khóa</span>
                         </div>
                       ) : (
-                        <select
-                          value={slot?.dishId || section.defaultDishId}
-                          onChange={(event) => actions.changeDish(day.key, section.slotType, event.target.value)}
-                          className="ipc-select h-9 w-full p-1 text-xs"
+                        <Select
+                          value={selectedDishId}
+                          onValueChange={(value) => actions.changeDish(day.key, section.slotType, value === EMPTY_DISH_VALUE || value === null ? '' : value)}
                           disabled={section.dishes.length === 0}
                         >
-                          {section.dishes.map((dish) => <option key={`${section.slotType}-${dish.id}`} value={dish.id}>{dish.name}</option>)}
-                          {section.dishes.length === 0 && <option value="">Chưa có món trong danh mục</option>}
-                        </select>
+                          <SelectTrigger className="h-9 w-full p-1 text-xs"><SelectValue>{selectedDishLabel}</SelectValue></SelectTrigger>
+                          <SelectContent>
+                            {section.dishes.map((dish) => <SelectItem key={`${section.slotType}-${dish.id}`} value={dish.id}>{dish.name}</SelectItem>)}
+                            {section.dishes.length === 0 && <SelectItem value={EMPTY_DISH_VALUE}>Chưa có món trong danh mục</SelectItem>}
+                          </SelectContent>
+                        </Select>
                       )}
                     </div>
                   )
@@ -49,10 +58,10 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
-          <button type="button" onClick={actions.closeEditor} className="ipc-button ipc-button-ghost">Hủy</button>
-          <button type="button" onClick={() => void actions.saveEditor()} disabled={status.isSavingMenu} className="ipc-button ipc-button-primary">
+          <Button type="button" variant="outline" size="sm" onClick={actions.closeEditor}>Hủy</Button>
+          <Button type="button" size="sm" onClick={() => void actions.saveEditor()} disabled={status.isSavingMenu}>
             {status.isSavingMenu ? 'Đang lưu...' : 'Lưu thay đổi'}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

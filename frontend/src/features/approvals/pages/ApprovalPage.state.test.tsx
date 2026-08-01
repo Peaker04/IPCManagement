@@ -179,7 +179,7 @@ describe('ApprovalPage query state boundary', () => {
       targetId: 'demand-1',
       week: '2026-07-20',
     }));
-    expect(screen.getByText('Phạm vi: Tuần từ 20/7/2026')).toBeInTheDocument();
+    expect(screen.getByText('Phạm vi: Tuần từ 20/07/2026')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Tìm chứng từ hoặc nguyên liệu'), {
       target: { value: 'Bột nở' },

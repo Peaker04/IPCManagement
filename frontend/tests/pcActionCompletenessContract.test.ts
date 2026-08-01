@@ -8,6 +8,7 @@ import {
   PC_FIXTURE_SAFETY,
   PC_MISMATCH_VALUES,
   PC_VIEWPORTS,
+  type PcMismatch,
   type PcMeasurementRow,
 } from './pcActionCompletenessContract'
 import {
@@ -26,6 +27,7 @@ const createRow = (overrides: Partial<PcMeasurementRow> = {}): PcMeasurementRow 
   family: 'CoordinationOrderScopeLifecycle',
   scenarioId: 'draft',
   actor: 'quanly',
+  registryActor: 'quanly',
   viewport: PC_VIEWPORTS[0],
   operation: 'lock-to-confirmed',
   backendPermission: 'CoordinationAccess',
@@ -37,12 +39,16 @@ const createRow = (overrides: Partial<PcMeasurementRow> = {}): PcMeasurementRow 
     selector: 'role=button[name="Khóa kế hoạch"]',
     source: 'frontend/src/features/coordination/components/action-toolbar.tsx',
     route: '/coordination',
+    surface: '/coordination#Thao tác điều phối',
     enabled: true,
     disabledReason: null,
     request: { method: 'POST', path: '/api/coordination/orders/lock', outcome: 'intercepted 200' },
     postAction: 'status rendered as CONFIRMED',
   }],
   exclusions: ruledOutExclusions,
+  routeMismatch: false,
+  requestExpected: true,
+  requestObserved: true,
   mismatch: 'KHỚP',
   source: ['registry:CoordinationOrderScopeLifecycle:draft:lock-to-confirmed'],
   disposition: 'rendered control matches the registry operation',
@@ -107,7 +113,34 @@ describe('PC action completeness contract', () => {
     })])).toThrow('control 0 has invalid role')
 
     expect(() => assertPcMeasurementRows([createRow({ actualControls: [] })]))
-      .toThrow('cannot be KHỚP when expected and actual presence differ')
+      .toThrow('classification KHỚP contradicts evidence')
+  })
+
+  it('rejects an empty aggregate and whitespace-only evidence', () => {
+    expect(() => assertPcMeasurementRows([])).toThrow('cannot be empty')
+    expect(() => assertPcMeasurementRows([createRow({ disposition: '   ' })]))
+      .toThrow('invalid disposition')
+    expect(() => assertPcMeasurementRows([createRow({ source: ['  '] })]))
+      .toThrow('invalid source evidence')
+    expect(() => assertPcMeasurementRows([createRow({
+      actualControls: [{ ...createRow().actualControls[0], surface: '   ' }],
+    })])).toThrow('invalid surface')
+  })
+
+  it('rejects every contradictory mismatch classification instead of trusting the label', () => {
+    const contradictory: Array<[PcMismatch, Partial<PcMeasurementRow>]> = [
+      ['KHỚP', { actualControls: [], requestObserved: false }],
+      ['THIẾU', { actualControls: [createRow().actualControls[0]] }],
+      ['MỒ CÔI', { expected: true }],
+      ['IM LẶNG', { requestExpected: false, requestObserved: false }],
+      ['LỆCH VỊ TRÍ', { routeMismatch: false }],
+      ['CHƯA-KẾT-LUẬN-ĐƯỢC', { operation: 'known-operation' }],
+    ]
+
+    contradictory.forEach(([mismatch, overrides]) => {
+      expect(() => assertPcMeasurementRows([createRow({ mismatch, ...overrides })]))
+        .toThrow(/classification|invalid/)
+    })
   })
 
   it('rejects THIẾU until all four false-missing causes are ruled out', () => {
@@ -121,7 +154,7 @@ describe('PC action completeness contract', () => {
     })
 
     expect(() => assertPcMeasurementRows([unresolved]))
-      .toThrow('cannot be THIẾU before ruling out: navigation')
+      .toThrow('classification THIẾU contradicts evidence')
     expect(() => assertPcMeasurementRows([createRow({ actualControls: [], mismatch: 'THIẾU' })]))
       .not.toThrow()
   })
@@ -129,18 +162,18 @@ describe('PC action completeness contract', () => {
   it('rejects UNKNOWN operation, actor, or permission evidence as a positive match', () => {
     const fields: Array<Partial<PcMeasurementRow>> = [
       { operation: UNKNOWN },
-      { actor: UNKNOWN },
+      { registryActor: UNKNOWN },
       { backendPermission: UNKNOWN },
       { frontendPermission: UNKNOWN },
     ]
 
     fields.forEach((field) => {
       expect(() => assertPcMeasurementRows([createRow(field)]))
-        .toThrow(`cannot be KHỚP with ${UNKNOWN} evidence`)
+        .toThrow('classification KHỚP contradicts evidence')
     })
 
     expect(() => assertPcMeasurementRows([createRow({
-      actor: UNKNOWN,
+      registryActor: UNKNOWN,
       actualControls: [],
       mismatch: 'CHƯA-KẾT-LUẬN-ĐƯỢC',
       disposition: 'actor source remains unresolved',
@@ -190,6 +223,7 @@ describe('PC action completeness contract', () => {
       'pcActionCompletenessContract',
       'pcActionCompletenessSourceGuards',
       'pcActionCompletenessFixture',
+      'pcActionCompletenessCanonicalCoverage',
     ])).toEqual([])
 
     expect(findProductionPcImports({

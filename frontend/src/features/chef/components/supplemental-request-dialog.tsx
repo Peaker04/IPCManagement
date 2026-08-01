@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -26,14 +26,14 @@ export function SupplementalRequestDialog({
   const [selectedMaterialId, setSelectedMaterialId] = useState('')
   const [requestQty, setRequestQty] = useState('')
   const [reason, setReason] = useState('')
-  const [formError, setFormError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ material?: string; quantity?: string }>({})
   const selectedMaterial = materials.find((material) => material.id === selectedMaterialId)
 
   const resetForm = () => {
     setSelectedMaterialId('')
     setRequestQty('')
     setReason('')
-    setFormError('')
+    setFieldErrors({})
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -44,12 +44,16 @@ export function SupplementalRequestDialog({
 
   const handleSubmit = async () => {
     const quantity = Number(requestQty)
+    const nextErrors = {
+      ...(!selectedMaterial ? { material: 'Chọn nguyên liệu cần bổ sung.' } : {}),
+      ...(!Number.isFinite(quantity) || quantity <= 0 ? { quantity: 'Nhập số lượng bổ sung lớn hơn 0.' } : {}),
+    }
+    setFieldErrors(nextErrors)
     if (!selectedMaterial || !Number.isFinite(quantity) || quantity <= 0) {
-      setFormError('Chọn nguyên liệu và nhập số lượng bổ sung lớn hơn 0.')
       return
     }
 
-    setFormError('')
+    setFieldErrors({})
     const persisted = await onSubmit({
       ingredientId: selectedMaterial.id,
       ingredientName: selectedMaterial.name,
@@ -77,19 +81,20 @@ export function SupplementalRequestDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          {formError && (
-            <div role="alert" className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <AlertTriangle size={16} />
-              {formError}
-            </div>
-          )}
           <div className="grid gap-2">
             <label id="supplemental-material-label" className="text-sm font-medium text-slate-800">
               Nguyên liệu cần bổ sung <span aria-hidden="true" className="text-red-600">*</span>
             </label>
-            <Select value={selectedMaterialId} onValueChange={(value) => setSelectedMaterialId(value ?? '')} disabled={isSubmitting}>
-              <SelectTrigger aria-labelledby="supplemental-material-label">
-                <SelectValue placeholder="Chọn từ phiếu xuất đã nhận" />
+            <Select value={selectedMaterialId} onValueChange={(value) => {
+              setSelectedMaterialId(value ?? '')
+              setFieldErrors((current) => ({ ...current, material: undefined }))
+            }} disabled={isSubmitting}>
+              <SelectTrigger aria-labelledby="supplemental-material-label" aria-invalid={Boolean(fieldErrors.material) || undefined} aria-describedby={fieldErrors.material ? 'supplemental-material-error' : undefined}>
+                <SelectValue placeholder="Chọn từ phiếu xuất đã nhận">
+                  {selectedMaterial
+                    ? `${selectedMaterial.name} · đã nhận ${formatQuantityWithUnit(selectedMaterial.quantity, selectedMaterial.unit)}`
+                    : 'Chọn từ phiếu xuất đã nhận'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {materials.map((material) => (
@@ -99,12 +104,17 @@ export function SupplementalRequestDialog({
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.material && <p id="supplemental-material-error" className="text-xs text-red-700">{fieldErrors.material}</p>}
           </div>
           <div className="grid gap-2">
             <label htmlFor="supplemental-request-qty" className="text-sm font-medium text-slate-800">
               Số lượng cần thêm <span aria-hidden="true" className="text-red-600">*</span>
             </label>
-            <Input id="supplemental-request-qty" type="number" min="0.000001" step="0.1" value={requestQty} onChange={(event) => setRequestQty(event.target.value)} disabled={isSubmitting} />
+            <Input id="supplemental-request-qty" type="number" min="0.000001" step="0.1" value={requestQty} onChange={(event) => {
+              setRequestQty(event.target.value)
+              setFieldErrors((current) => ({ ...current, quantity: undefined }))
+            }} aria-invalid={Boolean(fieldErrors.quantity) || undefined} aria-describedby={fieldErrors.quantity ? 'supplemental-request-qty-error' : undefined} disabled={isSubmitting} />
+            {fieldErrors.quantity && <p id="supplemental-request-qty-error" className="text-xs text-red-700">{fieldErrors.quantity}</p>}
           </div>
           <div className="grid gap-2">
             <label htmlFor="supplemental-reason" className="text-sm font-medium text-slate-800">Lý do</label>

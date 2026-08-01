@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { formatDateOnly, formatDateTime } from '@/lib/formatters';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
 import { resolveApprovalAvailability } from '@/lib/actionEligibility';
 import {
@@ -143,9 +144,9 @@ export default function ApprovalPage() {
   const requestedRecord = approvalRecords.find((record) =>
     record.targetType === requestedTargetType && record.targetId === requestedTargetId);
   const approvalScopeLabel = requestedDate
-    ? `Ngày ${new Date(`${requestedDate}T00:00:00`).toLocaleDateString('vi-VN')}`
+    ? `Ngày ${formatDateOnly(requestedDate)}`
     : requestedWeek
-      ? `Tuần từ ${new Date(`${requestedWeek}T00:00:00`).toLocaleDateString('vi-VN')}`
+      ? `Tuần từ ${formatDateOnly(requestedWeek)}`
       : 'Tất cả ngày đang chờ duyệt';
 
   useEffect(() => {
@@ -216,22 +217,22 @@ export default function ApprovalPage() {
 
   const renderRecordActions = (record: ApprovalRecord) => (
     <>
-      <button
-        className="ipc-button ipc-button-success"
+      <Button
+        variant="success"
         type="button"
         onClick={() => openDecisionModal(record, 'Approve')}
         disabled={isDeciding || !record.targetType || !record.targetId}
       >
         {getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}
-      </button>
-      <button
-        className="ipc-button ipc-button-ghost"
+      </Button>
+      <Button
+        variant="outline"
         type="button"
         onClick={() => openDecisionModal(record, 'Reject')}
         disabled={isDeciding || !record.targetType || !record.targetId}
       >
         {getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}
-      </button>
+      </Button>
     </>
   );
 
@@ -397,12 +398,13 @@ export default function ApprovalPage() {
                 <div className="p-5 space-y-5">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <h3 className="font-semibold text-slate-800">Lịch sử phê duyệt</h3>
-                    <button
+                    <Button
                       onClick={() => setSelectedPrId(null)}
-                      className="text-xs text-blue-600 hover:underline"
+                      variant="outline"
+                      size="xs"
                     >
                       Đóng
-                    </button>
+                    </Button>
                   </div>
                   {historyView.phase === 'forbidden' ? (
                     <InlineAlert title="Không có quyền xem lịch sử phê duyệt" variant="danger">
@@ -443,7 +445,7 @@ export default function ApprovalPage() {
                               </div>
                               <div className="flex-1 space-y-1">
                                 <div className="flex items-center justify-between text-xs text-slate-500">
-                                  <span>{new Date(item.actionAt).toLocaleString('vi-VN')}</span>
+                                  <span>{formatDateTime(item.actionAt)}</span>
                                   <span className="font-semibold text-slate-700">{item.actionByName}</span>
                                 </div>
                                 <div className="text-sm">
