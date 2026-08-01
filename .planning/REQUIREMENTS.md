@@ -54,10 +54,10 @@ produces an equivalent, predictable UI.
 
 ### P6 — Assertion hình học đỏ trước
 
-- [ ] **CONF-03**: Each selected P5 rule maps to an existing source/control owner and a source-addressable
+- [x] **CONF-03**: Each selected P5 rule maps to an existing source/control owner and a source-addressable
   measurement; production DOM metadata is not required unless separately justified by that rule.
 
-- [ ] **CONF-04**: Each P6 assertion is demonstrated red against the current violating case before the
+- [x] **CONF-04**: Each P6 assertion is demonstrated red against the current violating case before the
   corresponding P7 production fix is accepted.
 
 ### P7 — Sửa theo ma trận
@@ -120,8 +120,8 @@ produces an equivalent, predictable UI.
 | CAN-06 | 21 | Complete |
 | CONF-01 | 22 | Complete |
 | CONF-02 | 22 | Complete |
-| CONF-03 | 23 | Pending |
-| CONF-04 | 23 | Pending |
+| CONF-03 | 23 | Complete |
+| CONF-04 | 23 | Complete |
 | CONF-05 | 24 | Pending |
 | CONF-06 | 24 | Pending |
 | STATE-01 | 25 | Pending |

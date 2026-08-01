@@ -1308,3 +1308,13 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   xanh. Verifier Phase 22 pass `4/4`; CONF-01/02 Complete. Lane `N/A — graph-free documentation diff`.
 - Không sửa production/test/config/runtime/database, không chạy browser, không mở phase mới và không push.
   Phase 23 tiếp tục P6, chỉ chọn failure thật còn tồn tại sau PE.
+
+## Hoàn tất Phase 23 — P6 zero-failure selection — 02/08/2026
+
+- Audit đủ PB-01..PB-18 và PF-01..PF-02. Aggregate current-source gate pass `7/7`; 18 PB row đều có
+  post-PE residual 0, hai PF row thuộc permanent gate Phase 25 và không có current violating case.
+- Kết quả đóng băng: `selected_failures: 0`, `red_assertions_created: 0`; không tạo
+  `frontend/tests/uiConformanceSelectedFailures.test.ts`, không biến `UNRESOLVED` thành oracle giả.
+- Plan-checker qua ba vòng: bổ sung cấu trúc GSD và nhánh conditional RED cho trường hợp nonzero; bản cuối pass
+  CONF-03/04. Verifier pass `4/4`; lane graph-free, không sửa production/runtime/database/browser.
+- Phase 24/P7 chỉ được sửa failure đã đỏ ở P6. Vì selection set bằng 0, P7 phải là no-op có verification.

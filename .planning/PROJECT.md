@@ -45,9 +45,13 @@ same declared business state produces an equivalent, predictable UI.
 
 - [x] P5: the 20-row standard matrix contains exactly 18 approved PB rules and two PF/O3 rules; unsourced dimensions remain `UNRESOLVED`.
 
+## Validated in Phase 23
+
+- [x] P6: all 20 P5 rows were audited; current source selected zero failures and created zero artificial RED assertions.
+
 ## Active requirements
 
-- [ ] P6 → P7: prove each selected failure red, then fix only that evidenced failure and rerun PC.
+- [ ] P7: apply only P6-proven fixes; the frozen P6 set currently authorizes zero production changes.
 - [ ] P8 + PF: lock the approved assertions and state-purity checks into verification and close the addendum.
 
 ## Out of Scope
@@ -67,7 +71,7 @@ evidenced no-PD disposition. Phase 21 is exactly PE; Phases 22–25 map directly
 Phase 21 completes PE: Date is 31→0, Button 8B is 77→0, Form 9B is 39/26/4→0, quantity is 26→0 and
 currency is 12→0, with exact semantic exceptions protected by current-source tests. Phase 22 materialized
 `docs/UI-CONFORMANCE-MATRIX.md`; Phase 23 now selects only failures that still exist after PE. The PF hidden-state
-gate does not yet exist.
+gate does not yet exist. Phase 23 selected zero current failures, so Phase 24 is a verified no-op.
 
 Brainstorming may select an evidence-backed option inside one of these named blocks, but it may not create
 another phase, quota, golden-screen set, DOM-instrumentation program or acceptance criterion without an
@@ -99,4 +103,4 @@ requirements move to completed evidence, new constraints are recorded, and activ
 the roadmap. After the milestone, review the core value, out-of-scope boundaries and evidence lineage.
 
 ---
-*Last updated: 2026-08-02 after Phase 22 P5 matrix verification*
+*Last updated: 2026-08-02 after Phase 23 zero-failure P6 audit*

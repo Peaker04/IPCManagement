@@ -106,4 +106,8 @@ Phase 22 P5 hoàn tất docs-only: `docs/UI-CONFORMANCE-MATRIX.md` có đúng 20
 Mọi spacing/min-height/contrast/pixel/golden/quota thiếu nguồn giữ `UNRESOLVED`; verifier pass `4/4`, graph risk
 `N/A — graph-free diff`. Phase 23 chỉ được chọn failure còn tồn tại sau PE; zero failure thì ghi zero, không chế RED.
 
+Phase 23 P6 audit đủ 20/20 row; aggregate source gate 7/7 pass. Kết quả đóng băng là `selected_failures: 0`,
+`red_assertions_created: 0`; conditional test file không được tạo. Phase 24 không được sửa production vì không có
+P6 RED evidence; chỉ ghi no-op và xác minh current source/evidence lane không đổi.
+
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.

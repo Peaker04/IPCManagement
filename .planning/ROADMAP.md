@@ -23,7 +23,7 @@ Phase 19 and maps the addendum blocks without renumbering the project's historic
 - [x] **Phase 22: P5 — Ma trận chuẩn** — turn the approved PB choices into the standard matrix required (completed 2026-08-01)
   by the addendum; do not invent a new visual canon.
 
-- [ ] **Phase 23: P6 — Assertion hình học đỏ trước** — add a failing assertion for each selected P5 rule
+- [x] **Phase 23: P6 — Assertion hình học đỏ trước** — add a failing assertion for each selected P5 rule (completed 2026-08-01)
   before changing the corresponding production presentation.
 
 - [ ] **Phase 24: P7 — Sửa theo ma trận** — fix only the failures demonstrated by P6, then rerun PC and
