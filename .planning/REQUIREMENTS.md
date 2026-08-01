@@ -62,10 +62,10 @@ produces an equivalent, predictable UI.
 
 ### P7 — Sửa theo ma trận
 
-- [ ] **CONF-05**: Each P7 change fixes only a failure proven by P6, preserves PB contextual exceptions and
+- [x] **CONF-05**: Each P7 change fixes only a failure proven by P6, preserves PB contextual exceptions and
   passes PC plus the existing required desktop/browser gates.
 
-- [ ] **CONF-06**: P7 verification uses current-source evidence, preserves the database/evidence lane and
+- [x] **CONF-06**: P7 verification uses current-source evidence, preserves the database/evidence lane and
   traces each fix from P5 rule through red and green evidence.
 
 ### P8 + PF — Khóa gate và bảo vệ UI=f(state)
@@ -122,8 +122,8 @@ produces an equivalent, predictable UI.
 | CONF-02 | 22 | Complete |
 | CONF-03 | 23 | Complete |
 | CONF-04 | 23 | Complete |
-| CONF-05 | 24 | Pending |
-| CONF-06 | 24 | Pending |
+| CONF-05 | 24 | Complete |
+| CONF-06 | 24 | Complete |
 | STATE-01 | 25 | Pending |
 | STATE-02 | 25 | Pending |
 | STATE-03 | 25 | Pending |

@@ -26,7 +26,7 @@ Phase 19 and maps the addendum blocks without renumbering the project's historic
 - [x] **Phase 23: P6 — Assertion hình học đỏ trước** — add a failing assertion for each selected P5 rule (completed 2026-08-01)
   before changing the corresponding production presentation.
 
-- [ ] **Phase 24: P7 — Sửa theo ma trận** — fix only the failures demonstrated by P6, then rerun PC and
+- [x] **Phase 24: P7 — Sửa theo ma trận** — fix only the failures demonstrated by P6, then rerun PC and (completed 2026-08-01)
   the existing verification gates to ensure no new mismatch.
 
 - [ ] **Phase 25: P8 + PF — Khóa gate và bảo vệ UI=f(state)** — put the approved matrix assertions and

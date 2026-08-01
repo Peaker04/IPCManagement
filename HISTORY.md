@@ -1318,3 +1318,12 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Plan-checker qua ba vòng: bổ sung cấu trúc GSD và nhánh conditional RED cho trường hợp nonzero; bản cuối pass
   CONF-03/04. Verifier pass `4/4`; lane graph-free, không sửa production/runtime/database/browser.
 - Phase 24/P7 chỉ được sửa failure đã đỏ ở P6. Vì selection set bằng 0, P7 phải là no-op có verification.
+
+## Hoàn tất Phase 24 — P7 zero-fix no-op — 02/08/2026
+
+- P6 đóng băng zero failure/zero RED nên P7 áp dụng zero production fix và zero green-after-fix assertion.
+  Không có P5→RED chain nào cho phép thay đổi source.
+- Aggregate UI canon + PC contracts pass `4 files / 50 tests`; CONF-05/06 Complete, verifier pass `4/4`.
+- Không rerun headed browser, không relabel evidence và không start runtime/mutate `ipc_lane1` vì không có UI source
+  change. Lane `N/A — graph-free docs-only no-op`.
+- Phase 25 là block cuối P8+PF của addendum. Không tạo Phase 26 hoặc follow-up phase.

@@ -110,4 +110,8 @@ Phase 23 P6 audit đủ 20/20 row; aggregate source gate 7/7 pass. Kết quả �
 `red_assertions_created: 0`; conditional test file không được tạo. Phase 24 không được sửa production vì không có
 P6 RED evidence; chỉ ghi no-op và xác minh current source/evidence lane không đổi.
 
+Phase 24 P7 đóng no-op: `production_fixes: 0`, `green_assertions_after_fix: 0`; aggregate source + PC pass
+4 file/50 test. Không rerun browser hay mutate runtime/database vì không có UI source change. Phase 25 là block cuối
+P8+PF; không mở Phase 26.
+
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.
