@@ -41,9 +41,12 @@ same declared business state produces an equivalent, predictable UI.
 
 - [x] PE: all approved PB concepts converge without changing business/auth/API behavior or adding a new variant.
 
+## Validated in Phase 22
+
+- [x] P5: the 20-row standard matrix contains exactly 18 approved PB rules and two PF/O3 rules; unsourced dimensions remain `UNRESOLVED`.
+
 ## Active requirements
 
-- [ ] P5: record the approved standard matrix without unsourced quotas or new design requirements.
 - [ ] P6 → P7: prove each selected failure red, then fix only that evidenced failure and rerun PC.
 - [ ] P8 + PF: lock the approved assertions and state-purity checks into verification and close the addendum.
 
@@ -62,8 +65,9 @@ The addendum reverses the old priority: completeness (Class A) before consistenc
 conformance (Class C). Phases 19–20 now prove the source-level registry, rendered-control aggregate, and
 evidenced no-PD disposition. Phase 21 is exactly PE; Phases 22–25 map directly to P5, P6, P7 and P8+PF.
 Phase 21 completes PE: Date is 31→0, Button 8B is 77→0, Form 9B is 39/26/4→0, quantity is 26→0 and
-currency is 12→0, with exact semantic exceptions protected by current-source tests. Phase 22 now owns P5.
-`docs/UI-CONFORMANCE-MATRIX.md` and the PF hidden-state gate do not yet exist.
+currency is 12→0, with exact semantic exceptions protected by current-source tests. Phase 22 materialized
+`docs/UI-CONFORMANCE-MATRIX.md`; Phase 23 now selects only failures that still exist after PE. The PF hidden-state
+gate does not yet exist.
 
 Brainstorming may select an evidence-backed option inside one of these named blocks, but it may not create
 another phase, quota, golden-screen set, DOM-instrumentation program or acceptance criterion without an
@@ -95,4 +99,4 @@ requirements move to completed evidence, new constraints are recorded, and activ
 the roadmap. After the milestone, review the core value, out-of-scope boundaries and evidence lineage.
 
 ---
-*Last updated: 2026-08-02 after Phase 21 PE canon convergence*
+*Last updated: 2026-08-02 after Phase 22 P5 matrix verification*

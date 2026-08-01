@@ -46,10 +46,10 @@ produces an equivalent, predictable UI.
 
 ### P5 — Ma trận chuẩn
 
-- [ ] **CONF-01**: Every P5 matrix row is derived from an approved PB decision or an explicit addendum rule;
+- [x] **CONF-01**: Every P5 matrix row is derived from an approved PB decision or an explicit addendum rule;
   missing information remains unresolved rather than being invented from an absent prior prompt set.
 
-- [ ] **CONF-02**: The P5 matrix assigns every enforced rule an ID, concept, contextual canon, measurement
+- [x] **CONF-02**: The P5 matrix assigns every enforced rule an ID, concept, contextual canon, measurement
   layer and binary PASS condition; advisory taste and unsourced quotas stay outside the gate.
 
 ### P6 — Assertion hình học đỏ trước
@@ -118,8 +118,8 @@ produces an equivalent, predictable UI.
 | CAN-04 | 21 | Complete |
 | CAN-05 | 21 | Complete |
 | CAN-06 | 21 | Complete |
-| CONF-01 | 22 | Pending |
-| CONF-02 | 22 | Pending |
+| CONF-01 | 22 | Complete |
+| CONF-02 | 22 | Complete |
 | CONF-03 | 23 | Pending |
 | CONF-04 | 23 | Pending |
 | CONF-05 | 24 | Pending |

@@ -1296,3 +1296,15 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - `OPEN-03` đóng: import commit/rollback và employee activate/deactivate đều có confirmation nêu scope/tác động.
   Không sửa backend policy/API/route/cache/lifecycle/database, không mutate runtime/database và không push.
 - Phase 22 là P5 — Ma trận chuẩn. Không tạo phase mới ngoài chuỗi 22–25 ánh xạ trực tiếp addendum.
+
+## Hoàn tất Phase 22 — P5 ma trận chuẩn — 02/08/2026
+
+- Tạo `docs/UI-CONFORMANCE-MATRIX.md` với đúng 20 normative row: PB-01..PB-18 chiếu từ ballot đã duyệt và
+  PF-01..PF-02 chiếu từ hai phép kiểm O3 trong addendum. Mỗi row có source, canon/context, measurement layer,
+  điều kiện PASS nhị phân và chiều chưa có nguồn.
+- Spacing, min-height, contrast ratio, pixel/golden tolerance, viewport/finding quota và mọi giá trị không có
+  nguồn được giữ literal `UNRESOLVED`; candidate document không được dùng làm normative source.
+- Checker pass 20 row, 18 PB source, 2 PF source, 0 candidate normative; `git diff --check` và secret/stub scan
+  xanh. Verifier Phase 22 pass `4/4`; CONF-01/02 Complete. Lane `N/A — graph-free documentation diff`.
+- Không sửa production/test/config/runtime/database, không chạy browser, không mở phase mới và không push.
+  Phase 23 tiếp tục P6, chỉ chọn failure thật còn tồn tại sau PE.

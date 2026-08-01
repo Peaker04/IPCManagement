@@ -20,7 +20,7 @@ Phase 19 and maps the addendum blocks without renumbering the project's historic
 - [x] **Phase 21: PE — Hợp nhất về canon** — finish the approved PB concepts one concept at a time, (completed 2026-08-01)
   preserving the contextual exceptions already approved.
 
-- [ ] **Phase 22: P5 — Ma trận chuẩn** — turn the approved PB choices into the standard matrix required
+- [x] **Phase 22: P5 — Ma trận chuẩn** — turn the approved PB choices into the standard matrix required (completed 2026-08-01)
   by the addendum; do not invent a new visual canon.
 
 - [ ] **Phase 23: P6 — Assertion hình học đỏ trước** — add a failing assertion for each selected P5 rule
