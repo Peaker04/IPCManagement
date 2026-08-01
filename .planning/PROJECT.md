@@ -25,9 +25,9 @@ same declared business state produces an equivalent, predictable UI.
   identity, and closes ORCL-04/05 without opening a production PD action. Phase 21 completes all eighteen
   approved PB concepts with live-source gates and exact semantic exceptions.
 
-## Current Milestone: v1.3 UI Completeness & Conformance
+## Completed Milestone: v1.3 UI Completeness & Conformance
 
-**Goal:** Finish the remaining addendum blocks directly: PE, then P5, P6, P7, and P8 together with PF.
+**Goal:** Completed the addendum blocks directly: PE, P5, P6, P7, and P8 together with PF.
 
 **Target features:**
 
@@ -53,9 +53,14 @@ same declared business state produces an equivalent, predictable UI.
 
 - [x] P7: the zero-selection set authorized zero production fixes; current-source and PC contracts stayed green.
 
+## Validated in Phase 25
+
+- [x] P8 + PF: root verification now locks registry, canon, P5/P6 and state-purity contracts; headed current-source
+  evidence and the direct PA→PF closeout complete the addendum without a Phase 26.
+
 ## Active requirements
 
-- [ ] P8 + PF: lock the approved assertions and state-purity checks into verification and close the addendum.
+- None inside milestone v1.3; future requirements remain outside this completed addendum.
 
 ## Out of Scope
 
@@ -73,9 +78,9 @@ conformance (Class C). Phases 19–20 now prove the source-level registry, rende
 evidenced no-PD disposition. Phase 21 is exactly PE; Phases 22–25 map directly to P5, P6, P7 and P8+PF.
 Phase 21 completes PE: Date is 31→0, Button 8B is 77→0, Form 9B is 39/26/4→0, quantity is 26→0 and
 currency is 12→0, with exact semantic exceptions protected by current-source tests. Phase 22 materialized
-`docs/UI-CONFORMANCE-MATRIX.md`; Phase 23 now selects only failures that still exist after PE. The PF hidden-state
-gate does not yet exist. Phase 23 selected zero current failures, so Phase 24 is a verified no-op.
-Phase 25 is the final addendum block; no Phase 26 is authorized.
+`docs/UI-CONFORMANCE-MATRIX.md`; Phase 23 selected zero current failures, so Phase 24 was a verified no-op.
+Phase 25 now locks the PF hidden-state and same-state contracts into root verification. The addendum is complete;
+no Phase 26 is authorized or needed.
 
 Brainstorming may select an evidence-backed option inside one of these named blocks, but it may not create
 another phase, quota, golden-screen set, DOM-instrumentation program or acceptance criterion without an

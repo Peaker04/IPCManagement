@@ -29,8 +29,8 @@ Phase 19 and maps the addendum blocks without renumbering the project's historic
 - [x] **Phase 24: P7 — Sửa theo ma trận** — fix only the failures demonstrated by P6, then rerun PC and (completed 2026-08-01)
   the existing verification gates to ensure no new mismatch.
 
-- [ ] **Phase 25: P8 + PF — Khóa gate và bảo vệ UI=f(state)** — put the approved matrix assertions and
-  state-purity checks into the permanent gate, then close the addendum.
+- [x] **Phase 25: P8 + PF — Khóa gate và bảo vệ UI=f(state)** — put the approved matrix assertions and
+  state-purity checks into the permanent gate, then close the addendum (completed 2026-08-02).
 
 ### Phase 19: PA — Completeness registry expansion
 

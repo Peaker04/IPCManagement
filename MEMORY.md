@@ -55,7 +55,6 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 
 ## Còn mở
 
-- `OPEN-01` · owner `QA/UI` · đóng khi P5 chỉ chứa các dòng có nguồn từ PB/addendum, phần thiếu nguồn được giữ unresolved, và các dòng được chọn có oracle P6 nhị phân chạy trên gate hiện hành.
 - `OPEN-02` · owner `Backend/SampleData` · đóng khi BOM workbook hỏng trả lỗi domain thân thiện thay vì HTTP generic và có API regression.
 - `OPEN-04` · owner `Ops/Backup` · đóng khi dump + binlog được mã hóa lên object storage immutable, có SSD luân phiên off-premises và restore drill chỉ từ off-site pass toàn bộ gate runbook.
 - `OPEN-05` · owner `Backend/Audit` · đóng khi thay đổi contract/menu-schedule effective range có audit coverage end-to-end.
@@ -72,11 +71,20 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 
 ## Gate hiện hành
 
-Gate Phase 21 chốt ngày `2026-08-02`: Application `49/49`; API `705 pass + 1 intentional skip`; frontend
-`117 files / 653 tests`; architecture `6/6`, strict growth giữ đúng 10 finding production, ESLint,
-dependency-cruiser `0 violation / 373 modules / 1,344 dependencies`, backend build và frontend production
-build đều pass. Verifier pass `27/27`; GitNexus raw CRITICAL có 237 symbol/97 file/28 process, tất cả đã
-disposition, Deferred none.
+Gate Phase 25 chốt ngày `2026-08-02`: Application `49/49`; API `705 pass + 1 intentional skip`; frontend
+`118 files / 662 tests`; UI-completeness `87/87`; PF focused `9/9`; architecture `6/6`, strict growth giữ
+đúng 10 finding production, ESLint, dependency-cruiser `0 violation / 373 modules / 1,344 dependencies`,
+backend build và frontend production build đều pass. PF khóa 3 same-kind pair và baseline 48 group/131 finding
+trên đủ local/global/time/order/cache. Goal-backward verifier pass `5/5`.
+
+Chrome headed current-source cuối chạy đúng năm viewport với 45 route probe, 5 screenshot, 588 API response
+sau action, 0 console/page/request error, 0 escaped mutation và 0 overflow; max CLS là
+`0.09390127047894613`, có 4 long task được ghi nhận. Runtime do phiên tạo đã teardown và `ipc_lane1` không
+seed/import/reset/restore. Hash chỉ nằm ở `docs/EVIDENCE-INDEX.md`.
+
+GitNexus lightweight explicit `70a21ea..HEAD` là LOW: 57 changed symbol, 4 file được graph nhận diện,
+0 affected production process, Deferred none. Addendum đã đóng trực tiếp theo PA, PB, P3, P4, PC, PD, PE,
+P5, P6, P7, P8, PF tại `docs/UI-UX-ADDENDUM-CLOSEOUT.md`; không có Phase 26.
 
 PC aggregate authoritative là `FE-fixture-read-only`: 6 family, 34 scenario, 44 canonical row, 5 viewport,
 535 measurement, 375 observed control, 265 `KHỚP`, 255 `CHƯA-KẾT-LUẬN-ĐƯỢC` và 15 `LỆCH VỊ TRÍ`;
@@ -111,7 +119,7 @@ Phase 23 P6 audit đủ 20/20 row; aggregate source gate 7/7 pass. Kết quả �
 P6 RED evidence; chỉ ghi no-op và xác minh current source/evidence lane không đổi.
 
 Phase 24 P7 đóng no-op: `production_fixes: 0`, `green_assertions_after_fix: 0`; aggregate source + PC pass
-4 file/50 test. Không rerun browser hay mutate runtime/database vì không có UI source change. Phase 25 là block cuối
-P8+PF; không mở Phase 26.
+4 file/50 test. Phase 25 P8+PF đã khóa permanent gate, lưu evidence headed current-source và đóng addendum;
+không mở Phase 26.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.

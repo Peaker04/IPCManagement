@@ -1327,3 +1327,19 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Không rerun headed browser, không relabel evidence và không start runtime/mutate `ipc_lane1` vì không có UI source
   change. Lane `N/A — graph-free docs-only no-op`.
 - Phase 25 là block cuối P8+PF của addendum. Không tạo Phase 26 hoặc follow-up phase.
+
+## Hoàn tất Phase 25 — P8 + PF permanent gate — 02/08/2026
+
+- Ba same-kind pair được nối từ hai production callsite về shared projection owner và kiểm actions, status label,
+  mandatory facts trên cùng logical fixture. Hidden-state scanner khóa exact baseline local/global/time/order/cache,
+  ba synthetic negative probe và cấm production import test inventory.
+- Root `test:ui-completeness` khóa operational registry, source canon, P5/P6 ledger và PF contract; root verify
+  pass Application `49/49`, API `705 pass + 1 skip`, frontend `118 files / 662 tests`, architecture, lint,
+  dependency-cruiser và hai production build. Test count tăng, không giảm.
+- Chrome headed current-source hoàn tất đúng năm viewport trên guarded `ipc_lane1`, ghi screenshot, API sau action,
+  console/page/request errors, CLS và long task; run final không có escaped mutation, browser issue hoặc overflow.
+  Attempt locator timeout trước đó được giữ riêng và không dùng làm gate; hash chỉ khai trong evidence index.
+- GitNexus lightweight compare từ `70a21ea` là LOW với zero affected production process. Goal-backward verifier
+  pass `5/5`, Deferred none. `STATE-01..03`, `QUAL-01`, `DOC-01` Complete.
+- `docs/UI-UX-ADDENDUM-CLOSEOUT.md` ánh xạ trực tiếp PA, PB, P3, P4, PC, PD, PE, P5, P6, P7, P8, PF.
+  Milestone v1.3 và addendum đóng tại Phase 25; không tạo Phase 26, không push và không mutate dữ liệu lane.

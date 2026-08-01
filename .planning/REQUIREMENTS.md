@@ -70,21 +70,21 @@ produces an equivalent, predictable UI.
 
 ### P8 + PF — Khóa gate và bảo vệ UI=f(state)
 
-- [ ] **STATE-01**: Equivalent logical states rendered in multiple same-kind locations expose equivalent
+- [x] **STATE-01**: Equivalent logical states rendered in multiple same-kind locations expose equivalent
   actions, status labels and mandatory facts, with deterministic tests for every identified pair.
 
-- [ ] **STATE-02**: A static inventory classifies local/global/time/order/cache values that affect visibility;
+- [x] **STATE-02**: A static inventory classifies local/global/time/order/cache values that affect visibility;
   unapproved hidden presentation state fails the gate and approved ephemeral interaction state is explicit.
 
-- [ ] **STATE-03**: Root verification runs the registry, canon, conformance and state-purity gates so the
+- [x] **STATE-03**: Root verification runs the registry, canon, conformance and state-purity gates so the
   completed cleanup cannot silently regress.
 
 ### Quality and documentation
 
-- [ ] **QUAL-01**: Existing application, API and frontend tests remain green with nondecreasing counts;
+- [x] **QUAL-01**: Existing application, API and frontend tests remain green with nondecreasing counts;
   lint, dependency-cruiser, production build, architecture growth and GitNexus final review pass.
 
-- [ ] **DOC-01**: PA/PB/PC audits, conformance matrix, MEMORY, HISTORY, STATE and evidence index agree on
+- [x] **DOC-01**: PA/PB/PC audits, conformance matrix, MEMORY, HISTORY, STATE and evidence index agree on
   current status without duplicating authoritative metrics or hashes.
 
 ## Future Requirements
@@ -124,11 +124,11 @@ produces an equivalent, predictable UI.
 | CONF-04 | 23 | Complete |
 | CONF-05 | 24 | Complete |
 | CONF-06 | 24 | Complete |
-| STATE-01 | 25 | Pending |
-| STATE-02 | 25 | Pending |
-| STATE-03 | 25 | Pending |
-| QUAL-01 | 25 | Pending |
-| DOC-01 | 25 | Pending |
+| STATE-01 | 25 | Complete |
+| STATE-02 | 25 | Complete |
+| STATE-03 | 25 | Complete |
+| QUAL-01 | 25 | Complete |
+| DOC-01 | 25 | Complete |
 | RESP-01 | Future | Deferred |
 | VISION-01 | Future | Deferred |
 | FIGMA-01 | Future | Deferred |
