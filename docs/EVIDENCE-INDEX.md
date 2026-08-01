@@ -6,6 +6,13 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/runtime-preflight.json` | `FA73DEF45214969B645F79AA5E01720B77381F7A5AF2CD2CD17BD39697B16008` | Preflight Phase 25 xác nhận current source, runtime guarded và database `ipc_lane1`; không seed/import/reset/restore. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source.json` | `5DCED855EF91AF3C62ED4B5099FCCC91099AC0A3BDD381CAFCBBBFF74CB1EDE4` | Run Chrome headed current-source cuối cho P8/PF; metrics gate hiện hành chỉ khai trong `MEMORY.md`. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/1920x1080-admin-statistics-final.png` | `5D8A3845E9915A8218F31E0C5651A99474435A8BE3FC9795426561E9DF46035C` | Screenshot cuối viewport `1920×1080` của run Phase 25 authoritative. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/1440x900-admin-statistics-final.png` | `D0FA46DA5CEBD69FB93620B370E6A8B0D609A9B0C2CD459C2C50D778EA704B1F` | Screenshot cuối viewport `1440×900` của run Phase 25 authoritative. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/1366x768-admin-statistics-final.png` | `688BF587448DC8B4E5038D5193DEBB6F869BE1391E4E4A195BB6DDE64EEFFDF8` | Screenshot cuối viewport `1366×768` của run Phase 25 authoritative. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/1365x900-admin-statistics-final.png` | `E6FEF174595D19A8617901637D5FCC4E9B1264B6B6DB5EF72C6445655968011B` | Screenshot cuối viewport `1365×900` của run Phase 25 authoritative. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/1280x900-admin-statistics-final.png` | `3F9DFBEA4F2EDEB777EE76459697931A3EF5321951A576151E4FF85014D8C5CA` | Screenshot cuối viewport `1280×900` của run Phase 25 authoritative. |
 | `.planning/phases/20-pc-pd-action-completeness/20-PC-AGGREGATE.json` | `C07A2D7C0695A3A3C2BF6E8F689C5779CFAB4BEE24D72117EDE0E11CA8712A28` | Phase 20 aggregate `FE-fixture-read-only` cuối trên sáu executable family và năm desktop viewport; canonical operations có control đã được exercise, gồm intercepted read/mutation, post-action, screenshot và performance evidence; không phải backend/DB E2E. |
 | `.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/operational-weekly-menu-e2e.json` | `F2AE20CCF34C7FD3D1A36E6D67495C17A89142318EA9DA6C47F4BFBAF9A83493` | Chrome headed operational E2E trên source hiện tại: import → publish ở Admin Contracts → hoàn tất 12 ca → sinh/duyệt 6 demand → handoff Thu mua; 28 mutation đều 2xx và không chứa credential/token. |
 | `.artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/database-after-e2e.json` | `B2C6DE7E813512FE063673EA7D4B0E61E17E1E979E00D0A8A325D2FCDB0FD55D` | DB transition trên `ipc_e2e_template`: version/schedule ACTIVE, 12 plan COMPLETED, 6 demand MANAGERAPPROVED, 350 line và 6 approval history; `ipc_lane1` count nguồn không đổi. |
@@ -59,6 +66,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Lý do loại |
 |---|---|---|
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.json` | `5DD7189E1C844A1275616417338002E746E9913F9056ED6C3FB8AE4F1BB1C144` | Attempt locator timeout lúc 04:07; run final cùng thư mục lúc 04:10 mới authoritative. |
+| `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.png` | `A51DFB76E74A069BB68984A68CD7C9A9BBB0E746D9AC34CF6905620339CDC9EE` | Screenshot của attempt locator timeout, không dùng làm gate. |
 | `.artifacts/shipyard-live/goal-runtime-20260729-round2/browser-grain-audit/headed-grain-audit-error.png` | `34D9C360D8B17B20FDF78437D0A6BF9F78FF02259F9027E07971EE0C95ADA92A` | Ảnh lỗi của attempt trước final run. |
 | `.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit-error.json` | `7E15E9833E905AFF34DCAF19742CE53F55C16797A8E5A7D53B9FDE18B32F81E2` | Locator attempt cũ; file final cùng thư mục mới authoritative. |
 
