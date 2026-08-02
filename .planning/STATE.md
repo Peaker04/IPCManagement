@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — UI Completeness & Conformance
-status: completed
-stopped_at: Milestone v1.3 complete; Phase 25 P8+PF verified with no Phase 26
-last_updated: "2026-08-02T04:30:00+07:00"
-last_activity: 2026-08-02
+status: Awaiting next milestone
+stopped_at: Phase 21 complete; Phase 22 P5 matrix ready
+last_updated: "2026-08-02T04:01:23.956Z"
+last_activity: 2026-08-02 — Milestone v1.3 completed and archived
 progress:
   total_phases: 7
   completed_phases: 7
@@ -20,18 +20,19 @@ current_phase_name: p8-pf-permanent-gate
 
 ## Project Reference
 
-See `.planning/PROJECT.md`. The sole active roadmap is milestone v1.3 in `.planning/ROADMAP.md`, derived
-from `.docs/UI-UX-ADDENDUM-KHONG-CO-FIGMA.md`. Phases 11–18 and the v1.1 archive are historical only.
+See `.planning/PROJECT.md` (updated 2026-08-02).
+
+**Core value:** Every permitted operational action is reachable and equivalent declared
+business state produces an equivalent, predictable UI.
+
+**Current focus:** Initialize the approved v1.4 SAP Fiori Visual Conformance milestone.
 
 ## Current Position
 
-Phase: 25
-Plan: 01 complete
-Status: Milestone complete
-Last activity: 2026-08-02 — Phase 25 locked P8+PF into root verify and passed goal-backward verification 5/5
-Last activity: 2026-08-01
-Last activity: 2026-08-01
-Last activity: 2026-08-01
+Phase: Milestone v1.3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-02 — Milestone v1.3 completed and archived
 
 ## Verified Baseline
 
@@ -223,6 +224,15 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 - [Phase 20]: Aggregate control evidence uses truthful accessible role/name or label selectors guarded against production source drift.
 - [Phase 20]: Defer all production PD candidates: THIẾU/MỒ CÔI/IM LẶNG are zero, 15 LỆCH VỊ TRÍ are downstream route denials with explicit disposition, and visible controls do not resolve canonical UNKNOWN debt.
 
+## Deferred Items
+
+Items acknowledged at milestone v1.3 close on 2026-08-02:
+
+| Category | Item | Status |
+|----------|------|--------|
+| todo | \`weekly-menu-browser-uat.md\` | Carry forward into milestone v1.4 SAP Fiori visual conformance and evidence verification |
+| todo | \`customer-weekly-menu-template-workbench.md\` | Deferred product feature outside milestone v1.4; remains pending without being treated as completed |
+
 ## Blockers
 
 - Non-blocking operational gap: configure and verify a genuinely off-site production backup target; the current C:/D: mirror proves copy integrity and disposable restore only.
@@ -292,3 +302,7 @@ Last activity: 2026-08-02 - Phase 21 verified 27/27; root gate and 28-process di
 | Phase 20 P04 | 25 min | 3 tasks | verification and closeout |
 | Phase 21 P01 | 14 min | 2 tasks | date-only formatter canon slice |
 | Phase 21 P02 | 12 min | 2 tasks | Admin BOM table boundary canon slice |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
