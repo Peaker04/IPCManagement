@@ -14,7 +14,7 @@
 
 ### DOM-to-source ownership
 
-- [ ] **SOURCE-01**: Every judged region and meaningful control exposes stable opaque owner/floorplan/region identifiers sufficient to join browser evidence to the registry.
+- [x] **SOURCE-01**: Every judged region and meaningful control exposes stable opaque owner/floorplan/region identifiers sufficient to join browser evidence to the registry.
 - [x] **SOURCE-02**: A test-owned manifest maps every opaque owner/region identifier to an exact source file, symbol and fragment, and exact-set checks reject missing, duplicate, orphan or stale mappings.
 - [ ] **SOURCE-03**: Production DOM and bundles expose no repository path or absolute source path from the test-owned manifest.
 
@@ -82,7 +82,7 @@
 | FLOOR-02 | Phase 26 | Complete |
 | FLOOR-03 | Phase 26 | Complete |
 | FLOOR-04 | Phase 26 | Complete |
-| SOURCE-01 | Phase 26 | Pending |
+| SOURCE-01 | Phase 26 | Complete |
 | SOURCE-02 | Phase 26 | Complete |
 | SOURCE-03 | Phase 26 | Pending |
 | CAP-01 | Phase 27 | Pending |
