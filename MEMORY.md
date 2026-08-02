@@ -76,6 +76,18 @@ SOURCE-01..03 đều Complete. Application `49/49`; API `705 pass + 1 intentiona
 `123 files / 724 tests`; UI-completeness `87/87`; ESLint, dependency-cruiser `0 violation / 373 modules /
 1,346 dependencies`, backend build và frontend production build đều pass.
 
+Current-source sau quick `260802-plv` ở commit `c8667f2`: frontend `124 files / 729 tests`, focused
+presentation `9/9`, UI-completeness `87/87`, ESLint, dependency-cruiser `0 violation / 376 modules /
+1,348 dependencies` và production build đều pass. Bốn correction chỉ thuộc presentation: Reports cấp đủ
+10 column width, Audit đủ 7 column width và bounded raw value, Purchasing empty-state không giữ chiều cao
+populated, Admin current stock dùng formatter quantity/unit canonical.
+
+Shipyard headed warm gate current-source pass đúng 50 canonical state × năm viewport, 250 screenshot và
+966 API response thành công. 190 tab interaction có p95 `156.5 ms`, max `216 ms`, zero over-budget/CLS/
+duplicate read/browser error/escaped mutation; 20 sidebar cold/warm sample có p95 `124.9 ms`, max `138.9 ms`
+và toàn bộ budget/error gate xanh. UI/action registry không có missing-control candidate nên không thêm nút
+FE suy diễn. Hash và pointer authoritative chỉ nằm ở `docs/EVIDENCE-INDEX.md`.
+
 Source-ownership headed gate pass `6/6` trên đủ 50 canonical state × năm viewport `1920×1080`,
 `1440×900`, `1366×768`, `1365×900`, `1280×900`, tổng 250 viewport-state cell. DOM/bundle leakage,
 nearest-ancestor tuple và nondecreasing test-count gate đều xanh. Run chỉ dùng read-only API stub;

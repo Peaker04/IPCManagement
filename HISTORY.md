@@ -1355,3 +1355,15 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   Application `49/49`, API `705 + 1 skip`, frontend `123 files / 724 tests`, lint/dependency/build xanh.
 - GitNexus full-analysis cho instrumentation và lightweight cho checker đều đã reconcile, zero Deferred.
   `ipc_lane1` không bị mutate, Phase 27 không mở và không push.
+
+## Hoàn tất quick 260802-ola + 260802-plv — Shipyard evidence-driven UI remediation — 02/08/2026
+
+- Đồng bộ FE/BE/current-source rồi audit Chrome headed 50 canonical state × năm viewport trên dữ liệu thật,
+  không mutate `ipc_lane1`. Baseline chứng minh tab/sidebar/cache đã nhanh và ổn định nên không sửa cơ chế này.
+- Ảnh và table geometry xác nhận bốn lỗi presentation: Reports cấp width thiếu 3/10 cột, Audit thiếu 1/7 cột,
+  Purchasing giữ khối empty 400/480 px và Admin stock in quantity/unit raw. Commit `c8667f2` sửa đúng bốn điểm.
+- Warm rerun pass 250/250 screenshot, 966 API success, tab p95 156.5 ms/max 216 ms, sidebar p95 124.9 ms/
+  max 138.9 ms, zero CLS, browser error, duplicate read và escaped mutation. UI completeness giữ 87/87;
+  không có bằng chứng cho phép thêm nút FE.
+- Frontend pass 124 file / 729 test, lint, dependency graph và production build. GitNexus final MEDIUM,
+  một presentation process, HIGH-rigor review APPROVE, Deferred none. Phase 27 không mở và không push.

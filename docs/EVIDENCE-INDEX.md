@@ -6,8 +6,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
-| `.artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-current-e2e.json` | `51BE927EDD625AE889C25EF85EF97088D13EB1D1C07B9AD0D5DB4AC68AD76C65` | Baseline trước remediation: 50 canonical state × năm viewport trên current-source Shipyard có dữ liệu thật; gồm screenshot, API, tab timing, table geometry, CLS/long-task và browser error. |
-| `.artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-live-navigation.json` | `F74CB09E06D5597A53F580FADECF5706151955144E3D1360B84A5F38AE375DDD` | Baseline cold/warm sidebar navigation cho mười route; dùng để disposition việc không sửa router/cache/tab behavior. |
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-current-e2e.json` | `328BBCA2FA0BBAA98E9D7F3972278CD4E7A221E7750F1E2C48243BF4F56596E9` | Current-source warm matrix sau remediation: 50 canonical state × năm viewport; screenshot, API, tab timing, table geometry, CLS/long-task, control inventory và browser error. |
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-live-navigation.json` | `9D03360E2B67040CE26B65492ABDBBBBE170D6E62437D024A1E990F1A053A9B8` | Current-source cold/warm sidebar navigation sau remediation cho mười route; final performance/error/mutation gate. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/runtime-preflight.json` | `FA73DEF45214969B645F79AA5E01720B77381F7A5AF2CD2CD17BD39697B16008` | Preflight Phase 25 xác nhận current source, runtime guarded và database `ipc_lane1`; không seed/import/reset/restore. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source.json` | `5DCED855EF91AF3C62ED4B5099FCCC91099AC0A3BDD381CAFCBBBFF74CB1EDE4` | Run Chrome headed current-source cuối cho P8/PF; metrics gate hiện hành chỉ khai trong `MEMORY.md`. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/1920x1080-admin-statistics-final.png` | `5D8A3845E9915A8218F31E0C5651A99474435A8BE3FC9795426561E9DF46035C` | Screenshot cuối viewport `1920×1080` của run Phase 25 authoritative. |
@@ -43,6 +43,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-current-e2e.json` | `51BE927EDD625AE889C25EF85EF97088D13EB1D1C07B9AD0D5DB4AC68AD76C65` | Baseline trước remediation dùng để so geometry và disposition tab/navigation/cache. |
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-live-navigation.json` | `F74CB09E06D5597A53F580FADECF5706151955144E3D1360B84A5F38AE375DDD` | Baseline sidebar cold/warm trước remediation. |
 | `.artifacts/shipyard-live/production-report-debug.json` | `3813B9CADD4BA76759A3D5FECDEBDD9454FE2A157C07E6677A97C2B6B0B5D323` | Điều tra production report sau restore. |
 | `.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/current-runtime-desktop-audit.json` | `975EEAC84626AA7B9CDEC559621728BEE83FD3BC5954021B7766004D8425C9EA` | Desktop audit trước ma trận viewport hiện hành. |
 | `.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/warehouse-desktop-cls-probe.json` | `5B7AD31365FC31B4BBA13AA977392220D555BC58696899A7E684BD8681027A97` | Probe CLS cold/warm cũ. |
