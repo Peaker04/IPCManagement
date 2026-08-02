@@ -6,6 +6,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-final2/shipyard-current-e2e.json` | `B4917359F9724FD565AA52378EC5B028F8ADD03BAE86F81F6DFB795DA2540373` | Final2 authoritative all-page/tab Shipyard E2E after iterative UI/UX remediation: 50 canonical states × five headed viewports, screenshots, API, controls, geometry, tab timing, CLS/long-task and browser error evidence. |
 | `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-current-e2e.json` | `328BBCA2FA0BBAA98E9D7F3972278CD4E7A221E7750F1E2C48243BF4F56596E9` | Current-source warm matrix sau remediation: 50 canonical state × năm viewport; screenshot, API, tab timing, table geometry, CLS/long-task, control inventory và browser error. |
 | `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-live-navigation.json` | `9D03360E2B67040CE26B65492ABDBBBBE170D6E62437D024A1E990F1A053A9B8` | Current-source cold/warm sidebar navigation sau remediation cho mười route; final performance/error/mutation gate. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/runtime-preflight.json` | `FA73DEF45214969B645F79AA5E01720B77381F7A5AF2CD2CD17BD39697B16008` | Preflight Phase 25 xác nhận current source, runtime guarded và database `ipc_lane1`; không seed/import/reset/restore. |

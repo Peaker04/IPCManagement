@@ -76,17 +76,19 @@ export function WarehouseDemandPanel({
           totalItems={totalItems}
           onPageChange={onPageChange}
         />
-        <div className="mt-4">
-          <RoleInbox
-            items={inboxItems}
-            title={null}
-            actionForItem={(item) => (
-              <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                {formatWorkflowStatus(item.nextAction)}
-              </Link>
-            )}
-          />
-        </div>
+        {inboxItems.length > 0 && (
+          <div className="mt-4">
+            <RoleInbox
+              items={inboxItems}
+              title={null}
+              actionForItem={(item) => (
+                <Link className="ipc-button ipc-button-ghost" to={item.route}>
+                  {formatWorkflowStatus(item.nextAction)}
+                </Link>
+              )}
+            />
+          </div>
+        )}
       </div>
     </SectionPanel>
   );

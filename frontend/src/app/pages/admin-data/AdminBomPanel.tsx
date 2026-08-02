@@ -223,54 +223,43 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 {bomPanelMode === 'current' ? (
                   <div id="bom-current-panel" role="tabpanel" aria-labelledby="bom-current-tab" className="min-w-0">
                     <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
-                      <table className="ipc-data-table min-w-[1038px] table-fixed">
+                      <table className="ipc-data-table ipc-bom-current-table table-fixed">
                       <colgroup>
-                        <col className="w-[215px]" />
-                        <col className="w-[190px]" />
-                        <col className="w-[80px]" />
-                        <col className="w-[85px]" />
-                        <col className="w-[70px]" />
-                        <col className="w-[115px]" />
-                        <col className="w-[115px]" />
-                        <col className="w-[168px]" />
+                        <col className="w-[39%]" />
+                        <col className="w-[19%]" />
+                        <col className="w-[24%]" />
+                        <col className="w-[18%]" />
                       </colgroup>
                       <thead>
                         <tr>
-                          <th>Món</th>
-                          <th>Nguyên liệu</th>
-                          <th>ĐVT</th>
-                          <th>Qty/suất</th>
-                          <th>Hao hụt</th>
-                          <th>Hiệu lực</th>
-                          <th>Trạng thái</th>
+                          <th>Định lượng</th>
+                          <th>Mức dùng</th>
+                          <th>Hiệu lực / trạng thái</th>
                           <th className="whitespace-nowrap">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
                         {currentBomPagination.rows.map(({ dish, line }) => (
                           <tr key={line.bomId}>
-                            <td>
+                            <td className="align-top">
                               <div className="font-semibold text-slate-900">{dish.name}</div>
                               <div className="text-xs text-slate-500">{dish.code}</div>
-                            </td>
-                            <td>
-                              <div className="font-semibold text-slate-900">{line.name}</div>
+                              <div className="mt-1 font-medium text-slate-800">{line.name}</div>
                               <div className="text-xs text-slate-500">{line.ingredientCode}</div>
                             </td>
-                            <td>{line.unit}</td>
-                            <td className="ipc-numeric-cell">{line.grossQtyPerServing}</td>
-                            <td className="ipc-numeric-cell">{line.wasteRatePercent}%</td>
-                            <td>
-                              <div>{line.effectiveFrom}</div>
-                              <div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div>
+                            <td className="align-top text-right tabular-nums">
+                              <div className="font-semibold text-slate-900">{line.grossQtyPerServing} {line.unit}</div>
+                              <div className="text-xs text-slate-500">Hao hụt {line.wasteRatePercent}%</div>
                             </td>
-                            <td>
+                            <td className="align-top">
+                              <div>{line.effectiveFrom}</div>
+                              <div className="mb-1 text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div>
                               <StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>
                                 {line.bomStatusLabel || line.bomStatus}
                               </StatusBadge>
                             </td>
-                            <td className="whitespace-nowrap">
-                              <div className="flex flex-nowrap justify-center gap-1">
+                            <td className="align-top">
+                              <div className="flex flex-wrap justify-center gap-1">
                                 <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
                                   <Pencil size={14} /> Sửa
                                 </Button>
@@ -281,9 +270,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                             </td>
                           </tr>
                         ))}
-                        {!isDishCatalogLoading && currentBomRows.length === 0 && <EmptyRow colSpan={8} />}
+                        {!isDishCatalogLoading && currentBomRows.length === 0 && <EmptyRow colSpan={4} />}
                         {isDishCatalogLoading && (
-                          <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
+                          <tr><td colSpan={4} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
                         )}
                       </tbody>
                       </table>

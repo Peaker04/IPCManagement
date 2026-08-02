@@ -348,7 +348,8 @@
 }
 
 .ipc-admin-audit-table {
-  min-width: 1040px;
+  width: 100%;
+  min-width: 0 !important;
   table-layout: fixed;
 }
 
@@ -394,6 +395,95 @@
   line-height: 1.6;
   scrollbar-gutter: stable;
 }
+
+.ipc-reports-audit-shell {
+  max-height: min(66vh, 640px);
+}
+
+.ipc-reports-audit-table {
+  min-width: 940px;
+  table-layout: fixed;
+}
+
+.ipc-reports-audit-table th:nth-child(1) { width: 12%; }
+.ipc-reports-audit-table th:nth-child(2) { width: 10%; }
+.ipc-reports-audit-table th:nth-child(3) { width: 14%; }
+.ipc-reports-audit-table th:nth-child(4) { width: 16%; }
+.ipc-reports-audit-table th:nth-child(5),
+.ipc-reports-audit-table th:nth-child(6) { width: 16%; }
+.ipc-reports-audit-table th:nth-child(7) { width: 16%; }
+
+.ipc-reports-audit-table td {
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ipc-reports-audit-value {
+  display: block;
+  min-width: 0;
+  max-height: 6.4em;
+  overflow: auto;
+  overscroll-behavior: contain;
+  line-height: 1.6;
+  scrollbar-gutter: stable;
+}
+
+.ipc-reports-quality-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.ipc-reports-quality-table th:nth-child(1) { width: 10%; }
+.ipc-reports-quality-table th:nth-child(2) { width: 13%; }
+.ipc-reports-quality-table th:nth-child(3) { width: 13%; }
+.ipc-reports-quality-table th:nth-child(4) { width: 10%; }
+.ipc-reports-quality-table th:nth-child(5) { width: 12%; }
+.ipc-reports-quality-table th:nth-child(6) { width: 14%; }
+.ipc-reports-quality-table th:nth-child(7) { width: 13%; }
+.ipc-reports-quality-table th:nth-child(8) { width: 13%; }
+.ipc-reports-quality-table th:nth-child(9) { width: 8%; }
+
+.ipc-reports-quality-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.ipc-bom-current-table {
+  width: 100%;
+  min-width: 600px;
+}
+
+.ipc-admin-statistics-table,
+.ipc-chef-production-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.ipc-admin-statistics-table th:nth-child(1) { width: 18%; }
+.ipc-admin-statistics-table th:nth-child(2) { width: 14%; }
+.ipc-admin-statistics-table th:nth-child(3) { width: 30%; }
+.ipc-admin-statistics-table th:nth-child(4) { width: 16%; }
+.ipc-admin-statistics-table th:nth-child(5) { width: 22%; }
+
+.ipc-admin-statistics-table td,
+.ipc-chef-production-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.ipc-chef-production-table th:nth-child(1) { width: 14%; }
+.ipc-chef-production-table th:nth-child(2) { width: 13%; }
+.ipc-chef-production-table th:nth-child(3) { width: 16%; }
+.ipc-chef-production-table th:nth-child(4) { width: 10%; }
+.ipc-chef-production-table th:nth-child(5) { width: 8%; }
+.ipc-chef-production-table th:nth-child(6) { width: 16%; }
+.ipc-chef-production-table th:nth-child(7) { width: 11%; }
+.ipc-chef-production-table th:nth-child(8) { width: 12%; }
 
 .ipc-nav-link:focus-visible,
 .ipc-logout-button:focus-visible {

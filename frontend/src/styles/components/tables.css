@@ -165,12 +165,13 @@
 }
 
 .ipc-admin-quality-table {
-  min-width: 1320px;
+  width: 100%;
+  min-width: 0;
   table-layout: fixed;
 }
 
 .ipc-admin-quality-table th:nth-child(1) {
-  width: 15%;
+  width: 10%;
 }
 
 .ipc-admin-quality-table th:nth-child(2) {
@@ -190,18 +191,24 @@
 }
 
 .ipc-admin-quality-table th:nth-child(6) {
-  width: 13%;
+  width: 12%;
 }
 
 .ipc-admin-quality-table th:nth-child(7),
 .ipc-admin-quality-table th:nth-child(8) {
-  width: 15%;
+  width: 14%;
 }
 
 .ipc-admin-quality-table th:nth-child(9),
 .ipc-admin-quality-table th:nth-child(10) {
-  width: 8%;
-  min-width: 6rem;
+  width: 9%;
+  min-width: 0;
+}
+
+.ipc-admin-quality-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
 }
 
 .ipc-admin-quality-table .ipc-row-action-cell {

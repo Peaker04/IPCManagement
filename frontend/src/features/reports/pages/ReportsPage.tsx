@@ -442,8 +442,8 @@ return (
 
       {activeView === 'audit' && (
         <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
-          <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
-            <table className="ipc-data-table min-w-[720px]">
+          <TableViewport className="ipc-reports-audit-shell" ariaLabel="Bảng audit thay đổi hệ thống">
+            <table className="ipc-data-table ipc-reports-audit-table">
               <thead>
                 <tr>
                   <th>Thời gian</th>
@@ -462,9 +462,9 @@ return (
                     <td>{row.actor}</td>
                     <td>{row.businessArea}</td>
                     <td>{row.fieldAffected}</td>
-                    <td>{row.oldValue}</td>
-                    <td>{row.newValue}</td>
-                    <td className="text-left">{row.reason}</td>
+                    <td><span className="ipc-reports-audit-value">{row.oldValue}</span></td>
+                    <td><span className="ipc-reports-audit-value">{row.newValue}</span></td>
+                    <td className="text-left"><span className="ipc-reports-audit-value">{row.reason}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -518,7 +518,7 @@ return (
             )}
           </div>
           <TableViewport ariaLabel="Bảng data quality trước production">
-            <table className="ipc-data-table min-w-[720px]">
+            <table className="ipc-data-table ipc-reports-quality-table">
               <thead>
                 <tr>
                   <th>Mức độ</th>

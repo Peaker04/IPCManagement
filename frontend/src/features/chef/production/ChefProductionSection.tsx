@@ -63,7 +63,7 @@ export function ChefProductionSection({
     >
       {blockedReason ? <p className="mb-3 text-[12px] leading-[1.4] text-slate-600" role="status">{blockedReason}</p> : null}
       <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp" caption="Kế hoạch sản xuất trong ngày đã gửi bếp">
-        <table className="ipc-data-table ipc-status-action-table">
+        <table className="ipc-data-table ipc-status-action-table ipc-chef-production-table">
           <thead>
             <tr>
               <th>Kế hoạch</th><th>Khách hàng</th><th>Món</th><th>Ca</th>

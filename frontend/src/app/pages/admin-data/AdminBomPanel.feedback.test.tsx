@@ -216,7 +216,12 @@ describe('Admin BOM form feedback', () => {
 
     const viewport = screen.getByRole('region', { name: 'BOM hiện tại theo đơn giá' });
     expect(viewport).toHaveClass('ipc-table-viewport');
-    expect(viewport).toContainElement(screen.getByRole('table'));
+    const table = screen.getByRole('table');
+    expect(viewport).toContainElement(table);
+    expect(table).toHaveClass('ipc-bom-current-table');
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Định lượng', 'Mức dùng', 'Hiệu lực / trạng thái', 'Thao tác',
+    ]);
     expect(screen.getByRole('navigation', { name: 'Phân trang danh sách' })).not.toHaveClass('ipc-table-viewport');
   });
 });

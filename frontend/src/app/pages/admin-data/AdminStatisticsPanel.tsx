@@ -35,7 +35,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
           ]}>
           <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
             <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
-              <table className="ipc-data-table ipc-status-action-table">
+              <table className="ipc-data-table ipc-status-action-table ipc-admin-statistics-table">
                 <thead>
                   <tr>
                     <th>Nhóm thống kê</th>

@@ -550,7 +550,8 @@
 }
 
 .ipc-status-action-table {
-  min-width: 1080px !important;
+  width: 100%;
+  min-width: 0 !important;
   table-layout: fixed;
 }
 

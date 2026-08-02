@@ -298,6 +298,29 @@ describe('ReportsPage query state boundary', () => {
     expect(screen.getByText('Chưa có dữ liệu để hiển thị')).toBeInTheDocument();
   });
 
+  it('bounds long audit values in a fixed-layout seven-column table', () => {
+    mocks.auditChangePage.mockReturnValue(readyResult({
+      items: [{
+        id: 'audit-1',
+        timestamp: '2026-07-30T01:11:07Z',
+        actor: 'Admin User',
+        businessArea: 'StorekeeperReturnReceipt',
+        fieldAffected: 'InventoryReturn / StorekeeperReceived',
+        oldValue: 'receivedAt=2026-07-29T18:11:07Z',
+        newValue: 'receivedAt=2026-07-30T01:11:07Z',
+        reason: 'Warehouse receipt reconciled from the source document',
+      }],
+      hasNext: false,
+    }));
+
+    renderReportsPage('admin', '/reports?view=audit');
+
+    const table = screen.getByRole('table');
+    expect(table).toHaveClass('ipc-reports-audit-table');
+    expect(table.querySelectorAll('thead th')).toHaveLength(7);
+    expect(table.querySelectorAll('.ipc-reports-audit-value')).toHaveLength(3);
+  });
+
   it('keeps stale price rows visible while refreshing', () => {
     mocks.priceVariancePage.mockReturnValue(readyResult({
       items: [{
