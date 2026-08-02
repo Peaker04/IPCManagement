@@ -50,13 +50,17 @@ export function AdminQueryBoundary({ queries, children }: AdminQueryBoundaryProp
     .map(({ label }) => label);
 
   return (
-    <>
+    <div className="relative">
       {refreshingLabels.length > 0 && (
-        <InlineAlert title="Đang cập nhật dữ liệu quản trị" variant="info">
-          Vẫn giữ dữ liệu hiện tại cho {refreshingLabels.join(', ')} trong khi đồng bộ bản mới.
-        </InlineAlert>
+        <span
+          className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm"
+          role="status"
+          aria-label={`Đang cập nhật ${refreshingLabels.join(', ')}`}
+        >
+          Đang cập nhật dữ liệu quản trị
+        </span>
       )}
       {children}
-    </>
+    </div>
   );
 }

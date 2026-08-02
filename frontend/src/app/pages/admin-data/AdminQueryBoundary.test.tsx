@@ -58,7 +58,8 @@ describe('AdminQueryBoundary', () => {
     renderBoundary([ready(true)]);
 
     expect(screen.getByText('Kết quả quản trị')).toBeInTheDocument();
-    expect(screen.getByText('Đang cập nhật dữ liệu quản trị')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Đang cập nhật nguồn 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('blocks the whole group when one required query fails', () => {

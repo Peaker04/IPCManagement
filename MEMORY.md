@@ -78,6 +78,8 @@ SOURCE-01..03 đều Complete. Application `49/49`; API `705 pass + 1 intentiona
 
 Current-source sau quick `260802-qdk` ở commit cha `5cd7c2e` (working-tree changes chờ closeout): frontend `125 files / 732 tests`, focused/full regressions, ESLint, dependency-cruiser `0 violation / 374 modules / 1,347 dependencies` và production build đều pass. Các correction chỉ thuộc presentation: Reports Audit, Admin BOM, Warehouse Demand empty-state, Admin Statistics, Chef Production và các shared dense/action tables.
 
+UI/UX iteration `260802-bom-detail`: evidence before/after cho Shipyard pagination đã được chụp và đọc trực quan. Admin BOM trả lại 8 cột chi tiết, form import xếp trên bảng để bảng không bị nén; `AdminQueryBoundary` chuyển refresh notice sang overlay `role=status` để không chèn vào flow. Probe after pass read-only trên `1280×900` và `1440×900`: BOM first/last đều `520px`, Reports Quality `520px`, Warehouse Demand `480px`, không mutation và không browser/console/page error. Hash authoritative nằm ở `docs/EVIDENCE-INDEX.md`.
+
 Shipyard headed final2 gate current-source pass đúng 50 canonical state × năm viewport, 250 screenshot và 962 API response thành công. 190 tab interaction có p95 `117.8 ms`, max `149.5 ms`, zero over-budget/CLS/long-task/duplicate read/browser error/escaped mutation/header-body misalignment. 24 local-scroll samples chỉ là vertical scrollbar gutter `14–17 px`; không có content delta >20 px. Hash và pointer authoritative chỉ nằm ở `docs/EVIDENCE-INDEX.md`.
 
 Source-ownership headed gate pass `6/6` trên đủ 50 canonical state × năm viewport `1920×1080`,

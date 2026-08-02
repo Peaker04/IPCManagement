@@ -6,6 +6,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/shipyard-pagination-after-20260802/pagination-layout-before.json` | `BDB790DC4DE76D2E3622EA6E0515E58DB842EBD24D9F04AC91C2918175B0FFC2` | Headed Shipyard after-fix pagination probe trên 1280×900 và 1440×900: BOM chi tiết 8 cột, first/last page viewport, badge/refresh notice, read-only API firewall, console/page errors và mutation evidence. |
 | `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-final2/shipyard-current-e2e.json` | `B4917359F9724FD565AA52378EC5B028F8ADD03BAE86F81F6DFB795DA2540373` | Final2 authoritative all-page/tab Shipyard E2E after iterative UI/UX remediation: 50 canonical states × five headed viewports, screenshots, API, controls, geometry, tab timing, CLS/long-task and browser error evidence. |
 | `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-current-e2e.json` | `328BBCA2FA0BBAA98E9D7F3972278CD4E7A221E7750F1E2C48243BF4F56596E9` | Current-source warm matrix sau remediation: 50 canonical state × năm viewport; screenshot, API, tab timing, table geometry, CLS/long-task, control inventory và browser error. |
 | `.artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-live-navigation.json` | `9D03360E2B67040CE26B65492ABDBBBBE170D6E62437D024A1E990F1A053A9B8` | Current-source cold/warm sidebar navigation sau remediation cho mười route; final performance/error/mutation gate. |
