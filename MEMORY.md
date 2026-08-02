@@ -84,7 +84,13 @@ seed/import/reset/restore. Hash chỉ nằm ở `docs/EVIDENCE-INDEX.md`.
 
 GitNexus lightweight explicit `70a21ea..HEAD` là LOW: 57 changed symbol, 4 file được graph nhận diện,
 0 affected production process, Deferred none. Addendum đã đóng trực tiếp theo PA, PB, P3, P4, PC, PD, PE,
-P5, P6, P7, P8, PF tại `docs/UI-UX-ADDENDUM-CLOSEOUT.md`; không có Phase 26.
+P5, P6, P7, P8, PF tại `docs/UI-UX-ADDENDUM-CLOSEOUT.md`; không nối thêm Phase 26 vào addendum.
+
+Milestone v1.4 `SAP Fiori Visual Conformance & Evidence Intelligence` là scope mới đã được Kỳ duyệt,
+không phải phần kéo dài addendum. Requirements phủ 27/27 và roadmap có đúng năm Phase 26–30: floorplan/source
+ownership; capture/geometry; independent image judge; source-linked remediation; fresh rejudge/permanent gate.
+Phase 26 hiện ở trạng thái ready to plan. SAP Fiori là oracle level 1; `ui-ux-pro-max` chỉ bổ sung accessibility
+và implementation khi không xung đột. Chưa có production/harness edit hay browser/database mutation trong bước planning.
 
 PC aggregate authoritative là `FE-fixture-read-only`: 6 family, 34 scenario, 44 canonical row, 5 viewport,
 535 measurement, 375 observed control, 265 `KHỚP`, 255 `CHƯA-KẾT-LUẬN-ĐƯỢC` và 15 `LỆCH VỊ TRÍ`;
@@ -120,6 +126,6 @@ P6 RED evidence; chỉ ghi no-op và xác minh current source/evidence lane khô
 
 Phase 24 P7 đóng no-op: `production_fixes: 0`, `green_assertions_after_fix: 0`; aggregate source + PC pass
 4 file/50 test. Phase 25 P8+PF đã khóa permanent gate, lưu evidence headed current-source và đóng addendum;
-không mở Phase 26.
+Phase 26 chỉ thuộc milestone v1.4 riêng ở trên.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.

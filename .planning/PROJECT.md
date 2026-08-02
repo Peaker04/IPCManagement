@@ -19,7 +19,7 @@ Milestone v1.3 UI Completeness & Conformance shipped on 2026-08-02:
 - 22/22 requirements, seven phases and 27 plans completed.
 - State/action registries, FE/BE permission vocabulary, PB/PE component canon and
   UI=f(state) source gates are in the normal verification pipeline.
-- The addendum is closed through Phase 25; no Phase 26 exists.
+- The addendum is closed through Phase 25 and was not extended; separate milestone v1.4 begins at Phase 26.
 - Existing screenshots and telemetry are evidence artifacts, but the authoritative headed
   run does not yet machine-read each screenshot or cover every route/tab state.
 
