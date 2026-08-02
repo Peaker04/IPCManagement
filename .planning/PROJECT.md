@@ -23,6 +23,21 @@ Milestone v1.3 UI Completeness & Conformance shipped on 2026-08-02:
 - Existing screenshots and telemetry are evidence artifacts, but the authoritative headed
   run does not yet machine-read each screenshot or cover every route/tab state.
 
+## Current Milestone: v1.4 SAP Fiori Visual Conformance & Evidence Intelligence
+
+**Goal:** Make every existing route and tab measurably conform to its declared SAP Fiori
+floorplan, with independently machine-read screenshots and source-linked findings, while
+preserving business behavior.
+
+**Target features:**
+
+- Complete route/tab/nested-view floorplan registry with official SAP provenance.
+- Five-viewport geometry capture for every canonical screen state.
+- Stable DOM owner/region identifiers backed by a test-owned source manifest.
+- Separate capture, judge, fixer and fresh-rejudge contexts.
+- Verified Fiori fixes for every finding emitted by the independent image judge.
+- Permanent coverage, geometry, evidence-hash and no-unjudged-screenshot gates.
+
 ## Requirements
 
 ### Validated
@@ -34,7 +49,9 @@ Milestone v1.3 UI Completeness & Conformance shipped on 2026-08-02:
 
 ### Active
 
-- None until the approved v1.4 new-milestone workflow writes its scoped requirements.
+- [ ] Declare and verify SAP Fiori floorplans for every current route/tab state.
+- [ ] Capture, measure and independently judge every canonical screenshot.
+- [ ] Fix every verified finding without changing business behavior, then rejudge all states.
 
 ### Out of Scope
 
