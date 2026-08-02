@@ -6,6 +6,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-current-e2e.json` | `51BE927EDD625AE889C25EF85EF97088D13EB1D1C07B9AD0D5DB4AC68AD76C65` | Baseline trước remediation: 50 canonical state × năm viewport trên current-source Shipyard có dữ liệu thật; gồm screenshot, API, tab timing, table geometry, CLS/long-task và browser error. |
+| `.artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-live-navigation.json` | `F74CB09E06D5597A53F580FADECF5706151955144E3D1360B84A5F38AE375DDD` | Baseline cold/warm sidebar navigation cho mười route; dùng để disposition việc không sửa router/cache/tab behavior. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/runtime-preflight.json` | `FA73DEF45214969B645F79AA5E01720B77381F7A5AF2CD2CD17BD39697B16008` | Preflight Phase 25 xác nhận current source, runtime guarded và database `ipc_lane1`; không seed/import/reset/restore. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source.json` | `5DCED855EF91AF3C62ED4B5099FCCC91099AC0A3BDD381CAFCBBBFF74CB1EDE4` | Run Chrome headed current-source cuối cho P8/PF; metrics gate hiện hành chỉ khai trong `MEMORY.md`. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/1920x1080-admin-statistics-final.png` | `5D8A3845E9915A8218F31E0C5651A99474435A8BE3FC9795426561E9DF46035C` | Screenshot cuối viewport `1920×1080` của run Phase 25 authoritative. |
