@@ -12,7 +12,7 @@ geometry, DOM-to-source actionability, independent image judgment, and fix plus 
 
 ## Phase Overview
 
-- [ ] **Phase 26: Floorplan Scope & Source Ownership** — close the route/state set, declare SAP
+- [x] **Phase 26: Floorplan Scope & Source Ownership** — close the route/state set, declare SAP (completed 2026-08-02)
   floorplans and capabilities, and establish opaque DOM owner/region IDs with a test-owned source manifest.
 - [ ] **Phase 27: Deterministic Capture & Computed Geometry** — produce complete five-viewport,
   state-provenanced PNG and geometry evidence from headed Chrome.

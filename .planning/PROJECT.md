@@ -20,6 +20,7 @@ Milestone v1.3 UI Completeness & Conformance shipped on 2026-08-02:
 - State/action registries, FE/BE permission vocabulary, PB/PE component canon and
   UI=f(state) source gates are in the normal verification pipeline.
 - The addendum is closed through Phase 25 and was not extended; separate milestone v1.4 begins at Phase 26.
+- Phase 26 is complete: 5/5 plans and FLOOR-01..04 plus SOURCE-01..03 verified with no gaps.
 - Existing screenshots and telemetry are evidence artifacts, but the authoritative headed
   run does not yet machine-read each screenshot or cover every route/tab state.
 
@@ -46,10 +47,10 @@ preserving business behavior.
 - ✓ Approved component canon and contextual exceptions — v1.3.
 - ✓ Permanent source/state conformance gates — v1.3.
 - ✓ Five-desktop-viewport current-source headed evidence baseline — v1.3.
+- ✓ Floorplan scope and opaque rendered-source ownership — validated in Phase 26.
 
 ### Active
 
-- [ ] Declare and verify SAP Fiori floorplans for every current route/tab state.
 - [ ] Capture, measure and independently judge every canonical screenshot.
 - [ ] Fix every verified finding without changing business behavior, then rejudge all states.
 
@@ -116,4 +117,4 @@ requirements move here only after implementation, verification and commit; miles
 detail is archived rather than copied into the living project context.
 
 ---
-*Last updated: 2026-08-02 after archiving milestone v1.3 and approving v1.4 scope*
+*Last updated: 2026-08-02 after completing Phase 26 floorplan scope and source ownership*

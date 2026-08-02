@@ -1343,3 +1343,15 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   pass `5/5`, Deferred none. `STATE-01..03`, `QUAL-01`, `DOC-01` Complete.
 - `docs/UI-UX-ADDENDUM-CLOSEOUT.md` ánh xạ trực tiếp PA, PB, P3, P4, PC, PD, PE, P5, P6, P7, P8, PF.
   Milestone v1.3 và addendum đóng tại Phase 25; không tạo Phase 26, không push và không mutate dữ liệu lane.
+
+## Hoàn tất Phase 26 — Floorplan Scope & Source Ownership — 02/08/2026
+
+- Hoàn tất 5/5 plan qua bốn wave; verifier pass `5/5 must-haves` và đủ FLOOR-01..04,
+  SOURCE-01..03. Registry khóa 50 canonical state, floorplan/capability/table contract và test-owned
+  source manifest có exact-set/source-aware diagnostics.
+- Production chỉ nhận opaque owner/floorplan/region instrumentation; route tuple được kế thừa qua context
+  để không sinh mixed tuple. Không đổi business behavior, policy, API, cache, lifecycle hay route access.
+- Headed source-ownership gate pass `6/6`, đủ 250 cell trên năm desktop viewport; root gate pass
+  Application `49/49`, API `705 + 1 skip`, frontend `123 files / 724 tests`, lint/dependency/build xanh.
+- GitNexus full-analysis cho instrumentation và lightweight cho checker đều đã reconcile, zero Deferred.
+  `ipc_lane1` không bị mutate, Phase 27 không mở và không push.

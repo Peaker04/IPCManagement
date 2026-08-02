@@ -71,26 +71,23 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 
 ## Gate hiện hành
 
-Gate Phase 25 chốt ngày `2026-08-02`: Application `49/49`; API `705 pass + 1 intentional skip`; frontend
-`118 files / 662 tests`; UI-completeness `87/87`; PF focused `9/9`; architecture `6/6`, strict growth giữ
-đúng 10 finding production, ESLint, dependency-cruiser `0 violation / 373 modules / 1,344 dependencies`,
-backend build và frontend production build đều pass. PF khóa 3 same-kind pair và baseline 48 group/131 finding
-trên đủ local/global/time/order/cache. Goal-backward verifier pass `5/5`.
+Gate Phase 26 chốt ngày `2026-08-02`: 5/5 plan, verifier `5/5 must-haves`, FLOOR-01..04 và
+SOURCE-01..03 đều Complete. Application `49/49`; API `705 pass + 1 intentional skip`; frontend
+`123 files / 724 tests`; UI-completeness `87/87`; ESLint, dependency-cruiser `0 violation / 373 modules /
+1,346 dependencies`, backend build và frontend production build đều pass.
 
-Chrome headed current-source cuối chạy đúng năm viewport với 45 route probe, 5 screenshot, 588 API response
-sau action, 0 console/page/request error, 0 escaped mutation và 0 overflow; max CLS là
-`0.09390127047894613`, có 4 long task được ghi nhận. Runtime do phiên tạo đã teardown và `ipc_lane1` không
-seed/import/reset/restore. Hash chỉ nằm ở `docs/EVIDENCE-INDEX.md`.
+Source-ownership headed gate pass `6/6` trên đủ 50 canonical state × năm viewport `1920×1080`,
+`1440×900`, `1366×768`, `1365×900`, `1280×900`, tổng 250 viewport-state cell. DOM/bundle leakage,
+nearest-ancestor tuple và nondecreasing test-count gate đều xanh. Run chỉ dùng read-only API stub;
+`ipc_lane1` không seed/import/reset/restore và không có runtime/database mutation.
 
-GitNexus lightweight explicit `70a21ea..HEAD` là LOW: 57 changed symbol, 4 file được graph nhận diện,
-0 affected production process, Deferred none. Addendum đã đóng trực tiếp theo PA, PB, P3, P4, PC, PD, PE,
-P5, P6, P7, P8, PF tại `docs/UI-UX-ADDENDUM-CLOSEOUT.md`; không nối thêm Phase 26 vào addendum.
+GitNexus Plan 26-04 full-analysis đã disposition 17 symbol, 3 expected `OperationalFrame` process,
+effective MEDIUM và HIGH-rigor review APPROVE; Plan 26-05 lightweight compare có 53 checker/test symbol,
+5 file, LOW, zero affected production process. Cả hai đều Deferred none.
 
-Milestone v1.4 `SAP Fiori Visual Conformance & Evidence Intelligence` là scope mới đã được Kỳ duyệt,
-không phải phần kéo dài addendum. Requirements phủ 27/27 và roadmap có đúng năm Phase 26–30: floorplan/source
-ownership; capture/geometry; independent image judge; source-linked remediation; fresh rejudge/permanent gate.
-Phase 26 hiện ở trạng thái ready to plan. SAP Fiori là oracle level 1; `ui-ux-pro-max` chỉ bổ sung accessibility
-và implementation khi không xung đột. Chưa có production/harness edit hay browser/database mutation trong bước planning.
+Milestone v1.4 `SAP Fiori Visual Conformance & Evidence Intelligence` có đúng năm Phase 26–30.
+Phase 26 đã hoàn tất; Phase 27 chưa mở và chỉ ở trạng thái sẵn sàng discuss/plan. SAP Fiori là
+oracle level 1; `ui-ux-pro-max` chỉ bổ sung accessibility và implementation khi không xung đột.
 
 PC aggregate authoritative là `FE-fixture-read-only`: 6 family, 34 scenario, 44 canonical row, 5 viewport,
 535 measurement, 375 observed control, 265 `KHỚP`, 255 `CHƯA-KẾT-LUẬN-ĐƯỢC` và 15 `LỆCH VỊ TRÍ`;

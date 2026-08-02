@@ -16,7 +16,7 @@
 
 - [x] **SOURCE-01**: Every judged region and meaningful control exposes stable opaque owner/floorplan/region identifiers sufficient to join browser evidence to the registry.
 - [x] **SOURCE-02**: A test-owned manifest maps every opaque owner/region identifier to an exact source file, symbol and fragment, and exact-set checks reject missing, duplicate, orphan or stale mappings.
-- [ ] **SOURCE-03**: Production DOM and bundles expose no repository path or absolute source path from the test-owned manifest.
+- [x] **SOURCE-03**: Production DOM and bundles expose no repository path or absolute source path from the test-owned manifest.
 
 ### Capture and state provenance
 
@@ -84,7 +84,7 @@
 | FLOOR-04 | Phase 26 | Complete |
 | SOURCE-01 | Phase 26 | Complete |
 | SOURCE-02 | Phase 26 | Complete |
-| SOURCE-03 | Phase 26 | Pending |
+| SOURCE-03 | Phase 26 | Complete |
 | CAP-01 | Phase 27 | Pending |
 | CAP-02 | Phase 27 | Pending |
 | CAP-03 | Phase 27 | Pending |
@@ -105,6 +105,8 @@
 | QUAL-01 | Phase 30 | Pending |
 | QUAL-02 | Phase 30 | Pending |
 | QUAL-03 | Phase 30 | Pending |
+| VIEW-01 | Deferred | Deferred |
+| PROD-01 | Deferred | Deferred |
 
 **Coverage:**
 - v1.4 requirements: 27 total
