@@ -60,6 +60,7 @@ export function PurchaseServiceDateWorkbench({
   children,
 }: PurchaseServiceDateWorkbenchProps) {
   const activeDate = serviceDates.find((item) => item.serviceDate === selectedDate);
+  const hasPurchaseLines = Boolean(activeDate?.purchaseLines.length);
 
   return (
     <SectionPanel
@@ -115,10 +116,10 @@ export function PurchaseServiceDateWorkbench({
 
         <TableViewport
           ariaLabel="Dòng nguyên liệu của ngày phục vụ đang chọn"
-          caption="Bảng có cuộn ngang cục bộ và giữ chiều cao ổn định."
-          className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
+          caption={isLoading || hasPurchaseLines ? 'Bảng có cuộn ngang cục bộ và giữ chiều cao ổn định.' : 'Trạng thái trống của ngày phục vụ đang chọn.'}
+          className={isLoading || hasPurchaseLines ? 'h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]' : undefined}
         >
-          {isLoading ? <table className="ipc-data-table min-w-[900px]"><tbody>{Array.from({ length: 8 }, (_, index) => <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true"><td><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td></tr>)}</tbody></table> : activeDate?.purchaseLines.length ? <PurchaseLineGroups lines={activeDate.purchaseLines} selectedLineId={selectedLineId} onLineChange={onLineChange} /> : <table className="ipc-data-table min-w-[900px]"><tbody><tr><td className="h-[320px] text-center text-slate-600">{serviceDates.length === 0 ? 'Chưa có nhu cầu đã duyệt trong tuần này.' : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}</td></tr></tbody></table>}
+          {isLoading ? <table className="ipc-data-table min-w-[900px]"><tbody>{Array.from({ length: 8 }, (_, index) => <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true"><td><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td></tr>)}</tbody></table> : hasPurchaseLines && activeDate ? <PurchaseLineGroups lines={activeDate.purchaseLines} selectedLineId={selectedLineId} onLineChange={onLineChange} /> : <table className="ipc-data-table min-w-[900px]"><tbody><tr><td className="py-10 text-center text-slate-600">{serviceDates.length === 0 ? 'Chưa có nhu cầu đã duyệt trong tuần này.' : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}</td></tr></tbody></table>}
         </TableViewport>
         <PaginationBar
           page={page}

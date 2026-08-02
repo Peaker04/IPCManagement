@@ -74,4 +74,22 @@ describe('Admin audit export feedback', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tải file CSV');
     expect(screen.getByRole('alert')).toHaveTextContent('Error: Mất kết nối');
   });
+
+  it('keeps complete old and new audit values in bounded value regions', () => {
+    const oldValue = 'receivedAt=2026-07-29T18:11:06.5845588+07:00';
+    const newValue = 'receivedAt=2026-07-29T18:11:06.5845599+07:00';
+    const readyView = { phase: 'ready', data: { items: [], hasNext: false }, isRefreshing: false, truncation: null } as const;
+    const model = {
+      effectiveActiveView: 'audit', auditActor: '', auditArea: '', auditCursors: [], auditEntity: '', auditField: '',
+      auditResult: { data: { hasNext: false } }, exportError: undefined, handleExportAuditCsv: vi.fn(),
+      displayLogs: [{ id: 'audit-1', timestamp: '2026-07-29T18:11:06+07:00', actor: 'Admin User', businessArea: 'InventoryReceipt', fieldAffected: 'InventoryReturn / StorekeeperReceived', oldValue, newValue, reason: 'Đối soát phiếu hoàn kho' }],
+      queryViews: { audit: readyView }, setAuditActor: vi.fn(), setAuditArea: vi.fn(), setAuditCursors: vi.fn(), setAuditEntity: vi.fn(), setAuditField: vi.fn(),
+    } as unknown as AdminDataPageModel;
+
+    render(<AdminAuditPanel model={model} />);
+
+    expect(screen.getByText(oldValue)).toHaveClass('ipc-admin-audit-value');
+    expect(screen.getByText(newValue)).toHaveClass('ipc-admin-audit-value');
+    expect(screen.getByText('Đối soát phiếu hoàn kho')).toBeInTheDocument();
+  });
 });

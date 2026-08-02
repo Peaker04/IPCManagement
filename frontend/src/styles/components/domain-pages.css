@@ -250,25 +250,34 @@
 }
 
 .ipc-report-table th:nth-child(1) {
-  width: 24%;
+  width: 18%;
 }
 
 .ipc-report-table th:nth-child(2) {
-  width: 7%;
+  width: 15%;
 }
 
 .ipc-report-table th:nth-child(3),
-.ipc-report-table th:nth-child(4),
+.ipc-report-table th:nth-child(4) {
+  width: 9%;
+}
+
 .ipc-report-table th:nth-child(5) {
-  width: 13%;
+  width: 5%;
 }
 
-.ipc-report-table th:nth-child(6) {
-  width: 14%;
-}
-
+.ipc-report-table th:nth-child(6),
 .ipc-report-table th:nth-child(7) {
-  width: 16%;
+  width: 11%;
+}
+
+.ipc-report-table th:nth-child(8),
+.ipc-report-table th:nth-child(9) {
+  width: 7%;
+}
+
+.ipc-report-table th:nth-child(10) {
+  width: 8%;
 }
 
 .ipc-report-row {
@@ -344,24 +353,28 @@
 }
 
 .ipc-admin-audit-table th:nth-child(1) {
-  width: 15%;
+  width: 12%;
 }
 
 .ipc-admin-audit-table th:nth-child(2) {
-  width: 18%;
+  width: 14%;
 }
 
 .ipc-admin-audit-table th:nth-child(3) {
-  width: 18%;
-}
-
-.ipc-admin-audit-table th:nth-child(4),
-.ipc-admin-audit-table th:nth-child(5) {
   width: 13%;
 }
 
+.ipc-admin-audit-table th:nth-child(4) {
+  width: 17%;
+}
+
+.ipc-admin-audit-table th:nth-child(5),
 .ipc-admin-audit-table th:nth-child(6) {
-  width: 23%;
+  width: 15%;
+}
+
+.ipc-admin-audit-table th:nth-child(7) {
+  width: 14%;
 }
 
 .ipc-admin-audit-table td {
@@ -370,6 +383,7 @@
   overflow-wrap: anywhere;
 }
 
+.ipc-admin-audit-value,
 .ipc-admin-audit-reason span {
   display: block;
   min-width: 0;

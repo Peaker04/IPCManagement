@@ -139,7 +139,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
-                      <td className="ipc-numeric-cell">{row.currentQty} {row.unit}</td>
+                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
                       <td>{formatDateTime(row.lastUpdated)}</td>
                     </tr>
                   ))}

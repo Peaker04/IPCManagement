@@ -4,6 +4,27 @@ import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
 import { PurchaseServiceDateWorkbench } from './PurchaseServiceDateWorkbench';
 
 describe('PurchaseServiceDateWorkbench terminal state', () => {
+  it('sizes a true empty state to its message instead of reserving the populated table height', () => {
+    render(
+      <PurchaseServiceDateWorkbench
+        serviceDates={[]}
+        page={1}
+        pageSize={8}
+        totalItems={0}
+        isLoading={false}
+        onDateChange={vi.fn()}
+        onLineChange={vi.fn()}
+        onPageChange={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
+    const emptyMessage = screen.getByText('Chưa có nhu cầu đã duyệt trong tuần này.');
+
+    expect(viewport).not.toHaveClass('h-[400px]', 'xl:h-[480px]');
+    expect(emptyMessage).not.toHaveClass('h-[320px]');
+  });
+
   it('shows received demand and supplier coverage from persisted purchase lines', () => {
     const serviceDate: PurchaseWorkbenchServiceDate = {
       serviceDate: '2026-07-20',
@@ -55,6 +76,7 @@ describe('PurchaseServiceDateWorkbench terminal state', () => {
     expect(screen.getAllByText('Đã nhận đủ').length).toBeGreaterThan(0);
     expect(screen.getByText('NCC: 1/1')).toBeInTheDocument();
     expect(screen.queryByText('Chưa tạo')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' })).toHaveClass('h-[400px]', 'xl:h-[480px]');
   });
 
   it('groups repeated ingredient identities and keeps every source line actionable', () => {
