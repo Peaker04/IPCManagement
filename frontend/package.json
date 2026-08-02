@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:unit": "vitest run",
+    "test:source-ownership:unit": "vitest run --run tests/uiSourceOwnershipLeakage.test.ts",
     "test:unit:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:controls": "playwright test tests/control-surface.spec.ts",
