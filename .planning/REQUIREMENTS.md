@@ -7,7 +7,7 @@
 
 ### Floorplan and scope
 
-- [ ] **FLOOR-01**: A machine-readable registry has exact-set coverage of every production route, tab, nested view and declared role/data state in the milestone scope.
+- [x] **FLOOR-01**: A machine-readable registry has exact-set coverage of every production route, tab, nested view and declared role/data state in the milestone scope.
 - [ ] **FLOOR-02**: Every canonical state declares a SAP Fiori floorplan or an explicitly named custom dynamic-page composition, with task rationale and a current official SAP source.
 - [ ] **FLOOR-03**: Every named floorplan declares testable mandatory capabilities; Analytical List Page classification fails unless real analytical drilldown and chart/table interaction are rendered and exercised.
 - [ ] **FLOOR-04**: Table-bearing states declare semantic column data types, key/identifier preservation and intended responsive/scroll behavior.
@@ -78,7 +78,7 @@
 
 | Requirement | Phase | Status |
 |---|---|---|
-| FLOOR-01 | Phase 26 | Pending |
+| FLOOR-01 | Phase 26 | Complete |
 | FLOOR-02 | Phase 26 | Pending |
 | FLOOR-03 | Phase 26 | Pending |
 | FLOOR-04 | Phase 26 | Pending |
