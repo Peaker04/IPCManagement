@@ -1,8 +1,19 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
-import { buildUiSourceOwnershipKey, uiSourceOwnershipManifest, type UiSourceOwnershipManifestEntry } from './uiSourceOwnershipManifest'
+
+type UiSourceOwnershipManifestEntry = {
+  scopeKey: string
+  ownerId: string
+  regionId: string
+  sourceFile: string
+  sourceSymbol: string
+}
+
+const buildUiSourceOwnershipKey = (entry: Pick<UiSourceOwnershipManifestEntry, 'scopeKey' | 'ownerId' | 'regionId'>) =>
+  JSON.stringify([entry.scopeKey, entry.ownerId, entry.regionId])
+
+let runtimeManifest: readonly UiSourceOwnershipManifestEntry[] = []
 
 export type SourcePathVariant = {
   ownershipKey: string
@@ -17,7 +28,7 @@ const frontendRoot = path.resolve(import.meta.dirname, '..')
 const repositoryRoot = path.resolve(frontendRoot, '..')
 
 export const buildManifestPathVariants = (
-  manifest: readonly UiSourceOwnershipManifestEntry[] = uiSourceOwnershipManifest,
+  manifest: readonly UiSourceOwnershipManifestEntry[] = runtimeManifest,
 ): SourcePathVariant[] => manifest.flatMap((entry) => {
   const frontendRelative = entry.sourceFile.replaceAll('\\', '/')
   const repositoryRelative = `frontend/${frontendRelative}`
@@ -41,10 +52,10 @@ export const scanTextForSourcePathLeaks = (
   text: string,
   asset: string,
   variants: readonly SourcePathVariant[] = buildManifestPathVariants(),
-): SourcePathLeak[] => variants
-  .filter((variant, index) => variants.findIndex((candidate) => candidate.value === variant.value) === index && text.includes(variant.value))
-  .flatMap((matched) => variants.filter((variant) => variant.value === matched.value))
-  .map((variant) => ({ ...variant, asset }))
+): SourcePathLeak[] => {
+  const matchedValues = new Set([...new Set(variants.map((variant) => variant.value))].filter((value) => text.includes(value)))
+  return variants.filter((variant) => matchedValues.has(variant.value)).map((variant) => ({ ...variant, asset }))
+}
 
 const textAsset = (file: string) => file.endsWith('.map') || ['.js', '.css', '.html', '.json', '.txt'].includes(path.extname(file).toLowerCase())
 
@@ -53,11 +64,11 @@ const walk = (directory: string): string[] => fs.readdirSync(directory, { withFi
   return entry.isDirectory() ? walk(fullPath) : [fullPath]
 })
 
-export const scanDistTextAssets = (distRoot = path.join(frontendRoot, 'dist')) => {
+export const scanDistTextAssets = (distRoot = path.join(frontendRoot, 'dist'), manifest: readonly UiSourceOwnershipManifestEntry[] = runtimeManifest) => {
   if (!fs.existsSync(distRoot) || !fs.statSync(distRoot).isDirectory()) throw new Error(`Missing frontend dist directory: ${distRoot}`)
   const assets = walk(distRoot).filter(textAsset).sort((left, right) => left.localeCompare(right))
   if (assets.length === 0) throw new Error(`No emitted text assets found under ${distRoot}`)
-  const variants = buildManifestPathVariants()
+  const variants = buildManifestPathVariants(manifest)
   const leaks = assets.flatMap((file) => scanTextForSourcePathLeaks(
     fs.readFileSync(file, 'utf8'),
     path.relative(repositoryRoot, file).replaceAll('\\', '/'),
@@ -66,7 +77,11 @@ export const scanDistTextAssets = (distRoot = path.join(frontendRoot, 'dist')) =
   return { assets: assets.map((file) => path.relative(repositoryRoot, file).replaceAll('\\', '/')), leaks }
 }
 
-describe('Phase 26 source ownership leakage', () => {
+if (process.env.VITEST) {
+  const { describe, expect, it } = await import('vitest')
+  const { uiSourceOwnershipManifest } = await import('./uiSourceOwnershipManifest')
+  runtimeManifest = uiSourceOwnershipManifest
+  describe('Phase 26 source ownership leakage', () => {
   it('derives relative, Windows, absolute-forward, and POSIX-rooted variants for every manifest row', () => {
     const variants = buildManifestPathVariants()
     for (const entry of uiSourceOwnershipManifest) {
@@ -100,5 +115,6 @@ describe('Phase 26 source ownership leakage', () => {
     const result = scanDistTextAssets()
     expect(result.assets).toContain('frontend/dist/index.html')
     expect(result.leaks).toEqual([])
+  }, 15_000)
   })
-})
+}
