@@ -1,7 +1,16 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-interface OperationalFrameProps {
+export type UiOwnershipMarker = {
+  ownerId?: `uio-${string}`;
+  floorplanId?: `uif-${string}`;
+  regionId: `uir-${string}`;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const UiOwnershipContext = createContext<UiOwnershipMarker | undefined>(undefined);
+
+export interface OperationalFrameProps {
   eyebrow?: ReactNode;
   title?: ReactNode;
   description?: ReactNode;
@@ -11,6 +20,7 @@ interface OperationalFrameProps {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  uiOwnership?: UiOwnershipMarker;
 }
 
 export function OperationalFrame({
@@ -23,9 +33,17 @@ export function OperationalFrame({
   children,
   className,
   contentClassName,
+  uiOwnership,
 }: OperationalFrameProps) {
+  const inheritedOwnership = useContext(UiOwnershipContext);
+
   return (
-    <section className={cn('ipc-operational-frame', className)}>
+    <section
+      className={cn('ipc-operational-frame', className)}
+      data-ui-owner={uiOwnership?.ownerId}
+      data-ui-floorplan={uiOwnership?.floorplanId}
+      data-ui-region={uiOwnership?.regionId ?? inheritedOwnership?.regionId ?? 'uir-i'}
+    >
       {(eyebrow || title || description || command || context) && (
         <div className="ipc-operational-head">
           {(eyebrow || title || description) && (

@@ -269,10 +269,37 @@ export const MainLayout = () => {
         </header>
 
         {/* Content Outlet */}
-        <main id="ipc-main-content" className="ipc-main" tabIndex={-1}>
-          <Outlet />
+        <main
+          id="ipc-main-content"
+          className="ipc-main"
+          tabIndex={-1}
+          data-ui-owner={ownershipForRoute(location.pathname).ownerId}
+          data-ui-floorplan={ownershipForRoute(location.pathname).floorplanId}
+          data-ui-region={ownershipForRoute(location.pathname).regionId}
+        >
+          <UiOwnershipContext.Provider value={ownershipForRoute(location.pathname)}>
+            <Outlet />
+          </UiOwnershipContext.Provider>
         </main>
       </div>
     </div>
   );
 };
+
+const routeOwnership = {
+  [ROUTES.ADMIN_DATA]: { ownerId: 'uio-2', floorplanId: 'uif-2', regionId: 'uir-2' },
+  [ROUTES.APPROVAL_RULES]: { ownerId: 'uio-a', floorplanId: 'uif-a', regionId: 'uir-a' },
+  [ROUTES.APPROVALS]: { ownerId: 'uio-b', floorplanId: 'uif-b', regionId: 'uir-b' },
+  [ROUTES.CHEF_DASHBOARD]: { ownerId: 'uio-f', floorplanId: 'uif-f', regionId: 'uir-f' },
+  [ROUTES.DASHBOARD]: { ownerId: 'uio-i', floorplanId: 'uif-i', regionId: 'uir-i' },
+  [ROUTES.FORBIDDEN]: { ownerId: 'uio-j', floorplanId: 'uif-j', regionId: 'uir-j' },
+  [ROUTES.MEAL_ORDERS]: { ownerId: 'uio-l', floorplanId: 'uif-l', regionId: 'uir-l' },
+  [ROUTES.PURCHASING]: { ownerId: 'uio-m', floorplanId: 'uif-m', regionId: 'uir-m' },
+  [ROUTES.REPORTS]: { ownerId: 'uio-t', floorplanId: 'uif-t', regionId: 'uir-t' },
+  [ROUTES.WAREHOUSE]: { ownerId: 'uio-13', floorplanId: 'uif-13', regionId: 'uir-13' },
+  [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-17', floorplanId: 'uif-17', regionId: 'uir-17' },
+} as const;
+
+const ownershipForRoute = (pathname: string) => routeOwnership[pathname as keyof typeof routeOwnership] ?? routeOwnership[ROUTES.DASHBOARD];
+
+import { UiOwnershipContext } from '@/components/common/OperationalFrame';

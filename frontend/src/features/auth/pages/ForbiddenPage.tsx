@@ -6,7 +6,7 @@ import { ROUTES } from '@/lib/routeConfig'
 const ForbiddenPage = () => {
   return (
     <SectionPanel className="mx-auto max-w-2xl border-slate-200 bg-white">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start" data-ui-owner="uio-j" data-ui-floorplan="uif-j" data-ui-region="uir-j">
         <div className="flex size-12 shrink-0 items-center justify-center rounded-md border border-rose-100 bg-rose-50 text-rose-700">
           <ShieldAlert className="size-6" />
         </div>
