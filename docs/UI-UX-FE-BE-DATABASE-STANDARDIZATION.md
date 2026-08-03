@@ -176,15 +176,9 @@ Database phải là lớp phán quyết cuối cho integrity:
 
 ## 7. Việc còn mở trước khi tuyên bố “chuẩn hoàn toàn”
 
-Các mục dưới đây lấy từ trạng thái hiện hành; không tự tạo số liệu hoặc copy hash evidence vào tài liệu này.
+Không còn mục `OPEN` nào trong scope standardization. Không được mở lại hoặc đóng một regression mới bằng assertion UI đơn lẻ; evidence phải đúng lớp và có regression tại lớp liên quan.
 
-| Mã | Ưu tiên xử lý | Điều kiện đóng |
-|---|---|---|
-| `OPEN-09` | Trung bình | Workbook author được cover bởi case matrix và browser E2E import xác minh không mutate template gốc |
-
-Không được đóng các mục trên bằng cách chỉ thêm assertion vào UI. Mỗi mục cần evidence đúng lớp và regression ở lớp liên quan.
-
-Đã đóng ngày 03/08/2026: `OPEN-02` bằng domain/API regressions cho BOM workbook hỏng; `OPEN-07` bằng preview ticket khóa checksum/phạm vi và provenance nullable cho dish tạo bởi import; `OPEN-08` bằng batch transaction atomic với forced-failure, retry và replay regressions; `OPEN-05` bằng audit old/new + actor + request correlation cho contract và menu-week range; `OPEN-06` bằng canonical customer/week tier, composite FK, unique scope, ba database trigger và shared service invariant. Verification nằm trong Phases 2–5 của workstream standardization.
+Đã đóng ngày 03/08/2026: `OPEN-02` bằng domain/API regressions cho BOM workbook hỏng; `OPEN-07` bằng preview ticket khóa checksum/phạm vi và provenance nullable cho dish tạo bởi import; `OPEN-08` bằng batch transaction atomic với forced-failure, retry và replay regressions; `OPEN-05` bằng audit old/new + actor + request correlation cho contract và menu-week range; `OPEN-06` bằng canonical customer/week tier, composite FK, unique scope, ba database trigger và shared service invariant; `OPEN-09` bằng workbook case matrix deterministic, source hash guard và headed E2E đủ năm viewport nối FE/API/DB/reload/rollback. Verification nằm trong Phases 2–6 của workstream standardization.
 
 ## 8. Definition of Done cho một thay đổi UI/UX có dữ liệu
 

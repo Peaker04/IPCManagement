@@ -56,7 +56,6 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 ## Còn mở
 
 - `OPEN-04` · owner `Ops/Backup` · đóng khi dump + binlog được mã hóa lên object storage immutable, có SSD luân phiên off-premises và restore drill chỉ từ off-site pass toàn bộ gate runbook.
-- `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
 
 ## Cần Kỳ quyết
 
@@ -80,6 +79,8 @@ Standardization Phase 3 tại `3baa452` đã đóng `OPEN-08`: batch từ hai fi
 Standardization Phase 4 tại `f48ee44` đã đóng `OPEN-05`: contract effective boundary và menu-version week range persist old/new, actor và request correlation; audit report DTO/CSV expose correlation. Root gate pass Application `49/49`, API `715 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `129 files / 748 tests`, dependency graph `0 violation / 377 modules / 1,355 dependencies`, architecture baseline, lint và hai build. Migration chỉ thêm nullable `auditlogs.correlationId`, chưa apply vào `ipc_lane1`; không browser/runtime/database mutation.
 
 Standardization Phase 5 tại `688c478` đã đóng `OPEN-06`: `customerweekmenutiers` khóa unique customer/week, schedule có composite FK và ba trigger bảo vệ equality/immutability; import, schedule rules và contract propagation dùng chung domain invariant. Root gate pass Application `49/49`, API `719 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `129 files / 748 tests`, dependency graph `0 violation / 377 modules / 1,355 dependencies`, architecture baseline, lint và hai build. EF model không pending; migration `20260803210000_AddCustomerWeekMenuTier` chỉ generate/review, chưa apply vào `ipc_lane1`; không browser/runtime/database mutation.
+
+Standardization Phase 6 tại `904c584` đã đóng `OPEN-09`: case matrix có 5 case deterministic và giữ workbook source hash trước/sau; Chrome headed pass 5/5 viewport, 9 screenshot, 60 API response, zero console/page error, một navigation abort đã disposition, CLS 0 và 7 long task tối đa 70 ms. Failure cases giữ DB zero; atomic ANV+DAV tạo mỗi scope 1 DRAFT version/12 schedule/1 tier, reload thấy cả hai, rollback còn history `ROLLED_BACK` và zero schedule/tier. Root gate pass Application `49/49`, API `726 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `130 files / 750 tests`, dependency graph `0 violation / 379 modules / 1,361 dependencies`, architecture baseline, lint và hai build. Runtime `3010/8010` đã teardown; disposable template đã restore từ `ipc_lane1` với clone 61 bảng verify pass.
 
 UI/UX iteration `260802-bom-detail`: evidence before/after cho Shipyard pagination đã được chụp và đọc trực quan. Admin BOM trả lại 8 cột chi tiết, form import xếp trên bảng để bảng không bị nén; `AdminQueryBoundary` chuyển refresh notice sang overlay `role=status` để không chèn vào flow. Probe after pass read-only trên `1280×900` và `1440×900`: BOM first/last đều `520px`, Reports Quality `520px`, Warehouse Demand `480px`, không mutation và không browser/console/page error. Hash authoritative nằm ở `docs/EVIDENCE-INDEX.md`.
 

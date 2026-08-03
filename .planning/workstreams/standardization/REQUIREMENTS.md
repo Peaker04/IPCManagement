@@ -42,10 +42,10 @@
 
 ### Workbook author verification
 
-- [ ] **WBQA-01**: The authored workbook has a deterministic case matrix for valid and invalid authoring scenarios (`OPEN-09`).
-- [ ] **WBQA-02**: Verification uses a copy/hash guard and proves the original template is unchanged.
-- [ ] **WBQA-03**: Headed Chrome exercises the import flow at all five approved desktop viewports with request, response, console/page error, CLS and long-task evidence.
-- [ ] **WBQA-04**: Browser evidence joins FE control, API result, database transition and rendered reload state.
+- [x] **WBQA-01**: The authored workbook has a deterministic case matrix for valid and invalid authoring scenarios (`OPEN-09`).
+- [x] **WBQA-02**: Verification uses a copy/hash guard and proves the original template is unchanged.
+- [x] **WBQA-03**: Headed Chrome exercises the import flow at all five approved desktop viewports with request, response, console/page error, CLS and long-task evidence.
+- [x] **WBQA-04**: Browser evidence joins FE control, API result, database transition and rendered reload state.
 
 ### Closure
 

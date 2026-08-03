@@ -1419,3 +1419,12 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Migration backfill theo distinct customer/week/price trước khi thêm FK. Dữ liệu lịch sử có nhiều price cùng scope va unique và fail-fast, không tự chọn giá; EF model không pending và forward SQL không có destructive operation.
 - Focused invariant/API/migration `4/4`, related contract/menu/import `48/48`, PA2 `6/6`; root gate pass Application `49/49`, API `719 + 1 intentional skip`, frontend `129 file / 748 test`, UI completeness `87/87`, dependency graph `0 violation / 377 module / 1.355 dependency`, architecture baseline, lint và hai build.
 - Secret scan và `git diff --check` pass; migration không apply vào `ipc_lane1`, không browser/runtime/database mutation và không gọi GitNexus. Phase 6 tiếp tục `OPEN-09`.
+
+## Hoàn tất Standardization Phase 6 — Workbook author + headed E2E — 03/08/2026
+
+- `OPEN-09` đóng tại `904c584`: generator tạo 5 case valid ANV/DAV, malformed, checksum mismatch và two-customer atomic trên copy tuần tương lai; hash workbook gốc giữ nguyên trước/sau và hash case lặp lại deterministic.
+- Chrome headed thật pass đủ `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`; 9 screenshot, 60 API response, zero console/page error, một navigation abort đã disposition, CLS 0 và long task tối đa 70 ms.
+- Malformed trả blocking `FILE_READ_ERROR`; mismatch trả HTTP 400; cả hai giữ DB zero. Atomic commit tạo mỗi ANV/DAV 1 DRAFT version, 12 schedule, 1 tier; reload render cả hai. Rollback render `Đã hoàn tác`, giữ audit version và đưa schedule/tier về zero.
+- E2E phát hiện và sửa history search không khớp ngày hiển thị cùng canonical tier rỗng sau rollback version cuối; regression FE/BE đã khóa cả hai.
+- Root gate pass Application `49/49`, API `726 + 1 intentional skip`, frontend `130 file / 750 test`, UI completeness `87/87`, dependency graph `0 violation / 379 module / 1.361 dependency`, architecture baseline, lint và hai build.
+- Runtime riêng `3010/8010` đã dừng đúng owned PID; `ipc_e2e_template` restore từ `ipc_lane1` với clone 61 bảng verify pass; workbook gốc và `ipc_lane1` không bị mutate, không gọi GitNexus. Phase 7 tiếp tục closeout.
