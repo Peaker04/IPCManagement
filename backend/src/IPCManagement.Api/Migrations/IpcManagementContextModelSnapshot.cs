@@ -633,6 +633,22 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("isActive")
                         .HasDefaultValueSql("'1'");
 
+                    b.Property<string>("SourceChecksum")
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("sourceChecksum")
+                        .IsFixedLength();
+
+                    b.Property<string>("SourceFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("sourceFileName");
+
+                    b.Property<string>("SourceImportBatch")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("sourceImportBatch");
+
                     b.HasKey("DishId")
                         .HasName("PRIMARY");
 

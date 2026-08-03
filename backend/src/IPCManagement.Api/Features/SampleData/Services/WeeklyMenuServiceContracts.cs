@@ -50,6 +50,7 @@ public interface IWeeklyMenuImportService
         string customerId,
         DateOnly? weekStartDate,
         decimal? priceTierAmount,
+        string? previewToken,
         string? actorUserId = null,
         CancellationToken cancellationToken = default);
 }

@@ -91,7 +91,8 @@ internal sealed class WeeklyMenuImportPersistence(
                     parsedItem.SectionKey,
                     parsedItem.SlotLabel,
                     existingDishes,
-                    result.Counts);
+                    result.Counts,
+                    version);
                 parsedItem.DishId = GuidHelper.ToGuidString(dish.DishId);
                 parsedItem.ExistingDish = result.Rows.Any(row =>
                     row.DishName.Equals(parsedItem.DishName, StringComparison.OrdinalIgnoreCase) &&
@@ -363,7 +364,8 @@ internal sealed class WeeklyMenuImportPersistence(
         string dishGroup,
         string dishType,
         List<Dish> dishes,
-        SampleDataImportCountsDto counts)
+        SampleDataImportCountsDto counts,
+        MenuVersion version)
     {
         var cleanDishName = WeeklyMenuWorkbookSyntaxPolicy.NormalizeDishCell(dishName);
         var normalized = WeeklyMenuImportProjection.NormalizeDishMatchKey(dishName);
@@ -391,7 +393,7 @@ internal sealed class WeeklyMenuImportPersistence(
 
         // Workbook section/slot belongs to the menu line and is persisted in MenuItem.DishSlot.
         // A newly discovered dish must stay uncategorized until the global catalog is reviewed.
-        return EnsureDish(cleanDishName, null, null, dishes, counts);
+        return EnsureDish(cleanDishName, null, null, dishes, counts, version);
     }
 
     private Dish EnsureDish(
@@ -399,7 +401,8 @@ internal sealed class WeeklyMenuImportPersistence(
         string? dishGroup,
         string? dishType,
         List<Dish> dishes,
-        SampleDataImportCountsDto counts)
+        SampleDataImportCountsDto counts,
+        MenuVersion version)
     {
         var normalized = NormalizeName(dishName);
         var stableCode = StableCode("DISH", dishName);
@@ -425,7 +428,10 @@ internal sealed class WeeklyMenuImportPersistence(
             DishName = dishName.Trim(),
             DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? null : dishGroup.Trim(),
             DishType = string.IsNullOrWhiteSpace(dishType) ? null : dishType.Trim(),
-            IsActive = true
+            IsActive = true,
+            SourceImportBatch = version.SourceImportBatch,
+            SourceFileName = version.SourceFileName,
+            SourceChecksum = version.SourceChecksum
         };
         context.Dishes.Add(dish);
         dishes.Add(dish);

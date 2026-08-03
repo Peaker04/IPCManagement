@@ -1059,7 +1059,7 @@ public class CoordinationTransactionTests
         {
             "CREATE TABLE customers (customerId BLOB NOT NULL PRIMARY KEY, customerCode TEXT NOT NULL UNIQUE, customerName TEXT NOT NULL, note TEXT NULL, isActive INTEGER NULL);",
             "CREATE TABLE menus (menuId BLOB NOT NULL PRIMARY KEY, menuCode TEXT NOT NULL UNIQUE, menuName TEXT NOT NULL, fromDate TEXT NULL, toDate TEXT NULL, isActive INTEGER NULL);",
-            "CREATE TABLE dishes (dishId BLOB NOT NULL PRIMARY KEY, dishCode TEXT NOT NULL UNIQUE, dishName TEXT NOT NULL, dishGroup TEXT NULL, dishType TEXT NULL, isActive INTEGER NULL);",
+            "CREATE TABLE dishes (dishId BLOB NOT NULL PRIMARY KEY, dishCode TEXT NOT NULL UNIQUE, dishName TEXT NOT NULL, dishGroup TEXT NULL, dishType TEXT NULL, sourceImportBatch TEXT NULL, sourceFileName TEXT NULL, sourceChecksum TEXT NULL, isActive INTEGER NULL);",
             "CREATE TABLE menuitems (menuItemId BLOB NOT NULL PRIMARY KEY, menuId BLOB NOT NULL, dishId BLOB NOT NULL, dishSlot TEXT NULL, displayOrder INTEGER NOT NULL);",
             "CREATE TABLE menuversions (menuVersionId BLOB NOT NULL PRIMARY KEY, status TEXT NOT NULL);",
             "CREATE TABLE menuschedules (menuScheduleId BLOB NOT NULL PRIMARY KEY, customerId BLOB NOT NULL, menuId BLOB NOT NULL, serviceDate TEXT NOT NULL, weekStartDate TEXT NOT NULL, shiftName TEXT NOT NULL, menuPrice TEXT NOT NULL, bomRatePercent TEXT NOT NULL, status TEXT NOT NULL, menuVersionId BLOB NULL);",

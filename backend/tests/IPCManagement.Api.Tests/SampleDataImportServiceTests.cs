@@ -483,6 +483,7 @@ public class SampleDataImportServiceTests
             setup.CustomerIdString,
             new DateOnly(2026, 6, 15),
             25000m,
+            null,
             setup.UserIdString);
 
         await act.Should().ThrowAsync<BusinessRuleException>()
@@ -669,13 +670,15 @@ public class SampleDataImportServiceTests
         var resultBuilder = new WeeklyMenuImportResultBuilder(context);
         var actorResolver = new WeeklyMenuAuditActorResolver(context);
         var persistence = new WeeklyMenuImportPersistence(context, resultBuilder, actorResolver);
+        var cache = new MemoryCache(new MemoryCacheOptions());
         return new WeeklyMenuImportService(
             context,
             customerResolver,
             resultBuilder,
             persistence,
+            new WeeklyMenuImportPreviewTicketStore(cache),
             new EfTransactionRunner(context),
-            new MemoryCache(new MemoryCacheOptions()));
+            cache);
     }
 
     private static async Task<WeeklyMenuImportContext> CreateWeeklyMenuImportContextAsync()

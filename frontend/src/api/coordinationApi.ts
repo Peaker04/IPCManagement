@@ -74,7 +74,7 @@ export type ExportOrderReportResult = components['schemas']['ExportOrderReportRe
 export type CoordinationCustomerOption = components['schemas']['CoordinationCustomerOptionDto']
 
 export type WeeklyMenuImportRequest = Omit<WeeklyMenuImportWire, 'file' | 'customerId'>
-  & { file: File; customerId: string }
+  & { file: File; customerId: string; previewToken?: string }
 
 export type WeeklyMenuTemplateRequest = WeeklyMenuTemplateQuery
 export type WeeklyMenuQuery = CommittedWeeklyMenuQuery & { customerId: string }
@@ -91,7 +91,7 @@ export type CustomerImportMapping = components['schemas']['CustomerImportMapping
 export type WeeklyMenuImportHistoryItem = components['schemas']['WeeklyMenuImportHistoryItemDto']
 export type RollbackWeeklyMenuImportResult = components['schemas']['RollbackWeeklyMenuImportResultDto']
 
-const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceTierAmount }: WeeklyMenuImportRequest) => {
+const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceTierAmount, previewToken }: WeeklyMenuImportRequest) => {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('customerId', customerId)
@@ -100,6 +100,9 @@ const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceT
   }
   if (priceTierAmount) {
     formData.append('priceTierAmount', String(priceTierAmount))
+  }
+  if (previewToken) {
+    formData.append('previewToken', previewToken)
   }
   return formData
 }

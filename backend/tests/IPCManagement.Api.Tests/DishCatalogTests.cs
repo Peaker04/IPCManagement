@@ -48,6 +48,9 @@ public class DishCatalogTests
                 DishType = "MORNING",
                 DishGroup = "Mặn",
                 IsActive = true,
+                SourceImportBatch = "MENU-CUS-20260720-V01",
+                SourceFileName = "weekly-menu.xlsx",
+                SourceChecksum = "ABC123",
                 Menuitems =
                 [
                     new MenuItem { DishSlot = "Món mặn", DisplayOrder = 2 },
@@ -94,6 +97,9 @@ public class DishCatalogTests
         result.Should().ContainSingle();
         var catalogDish = result[0];
         catalogDish.DishId.Should().Be(dishId.ToString());
+        catalogDish.SourceImportBatch.Should().Be("MENU-CUS-20260720-V01");
+        catalogDish.SourceFileName.Should().Be("weekly-menu.xlsx");
+        catalogDish.SourceChecksum.Should().Be("ABC123");
         catalogDish.MenuSlots.Should().Equal("Món mặn", "Canh");
         catalogDish.BomLines.Should().ContainSingle();
         catalogDish.BomLines[0].BomId.Should().Be(bomId.ToString());
@@ -853,6 +859,9 @@ public class DishCatalogTests
                 dishName TEXT NOT NULL,
                 dishType TEXT NULL,
                 dishGroup TEXT NULL,
+                sourceImportBatch TEXT NULL,
+                sourceFileName TEXT NULL,
+                sourceChecksum TEXT NULL,
                 isActive INTEGER NULL
             );
 

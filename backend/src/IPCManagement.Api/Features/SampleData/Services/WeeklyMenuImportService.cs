@@ -17,6 +17,7 @@ internal sealed class WeeklyMenuImportService(
     WeeklyMenuCustomerResolver customerResolver,
     WeeklyMenuImportResultBuilder resultBuilder,
     WeeklyMenuImportPersistence persistence,
+    WeeklyMenuImportPreviewTicketStore previewTicketStore,
     IEfTransactionRunner transactionRunner,
     IMemoryCache cache) : IWeeklyMenuImportService
 {
@@ -56,7 +57,20 @@ internal sealed class WeeklyMenuImportService(
                 weekStartDate,
                 mapping,
                 normalizedPriceTier);
-            return await resultBuilder.BuildAsync(plan, customer, committed: false, cancellationToken);
+            plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
+            var result = await resultBuilder.BuildAsync(plan, customer, committed: false, cancellationToken);
+            result.SourceChecksum = plan.SourceChecksum;
+            if (!result.Validation.HasCriticalErrors)
+            {
+                var ticket = previewTicketStore.Issue(
+                    plan.SourceChecksum,
+                    GuidHelper.ToGuidString(customer.CustomerId),
+                    plan.WeekStartDate,
+                    normalizedPriceTier);
+                result.PreviewToken = ticket.Token;
+                result.PreviewExpiresAt = ticket.ExpiresAt;
+            }
+            return result;
         }
         catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
         {
@@ -88,6 +102,7 @@ internal sealed class WeeklyMenuImportService(
         string customerId,
         DateOnly? weekStartDate,
         decimal? priceTierAmount,
+        string? previewToken,
         string? actorUserId = null,
         CancellationToken cancellationToken = default)
     {
@@ -120,6 +135,13 @@ internal sealed class WeeklyMenuImportService(
                     firstIssue?.Message ?? "File import còn lỗi critical, không thể commit DB.");
             }
 
+            previewTicketStore.Validate(
+                previewToken,
+                plan.SourceChecksum,
+                GuidHelper.ToGuidString(customer.CustomerId),
+                plan.WeekStartDate,
+                normalizedPriceTier);
+
             WeeklyMenuImportResultDto? committedResult = null;
             var result = await transactionRunner.ExecuteAsync(
                 async token =>
@@ -147,6 +169,7 @@ internal sealed class WeeklyMenuImportService(
                 },
                 cancellationToken: cancellationToken);
             DishCatalogCache.Clear(cache);
+            previewTicketStore.Consume(previewToken!);
             return result;
         }
         catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))

@@ -2632,6 +2632,7 @@ export interface paths {
                         readonly customerId?: string;
                         /** Format: binary */
                         readonly file?: string;
+                        readonly previewToken?: string;
                         /** Format: double */
                         readonly priceTierAmount?: number;
                         readonly weekStartDate?: string;
@@ -9793,6 +9794,9 @@ export interface components {
             readonly menuitems: readonly components["schemas"]["MenuItem"][];
             readonly portionrules: readonly components["schemas"]["PortionRule"][];
             readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly sourceChecksum?: string | null;
+            readonly sourceFileName?: string | null;
+            readonly sourceImportBatch?: string | null;
         };
         readonly DishBom: {
             readonly bomadjustments: readonly components["schemas"]["BomAdjustment"][];
@@ -9870,6 +9874,9 @@ export interface components {
             readonly dishType?: string | null;
             readonly isActive: boolean;
             readonly menuSlots: readonly string[];
+            readonly sourceChecksum?: string | null;
+            readonly sourceFileName?: string | null;
+            readonly sourceImportBatch?: string | null;
         };
         readonly DishCatalogDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["DishCatalogDto"][] | null;
@@ -9884,6 +9891,9 @@ export interface components {
             readonly dishName: string;
             readonly dishType?: string | null;
             readonly isActive: boolean;
+            readonly sourceChecksum?: string | null;
+            readonly sourceFileName?: string | null;
+            readonly sourceImportBatch?: string | null;
         };
         readonly DishDtoApiResponse: {
             readonly data?: components["schemas"]["DishDto"];
@@ -13264,9 +13274,13 @@ export interface components {
             readonly menuVersionNo?: number | null;
             readonly menuVersionStatus?: string | null;
             readonly previewDiff: components["schemas"]["WeeklyMenuImportDiffDto"];
+            /** Format: date-time */
+            readonly previewExpiresAt?: string | null;
+            readonly previewToken?: string | null;
             readonly publishedAt?: string | null;
             readonly publishedBy?: string | null;
             readonly rows: readonly components["schemas"]["WeeklyMenuImportRowDto"][];
+            readonly sourceChecksum?: string | null;
             readonly sourceImportBatch?: string | null;
             readonly validation: components["schemas"]["WeeklyMenuImportValidationDto"];
             readonly warnings: readonly string[];

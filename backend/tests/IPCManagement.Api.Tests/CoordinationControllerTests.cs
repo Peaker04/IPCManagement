@@ -60,6 +60,7 @@ public class CoordinationControllerTests
                 Arg.Any<DateOnly?>(),
                 Arg.Any<decimal?>(),
                 Arg.Any<string?>(),
+                Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<WeeklyMenuImportResultDto>(new BusinessRuleException("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.")));
         var currentUserService = Substitute.For<ICurrentUserService>();
@@ -76,12 +77,22 @@ public class CoordinationControllerTests
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");
 
-        var result = await controller.CommitWeeklyMenuImportAsync(file, "customer-id", null, null, CancellationToken.None);
+        var result = await controller.CommitWeeklyMenuImportAsync(
+            file, "customer-id", null, null, "preview-token", CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
         response.Success.Should().BeFalse();
         response.Message.Should().Be("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.");
+        await sampleDataImportService.Received(1).CommitWeeklyMenuImportAsync(
+            Arg.Any<Stream>(),
+            "broken.xlsx",
+            "customer-id",
+            null,
+            null,
+            "preview-token",
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

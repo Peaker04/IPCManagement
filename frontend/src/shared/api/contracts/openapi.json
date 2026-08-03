@@ -1665,6 +1665,9 @@
                   "priceTierAmount": {
                     "type": "number",
                     "format": "double"
+                  },
+                  "previewToken": {
+                    "type": "string"
                   }
                 }
               },
@@ -1679,6 +1682,9 @@
                   "style": "form"
                 },
                 "priceTierAmount": {
+                  "style": "form"
+                },
+                "previewToken": {
                   "style": "form"
                 }
               }
@@ -19484,6 +19490,18 @@
             "type": "boolean",
             "nullable": true
           },
+          "sourceImportBatch": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceFileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceChecksum": {
+            "type": "string",
+            "nullable": true
+          },
           "dishboms": {
             "type": "array",
             "items": {
@@ -19764,6 +19782,18 @@
           "isActive": {
             "type": "boolean"
           },
+          "sourceImportBatch": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceFileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceChecksum": {
+            "type": "string",
+            "nullable": true
+          },
           "menuSlots": {
             "type": "array",
             "items": {
@@ -19833,6 +19863,18 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "sourceImportBatch": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceFileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceChecksum": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -31726,6 +31768,19 @@
           },
           "sourceImportBatch": {
             "type": "string",
+            "nullable": true
+          },
+          "sourceChecksum": {
+            "type": "string",
+            "nullable": true
+          },
+          "previewToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "previewExpiresAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           },
           "detectedLayout": {

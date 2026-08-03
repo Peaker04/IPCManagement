@@ -162,7 +162,13 @@ export const useWeeklyMenuImport = ({
     dispatch({ type: 'select-job', jobId }); dispatch({ type: 'update-job', jobId, changes: { status: 'committing', error: null } })
     setFeedback('Đang lưu thực đơn', `Hệ thống đang ghi thực đơn cho ${job.customerCode}.`, 'info')
     try {
-      const response = await commitImport({ file: job.file, customerId: job.customerId, weekStartDate: job.weekStartDate || undefined, priceTierAmount: job.priceTierAmount }).unwrap()
+      const response = await commitImport({
+        file: job.file,
+        customerId: job.customerId,
+        weekStartDate: job.weekStartDate || undefined,
+        priceTierAmount: job.priceTierAmount,
+        previewToken: job.previewResult.previewToken ?? undefined,
+      }).unwrap()
       if (!response.success || !response.data) throw new Error(response.message || 'Không lưu được thực đơn.')
       const result = response.data
       dispatch({ type: 'update-job', jobId, changes: { status: 'committed', previewResult: result, warnings: [...result.warnings], error: null } })

@@ -165,6 +165,9 @@ public partial class WorkflowGenerationTests
         var persisted = await context.Dishes.AsNoTracking().SingleAsync();
         persisted.DishGroup.Should().Be("Món mặn");
         persisted.DishType.Should().Be("Món chính");
+        persisted.SourceImportBatch.Should().BeNull();
+        persisted.SourceFileName.Should().BeNull();
+        persisted.SourceChecksum.Should().BeNull();
         result.Counts.DishesUpdated.Should().Be(0);
         (await context.Menuitems.AsNoTracking().SingleAsync()).DishSlot.Should().Be("vegetarian-main");
     }
@@ -240,6 +243,9 @@ public partial class WorkflowGenerationTests
         var persisted = await context.Dishes.AsNoTracking().SingleAsync();
         persisted.DishGroup.Should().BeNull();
         persisted.DishType.Should().BeNull();
+        persisted.SourceImportBatch.Should().Be("MENU-CUS-20260720-V01");
+        persisted.SourceFileName.Should().Be("weekly-menu.xlsx");
+        persisted.SourceChecksum.Should().Be("TEST-NEW-DISH-CHECKSUM");
         result.Counts.DishesCreated.Should().Be(1);
         (await context.Menuitems.AsNoTracking().SingleAsync()).DishSlot.Should().Be("vegetarian-main");
     }

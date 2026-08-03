@@ -173,7 +173,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
         IFormFile file,
         [FromForm] string customerId,
         [FromForm] string? weekStartDate,
-        [FromForm] decimal? priceTierAmount,
+        [FromForm] decimal? priceTierAmount, [FromForm] string? previewToken,
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -191,7 +191,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
                 file.FileName,
                 customerId,
                 parsedWeekStart,
-                priceTierAmount,
+                priceTierAmount, previewToken,
                 userId,
                 cancellationToken);
 

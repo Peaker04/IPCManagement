@@ -40,6 +40,9 @@ public class WeeklyMenuImportResultDto
     public string? PublishedBy { get; set; }
     public string? PublishedAt { get; set; }
     public string? SourceImportBatch { get; set; }
+    public string? SourceChecksum { get; set; }
+    public string? PreviewToken { get; set; }
+    public DateTimeOffset? PreviewExpiresAt { get; set; }
     public WeeklyMenuImportLayoutDto DetectedLayout { get; set; } = new();
     public SampleDataImportCountsDto Counts { get; set; } = new();
     public List<string> Warnings { get; set; } = [];

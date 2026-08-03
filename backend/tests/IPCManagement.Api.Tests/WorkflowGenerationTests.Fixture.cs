@@ -518,6 +518,9 @@ public partial class WorkflowGenerationTests
                     dishName TEXT NOT NULL,
                     dishGroup TEXT NULL,
                     dishType TEXT NULL,
+                    sourceImportBatch TEXT NULL,
+                    sourceFileName TEXT NULL,
+                    sourceChecksum TEXT NULL,
                     isActive INTEGER NOT NULL
                 );
                 CREATE TABLE menuitems (
