@@ -1,5 +1,6 @@
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -47,6 +48,10 @@ public sealed class MenuSchedulesController : ControllerBase
                 : Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật quy tắc suất ăn."));
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

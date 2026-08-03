@@ -192,7 +192,12 @@ public sealed class CustomerContractService : ICustomerContractService
 
         contract.UpdatedAt = changedAt;
         ValidateNoOverlappingContract(customer.Customercontracts, contract);
-        ApplyContractToUnlockedSchedules(contract, schedules, actorId, changedAt, auditCorrelationId);
+        await ApplyContractToUnlockedSchedulesAsync(
+            contract,
+            schedules,
+            actorId,
+            changedAt,
+            auditCorrelationId);
 
         await _context.SaveChangesAsync();
         return MapCustomerContract(customer);
@@ -284,7 +289,7 @@ public sealed class CustomerContractService : ICustomerContractService
         apply();
     }
 
-    private void ApplyContractToUnlockedSchedules(
+    private async Task ApplyContractToUnlockedSchedulesAsync(
         CustomerContract contract,
         IReadOnlyList<MenuSchedule> schedules,
         byte[] actorId,
@@ -293,7 +298,19 @@ public sealed class CustomerContractService : ICustomerContractService
     {
         var activeDays = SplitCsv(contract.ActiveWeekDays).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var shifts = SplitCsv(contract.ShiftNames).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var schedule in schedules.Where(schedule => !IsLockedSchedule(schedule) && MatchesContract(schedule, contract, activeDays, shifts)))
+        var targetSchedules = schedules
+            .Where(schedule => !IsLockedSchedule(schedule) && MatchesContract(schedule, contract, activeDays, shifts))
+            .ToList();
+        foreach (var week in targetSchedules.GroupBy(schedule => schedule.WeekStartDate))
+        {
+            await CustomerWeekMenuTierInvariant.RequireAsync(
+                _context,
+                contract.CustomerId,
+                week.Key,
+                contract.DefaultMenuPrice);
+        }
+
+        foreach (var schedule in targetSchedules)
         {
             if (schedule.MenuPrice != contract.DefaultMenuPrice)
             {

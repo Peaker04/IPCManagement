@@ -27,6 +27,8 @@ public partial class MenuSchedule
 
     public virtual Customer Customer { get; set; } = null!;
 
+    public virtual CustomerWeekMenuTier CustomerWeekMenuTier { get; set; } = null!;
+
     public virtual ICollection<MealQuantityPlanLine> Mealquantityplanlines { get; set; } = new List<MealQuantityPlanLine>();
 
     public virtual Menu Menu { get; set; } = null!;

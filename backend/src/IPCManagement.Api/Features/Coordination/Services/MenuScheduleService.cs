@@ -114,6 +114,11 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
             if (schedule.MenuPrice != nextPrice)
             {
+                await CustomerWeekMenuTierInvariant.RequireAsync(
+                    _context,
+                    schedule.CustomerId,
+                    schedule.WeekStartDate,
+                    nextPrice);
                 AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
                     nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason, auditCorrelationId);
                 schedule.MenuPrice = nextPrice;

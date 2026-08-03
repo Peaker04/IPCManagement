@@ -196,6 +196,14 @@ public partial class WorkflowGenerationTests
                 BomStatus = "PUBLISHED",
                 EffectiveFrom = new DateOnly(2026, 1, 1)
             });
+            context.Customerweekmenutiers.Add(new CustomerWeekMenuTier
+            {
+                TierId = GuidHelper.NewId(),
+                CustomerId = CustomerId,
+                WeekStartDate = new DateOnly(2026, 6, 15),
+                PriceTierAmount = 25000,
+                CreatedAt = DateTime.UtcNow
+            });
             context.Menuschedules.Add(new MenuSchedule
             {
                 MenuScheduleId = scheduleId,
@@ -343,6 +351,14 @@ public partial class WorkflowGenerationTests
                 })
                 .ToList();
             context.Customers.AddRange(customers);
+            context.Customerweekmenutiers.AddRange(customers.Select(customer => new CustomerWeekMenuTier
+            {
+                TierId = GuidHelper.NewId(),
+                CustomerId = customer.CustomerId,
+                WeekStartDate = weekStart,
+                PriceTierAmount = 25000,
+                CreatedAt = DateTime.UtcNow
+            }));
 
             for (var dayOffset = 0; dayOffset < 7; dayOffset++)
             {
@@ -542,6 +558,14 @@ public partial class WorkflowGenerationTests
                     bomStatus TEXT NOT NULL DEFAULT 'PUBLISHED',
                     effectiveFrom TEXT NOT NULL,
                     effectiveTo TEXT NULL
+                );
+                CREATE TABLE customerweekmenutiers (
+                    tierId BLOB PRIMARY KEY,
+                    customerId BLOB NOT NULL,
+                    weekStartDate TEXT NOT NULL,
+                    priceTierAmount TEXT NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    UNIQUE (customerId, weekStartDate)
                 );
                 CREATE TABLE menuschedules (
                     menuScheduleId BLOB PRIMARY KEY,

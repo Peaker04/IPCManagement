@@ -26,9 +26,9 @@ public sealed class WeeklyMenuLifecyclePa2RegistrySourceTests
             .Should().Contain("if (request.Complete && schedules.Any(schedule =>");
         ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs", 150)
             .Should().Contain("!string.Equals(schedule.Status, \"ACTIVE\"");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs", 155)
+        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs", 160)
             .Should().Contain("var status = MenuSchedulePolicy.NormalizeMenuScheduleStatus(request.Status)");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs", 189)
+        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs", 194)
             .Should().Contain("if (!string.Equals(version.Status, status, StringComparison.OrdinalIgnoreCase))");
     }
 

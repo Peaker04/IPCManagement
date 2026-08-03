@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,12 @@ internal sealed class WeeklyMenuImportPersistence(
         CancellationToken cancellationToken)
     {
         await ValidateReimportBoundaryAsync(plan, customer, cancellationToken);
+        await CustomerWeekMenuTierInvariant.RequireAsync(
+            context,
+            customer.CustomerId,
+            plan.WeekStartDate,
+            priceTierAmount,
+            cancellationToken);
 
         var version = await CreateMenuVersionHeaderAsync(
             plan,

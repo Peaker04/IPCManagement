@@ -36,6 +36,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<CustomerContract> Customercontracts { get; set; }
 
+    public virtual DbSet<CustomerWeekMenuTier> Customerweekmenutiers { get; set; }
+
     public virtual DbSet<Dish> Dishes { get; set; }
 
     public virtual DbSet<DishBom> Dishboms { get; set; }

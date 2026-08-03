@@ -110,7 +110,7 @@ public partial class WorkflowGenerationTests
                 EffectiveFrom = "2026-06-15",
                 ActiveWeekDays = ["t2"],
                 ShiftNames = ["MORNING"],
-                DefaultMenuPrice = 43000,
+                DefaultMenuPrice = 25000,
                 DefaultBomRatePercent = 135
             },
             fixture.UserIdString);
@@ -123,28 +123,27 @@ public partial class WorkflowGenerationTests
         updated.EffectiveFrom.Should().Be("2026-06-15");
         updated.ActiveWeekDays.Should().Equal("t2");
         updated.ShiftNames.Should().Equal("MORNING");
-        updated.DefaultMenuPrice.Should().Be(43000);
+        updated.DefaultMenuPrice.Should().Be(25000);
         updated.DefaultBomRatePercent.Should().Be(100);
 
         var contractRow = await context.Customercontracts.AsNoTracking().SingleAsync();
-        contractRow.DefaultMenuPrice.Should().Be(43000);
+        contractRow.DefaultMenuPrice.Should().Be(25000);
         contractRow.DefaultBomRatePercent.Should().Be(100);
         contractRow.ActiveWeekDays.Should().Be("t2");
         contractRow.ShiftNames.Should().Be("MORNING");
 
         var schedule = await context.Menuschedules.AsNoTracking().SingleAsync();
-        schedule.MenuPrice.Should().Be(43000);
+        schedule.MenuPrice.Should().Be(25000);
         schedule.BomRatePercent.Should().Be(100);
 
         var audits = await context.Auditlogs.AsNoTracking()
             .Where(item => item.BusinessArea == "CustomerContract")
             .ToListAsync();
-        audits.Should().HaveCountGreaterThanOrEqualTo(4);
+        audits.Should().HaveCountGreaterThanOrEqualTo(3);
         audits.Select(item => item.FieldName).Should().Contain([
             nameof(Customer.Note),
             nameof(Customer.IsActive),
-            "ContractCreated",
-            nameof(MenuSchedule.MenuPrice)
+            "ContractCreated"
         ]);
     }
 
@@ -221,7 +220,7 @@ public partial class WorkflowGenerationTests
                     EffectiveFrom = "2026-06-15",
                     ActiveWeekDays = ["t2"],
                     ShiftNames = ["MORNING"],
-                    DefaultMenuPrice = 43000,
+                    DefaultMenuPrice = 25000,
                     DefaultBomRatePercent = 120
                 },
                 fixture.UserIdString);
@@ -874,6 +873,36 @@ public partial class WorkflowGenerationTests
         audit.Should().HaveCount(2);
         audit.Select(item => item.OldValue).Should().AllBeEquivalentTo("ACTIVE");
         audit.Select(item => item.NewValue).Should().AllBeEquivalentTo("SUPERSEDED");
+    }
+
+    [Fact]
+    public async Task CustomerWeekMenuTierIntegrity_ApiShouldReturnDomainConflictAndPreserveSchedule()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var schedule = await context.Menuschedules.SingleAsync();
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.GetUserId(Arg.Any<ClaimsPrincipal>()).Returns(fixture.UserIdString);
+        var controller = new MenuSchedulesController(
+            new MenuScheduleService(context, new EfTransactionRunner(context)),
+            currentUser)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+
+        var action = await controller.UpdateMenuScheduleRulesAsync(
+            GuidHelper.ToGuidString(schedule.MenuScheduleId),
+            new UpdateMenuScheduleRulesRequest { MenuPrice = 30000m });
+
+        var response = action.Should().BeOfType<BadRequestObjectResult>().Subject.Value
+            .Should().BeOfType<ApiResponse>().Subject;
+        response.Message.Should().Contain("đã khóa định mức 25,000");
+        response.Message.Should().Contain("rollback/xóa toàn bộ lịch DRAFT");
+        (await context.Menuschedules.AsNoTracking().Select(item => item.MenuPrice).SingleAsync())
+            .Should().Be(25000m);
+        (await context.Customerweekmenutiers.AsNoTracking().Select(item => item.PriceTierAmount).SingleAsync())
+            .Should().Be(25000m);
     }
 
     [Fact]
