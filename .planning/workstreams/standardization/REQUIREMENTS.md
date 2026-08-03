@@ -15,11 +15,11 @@
 
 ### Import diagnostics and provenance
 
-- [ ] **IMPD-01**: Malformed BOM workbooks return stable, friendly domain errors rather than generic HTTP failures (`OPEN-02`).
-- [ ] **IMPD-02**: Preview diagnostics identify workbook scope and the relevant sheet/row/field without exposing internals.
-- [ ] **IMPD-03**: Commit accepts only the preview token/checksum for the exact uploaded content and scope.
-- [ ] **IMPD-04**: Dishes created by import retain queryable import provenance (`OPEN-07`).
-- [ ] **IMPD-05**: API regressions cover malformed input, stale/mismatched commit and provenance success paths.
+- [x] **IMPD-01**: Malformed BOM workbooks return stable, friendly domain errors rather than generic HTTP failures (`OPEN-02`).
+- [x] **IMPD-02**: Preview diagnostics identify workbook scope and the relevant sheet/row/field without exposing internals.
+- [x] **IMPD-03**: Commit accepts only the preview token/checksum for the exact uploaded content and scope.
+- [x] **IMPD-04**: Dishes created by import retain queryable import provenance (`OPEN-07`).
+- [x] **IMPD-05**: API regressions cover malformed input, stale/mismatched commit and provenance success paths.
 
 ### Import atomicity and recovery
 

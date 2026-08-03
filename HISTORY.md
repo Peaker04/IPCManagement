@@ -1387,3 +1387,11 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Root gate pass Application 49/49, API 705 + 1 intentional skip, frontend 126 file / 741 test,
   dependency graph 0 violation / 375 module / 1.350 dependency, lint và hai build. Commit `7e58f94`.
 - Không browser/runtime/database mutation, không gọi GitNexus và Phase 27 vẫn chưa mở.
+
+## Hoàn tất Standardization Phase 2 — Import diagnostics và provenance — 03/08/2026
+
+- `OPEN-02` đóng tại `25cf98f`: BOM ZIP/XLSX hỏng được đổi thành domain message tiếng Việt ổn định và HTTP 400 cho cả preview/commit; readable workbook vẫn giữ diagnostics sheet/row/field.
+- `OPEN-07` đóng tại `d79a9fd`: preview ticket random 256-bit, TTL 15 phút khóa SHA-256/customer/week/tier; commit thiếu, hết hạn, replay, đổi file hoặc đổi scope đều fail closed và token chỉ consume sau transaction thành công.
+- Dish mới do weekly-menu import giữ source batch, filename và checksum nullable; DTO catalog expose provenance, dữ liệu existing/manual không bị relabel. Migration chỉ thêm ba cột nullable và không apply vào `ipc_lane1`.
+- Focused ticket/provenance `36/36`; root gate pass Application `49/49`, API `709 + 1 intentional skip`, frontend `128 file / 747 test`, UI completeness `87/87`, dependency graph `0 violation / 376 module / 1.354 dependency`, lint và hai build.
+- EF model validation, secret/stub scan và `git diff --check` pass; không browser/runtime/database mutation, không gọi GitNexus. Phase 3 tiếp tục `OPEN-08`.
