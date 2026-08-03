@@ -112,7 +112,7 @@ if ($oversized.Count -gt 0) {
 }
 
 if ($ExpectedBodySha256FromCallsiteChecklist) {
-    $checklist = Join-Path $root '.planning/phases/18-guardrails-and-workflow-closeout/18-GITNEXUS-CALLSITES.md'
+    $checklist = Join-Path $root '.planning/workstreams/goal-make-every-existing-route-tab-and-declared-canonical-st/phases/18-guardrails-and-workflow-closeout/18-GITNEXUS-CALLSITES.md'
     $label = if ($PSCmdlet.ParameterSetName -eq 'Backend') { $BackendOwner } else { 'route-smoke' }
     $content = [System.IO.File]::ReadAllText($checklist)
     if ($PSCmdlet.ParameterSetName -eq 'Backend') {

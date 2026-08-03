@@ -42,7 +42,15 @@ const FRONTEND_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(FRONTEND_ROOT, '..')
 const EVIDENCE_ROOT = resolve(REPO_ROOT, '.artifacts', 'shipyard-live', process.env.PC_EVIDENCE_RUN ?? 'pc-action-completeness-20-02')
 const EVIDENCE_JSON = resolve(EVIDENCE_ROOT, 'pc-action-completeness.json')
-const TRACKED_AGGREGATE_JSON = resolve(REPO_ROOT, '.planning', 'phases', '20-pc-pd-action-completeness', '20-PC-AGGREGATE.json')
+const TRACKED_AGGREGATE_JSON = resolve(
+  REPO_ROOT,
+  '.planning',
+  'workstreams',
+  'goal-make-every-existing-route-tab-and-declared-canonical-st',
+  'phases',
+  '20-pc-pd-action-completeness',
+  '20-PC-AGGREGATE.json',
+)
 
 type BrowserIssue = {
   viewport: string

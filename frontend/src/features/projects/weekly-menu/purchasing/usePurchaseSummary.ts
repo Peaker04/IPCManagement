@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import type { DemandLine } from '@/types/workflow'
 import type { MaterialSummary } from '../model/types'
 import type { WeeklyScheduleFeedback } from '../schedule/types'
@@ -59,7 +60,11 @@ export function usePurchaseSummary({
     pageNumber: pageIndex + 1,
     pageSize: 10,
   }, { skip: !enabled || !customerId || !weekStartDate })
-  const aggregatePage = aggregateResult.data
+  const shouldLoadAggregate = enabled && Boolean(customerId) && Boolean(weekStartDate)
+  const queryView = shouldLoadAggregate
+    ? toLabeledQueryView(aggregateResult, 'tổng hợp mua của tuần')
+    : null
+  const aggregatePage = queryView?.phase === 'ready' ? queryView.data : undefined
   const presentation = aggregatePage ? {
     ...localPresentation,
     usesDemand: aggregatePage.totalCount > 0,
@@ -101,18 +106,13 @@ export function usePurchaseSummary({
 
   return {
     state: { pageIndex: presentation.pageIndex, feedback, search },
-    status: {
-      isLoading: aggregateResult.isLoading,
-      isFetching: aggregateResult.isFetching,
-      isError: aggregateResult.isError,
-    },
+    queryView,
     actions: {
       setPage: (page: number) => setNavigation({ scopeKey, pageIndex: page - 1 }),
       setSearch: (value: string) => {
         setSearchState({ scopeKey, value })
         setNavigation({ scopeKey, pageIndex: 0 })
       },
-      retry: aggregateResult.refetch,
       exportWarehouseReport,
     },
     presentation: { ...presentation, customerLabel, weekLabel, materialCount: Object.keys(materialSummary).length },

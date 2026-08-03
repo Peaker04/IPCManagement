@@ -1,6 +1,7 @@
 import { CheckCircle2, Search, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, InlineAlert, PaginationBar, QueryErrorAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ContextStrip, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { formatCurrency, formatDateOnly, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
@@ -11,7 +12,7 @@ const tableHeadClass = 'text-center'
 const tableCellClass = 'text-center'
 
 const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflow }) => {
-  const { actions, presentation, state, status } = workflow
+  const { actions, presentation, queryView, state } = workflow
   return (
     <SectionPanel
       title="Tổng hợp nhu cầu mua"
@@ -34,15 +35,11 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           <Input id="weekly-purchase-search" type="search" value={state.search} onChange={(event) => actions.setSearch(event.target.value)} placeholder="Tên hoặc mã nguyên liệu" className="h-9 pl-9" />
         </span>
       </label>
-      {status.isError && (
-        <QueryErrorAlert title="Không tải được tổng hợp mua của tuần" onRetry={actions.retry} isRetrying={status.isFetching} className="mb-3">
-          Thử tải lại để tiếp tục đối chiếu dữ liệu mua của tuần.
-        </QueryErrorAlert>
-      )}
-      {status.isLoading && <InlineAlert title="Đang tải tổng hợp mua của tuần" variant="info" className="mb-3">Đang đối chiếu từng ngày, khách hàng và đơn giá trước khi hiển thị.</InlineAlert>}
-      {status.isFetching && !status.isLoading && <InlineAlert title="Đang cập nhật tổng hợp tuần" variant="info" className="mb-3">Giữ nguyên trang hiện tại cho tới khi dữ liệu mới tải xong.</InlineAlert>}
-      {!status.isLoading && !status.isError && !presentation.usesDemand && <InlineAlert title="Chưa có số thiếu/đủ sau kiểm tồn" variant="warning" className="mb-3">Bảng dưới đây mới là định lượng nguyên liệu theo món. Bấm Tạo nhu cầu từ KHSX ở tab KHSX và nhu cầu để hệ thống kiểm tồn kho và trả ra Cần, Tồn khả dụng, Thiếu/Đủ.</InlineAlert>}
-      {!status.isLoading && !status.isError && <>
+      <QueryViewBoundary
+        queries={queryView ? [{ label: 'tổng hợp mua của tuần', view: queryView }] : []}
+        refreshLabel="Đang cập nhật tổng hợp tuần"
+      >
+      {!presentation.usesDemand && <InlineAlert title="Chưa có số thiếu/đủ sau kiểm tồn" variant="warning" className="mb-3">Bảng dưới đây mới là định lượng nguyên liệu theo món. Bấm Tạo nhu cầu từ KHSX ở tab KHSX và nhu cầu để hệ thống kiểm tồn kho và trả ra Cần, Tồn khả dụng, Thiếu/Đủ.</InlineAlert>}
       <TableViewport
         caption={presentation.usesDemand
           ? 'Mỗi dòng thuộc một ngày, khách hàng, đơn giá, nguyên liệu và đơn vị trong tuần đang chọn'
@@ -95,7 +92,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
         </table>
       </TableViewport>
       <PaginationBar className="mt-3" page={presentation.pageIndex + 1} pageSize={PURCHASE_SUMMARY_PAGE_SIZE} totalItems={presentation.totalItems} onPageChange={actions.setPage} />
-      </>}
+      </QueryViewBoundary>
     </SectionPanel>
   )
 }

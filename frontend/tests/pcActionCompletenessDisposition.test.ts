@@ -95,17 +95,20 @@ type AggregateSnapshot = {
 }
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const dispositionSource = readFileSync(resolve(
+const LEGACY_WORKSTREAM_PHASES = resolve(
   REPO_ROOT,
   '.planning',
+  'workstreams',
+  'goal-make-every-existing-route-tab-and-declared-canonical-st',
   'phases',
+)
+const dispositionSource = readFileSync(resolve(
+  LEGACY_WORKSTREAM_PHASES,
   '20-pc-pd-action-completeness',
   '20-DISPOSITION.md',
 ), 'utf8').replace(/\r\n/g, '\n')
 const aggregateSnapshot = JSON.parse(readFileSync(resolve(
-  REPO_ROOT,
-  '.planning',
-  'phases',
+  LEGACY_WORKSTREAM_PHASES,
   '20-pc-pd-action-completeness',
   '20-PC-AGGREGATE.json',
 ), 'utf8')) as AggregateSnapshot
