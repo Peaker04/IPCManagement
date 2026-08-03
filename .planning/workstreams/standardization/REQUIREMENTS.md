@@ -8,10 +8,10 @@
 
 ### Frontend query-state closure
 
-- [ ] **FEQS-01**: Every production query boundary is inventoried with its owner, authoritative data and state handling.
-- [ ] **FEQS-02**: Legacy boundaries use `QueryView`/`QueryViewBoundary`, or have a documented source-tested exception.
-- [ ] **FEQS-03**: Loading, refreshing, error, forbidden, ready and empty remain distinct; stale data stays visible while refreshing.
-- [ ] **FEQS-04**: Rendered regressions cover false-empty/false-zero, owner retry and permission behavior.
+- [x] **FEQS-01**: Every production query boundary is inventoried with its owner, authoritative data and state handling.
+- [x] **FEQS-02**: Legacy boundaries use `QueryView`/`QueryViewBoundary`, or have a documented source-tested exception.
+- [x] **FEQS-03**: Loading, refreshing, error, forbidden, ready and empty remain distinct; stale data stays visible while refreshing.
+- [x] **FEQS-04**: Rendered regressions cover false-empty/false-zero, owner retry and permission behavior.
 
 ### Import diagnostics and provenance
 

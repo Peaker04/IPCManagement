@@ -8,7 +8,7 @@
 
 ## Phase overview
 
-- [ ] **Phase 1: Frontend Query Boundary Closure** — inventory every remaining production query boundary and migrate or explicitly disposition legacy state handling.
+- [x] **Phase 1: Frontend Query Boundary Closure** — inventory every remaining production query boundary and migrate or explicitly disposition legacy state handling. (completed 2026-08-03)
 - [ ] **Phase 2: Import Diagnostics and Provenance** — close `OPEN-02` and `OPEN-07` with friendly scoped diagnostics, preview integrity and imported-dish provenance.
 - [ ] **Phase 3: Import Atomicity and Recovery** — close `OPEN-08` with tested all-or-nothing behavior or an explicit recovery protocol.
 - [ ] **Phase 4: Effective-Range Audit Coverage** — close `OPEN-05` for contract and menu-schedule transitions.

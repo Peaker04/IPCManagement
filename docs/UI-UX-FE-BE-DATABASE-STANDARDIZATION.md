@@ -42,6 +42,8 @@ Bản này **không thay thế** các nguồn chuyên biệt:
 
 - Contract dùng chung (`apiSlice`, `QueryView`, formatter, pagination và status presentation) là nền đã có trước khi tài liệu này được chấp nhận.
 - Lát cắt triển khai đầu tiên của tài liệu là Dashboard: hai query owner `workflow overview` và `operational KPI` được phân loại qua `QueryView`; lỗi từng owner không còn render số `0` hoặc empty state giả, retry thuộc đúng owner và refresh giữ dữ liệu cũ.
+- Warehouse exceptions và weekly purchase summary đã hoàn tất rollout tiếp theo; purchase summary không còn render bảng local/empty giả khi aggregate authoritative đang loading/error, còn refresh giữ hàng hiện tại.
+- Inventory AST `frontend/tests/queryBoundaryInventory.test.ts` hiện bắt buộc mọi production query-hook owner dùng adapter chung hoặc có exception chính xác, có rationale và source marker; owner mới hoặc exception stale đều làm gate fail.
 - Lát cắt Warehouse exceptions tiếp theo đã đưa danh sách cấp bổ sung, danh sách phiếu trả và chi tiết phiếu trả về cùng contract; error/forbidden không còn đi kèm bảng trống giả, còn refresh giữ hàng đang xem.
 - Regression của lát cắt nằm tại `frontend/src/features/dashboard/pages/DashboardPage.state.test.tsx`.
 - Regression Warehouse nằm tại `frontend/src/features/warehouse/WarehouseExceptionsWorkbench.test.tsx`.
@@ -184,7 +186,6 @@ Các mục dưới đây lấy từ trạng thái hiện hành; không tự tạ
 | `OPEN-08` | Cao | Batch hai khách hàng atomic hoặc recovery protocol được test |
 | `OPEN-09` | Trung bình | Workbook author được cover bởi case matrix và browser E2E import xác minh không mutate template gốc |
 | `OPEN-02` | Trung bình | Workbook BOM hỏng trả domain error thân thiện và có API regression |
-| FE migration follow-up | Cao | Dashboard và Warehouse exceptions đã migrate; các boundary còn legacy state handling phải được inventory và đưa về `QueryView` hoặc có exception được ghi rõ |
 
 Không được đóng các mục trên bằng cách chỉ thêm assertion vào UI. Mỗi mục cần evidence đúng lớp và regression ở lớp liên quan.
 
