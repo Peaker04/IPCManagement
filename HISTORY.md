@@ -1367,3 +1367,13 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   không có bằng chứng cho phép thêm nút FE.
 - Frontend pass 124 file / 729 test, lint, dependency graph và production build. GitNexus final MEDIUM,
   một presentation process, HIGH-rigor review APPROVE, Deferred none. Phase 27 không mở và không push.
+
+## Hoàn tất quick 260803-p7b — Chuẩn hóa contract và Dashboard query state — 03/08/2026
+
+- Chấp nhận `docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md` theo rollout tăng dần, nối từ architecture và
+  frontend README; không tự đóng OPEN-02/05/06/07/08/09 hay tuyên bố toàn hệ thống đã chuẩn hóa xong.
+- Dashboard đưa workflow overview và operational KPI qua `QueryView`/`QueryViewBoundary`: partial error chặn
+  số 0/empty giả, retry theo owner, refresh giữ dữ liệu cũ; shared boundary ưu tiên lỗi actionable hơn loading.
+- Root gate pass Application 49/49, API 705 + 1 intentional skip, UI completeness 87/87, frontend 126 file /
+  736 test, lint, dependency graph 0 violation / 375 module / 1.348 dependency và hai production build.
+- Commit `e0f3361`; không browser/runtime/database mutation, không gọi GitNexus và Phase 27 vẫn chưa mở.

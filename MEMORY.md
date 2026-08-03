@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-02
+updated: 2026-08-03
 branch: feature/workflow-b17-b18
 runtime_ports:
   frontend: 3001
@@ -76,7 +76,7 @@ SOURCE-01..03 đều Complete. Application `49/49`; API `705 pass + 1 intentiona
 `123 files / 724 tests`; UI-completeness `87/87`; ESLint, dependency-cruiser `0 violation / 373 modules /
 1,346 dependencies`, backend build và frontend production build đều pass.
 
-Current-source sau quick `260802-qdk` ở commit cha `5cd7c2e` (working-tree changes chờ closeout): frontend `125 files / 732 tests`, focused/full regressions, ESLint, dependency-cruiser `0 violation / 374 modules / 1,347 dependencies` và production build đều pass. Các correction chỉ thuộc presentation: Reports Audit, Admin BOM, Warehouse Demand empty-state, Admin Statistics, Chef Production và các shared dense/action tables.
+Current-source sau quick `260803-p7b` tại `e0f3361`: contract `docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md` được chấp nhận theo rollout tăng dần; Dashboard đã đưa workflow overview và operational KPI qua `QueryView`/`QueryViewBoundary`. Partial error không còn render số 0/empty giả, retry thuộc đúng owner, refresh giữ dữ liệu cũ và actionable error được ưu tiên hơn loading thụ động. Root gate pass Application `49/49`, API `705 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `126 files / 736 tests`, ESLint, dependency-cruiser `0 violation / 375 modules / 1,348 dependencies`, backend build và frontend production build. Không browser/runtime/database mutation; Phase 27 chưa mở.
 
 UI/UX iteration `260802-bom-detail`: evidence before/after cho Shipyard pagination đã được chụp và đọc trực quan. Admin BOM trả lại 8 cột chi tiết, form import xếp trên bảng để bảng không bị nén; `AdminQueryBoundary` chuyển refresh notice sang overlay `role=status` để không chèn vào flow. Probe after pass read-only trên `1280×900` và `1440×900`: BOM first/last đều `520px`, Reports Quality `520px`, Warehouse Demand `480px`, không mutation và không browser/console/page error. Hash authoritative nằm ở `docs/EVIDENCE-INDEX.md`.
 
