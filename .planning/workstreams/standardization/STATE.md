@@ -9,19 +9,19 @@ created: 2026-08-03
 
 **Milestone:** v1.0 — FE–BE–Database Standardization Closure
 **Status:** Ready
-**Current Phase:** 4 — Effective-Range Audit Coverage
+**Current Phase:** 5 — Customer-Week Tier Integrity
 **Last Activity:** 2026-08-03
-**Last Activity Description:** Phase 3 verified and closed at 3baa452
+**Last Activity Description:** Phase 4 verified and closed at f48ee44
 
 ## Progress
 
-**Phases Complete:** 3
+**Phases Complete:** 4
 **Total Phases:** 7
-**Current Plan:** Phase 4 ready for effective-range audit source research and planning
+**Current Plan:** Phase 5 ready for customer/week tier invariant research and planning
 
 ## Session Continuity
 
-**Stopped At:** Phase 4 contract/menu-schedule effective-range audit inventory
+**Stopped At:** Phase 5 price-tier persistence grain and migration inventory
 **Resume File:** None
 
 ## Constraints

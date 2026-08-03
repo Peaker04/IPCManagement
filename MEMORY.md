@@ -56,7 +56,6 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 ## Còn mở
 
 - `OPEN-04` · owner `Ops/Backup` · đóng khi dump + binlog được mã hóa lên object storage immutable, có SSD luân phiên off-premises và restore drill chỉ từ off-site pass toàn bộ gate runbook.
-- `OPEN-05` · owner `Backend/Audit` · đóng khi thay đổi contract/menu-schedule effective range có audit coverage end-to-end.
 - `OPEN-06` · owner `Backend/Planning+DB` · đóng khi invariant một tier cho mỗi customer/week được enforce ngoài UI và có migration/test.
 - `OPEN-09` · owner `QA/Tooling` · đóng khi artifact spreadsheet author được workbook case matrix và browser E2E import xác minh mà không mutate template gốc.
 
@@ -78,6 +77,8 @@ Current-source sau quick `260803-pwg` tại `7e58f94`: contract chuẩn hóa ti�
 Standardization Phase 2 tại `d79a9fd` đã đóng `OPEN-02` và `OPEN-07`: BOM workbook hỏng trả domain HTTP 400; weekly-menu commit bắt buộc preview ticket khóa SHA-256/customer/week/tier; dish mới do import có provenance nullable. Root gate pass Application `49/49`, API `709 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `128 files / 747 tests`, dependency graph `0 violation / 376 modules / 1,354 dependencies`, lint và hai build. EF model không còn pending change; migration additive chưa apply vào `ipc_lane1`; không browser/runtime/database mutation.
 
 Standardization Phase 3 tại `3baa452` đã đóng `OPEN-08`: batch từ hai file dùng một relational transaction; forced failure ở customer thứ hai rollback save thứ nhất, ticket còn retry được và replay sau success bị chặn. Root gate pass Application `49/49`, API `713 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `129 files / 748 tests`, dependency graph `0 violation / 377 modules / 1,355 dependencies`, architecture baseline, lint và hai build. Không browser/runtime/database mutation.
+
+Standardization Phase 4 tại `f48ee44` đã đóng `OPEN-05`: contract effective boundary và menu-version week range persist old/new, actor và request correlation; audit report DTO/CSV expose correlation. Root gate pass Application `49/49`, API `715 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `129 files / 748 tests`, dependency graph `0 violation / 377 modules / 1,355 dependencies`, architecture baseline, lint và hai build. Migration chỉ thêm nullable `auditlogs.correlationId`, chưa apply vào `ipc_lane1`; không browser/runtime/database mutation.
 
 UI/UX iteration `260802-bom-detail`: evidence before/after cho Shipyard pagination đã được chụp và đọc trực quan. Admin BOM trả lại 8 cột chi tiết, form import xếp trên bảng để bảng không bị nén; `AdminQueryBoundary` chuyển refresh notice sang overlay `role=status` để không chèn vào flow. Probe after pass read-only trên `1280×900` và `1440×900`: BOM first/last đều `520px`, Reports Quality `520px`, Warehouse Demand `480px`, không mutation và không browser/console/page error. Hash authoritative nằm ở `docs/EVIDENCE-INDEX.md`.
 

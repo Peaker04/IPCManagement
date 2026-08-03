@@ -29,9 +29,9 @@
 
 ### Effective-range audit
 
-- [ ] **AUDT-01**: Contract effective-range changes emit before/after audit facts with actor and correlation context (`OPEN-05`).
-- [ ] **AUDT-02**: Menu-schedule effective-range changes emit equivalent audit coverage.
-- [ ] **AUDT-03**: End-to-end API tests prove persisted transition and audit record together.
+- [x] **AUDT-01**: Contract effective-range changes emit before/after audit facts with actor and correlation context (`OPEN-05`).
+- [x] **AUDT-02**: Menu-schedule effective-range changes emit equivalent audit coverage.
+- [x] **AUDT-03**: End-to-end API tests prove persisted transition and audit record together.
 
 ### Customer/week tier invariant
 

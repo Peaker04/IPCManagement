@@ -1403,3 +1403,11 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Error nêu customer lỗi và khẳng định không file nào được lưu; ticket chỉ consume sau full commit. Single-file endpoint giữ nguyên. Per-file upload limit và exact customer response set được bổ sung từ code review.
 - Root gate pass Application `49/49`, API `713 + 1 intentional skip`, frontend `129 file / 748 test`, UI completeness `87/87`, dependency graph `0 violation / 377 module / 1.355 dependency`, architecture baseline, lint và hai build.
 - Secret scan và `git diff --check` pass; không browser/runtime/database mutation, không gọi GitNexus. Phase 4 tiếp tục `OPEN-05`.
+
+## Hoàn tất Standardization Phase 4 — Effective-range audit — 03/08/2026
+
+- `OPEN-05` đóng tại `f48ee44`: customer-contract effective boundary giữ exact old/new field facts, actor và request trace correlation; menu-version transition có thêm `EffectiveRange` cho `weekStart..weekEnd|oldStatus -> newStatus` và mọi schedule row dùng cùng correlation.
+- Audit report DTO và CSV expose correlation ID. Migration chỉ thêm `auditlogs.correlationId varchar(128) NULL`, EF model không pending và không apply vào `ipc_lane1`.
+- Hai relational API→DB regressions gọi real controller/service rồi assert response, entity transition, actor, correlation và audit row trong cùng scenario; focused range 2/2 và related contract/menu 11/11 pass.
+- Root gate pass Application `49/49`, API `715 + 1 intentional skip`, frontend `129 file / 748 test`, UI completeness `87/87`, dependency graph `0 violation / 377 module / 1.355 dependency`, architecture baseline, lint và hai build.
+- Secret scan và `git diff --check` pass; không browser/runtime/database mutation, không gọi GitNexus. Phase 5 tiếp tục `OPEN-06`.
