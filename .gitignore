@@ -91,7 +91,13 @@ Desktop.ini
 # Internal / AI tooling (not for repo)
 # =============================================
 .claude/
-.planning/
+**/.planning/
+!/.planning/
+/.planning/*
+!/.planning/workstreams/
+/.planning/workstreams/*
+!/.planning/workstreams/standardization/
+!/.planning/workstreams/standardization/**
 AGENTS.md
 CLAUDE.md
 .vercel
