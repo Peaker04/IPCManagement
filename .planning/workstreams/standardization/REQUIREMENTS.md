@@ -23,9 +23,9 @@
 
 ### Import atomicity and recovery
 
-- [ ] **IMPA-01**: A two-customer import either commits as one transaction or follows an explicit, observable recovery protocol (`OPEN-08`).
-- [ ] **IMPA-02**: A forced failure proves no silent partial success and preserves actionable diagnostics.
-- [ ] **IMPA-03**: Retry/idempotency behavior is regression-tested.
+- [x] **IMPA-01**: A two-customer import either commits as one transaction or follows an explicit, observable recovery protocol (`OPEN-08`).
+- [x] **IMPA-02**: A forced failure proves no silent partial success and preserves actionable diagnostics.
+- [x] **IMPA-03**: Retry/idempotency behavior is regression-tested.
 
 ### Effective-range audit
 

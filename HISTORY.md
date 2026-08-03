@@ -1395,3 +1395,11 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Dish mới do weekly-menu import giữ source batch, filename và checksum nullable; DTO catalog expose provenance, dữ liệu existing/manual không bị relabel. Migration chỉ thêm ba cột nullable và không apply vào `ipc_lane1`.
 - Focused ticket/provenance `36/36`; root gate pass Application `49/49`, API `709 + 1 intentional skip`, frontend `128 file / 747 test`, UI completeness `87/87`, dependency graph `0 violation / 376 module / 1.354 dependency`, lint và hai build.
 - EF model validation, secret/stub scan và `git diff --check` pass; không browser/runtime/database mutation, không gọi GitNexus. Phase 3 tiếp tục `OPEN-08`.
+
+## Hoàn tất Standardization Phase 3 — Atomic multi-customer import — 03/08/2026
+
+- `OPEN-08` đóng tại `3baa452`: FE “Lưu file hợp lệ” từ hai job trở lên gửi một multipart batch; BE parse/validate toàn bộ rồi commit mọi customer/week trong cùng `EfTransactionRunner`.
+- Relational forced-failure ghi customer đầu, ném domain error ở customer thứ hai và fresh context thấy zero row. Cùng ticket retry thành công đúng hai version; replay bị chặn và không tạo duplicate.
+- Error nêu customer lỗi và khẳng định không file nào được lưu; ticket chỉ consume sau full commit. Single-file endpoint giữ nguyên. Per-file upload limit và exact customer response set được bổ sung từ code review.
+- Root gate pass Application `49/49`, API `713 + 1 intentional skip`, frontend `129 file / 748 test`, UI completeness `87/87`, dependency graph `0 violation / 377 module / 1.355 dependency`, architecture baseline, lint và hai build.
+- Secret scan và `git diff --check` pass; không browser/runtime/database mutation, không gọi GitNexus. Phase 4 tiếp tục `OPEN-05`.
