@@ -906,6 +906,48 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task CustomerWeekMenuTierIntegrity_RollbackLastDraftVersionShouldReleaseEmptyWeekTier()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        context.Mealquantityplanlines.RemoveRange(await context.Mealquantityplanlines.ToListAsync());
+        context.Mealquantityplans.RemoveRange(await context.Mealquantityplans.ToListAsync());
+        var schedule = await context.Menuschedules.SingleAsync();
+        var version = new MenuVersion
+        {
+            MenuVersionId = GuidHelper.NewId(),
+            CustomerId = fixture.CustomerId,
+            WeekStartDate = schedule.WeekStartDate,
+            VersionNo = 1,
+            Status = "DRAFT",
+            SourceFileName = "valid-anv.xlsx",
+            SourceChecksum = "fixture-checksum",
+            SourceImportBatch = "fixture-batch",
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            SuccessRowCount = 1
+        };
+        context.Menuversions.Add(version);
+        schedule.Status = "DRAFT";
+        schedule.MenuVersionId = version.MenuVersionId;
+        await context.SaveChangesAsync();
+        var service = new WeeklyMenuImportHistoryService(
+            context,
+            new WeeklyMenuAuditActorResolver(context));
+
+        var result = await service.RollbackWeeklyMenuImportAsync(
+            GuidHelper.ToGuidString(version.MenuVersionId),
+            fixture.UserIdString);
+
+        result.MenuSchedulesRemoved.Should().Be(1);
+        (await context.Menuschedules.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Customerweekmenutiers.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Menuversions.AsNoTracking().SingleAsync()).Status.Should().Be("ROLLED_BACK");
+    }
+
+    [Fact]
     public async Task MenuScheduleEffectiveRangeAudit_Should_JoinApiWeekTransitionActorAndCorrelation()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

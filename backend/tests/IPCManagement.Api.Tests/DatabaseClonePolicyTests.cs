@@ -50,6 +50,28 @@ public class DatabaseClonePolicyTests
         action.Should().Throw<ArgumentException>();
     }
 
+    [Theory]
+    [InlineData("ipc_lane1")]
+    [InlineData("ipc_lane9")]
+    [InlineData("ipc_e2e_template")]
+    public void ValidateEvidenceTarget_ShouldAllowOnlyIpcEvidenceDatabases(string database)
+    {
+        var action = () => DatabaseClonePolicy.ValidateEvidenceTarget(database);
+
+        action.Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData("mysql")]
+    [InlineData("ipc_lane0")]
+    [InlineData("ipc_lane1; DROP DATABASE mysql")]
+    public void ValidateEvidenceTarget_ShouldRejectUnsafeNames(string database)
+    {
+        var action = () => DatabaseClonePolicy.ValidateEvidenceTarget(database);
+
+        action.Should().Throw<ArgumentException>();
+    }
+
     [Fact]
     public void TransactionTables_ShouldIncludeSupplierDecisionsBeforePurchaseRequestLines()
     {

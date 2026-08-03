@@ -7,21 +7,13 @@ import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { formatImportDate } from '../model/formatters'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
+import { matchesWeeklyMenuImportHistorySearch } from './weeklyMenuImportHistorySearch'
 
 export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
   const { history, status, actions } = workflow
   const [search, setSearch] = useState('')
   const filteredHistory = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase('vi-VN')
-    if (!needle) return history
-    return history.filter((item) => [
-      item.customerCode,
-      item.customerName,
-      item.weekStartDate,
-      `v${item.versionNo}`,
-      getWorkflowStatusPresentation(item.status).label,
-      item.createdByName,
-    ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(needle))
+    return history.filter((item) => matchesWeeklyMenuImportHistorySearch(item, search))
   }, [history, search])
 
   return (

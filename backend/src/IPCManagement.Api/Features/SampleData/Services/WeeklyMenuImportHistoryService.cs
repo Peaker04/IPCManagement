@@ -91,6 +91,12 @@ internal sealed class WeeklyMenuImportHistoryService(
                 schedule.MenuVersionId != null &&
                 schedule.MenuVersionId.SequenceEqual(version.MenuVersionId))
             .ToListAsync(cancellationToken);
+        var scheduleCountForScope = await context.Menuschedules
+            .AsNoTracking()
+            .CountAsync(schedule =>
+                schedule.CustomerId.SequenceEqual(version.CustomerId) &&
+                schedule.WeekStartDate == version.WeekStartDate,
+                cancellationToken);
         var menuIds = schedules.Select(schedule => schedule.MenuId).ToList();
         var menuItems = await context.Menuitems
             .Where(item => menuIds.Any(id => item.MenuId.SequenceEqual(id)))
@@ -101,6 +107,17 @@ internal sealed class WeeklyMenuImportHistoryService(
             .Where(menu => menuIds.Any(id => menu.MenuId.SequenceEqual(id)))
             .ToListAsync(cancellationToken);
         context.Menus.RemoveRange(menus);
+        if (scheduleCountForScope == schedules.Count)
+        {
+            var tier = await context.Customerweekmenutiers.FirstOrDefaultAsync(item =>
+                    item.CustomerId.SequenceEqual(version.CustomerId) &&
+                    item.WeekStartDate == version.WeekStartDate,
+                cancellationToken);
+            if (tier is not null)
+            {
+                context.Customerweekmenutiers.Remove(tier);
+            }
+        }
 
         var oldStatus = version.Status;
         version.Status = "ROLLED_BACK";

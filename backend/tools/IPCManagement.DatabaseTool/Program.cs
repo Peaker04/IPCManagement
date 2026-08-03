@@ -2,6 +2,76 @@ using System.Text.Json;
 using IPCManagement.DatabaseTool;
 using MySqlConnector;
 
+if (args.Length == 7 &&
+    args[0] == "weekly-menu-evidence" &&
+    args[1] == "--settings" &&
+    args[3] == "--database" &&
+    args[5] == "--week")
+{
+    var evidenceSettingsPath = Path.GetFullPath(args[2]);
+    var evidenceDatabase = args[4];
+    if (!DateOnly.TryParseExact(args[6], "yyyy-MM-dd", out var evidenceWeek))
+    {
+        Console.Error.WriteLine("Weekly-menu evidence week must use yyyy-MM-dd.");
+        return 2;
+    }
+
+    try
+    {
+        DatabaseClonePolicy.ValidateEvidenceTarget(evidenceDatabase);
+        await using var connection = await OpenServerConnectionAsync(evidenceSettingsPath);
+        await using var command = new MySqlCommand(
+            $"""
+            SELECT customer.customerCode,
+                   COUNT(DISTINCT version.menuVersionId) AS menuVersionCount,
+                   COUNT(DISTINCT schedule.menuScheduleId) AS menuScheduleCount,
+                   COUNT(DISTINCT tier.tierId) AS tierCount,
+                   COALESCE(GROUP_CONCAT(DISTINCT version.status ORDER BY version.status SEPARATOR ','), '') AS statuses
+            FROM {Quote(evidenceDatabase)}.{Quote("customers")} AS customer
+            LEFT JOIN {Quote(evidenceDatabase)}.{Quote("menuversions")} AS version
+                ON version.customerId = customer.customerId
+               AND version.weekStartDate = @week
+            LEFT JOIN {Quote(evidenceDatabase)}.{Quote("menuschedules")} AS schedule
+                ON schedule.customerId = customer.customerId
+               AND schedule.weekStartDate = @week
+            LEFT JOIN {Quote(evidenceDatabase)}.{Quote("customerweekmenutiers")} AS tier
+                ON tier.customerId = customer.customerId
+               AND tier.weekStartDate = @week
+            WHERE customer.customerCode IN ('ANV', 'DAV')
+            GROUP BY customer.customerCode
+            ORDER BY customer.customerCode;
+            """,
+            connection);
+        command.Parameters.AddWithValue("@week", evidenceWeek.ToDateTime(TimeOnly.MinValue));
+        await using var reader = await command.ExecuteReaderAsync();
+        var customers = new List<object>();
+        while (await reader.ReadAsync())
+        {
+            customers.Add(new
+            {
+                CustomerCode = reader.GetString("customerCode"),
+                MenuVersionCount = reader.GetInt32("menuVersionCount"),
+                MenuScheduleCount = reader.GetInt32("menuScheduleCount"),
+                TierCount = reader.GetInt32("tierCount"),
+                Statuses = reader.GetString("statuses")
+            });
+        }
+
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Database = evidenceDatabase,
+            WeekStartDate = evidenceWeek.ToString("yyyy-MM-dd"),
+            Customers = customers
+        }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Weekly-menu evidence failed: {exception.Message}");
+        return 1;
+    }
+}
+
 if (args.Length == 5 &&
     args[0] == "sanitize-e2e" &&
     args[1] == "--settings" &&
@@ -109,7 +179,8 @@ if (args.Length != 7 ||
 {
     Console.Error.WriteLine(
         "Usage: dotnet run --project IPCManagement.DatabaseTool -- clone --settings <appsettings.json> --source <database> --target <database>\n" +
-        "   or: dotnet run --project IPCManagement.DatabaseTool -- sanitize-e2e --settings <appsettings.json> --database <ipc_laneN>");
+        "   or: dotnet run --project IPCManagement.DatabaseTool -- sanitize-e2e --settings <appsettings.json> --database <ipc_laneN>\n" +
+        "   or: dotnet run --project IPCManagement.DatabaseTool -- weekly-menu-evidence --settings <appsettings.json> --database <ipc_laneN|ipc_e2e_template> --week <yyyy-MM-dd>");
     return 2;
 }
 
