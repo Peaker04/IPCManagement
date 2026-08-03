@@ -13,6 +13,9 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 
 internal sealed class DishBomImportParser(IpcManagementContext context)
 {
+    internal const string UnreadableWorkbookMessage =
+        "File BOM không đọc được. Vui lòng chọn đúng file Excel/CSV theo mẫu BOM rồi thử lại.";
+
     public async Task<List<BomImportRow>> ParseAsync(
         Stream fileStream,
         BomImportPreviewRequestDto request,
@@ -334,6 +337,10 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                     return new BomImportSourceRow(row.RowNumber, mapped);
                 })
                 .ToList();
+        }
+        catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
+        {
+            throw new BusinessRuleException(UnreadableWorkbookMessage, ex);
         }
         finally
         {

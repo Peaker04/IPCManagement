@@ -1,3 +1,4 @@
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.SampleData.Services;
@@ -49,9 +50,20 @@ public sealed class DishBomImportsController(
             return BadRequest(ApiResponse.FailResult("File import BOM trống."));
         }
 
-        await using var stream = request.File.OpenReadStream();
-        return Ok(ApiResponse<BomImportPreviewDto>.SuccessResult(
-            await importService.PreviewAsync(stream, request, cancellationToken)));
+        try
+        {
+            await using var stream = request.File.OpenReadStream();
+            return Ok(ApiResponse<BomImportPreviewDto>.SuccessResult(
+                await importService.PreviewAsync(stream, request, cancellationToken)));
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpPost("bom-import/commit")]
@@ -70,9 +82,20 @@ public sealed class DishBomImportsController(
             return BadRequest(ApiResponse.FailResult("File import BOM trống."));
         }
 
-        await using var stream = request.File.OpenReadStream();
-        var userId = currentUserService.GetUserId(User);
-        var result = await importService.CommitAsync(stream, request, userId, cancellationToken);
-        return Ok(ApiResponse<BomImportCommitResultDto>.SuccessResult(result, "Đã import BOM theo đơn giá."));
+        try
+        {
+            await using var stream = request.File.OpenReadStream();
+            var userId = currentUserService.GetUserId(User);
+            var result = await importService.CommitAsync(stream, request, userId, cancellationToken);
+            return Ok(ApiResponse<BomImportCommitResultDto>.SuccessResult(result, "Đã import BOM theo đơn giá."));
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 }

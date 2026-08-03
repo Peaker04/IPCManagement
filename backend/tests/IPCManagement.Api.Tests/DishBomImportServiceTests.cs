@@ -17,6 +17,23 @@ namespace IPCManagement.Api.Tests;
 public class DishBomImportServiceTests
 {
     [Fact]
+    public async Task PreviewAsync_Should_ReturnFriendlyDomainError_WhenWorkbookZipIsUnreadable()
+    {
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseInMemoryDatabase($"dish-bom-broken-{Guid.NewGuid():N}")
+            .Options;
+        await using var context = new IpcManagementContext(options);
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context));
+        await using var stream = new MemoryStream("PK-not-a-valid-xlsx"u8.ToArray());
+
+        var act = () => service.PreviewAsync(stream, new BomImportPreviewRequestDto { PriceTier = 25000m });
+
+        await act.Should().ThrowAsync<IPCManagement.Api.Exceptions.BusinessRuleException>()
+            .WithMessage("File BOM không đọc được. Vui lòng chọn đúng file Excel/CSV theo mẫu BOM rồi thử lại.");
+    }
+
+    [Fact]
     public async Task CommitAsync_Should_PersistRowsAndClearBothCatalogCaches()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
