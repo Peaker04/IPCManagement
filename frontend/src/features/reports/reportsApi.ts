@@ -817,22 +817,22 @@ export function useWorkflowOverview(options: { skip?: boolean } = {}) {
   const demandResult = useGetIngredientDemandQuery({ limit: 100 }, queryOptions);
   const priceResult = useGetPriceVarianceQuery({ limit: 100 }, queryOptions);
   const movementsResult = useGetStockMovementsQuery({ limit: 100 }, queryOptions);
-
   const documents = documentsResult.data ?? [];
   const demandLines = demandResult.data ?? [];
   const priceRows = priceResult.data ?? [];
   const movements = movementsResult.data ?? [];
   const roleInboxItems = buildRoleInbox(documents, demandLines, priceRows);
   const workflowLanes = buildWorkflowLanes(documents, roleInboxItems, movements);
-
   return {
-    workflowLanes,
-    roleInboxItems,
+    workflowLanes, roleInboxItems,
     blockedItems: roleInboxItems.filter((item) => item.tone === 'danger'),
     documents,
     demandLines,
     movements,
     isLoading: documentsResult.isLoading || demandResult.isLoading || priceResult.isLoading || movementsResult.isLoading,
+    isFetching: documentsResult.isFetching || demandResult.isFetching || priceResult.isFetching || movementsResult.isFetching,
     isError: documentsResult.isError || demandResult.isError || priceResult.isError || movementsResult.isError,
+    error: documentsResult.error ?? demandResult.error ?? priceResult.error ?? movementsResult.error,
+    refetch: () => Promise.all([documentsResult.refetch(), demandResult.refetch(), priceResult.refetch(), movementsResult.refetch()]),
   };
 }

@@ -7,6 +7,8 @@ Part of the IPCManagement monorepo.
 
 React 19 frontend for the Industrial & Production Catering Management System. Provides the user interface for menu planning, workflow management, and reporting.
 
+Data-bearing UI changes follow the repository's [UI/UX and FE–BE–Database standardization contract](../docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md), including the shared query-state, formatter, pagination, permission, grain, and mutation evidence rules.
+
 ## Tech Stack
 
 | Library | Version | Purpose |

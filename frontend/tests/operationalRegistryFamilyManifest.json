@@ -69,7 +69,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Read-only overview query projections do not define an entity lifecycle.",
         "sources": [
-          "frontend/src/features/dashboard/pages/DashboardPage.tsx:62-75"
+          "frontend/src/features/dashboard/pages/DashboardPage.tsx:60-82"
         ]
       },
       "backendBacked": false,

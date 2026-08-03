@@ -47,6 +47,17 @@ describe('QueryViewBoundary', () => {
     expect(screen.queryByText('Kết quả điều phối')).toBeNull()
   })
 
+  it('prioritizes an actionable failure over an earlier passive loading state', () => {
+    renderBoundary([
+      { phase: 'loading' },
+      { phase: 'error', message: 'Lỗi chỉ số.', retry: vi.fn(), isRetrying: false },
+    ])
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Lỗi chỉ số.')
+    expect(screen.queryByText('Đang tải nguồn 1')).toBeNull()
+    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+  })
+
   it('renders ready-empty as an authoritative result', () => {
     renderBoundary([ready()])
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()

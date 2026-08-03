@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Kiến trúc hệ thống
 
-Tổng quan nghiệp vụ và bốn vai trò vận hành nằm tại [DOMAIN.md](DOMAIN.md). Contract phân biệt dữ liệu theo ngày, tuần, snapshot, chứng từ và audit event được duy trì tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md). Mọi bảng nguyên liệu và phép aggregate mới phải tuân theo ma trận này.
+Tổng quan nghiệp vụ và bốn vai trò vận hành nằm tại [DOMAIN.md](DOMAIN.md). Contract phân biệt dữ liệu theo ngày, tuần, snapshot, chứng từ và audit event được duy trì tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md). Mọi bảng nguyên liệu và phép aggregate mới phải tuân theo ma trận này. Chuỗi kiểm chứng và nguyên tắc phân xử lỗi giữa UI, FE, API và Database nằm tại [UI-UX-FE-BE-DATABASE-STANDARDIZATION.md](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md).
 
 ## Tổng quan
 

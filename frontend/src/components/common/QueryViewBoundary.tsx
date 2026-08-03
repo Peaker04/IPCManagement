@@ -55,8 +55,8 @@ export function QueryViewBoundary({
 }: Props) {
   const blocking = queries.filter(({ view }) => view.phase !== 'ready')
   const actionableBlocking = blocking.filter(({ view }) => view.phase === 'error' || view.phase === 'forbidden')
-  const visibleBlocking = preserveFallback
-    ? actionableBlocking.length > 0 ? actionableBlocking : blocking.slice(0, 1)
+  const visibleBlocking = actionableBlocking.length > 0
+    ? preserveFallback ? actionableBlocking : actionableBlocking.slice(0, 1)
     : blocking.slice(0, 1)
   const readyNotices = queries.filter(({ view }) => view.phase === 'ready' && view.truncation)
   const isRefreshing = queries.some(({ view }) => view.phase === 'ready' && view.isRefreshing)

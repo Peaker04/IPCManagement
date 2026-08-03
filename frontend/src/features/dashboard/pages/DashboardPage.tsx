@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppDispatch } from '@/lib/reduxHooks';
-import { CommandBar, EmptyState, OperationalFrame, QueryErrorAlert } from '@/components/common';
+import { CommandBar, EmptyState, OperationalFrame } from '@/components/common';
+import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { Button } from '@/components/ui/button';
 import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
-import { workflowApi } from '@/api/workflowApi';
-import { workflowOverviewCacheTags } from '@/api/workflowCacheTags';
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
 import { ROUTES } from '@/lib/routeConfig';
+import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
 const queuePriority: Record<WorkflowTone, number> = {
   danger: 0,
@@ -59,12 +58,28 @@ const getQueueCategory = (item: RoleInboxItem): Exclude<DashboardQueueCategory, 
 };
 
 const DashboardPage = () => {
-  const dispatch = useAppDispatch();
-  const { isError, isLoading, roleInboxItems, workflowLanes } = useWorkflowOverview();
-  const { data: kpis, isError: isKpiError, isLoading: isKpiLoading, isFetching: isKpiFetching, refetch: refetchKpis } = useGetOperationalKpisQuery();
+  const workflowOverview = useWorkflowOverview();
+  const kpiQuery = useGetOperationalKpisQuery();
+  const workflowData = { roleInboxItems: workflowOverview.roleInboxItems, workflowLanes: workflowOverview.workflowLanes };
+  const workflowView = toLabeledQueryView({
+    ...workflowOverview,
+    data: workflowOverview.isLoading || workflowOverview.isError ? undefined : workflowData,
+    currentData: workflowOverview.isLoading || workflowOverview.isError ? undefined : workflowData,
+    isUninitialized: false,
+    isSuccess: !workflowOverview.isLoading && !workflowOverview.isError,
+  }, 'tổng quan workflow');
+  const kpiView = toLabeledQueryView(kpiQuery, 'chỉ số vận hành');
+  const dashboardQueries: QueryViewEntry[] = [
+    { label: 'tổng quan workflow', view: workflowView },
+    { label: 'chỉ số vận hành', view: kpiView },
+  ];
+  const preserveLoadingFallback = dashboardQueries.every(({ view }) => view.phase !== 'error' && view.phase !== 'forbidden');
+  const isDashboardLoading = dashboardQueries.some(({ view }) => view.phase === 'loading' || view.phase === 'uninitialized');
+  const { roleInboxItems, workflowLanes } = workflowView.phase === 'ready'
+    ? workflowView.data
+    : { roleInboxItems: [], workflowLanes: [] };
+  const kpis = kpiView.phase === 'ready' ? kpiView.data : undefined;
   const [activeQueueFilter, setActiveQueueFilter] = useState<DashboardQueueCategory>('all');
-  const isDashboardLoading = isLoading || isKpiLoading;
-  const hasDashboardError = isError || isKpiError;
 
   const shortageCount = getNumber(kpis?.shortageCount);
   const lowStockCount = getNumber(kpis?.lowStockCount);
@@ -243,24 +258,11 @@ const DashboardPage = () => {
         </CommandBar>
       }
     >
-      {hasDashboardError && (
-        <QueryErrorAlert
-          title="Không tải được dữ liệu workflow"
-          isRetrying={isKpiFetching}
-          onRetry={() => {
-            dispatch(workflowApi.util.invalidateTags([...workflowOverviewCacheTags]));
-            return refetchKpis();
-          }}
-        >
-          Chưa thể xác định trạng thái vận hành. Kiểm tra kết nối rồi thử tải lại; hệ thống không xem lỗi này là trạng thái không có việc.
-        </QueryErrorAlert>
-      )}
-      {isDashboardLoading && (
-        <span className="sr-only" role="status">
-          Hệ thống đang tổng hợp chứng từ, nhu cầu và luân chuyển kho.
-        </span>
-      )}
-
+      <QueryViewBoundary
+        queries={dashboardQueries}
+        preserveFallback={preserveLoadingFallback}
+        refreshLabel="Đang cập nhật tổng quan vận hành"
+      >
       <section className="ipc-dashboard-incident" aria-labelledby="dashboard-shift-status" aria-busy={isDashboardLoading}>
         <div className="ipc-dashboard-incident-main">
           <div className="ipc-dashboard-incident-copy">
@@ -423,6 +425,7 @@ const DashboardPage = () => {
           </div>
         </section>
       </div>
+      </QueryViewBoundary>
     </OperationalFrame>
   );
 };

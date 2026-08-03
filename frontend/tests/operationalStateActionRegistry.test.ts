@@ -95,7 +95,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   Dashboard: {
-    'frontend/src/features/dashboard/pages/DashboardPage.tsx:62-75': [
+    'frontend/src/features/dashboard/pages/DashboardPage.tsx:60-82': [
       'useWorkflowOverview();',
       'useGetOperationalKpisQuery();',
     ],
