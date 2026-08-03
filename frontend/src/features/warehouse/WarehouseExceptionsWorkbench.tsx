@@ -3,10 +3,10 @@ import { ArrowRight, PackageCheck, RefreshCw, Undo2 } from 'lucide-react';
 import {
   InlineAlert,
   PaginationBar,
-  QueryErrorAlert,
   SectionPanel,
   TableViewport,
 } from '@/components/common';
+import { QueryViewBoundary } from '@/components/common/QueryViewBoundary';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { toLabeledQueryView } from '@/lib/labeledQueryView';
 import {
   useConfirmInventoryReturnReceiptMutation,
   useFulfillSupplementalMaterialRequestMutation,
@@ -74,9 +75,16 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
   const [reject, rejectState] = useRejectSupplementalMaterialRequestMutation();
   const [confirmReturn, confirmReturnState] = useConfirmInventoryReturnReceiptMutation();
 
-  const supplementalItems = useMemo(() => supplementalQuery.data?.items ?? [], [supplementalQuery.data?.items]);
-  const returnItems = useMemo(() => returnsQuery.data?.items ?? [], [returnsQuery.data?.items]);
-  const selectedReturn = returnDetailQuery.data;
+  const supplementalView = toLabeledQueryView(supplementalQuery, 'yêu cầu cấp bổ sung');
+  const returnsView = toLabeledQueryView(returnsQuery, 'phiếu trả');
+  const returnDetailView = toLabeledQueryView(returnDetailQuery, 'chi tiết phiếu trả', {
+    instruction: 'Chọn một phiếu trả để tải chi tiết.',
+  });
+  const supplementalData = supplementalView.phase === 'ready' ? supplementalView.data : undefined;
+  const returnsData = returnsView.phase === 'ready' ? returnsView.data : undefined;
+  const supplementalItems = supplementalData?.items ?? [];
+  const returnItems = returnsData?.items ?? [];
+  const selectedReturn = returnDetailView.phase === 'ready' ? returnDetailView.data : undefined;
 
   const returnQuantity = useMemo(
     () => selectedReturn?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0,
@@ -207,25 +215,19 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
         icon={<RefreshCw size={18} aria-hidden="true" />}
         description="Kho xử lý theo tồn thực tế; phần thiếu được chuyển thành đề xuất mua có thể truy vết."
       >
-        {supplementalQuery.isError && (
-          <QueryErrorAlert title="Không tải được yêu cầu cấp bổ sung" onRetry={() => void supplementalQuery.refetch()}>
-            Không thể quyết định cấp hoặc mua thêm khi dữ liệu chưa tải thành công.
-          </QueryErrorAlert>
-        )}
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-supplemental-search">
             Tìm yêu cầu, nguyên liệu hoặc trạng thái
             <Input id="warehouse-supplemental-search" value={supplementalSearch} onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }} placeholder="Nhập mã hoặc tên nguyên liệu" className="h-9 max-w-md" />
           </label>
-          {supplementalSearch.trim() && <span className="pb-2 text-xs text-slate-500">{supplementalQuery.data?.totalCount ?? 0} kết quả</span>}
+          {supplementalSearch.trim() && supplementalData && <span className="pb-2 text-xs text-slate-500">{supplementalData.totalCount} kết quả</span>}
         </div>
+        <QueryViewBoundary queries={[{ label: 'yêu cầu cấp bổ sung', view: supplementalView }]} refreshLabel="Đang cập nhật yêu cầu cấp bổ sung">
         <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Trạng thái và eligibility thao tác do máy chủ cung cấp.">
           <table className="ipc-data-table min-w-[980px]">
             <thead><tr><th>Yêu cầu</th><th>Nguyên liệu</th><th>Đã cấp / yêu cầu</th><th>Tồn khả dụng</th><th>Trạng thái</th><th>Hướng xử lý</th><th>Thao tác</th></tr></thead>
             <tbody>
-              {supplementalQuery.isFetching && supplementalItems.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600">Đang tải yêu cầu bổ sung...</td></tr>
-              ) : supplementalItems.length === 0 ? (
+              {supplementalItems.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
               ) : supplementalItems.map((item) => (
                 <tr key={item.requestId}>
@@ -249,7 +251,8 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
             </tbody>
           </table>
         </TableViewport>
-        <PaginationBar page={supplementalQuery.data?.pageNumber ?? supplementalPage} pageSize={supplementalQuery.data?.pageSize ?? 8} totalItems={supplementalQuery.data?.totalCount ?? 0} onPageChange={setSupplementalPage} />
+        <PaginationBar page={supplementalData?.pageNumber ?? supplementalPage} pageSize={supplementalData?.pageSize ?? 8} totalItems={supplementalData?.totalCount ?? 0} isPending={supplementalView.phase === 'ready' && supplementalView.isRefreshing} onPageChange={setSupplementalPage} />
+        </QueryViewBoundary>
       </SectionPanel>
 
       <SectionPanel
@@ -257,25 +260,19 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
         icon={<Undo2 size={18} aria-hidden="true" />}
         description="RETURN cộng tồn theo số thực nhận; WASTE chỉ ghi nhận hao hụt và audit."
       >
-        {returnsQuery.isError && (
-          <QueryErrorAlert title="Không tải được phiếu trả" onRetry={() => void returnsQuery.refetch()}>
-            Không hiển thị empty state khi API tiếp nhận phiếu trả đang lỗi.
-          </QueryErrorAlert>
-        )}
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-return-search">
             Tìm phiếu trả, ngày hoặc lý do
             <Input id="warehouse-return-search" value={returnSearch} onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }} placeholder="Nhập mã phiếu hoặc nội dung" className="h-9 max-w-md" />
           </label>
-          {returnSearch.trim() && <span className="pb-2 text-xs text-slate-500">{returnsQuery.data?.totalCount ?? 0} kết quả</span>}
+          {returnSearch.trim() && returnsData && <span className="pb-2 text-xs text-slate-500">{returnsData.totalCount} kết quả</span>}
         </div>
+        <QueryViewBoundary queries={[{ label: 'phiếu trả', view: returnsView }]} refreshLabel="Đang cập nhật phiếu trả">
         <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Kho mở từng phiếu để kiểm đếm số thực nhận.">
           <table className="ipc-data-table min-w-[820px]">
             <thead><tr><th>Phiếu trả</th><th>Loại</th><th>Phiếu xuất gốc</th><th>Ngày/ca</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
             <tbody>
-              {returnsQuery.isFetching && returnItems.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600">Đang tải phiếu trả...</td></tr>
-              ) : returnItems.length === 0 ? (
+              {returnItems.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có phiếu trả hoặc hao hụt đang chờ kho.</td></tr>
               ) : returnItems.map((item) => (
                 <tr key={item.returnId}>
@@ -291,7 +288,8 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
             </tbody>
           </table>
         </TableViewport>
-        <PaginationBar page={returnsQuery.data?.pageNumber ?? returnPage} pageSize={returnsQuery.data?.pageSize ?? 8} totalItems={returnsQuery.data?.totalCount ?? 0} onPageChange={setReturnPage} />
+        <PaginationBar page={returnsData?.pageNumber ?? returnPage} pageSize={returnsData?.pageSize ?? 8} totalItems={returnsData?.totalCount ?? 0} isPending={returnsView.phase === 'ready' && returnsView.isRefreshing} onPageChange={setReturnPage} />
+        </QueryViewBoundary>
       </SectionPanel>
 
       <Dialog open={Boolean(selectedSupplemental)} onOpenChange={(open) => { if (!open) { setSelectedSupplemental(undefined); setFulfillValidation(undefined); setFulfillError(undefined); } }}>
@@ -315,7 +313,8 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
       <Dialog open={Boolean(selectedReturnId)} onOpenChange={(open) => { if (!open) { setSelectedReturnId(''); setDiscrepancyValidation(undefined); setAdjustedQuantityErrors({}); setReturnError(undefined); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" aria-labelledby="return-receipt-title" aria-describedby="return-receipt-description">
           <DialogHeader><DialogTitle id="return-receipt-title">Tiếp nhận nguyên liệu trả</DialogTitle><DialogDescription id="return-receipt-description">Kiểm đếm từng dòng. RETURN cộng tồn; WASTE chỉ ghi audit sau xác nhận.</DialogDescription></DialogHeader>
-          {returnDetailQuery.isFetching ? <p role="status" className="text-sm text-slate-600">Đang tải chi tiết phiếu trả...</p> : selectedReturn && <div className="grid gap-4">
+          <QueryViewBoundary queries={[{ label: 'chi tiết phiếu trả', view: returnDetailView }]} refreshLabel="Đang cập nhật chi tiết phiếu trả">
+          {selectedReturn && <div className="grid gap-4">
             <InlineAlert title={`${selectedReturn.returnCode} · ${selectedReturn.returnType === 'WASTE' ? 'Hao hụt' : 'Trả kho'}`} variant={selectedReturn.returnType === 'WASTE' ? 'warning' : 'info'}>Bếp khai báo tổng {returnQuantity}; kho nhập số thực nhận cho từng dòng.</InlineAlert>
             {selectedReturn.lines.map((line) => {
               const quantityError = adjustedQuantityErrors[line.returnLineId];
@@ -324,7 +323,7 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
             <label className="flex min-h-11 items-center gap-2 text-sm font-medium text-slate-900"><input type="checkbox" checked={hasDiscrepancy} onChange={(event) => setHasDiscrepancy(event.target.checked)} /> Có chênh lệch so với bếp khai báo</label>
             {hasDiscrepancy && <div className="grid gap-2"><label htmlFor="return-discrepancy-note" className="text-sm font-medium text-slate-900">Mô tả chênh lệch</label><Textarea id="return-discrepancy-note" className="min-h-24" aria-invalid={Boolean(discrepancyValidation) || undefined} aria-describedby={discrepancyValidation ? 'return-discrepancy-note-error' : undefined} value={discrepancyNote} onChange={(event) => { setDiscrepancyNote(event.target.value); setDiscrepancyValidation(undefined); }} />{discrepancyValidation && <p id="return-discrepancy-note-error" className="text-xs text-red-700"><span className="font-semibold">{discrepancyValidation.title}</span>{' '}{discrepancyValidation.message}</p>}</div>}
           </div>}
-          {returnDetailQuery.isError && <QueryErrorAlert title="Không tải được chi tiết phiếu trả" onRetry={() => void returnDetailQuery.refetch()}>Không thể xác nhận khi chưa có dữ liệu dòng.</QueryErrorAlert>}
+          </QueryViewBoundary>
           {returnError && <div role="alert"><InlineAlert title={returnError.title} variant="danger">{returnError.message}</InlineAlert></div>}
           <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedReturnId('')}>Hủy</Button><Button type="button" disabled={!selectedReturn || confirmReturnState.isLoading} onClick={() => void submitReturnReceipt()}>{confirmReturnState.isLoading ? 'Đang cập nhật...' : 'Xác nhận tiếp nhận'}</Button></DialogFooter>
         </DialogContent>

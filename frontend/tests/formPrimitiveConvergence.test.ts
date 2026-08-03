@@ -15,7 +15,7 @@ const checkboxExceptionLocations = [
   'src/app/pages/admin-data/AdminEmployeesPanel.tsx:107',
   'src/features/admin/pages/ApprovalRulesPage.tsx:417',
   'src/features/admin/pages/ApprovalRulesPage.tsx:516',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:324',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:323',
   'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:293',
 ]
 

@@ -402,7 +402,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('local', 'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx', 1, '88404bdd17a3e035b712a954922663286f95f82e20817be6e99da83a2ba39a56', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/purchasing/PurchaseDecisionPanel.tsx', 4, 'b3640b0e88ddb5ea26caa3237550c7022a2879bbe1c440996cf22de9292ef267', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/warehouse/pages/WarehousePage.tsx', 4, '43689e098c19d06871a82ad943f96e617f61323b0f86f1ab60982c954684be8b', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
-  classified('local', 'src/features/warehouse/WarehouseExceptionsWorkbench.tsx', 13, 'a783a80f5516caf97a06e79379f70b219b4c39eab6f184cb4637e43e59e5e821', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
+  classified('local', 'src/features/warehouse/WarehouseExceptionsWorkbench.tsx', 13, '0db39ff9989f9f89403eb89cd2c1f439b3ebfcc73a8150eabb8bb8f75e508e2b', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx', 11, '79eeb0355401c57f62d8ce7989ed2e38dd7c5fba2ff6c3c8d02d6e34249a4888', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
 
   classified('order', 'src/app/layout/MainLayout.tsx', 1, 'c4d10d39301777f9bcb0c9d8b0a01554ff041de35216f5fa54e9af28893fe1cc', 'justified-non-visibility-infrastructure', asyncInteractionReason),

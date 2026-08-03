@@ -9,8 +9,10 @@ const mocks = vi.hoisted(() => ({
   recordReceipt: vi.fn(),
   refetchSupplemental: vi.fn(),
   refetchReturns: vi.fn(),
+  refetchReturnDetail: vi.fn(),
   supplementalQuery: vi.fn(),
   returnsQuery: vi.fn(),
+  returnDetailQuery: vi.fn(),
 }));
 
 const supplemental = {
@@ -58,7 +60,7 @@ const inventoryReturn = {
 vi.mock('@/api/workflowApi', () => ({
   useGetSupplementalMaterialRequestsQuery: mocks.supplementalQuery,
   useGetInventoryReturnsQuery: mocks.returnsQuery,
-  useGetInventoryReturnByIdQuery: (id: string) => ({ data: id ? inventoryReturn : undefined, isFetching: false, isError: false, refetch: vi.fn() }),
+  useGetInventoryReturnByIdQuery: mocks.returnDetailQuery,
   useFulfillSupplementalMaterialRequestMutation: () => [mocks.fulfill, { isLoading: false }],
   useRouteSupplementalMaterialRequestToPurchasingMutation: () => [mocks.route, { isLoading: false }],
   useRejectSupplementalMaterialRequestMutation: () => [mocks.reject, { isLoading: false }],
@@ -71,21 +73,53 @@ import { WarehousePurchaseReceiptDialog } from './WarehousePurchaseReceiptDialog
 import warehouseSource from './WarehouseExceptionsWorkbench.tsx?raw';
 import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApi';
 
+const readyQuery = <T,>(data: T, refetch: () => unknown = vi.fn(), overrides: Record<string, unknown> = {}) => ({
+  data,
+  currentData: data,
+  isUninitialized: false,
+  isLoading: false,
+  isFetching: false,
+  isSuccess: true,
+  isError: false,
+  error: undefined,
+  refetch,
+  ...overrides,
+});
+
+const uninitializedQuery = () => ({
+  data: undefined,
+  currentData: undefined,
+  isUninitialized: true,
+  isLoading: false,
+  isFetching: false,
+  isSuccess: false,
+  isError: false,
+  error: undefined,
+  refetch: vi.fn(),
+});
+
+const failedQuery = (status: number, refetch: () => unknown = vi.fn()) => ({
+  ...uninitializedQuery(),
+  isUninitialized: false,
+  isError: true,
+  error: { status },
+  refetch,
+});
+
 describe('WarehouseExceptionsWorkbench', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.supplementalQuery.mockImplementation(({ pageNumber }: { pageNumber: number }) => ({
-      data: { items: [supplemental], totalCount: 16, pageNumber, pageSize: 8, totalPages: 2, hasPrev: pageNumber > 1, hasNext: pageNumber < 2 },
-      isFetching: false,
-      isError: false,
-      refetch: mocks.refetchSupplemental,
-    }));
-    mocks.returnsQuery.mockImplementation(({ pageNumber }: { pageNumber: number }) => ({
-      data: { items: [inventoryReturn], totalCount: 16, pageNumber, pageSize: 8, totalPages: 2, hasPrev: pageNumber > 1, hasNext: pageNumber < 2 },
-      isFetching: false,
-      isError: false,
-      refetch: mocks.refetchReturns,
-    }));
+    mocks.supplementalQuery.mockImplementation(({ pageNumber }: { pageNumber: number }) => readyQuery(
+      { items: [supplemental], totalCount: 16, pageNumber, pageSize: 8, totalPages: 2, hasPrev: pageNumber > 1, hasNext: pageNumber < 2 },
+      mocks.refetchSupplemental,
+    ));
+    mocks.returnsQuery.mockImplementation(({ pageNumber }: { pageNumber: number }) => readyQuery(
+      { items: [inventoryReturn], totalCount: 16, pageNumber, pageSize: 8, totalPages: 2, hasPrev: pageNumber > 1, hasNext: pageNumber < 2 },
+      mocks.refetchReturns,
+    ));
+    mocks.returnDetailQuery.mockImplementation((id: string) => id
+      ? readyQuery(inventoryReturn, mocks.refetchReturnDetail)
+      : uninitializedQuery());
     mocks.fulfill.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, fulfilledQty: 3, remainingQty: 2 } }) });
     mocks.route.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, purchaseRequestCode: 'PR-SUP-001' } }) });
     mocks.reject.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, status: 'REJECTED' } }) });
@@ -148,6 +182,61 @@ describe('WarehouseExceptionsWorkbench', () => {
       discrepancyNote: 'Chỉ nhận 1.5 kg còn sử dụng được',
       adjustedLines: [{ returnLineId: 'return-line-1', newQuantity: 1.5 }],
     }));
+  });
+
+  it('blocks false supplemental empty content and retries its failed owner', () => {
+    mocks.supplementalQuery.mockReturnValue(failedQuery(500, mocks.refetchSupplemental));
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Không tải được yêu cầu cấp bổ sung');
+    expect(screen.queryByText('Không có yêu cầu bổ sung trong phạm vi kho.')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }));
+    expect(mocks.refetchSupplemental).toHaveBeenCalledOnce();
+  });
+
+  it('renders supplemental forbidden without retry or false empty content', () => {
+    mocks.supplementalQuery.mockReturnValue(failedQuery(403));
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Bạn không có quyền xem yêu cầu cấp bổ sung.');
+    expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
+    expect(screen.queryByText('Không có yêu cầu bổ sung trong phạm vi kho.')).toBeNull();
+  });
+
+  it('keeps supplemental rows visible while refreshing', () => {
+    mocks.supplementalQuery.mockReturnValue(readyQuery(
+      { items: [supplemental], totalCount: 1, pageNumber: 1, pageSize: 8, totalPages: 1, hasPrev: false, hasNext: false },
+      mocks.refetchSupplemental,
+      { isFetching: true },
+    ));
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByText('SUP-001')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Đang cập nhật yêu cầu cấp bổ sung');
+  });
+
+  it('blocks false return-list empty content when its owner fails', () => {
+    mocks.returnsQuery.mockReturnValue(failedQuery(500, mocks.refetchReturns));
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Không tải được phiếu trả');
+    expect(screen.queryByText('Không có phiếu trả hoặc hao hụt đang chờ kho.')).toBeNull();
+  });
+
+  it('keeps return-detail forbidden distinct from an empty receipt form', () => {
+    mocks.returnDetailQuery.mockImplementation((id: string) => id ? failedQuery(403) : uninitializedQuery());
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Tiếp nhận nguyên liệu trả' });
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Bạn không có quyền xem chi tiết phiếu trả.');
+    expect(within(dialog).queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Xác nhận tiếp nhận' })).toBeDisabled();
   });
 
   it('defers both server searches and resets each owned page', async () => {
