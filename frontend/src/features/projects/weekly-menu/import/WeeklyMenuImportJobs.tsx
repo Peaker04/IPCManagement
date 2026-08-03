@@ -92,7 +92,7 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
         open={commitTarget !== null}
         title={commitTarget?.kind === 'all' ? `Lưu ${readyJobs.length} file hợp lệ?` : 'Lưu file thực đơn này?'}
         description={commitTarget?.kind === 'all'
-          ? `${readyJobs.length} file với ${readyRowCount} dòng món sẽ được lưu tuần tự theo từng khách hàng và tuần; dữ liệu ở cùng phạm vi có thể được cập nhật. Nếu một file sau bị lỗi, các file trước đó có thể đã được lưu.`
+          ? `${readyJobs.length} file với ${readyRowCount} dòng món sẽ được lưu atomic trong cùng một transaction theo từng khách hàng và tuần; dữ liệu ở cùng phạm vi có thể được cập nhật. Nếu một file lỗi, toàn bộ batch sẽ được hoàn tác và không file nào được lưu.`
           : commitJob
             ? `${commitJob.customerCode} · tuần ${commitJob.weekStartDate || 'tự nhận theo file'} · ${commitJob.fileName} · ${commitJob.previewResult?.detectedLayout.rowsImported ?? 0} dòng món. Thực đơn đang lưu ở cùng phạm vi có thể được cập nhật.`
             : 'File đã chọn sẽ được ghi vào thực đơn của khách hàng và tuần tương ứng.'}

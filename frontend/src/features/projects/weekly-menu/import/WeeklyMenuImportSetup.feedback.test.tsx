@@ -19,6 +19,7 @@ const readyQuery = <T,>(data: T) => ({
 })
 
 vi.mock('@/api/coordinationApi', () => ({
+  useCommitWeeklyMenuImportBatchMutation: () => [vi.fn(), { isLoading: false }],
   useCommitWeeklyMenuImportMutation: () => [vi.fn(), { isLoading: false }],
   useCreateCustomerContractMutation: () => [vi.fn(), { isLoading: false }],
   useDownloadWeeklyMenuTemplateMutation: () => [vi.fn(), { isLoading: false }],

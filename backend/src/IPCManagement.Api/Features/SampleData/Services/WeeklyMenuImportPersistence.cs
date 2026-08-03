@@ -14,7 +14,7 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 internal sealed class WeeklyMenuImportPersistence(
     IpcManagementContext context,
     WeeklyMenuImportResultBuilder resultBuilder,
-    WeeklyMenuAuditActorResolver actorResolver)
+    WeeklyMenuAuditActorResolver actorResolver) : IWeeklyMenuImportPersistence
 {
     public async Task<WeeklyMenuImportResultDto> CommitAsync(
         WeeklyMenuImportPlan plan,

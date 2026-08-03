@@ -1,6 +1,7 @@
 import { useMemo, useReducer, useRef } from 'react'
 import type { CreateCustomerContractRequest } from '@/types/coordination'
 import {
+  useCommitWeeklyMenuImportBatchMutation,
   useCommitWeeklyMenuImportMutation,
   useCreateCustomerContractMutation,
   useDownloadWeeklyMenuTemplateMutation,
@@ -46,6 +47,7 @@ export const useWeeklyMenuImport = ({
   const [previewImport, { isLoading: isPreviewing }] = usePreviewWeeklyMenuImportMutation()
   const [downloadTemplate, { isLoading: isDownloadingTemplate }] = useDownloadWeeklyMenuTemplateMutation()
   const [commitImport, { isLoading: isCommitting }] = useCommitWeeklyMenuImportMutation()
+  const [commitImportBatch, { isLoading: isBatchCommitting }] = useCommitWeeklyMenuImportBatchMutation()
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
@@ -64,7 +66,7 @@ export const useWeeklyMenuImport = ({
     [displayDays, selectedJob, todayIso],
   )
   const readyJobs = state.jobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error && !hasBlockingImportIssues(job.previewResult))
-  const isImporting = isPreviewing || isCommitting || isCreatingCustomer || state.jobs.some((job) => job.status === 'previewing' || job.status === 'committing')
+  const isImporting = isPreviewing || isCommitting || isBatchCommitting || isCreatingCustomer || state.jobs.some((job) => job.status === 'previewing' || job.status === 'committing')
   const hiddenFeedbackByDetail = (state.feedback?.variant === 'danger' && presentation.problemMessages.length > 0)
     || (state.feedback?.variant === 'warning' && presentation.warningMessages.length > 0)
   const clearFileInput = () => { if (fileInputRef.current) fileInputRef.current.value = '' }
@@ -186,9 +188,37 @@ export const useWeeklyMenuImport = ({
   const commitReadyJobs = async () => {
     const pending = state.jobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error)
     if (!pending.length) return setFeedback('Chưa có dòng hợp lệ để lưu', 'Chỉ những file đã kiểm tra xong và không có lỗi mới được lưu.', 'warning')
-    let succeeded = true
-    for (const job of pending) succeeded = await commitJob(job.jobId, false) && succeeded
-    if (succeeded) close()
+    if (pending.length === 1) {
+      if (await commitJob(pending[0].jobId, false)) close()
+      return
+    }
+
+    pending.forEach((job) => dispatch({ type: 'update-job', jobId: job.jobId, changes: { status: 'committing', error: null } }))
+    setFeedback('Đang lưu batch thực đơn', `Hệ thống đang lưu atomic ${pending.length} file; nếu một file lỗi, không file nào được ghi.`, 'info')
+    try {
+      const response = await commitImportBatch(pending.map((job) => ({
+        file: job.file,
+        customerId: job.customerId,
+        weekStartDate: job.weekStartDate || undefined,
+        priceTierAmount: job.priceTierAmount,
+        previewToken: job.previewResult?.previewToken ?? undefined,
+      }))).unwrap()
+      const resultByCustomer = new Map(response.data?.map((result) => [result.customerId, result]))
+      if (!response.success || !response.data || resultByCustomer.size !== pending.length || pending.some((job) => !resultByCustomer.has(job.customerId))) {
+        throw new Error(response.message || 'Kết quả batch import không đầy đủ.')
+      }
+
+      pending.forEach((job) => {
+        const result = resultByCustomer.get(job.customerId)!
+        dispatch({ type: 'update-job', jobId: job.jobId, changes: { status: 'committed', previewResult: result, warnings: [...result.warnings], error: null } })
+        if (result.customerId === customerId) onMenuCommitted(result)
+      })
+      setFeedback('Đã lưu toàn bộ batch', `${response.data.length} file thực đơn đã được lưu trong cùng một transaction.`, 'info')
+      close()
+    } catch (error) {
+      pending.forEach((job) => dispatch({ type: 'update-job', jobId: job.jobId, changes: { status: 'previewed', error: null } }))
+      setFeedback('Batch không được lưu', getApiErrorMessage(error, 'Không file nào được ghi. Có thể bấm lưu lại sau khi xử lý lỗi.'), 'danger')
+    }
   }
   const saveMapping = async () => {
     if (!presentation.preview || !selectedJob) return
@@ -216,7 +246,7 @@ export const useWeeklyMenuImport = ({
       isHistoryError: historyView.phase === 'error' || historyView.phase === 'forbidden',
       isImporting,
       isPreviewing,
-      isCommitting,
+      isCommitting: isCommitting || isBatchCommitting,
       isDownloadingTemplate,
       isSavingMapping,
       isCreatingCustomer,

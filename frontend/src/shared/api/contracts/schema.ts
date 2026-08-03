@@ -2681,6 +2681,75 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/coordination/weekly-menu/import/commit-batch": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "multipart/form-data": {
+                        readonly customerIds?: readonly string[];
+                        readonly files?: readonly string[];
+                        readonly previewTokens?: readonly string[];
+                        readonly priceTierAmounts?: readonly number[];
+                        readonly weekStartDates?: readonly string[];
+                    };
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["WeeklyMenuImportResultDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["WeeklyMenuImportResultDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["WeeklyMenuImportResultDtoIReadOnlyListApiResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Content Too Large */
+                readonly 413: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ProblemDetails"];
+                        readonly "text/json": components["schemas"]["ProblemDetails"];
+                        readonly "text/plain": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/coordination/weekly-menu/import/preview": {
         readonly parameters: {
             readonly query?: never;
@@ -13291,6 +13360,12 @@ export interface components {
         };
         readonly WeeklyMenuImportResultDtoApiResponse: {
             readonly data?: components["schemas"]["WeeklyMenuImportResultDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly WeeklyMenuImportResultDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["WeeklyMenuImportResultDto"][] | null;
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;

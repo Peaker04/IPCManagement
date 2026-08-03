@@ -1,5 +1,6 @@
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Models.Entities;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
@@ -53,6 +54,29 @@ public interface IWeeklyMenuImportService
         string? previewToken,
         string? actorUserId = null,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<WeeklyMenuImportResultDto>> CommitWeeklyMenuImportBatchAsync(
+        IReadOnlyList<WeeklyMenuImportBatchItem> items,
+        string? actorUserId = null,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed record WeeklyMenuImportBatchItem(
+    Stream FileStream,
+    string FileName,
+    string CustomerId,
+    DateOnly? WeekStartDate,
+    decimal? PriceTierAmount,
+    string? PreviewToken);
+
+internal interface IWeeklyMenuImportPersistence
+{
+    Task<WeeklyMenuImportResultDto> CommitAsync(
+        WeeklyMenuImportPlan plan,
+        Customer customer,
+        decimal priceTierAmount,
+        string? actorUserId,
+        CancellationToken cancellationToken);
 }
 
 public interface IWeeklyMenuImportHistoryService

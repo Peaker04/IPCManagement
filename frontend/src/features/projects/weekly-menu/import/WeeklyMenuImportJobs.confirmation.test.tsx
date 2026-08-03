@@ -50,8 +50,8 @@ describe('WeeklyMenuImportJobs confirmation contract', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Lưu file hợp lệ' }))
 
     expect(commitReadyJobs).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: 'Lưu 1 file hợp lệ?' })).toHaveTextContent('1 file với 12 dòng món sẽ được lưu tuần tự')
-    expect(screen.getByRole('dialog', { name: 'Lưu 1 file hợp lệ?' })).toHaveTextContent('các file trước đó có thể đã được lưu')
+    expect(screen.getByRole('dialog', { name: 'Lưu 1 file hợp lệ?' })).toHaveTextContent('1 file với 12 dòng món sẽ được lưu atomic')
+    expect(screen.getByRole('dialog', { name: 'Lưu 1 file hợp lệ?' })).toHaveTextContent('toàn bộ batch sẽ được hoàn tác')
     fireEvent.click(screen.getByRole('button', { name: 'Lưu các file hợp lệ' }))
     expect(commitReadyJobs).toHaveBeenCalledOnce()
   })

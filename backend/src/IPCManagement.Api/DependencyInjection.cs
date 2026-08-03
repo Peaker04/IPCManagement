@@ -102,7 +102,7 @@ public static class DependencyInjection
         services.AddScoped<WeeklyMenuCustomerResolver>();
         services.AddScoped<WeeklyMenuAuditActorResolver>();
         services.AddScoped<WeeklyMenuImportResultBuilder>();
-        services.AddScoped<WeeklyMenuImportPersistence>();
+        services.AddScoped<IWeeklyMenuImportPersistence, WeeklyMenuImportPersistence>();
         services.AddScoped<WeeklyMenuImportPreviewTicketStore>();
         services.AddScoped<IWeeklyMenuQueryService, WeeklyMenuQueryService>();
         services.AddScoped<IWeeklyMenuTemplateService, WeeklyMenuTemplateService>();

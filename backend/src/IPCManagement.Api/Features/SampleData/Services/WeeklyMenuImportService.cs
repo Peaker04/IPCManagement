@@ -16,7 +16,7 @@ internal sealed class WeeklyMenuImportService(
     IpcManagementContext context,
     WeeklyMenuCustomerResolver customerResolver,
     WeeklyMenuImportResultBuilder resultBuilder,
-    WeeklyMenuImportPersistence persistence,
+    IWeeklyMenuImportPersistence persistence,
     WeeklyMenuImportPreviewTicketStore previewTicketStore,
     IEfTransactionRunner transactionRunner,
     IMemoryCache cache) : IWeeklyMenuImportService
@@ -106,19 +106,69 @@ internal sealed class WeeklyMenuImportService(
         string? actorUserId = null,
         CancellationToken cancellationToken = default)
     {
-        var customer = await customerResolver.ResolveAsync(customerId, cancellationToken);
-        var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
+        try
+        {
+            var prepared = await PrepareCommitAsync(
+                new WeeklyMenuImportBatchItem(
+                    fileStream,
+                    fileName,
+                    customerId,
+                    weekStartDate,
+                    priceTierAmount,
+                    previewToken),
+                cancellationToken);
+            var results = await CommitPreparedBatchAsync([prepared], actorUserId, cancellationToken);
+            return results[0];
+        }
+        catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
+        {
+            throw new BusinessRuleException(WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage, ex);
+        }
+    }
+
+    public async Task<IReadOnlyList<WeeklyMenuImportResultDto>> CommitWeeklyMenuImportBatchAsync(
+        IReadOnlyList<WeeklyMenuImportBatchItem> items,
+        string? actorUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (items.Count < 2)
+        {
+            throw new ArgumentException("Batch import cần ít nhất hai file thực đơn.");
+        }
+
+        try
+        {
+            var prepared = new List<PreparedWeeklyMenuImport>(items.Count);
+            foreach (var item in items)
+            {
+                prepared.Add(await PrepareCommitAsync(item, cancellationToken));
+            }
+
+            return await CommitPreparedBatchAsync(prepared, actorUserId, cancellationToken);
+        }
+        catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
+        {
+            throw new BusinessRuleException(WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage, ex);
+        }
+    }
+
+    private async Task<PreparedWeeklyMenuImport> PrepareCommitAsync(
+        WeeklyMenuImportBatchItem item,
+        CancellationToken cancellationToken)
+    {
+        var customer = await customerResolver.ResolveAsync(item.CustomerId, cancellationToken);
+        var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(item.PriceTierAmount);
         var mapping = ResolveCustomerImportMapping(
             await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken),
             customer.CustomerCode);
-        var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
+        var tempFilePath = await SaveTempWorkbookAsync(item.FileStream, cancellationToken);
         try
         {
             var plan = WeeklyMenuWorkbookParser.Parse(
                 _reader,
                 tempFilePath,
-                fileName,
-                weekStartDate,
+                item.FileName,
+                item.WeekStartDate,
                 mapping,
                 normalizedPriceTier);
             plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
@@ -129,56 +179,115 @@ internal sealed class WeeklyMenuImportService(
                 cancellationToken);
             if (validationResult.Validation.HasCriticalErrors)
             {
-                var firstIssue = validationResult.Validation.Issues.FirstOrDefault(item =>
-                    string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase));
+                var firstIssue = validationResult.Validation.Issues.FirstOrDefault(issue =>
+                    string.Equals(issue.Severity, "error", StringComparison.OrdinalIgnoreCase));
                 throw new BusinessRuleException(
                     firstIssue?.Message ?? "File import còn lỗi critical, không thể commit DB.");
             }
 
-            previewTicketStore.Validate(
-                previewToken,
-                plan.SourceChecksum,
-                GuidHelper.ToGuidString(customer.CustomerId),
-                plan.WeekStartDate,
-                normalizedPriceTier);
-
-            WeeklyMenuImportResultDto? committedResult = null;
-            var result = await transactionRunner.ExecuteAsync(
-                async token =>
-                {
-                    committedResult = await persistence.CommitAsync(
-                        plan,
-                        customer,
-                        normalizedPriceTier,
-                        actorUserId,
-                        token);
-                    await context.SaveChangesAsync(token);
-                    return committedResult;
-                },
-                async token =>
-                {
-                    var menuVersionId = GuidHelper.ParseGuidString(committedResult?.MenuVersionId);
-                    return menuVersionId is not null &&
-                           await context.Menuversions
-                               .AsNoTracking()
-                               .AnyAsync(
-                                   version =>
-                                       version.MenuVersionId == menuVersionId &&
-                                       version.SourceChecksum == plan.SourceChecksum,
-                                   token);
-                },
-                cancellationToken: cancellationToken);
-            DishCatalogCache.Clear(cache);
-            previewTicketStore.Consume(previewToken!);
-            return result;
-        }
-        catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
-        {
-            throw new BusinessRuleException(WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage, ex);
+            return new PreparedWeeklyMenuImport(
+                plan,
+                customer,
+                normalizedPriceTier,
+                item.PreviewToken);
         }
         finally
         {
             DeleteTempWorkbook(tempFilePath);
+        }
+    }
+
+    internal async Task<IReadOnlyList<WeeklyMenuImportResultDto>> CommitPreparedBatchAsync(
+        IReadOnlyList<PreparedWeeklyMenuImport> prepared,
+        string? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var duplicateScope = prepared
+            .GroupBy(item => $"{GuidHelper.ToGuidString(item.Customer.CustomerId)}|{item.Plan.WeekStartDate:yyyy-MM-dd}")
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateScope is not null)
+        {
+            throw new BusinessRuleException(
+                "Batch import có trùng khách hàng và tuần. Vui lòng chỉ giữ một file cho mỗi phạm vi.");
+        }
+
+        foreach (var item in prepared)
+        {
+            previewTicketStore.Validate(
+                item.PreviewToken,
+                item.Plan.SourceChecksum!,
+                GuidHelper.ToGuidString(item.Customer.CustomerId),
+                item.Plan.WeekStartDate,
+                item.PriceTierAmount);
+        }
+
+        List<WeeklyMenuImportResultDto> committedResults = [];
+        try
+        {
+            var results = await transactionRunner.ExecuteAsync(
+                async token =>
+                {
+                    committedResults = [];
+                    foreach (var item in prepared)
+                    {
+                        try
+                        {
+                            committedResults.Add(await persistence.CommitAsync(
+                                item.Plan,
+                                item.Customer,
+                                item.PriceTierAmount,
+                                actorUserId,
+                                token));
+                            await context.SaveChangesAsync(token);
+                        }
+                        catch (BusinessRuleException ex) when (prepared.Count > 1)
+                        {
+                            throw new BusinessRuleException(
+                                $"Batch thất bại tại khách hàng {item.Customer.CustomerCode}: {ex.Message} " +
+                                "Không file nào trong batch được lưu.",
+                                ex);
+                        }
+                    }
+
+                    return (IReadOnlyList<WeeklyMenuImportResultDto>)committedResults.ToList();
+                },
+                async token =>
+                {
+                    if (committedResults.Count != prepared.Count)
+                    {
+                        return false;
+                    }
+
+                    for (var index = 0; index < committedResults.Count; index++)
+                    {
+                        var menuVersionId = GuidHelper.ParseGuidString(committedResults[index].MenuVersionId);
+                        if (menuVersionId is null ||
+                            !await context.Menuversions.AsNoTracking().AnyAsync(
+                                version =>
+                                    version.MenuVersionId == menuVersionId &&
+                                    version.SourceChecksum == prepared[index].Plan.SourceChecksum,
+                                token))
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                },
+                cancellationToken: cancellationToken);
+
+            DishCatalogCache.Clear(cache);
+            foreach (var item in prepared)
+            {
+                previewTicketStore.Consume(item.PreviewToken!);
+            }
+
+            return results;
+        }
+        catch
+        {
+            context.ChangeTracker.Clear();
+            throw;
         }
     }
 
@@ -244,3 +353,9 @@ internal sealed class WeeklyMenuImportService(
         }
     }
 }
+
+internal sealed record PreparedWeeklyMenuImport(
+    WeeklyMenuImportPlan Plan,
+    Customer Customer,
+    decimal PriceTierAmount,
+    string? PreviewToken);

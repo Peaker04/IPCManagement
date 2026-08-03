@@ -107,6 +107,18 @@ const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceT
   return formData
 }
 
+export const buildWeeklyMenuImportBatchFormData = (requests: WeeklyMenuImportRequest[]) => {
+  const formData = new FormData()
+  requests.forEach(({ file, customerId, weekStartDate, priceTierAmount, previewToken }) => {
+    formData.append('files', file)
+    formData.append('customerIds', customerId)
+    formData.append('weekStartDates', weekStartDate ?? '')
+    formData.append('priceTierAmounts', String(priceTierAmount))
+    formData.append('previewTokens', previewToken ?? '')
+  })
+  return formData
+}
+
 export const coordinationApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getCoordinationCustomers: builder.query<ApiResponse<CoordinationCustomerOption[]>, void>({
@@ -341,6 +353,14 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'DishCatalog'],
     }),
+    commitWeeklyMenuImportBatch: builder.mutation<ApiResponse<WeeklyMenuImportResult[]>, WeeklyMenuImportRequest[]>({
+      query: (requests) => ({
+        url: '/coordination/weekly-menu/import/commit-batch',
+        method: 'POST',
+        body: buildWeeklyMenuImportBatchFormData(requests),
+      }),
+      invalidatesTags: ['Coordination', 'DishCatalog'],
+    }),
     getCustomerImportMapping: builder.query<ApiResponse<CustomerImportMapping | null>, string>({
       query: (customerId) => `/coordination/customers/${customerId}/import-mapping`,
       providesTags: ['Customers'],
@@ -417,6 +437,7 @@ export const {
   usePreviewWeeklyMenuImportMutation,
   useDownloadWeeklyMenuTemplateMutation,
   useCommitWeeklyMenuImportMutation,
+  useCommitWeeklyMenuImportBatchMutation,
   useGetCustomerImportMappingQuery,
   useSaveCustomerImportMappingMutation,
   useUpdateWeeklyMenuBulkMutation,
