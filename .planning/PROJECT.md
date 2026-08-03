@@ -92,8 +92,8 @@ the concrete reason the new image-judge architecture is required.
 ## Constraints
 
 - **Process:** GSD remains the sole owner of plans, state, verification and closeout.
-- **Graph:** Production UI edits use full branch-aware GitNexus impact in both directions;
-  shared test harnesses use the lightweight lane.
+- **Graph:** GitNexus is opt-in and is used only when explicitly requested; otherwise
+  source, tests and the applicable GSD gates are the evidence boundary.
 - **Evidence:** Browser runs use headed Chrome and preserve screenshot, API, console/page
   errors, CLS and long-task evidence.
 - **Source:** Code/runtime is authoritative over documentation; no inferred floorplan or

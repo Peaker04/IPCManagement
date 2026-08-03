@@ -41,7 +41,7 @@ finding resolve to an editable source owner.
 3. Every table-bearing state declares semantic alignment, key preservation and scroll/responsive intent.
 4. Opaque owner/floorplan/region IDs join rendered DOM to a complete test-owned source manifest,
    while source-path leakage checks prove paths are absent from production DOM/bundles.
-5. Production instrumentation changes complete full GitNexus analysis and preserve rendered behavior.
+5. If GitNexus is explicitly requested for production instrumentation, complete the applicable analysis and preserve rendered behavior.
 
 ### Phase 27: Deterministic Capture & Computed Geometry
 
@@ -92,8 +92,8 @@ all business, permission, lifecycle, API, cache and route behavior.
 
 1. Every changed production fragment traces to one or more immutable finding IDs and no change
    exists outside the verified finding set.
-2. Each production symbol receives complete branch-aware two-way GitNexus impact, affected-process
-   disposition and risk-appropriate regression before editing and final change detection afterward.
+2. When GitNexus is explicitly requested, each production symbol receives the applicable branch-aware
+   impact, affected-process disposition and risk-appropriate regression before editing and final change detection afterward.
 3. Fixes follow SAP Fiori first, approved project canon second, and generic UI heuristics only when
    non-conflicting; no SAPUI5 migration or second UI kit is introduced.
 4. Existing authorization, actions, route access, lifecycle, API/cache contracts and PB contextual
@@ -127,8 +127,8 @@ coverage regression.
   source for Phase 29 production styling changes.
 - SAP Fiori for Web is oracle level 1. Local design skills supplement accessibility and React implementation
   only where they do not conflict with SAP or an approved project decision.
-- Graph-free planning uses no GitNexus; shared harness/source-aware checker work uses lightweight graph;
-  production UI symbols use complete full analysis under `AGENTS.md`.
+- GitNexus is opt-in for all lanes. Without an explicit request, graph-free planning, shared
+  harness/checker work and production UI changes use source, tests and the applicable GSD gates.
 - Browser evidence uses headed Chrome and the five viewports in `MEMORY.md`. Do not reset, seed, import
   or restore `ipc_lane1`; do not push.
 - One actor does not capture, judge, fix and rejudge in one mutable context. Findings and evidence are

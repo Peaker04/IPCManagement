@@ -50,7 +50,7 @@
 ### Quality and documentation
 
 - [ ] **QUAL-01**: Existing application, API and frontend tests remain green and discovered test counts do not decrease.
-- [ ] **QUAL-02**: Shared harness/checker changes pass the lightweight GitNexus lane; every production symbol edit passes complete branch-aware two-way impact, affected-process disposition and final change detection.
+- [ ] **QUAL-02**: When explicitly requested, shared harness/checker and production changes may use the applicable GitNexus lane with affected-process disposition and final change detection; GitNexus is not required by default.
 - [ ] **QUAL-03**: `docs/UI-CONFORMANCE-MATRIX.md`, `docs/EVIDENCE-INDEX.md`, `MEMORY.md` and GSD verification/closeout artifacts agree with current code and immutable evidence.
 
 ## Deferred Requirements

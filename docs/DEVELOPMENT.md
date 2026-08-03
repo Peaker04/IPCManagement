@@ -70,6 +70,11 @@ trước khi chạy app; không dùng seed/reset để che schema hoặc dữ li
 
 Chọn skill theo loại yêu cầu, không theo tên file ngẫu nhiên:
 
+GitNexus là công cụ **opt-in**. Chỉ dùng các skill GitNexus, MCP hoặc CLI GitNexus
+khi người yêu cầu nói rõ cần GitNexus/impact/context/detect_changes/blast-radius.
+Các task còn lại không cần kiểm tra index hay chạy GitNexus; dùng source, test và
+skill GSD phù hợp.
+
 | Yêu cầu | Skill (Claude Code) | File gốc (Codex) |
 |---|---|---|
 | Hiểu architecture, call flow, module hoặc dependency | `Skill("gitnexus-exploring")` | `~/.claude/skills/gitnexus-exploring/` |
@@ -91,7 +96,7 @@ Chọn skill theo loại yêu cầu, không theo tên file ngẫu nhiên:
 
 Skill dự án dùng chung một bản file: `.claude/skills/<name>` là directory junction trỏ về `.codex/skills/<name>`, nên sửa trong `.codex/skills/` có hiệu lực cho cả Claude Code và Codex. Nhóm skill GitNexus do `gitnexus setup -c claude` cài vào `~/.claude/skills/` (ngoài repo, không sửa tay).
 
-Khi task UI liên quan SAP Fiori/template/range/diagnostics, dùng `sketch-findings-ipcmanagement` trước rồi `ui-styling` để implement. Khi task vừa trace vừa sửa code, dùng GitNexus exploration/debugging và impact trước, sau đó mới áp dụng Karpathy guidelines để implement. Các phiên chat đọc `AGENTS.md` để áp dụng routing đầy đủ và cập nhật tài liệu sau thay đổi đáng kể.
+Khi task UI liên quan SAP Fiori/template/range/diagnostics, dùng `sketch-findings-ipcmanagement` trước rồi `ui-styling` để implement. Khi task vừa trace vừa sửa code, chỉ dùng GitNexus exploration/debugging và impact nếu người yêu cầu đã chỉ định GitNexus; nếu không, dùng source/test và sau đó áp dụng Karpathy guidelines để implement. Các phiên chat đọc `AGENTS.md` để áp dụng routing đầy đủ và cập nhật tài liệu sau thay đổi đáng kể.
 
 ## Browser-use trên lane local
 
