@@ -214,6 +214,11 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("changedBy")
                         .IsFixedLength();
 
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("correlationId");
+
                     b.Property<byte[]>("EntityId")
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")

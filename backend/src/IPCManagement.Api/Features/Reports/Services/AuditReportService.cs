@@ -92,7 +92,8 @@ public class AuditReportService : IAuditReportService
                 FieldName = item.FieldName,
                 OldValue = item.OldValue,
                 NewValue = item.NewValue,
-                Reason = item.Reason
+                Reason = item.Reason,
+                CorrelationId = item.CorrelationId
             })
             .ToListAsync();
 

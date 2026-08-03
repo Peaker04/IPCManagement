@@ -54,7 +54,11 @@ public sealed class CustomerContractsController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateCustomerContractAsync(id, request, _currentUserService.GetUserId(User));
+            var result = await _service.UpdateCustomerContractAsync(
+                id,
+                request,
+                _currentUserService.GetUserId(User),
+                HttpContext.TraceIdentifier);
             return result is null
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy khách hàng để cập nhật contract."))
                 : Ok(ApiResponse<CustomerContractDto>.SuccessResult(result, "Đã cập nhật contract khách hàng."));

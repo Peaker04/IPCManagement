@@ -86,7 +86,8 @@ public sealed class CustomerContractService : ICustomerContractService
     public async Task<CustomerContractDto?> UpdateCustomerContractAsync(
         string customerId,
         UpdateCustomerContractRequest request,
-        string? userId)
+        string? userId,
+        string? correlationId = null)
     {
         var customerIdBytes = GuidHelper.ParseGuidString(customerId);
         if (customerIdBytes is null)
@@ -105,13 +106,14 @@ public sealed class CustomerContractService : ICustomerContractService
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
+        var auditCorrelationId = ResolveCorrelationId(correlationId);
 
         if (!string.IsNullOrWhiteSpace(request.CustomerName) &&
             !string.Equals(customer.CustomerName, request.CustomerName.Trim(), StringComparison.Ordinal))
         {
             AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
                 nameof(Customer.CustomerName), customer.CustomerName, request.CustomerName.Trim(),
-                "Cập nhật tên khách hàng/contract");
+                "Cập nhật tên khách hàng/contract", auditCorrelationId);
             customer.CustomerName = request.CustomerName.Trim();
         }
 
@@ -120,7 +122,7 @@ public sealed class CustomerContractService : ICustomerContractService
         {
             AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
                 nameof(Customer.Note), customer.Note, request.Note.Trim(),
-                "Cập nhật ghi chú/ràng buộc khách hàng");
+                "Cập nhật ghi chú/ràng buộc khách hàng", auditCorrelationId);
             customer.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
         }
 
@@ -128,7 +130,7 @@ public sealed class CustomerContractService : ICustomerContractService
         {
             AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
                 nameof(Customer.IsActive), customer.IsActive.ToString(), request.IsActive.Value.ToString(),
-                "Cập nhật trạng thái khách hàng");
+                "Cập nhật trạng thái khách hàng", auditCorrelationId);
             customer.IsActive = request.IsActive.Value;
         }
 
@@ -136,7 +138,7 @@ public sealed class CustomerContractService : ICustomerContractService
             .OrderBy(schedule => schedule.ServiceDate)
             .ThenBy(schedule => schedule.ShiftName)
             .ToList();
-        var contract = ResolveMutableContract(customer, schedules, request, actorId, changedAt);
+        var contract = ResolveMutableContract(customer, schedules, request, actorId, changedAt, auditCorrelationId);
 
         if (request.EffectiveFrom is not null || request.EffectiveTo is not null)
         {
@@ -149,10 +151,10 @@ public sealed class CustomerContractService : ICustomerContractService
 
             UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.EffectiveFrom),
                 contract.EffectiveFrom.ToString("yyyy-MM-dd"), nextEffectiveFrom.ToString("yyyy-MM-dd"),
-                () => contract.EffectiveFrom = nextEffectiveFrom);
+                () => contract.EffectiveFrom = nextEffectiveFrom, auditCorrelationId);
             UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.EffectiveTo),
                 contract.EffectiveTo?.ToString("yyyy-MM-dd"), nextEffectiveTo?.ToString("yyyy-MM-dd"),
-                () => contract.EffectiveTo = nextEffectiveTo);
+                () => contract.EffectiveTo = nextEffectiveTo, auditCorrelationId);
         }
 
         if (request.ActiveWeekDays is not null)
@@ -160,7 +162,7 @@ public sealed class CustomerContractService : ICustomerContractService
             var nextWeekDays = NormalizeWeekDays(request.ActiveWeekDays, schedules);
             UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.ActiveWeekDays),
                 contract.ActiveWeekDays, string.Join(",", nextWeekDays),
-                () => contract.ActiveWeekDays = string.Join(",", nextWeekDays));
+                () => contract.ActiveWeekDays = string.Join(",", nextWeekDays), auditCorrelationId);
         }
 
         if (request.ShiftNames is not null)
@@ -168,7 +170,7 @@ public sealed class CustomerContractService : ICustomerContractService
             var nextShifts = NormalizeShiftNames(request.ShiftNames, schedules);
             UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.ShiftNames),
                 contract.ShiftNames, string.Join(",", nextShifts),
-                () => contract.ShiftNames = string.Join(",", nextShifts));
+                () => contract.ShiftNames = string.Join(",", nextShifts), auditCorrelationId);
         }
 
         if (request.DefaultMenuPrice is not null)
@@ -181,16 +183,16 @@ public sealed class CustomerContractService : ICustomerContractService
 
             UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultMenuPrice),
                 contract.DefaultMenuPrice.ToString(), nextPrice.ToString(),
-                () => contract.DefaultMenuPrice = nextPrice);
+                () => contract.DefaultMenuPrice = nextPrice, auditCorrelationId);
         }
 
         UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultBomRatePercent),
             contract.DefaultBomRatePercent.ToString(), FixedBomRatePercent.ToString(),
-            () => contract.DefaultBomRatePercent = FixedBomRatePercent);
+            () => contract.DefaultBomRatePercent = FixedBomRatePercent, auditCorrelationId);
 
         contract.UpdatedAt = changedAt;
         ValidateNoOverlappingContract(customer.Customercontracts, contract);
-        ApplyContractToUnlockedSchedules(contract, schedules, actorId, changedAt);
+        ApplyContractToUnlockedSchedules(contract, schedules, actorId, changedAt, auditCorrelationId);
 
         await _context.SaveChangesAsync();
         return MapCustomerContract(customer);
@@ -201,7 +203,8 @@ public sealed class CustomerContractService : ICustomerContractService
         IReadOnlyList<MenuSchedule> schedules,
         UpdateCustomerContractRequest request,
         byte[] actorId,
-        DateTime changedAt)
+        DateTime changedAt,
+        string? correlationId = null)
     {
         var existing = ResolveActiveContract(customer.Customercontracts);
         if (existing is not null)
@@ -245,7 +248,7 @@ public sealed class CustomerContractService : ICustomerContractService
 
         customer.Customercontracts.Add(contract);
         AddAudit(actorId, changedAt, "CustomerContract", nameof(CustomerContract), contract.ContractId,
-            "ContractCreated", null, GuidHelper.ToGuidString(customer.CustomerId), "Tạo contract hiệu lực cho khách hàng");
+            "ContractCreated", null, GuidHelper.ToGuidString(customer.CustomerId), "Tạo contract hiệu lực cho khách hàng", correlationId);
         return contract;
     }
 
@@ -268,7 +271,8 @@ public sealed class CustomerContractService : ICustomerContractService
         string fieldName,
         string? oldValue,
         string? newValue,
-        Action apply)
+        Action apply,
+        string? correlationId = null)
     {
         if (string.Equals(oldValue ?? string.Empty, newValue ?? string.Empty, StringComparison.Ordinal))
         {
@@ -276,7 +280,7 @@ public sealed class CustomerContractService : ICustomerContractService
         }
 
         AddAudit(actorId, changedAt, "CustomerContract", nameof(CustomerContract), contract.ContractId,
-            fieldName, oldValue, newValue, "Cập nhật contract hiệu lực của khách hàng");
+            fieldName, oldValue, newValue, "Cập nhật contract hiệu lực của khách hàng", correlationId);
         apply();
     }
 
@@ -284,7 +288,8 @@ public sealed class CustomerContractService : ICustomerContractService
         CustomerContract contract,
         IReadOnlyList<MenuSchedule> schedules,
         byte[] actorId,
-        DateTime changedAt)
+        DateTime changedAt,
+        string? correlationId)
     {
         var activeDays = SplitCsv(contract.ActiveWeekDays).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var shifts = SplitCsv(contract.ShiftNames).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -294,7 +299,7 @@ public sealed class CustomerContractService : ICustomerContractService
             {
                 AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
                     nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), contract.DefaultMenuPrice.ToString(),
-                    "Áp dụng đơn giá mặc định từ contract khách hàng");
+                    "Áp dụng đơn giá mặc định từ contract khách hàng", correlationId);
                 schedule.MenuPrice = contract.DefaultMenuPrice;
             }
 
@@ -302,7 +307,7 @@ public sealed class CustomerContractService : ICustomerContractService
             {
                 AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
                     nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), contract.DefaultBomRatePercent.ToString(),
-                    "Áp dụng BOM cố định 100% theo tier đơn giá mới");
+                    "Áp dụng BOM cố định 100% theo tier đơn giá mới", correlationId);
                 schedule.BomRatePercent = FixedBomRatePercent;
             }
         }
@@ -503,7 +508,8 @@ public sealed class CustomerContractService : ICustomerContractService
         string fieldName,
         string? oldValue,
         string? newValue,
-        string reason)
+        string reason,
+        string? correlationId = null)
     {
         _context.Auditlogs.Add(new AuditLog
         {
@@ -516,8 +522,17 @@ public sealed class CustomerContractService : ICustomerContractService
             FieldName = fieldName,
             OldValue = oldValue,
             NewValue = newValue,
-            Reason = reason
+            Reason = reason,
+            CorrelationId = correlationId
         });
+    }
+
+    private static string ResolveCorrelationId(string? correlationId)
+    {
+        var value = string.IsNullOrWhiteSpace(correlationId)
+            ? Guid.NewGuid().ToString("N")
+            : correlationId.Trim();
+        return value[..Math.Min(value.Length, 128)];
     }
 
     private static string? NormalizeShiftName(string? shift)

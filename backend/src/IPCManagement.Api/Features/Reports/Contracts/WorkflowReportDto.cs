@@ -273,6 +273,7 @@ public class AuditChangeReportDto
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public string? Reason { get; set; }
+    public string? CorrelationId { get; set; }
 }
 
 public class DataQualityReportDto

@@ -37,7 +37,11 @@ public sealed class MenuSchedulesController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateMenuScheduleRulesAsync(id, request, _currentUserService.GetUserId(User));
+            var result = await _service.UpdateMenuScheduleRulesAsync(
+                id,
+                request,
+                _currentUserService.GetUserId(User),
+                HttpContext.TraceIdentifier);
             return result is null
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy lịch thực đơn để cập nhật quy tắc."))
                 : Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật quy tắc suất ăn."));
@@ -56,7 +60,11 @@ public sealed class MenuSchedulesController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateMenuScheduleVersionAsync(id, request, _currentUserService.GetUserId(User));
+            var result = await _service.UpdateMenuScheduleVersionAsync(
+                id,
+                request,
+                _currentUserService.GetUserId(User),
+                HttpContext.TraceIdentifier);
             return result is null
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy lịch thực đơn để cập nhật version."))
                 : Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật version thực đơn."));

@@ -839,7 +839,8 @@ public partial class WorkflowGenerationTests
                     fieldName TEXT NULL,
                     oldValue TEXT NULL,
                     newValue TEXT NULL,
-                    reason TEXT NULL
+                    reason TEXT NULL,
+                    correlationId TEXT NULL
                 );
                 CREATE TABLE approvalhistories (
                     approvalHistoryId BLOB PRIMARY KEY,

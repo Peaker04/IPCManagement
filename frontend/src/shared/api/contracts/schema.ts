@@ -8990,6 +8990,7 @@ export interface components {
             readonly changedAt: string;
             readonly changedBy: string;
             readonly changedByName?: string | null;
+            readonly correlationId?: string | null;
             readonly entityId?: string | null;
             readonly entityName: string;
             readonly fieldName?: string | null;
@@ -9028,6 +9029,7 @@ export interface components {
             /** Format: byte */
             readonly changedBy: string;
             readonly changedByNavigation: components["schemas"]["User"];
+            readonly correlationId?: string | null;
             /** Format: byte */
             readonly entityId?: string | null;
             readonly entityName: string;

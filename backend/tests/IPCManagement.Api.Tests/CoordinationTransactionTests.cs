@@ -1067,7 +1067,7 @@ public class CoordinationTransactionTests
             "CREATE TABLE mealquantityplanlines (quantityPlanLineId BLOB NOT NULL PRIMARY KEY, quantityPlanId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, customerId BLOB NOT NULL, menuId BLOB NOT NULL, shiftName TEXT NOT NULL, forecastServings INTEGER NOT NULL, confirmedServings INTEGER NOT NULL, adjustedServings INTEGER NOT NULL, finalServings INTEGER NOT NULL, updatedAt TEXT NOT NULL DEFAULT '2026-01-01 00:00:00');",
             "CREATE TABLE quantityadjustments (adjustmentId BLOB NOT NULL PRIMARY KEY, quantityPlanLineId BLOB NOT NULL, oldServings INTEGER NOT NULL, newServings INTEGER NOT NULL, reason TEXT NULL, adjustedBy BLOB NOT NULL, adjustedAt TEXT NOT NULL);",
             "CREATE TABLE approvalhistories (approvalHistoryId BLOB NOT NULL PRIMARY KEY, targetType TEXT NOT NULL, targetId BLOB NOT NULL, decision TEXT NOT NULL, oldStatus TEXT NULL, newStatus TEXT NULL, reason TEXT NULL, actionBy BLOB NOT NULL, actionAt TEXT NOT NULL);",
-            "CREATE TABLE auditlogs (auditId BLOB NOT NULL PRIMARY KEY, changedAt TEXT NOT NULL, changedBy BLOB NOT NULL, businessArea TEXT NOT NULL, entityName TEXT NOT NULL, entityId BLOB NULL, fieldName TEXT NULL, oldValue TEXT NULL, newValue TEXT NULL, reason TEXT NULL);"
+            "CREATE TABLE auditlogs (auditId BLOB NOT NULL PRIMARY KEY, changedAt TEXT NOT NULL, changedBy BLOB NOT NULL, businessArea TEXT NOT NULL, entityName TEXT NOT NULL, entityId BLOB NULL, fieldName TEXT NULL, oldValue TEXT NULL, newValue TEXT NULL, reason TEXT NULL, correlationId TEXT NULL);"
         };
 
         foreach (var sql in commands)

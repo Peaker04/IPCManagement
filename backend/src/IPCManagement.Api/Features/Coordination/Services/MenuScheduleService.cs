@@ -88,7 +88,8 @@ public sealed class MenuScheduleService : IMenuScheduleService
     public async Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
         string menuScheduleId,
         UpdateMenuScheduleRulesRequest request,
-        string? userId)
+        string? userId,
+        string? correlationId = null)
     {
         var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
         if (schedule is null)
@@ -98,6 +99,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
+        var auditCorrelationId = ResolveCorrelationId(correlationId);
         var reason = string.IsNullOrWhiteSpace(request.Reason)
             ? "Cập nhật quy tắc contract/suất ăn"
             : request.Reason.Trim();
@@ -113,7 +115,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
             if (schedule.MenuPrice != nextPrice)
             {
                 AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
-                    nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason);
+                    nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason, auditCorrelationId);
                 schedule.MenuPrice = nextPrice;
             }
         }
@@ -121,7 +123,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
         if (schedule.BomRatePercent != FixedBomRatePercent)
         {
             AddAudit(actorId, changedAt, "PortionRule", nameof(MenuSchedule), schedule.MenuScheduleId,
-                nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason);
+                nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason, auditCorrelationId);
             schedule.BomRatePercent = FixedBomRatePercent;
         }
 
@@ -129,7 +131,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
         if (status is not null && !string.Equals(schedule.Status, status, StringComparison.OrdinalIgnoreCase))
         {
             AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
-                nameof(MenuSchedule.Status), schedule.Status, status, reason);
+                nameof(MenuSchedule.Status), schedule.Status, status, reason, auditCorrelationId);
             schedule.Status = status;
         }
 
@@ -141,7 +143,8 @@ public sealed class MenuScheduleService : IMenuScheduleService
     public async Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
         string menuScheduleId,
         UpdateMenuScheduleVersionRequest request,
-        string? userId)
+        string? userId,
+        string? correlationId = null)
     {
         var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
         if (schedule is null)
@@ -157,7 +160,9 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
+        var auditCorrelationId = ResolveCorrelationId(correlationId);
         var version = await EnsureMenuVersionAsync(schedule.CustomerId, schedule.WeekStartDate, actorId, changedAt);
+        var oldVersionStatus = version.Status;
 
         if (status == "ACTIVE")
         {
@@ -192,7 +197,8 @@ public sealed class MenuScheduleService : IMenuScheduleService
                 nameof(MenuVersion.Status),
                 version.Status,
                 status,
-                reason);
+                reason,
+                auditCorrelationId);
             version.Status = status;
             version.UpdatedAt = changedAt;
         }
@@ -202,6 +208,23 @@ public sealed class MenuScheduleService : IMenuScheduleService
             .ToListAsync())
             .Where(item => item.CustomerId.SequenceEqual(schedule.CustomerId))
             .ToList();
+
+        if (!string.Equals(oldVersionStatus, status, StringComparison.OrdinalIgnoreCase) ||
+            weekSchedules.Any(item => !string.Equals(item.Status, status, StringComparison.OrdinalIgnoreCase)))
+        {
+            var weekRange = $"{schedule.WeekStartDate:yyyy-MM-dd}..{schedule.WeekStartDate.AddDays(6):yyyy-MM-dd}";
+            AddAudit(
+                actorId,
+                changedAt,
+                "MenuVersion",
+                nameof(MenuVersion),
+                version.MenuVersionId,
+                "EffectiveRange",
+                $"{weekRange}|{oldVersionStatus}",
+                $"{weekRange}|{status}",
+                reason,
+                auditCorrelationId);
+        }
 
         foreach (var weekSchedule in weekSchedules)
         {
@@ -219,7 +242,8 @@ public sealed class MenuScheduleService : IMenuScheduleService
                 nameof(MenuSchedule.Status),
                 weekSchedule.Status,
                 status,
-                reason);
+                reason,
+                auditCorrelationId);
             weekSchedule.Status = status;
         }
 
@@ -529,7 +553,8 @@ public sealed class MenuScheduleService : IMenuScheduleService
         string fieldName,
         string? oldValue,
         string? newValue,
-        string reason)
+        string reason,
+        string? correlationId = null)
     {
         _context.Auditlogs.Add(new AuditLog
         {
@@ -542,7 +567,16 @@ public sealed class MenuScheduleService : IMenuScheduleService
             FieldName = fieldName,
             OldValue = oldValue,
             NewValue = newValue,
-            Reason = reason
+            Reason = reason,
+            CorrelationId = correlationId
         });
+    }
+
+    private static string ResolveCorrelationId(string? correlationId)
+    {
+        var value = string.IsNullOrWhiteSpace(correlationId)
+            ? Guid.NewGuid().ToString("N")
+            : correlationId.Trim();
+        return value[..Math.Min(value.Length, 128)];
     }
 }

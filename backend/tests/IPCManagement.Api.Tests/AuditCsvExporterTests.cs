@@ -22,7 +22,8 @@ public class AuditCsvExporterTests
                 FieldName = "Status",
                 OldValue = "DRAFT",
                 NewValue = "APPROVED",
-                Reason = "Đủ điều kiện"
+                Reason = "Đủ điều kiện",
+                CorrelationId = "cid-20260803"
             }
         ]);
 
@@ -30,5 +31,7 @@ public class AuditCsvExporterTests
             .Should().Equal(Encoding.UTF8.GetPreamble());
         Encoding.UTF8.GetString(bytes)
             .Should().Contain("Người \"\"duyệt\"\"");
+        Encoding.UTF8.GetString(bytes).Should().Contain("Correlation ID");
+        Encoding.UTF8.GetString(bytes).Should().Contain("cid-20260803");
     }
 }

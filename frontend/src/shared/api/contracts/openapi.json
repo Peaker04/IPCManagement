@@ -16525,6 +16525,10 @@
           "reason": {
             "type": "string",
             "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -16661,6 +16665,10 @@
             "nullable": true
           },
           "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
             "type": "string",
             "nullable": true
           },

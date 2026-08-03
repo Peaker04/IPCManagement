@@ -483,7 +483,8 @@ public class InventoryIssueServiceTests
                 fieldName TEXT,
                 oldValue TEXT,
                 newValue TEXT,
-                reason TEXT
+                reason TEXT,
+                correlationId TEXT
             );
         """;
         command.ExecuteNonQuery();

@@ -16,6 +16,7 @@ using System.Security.Claims;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Controllers;
 using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
@@ -27,11 +28,65 @@ using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Shared.Contracts;
+using IPCManagement.Api.Security;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace IPCManagement.Api.Tests;
 
 public partial class WorkflowGenerationTests
 {
+    [Fact]
+    public async Task CustomerContractEffectiveRangeAudit_Should_JoinApiTransitionActorAndCorrelation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var customerIdBytes = await context.Customers.Select(item => item.CustomerId).SingleAsync();
+        var customerId = GuidHelper.ToGuidString(customerIdBytes);
+        context.Customercontracts.Add(new CustomerContract
+        {
+            ContractId = GuidHelper.NewId(),
+            CustomerId = customerIdBytes,
+            EffectiveFrom = new DateOnly(2026, 6, 15),
+            EffectiveTo = null,
+            ActiveWeekDays = "t2,t3,t4,t5,t6,t7",
+            ShiftNames = "MORNING,AFTERNOON",
+            DefaultMenuPrice = 25000m,
+            DefaultBomRatePercent = 100m,
+            Status = "ACTIVE",
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
+            UpdatedAt = DateTime.UtcNow.AddDays(-1)
+        });
+        await context.SaveChangesAsync();
+        var oldEffectiveTo = await context.Customercontracts.Select(item => item.EffectiveTo).SingleAsync();
+        const string correlationId = "contract-range-20260803";
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.GetUserId(Arg.Any<ClaimsPrincipal>()).Returns(fixture.UserIdString);
+        var controller = new CustomerContractsController(new CustomerContractService(context), currentUser)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        controller.HttpContext.TraceIdentifier = correlationId;
+
+        var action = await controller.UpdateCustomerContractAsync(
+            customerId,
+            new UpdateCustomerContractRequest { EffectiveTo = "2026-06-30" });
+
+        var response = action.Should().BeOfType<OkObjectResult>().Subject.Value
+            .Should().BeOfType<ApiResponse<CustomerContractDto>>().Subject;
+        response.Data!.EffectiveTo.Should().Be("2026-06-30");
+        (await context.Customercontracts.AsNoTracking().Select(item => item.EffectiveTo).SingleAsync())
+            .Should().Be(new DateOnly(2026, 6, 30));
+        var audit = await context.Auditlogs.AsNoTracking().SingleAsync(item =>
+            item.EntityName == nameof(CustomerContract) &&
+            item.FieldName == nameof(CustomerContract.EffectiveTo));
+        audit.OldValue.Should().Be(oldEffectiveTo?.ToString("yyyy-MM-dd"));
+        audit.NewValue.Should().Be("2026-06-30");
+        audit.ChangedBy.Should().Equal(fixture.UserId);
+        audit.CorrelationId.Should().Be(correlationId);
+    }
+
     [Fact]
     public async Task CustomerContract_Should_UpdateCustomerContract_AndWriteAudit()
     {
@@ -819,6 +874,63 @@ public partial class WorkflowGenerationTests
         audit.Should().HaveCount(2);
         audit.Select(item => item.OldValue).Should().AllBeEquivalentTo("ACTIVE");
         audit.Select(item => item.NewValue).Should().AllBeEquivalentTo("SUPERSEDED");
+    }
+
+    [Fact]
+    public async Task MenuScheduleEffectiveRangeAudit_Should_JoinApiWeekTransitionActorAndCorrelation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var firstSchedule = await context.Menuschedules.SingleAsync();
+        context.Menuschedules.Add(new MenuSchedule
+        {
+            MenuScheduleId = GuidHelper.NewId(),
+            CustomerId = firstSchedule.CustomerId,
+            MenuId = firstSchedule.MenuId,
+            ServiceDate = firstSchedule.ServiceDate.AddDays(1),
+            WeekStartDate = firstSchedule.WeekStartDate,
+            ShiftName = "AFTERNOON",
+            MenuPrice = firstSchedule.MenuPrice,
+            BomRatePercent = firstSchedule.BomRatePercent,
+            Status = "ACTIVE"
+        });
+        await context.SaveChangesAsync();
+        const string correlationId = "menu-range-20260803";
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.GetUserId(Arg.Any<ClaimsPrincipal>()).Returns(fixture.UserIdString);
+        var controller = new MenuSchedulesController(
+            new MenuScheduleService(context, new EfTransactionRunner(context)),
+            currentUser)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+        controller.HttpContext.TraceIdentifier = correlationId;
+
+        var action = await controller.UpdateMenuScheduleVersionAsync(
+            GuidHelper.ToGuidString(firstSchedule.MenuScheduleId),
+            new UpdateMenuScheduleVersionRequest
+            {
+                Status = "SUPERSEDED",
+                Reason = "Thay đổi version cho toàn tuần"
+            });
+
+        var response = action.Should().BeOfType<OkObjectResult>().Subject.Value
+            .Should().BeOfType<ApiResponse<MenuScheduleDto>>().Subject;
+        response.Data!.Status.Should().Be("SUPERSEDED");
+        (await context.Menuschedules.AsNoTracking().Select(item => item.Status).ToListAsync())
+            .Should().AllBeEquivalentTo("SUPERSEDED");
+        var rangeAudit = await context.Auditlogs.AsNoTracking().SingleAsync(item =>
+            item.EntityName == nameof(MenuVersion) && item.FieldName == "EffectiveRange");
+        rangeAudit.OldValue.Should().Be("2026-06-15..2026-06-21|DRAFT");
+        rangeAudit.NewValue.Should().Be("2026-06-15..2026-06-21|SUPERSEDED");
+        rangeAudit.ChangedBy.Should().Equal(fixture.UserId);
+        rangeAudit.CorrelationId.Should().Be(correlationId);
+        var scheduleAudits = await context.Auditlogs.AsNoTracking()
+            .Where(item => item.EntityName == nameof(MenuSchedule) && item.FieldName == nameof(MenuSchedule.Status))
+            .ToListAsync();
+        scheduleAudits.Should().HaveCount(2);
+        scheduleAudits.Should().OnlyContain(item => item.CorrelationId == correlationId);
     }
 
     [Fact]

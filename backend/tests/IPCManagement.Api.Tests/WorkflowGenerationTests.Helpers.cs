@@ -335,8 +335,9 @@ public partial class WorkflowGenerationTests
         public Task<CustomerContractDto?> UpdateCustomerContractAsync(
             string customerId,
             UpdateCustomerContractRequest request,
-            string? userId)
-            => _contracts.UpdateCustomerContractAsync(customerId, request, userId);
+            string? userId,
+            string? correlationId = null)
+            => _contracts.UpdateCustomerContractAsync(customerId, request, userId, correlationId);
 
         public Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleRequest request, string? userId)
             => _portionRules.CreatePortionRuleAsync(request, userId);
@@ -350,14 +351,16 @@ public partial class WorkflowGenerationTests
         public Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
             string id,
             UpdateMenuScheduleRulesRequest request,
-            string? userId)
-            => _menuSchedules.UpdateMenuScheduleRulesAsync(id, request, userId);
+            string? userId,
+            string? correlationId = null)
+            => _menuSchedules.UpdateMenuScheduleRulesAsync(id, request, userId, correlationId);
 
         public Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
             string id,
             UpdateMenuScheduleVersionRequest request,
-            string? userId)
-            => _menuSchedules.UpdateMenuScheduleVersionAsync(id, request, userId);
+            string? userId,
+            string? correlationId = null)
+            => _menuSchedules.UpdateMenuScheduleVersionAsync(id, request, userId, correlationId);
 
         public Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
             RollbackMenuVersionRequest request,

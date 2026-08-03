@@ -202,7 +202,8 @@ public class AdminEmployeeServiceTests
                     fieldName TEXT NULL,
                     oldValue TEXT NULL,
                     newValue TEXT NULL,
-                    reason TEXT NULL
+                    reason TEXT NULL,
+                    correlationId TEXT NULL
                 );
                 """;
             await command.ExecuteNonQueryAsync();
