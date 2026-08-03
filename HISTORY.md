@@ -1377,3 +1377,13 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Root gate pass Application 49/49, API 705 + 1 intentional skip, UI completeness 87/87, frontend 126 file /
   736 test, lint, dependency graph 0 violation / 375 module / 1.348 dependency và hai production build.
 - Commit `e0f3361`; không browser/runtime/database mutation, không gọi GitNexus và Phase 27 vẫn chưa mở.
+
+## Hoàn tất quick 260803-pwg — Warehouse exception query state — 03/08/2026
+
+- Đưa ba query owner của Warehouse exceptions — cấp bổ sung, phiếu trả chờ nhận và chi tiết phiếu trả — về
+  `toLabeledQueryView`/`QueryViewBoundary`; giữ nguyên mutation payload, permission, pagination và source ID.
+- Error/forbidden chặn bảng/form trống giả, retry đúng owner, refresh giữ hàng cũ; thêm 5 regression render mới.
+- Source-aware closure giữ UI completeness 87/87, 13 local state được phân loại như cũ và checkbox locator đúng AST.
+- Root gate pass Application 49/49, API 705 + 1 intentional skip, frontend 126 file / 741 test,
+  dependency graph 0 violation / 375 module / 1.350 dependency, lint và hai build. Commit `7e58f94`.
+- Không browser/runtime/database mutation, không gọi GitNexus và Phase 27 vẫn chưa mở.

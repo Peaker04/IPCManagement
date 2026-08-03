@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: SAP Fiori Visual Conformance & Evidence Intelligence
 status: ready
 stopped_at: Phase 26 complete; Phase 27 unopened
-last_updated: "2026-08-03T18:26:00.000+07:00"
-last_activity: 2026-08-03 — Quick 260803-p7b adopted the cross-stack UI/data contract and migrated Dashboard query states; Phase 27 remains unopened
+last_updated: "2026-08-03T18:48:00.000+07:00"
+last_activity: 2026-08-03 — Quick 260803-pwg migrated Warehouse exception query states; Phase 27 remains unopened
 progress:
   total_phases: 5
   completed_phases: 1
@@ -30,7 +30,7 @@ business state produces an equivalent, predictable UI.
 Phase: 27 of 30 (Deterministic Capture & Computed Geometry)
 Plan: Not started
 Status: Ready for discussion/planning
-Last activity: 2026-08-03 — Quick 260803-p7b complete; Phase 27 remains unopened
+Last activity: 2026-08-03 — Quick 260803-pwg complete; Phase 27 remains unopened
 
 ## Verified Baseline
 
@@ -255,6 +255,7 @@ Items acknowledged at milestone v1.3 close on 2026-08-02:
 | 260802-ola | Synchronize FE/BE and establish a read-only, data-rich Shipyard evidence baseline | 2026-08-02 | 406ab5b | [260802-ola-synchronize-current-frontend-backend-con](./quick/260802-ola-synchronize-current-frontend-backend-con/) |
 | 260802-plv | Remediate four evidence-backed Shipyard presentation defects without changing behavior | 2026-08-02 | c8667f2 | [260802-plv-remediate-four-evidence-backed-shipyard-](./quick/260802-plv-remediate-four-evidence-backed-shipyard-/) |
 | 260803-p7b | Adopt the UI/UX FE-BE-Database standardization contract and migrate Dashboard query state handling to QueryView with regression coverage | 2026-08-03 | e0f3361 | [260803-p7b-adopt-the-ui-ux-fe-be-database-standardi](./quick/260803-p7b-adopt-the-ui-ux-fe-be-database-standardi/) |
+| 260803-pwg | Continue standardization rollout by migrating Warehouse exceptions query boundaries to QueryView with regression coverage | 2026-08-03 | 7e58f94 | [260803-pwg-continue-standardization-rollout-by-migr](./quick/260803-pwg-continue-standardization-rollout-by-migr/) |
 
 ## Session
 
@@ -262,7 +263,7 @@ Items acknowledged at milestone v1.3 close on 2026-08-02:
 
 **Stopped At:** Phase 26 complete; Phase 27 unopened
 
-Last activity: 2026-08-03 - Quick 260803-p7b adopted the cross-stack contract and migrated Dashboard query states; Phase 27 remains unopened
+Last activity: 2026-08-03 - Quick 260803-pwg migrated Warehouse exception query states; Phase 27 remains unopened
 
 **Resume File:** None
 
