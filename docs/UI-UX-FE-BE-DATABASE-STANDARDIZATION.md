@@ -180,12 +180,11 @@ Các mục dưới đây lấy từ trạng thái hiện hành; không tự tạ
 
 | Mã | Ưu tiên xử lý | Điều kiện đóng |
 |---|---|---|
-| `OPEN-06` | Cao | Invariant một tier cho mỗi customer/week được enforce ngoài UI bằng migration/test |
 | `OPEN-09` | Trung bình | Workbook author được cover bởi case matrix và browser E2E import xác minh không mutate template gốc |
 
 Không được đóng các mục trên bằng cách chỉ thêm assertion vào UI. Mỗi mục cần evidence đúng lớp và regression ở lớp liên quan.
 
-Đã đóng ngày 03/08/2026: `OPEN-02` bằng domain/API regressions cho BOM workbook hỏng; `OPEN-07` bằng preview ticket khóa checksum/phạm vi và provenance nullable cho dish tạo bởi import; `OPEN-08` bằng batch transaction atomic với forced-failure, retry và replay regressions; `OPEN-05` bằng audit old/new + actor + request correlation cho contract và menu-week range. Verification nằm trong Phases 2–4 của workstream standardization.
+Đã đóng ngày 03/08/2026: `OPEN-02` bằng domain/API regressions cho BOM workbook hỏng; `OPEN-07` bằng preview ticket khóa checksum/phạm vi và provenance nullable cho dish tạo bởi import; `OPEN-08` bằng batch transaction atomic với forced-failure, retry và replay regressions; `OPEN-05` bằng audit old/new + actor + request correlation cho contract và menu-week range; `OPEN-06` bằng canonical customer/week tier, composite FK, unique scope, ba database trigger và shared service invariant. Verification nằm trong Phases 2–5 của workstream standardization.
 
 ## 8. Definition of Done cho một thay đổi UI/UX có dữ liệu
 

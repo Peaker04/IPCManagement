@@ -1411,3 +1411,11 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Hai relational API→DB regressions gọi real controller/service rồi assert response, entity transition, actor, correlation và audit row trong cùng scenario; focused range 2/2 và related contract/menu 11/11 pass.
 - Root gate pass Application `49/49`, API `715 + 1 intentional skip`, frontend `129 file / 748 test`, UI completeness `87/87`, dependency graph `0 violation / 377 module / 1.355 dependency`, architecture baseline, lint và hai build.
 - Secret scan và `git diff --check` pass; không browser/runtime/database mutation, không gọi GitNexus. Phase 5 tiếp tục `OPEN-06`.
+
+## Hoàn tất Standardization Phase 5 — Customer/week tier integrity — 03/08/2026
+
+- `OPEN-06` đóng tại `688c478`: bảng `customerweekmenutiers` khóa unique `(customerId, weekStartDate)`; `menuschedules` tham chiếu composite FK và ba MySQL trigger enforce tier equality cùng immutability khi tuần đã có lịch.
+- Weekly-menu import, schedule-rule update và customer-contract propagation dùng chung `CustomerWeekMenuTierInvariant`; API conflict giữ nguyên schedule/canonical row và hướng dẫn giữ tier hiện hành hoặc rollback/xóa toàn bộ lịch DRAFT rồi tạo lại.
+- Migration backfill theo distinct customer/week/price trước khi thêm FK. Dữ liệu lịch sử có nhiều price cùng scope va unique và fail-fast, không tự chọn giá; EF model không pending và forward SQL không có destructive operation.
+- Focused invariant/API/migration `4/4`, related contract/menu/import `48/48`, PA2 `6/6`; root gate pass Application `49/49`, API `719 + 1 intentional skip`, frontend `129 file / 748 test`, UI completeness `87/87`, dependency graph `0 violation / 377 module / 1.355 dependency`, architecture baseline, lint và hai build.
+- Secret scan và `git diff --check` pass; migration không apply vào `ipc_lane1`, không browser/runtime/database mutation và không gọi GitNexus. Phase 6 tiếp tục `OPEN-09`.

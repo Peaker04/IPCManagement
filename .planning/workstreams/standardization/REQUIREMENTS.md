@@ -35,10 +35,10 @@
 
 ### Customer/week tier invariant
 
-- [ ] **TIER-01**: One customer/week cannot persist conflicting tier assignments outside the UI (`OPEN-06`).
-- [ ] **TIER-02**: A forward migration enforces the invariant without resetting or reseeding protected data.
-- [ ] **TIER-03**: Service/API conflict responses are domain-friendly and covered by regression tests.
-- [ ] **TIER-04**: Migration validation and rollback guidance preserve existing lineage.
+- [x] **TIER-01**: One customer/week cannot persist conflicting tier assignments outside the UI (`OPEN-06`).
+- [x] **TIER-02**: A forward migration enforces the invariant without resetting or reseeding protected data.
+- [x] **TIER-03**: Service/API conflict responses are domain-friendly and covered by regression tests.
+- [x] **TIER-04**: Migration validation and rollback guidance preserve existing lineage.
 
 ### Workbook author verification
 

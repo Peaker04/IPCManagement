@@ -9,19 +9,19 @@ created: 2026-08-03
 
 **Milestone:** v1.0 — FE–BE–Database Standardization Closure
 **Status:** Ready
-**Current Phase:** 5 — Customer-Week Tier Integrity
+**Current Phase:** 6 — Workbook Author and Browser Verification
 **Last Activity:** 2026-08-03
-**Last Activity Description:** Phase 4 verified and closed at f48ee44
+**Last Activity Description:** Phase 5 verified and closed at 688c478
 
 ## Progress
 
-**Phases Complete:** 4
+**Phases Complete:** 5
 **Total Phases:** 7
-**Current Plan:** Phase 5 ready for customer/week tier invariant research and planning
+**Current Plan:** Phase 6 ready for deterministic workbook cases and headed browser verification
 
 ## Session Continuity
 
-**Stopped At:** Phase 5 price-tier persistence grain and migration inventory
+**Stopped At:** Phase 6 workbook hash guard, case matrix and five-viewport E2E planning
 **Resume File:** None
 
 ## Constraints
