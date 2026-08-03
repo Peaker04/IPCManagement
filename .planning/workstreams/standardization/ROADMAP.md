@@ -14,7 +14,7 @@
 - [x] **Phase 4: Effective-Range Audit Coverage** — close `OPEN-05` for contract and menu-schedule transitions. (completed 2026-08-03)
 - [x] **Phase 5: Customer-Week Tier Integrity** — close `OPEN-06` with service and database enforcement plus safe migration coverage. (completed 2026-08-03)
 - [x] **Phase 6: Workbook Author and Browser Verification** — close `OPEN-09` with a case matrix and headed five-viewport E2E evidence without changing the source workbook. (completed 2026-08-03)
-- [ ] **Phase 7: Cross-Stack Closure** — run complete gates, reconcile evidence and close the standardization workstream.
+- [x] **Phase 7: Cross-Stack Closure** — run complete gates, reconcile evidence and close the standardization workstream. (completed 2026-08-03)
 
 ### Phase 1: Frontend Query Boundary Closure
 

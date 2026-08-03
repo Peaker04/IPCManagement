@@ -49,9 +49,9 @@
 
 ### Closure
 
-- [ ] **CLOSE-01**: Targeted and root application/API/frontend/lint/dependency/build gates pass without test-count reduction.
-- [ ] **CLOSE-02**: Secret/stub scan and `git diff --check` pass; protected database lineage is unchanged except explicitly tested scoped mutations with rollback.
-- [ ] **CLOSE-03**: The standardization contract, `MEMORY.md`, `HISTORY.md`, evidence index and GSD closeout agree and no active scoped `OPEN` item remains.
+- [x] **CLOSE-01**: Targeted and root application/API/frontend/lint/dependency/build gates pass without test-count reduction.
+- [x] **CLOSE-02**: Secret/stub scan and `git diff --check` pass; protected database lineage is unchanged except explicitly tested scoped mutations with rollback.
+- [x] **CLOSE-03**: The standardization contract, `MEMORY.md`, `HISTORY.md`, evidence index and GSD closeout agree and no active scoped `OPEN` item remains.
 
 ## Out of scope
 

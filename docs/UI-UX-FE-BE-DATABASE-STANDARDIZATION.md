@@ -176,7 +176,7 @@ Database phải là lớp phán quyết cuối cho integrity:
 
 ## 7. Việc còn mở trước khi tuyên bố “chuẩn hoàn toàn”
 
-Không còn mục `OPEN` nào trong scope standardization. Không được mở lại hoặc đóng một regression mới bằng assertion UI đơn lẻ; evidence phải đúng lớp và có regression tại lớp liên quan.
+Không còn mục `OPEN` nào trong scope standardization; Phase 7 closeout đã audit pass 26/26 requirement và 7/7 phase. Không được mở lại hoặc đóng một regression mới bằng assertion UI đơn lẻ; evidence phải đúng lớp và có regression tại lớp liên quan.
 
 Đã đóng ngày 03/08/2026: `OPEN-02` bằng domain/API regressions cho BOM workbook hỏng; `OPEN-07` bằng preview ticket khóa checksum/phạm vi và provenance nullable cho dish tạo bởi import; `OPEN-08` bằng batch transaction atomic với forced-failure, retry và replay regressions; `OPEN-05` bằng audit old/new + actor + request correlation cho contract và menu-week range; `OPEN-06` bằng canonical customer/week tier, composite FK, unique scope, ba database trigger và shared service invariant; `OPEN-09` bằng workbook case matrix deterministic, source hash guard và headed E2E đủ năm viewport nối FE/API/DB/reload/rollback. Verification nằm trong Phases 2–6 của workstream standardization.
 
