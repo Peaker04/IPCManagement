@@ -34,17 +34,17 @@ export default function CoordinationPage() {
     ? plansView.data
     : plansView.phase === 'error' ? plansQuery.currentData : undefined
   const plans = plansResponse?.data ?? []
-  const ordersResponse = ordersView.phase === 'ready' ? ordersView.data : undefined
+  const currentOrdersResponse = ordersQuery.currentData?.success ? ordersQuery.currentData : undefined
 
   useEffect(() => {
-    if (ordersResponse?.success && ordersResponse.data) {
+    if (currentOrdersResponse?.data) {
       dispatch(syncOrdersForShift({
         dayOfWeek: currentDayOfWeek,
         shift: currentShift,
-        orders: ordersResponse.data,
+        orders: currentOrdersResponse.data,
       }))
     }
-  }, [currentDayOfWeek, currentShift, dispatch, ordersResponse])
+  }, [currentDayOfWeek, currentOrdersResponse, currentShift, dispatch])
 
   // Filter orders by active day and shift
   const filteredOrders = allOrders.filter(

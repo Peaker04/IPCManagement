@@ -98,11 +98,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Chốt đơn cả ngày',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:378-388',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:389-400',
       ),
       source: coordinationSource(
         'lock-to-confirmed',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:141,378',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:143,389',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:89',
       ),
       disposition: 'Known Manager/Coordinator command; intercepted mutation evidence is fixture-only.',
@@ -118,7 +118,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'spinbutton',
         /^Suất dự kiến của /,
-        'frontend/src/features/coordination/components/order-table.tsx:327',
+        'frontend/src/features/coordination/components/order-table.tsx:344',
       ),
       source: coordinationSource(
         'update-forecast',
@@ -140,11 +140,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Hoàn tất ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:391-401',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:402-413',
       ),
       source: coordinationSource(
         'signoff-to-completed',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:142,391',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:144,402',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderSignoffService.cs:140-157',
       ),
       disposition: 'Known Manager/Coordinator command.',
@@ -160,11 +160,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Mở khóa ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:404-414',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:415-426',
       ),
       source: coordinationSource(
         'unlock-to-draft',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:143,404',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:145,415',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:246-264',
       ),
       disposition: 'Manager-only command.',
@@ -180,7 +180,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'spinbutton',
         /^Suất thực tế của /,
-        'frontend/src/features/coordination/components/order-table.tsx:355',
+        'frontend/src/features/coordination/components/order-table.tsx:372',
       ),
       source: coordinationSource(
         'request-adjustment',
@@ -206,13 +206,13 @@ const coordinationRows: PcProjectedRegistryRow[] = [
         ? coordinationControl(
             'button',
             'Xuất báo cáo',
-            'frontend/src/features/coordination/components/action-toolbar.tsx:417-427',
+            'frontend/src/features/coordination/components/action-toolbar.tsx:428-439',
           )
         : null,
       source: coordinationSource(
         'export',
         available
-          ? 'frontend/src/features/coordination/components/action-toolbar.tsx:144,417'
+          ? 'frontend/src/features/coordination/components/action-toolbar.tsx:146,428'
           : `frontend/${UNKNOWN}: canExport is false for this scenario`,
         `backend/${UNKNOWN}: no entity-status precondition is canonical`,
       ),

@@ -11,8 +11,13 @@ const baseUrl = 'http://127.0.0.1:3010'
 const apiUrl = 'http://127.0.0.1:8010'
 const database = 'ipc_e2e_template'
 const weekStartDate = '2030-01-07'
-const root = path.resolve('.artifacts/shipyard-live/standardization-phase6-20260803')
+const runName = process.env.IPC_WEEKLY_MENU_E2E_RUN ?? 'standardization-phase6-20260803'
+if (!/^[a-z0-9][a-z0-9-]*$/i.test(runName)) {
+  throw new Error('IPC_WEEKLY_MENU_E2E_RUN must contain only letters, numbers, and hyphens.')
+}
+const root = path.resolve('.artifacts/shipyard-live', runName)
 const workbookRoot = path.join(root, 'workbooks')
+const controlledFixtureRoot = path.resolve('.artifacts/shipyard-live/standardization-phase6-20260803/workbooks')
 const profile = path.resolve('.artifacts/browser-use-standardization-phase6-20260803')
 const sourceWorkbook = 'C:/Users/Administrator/Pictures/weekly-menu-template-ANV-default.xlsx'
 const expectedSourceHash = 'A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01'
@@ -21,6 +26,12 @@ const workbooks = {
   dav: path.join(workbookRoot, 'valid-dav-2030-01-07.xlsx'),
   malformed: path.join(workbookRoot, 'malformed-not-xlsx.xlsx'),
   mismatch: path.join(workbookRoot, 'mismatched-after-preview.xlsx'),
+}
+const controlledFixtures = {
+  anv: { fileName: 'valid-anv-2030-01-07.xlsx', sha256: '24A84D426AA89D0D46F58C97E7A92F96E07DFB143C038B35F5BBA73EF17E41F2' },
+  dav: { fileName: 'valid-dav-2030-01-07.xlsx', sha256: '896F0C1FCCEA8642FA77882FB6A7AFE64D4C48DB9E4A56CC8755B35FEDD2BAC1' },
+  malformed: { fileName: 'malformed-not-xlsx.xlsx', sha256: '8998DC21B03B0582D5679FD1D243B5E5F7D72E54B7DFE31EC67AC61E410F1273' },
+  mismatch: { fileName: 'mismatched-after-preview.xlsx', sha256: '65B84FC02CEB6654AFDD675CAF4FB09FC8165EC2D03E7306903EDF149299CEC0' },
 }
 const viewports = [
   { name: '1920x1080', width: 1920, height: 1080 },
@@ -32,6 +43,13 @@ const viewports = [
 
 await fs.mkdir(root, { recursive: true })
 const sha256 = async (file) => crypto.createHash('sha256').update(await fs.readFile(file)).digest('hex').toUpperCase()
+await fs.mkdir(workbookRoot, { recursive: true })
+for (const [key, fixture] of Object.entries(controlledFixtures)) {
+  const source = path.join(controlledFixtureRoot, fixture.fileName)
+  if (await sha256(source) !== fixture.sha256) throw new Error(`Controlled ${key} workbook hash drifted.`)
+  await fs.copyFile(source, workbooks[key])
+  if (await sha256(workbooks[key]) !== fixture.sha256) throw new Error(`Staged ${key} workbook hash mismatch.`)
+}
 const sourceHashBefore = await sha256(sourceWorkbook)
 if (sourceHashBefore !== expectedSourceHash) throw new Error(`Source workbook hash drifted: ${sourceHashBefore}`)
 
@@ -50,6 +68,10 @@ const evidence = {
   startedAt: new Date().toISOString(),
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   sourceWorkbook: { path: sourceWorkbook, sha256Before: sourceHashBefore },
+  controlledFixtures: Object.fromEntries(Object.entries(controlledFixtures).map(([key, fixture]) => [key, {
+    source: path.join(controlledFixtureRoot, fixture.fileName),
+    sha256: fixture.sha256,
+  }])),
   runtime: { baseUrl, apiUrl, database, credentialSource: 'K6_PASSWORD' },
   headed: true,
   viewports,
@@ -142,6 +164,14 @@ const closeImportDialog = async (dialog) => {
   if (!await dialog.isVisible().catch(() => false)) return
   await dialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' }).click()
   await dialog.waitFor({ state: 'hidden' })
+}
+const assertHistoryStatusBadge = async (row, label, tone) => {
+  const badge = row.locator('.ipc-status-badge').filter({ hasText: label }).first()
+  if (await badge.count() !== 1) throw new Error(`Expected one ${label} history badge.`)
+  const className = await badge.getAttribute('class')
+  if (!className?.split(/\s+/).includes(`is-${tone}`)) {
+    throw new Error(`${label} history badge must use ${tone} tone, got ${className ?? '(none)'}.`)
+  }
 }
 const selectRadixOption = async (trigger, optionName) => {
   await trigger.click()
@@ -274,6 +304,7 @@ try {
   await committedHistoryRow.waitFor({ timeout: 20_000 })
   const historyText = await dialog.locator('table').last().innerText()
   if (!historyText.includes('ANV') || !historyText.includes('DAV')) throw new Error('Reloaded history did not render both committed customers.')
+  await assertHistoryStatusBadge(committedHistoryRow, 'Bản nháp', 'neutral')
   await committedHistoryRow.scrollIntoViewIfNeeded()
   await page.screenshot({ path: path.join(root, '1280x900-reload-committed-history.png'), fullPage: true })
 
@@ -299,6 +330,7 @@ try {
   await rolledBackHistoryRow.waitFor({ timeout: 20_000 })
   const rollbackHistoryText = await dialog.locator('table').last().innerText()
   if ((rollbackHistoryText.match(/Đã hoàn tác/g) ?? []).length < 2) throw new Error('Reloaded history did not render both rolled-back versions.')
+  await assertHistoryStatusBadge(rolledBackHistoryRow, 'Đã hoàn tác', 'warning')
   await rolledBackHistoryRow.scrollIntoViewIfNeeded()
   await page.screenshot({ path: path.join(root, '1280x900-reload-rolled-back-history.png'), fullPage: true })
   await closeImportDialog(dialog)

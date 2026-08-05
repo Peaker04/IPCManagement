@@ -29,6 +29,9 @@ Backend đọc cấu hình ASP.NET Core từ `backend/src/IPCManagement.Api/apps
 
 Tên `ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, `Cors__AllowedOrigins__0` và tương tự có thể dùng dạng environment variable theo quy tắc double-underscore của ASP.NET Core.
 
+Auth giữ BCrypt cost đã encode trong từng password hash; không hạ work factor để tối ưu latency. Session policy
+hiện là tối đa 10 refresh token active/user và một token mới thay token cũ của cùng `User-Agent`/device.
+
 ## Required và optional
 
 `DependencyInjection.AddBackendServices` sẽ fail nếu `DefaultConnection` không được cấu hình. `Program.cs` bind/validate `JwtSettings` khi startup; `SecretKey` phải đạt tối thiểu 32 ký tự và `ExpiryMinutes`/`RefreshExpiryDays` phải lớn hơn 0. Ngoài Development, `DeploymentConfigurationValidator` còn chặn password/secret mẫu, placeholder, CORS localhost và `AllowedHosts=*`.

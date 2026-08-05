@@ -60,7 +60,6 @@ public class AuthController : ControllerBase
             result.User.Username,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
-        SetRefreshTokenCookie(result.RefreshToken);
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Đăng nhập thành công."));
     }
 

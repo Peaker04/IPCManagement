@@ -1436,3 +1436,56 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Secret/stub scan và `git diff --check` pass. Workbook source byte-identical; runtime audit đã đóng; E2E template restore 61 bảng từ protected lane.
 - Contract, REQUIREMENTS, ROADMAP, STATE, MEMORY, HISTORY và evidence index đã đồng bộ; current memory không còn việc standardization đã chết. `OPEN-04` và `DEC-02/04/05` tiếp tục là scope ngoài milestone.
 - Workstream FE–BE–Database Standardization Closure hoàn tất; không gọi GitNexus, không push và không mở SAP Fiori Phase 27–30.
+
+## Hotfix schema runtime và đồng bộ migration local — 03/08/2026
+
+- Runtime phát sinh `Unknown column 'd.sourceChecksum'` tại catalog và supplemental-material request.
+  Root cause là code/model đã có provenance nhưng base cùng các database test còn dừng ở migration 41.
+- Theo quyết định của Kỳ, `ipcmanagement` được dùng làm base schema. Preflight trên base, lane1, lane8,
+  lane9 và E2E template xác nhận zero customer/week scope có nhiều `menuPrice`; forward SQL không có
+  `USE`, `CREATE/DROP DATABASE` hoặc `DROP TABLE`. Checkpoint từng database được tạo trước mutation.
+- Áp theo thứ tự `AddDishImportProvenance` → `AddAuditCorrelationId` → `AddCustomerWeekMenuTier` trên
+  base trước, sau đó đồng bộ tại chỗ lên bốn database test. Cả năm database đạt 44 migration, zero
+  pending, đủ ba provenance column, correlation column, canonical tier table và ba trigger.
+- Runtime base controlled trả readiness `Healthy`, login thành công, catalog HTTP 200/194 dòng và
+  supplemental-material request HTTP 200/1 dòng. Runtime owned đã teardown.
+- Readiness pending migration đổi từ `Degraded/200` sang `Unhealthy/503`; regression mới pass. Root gate
+  pass Application `49/49`, API `727 + 1 intentional skip`, UI completeness `87/87`; frontend full run
+  song song OOM sau 651 assertion nên được rerun toàn bộ tuần tự và pass `130 files / 750 tests`.
+  Lint, dependency graph `0 violation / 379 modules / 1.361 dependencies`, hai build, EF model và
+  migration checks đều xanh. Không dùng GitNexus và không push.
+
+## Hotfix auth cold-login và refresh-session lifecycle — 03/08/2026
+
+- Repro controlled tách cold/warm: login đầu `1.835s`, các lần warm `351–388ms`. Instrumentation boundary
+  xác nhận cold user query 313ms, cold token persistence 189ms và gần 1s MVC/JIT; warm path chủ yếu là
+  BCrypt cost 11 khoảng 323–330ms. Debug instrumentation/artifact tạm đã xóa sau đo.
+- Startup warm read-only compile user/role query, JWT và response serialization trước khi host nhận traffic;
+  không tạo session/token giả. Final controlled benchmark trên E2E template: cold 608ms, warm hội tụ
+  339ms → 260ms → 131ms; không hạ BCrypt work factor.
+- Xóa lần ghi refresh cookie trùng. Login mới thay token cũ cùng device, dọn expired/revoked/used và giữ tối đa
+  10 active refresh session/user. Cleanup + insert cùng `IEfTransactionRunner`; refresh rotation reload mutable
+  token trong từng retry, revoke old token và persist old/new atomically với commit verification.
+- Base trước cleanup có 542 token/541 active, một user giữ 517 session. Sau checkpoint và transaction cleanup:
+  34 active, zero closed, zero user vượt 10. E2E template được restore riêng `refreshtokens` từ lane1,
+  `109/109` row và zero mismatch để xóa tác động benchmark.
+- Auth focused pass `12/12`; full backend pass Application `49/49`, API `730 + 1 intentional skip`; strict
+  architecture gate pass. Không dùng GitNexus, không push.
+
+## Hotfix request ownership toàn frontend — 03/08/2026
+
+- Audit toàn bộ `use*Query`, lazy query, `prefetch`, `refetch`, manual `initiate`, refresh và direct `fetch`.
+  RTK Query đã gộp query cùng cache key; detector mới xác nhận pointer/focus/touch không phát GET lặp.
+- Sửa lỗi thật tại số suất thực tế: trước đây ba lần nhập `1 → 12 → 125` phát ba mutation; nay giữ draft
+  local và chỉ commit một request ở blur/Enter. Escape bỏ draft và failure vẫn rollback optimistic state.
+- `apiSlice` thêm exact-mutation single-flight theo token/method/URL/params/headers/body. Payload khác và
+  request tuần tự vẫn độc lập. Response 401 muộn của token cũ retry bằng token mới thay vì refresh lần hai.
+- Login, logout, confirmation action và CSV audit có synchronous in-flight owner; không chạy lặp network,
+  feedback, download hoặc local transition trước khi React kịp render trạng thái disabled.
+- Regression đỏ→xanh khóa query coalescing, mutation single-flight/non-overcoalescing, late-401, prefetch,
+  login/logout và input commit. Full frontend pass `134 files / 758 tests`; lint, production build,
+  dependency graph `0 violation / 383 modules / 1.370 dependencies`, Application `49/49`, API
+  `730 + 1 intentional skip` và Release build 0 warning/error.
+- Google Chrome headed read-only stub gate pass đủ năm viewport: 50 request, 50 unique key, zero duplicate
+  group, console error và page error; sáu artifact authoritative nằm trong evidence index. Không mutate
+  database, không dùng GitNexus, không commit/push.

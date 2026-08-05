@@ -162,6 +162,11 @@ Database phải là lớp phán quyết cuối cho integrity:
 - transaction nhiều bước phải chạy qua `EfTransactionRunner` và có verify sau commit khi cần retry/uncertain commit;
 - audit phải lưu được actor, thời điểm, object nguồn và kết quả chuyển trạng thái.
 
+Deployment local ngày 03/08/2026 đã áp ba migration standardization cuối theo thứ tự lên base
+`ipcmanagement`, sau đó đồng bộ tại chỗ lên `ipc_lane1`, `ipc_lane8`, `ipc_lane9` và
+`ipc_e2e_template`. Cả năm database có 44 migration, zero pending; readiness fail-closed bằng
+HTTP 503 nếu schema lại tụt sau source để không cho lỗi thiếu cột lan thành endpoint 500.
+
 ## 6. Phân loại lỗi để xử lý đúng nơi
 
 | Triệu chứng | Kiểm tra đầu tiên | Không được làm |
@@ -177,6 +182,11 @@ Database phải là lớp phán quyết cuối cho integrity:
 ## 7. Việc còn mở trước khi tuyên bố “chuẩn hoàn toàn”
 
 Không còn mục `OPEN` nào trong scope standardization; Phase 7 closeout đã audit pass 26/26 requirement và 7/7 phase. Không được mở lại hoặc đóng một regression mới bằng assertion UI đơn lẻ; evidence phải đúng lớp và có regression tại lớp liên quan.
+
+Follow-up ngày 03/08/2026 đã đóng request ownership toàn frontend: GET intent dùng cùng RTK cache key,
+exact mutation concurrent có single-flight ở base query, late-401 không refresh lặp, còn input số suất
+chỉ commit khi kết thúc edit. Regression unit/static và Chrome headed năm viewport đều pass; scope browser
+dùng read-only stub nên không được mô tả là backend/database mutation E2E.
 
 Đã đóng ngày 03/08/2026: `OPEN-02` bằng domain/API regressions cho BOM workbook hỏng; `OPEN-07` bằng preview ticket khóa checksum/phạm vi và provenance nullable cho dish tạo bởi import; `OPEN-08` bằng batch transaction atomic với forced-failure, retry và replay regressions; `OPEN-05` bằng audit old/new + actor + request correlation cho contract và menu-week range; `OPEN-06` bằng canonical customer/week tier, composite FK, unique scope, ba database trigger và shared service invariant; `OPEN-09` bằng workbook case matrix deterministic, source hash guard và headed E2E đủ năm viewport nối FE/API/DB/reload/rollback. Verification nằm trong Phases 2–6 của workstream standardization.
 

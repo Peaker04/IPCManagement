@@ -44,7 +44,8 @@ Browser
 | Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |
 | Reports use-case services | `backend/src/IPCManagement.Api/Features/Reports/Services/` | Tách price, demand, purchasing, inventory, audit/data-quality, KPI và aggregate cache theo use case. |
 | `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. |
-| `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session và namespace RTK Query cache duy nhất. |
+| `AuthService` / `RefreshTokenRepository` | `backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs`, `backend/src/IPCManagement.Api/Data/Repositories/RefreshTokenRepository.cs` | Login/rotation chạy trong `IEfTransactionRunner`; thay session cũ cùng device, dọn token đóng và giữ tối đa 10 refresh session active/user. |
+| `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session, exact-mutation single-flight và namespace RTK Query cache duy nhất. |
 | `workflowApi` compatibility barrel | `frontend/src/api/workflowApi.ts` | Đăng ký/re-export đúng 75 workflow endpoint và 75 public hook từ `workflowDocumentsApi` cùng bảy feature owner; không tạo slice, endpoint hoặc tag registry thứ hai. |
 | `MainLayout` | `frontend/src/app/layout/MainLayout.tsx` | App-owned shell cho permission navigation, mobile nav và tuần tự idle preload route module. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
@@ -52,6 +53,16 @@ Browser
 Pomelo bật `EnableRetryOnFailure`; production source chỉ còn một `BeginTransactionAsync(` nằm trong
 `EfTransactionRunner`. `IUnitOfWork` chỉ còn trách nhiệm `SaveChangesAsync`, không còn mở transaction.
 Convention test khóa cả hai điều kiện này để manual transaction mới không thể lách execution strategy.
+Auth cold path được warm read-only trước khi host nhận traffic; không tạo user/session/token giả và readiness
+vẫn là nguồn phán quyết nếu database không sẵn sàng.
+
+Request ownership của frontend nằm ở hai lớp. RTK Query gộp subscriber có cùng endpoint/cache key và
+`routeDataPreloaders` dùng `ifOlderThan` để pointer/focus/touch không phát lại cùng GET. Với mutation,
+`apiSlice` fingerprint method + URL + params + headers + body + access-token generation và chia sẻ đúng
+một promise khi request giống hệt còn in-flight; payload khác hoặc lần gọi tuần tự sau khi request kết thúc
+vẫn độc lập. Refresh 401 so token đã dùng cho request với token hiện hành: response muộn của token cũ chỉ
+retry bằng token mới, không khởi tạo vòng refresh thứ hai. Login, logout và action nhiều bước còn có
+synchronous in-flight guard tại interaction owner để tránh xử lý response/UI side effect hai lần.
 
 Sau khi shell đăng nhập ổn định, `MainLayout` preload tuần tự module của các route sidebar mà người dùng có quyền trong các idle slot. Scheduler chỉ warm code, không bulk-fetch dữ liệu; data vẫn được intent-prefetch khi hover, focus hoặc touch. Bulk preload bị bỏ qua khi trình duyệt bật Data Saver hoặc báo mạng 2G. `routeLoaders` giữ component đã resolve để lần render đầu sau preload không quay lại Suspense fallback; nếu người dùng click trước khi preload xong thì fallback có kích thước ổn định vẫn là đường lui.
 

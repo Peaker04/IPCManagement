@@ -90,6 +90,14 @@ demand/PR, nhận PO, gửi production plan, xuất kho, xác nhận bếp và k
 không import lại menu giữa tuần nên không làm stale/cancel chứng từ của ngày đã hoàn tất. Mỗi ngày có
 summary riêng dưới thư mục `days/`; lượt tuần chỉ PASS khi số summary bằng số ngày có schedule.
 
+Khi cần đối chiếu terminal state của lifecycle đầy đủ trên sandbox `ipc_e2e_template`, dùng database tool chỉ đọc sau browser gate:
+
+```powershell
+dotnet run --project backend/tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj --no-build -- lifecycle-evidence --settings backend/src/IPCManagement.Api/appsettings.json --database ipc_e2e_template
+```
+
+Lệnh chỉ chấp nhận database evidence được allow-list và kiểm đếm phiếu xuất đã bếp ký, line nguồn, phiếu trả đã kho nhận và yêu cầu cấp bổ sung đã cấp đủ; không reset, seed hay mutate lane.
+
 Có thể chạy runner tuần trực tiếp từ root:
 
 ```bash
@@ -190,6 +198,30 @@ update snapshot cũ để làm Bước 10 xanh.
 Nếu muốn điều khiển Chrome đã mở sẵn, Chrome đó phải expose remote-debugging và test phải kết nối bằng CDP. Persistent helper hiện tại mở context riêng; không được mô tả nó là attach vào tab Chrome bình thường của người dùng.
 
 `tests/navigation-performance.spec.ts` còn kiểm tra hai hợp đồng lazy-load của sidebar: toàn bộ route module được warm sau idle preload và scheduler phải tắt khi `navigator.connection.saveData` bật. Khi route đã warm, lần click đầu không được mount route-level Suspense fallback. Kết quả Chromium real-stack mới nhất cho tất cả trang sidebar nằm trong `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`.
+
+### Gate duplicate request
+
+Các regression tại `src/api/apiSlice.requestDeduplication.test.ts`,
+`src/routes/routeDataPreloaders.test.ts`, `src/app/session/logoutSession.test.ts`,
+`src/features/auth/pages/LoginPage.feedback.test.tsx` và
+`src/features/coordination/components/order-table.request-deduplication.test.tsx` khóa:
+
+- subscriber cùng endpoint/cache key chỉ phát một GET;
+- exact mutation concurrent chỉ phát một network request, trong khi payload khác và lần gọi tuần tự vẫn độc lập;
+- 401 đến muộn từ access token cũ không tạo refresh lần hai;
+- login/logout/action và ô số suất thực tế không double-submit hoặc ghi theo từng keystroke;
+- pointer/focus/touch prefetch dùng chung cache owner.
+
+Browser gate current-source chạy Google Chrome headed đủ năm viewport:
+
+```powershell
+Set-Location frontend
+npx playwright test tests/request-deduplication.spec.ts --headed
+```
+
+Spec dùng read-only API stub, lưu method + normalized URL, screenshot cuối và console/page error trong
+`.artifacts/shipyard-live/request-deduplication-20260803/`. Nó fail nếu một request key lặp trong cùng
+bootstrap + intent-prefetch + navigation window; đây không thay thế mutation E2E nối backend/database.
 
 ### Ma trận viewport hiện hành
 

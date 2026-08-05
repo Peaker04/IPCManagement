@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setCredentials } from '../authSlice';
@@ -59,6 +59,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [missingFields, setMissingFields] = useState({ username: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInFlight = useRef(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -66,6 +67,8 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submissionInFlight.current) return;
+
     const usernameMissing = !username.trim();
     const passwordMissing = !password.trim();
     if (usernameMissing || passwordMissing) {
@@ -76,6 +79,7 @@ const LoginPage = () => {
 
     setMissingFields({ username: false, password: false });
     setError('');
+    submissionInFlight.current = true;
     setIsSubmitting(true);
 
     try {
@@ -130,6 +134,7 @@ const LoginPage = () => {
         setError('Tài khoản hoặc mật khẩu không đúng.');
       }
     } finally {
+      submissionInFlight.current = false;
       setIsSubmitting(false);
     }
   };

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { WeeklyMenuCommandBar } from './WeeklyMenuCommandBar'
 
@@ -23,4 +24,29 @@ describe('WeeklyMenuCommandBar select labels', () => {
     expect(trigger).toHaveTextContent('ANV - Nhà máy An Việt')
     expect(trigger).not.toHaveTextContent('customer-1')
   })
+})
+
+it('offers a guarded publish action for a draft weekly menu', async () => {
+  const user = userEvent.setup()
+  const onPublish = vi.fn()
+
+  render(
+    <WeeklyMenuCommandBar
+      customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'Nhà máy An Việt' }]}
+      selectedCustomerId="customer-1"
+      weekStartDate="2026-08-03"
+      isCustomerLoading={false}
+      isImporting={false}
+      canPublish
+      onPublish={onPublish}
+      onEdit={vi.fn()}
+      onImport={vi.fn()}
+      onExport={vi.fn()}
+      onCustomerChange={vi.fn()}
+      onWeekChange={vi.fn()}
+    />,
+  )
+
+  await user.click(screen.getByRole('button', { name: 'Xuất bản tuần' }))
+  expect(onPublish).toHaveBeenCalledTimes(1)
 })

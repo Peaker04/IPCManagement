@@ -31,6 +31,7 @@ public class AuthControllerTests
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<LoginResponseDto>>().Subject;
         response.Data!.AccessToken.Should().Be("access-token");
         response.Data.RefreshToken.Should().BeEmpty();
+        controller.Response.Headers.SetCookie.Count.Should().Be(1);
         controller.Response.Headers.SetCookie.ToString().Should().Contain("refreshToken=raw-refresh-token");
     }
 

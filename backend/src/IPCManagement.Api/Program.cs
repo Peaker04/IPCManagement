@@ -227,11 +227,11 @@ builder.Services.AddHealthChecks()
         failureStatus: HealthStatus.Unhealthy,
         tags: new[] { "ready" },
         timeout: TimeSpan.FromSeconds(5))
-    // Degraded chứ không Unhealthy: thiếu migration không làm API mất khả năng phục vụ,
-    // đừng để loadbalancer rút API khỏi vòng vì nó. Xem MigrationHealthCheck.
+    // Schema cũ có thể thiếu bảng/cột mà model hiện hành luôn query. Chặn readiness để
+    // traffic không lọt vào runtime không tương thích và biến thành chuỗi endpoint 500.
     .AddCheck<MigrationHealthCheck>(
         "migrations",
-        failureStatus: HealthStatus.Degraded,
+        failureStatus: HealthStatus.Unhealthy,
         tags: new[] { "ready" },
         timeout: TimeSpan.FromSeconds(5));
 
@@ -423,6 +423,8 @@ app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 
+await WarmAuthPathAsync(app.Services);
+
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     Log.Information("IPC Management API started in {Environment}", app.Environment.EnvironmentName);
@@ -437,6 +439,52 @@ app.Lifetime.ApplicationStarted.Register(() =>
         }
     }
 });
+
+static async Task WarmAuthPathAsync(IServiceProvider services)
+{
+    var startedAt = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        await using var scope = services.CreateAsyncScope();
+        var userRepository = scope.ServiceProvider.GetRequiredService<
+            IPCManagement.Api.Data.Repositories.IUserRepository>();
+        var tokenService = scope.ServiceProvider.GetRequiredService<
+            IPCManagement.Api.Features.Auth.Services.ITokenService>();
+
+        // Compile the login query/provider path without reading a real account.
+        await userRepository.FindByUsernameAsync($"__auth_warmup_{Guid.NewGuid():N}");
+
+        // JIT token and response serialization paths without creating a session or DB row.
+        var warmupUser = new IPCManagement.Api.Features.Auth.Contracts.UserInfoDto
+        {
+            UserId = Guid.Empty.ToString(),
+            Username = "warmup",
+            FullName = "warmup",
+            RoleCode = "WARMUP",
+            RoleName = "Warmup",
+            IsActive = false
+        };
+        var warmupResponse = new IPCManagement.Api.Features.Auth.Contracts.LoginResponseDto
+        {
+            AccessToken = tokenService.GenerateAccessToken(
+                warmupUser.UserId,
+                warmupUser.Username,
+                warmupUser.FullName,
+                warmupUser.RoleName),
+            User = warmupUser
+        };
+        _ = System.Text.Json.JsonSerializer.Serialize(
+            ApiResponse<IPCManagement.Api.Features.Auth.Contracts.LoginResponseDto>
+                .SuccessResult(warmupResponse));
+
+        Log.Information("Auth cold path warmed in {ElapsedMs} ms", startedAt.Elapsed.TotalMilliseconds);
+    }
+    catch (Exception ex)
+    {
+        // Readiness remains authoritative. A transient DB outage must not hide the real health status.
+        Log.Warning(ex, "Auth cold-path warmup failed; readiness will report database state");
+    }
+}
 
 try
 {

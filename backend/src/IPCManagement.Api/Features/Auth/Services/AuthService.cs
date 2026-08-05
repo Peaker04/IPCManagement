@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
@@ -12,20 +13,25 @@ namespace IPCManagement.Api.Features.Auth.Services;
 
 public class AuthService : IAuthService
 {
+    private const int MaxActiveRefreshTokensPerUser = 10;
+
     private readonly IUserRepository   _userRepository;
     private readonly ITokenService     _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IEfTransactionRunner _transactionRunner;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository       userRepository,
         ITokenService         tokenService,
         IRefreshTokenRepository refreshTokenRepository,
+        IEfTransactionRunner transactionRunner,
         ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _tokenService   = tokenService;
         _refreshTokenRepository = refreshTokenRepository;
+        _transactionRunner = transactionRunner;
         _logger = logger;
     }
 
@@ -50,7 +56,25 @@ public class AuthService : IAuthService
         var roleName = user.Role?.RoleName ?? "Unknown";
         var roleCode = user.Role?.RoleCode ?? string.Empty;
 
-        var response = await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleCode, roleName, deviceInfo);
+        var issued = BuildLoginResponse(
+            user.UserId,
+            userId,
+            user.Username,
+            user.FullName,
+            roleCode,
+            roleName,
+            deviceInfo);
+        await _transactionRunner.ExecuteAsync(
+            async _ =>
+            {
+                await _refreshTokenRepository.PrepareForLoginAsync(
+                    user.UserId,
+                    deviceInfo,
+                    MaxActiveRefreshTokensPerUser - 1);
+                _refreshTokenRepository.Add(issued.RefreshToken);
+                await _refreshTokenRepository.SaveChangesAsync();
+            },
+            async _ => await _refreshTokenRepository.FindByHashAsync(issued.RefreshToken.TokenHash) is not null);
 
         _logger.LogInformation(
             "Issued tokens for user {UserId} ({Username}) from device {DeviceInfo}",
@@ -58,7 +82,7 @@ public class AuthService : IAuthService
             user.Username,
             deviceInfo);
 
-        return response;
+        return issued.Response;
     }
 
     // ── Refresh Token ─────────────────────────────────────────────────────────
@@ -109,27 +133,34 @@ public class AuthService : IAuthService
                 return null;
             }
 
-            // 3. Đánh dấu token cũ đã dùng (Token Rotation)
-            stored.IsUsed   = true;
-            stored.RevokedAt = DateTime.UtcNow;
-
             var user     = stored.User;
             var roleName = user.Role?.RoleName ?? "Unknown";
             var roleCode = user.Role?.RoleCode ?? string.Empty;
-            var newResponse = await BuildLoginResponseAsync(
+            var issued = BuildLoginResponse(
                 user.UserId, userIdStr, user.Username, user.FullName, roleCode, roleName);
 
-            // Ghi hash của token mới vào trường replacedByToken để audit
-            stored.ReplacedByToken = _tokenService.HashRefreshToken(newResponse.RefreshToken);
-
-            await _refreshTokenRepository.SaveChangesAsync();
+            await _transactionRunner.ExecuteAsync(
+                async _ =>
+                {
+                    // Reload inside the retryable transaction: EfTransactionRunner clears tracked
+                    // state between attempts, so mutable entities cannot be captured from outside.
+                    var tokenToRotate = await _refreshTokenRepository.FindValidByHashAsync(tokenHash, userId)
+                        ?? throw new InvalidOperationException("Refresh token is no longer available for rotation.");
+                    tokenToRotate.IsUsed = true;
+                    tokenToRotate.IsRevoked = true;
+                    tokenToRotate.RevokedAt = DateTime.UtcNow;
+                    tokenToRotate.ReplacedByToken = issued.RefreshToken.TokenHash;
+                    _refreshTokenRepository.Add(issued.RefreshToken);
+                    await _refreshTokenRepository.SaveChangesAsync();
+                },
+                async _ => await _refreshTokenRepository.FindByHashAsync(issued.RefreshToken.TokenHash) is not null);
 
             _logger.LogInformation(
                 "Refresh succeeded for user {UserId} with rotated refresh token hash prefix {TokenHashPrefix}",
                 userIdStr,
                 tokenHash[..Math.Min(tokenHash.Length, 8)]);
 
-            return newResponse;
+            return issued.Response;
         }
         catch (DbUpdateException ex)
         {
@@ -250,7 +281,7 @@ public class AuthService : IAuthService
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
-    private async Task<LoginResponseDto> BuildLoginResponseAsync(
+    private IssuedLogin BuildLoginResponse(
         byte[] userIdBytes, string userId,
         string username,    string fullName,
         string roleCode,    string roleName,
@@ -259,11 +290,7 @@ public class AuthService : IAuthService
         var rawRefreshToken = _tokenService.GenerateRefreshToken();
         var tokenHash       = _tokenService.HashRefreshToken(rawRefreshToken);
 
-        // Xoá token cũ đã hết hạn của cùng device (giữ DB gọn)
-        await _refreshTokenRepository.CleanupExpiredForUserAsync(userIdBytes);
-
-        // Tạo refresh token mới
-        _refreshTokenRepository.Add(new RefreshToken
+        var refreshToken = new RefreshToken
         {
             TokenId    = GuidHelper.NewId(),
             UserId     = userIdBytes,
@@ -273,13 +300,11 @@ public class AuthService : IAuthService
             ExpiresAt  = DateTime.UtcNow.AddDays(_tokenService.GetRefreshTokenExpiryDays()),
             IsUsed     = false,
             IsRevoked  = false
-        });
-
-        await _refreshTokenRepository.SaveChangesAsync();
+        };
 
         var permissions = BuildPermissionsForRole(roleCode, roleName);
 
-        return new LoginResponseDto
+        var response = new LoginResponseDto
         {
             AccessToken  = _tokenService.GenerateAccessToken(userId, username, fullName, roleName),
             RefreshToken = rawRefreshToken,
@@ -296,7 +321,11 @@ public class AuthService : IAuthService
                 Permissions = permissions
             }
         };
+
+        return new IssuedLogin(response, refreshToken);
     }
+
+    private sealed record IssuedLogin(LoginResponseDto Response, RefreshToken RefreshToken);
 
     private static bool IsAdminRole(string? roleCode, string? roleName)
         => MatchesAny(roleCode, roleName, ["Admin", "ADMIN", "Quản trị"]);

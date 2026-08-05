@@ -1,6 +1,7 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,65 +19,16 @@ public class StockMovementReportService : IStockMovementReportService
 
     public async Task<IReadOnlyList<CurrentStockSummaryDto>> GetCurrentStockAsync(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
-        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
-
-        var stocks = _context.Currentstocks
-            .AsNoTracking()
-            .Include(item => item.Warehouse)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .AsQueryable();
-
-        if (warehouseId is not null)
-        {
-            stocks = stocks.Where(item => item.WarehouseId == warehouseId);
-        }
-
-        if (ingredientId is not null)
-        {
-            stocks = stocks.Where(item => item.IngredientId == ingredientId);
-        }
-
-        return await stocks
+        return await ProjectCurrentStocks(BuildCurrentStockQuery(query)
             .OrderBy(item => item.Warehouse.WarehouseName)
             .ThenBy(item => item.Ingredient.IngredientName)
-            .Take(NormalizeAggregateLimit(query.Limit))
-            .Select(item => new CurrentStockSummaryDto
-            {
-                WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
-                WarehouseName = item.Warehouse.WarehouseName,
-                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
-                IngredientName = item.Ingredient.IngredientName,
-                UnitId = GuidHelper.ToGuidString(item.UnitId),
-                UnitName = item.Unit.UnitName,
-                CurrentQty = item.CurrentQty,
-                LastUpdated = item.LastUpdated
-            })
+            .Take(NormalizeAggregateLimit(query.Limit)))
             .ToListAsync();
     }
 
     public async Task<PagedResponseDto<CurrentStockSummaryDto>> GetCurrentStockPageAsync(CurrentStockPageQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
-        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
-
-        var stocks = _context.Currentstocks
-            .AsNoTracking()
-            .Include(item => item.Warehouse)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .AsQueryable();
-
-        if (warehouseId is not null)
-        {
-            stocks = stocks.Where(item => item.WarehouseId == warehouseId);
-        }
-
-        if (ingredientId is not null)
-        {
-            stocks = stocks.Where(item => item.IngredientId == ingredientId);
-        }
+        var stocks = BuildCurrentStockQuery(query);
 
         if (!string.IsNullOrWhiteSpace(query.SearchKeyword))
         {
@@ -90,7 +42,44 @@ public class StockMovementReportService : IStockMovementReportService
                 item.Unit.UnitCode.Contains(keyword));
         }
 
-        var projectedStocks = stocks.Select(item => new CurrentStockSummaryDto
+        var projectedStocks = ProjectCurrentStocks(stocks);
+
+        var totalCount = await projectedStocks.CountAsync();
+        var pageNumber = query.PageNumber;
+        var pageSize = query.PageSize;
+        var orderedStocks = stocks
+            .OrderBy(item => item.Warehouse.WarehouseName)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .ThenBy(item => item.Unit.UnitName);
+        var items = await ProjectCurrentStocks(orderedStocks
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize))
+            .ToListAsync();
+
+        return PagedResponseDto<CurrentStockSummaryDto>.Create(items, totalCount, pageNumber, pageSize);
+    }
+
+    private IQueryable<CurrentStock> BuildCurrentStockQuery(WorkflowReportQueryDto query)
+    {
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var stocks = _context.Currentstocks.AsNoTracking().AsQueryable();
+
+        if (warehouseId is not null)
+        {
+            stocks = stocks.Where(item => item.WarehouseId == warehouseId);
+        }
+
+        if (ingredientId is not null)
+        {
+            stocks = stocks.Where(item => item.IngredientId == ingredientId);
+        }
+
+        return stocks;
+    }
+
+    private static IQueryable<CurrentStockSummaryDto> ProjectCurrentStocks(IQueryable<CurrentStock> stocks)
+        => stocks.Select(item => new CurrentStockSummaryDto
         {
             WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
             WarehouseName = item.Warehouse.WarehouseName,
@@ -101,32 +90,6 @@ public class StockMovementReportService : IStockMovementReportService
             CurrentQty = item.CurrentQty,
             LastUpdated = item.LastUpdated
         });
-
-        var totalCount = await projectedStocks.CountAsync();
-        var pageNumber = query.PageNumber;
-        var pageSize = query.PageSize;
-        var orderedStocks = stocks
-            .OrderBy(item => item.Warehouse.WarehouseName)
-            .ThenBy(item => item.Ingredient.IngredientName)
-            .ThenBy(item => item.Unit.UnitName);
-        var items = await orderedStocks
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(item => new CurrentStockSummaryDto
-            {
-                WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
-                WarehouseName = item.Warehouse.WarehouseName,
-                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
-                IngredientName = item.Ingredient.IngredientName,
-                UnitId = GuidHelper.ToGuidString(item.UnitId),
-                UnitName = item.Unit.UnitName,
-                CurrentQty = item.CurrentQty,
-                LastUpdated = item.LastUpdated
-            })
-            .ToListAsync();
-
-        return PagedResponseDto<CurrentStockSummaryDto>.Create(items, totalCount, pageNumber, pageSize);
-    }
 
     public Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query)
         => GetStockMovementsCoreAsync(query, searchKeyword: null);
@@ -226,7 +189,7 @@ public class StockMovementReportService : IStockMovementReportService
     {
         var limit = NormalizePageLimit(query.Limit);
         var rows = await GetStockMovementsCoreAsync(CloneQuery(query, limit + 1), query.SearchKeyword);
-        return BuildCursorPage(rows, limit, row => row.MovementDate, row => row.MovementId, query);
+        return ReportCursorPageBuilder.Build(rows, limit, row => row.MovementDate, row => row.MovementId, query);
     }
 
     private static DateTime? ParseDateTimeStart(string? value)
@@ -300,35 +263,4 @@ public class StockMovementReportService : IStockMovementReportService
             PriceTier = query.PriceTier
         };
 
-    private static CursorPageDto<T> BuildCursorPage<T>(
-        IReadOnlyList<T> rows,
-        int limit,
-        Func<T, DateTime> getCursorDate,
-        Func<T, string> getCursorId,
-        WorkflowReportQueryDto query)
-    {
-        var items = rows.Take(limit).ToList();
-        var hasNext = rows.Count > limit;
-        var cursorItem = hasNext ? items.LastOrDefault() : default;
-        var nextCursorOffset = 0;
-        if (cursorItem is not null)
-        {
-            var boundaryDate = getCursorDate(cursorItem);
-            nextCursorOffset = items.Count(item => getCursorDate(item) == boundaryDate);
-            if (ParseCursorDateTime(query.CursorDate) == boundaryDate)
-            {
-                nextCursorOffset += query.CursorOffset ?? 0;
-            }
-        }
-
-        return new CursorPageDto<T>
-        {
-            Items = items,
-            Limit = limit,
-            HasNext = hasNext,
-            NextCursorDate = cursorItem is null ? null : getCursorDate(cursorItem).ToString("O"),
-            NextCursorId = cursorItem is null ? null : getCursorId(cursorItem),
-            NextCursorOffset = nextCursorOffset
-        };
-    }
 }

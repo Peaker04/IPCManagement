@@ -73,6 +73,59 @@ if (args.Length == 7 &&
 }
 
 if (args.Length == 5 &&
+    args[0] == "lifecycle-evidence" &&
+    args[1] == "--settings" &&
+    args[3] == "--database")
+{
+    var evidenceSettingsPath = Path.GetFullPath(args[2]);
+    var evidenceDatabase = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateEvidenceTarget(evidenceDatabase);
+        await using var connection = await OpenServerConnectionAsync(evidenceSettingsPath);
+        await using var command = new MySqlCommand(
+            $"""
+            SELECT
+                (SELECT COUNT(*)
+                 FROM {Quote(evidenceDatabase)}.{Quote("inventoryissues")}
+                 WHERE issueCode = 'ISS-20260804-200023-2BB4' AND receivedAt IS NOT NULL) AS receivedIssueCount,
+                (SELECT COUNT(*)
+                 FROM {Quote(evidenceDatabase)}.{Quote("inventoryissuelines")} AS line
+                 INNER JOIN {Quote(evidenceDatabase)}.{Quote("inventoryissues")} AS issue ON issue.issueId = line.issueId
+                 WHERE issue.issueCode = 'ISS-20260804-200023-2BB4') AS issueLineCount,
+                (SELECT COUNT(*)
+                 FROM {Quote(evidenceDatabase)}.{Quote("inventoryreturns")}
+                 WHERE reason = 'E2E controlled clean surplus return.' AND receivedAt IS NOT NULL) AS receivedReturnCount,
+                (SELECT COUNT(*)
+                 FROM {Quote(evidenceDatabase)}.{Quote("supplementalmaterialrequests")}
+                 WHERE reason = 'E2E controlled supplemental request after signed receipt.'
+                   AND status = 'FULFILLED') AS fulfilledSupplementalCount;
+            """,
+            connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            throw new InvalidOperationException("Lifecycle evidence query returned no row.");
+        }
+
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Database = evidenceDatabase,
+            ReceivedIssueCount = reader.GetInt32("receivedIssueCount"),
+            IssueLineCount = reader.GetInt32("issueLineCount"),
+            ReceivedReturnCount = reader.GetInt32("receivedReturnCount"),
+            FulfilledSupplementalCount = reader.GetInt32("fulfilledSupplementalCount")
+        }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Lifecycle evidence failed: {exception.Message}");
+        return 1;
+    }
+}
+
+if (args.Length == 5 &&
     args[0] == "sanitize-e2e" &&
     args[1] == "--settings" &&
     args[3] == "--database")

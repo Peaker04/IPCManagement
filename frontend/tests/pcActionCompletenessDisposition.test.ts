@@ -136,6 +136,14 @@ const unresolvedProjectedRows = PC_PROJECTED_REGISTRY_ROWS.filter((row) => (
 
 const sorted = (items: readonly string[]) => [...items].sort((left, right) => left.localeCompare(right))
 const hasText = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
+const historicalControlSource = new Map<string, string>([
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:389-400', 'frontend/src/features/coordination/components/action-toolbar.tsx:378-388'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:402-413', 'frontend/src/features/coordination/components/action-toolbar.tsx:391-401'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:415-426', 'frontend/src/features/coordination/components/action-toolbar.tsx:404-414'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:428-439', 'frontend/src/features/coordination/components/action-toolbar.tsx:417-427'],
+  ['frontend/src/features/coordination/components/order-table.tsx:344', 'frontend/src/features/coordination/components/order-table.tsx:327'],
+  ['frontend/src/features/coordination/components/order-table.tsx:372', 'frontend/src/features/coordination/components/order-table.tsx:355'],
+])
 
 const assertSameStrings = (actual: readonly string[], expected: readonly string[], label: string) => {
   if (JSON.stringify(sorted(actual)) !== JSON.stringify(sorted(expected))) {
@@ -248,10 +256,14 @@ const assertDispositionLedger = (ledger: DispositionLedger, aggregate: Aggregate
     }
 
     if (projected.expectedControl) {
+      // The tracked aggregate remains immutable evidence. Current-source line moves
+      // are reconciled explicitly instead of rewriting the historical artifact.
+      const aggregateControlSource = historicalControlSource.get(projected.expectedControl.source)
+        ?? projected.expectedControl.source
       if (
         group.controlEvidence.status !== 'OBSERVED'
         || group.controlEvidence.selector === 'none'
-        || group.controlEvidence.source !== projected.expectedControl.source
+        || group.controlEvidence.source !== aggregateControlSource
       ) {
         throw new Error(`${group.id} has incomplete observed-control evidence`)
       }

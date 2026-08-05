@@ -44,7 +44,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
         caption={presentation.usesDemand
           ? 'Mỗi dòng thuộc một ngày, khách hàng, đơn giá, nguyên liệu và đơn vị trong tuần đang chọn'
           : 'Mỗi dòng là tổng BOM dự kiến của cả tuần theo nguyên liệu và đơn vị; chưa phải kết quả kiểm tồn theo ngày'}
-        size="weekly"
+        size={presentation.totalItems > 0 ? 'weekly' : 'default'}
         className="ipc-cost-table-shell"
         ariaLabel={presentation.usesDemand ? 'Bảng đề xuất mua theo từng ngày trong tuần' : 'Bảng BOM dự kiến tổng cả tuần'}
       >

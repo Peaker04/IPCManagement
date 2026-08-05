@@ -50,6 +50,22 @@ describe('PurchaseSummarySection query feedback', () => {
     expect(screen.queryByText('Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.')).not.toBeInTheDocument()
   })
 
+  it('does not reserve the weekly table height when the aggregate is empty', () => {
+    const workflow = {
+      actions: { retry: vi.fn(), setPage: vi.fn(), setSearch: vi.fn() },
+      presentation: {
+        customerLabel: 'Khách hàng ANV', weekLabel: '27/07/2026 - 02/08/2026', usesDemand: false,
+        totalItems: 0, materialCount: 0, shortageCount: 0, totalCost: 0, pageIndex: 0, demandRows: [], materialRows: [],
+      },
+      state: { search: '', pageIndex: 0, feedback: null },
+      queryView: { phase: 'ready', data: {}, isRefreshing: false, truncation: null },
+    } as unknown as PurchaseSummaryWorkflow
+
+    render(<PurchaseSummarySection workflow={workflow} />)
+
+    expect(screen.getByRole('region', { name: 'Bảng BOM dự kiến tổng cả tuần' })).not.toHaveClass('h-[560px]')
+  })
+
   it('keeps current rows visible with passive feedback while refreshing', () => {
     const workflow = {
       actions: { retry: vi.fn(), setPage: vi.fn(), setSearch: vi.fn() },

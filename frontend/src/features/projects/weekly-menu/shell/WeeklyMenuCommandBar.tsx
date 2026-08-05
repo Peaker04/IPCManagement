@@ -1,4 +1,4 @@
-import { Edit, Upload } from 'lucide-react'
+import { Edit, Send, Upload } from 'lucide-react'
 import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -13,9 +13,12 @@ type CommandProps = {
   weekStartDate: string
   isCustomerLoading: boolean
   isImporting: boolean
+  canPublish?: boolean
+  isPublishing?: boolean
   onEdit: () => void
   onImport: () => void
   onExport: () => void
+  onPublish?: () => void
   onCustomerChange: (customerId: string) => void
   onWeekChange: (weekStartDate: string) => void
 }
@@ -26,9 +29,12 @@ export const WeeklyMenuCommandBar = ({
   weekStartDate,
   isCustomerLoading,
   isImporting,
+  canPublish,
+  isPublishing,
   onEdit,
   onImport,
   onExport,
+  onPublish,
   onCustomerChange,
   onWeekChange,
 }: CommandProps) => {
@@ -47,6 +53,12 @@ export const WeeklyMenuCommandBar = ({
       <Upload size={14} className="text-[var(--ipc-slate-500)]" />
       {isImporting ? 'Đang nhập...' : 'Nhập Excel'}
     </button>
+    {canPublish && onPublish && (
+      <button type="button" onClick={onPublish} disabled={isPublishing} className="ipc-button ipc-button-primary whitespace-nowrap">
+        <Send size={14} aria-hidden="true" />
+        {isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}
+      </button>
+    )}
     <button type="button" onClick={onExport} className="ipc-button ipc-button-success whitespace-nowrap">
       Xuất báo cáo gửi kho
     </button>

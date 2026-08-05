@@ -79,7 +79,7 @@ const lockEvidence: OperationEvidence = {
   frontendPermission: 'canLock + ActionGuard[quanly,dieuphoi]',
   source: [
     PROJECTION_SOURCE,
-    'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:141,378 canLock + ActionGuard[quanly,dieuphoi]',
+    'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:143,389 canLock + ActionGuard[quanly,dieuphoi]',
     CONTROLLER_POLICY_SOURCE,
     'backend-precondition:backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:89 CanTransition(status, Confirmed)',
   ],
@@ -107,7 +107,7 @@ const signoffEvidence: OperationEvidence = {
   frontendPermission: 'canSignoff + ActionGuard[quanly,dieuphoi]',
   source: [
     PROJECTION_SOURCE,
-    'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:142,391 canSignoff + ActionGuard[quanly,dieuphoi]',
+    'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:144,402 canSignoff + ActionGuard[quanly,dieuphoi]',
     CONTROLLER_POLICY_SOURCE,
     'backend-precondition:backend/src/IPCManagement.Api/Features/Coordination/Services/OrderSignoffService.cs:140-157 CanTransition(status, Completed)',
   ],
@@ -121,7 +121,7 @@ const unlockEvidence: OperationEvidence = {
   frontendPermission: 'canUnlock + ActionGuard[quanly]',
   source: [
     PROJECTION_SOURCE,
-    'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:143,404 canUnlock + ActionGuard[quanly]',
+    'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:145,415 canUnlock + ActionGuard[quanly]',
     'backend-permission:backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs:15,101 CoordinationAccess + CatalogAccess',
     'backend-precondition:backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:246-264 Confirmed|Adjusted -> Draft',
   ],
@@ -152,8 +152,8 @@ const exportEvidence = (frontendAvailable: boolean): OperationEvidence => ({
   source: [
     PROJECTION_SOURCE,
     frontendAvailable
-      ? 'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:144,417 canExport + ActionGuard[quanly,dieuphoi]'
-      : `frontend:${UNKNOWN} — action-toolbar.tsx:141-144 makes canExport false outside confirmed/adjusted actionable scopes`,
+      ? 'frontend:frontend/src/features/coordination/components/action-toolbar.tsx:146,428 canExport + ActionGuard[quanly,dieuphoi]'
+      : `frontend:${UNKNOWN} — action-toolbar.tsx:143-146 makes canExport false outside confirmed/adjusted actionable scopes`,
     CONTROLLER_POLICY_SOURCE,
     `backend-precondition:${UNKNOWN} — OrderPlanService.cs:322-341 exposes report scope normalization without an entity-status precondition`,
   ],

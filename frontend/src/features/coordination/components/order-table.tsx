@@ -80,6 +80,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
   const [pendingOrderIds, setPendingOrderIds] = useState<Record<string, boolean>>({})
   const [pendingForecastOrderIds, setPendingForecastOrderIds] = useState<Record<string, boolean>>({})
   const [forecastRollbackValues, setForecastRollbackValues] = useState<Record<string, number>>({})
+  const [actualQuantityDrafts, setActualQuantityDrafts] = useState<Record<string, number>>({})
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const [dishDialogLoadError, setDishDialogLoadError] = useState<string | null>(null)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
@@ -177,8 +178,19 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
     }
   }
 
-  const handleActualQuantityChange = async (order: OrderRow, value: number) => {
+  const handleActualQuantitySave = async (order: OrderRow, value: number) => {
+    if (!canRequestAdjustment || pendingOrderIds[order.id]) return
+
     const previousValue = order.actualQuantity
+    if (value === previousValue) {
+      setActualQuantityDrafts((current) => {
+        const next = { ...current }
+        delete next[order.id]
+        return next
+      })
+      return
+    }
+
     dispatch(setOrderActualQuantity({ id: order.id, value }))
     setPendingOrderIds((current) => ({ ...current, [order.id]: true }))
     setOptimisticError(null)
@@ -198,6 +210,11 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
       dispatch(setOrderActualQuantity({ id: order.id, value: previousValue }))
       setOptimisticError(error instanceof Error ? error.message : 'Không cập nhật được số suất, đã hoàn tác giá trị cũ.')
     } finally {
+      setActualQuantityDrafts((current) => {
+        const next = { ...current }
+        delete next[order.id]
+        return next
+      })
       setPendingOrderIds((current) => {
         const next = { ...current }
         delete next[order.id]
@@ -358,10 +375,25 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                   max="9999"
                   disabled={!canRequestAdjustment || pendingOrderIds[order.id]}
                   title={!canRequestAdjustment ? 'Ca đã hoàn tất; dùng luồng yêu cầu điều chỉnh nếu cần thay đổi.' : pendingOrderIds[order.id] ? 'Đang lưu số suất thực tế.' : undefined}
-                  value={order.actualQuantity}
-                  onChange={(e) =>
-                    handleActualQuantityChange(order, parseServingInput(e.target.value))
-                  }
+                  value={actualQuantityDrafts[order.id] ?? order.actualQuantity}
+                  onChange={(event) => setActualQuantityDrafts((current) => ({
+                    ...current,
+                    [order.id]: parseServingInput(event.target.value),
+                  }))}
+                  onBlur={(event) => void handleActualQuantitySave(order, parseServingInput(event.target.value))}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      event.currentTarget.blur()
+                    }
+                    if (event.key === 'Escape') {
+                      setActualQuantityDrafts((current) => {
+                        const next = { ...current }
+                        delete next[order.id]
+                        return next
+                      })
+                    }
+                  }}
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
                     canRequestAdjustment
                       ? 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100'

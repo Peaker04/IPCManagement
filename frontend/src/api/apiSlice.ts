@@ -22,6 +22,71 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+type BaseQueryResult = Awaited<ReturnType<typeof baseQuery>>;
+
+const inFlightMutations = new Map<string, Promise<BaseQueryResult>>();
+
+const stableRequestValue = (value: unknown): string => {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return JSON.stringify(value) ?? String(value);
+  }
+  if (value instanceof Headers) {
+    return stableRequestValue([...value.entries()].sort(([left], [right]) => left.localeCompare(right)));
+  }
+  if (value instanceof URLSearchParams) {
+    return stableRequestValue([...value.entries()].sort(([left], [right]) => left.localeCompare(right)));
+  }
+  if (value instanceof FormData) {
+    return stableRequestValue([...value.entries()].map(([key, entry]) => [
+      key,
+      typeof entry === 'string'
+        ? entry
+        : { name: entry.name, size: entry.size, type: entry.type, lastModified: entry.lastModified },
+    ]));
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(stableRequestValue).join(',') + ']';
+  }
+
+  return '{' + Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => JSON.stringify(key) + ':' + stableRequestValue(entry))
+    .join(',') + '}';
+};
+
+const executeRequest = (
+  args: string | FetchArgs,
+  api: Parameters<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>[1],
+  extraOptions: Parameters<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>[2],
+) => {
+  const method = (typeof args === 'string' ? 'GET' : args.method ?? 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+    return Promise.resolve(baseQuery(args, api, extraOptions));
+  }
+
+  const request = typeof args === 'string' ? { url: args } : args;
+  const token = (api.getState() as AuthAwareState).auth.token;
+  const key = stableRequestValue({
+    token,
+    method,
+    url: request.url,
+    params: request.params,
+    headers: request.headers,
+    body: request.body,
+  });
+  const existing = inFlightMutations.get(key);
+  if (existing) return existing;
+
+  const pending = Promise.resolve(baseQuery(args, api, extraOptions)) as Promise<BaseQueryResult>;
+  inFlightMutations.set(key, pending);
+  void pending.finally(() => {
+    if (inFlightMutations.get(key) === pending) {
+      inFlightMutations.delete(key);
+    }
+  }).catch(() => undefined);
+  return pending;
+};
+
 let refreshPromise: Promise<void> | null = null;
 let devFallbackLoginPromise: Promise<boolean> | null = null;
 
@@ -87,10 +152,11 @@ const baseQueryWithAuthHandling: BaseQueryFn<
     await refreshPromise;
   }
 
-  let result = await baseQuery(args, api, extraOptions);
+  const requestToken = (api.getState() as AuthAwareState).auth.token;
+  let result = await executeRequest(args, api, extraOptions);
 
-  const token = (api.getState() as AuthAwareState).auth.token;
-  const devFallbackUsername = getDevFallbackUsername(token);
+  const currentToken = (api.getState() as AuthAwareState).auth.token;
+  const devFallbackUsername = getDevFallbackUsername(requestToken);
 
   if (result.error?.status === 401 && devFallbackUsername && !isAuthEndpoint(args)) {
     if (!devFallbackLoginPromise) {
@@ -132,7 +198,16 @@ const baseQueryWithAuthHandling: BaseQueryFn<
   }
 
   if (result.error?.status === 401 && !isAuthEndpoint(args)) {
-    if (!token) {
+    if (requestToken && currentToken && requestToken !== currentToken) {
+      const retriedResult = await executeRequest(args, api, extraOptions);
+      if (retriedResult.error?.status === 401) {
+        api.dispatch(logOut());
+        notifySessionExpired();
+      }
+      return retriedResult;
+    }
+
+    if (!requestToken) {
       api.dispatch(logOut());
       notifySessionExpired();
       return result;
@@ -145,7 +220,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
             {
               url: '/auth/refresh',
               method: 'POST',
-              body: { accessToken: token },
+              body: { accessToken: requestToken },
             },
             api,
             extraOptions
@@ -169,7 +244,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
     }
 
     await refreshPromise;
-    result = await baseQuery(args, api, extraOptions);
+    result = await executeRequest(args, api, extraOptions);
     if (result.error?.status === 401) {
       api.dispatch(logOut());
       notifySessionExpired();

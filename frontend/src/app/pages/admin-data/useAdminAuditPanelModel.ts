@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { useGetAuditChangePageQuery, type ReportCursor } from '@/api/workflowApi';
 import { getTodayInputValue, type AdminView } from './adminDataPageTypes';
@@ -11,6 +11,8 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
   const [auditEntity, setAuditEntity] = useState('');
   const [auditField, setAuditField] = useState('');
   const [exportError, setExportError] = useState<string | null>(null);
+  const [isExportingAudit, setIsExportingAudit] = useState(false);
+  const exportInFlight = useRef(false);
   const authToken = useAppSelector((state) => state.auth.token);
   const deferredAuditActor = useDeferredValue(auditActor);
   const deferredAuditArea = useDeferredValue(auditArea);
@@ -38,6 +40,10 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
   const auditView = toAdminView(auditResult, 'nhật ký audit');
 
   const handleExportAuditCsv = async () => {
+    if (exportInFlight.current) return;
+
+    exportInFlight.current = true;
+    setIsExportingAudit(true);
     setExportError(null);
     const params = new URLSearchParams();
     if (auditActor) params.append('actor', auditActor.trim());
@@ -62,6 +68,9 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       setExportError(String(err));
+    } finally {
+      exportInFlight.current = false;
+      setIsExportingAudit(false);
     }
   };
 
@@ -76,6 +85,7 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
     displayLogs: auditView.phase === 'ready' ? auditView.data.items : [],
     exportError,
     handleExportAuditCsv,
+    isExportingAudit,
     setAuditActor,
     setAuditArea,
     setAuditCursors,

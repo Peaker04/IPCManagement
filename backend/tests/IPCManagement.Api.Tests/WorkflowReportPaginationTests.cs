@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
@@ -79,7 +80,8 @@ public class WorkflowReportPaginationTests
         await context.SaveChangesAsync();
         (await context.Currentstocks.CountAsync()).Should().Be(3);
 
-        var result = await new StockMovementReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
+        var service = new StockMovementReportService(context);
+        var result = await service.GetCurrentStockPageAsync(new CurrentStockPageQueryDto
         {
             PageNumber = 1,
             PageSize = 2,
@@ -103,5 +105,10 @@ public class WorkflowReportPaginationTests
 
         searched.TotalCount.Should().Be(1);
         searched.Items.Should().ContainSingle().Which.IngredientName.Should().Be("Nguyên liệu 3");
+
+        var aggregate = await service.GetCurrentStockAsync(new WorkflowReportQueryDto { Limit = 2 });
+
+        aggregate.Should().HaveCount(2);
+        aggregate.Select(row => row.IngredientName).Should().ContainInOrder("Nguyên liệu 1", "Nguyên liệu 2");
     }
 }

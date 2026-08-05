@@ -16,7 +16,7 @@ const validRow = (overrides: Partial<RegistryRow> = {}): RegistryRow => ({
   actor: UNKNOWN,
   backendPermission: 'CoordinationAccess',
   frontendPermission: 'coordination.order.lock',
-  source: ['frontend/src/features/coordination/components/action-toolbar.tsx:134-145'],
+  source: ['frontend/src/features/coordination/components/action-toolbar.tsx:136-147'],
   correspondence: 'KHỚP',
   ...overrides,
 })

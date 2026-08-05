@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle, FileDown, Lock, Unlock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert } from '@/components/common'
@@ -119,6 +119,8 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const [unlockCoordinationScope, { isLoading: isUnlocking }] = useUnlockCoordinationScopeMutation()
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null)
   const [confirmationError, setConfirmationError] = useState<ActionErrorFeedback | null>(null)
+  const [isExecutingAction, setIsExecutingAction] = useState(false)
+  const actionInFlight = useRef(false)
   const [feedback, setFeedback] = useState<{
     title: string
     message: string
@@ -137,7 +139,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const isMixed = normalizedStatus === 'MIXED'
   const isSyncing = normalizedStatus === 'SYNCING'
   const hasActionableData = hasPlans && orders.length > 0
-  const isBusy = isLocking || isExporting || isSigningOff || isUnlocking
+  const isBusy = isExecutingAction || isLocking || isExporting || isSigningOff || isUnlocking
   const canLock = hasActionableData && !isConfirmed && !isTerminal && !isMixed && !isSyncing
   const canSignoff = hasActionableData && isConfirmed && !isTerminal && !isMixed && !isSyncing
   const canUnlock = canSignoff
@@ -361,12 +363,21 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
     }
   })()
 
-  const handleConfirmedAction = () => {
+  const handleConfirmedAction = async () => {
+    if (actionInFlight.current) return
+
+    actionInFlight.current = true
+    setIsExecutingAction(true)
     setConfirmationError(null)
-    if (confirmationAction === 'lock') return handleLock()
-    if (confirmationAction === 'signoff') return handleSignoff()
-    if (confirmationAction === 'unlock') return handleUnlock()
-    return handleExportExcel()
+    try {
+      if (confirmationAction === 'lock') return await handleLock()
+      if (confirmationAction === 'signoff') return await handleSignoff()
+      if (confirmationAction === 'unlock') return await handleUnlock()
+      return await handleExportExcel()
+    } finally {
+      actionInFlight.current = false
+      setIsExecutingAction(false)
+    }
   }
 
   return (

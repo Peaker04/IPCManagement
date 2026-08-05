@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
@@ -23,6 +23,12 @@ vi.mock('../authApi', () => ({
 import LoginPage from './LoginPage';
 
 describe('LoginPage validation feedback', () => {
+  beforeEach(() => {
+    mocks.dispatch.mockReset();
+    mocks.login.mockReset();
+    mocks.navigate.mockReset();
+  });
+
   it('associates the existing required-fields message with both empty fields', () => {
     render(<LoginPage />);
 
@@ -44,5 +50,19 @@ describe('LoginPage validation feedback', () => {
     expect(screen.getByLabelText('Tài khoản')).not.toHaveAttribute('aria-invalid');
     expect(screen.getByLabelText('Mật khẩu')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Mật khẩu')).toHaveAccessibleDescription('Vui lòng nhập đầy đủ tài khoản và mật khẩu.');
+  });
+
+  it('owns only one login request while the current submission is in flight', () => {
+    mocks.login.mockReturnValue({ unwrap: () => new Promise(() => undefined) });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Tài khoản'), { target: { value: 'admin' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } });
+    const form = screen.getByRole('button', { name: 'Đăng nhập' }).closest('form')!;
+
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(mocks.login).toHaveBeenCalledOnce();
   });
 });

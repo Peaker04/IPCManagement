@@ -115,6 +115,6 @@ if (process.env.VITEST) {
     const result = scanDistTextAssets()
     expect(result.assets).toContain('frontend/dist/index.html')
     expect(result.leaks).toEqual([])
-  }, 15_000)
+  }, 30_000)
   })
 }

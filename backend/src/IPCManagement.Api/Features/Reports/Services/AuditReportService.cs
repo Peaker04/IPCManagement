@@ -452,7 +452,7 @@ public class AuditReportService : IAuditReportService
     {
         var limit = NormalizePageLimit(query.Limit);
         var rows = await GetAuditChangesAsync(CloneQuery(query, limit + 1));
-        return BuildCursorPage(rows, limit, row => row.ChangedAt, row => row.AuditId, query);
+        return ReportCursorPageBuilder.Build(rows, limit, row => row.ChangedAt, row => row.AuditId, query);
     }
 
     public async Task<ReportFileContent> ExportAuditChangesCsvAsync(WorkflowReportQueryDto query)
@@ -524,35 +524,4 @@ public class AuditReportService : IAuditReportService
             PriceTier = query.PriceTier
         };
 
-    private static CursorPageDto<T> BuildCursorPage<T>(
-        IReadOnlyList<T> rows,
-        int limit,
-        Func<T, DateTime> getCursorDate,
-        Func<T, string> getCursorId,
-        WorkflowReportQueryDto query)
-    {
-        var items = rows.Take(limit).ToList();
-        var hasNext = rows.Count > limit;
-        var cursorItem = hasNext ? items.LastOrDefault() : default;
-        var nextCursorOffset = 0;
-        if (cursorItem is not null)
-        {
-            var boundaryDate = getCursorDate(cursorItem);
-            nextCursorOffset = items.Count(item => getCursorDate(item) == boundaryDate);
-            if (ParseCursorDateTime(query.CursorDate) == boundaryDate)
-            {
-                nextCursorOffset += query.CursorOffset ?? 0;
-            }
-        }
-
-        return new CursorPageDto<T>
-        {
-            Items = items,
-            Limit = limit,
-            HasNext = hasNext,
-            NextCursorDate = cursorItem is null ? null : getCursorDate(cursorItem).ToString("O"),
-            NextCursorId = cursorItem is null ? null : getCursorId(cursorItem),
-            NextCursorOffset = nextCursorOffset
-        };
-    }
 }

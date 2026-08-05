@@ -21,7 +21,7 @@ const auditAreaLabels: Record<string, string> = {
 };
 
 export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
-  const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
+  const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, isExportingAudit, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
     <>
       {effectiveActiveView === 'audit' && (
@@ -106,9 +106,10 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                   variant="default"
                   size="xs"
                   onClick={handleExportAuditCsv}
+                  disabled={isExportingAudit}
                   className="border-0 bg-green-600 text-white hover:bg-green-700"
                 >
-                  Xuất CSV
+                  {isExportingAudit ? 'Đang xuất...' : 'Xuất CSV'}
                 </Button>
               </div>
             </div>

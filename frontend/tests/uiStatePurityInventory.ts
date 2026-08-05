@@ -377,8 +377,8 @@ const infrastructureClockReason = 'Timestamp or unique-id infrastructure; it doe
 
 // Exact grouped fingerprints from the reviewed current-source scan. Any added, removed, moved or changed finding fails.
 export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
-  classified('cache', 'src/api/apiSlice.ts', 2, 'cf70538fb12f2389b27f0740a5d260c142465ce0e4764f4da6499e1e679de747', 'justified-non-visibility-infrastructure', 'RTK base-query authentication reads declared Redux auth state for transport headers.'),
-  classified('cache', 'src/app/session/logoutSession.ts', 1, 'a0ac9c71f4a84b7f9845efc51a22c4aae6811e79b5d66ca1c5069ca80eb7931e', 'justified-non-visibility-infrastructure', 'Logout orchestration reads the declared auth token before clearing the session.'),
+  classified('cache', 'src/api/apiSlice.ts', 4, 'ab3010193fcf41d74b01f6f22fec2bd3f131fabe1382fb72c82382df90b773e9', 'justified-non-visibility-infrastructure', 'RTK base-query reads declared auth state for transport headers, token-generation checks and exact in-flight mutation ownership.'),
+  classified('cache', 'src/app/session/logoutSession.ts', 1, '85ba08cfad57eca067b635af8b2311802051771361f7ad740aff25fd72ac2988', 'justified-non-visibility-infrastructure', 'Single-flight logout orchestration reads the declared auth token before clearing the session.'),
   classified('cache', 'src/features/coordination/coordinationSlice.ts', 1, '438d88c39e6d088870ad858763beaee3b65da2ff937a3f72ec648558e21cea7c', 'declared-domain-query-state', 'Coordination thunk reads its feature-owned Redux state projection.'),
   classified('cache', 'src/routes/routeDataPreloaders.ts', 1, '493fa73b676522db32c6f28a29d52fb168bb1a0bb3d464056dab52c6fdb7a19a', 'justified-non-visibility-infrastructure', 'Route preloader reads declared coordination selection solely to warm route data.'),
 
@@ -396,8 +396,8 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('local', 'src/features/chef/components/operational-actions.tsx', 2, '9ae8bc9ed5c54633b79cedae49d20ee37d9409b7dd10c20fb6442897d7a21086', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/chef/components/supplemental-request-dialog.tsx', 1, '15db000f8e170fcc07e155a7a54f5ad2c1766932f401efda3ee405b1a5b112f8', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/chef/pages/ChefDashboardPage.tsx', 1, '587230a9c60ed4f7038149610f4904c9456493b7d27c9d4ae751d9e49e36a0f3', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
-  classified('local', 'src/features/coordination/components/action-toolbar.tsx', 3, '3819963f487f5608ed9f27d2a20586630cf148ed7dceaf4f720702aca7d73dfa', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
-  classified('local', 'src/features/coordination/components/order-table.tsx', 4, '273a070d7fc8350f138fa6a25191c9031dbceacf4d80f9d2710f286ec4166d34', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
+  classified('local', 'src/features/coordination/components/action-toolbar.tsx', 3, 'a7fa5b5b772febc6466ef13877ad1834a3dd3a82b7e44a3eb8a2b712a54ce776', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
+  classified('local', 'src/features/coordination/components/order-table.tsx', 4, 'e7c382480ede41bcdacdbed589fb9ec90d6f8a68e79d99ea6433442bf886b17f', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx', 1, '76cffb519c71575fe4a5d27b199961fa667fbd18f454c9fe3443746e3e89ecd5', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx', 1, '88404bdd17a3e035b712a954922663286f95f82e20817be6e99da83a2ba39a56', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/purchasing/PurchaseDecisionPanel.tsx', 4, 'b3640b0e88ddb5ea26caa3237550c7022a2879bbe1c440996cf22de9292ef267', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
@@ -420,7 +420,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('time', 'src/components/common/ApprovalQueue.tsx', 2, '71dc4f193f7e8eaf8c8fa16710e4b0d616fcd18cadfe76bf9fa64126a2cff765', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/components/common/ToastProvider.tsx', 1, 'f31d7afd495a37718e76f219d505f3415173b6f15f84400e5da43aadabf7a472', 'justified-non-visibility-infrastructure', infrastructureClockReason),
   classified('time', 'src/features/chef/components/excess-material-dialog.tsx', 1, 'fd24c866ad33bf8d55383f07218a2e0e638976e4bf10632f4694c48c19581405', 'declared-domain-query-state', domainClockReason),
-  classified('time', 'src/features/coordination/components/action-toolbar.tsx', 2, 'bed186cb47602997a66dbc6b94da0082a22f656dd4dca1f2dda80956ea3897f6', 'justified-non-visibility-infrastructure', infrastructureClockReason),
+  classified('time', 'src/features/coordination/components/action-toolbar.tsx', 2, '67bb83d71dbc8752c728fd851fc41708bb9571cf0b23deafb85029a4ece36e4e', 'justified-non-visibility-infrastructure', infrastructureClockReason),
   classified('time', 'src/features/coordination/components/hooks.ts', 1, 'e2c5304e4483f26997f77cf3920cc86cdc739fd9e2ce2b7806f86014128b9fbe', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/features/coordination/coordinationSlice.ts', 8, '4c259626f6d5ae33c529c4da78671692c214fd2b47aff8ba94551dc75fd0f8cc', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/features/projects/pages/WeeklyMenuPage.tsx', 1, '8bcdb404e650aa414efd77ba1997077d92e9b6faa9727dfff9e05dd37f9cde21', 'declared-domain-query-state', domainClockReason),

@@ -44,6 +44,12 @@ Các script root trong `package.json`:
 
 Frontend workspace có thêm các script `dev`, `build`, `lint`, `preview`, `test:unit`, `test:unit:watch`, `test:coverage`, `test:smoke`, `test:controls`, `test:ui-audit`, `test:performance`, `test:visual` và `test:visual:update`; chạy chúng từ `frontend/`.
 
+Khi thêm network action, giữ một request owner: query dùng cùng RTK endpoint + normalized args; mutation
+không tự gọi trong `onChange` và phải có trạng thái draft/commit rõ (thường commit ở blur, Enter hoặc nút
+xác nhận). Không bỏ `StrictMode` để che double call. Exact mutation đang in-flight được `apiSlice` bảo vệ
+toàn cục, nhưng component vẫn phải khóa double-submit để không chạy hai lần feedback, download hoặc local
+state transition. Direct `fetch` ngoài RTK Query phải có synchronous in-flight guard riêng.
+
 ## Shipyard lane
 
 Profile cục bộ nằm tại `shipyard/profiles/IPCManagement`. Khởi động dashboard/lane từ repo
@@ -58,6 +64,17 @@ port đang listen. Nếu checkout lane có thay đổi chưa commit, không rese
 `MEMORY.md` để biết lane hiện boot từ checkout nào và DB nào. Mọi lần đồng bộ
 database lane từ database chính phải backup cả source/target và so exact row count + checksum
 trước khi chạy app; không dùng seed/reset để che schema hoặc dữ liệu cũ.
+
+### Đồng bộ migration local
+
+`ipcmanagement` là base schema local. Khi source có migration mới, tạo checkpoint rồi chạy
+`dotnet ef database update` trên base trước; chỉ sau khi base pass precondition/postcondition mới áp
+cùng migration chain tại chỗ lên các database test hiện có (`ipc_lane1`, `ipc_lane8`, `ipc_lane9`
+và `ipc_e2e_template`). Không clone/restore dữ liệu base vào lane chỉ để chữa schema drift.
+
+`/health/ready` trả `Unhealthy`/HTTP 503 khi còn pending migration hoặc không đọc được migration
+history. Không tiếp tục test endpoint khi readiness chưa `Healthy`; xử lý migration trước để tránh
+EF model mới query bảng/cột chưa tồn tại và tạo chuỗi HTTP 500.
 
 ## Code style
 

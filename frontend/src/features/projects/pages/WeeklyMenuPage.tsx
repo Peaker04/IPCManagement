@@ -12,6 +12,7 @@ import {
   useGetCommittedWeeklyMenuQuery,
   useGetMealQuantityPlansQuery,
   useGetMenuSchedulesQuery,
+  useUpdateMenuScheduleVersionMutation,
 } from '@/api/coordinationApi';
 import { isBomPriceTier, normalizeBomPriceTier } from '../weeklyMenuPlanning';
 import {
@@ -124,6 +125,7 @@ const WeeklyMenuPage = () => {
     ? menuSchedulesView.data
     : menuSchedulesView.phase === 'error' ? menuSchedulesQuery.currentData : undefined;
   const menuSchedules = useMemo(() => menuSchedulesResponse?.data ?? [], [menuSchedulesResponse?.data]);
+  const [updateMenuScheduleVersion, { isLoading: isPublishingMenu }] = useUpdateMenuScheduleVersionMutation();
   const mealQuantityPlansQuery = useGetMealQuantityPlansQuery(
     {
       customerId: effectiveMenuCustomerId,
@@ -233,6 +235,27 @@ const WeeklyMenuPage = () => {
     dispatch(setWeeklyMenu({}));
     setMenuFeedback(null);
     setScheduleFeedback(null);
+  };
+  const publishableSchedule = menuSchedules.find((schedule) => schedule.menuVersionStatus !== 'ACTIVE');
+  const publishWeeklyMenu = async () => {
+    if (!publishableSchedule) return;
+    try {
+      const response = await updateMenuScheduleVersion({
+        menuScheduleId: publishableSchedule.menuScheduleId,
+        body: { status: 'ACTIVE', reason: 'Xuất bản tuần từ KHSX và định lượng' },
+      }).unwrap();
+      setMenuFeedback({
+        title: 'Đã xuất bản thực đơn tuần',
+        message: response.message || 'Toàn bộ lịch thực đơn trong tuần đã chuyển sang trạng thái hoạt động.',
+        variant: 'info',
+      });
+    } catch (error) {
+      setMenuFeedback({
+        title: 'Chưa thể xuất bản thực đơn tuần',
+        message: error instanceof Error ? error.message : 'Không thể cập nhật trạng thái version thực đơn.',
+        variant: 'danger',
+      });
+    }
   };
 
   const importWorkflow = useWeeklyMenuImport({
@@ -416,9 +439,12 @@ const WeeklyMenuPage = () => {
         weekStartDate={displayedWeekStartDate}
         isCustomerLoading={isCustomerLoading}
         isImporting={importWorkflow.status.isImporting}
+        canPublish={Boolean(publishableSchedule)}
+        isPublishing={isPublishingMenu}
         onEdit={scheduleWorkflow.actions.openEditor}
         onImport={importWorkflow.actions.open}
         onExport={purchaseSummaryWorkflow.actions.exportWarehouseReport}
+        onPublish={() => void publishWeeklyMenu()}
         onCustomerChange={(customerId) => {
           setSelectedMenuCustomerId(customerId);
           setCommittedMenuWeekStartDate('');

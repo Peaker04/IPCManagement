@@ -206,8 +206,8 @@ export const protectedOperationalFamilies: readonly ProtectedOperationalFamily[]
     routeKey: 'MEAL_ORDERS', page: 'CoordinationPage', ownerSource: 'frontend/src/features/coordination/pages/CoordinationPage.tsx',
     classification: 'object-family', families: ['CoordinationOrderScopeLifecycle'],
     stateSource: source('importable', 'frontend/src/features/coordination/coordinationStatus.ts:14-103'),
-    roleSource: source('literal-guarded', 'frontend/src/features/coordination/components/action-toolbar.tsx:378-428'),
-    operationSource: source('literal-guarded', 'frontend/src/features/coordination/components/action-toolbar.tsx:134-145'),
+    roleSource: source('literal-guarded', 'frontend/src/features/coordination/components/action-toolbar.tsx:389-439'),
+    operationSource: source('literal-guarded', 'frontend/src/features/coordination/components/action-toolbar.tsx:136-147'),
     backendEnforcementSource: source('literal-guarded', 'backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs:13-229'),
   },
   {
