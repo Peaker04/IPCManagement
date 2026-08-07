@@ -8,7 +8,7 @@ runtime_ports:
   mysql: 3306
   audit_frontend: 3010
   audit_api: 8010
-db_lane: ipc_lane1
+db_lane: ipc_e2e_template
 credentials_via: K6_PASSWORD
 workbook:
   path: 'C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx'
