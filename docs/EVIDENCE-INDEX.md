@@ -6,6 +6,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-probe.json` | `5E08190DD4A017A040079DAF18D165E16DF720282D813C00791BEA38B84A2B67` | Chrome headed Manager trên `ipc_e2e_template`: login `200`, reload scope ANV tuần `2026-08-03`, hai amendment `RECONCILIATION_REQUIRED` render nhưng zero control `Duyệt`/`Thực thi`; zero console/page error và overflow. Không là normal amendment branch; performance có 1 long task `59ms`, CLS `0.0756`. |
+| `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-1440x900.png` | `A7645373FDA3D9548CFAA2EDC38F0D466A4DA77B0BEE354BCF56DD731EF6C0A0` | Screenshot Chrome headed Manager của scope ANV: status đối soát, BOM thiếu và menu hiện hữu được đọc trực quan; không có action trái phép. |
 | `.artifacts/shipyard-live/lifecycle-e2e-20260805/weekly-api/weekly-20260805-205122681/weekly-happy-path-e2e-summary.md` | `A6FE4534AE6D9F28869D719BD74BA24520553A9DC563BE658143FBC04B4111E5` | Isolated `ipc_lane9` full weekly run: menu tuần `2026-08-03` được import/publish một lần, sáu ngày có schedule hoàn tất demand → approve → PR/PO → nhập, xuất và Bếp nhận; mỗi ngày có summary riêng. |
 | `.artifacts/shipyard-live/lifecycle-e2e-20260805/service-run-friday-final/service-run-browser-evidence.json` | `0DA2AE1E3ED9E6AB76A72B26E8129DE6EA3BEEEEA94E6F25B49020FF596069BC` | Chrome headed reload trên `ipc_lane9`: KHSX `20260807` hiển thị `Đã đóng ca`, 840/840 suất, hai phiếu xuất đã nhận và xác nhận giao suất; console/page error 0, CLS 0, long task 0. |
 | `.artifacts/shipyard-live/lifecycle-e2e-20260805/service-run-friday-final/service-run-db-evidence.json` | `4C021C390A37C9D4E16E5BF4B49B9E4D12E258B36669EED13006F96FFEBB7398` | Direct DB evidence cho KHSX `20260807` trên `ipc_lane9`: `ClosedAt`, close snapshot, actual servings và audit ActualServings/Close cùng tồn tại. |
@@ -114,7 +116,6 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Lý do loại |
 |---|---|---|
-| `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-probe.json` | `77F41C45D6BB23E13F5797025C32DEF05E00D2A3D46297D1A203C62121A8A02F` | Attempt Manager bị dừng ở `POST /api/auth/login` `401`; ghi nhận credential supplied không khớp lane, không có mutation hay kết luận quyền duyệt. |
 | `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-login-feedback-1440x900.png` | `F76A62709604CAE02E81CEA73BE747756FFAD842C2D9E7906C0FA40E5DC2500C` | Chrome headed screenshot xác nhận UI sau `9d58beb` hiển thị lỗi credential chính xác; không chứng minh lifecycle Manager. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.json` | `5DD7189E1C844A1275616417338002E746E9913F9056ED6C3FB8AE4F1BB1C144` | Attempt locator timeout lúc 04:07; run final cùng thư mục lúc 04:10 mới authoritative. |
 | `.artifacts/shipyard-live/badge-transition-e2e-20260804/phase6-headed-workbook-e2e-error.json` | `067750603E8621E9F2C1447FDE028F08FCA215537B7104976F9A67507A284FF4` | Attempt setup thiếu stage workbook theo output directory mới; không gửi mutation và không dùng làm kết quả. Run JSON cùng thư mục sau bổ sung stage/hash fixture mới là evidence hợp lệ. |
