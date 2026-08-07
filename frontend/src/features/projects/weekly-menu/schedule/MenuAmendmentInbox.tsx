@@ -5,6 +5,7 @@ import {
   useReviewMenuAmendmentMutation,
 } from '@/api/coordinationApi'
 import { ActionGuard } from '@/components/common/ActionGuard'
+import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -18,7 +19,7 @@ const statusLabel: Record<string, string> = {
 }
 
 export function MenuAmendmentInbox() {
-  const { data, isLoading } = useGetMenuAmendmentsQuery()
+  const { data, isError, isLoading, refetch } = useGetMenuAmendmentsQuery()
   const [review, { isLoading: reviewing }] = useReviewMenuAmendmentMutation()
   const [execute, { isLoading: executing }] = useExecuteMenuAmendmentMutation()
   const [correctionId, setCorrectionId] = useState<string | null>(null)
@@ -35,6 +36,15 @@ export function MenuAmendmentInbox() {
     }
   }
 
+  if (isError) {
+    return (
+      <section className="mb-4" aria-label="Yêu cầu thay đổi thực đơn">
+        <QueryErrorAlert title="Không tải được yêu cầu thay đổi thực đơn" onRetry={refetch}>
+          Không thể kết luận chưa có yêu cầu thay đổi. Hãy tải lại trước khi tiếp tục xử lý thực đơn.
+        </QueryErrorAlert>
+      </section>
+    )
+  }
   if (!isLoading && items.length === 0) return null
   return (
     <section className="mb-4 rounded border border-amber-200 bg-amber-50 p-3" aria-label="Yêu cầu thay đổi thực đơn">

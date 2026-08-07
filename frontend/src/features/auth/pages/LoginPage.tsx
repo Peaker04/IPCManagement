@@ -40,6 +40,12 @@ const getDevFallbackToken = (value: string) => {
   return `dev-login-fallback-token-${value}`;
 };
 
+const isUnauthorizedLoginError = (error: unknown) =>
+  typeof error === 'object'
+  && error !== null
+  && 'status' in error
+  && error.status === 401;
+
 const DevLoginFallbackHint = () => {
   if (import.meta.env.PROD || !isDevLoginFallbackEnabled) {
     return null;
@@ -106,9 +112,11 @@ const LoginPage = () => {
       } else {
         setError(result.message || 'Đăng nhập thất bại.');
       }
-    } catch {
+    } catch (error) {
       if (!isDevLoginFallbackEnabled) {
-        setError('Không thể đăng nhập. Vui lòng kiểm tra tài khoản hoặc kết nối máy chủ.');
+        setError(isUnauthorizedLoginError(error)
+          ? 'Tài khoản hoặc mật khẩu không đúng.'
+          : 'Không thể đăng nhập. Vui lòng kiểm tra kết nối máy chủ.');
         return;
       }
 

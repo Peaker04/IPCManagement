@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -64,5 +64,18 @@ describe('LoginPage validation feedback', () => {
     fireEvent.submit(form);
 
     expect(mocks.login).toHaveBeenCalledOnce();
+  });
+
+  it('explains invalid credentials instead of suggesting a connection failure for a 401 response', async () => {
+    mocks.login.mockReturnValue({ unwrap: () => Promise.reject({ status: 401 }) });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Tài khoản'), { target: { value: 'quanly' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'wrong-password' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Tài khoản hoặc mật khẩu không đúng.');
+    });
   });
 });
