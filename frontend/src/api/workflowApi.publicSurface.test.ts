@@ -5,15 +5,18 @@ import * as workflowModule from '@/api/workflowApi';
 
 const expectedEndpointNames = [
   'cancelPurchaseOrder',
+  'closeServiceRun',
   'confirmInventoryIssueReceipt',
   'confirmInventoryReturnReceipt',
   'confirmLineSupplier',
+  'confirmServiceRun',
   'createApprovalRule',
   'createInventoryIssue',
   'createInventoryReceiptFromPurchase',
   'createInventoryReturn',
   'createPurchaseOrdersFromRequest',
   'createPurchaseRequestFromDemand',
+  'createServiceRunAdjustment',
   'createSupplementalMaterialRequest',
   'createSupplierQuotation',
   'deactivateSupplierQuotation',
@@ -58,6 +61,9 @@ const expectedEndpointNames = [
   'getPurchaseRequests',
   'getPurchaseRequestsPage',
   'getPurchaseWorkbench',
+  'getServiceRunAdjustments',
+  'getServiceRunByPlan',
+  'getServiceRunPage',
   'getStockLedgerReconciliation',
   'getStockMovementPage',
   'getStockMovements',
@@ -69,29 +75,38 @@ const expectedEndpointNames = [
   'getWarehouseSelector',
   'getWarehouses',
   'getWorkflowDocuments',
+  'openServiceRun',
   'recordPurchaseOrderReceipt',
+  'recordServiceRunActualServings',
   'recordWarehousePurchaseReceipt',
   'rejectSupplementalMaterialRequest',
+  'resolveServiceRunServingVariance',
+  'resolveServiceRunVariance',
   'routeSupplementalMaterialRequestToPurchasing',
   'sendDailyProductionPlanToKitchen',
+  'startServiceRun',
   'submitPurchaseRequest',
   'updateApprovalRule',
   'updateDataQualityIssueRemediation',
   'updatePurchaseRequestLineSupplier',
   'updateSupplierQuotation',
+  'waiveServiceRunConfirmation',
 ] as const;
 
 const expectedHookNames = [
   'useCancelPurchaseOrderMutation',
+  'useCloseServiceRunMutation',
   'useConfirmInventoryIssueReceiptMutation',
   'useConfirmInventoryReturnReceiptMutation',
   'useConfirmLineSupplierMutation',
+  'useConfirmServiceRunMutation',
   'useCreateApprovalRuleMutation',
   'useCreateInventoryIssueMutation',
   'useCreateInventoryReceiptFromPurchaseMutation',
   'useCreateInventoryReturnMutation',
   'useCreatePurchaseOrdersFromRequestMutation',
   'useCreatePurchaseRequestFromDemandMutation',
+  'useCreateServiceRunAdjustmentMutation',
   'useCreateSupplementalMaterialRequestMutation',
   'useCreateSupplierQuotationMutation',
   'useDeactivateSupplierQuotationMutation',
@@ -136,6 +151,9 @@ const expectedHookNames = [
   'useGetPurchaseRequestsPageQuery',
   'useGetPurchaseRequestsQuery',
   'useGetPurchaseWorkbenchQuery',
+  'useGetServiceRunAdjustmentsQuery',
+  'useGetServiceRunByPlanQuery',
+  'useGetServiceRunPageQuery',
   'useGetStockLedgerReconciliationQuery',
   'useGetStockMovementPageQuery',
   'useGetStockMovementsQuery',
@@ -147,16 +165,21 @@ const expectedHookNames = [
   'useGetWarehouseSelectorQuery',
   'useGetWarehousesQuery',
   'useGetWorkflowDocumentsQuery',
+  'useOpenServiceRunMutation',
   'useRecordPurchaseOrderReceiptMutation',
+  'useRecordServiceRunActualServingsMutation',
   'useRecordWarehousePurchaseReceiptMutation',
   'useRejectSupplementalMaterialRequestMutation',
+  'useResolveServiceRunVarianceMutation',
   'useRouteSupplementalMaterialRequestToPurchasingMutation',
   'useSendDailyProductionPlanToKitchenMutation',
+  'useStartServiceRunMutation',
   'useSubmitPurchaseRequestMutation',
   'useUpdateApprovalRuleMutation',
   'useUpdateDataQualityIssueRemediationMutation',
   'useUpdatePurchaseRequestLineSupplierMutation',
   'useUpdateSupplierQuotationMutation',
+  'useWaiveServiceRunConfirmationMutation',
 ] as const;
 
 describe('workflow API public surface', () => {
@@ -172,6 +195,6 @@ describe('workflow API public surface', () => {
       .sort();
 
     expect(hooks).toEqual(expectedHookNames);
-    expect(hooks).toHaveLength(75);
+    expect(hooks).toHaveLength(86);
   });
 });

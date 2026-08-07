@@ -37,6 +37,7 @@ public class CoordinationControllerTests
             Substitute.For<IWeeklyMenuImportHistoryService>(),
             Substitute.For<ICustomerImportMappingService>(),
             Substitute.For<IWeeklyMenuBulkEditService>(),
+            Substitute.For<IMenuAmendmentService>(),
             Substitute.For<ICurrentUserService>());
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "menu.xlsx");
@@ -73,6 +74,7 @@ public class CoordinationControllerTests
             Substitute.For<IWeeklyMenuImportHistoryService>(),
             Substitute.For<ICustomerImportMappingService>(),
             Substitute.For<IWeeklyMenuBulkEditService>(),
+            Substitute.For<IMenuAmendmentService>(),
             currentUserService);
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");

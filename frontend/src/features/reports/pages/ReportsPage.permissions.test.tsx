@@ -82,6 +82,7 @@ const mocks = vi.hoisted(() => ({
   priceVarianceByDishGroupPage: vi.fn(),
   purchasePlanPage: vi.fn(),
   stockMovementPage: vi.fn(),
+  serviceRunPage: vi.fn(),
 }));
 
 vi.mock('@/api/workflowApi', () => ({
@@ -98,6 +99,7 @@ vi.mock('@/api/workflowApi', () => ({
   useGetPriceVarianceByDishGroupPageQuery: mocks.priceVarianceByDishGroupPage,
   useGetPurchasePlanPageQuery: mocks.purchasePlanPage,
   useGetStockMovementPageQuery: mocks.stockMovementPage,
+  useGetServiceRunPageQuery: mocks.serviceRunPage,
 }));
 
 import ReportsPage from './ReportsPage';
@@ -315,7 +317,8 @@ describe('ReportsPage query state boundary', () => {
 
     renderReportsPage('admin', '/reports?view=audit');
 
-    const table = screen.getByRole('table');
+    const table = document.querySelector<HTMLTableElement>('table.ipc-reports-audit-table');
+    if (!table) throw new Error('Không tìm thấy bảng Audit.')
     expect(table).toHaveClass('ipc-reports-audit-table');
     expect(table.querySelectorAll('thead th')).toHaveLength(7);
     expect(table.querySelectorAll('.ipc-reports-audit-value')).toHaveLength(3);

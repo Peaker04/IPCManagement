@@ -26,12 +26,117 @@ using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
+using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
 public partial class WorkflowGenerationTests
 {
+    [Fact]
+    public async Task MenuAmendment_Should_SnapshotSafeDemandImpact_WithoutMutatingMenu()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+
+        var result = await new MenuAmendmentService(context).CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString,
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            Reason = "Khách hàng đổi món trước khi tạo demand.",
+            Lines =
+            [
+                new CreateMenuAmendmentLineRequest
+                {
+                    ServiceDate = new DateOnly(2026, 6, 15),
+                    ShiftName = "MORNING",
+                    DishSlot = "savory-main",
+                    NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId)
+                }
+            ]
+        }, fixture.UserIdString);
+
+        result.Status.Should().Be("PENDING_REVIEW");
+        result.RequiresReconciliation.Should().BeFalse();
+        (await context.Menuamendments.Include(item => item.Lines).SingleAsync()).Lines.Should().ContainSingle();
+        (await context.Auditlogs.AnyAsync(item => item.EntityName == nameof(MenuAmendment))).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task MenuAmendment_Should_ExecuteOnlyBeforeDemandExists()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        (await context.Menuschedules.SingleAsync()).Status = "DRAFT";
+        await context.SaveChangesAsync();
+        var sourceSchedule = await context.Menuschedules.AsNoTracking().SingleAsync();
+        var sourceMenuId = sourceSchedule.MenuId;
+        var service = new MenuAmendmentService(context);
+        var dishSlot = (await context.Menuitems.SingleAsync()).DishSlot ?? "main";
+        var amendment = await service.CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Sửa bản nháp.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = dishSlot, NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, fixture.UserIdString);
+
+        var result = await service.ExecuteAsync(amendment.MenuAmendmentId, fixture.UserIdString);
+
+        result.Status.Should().Be("EXECUTED");
+        (await context.Menuamendments.SingleAsync()).Status.Should().Be("EXECUTED");
+        result.AppliedMenuVersionId.Should().NotBeNullOrWhiteSpace();
+        var amendedSchedule = await context.Menuschedules.AsNoTracking().SingleAsync();
+        amendedSchedule.MenuId.SequenceEqual(sourceMenuId).Should().BeFalse();
+        amendedSchedule.MenuVersionId.Should().NotBeNull();
+        (await context.Menus.FindAsync(sourceMenuId)).Should().NotBeNull();
+        (await context.Menuversions.SingleAsync(item => item.MenuVersionId.SequenceEqual(amendedSchedule.MenuVersionId!))).Status.Should().Be("ACTIVE");
+    }
+
+    [Fact]
+    public async Task MenuAmendment_Should_CancelReversibleDemandBeforeExecution()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" }, fixture.UserIdString);
+        var service = new MenuAmendmentService(context);
+        var amendment = await service.CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Đổi món sau demand.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, fixture.UserIdString);
+
+        var result = await service.ExecuteAsync(amendment.MenuAmendmentId, fixture.UserIdString);
+
+        result.Status.Should().Be("EXECUTED");
+        (await context.Materialrequests.SingleAsync()).Status.Should().Be("CANCELLED");
+    }
+
+    [Fact]
+    public async Task MenuAmendment_Should_NotExecute_WhenManagerRequestsCorrection()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        (await context.Menuschedules.SingleAsync()).Status = "DRAFT";
+        await context.SaveChangesAsync();
+        var service = new MenuAmendmentService(context);
+        var amendment = await service.CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Đổi món.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = false, Reason = "Cần xác minh BOM." }, fixture.UserIdString);
+
+        var act = () => service.ExecuteAsync(amendment.MenuAmendmentId, fixture.UserIdString);
+
+        await act.Should().ThrowAsync<BusinessRuleException>().WithMessage("*chưa đủ điều kiện thực thi*");
+    }
+
     [Fact]
     public async Task WeeklyMenuReimport_Should_CancelDownstreamDemandAndPurchase_ForCustomerWeek()
     {

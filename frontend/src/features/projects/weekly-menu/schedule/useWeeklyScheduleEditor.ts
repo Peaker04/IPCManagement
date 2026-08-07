@@ -3,7 +3,7 @@ import { useAppDispatch } from '@/lib/reduxHooks'
 import { updateWeeklyMenuDish } from '@/lib/coordinationActions'
 import type { MealQuantityPlanDto, MenuScheduleDto, OrderRow, WeeklyMenuState } from '@/types/coordination'
 import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
-import { useUpdateWeeklyMenuBulkMutation, useUpsertQuickServingsMutation } from '@/api/coordinationApi'
+import { useCreateMenuAmendmentMutation, useUpdateWeeklyMenuBulkMutation, useUpsertQuickServingsMutation } from '@/api/coordinationApi'
 import type { CatalogDish } from '@/api/dishCatalogApi'
 import { normalizeBomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage } from '../model/formatters'
@@ -41,6 +41,7 @@ export function useWeeklyScheduleEditor({
   const reduxDispatch = useAppDispatch()
   const [state, dispatch] = useReducer(weeklyScheduleReducer, initialWeeklyScheduleState)
   const [updateWeeklyMenuBulk, { isLoading: isSavingMenu }] = useUpdateWeeklyMenuBulkMutation()
+  const [createMenuAmendment, { isLoading: isSubmittingAmendment }] = useCreateMenuAmendmentMutation()
   const [upsertQuickServings, { isLoading: isSavingQuickServings }] = useUpsertQuickServingsMutation()
 
   useEffect(() => {
@@ -110,39 +111,47 @@ export function useWeeklyScheduleEditor({
     type: 'open-editor',
     menu: cloneWeeklyMenu(weeklyMenu, scope.displayDays.map((day) => day.key)),
   }), [scope.displayDays, weeklyMenu])
-  const saveEditor = useCallback(async () => {
-    const slots = scope.displayDays.flatMap((day) => sections.flatMap((section) => {
-      if (isLocked(day.key, section.slotType)) return []
+  const saveEditor = useCallback(async (amendmentReason?: string) => {
+    const changes = scope.displayDays.flatMap((day) => sections.flatMap((section) => {
       const currentDishId = weeklyMenu[day.key]?.[section.slotType]?.dishId || section.defaultDishId
       const dishId = state.draftMenu[day.key]?.[section.slotType]?.dishId
       const date = serviceDate(day.key)
-      return dishId && dishId !== currentDishId && date ? [{
+      return dishId && dishId !== currentDishId && date ? [{ locked: isLocked(day.key, section.slotType),
         serviceDate: date,
         shiftName: section.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều',
         slotType: section.slotType,
         dishId,
       }] : []
     }))
-    if (slots.length === 0) {
+    if (changes.length === 0) {
       dispatch({ type: 'close-editor' })
       return
     }
     try {
-      onMenuFeedback({ title: 'Đang lưu chỉnh sửa', message: 'Hệ thống đang ghi các thay đổi thực đơn vào backend...', variant: 'info' })
-      const response = await updateWeeklyMenuBulk({ customerId: scope.customerId, slots }).unwrap()
-      if (!response.success) throw new Error(response.message || 'Không thể lưu chỉnh sửa thực đơn.')
-      slots.forEach((slot) => {
+      const directSlots = changes.filter((slot) => !slot.locked)
+      const amendmentSlots = changes.filter((slot) => slot.locked)
+      if (directSlots.length > 0 && amendmentSlots.length > 0) {
+        throw new Error('Không thể lưu đồng thời bản nháp và lịch đã khóa. Hãy lưu từng nhóm thay đổi để giữ chứng từ nhất quán.')
+      }
+      if (amendmentSlots.length > 0 && !amendmentReason?.trim()) throw new Error('Cần nêu lý do trước khi gửi thay đổi cho lịch đã khóa.')
+      if (directSlots.length > 0) {
+        const response = await updateWeeklyMenuBulk({ customerId: scope.customerId, slots: directSlots }).unwrap()
+        if (!response.success) throw new Error(response.message || 'Không thể lưu chỉnh sửa thực đơn.')
+      }
+      if (amendmentSlots.length > 0) {
+        const response = await createMenuAmendment({ customerId: scope.customerId, weekStartDate: scope.weekStartDate, reason: amendmentReason!, lines: amendmentSlots.map((slot) => ({ serviceDate: slot.serviceDate, shiftName: slot.shiftName === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON', dishSlot: slot.slotType.includes('Vegetarian') ? 'vegetarian-main' : 'savory-main', newDishId: slot.dishId })) }).unwrap()
+        onMenuFeedback({ title: 'Đã gửi yêu cầu thay đổi', message: response.data?.requiresReconciliation ? 'Đã có chứng từ phía sau; yêu cầu cần đối soát và hậu kiểm.' : 'Yêu cầu đang chờ review trước khi thực thi.', variant: 'warning' })
+      }
+      directSlots.forEach((slot) => {
         const dayKey = scope.displayDays.find((day) => serviceDate(day.key) === slot.serviceDate)?.key
         if (dayKey) reduxDispatch(updateWeeklyMenuDish({ day: dayKey, slotType: slot.slotType, dishId: slot.dishId }))
       })
-      onMenuFeedback(response.data?.length
-        ? { title: 'Lưu thành công (Có cảnh báo)', message: `${response.message}\nCảnh báo:\n${response.data.map((warning) => `- ${warning}`).join('\n')}`, variant: 'warning' }
-        : { title: 'Cập nhật thực đơn thành công', message: response.message || 'Thay đổi đã được lưu vào database.', variant: 'info' })
+      if (directSlots.length > 0 && amendmentSlots.length === 0) onMenuFeedback({ title: 'Cập nhật thực đơn thành công', message: 'Thay đổi bản nháp đã được lưu.', variant: 'info' })
       dispatch({ type: 'close-editor' })
     } catch (error) {
       onMenuFeedback({ title: 'Chỉnh sửa thực đơn thất bại', message: getApiErrorMessage(error, 'Không thể lưu thay đổi vào backend.'), variant: 'danger' })
     }
-  }, [isLocked, onMenuFeedback, reduxDispatch, scope.customerId, scope.displayDays, sections, serviceDate, state.draftMenu, updateWeeklyMenuBulk, weeklyMenu])
+  }, [createMenuAmendment, isLocked, onMenuFeedback, reduxDispatch, scope.customerId, scope.displayDays, scope.weekStartDate, sections, serviceDate, state.draftMenu, updateWeeklyMenuBulk, weeklyMenu])
   const saveQuickServing = useCallback(async (row: QuickServingRow) => {
     if (!row.hasDraftChange) return
     try {
@@ -183,7 +192,7 @@ export function useWeeklyScheduleEditor({
   return {
     scope,
     state: { ...state, weeklyMenu },
-    status: { isSavingMenu, isSavingQuickServings },
+    status: { isSavingMenu: isSavingMenu || isSubmittingAmendment, isSavingQuickServings },
     actions: {
       openEditor,
       closeEditor: () => dispatch({ type: 'close-editor' }),

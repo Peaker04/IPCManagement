@@ -111,6 +111,7 @@ public static class DependencyInjection
         services.AddScoped<IWeeklyMenuImportService, WeeklyMenuImportService>();
         services.AddScoped<IWeeklyMenuImportHistoryService, WeeklyMenuImportHistoryService>();
         services.AddScoped<IWeeklyMenuBulkEditService, WeeklyMenuBulkEditService>();
+        services.AddScoped<IMenuAmendmentService, MenuAmendmentService>();
         services.AddScoped<ISampleBomImportService, SampleBomImportService>();
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();

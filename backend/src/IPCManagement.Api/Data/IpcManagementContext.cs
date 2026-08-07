@@ -72,6 +72,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<MenuItem> Menuitems { get; set; }
 
+    public virtual DbSet<MenuAmendment> Menuamendments { get; set; }
+
+    public virtual DbSet<MenuAmendmentLine> Menuamendmentlines { get; set; }
+
     public virtual DbSet<MenuSchedule> Menuschedules { get; set; }
 
     public virtual DbSet<MenuVersion> Menuversions { get; set; }

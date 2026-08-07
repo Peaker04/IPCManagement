@@ -597,6 +597,26 @@ public partial class WorkflowGenerationTests
                     errorRowCount INTEGER NOT NULL DEFAULT 0,
                     warningRowCount INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE menuamendments (
+                    menuAmendmentId BLOB PRIMARY KEY,
+                    customerId BLOB NOT NULL,
+                    weekStartDate TEXT NOT NULL,
+                    baseMenuVersionId BLOB NULL,
+                    status TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    impactSnapshotJson TEXT NOT NULL,
+                    createdBy BLOB NOT NULL,
+                    createdAt TEXT NOT NULL
+                );
+                CREATE TABLE menuamendmentlines (
+                    menuAmendmentLineId BLOB PRIMARY KEY,
+                    menuAmendmentId BLOB NOT NULL,
+                    serviceDate TEXT NOT NULL,
+                    shiftName TEXT NOT NULL,
+                    dishSlot TEXT NOT NULL,
+                    oldDishId BLOB NULL,
+                    newDishId BLOB NOT NULL
+                );
                 CREATE TABLE quantityimportbatches (
                     importBatchId BLOB PRIMARY KEY,
                     batchCode TEXT NOT NULL,

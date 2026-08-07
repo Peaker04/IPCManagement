@@ -16,11 +16,12 @@ const commandBarExceptionLocations = [
   'src/features/admin/pages/ApprovalRulesPage.tsx:240',
   'src/features/approvals/pages/ApprovalPage.tsx:250',
   'src/features/approvals/pages/ApprovalPage.tsx:260',
-  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:42',
-  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:46',
-  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:50',
-  'src/features/reports/pages/ReportsPage.tsx:63',
-  'src/features/warehouse/pages/WarehousePage.tsx:312',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:48',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:52',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:57',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:62',
+  'src/features/reports/pages/ReportsPage.tsx:64',
+  'src/features/warehouse/pages/WarehousePage.tsx:313',
 ]
 
 const adapterExceptionLocations = [

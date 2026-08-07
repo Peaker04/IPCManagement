@@ -97,3 +97,15 @@ public interface IWeeklyMenuBulkEditService
         BulkUpdateWeeklyMenuRequest request,
         CancellationToken cancellationToken = default);
 }
+
+public interface IMenuAmendmentService
+{
+    Task<MenuAmendmentResultDto> CreateAsync(
+        CreateMenuAmendmentRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<MenuAmendmentResultDto> ReviewAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default);
+}

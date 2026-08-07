@@ -34,6 +34,7 @@ import { useWeeklyMenuImport } from '../weekly-menu/import/useWeeklyMenuImport';
 import { WeeklyMenuImportDialog } from '../weekly-menu/import/WeeklyMenuImportDialog';
 import { useWeeklyScheduleEditor } from '../weekly-menu/schedule/useWeeklyScheduleEditor';
 import { WeeklyScheduleEditorDialog } from '../weekly-menu/schedule/WeeklyScheduleEditorDialog';
+import { MenuAmendmentInbox } from '../weekly-menu/schedule/MenuAmendmentInbox';
 import type { WeeklyScheduleFeedback } from '../weekly-menu/schedule/types';
 import { useWeeklyProductionPlan } from '../weekly-menu/production-plan/useWeeklyProductionPlan';
 import { useMaterialDemand } from '../weekly-menu/demand/useMaterialDemand';
@@ -463,6 +464,7 @@ const WeeklyMenuPage = () => {
       context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
+        <MenuAmendmentInbox />
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[

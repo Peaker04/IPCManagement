@@ -262,7 +262,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: allAvailable(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:46-59',
-      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:42-49',
+      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:52-55',
       'backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs:19,166',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],

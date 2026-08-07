@@ -90,6 +90,9 @@ export type WeeklyMenuImportResult = components['schemas']['WeeklyMenuImportResu
 export type CustomerImportMapping = components['schemas']['CustomerImportMappingDto']
 export type WeeklyMenuImportHistoryItem = components['schemas']['WeeklyMenuImportHistoryItemDto']
 export type RollbackWeeklyMenuImportResult = components['schemas']['RollbackWeeklyMenuImportResultDto']
+export type CreateMenuAmendmentRequest = { customerId: string; weekStartDate: string; reason: string; lines: Array<{ serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON'; dishSlot: string; newDishId: string }> }
+export type MenuAmendmentResult = { menuAmendmentId: string; status: string; requiresReconciliation: boolean; affectedDemandCount: number; affectedPurchaseRequestCount: number; hasPurchaseOrder: boolean; hasReceipt: boolean; hasIssue: boolean; appliedMenuVersionId?: string | null }
+export type MenuAmendmentInboxItem = { menuAmendmentId: string; customerId: string; customerName: string; weekStartDate: string; status: string; reason: string; createdAt: string; requiresReconciliation: boolean; hasPurchaseOrder: boolean; hasReceipt: boolean; hasIssue: boolean; affectedDemandCount: number; affectedPurchaseRequestCount: number }
 
 const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceTierAmount, previewToken }: WeeklyMenuImportRequest) => {
   const formData = new FormData()
@@ -384,6 +387,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    createMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, CreateMenuAmendmentRequest>({
+      query: (body) => ({ url: '/coordination/weekly-menu/amendments', method: 'POST', body }),
+      invalidatesTags: ['Coordination'],
+    }),
+    getMenuAmendments: builder.query<ApiResponse<MenuAmendmentInboxItem[]>, string | void>({ query: (status) => ({ url: '/coordination/weekly-menu/amendments', params: status ? { status } : undefined }), providesTags: ['Coordination'] }),
+    reviewMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; approved: boolean; reason?: string }>({ query: ({ id, approved, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/review`, method: 'POST', body: { approved, reason } }), invalidatesTags: ['Coordination'] }),
+    executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: ['Coordination'] }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, WeeklyMenuImportHistoryQuery | void>({
       query: (params) => {
         const customerId = params?.customerId;
@@ -441,6 +451,10 @@ export const {
   useGetCustomerImportMappingQuery,
   useSaveCustomerImportMappingMutation,
   useUpdateWeeklyMenuBulkMutation,
+  useCreateMenuAmendmentMutation,
+  useGetMenuAmendmentsQuery,
+  useReviewMenuAmendmentMutation,
+  useExecuteMenuAmendmentMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
   useGetProductionPlansQuery,

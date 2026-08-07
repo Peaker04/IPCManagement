@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getWorkbench: vi.fn(),
+  getServiceRunPage: vi.fn(),
   refetch: vi.fn(),
 }));
 
 vi.mock('@/api/workflowApi', () => ({
   useGetPurchaseWorkbenchQuery: mocks.getWorkbench,
+  useGetServiceRunPageQuery: mocks.getServiceRunPage,
 }));
 
 vi.mock('../quotation/useSupplierQuotations', () => ({
@@ -97,6 +99,7 @@ const renderPage = () => render(
 describe('PurchasingPage query state boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getServiceRunPage.mockReturnValue(queryResult());
   });
 
   it('renders query-level forbidden without presenting recovery or empty metrics', () => {

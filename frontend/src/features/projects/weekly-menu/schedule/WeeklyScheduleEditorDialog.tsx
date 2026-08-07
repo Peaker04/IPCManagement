@@ -1,13 +1,16 @@
 import { Lock, X } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import type { WeeklyScheduleEditorWorkflow } from './types'
 
 const EMPTY_DISH_VALUE = '__empty-dish__'
 
 export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklyScheduleEditorWorkflow }) {
   const { scope, state, status, actions, presentation } = workflow
+  const [reason, setReason] = useState('')
   return (
     <Dialog open={state.isEditorOpen} onOpenChange={(open) => !open && actions.closeEditor()}>
       <DialogContent aria-label="Chỉnh sửa thực đơn tuần" className="ipc-weekly-dialog max-w-5xl overflow-hidden">
@@ -32,12 +35,7 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                   return (
                     <div key={day.key} className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-white p-2 shadow-sm">
                       <div className="flex flex-col"><span className="text-xs font-semibold text-slate-700">{day.label}</span><span className="text-xs text-slate-500">{day.date}</span></div>
-                      {locked ? (
-                        <div className="flex h-9 items-center justify-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500">
-                          <Lock size={10} className="text-slate-400" /><span>Đã khóa</span>
-                        </div>
-                      ) : (
-                        <Select
+                      <Select
                           value={selectedDishId}
                           onValueChange={(value) => actions.changeDish(day.key, section.slotType, value === EMPTY_DISH_VALUE || value === null ? '' : value)}
                           disabled={section.dishes.length === 0}
@@ -48,7 +46,7 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                             {section.dishes.length === 0 && <SelectItem value={EMPTY_DISH_VALUE}>Chưa có món trong danh mục</SelectItem>}
                           </SelectContent>
                         </Select>
-                      )}
+                      {locked && <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700"><Lock size={10} />Gửi duyệt thay đổi</span>}
                     </div>
                   )
                 })}
@@ -56,10 +54,11 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
             </div>
           ))}
         </div>
+        <label className="block text-sm font-medium text-slate-700">Lý do thay đổi lịch đã khóa<Textarea value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 min-h-16" placeholder="Bắt buộc khi thay đổi ca đã khóa; Manager sẽ hậu kiểm." /></label>
 
         <DialogFooter className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
           <Button type="button" variant="outline" size="sm" onClick={actions.closeEditor}>Hủy</Button>
-          <Button type="button" size="sm" onClick={() => void actions.saveEditor()} disabled={status.isSavingMenu}>
+          <Button type="button" size="sm" onClick={() => void actions.saveEditor(reason)} disabled={status.isSavingMenu}>
             {status.isSavingMenu ? 'Đang lưu...' : 'Lưu thay đổi'}
           </Button>
         </DialogFooter>

@@ -24,6 +24,22 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'Six page datasets use labeled QueryView owners; the remaining aggregate request is a readiness probe surfaced as unknown/blocked state, never as empty menu data.',
     requiredMarkers: ['toLabeledQueryView', 'demandReadinessResult.isError', 'hasDemandIssue'],
   },
+  'src/features/projects/weekly-menu/schedule/MenuAmendmentInbox.tsx': {
+    rationale: 'The amendment inbox is an action-status notice inside the authoritative weekly-menu boundary; its query never supplies the menu, schedule, or demand table data.',
+    requiredMarkers: ['useGetMenuAmendmentsQuery', 'aria-label="Yêu cầu thay đổi thực đơn"', 'ActionGuard'],
+  },
+  'src/features/chef/production/ServiceRunSection.tsx': {
+    rationale: 'The section queries a per-plan Service Run projection for its own action card; it does not replace the Chef production-plan owner or create an empty production-plan state.',
+    requiredMarkers: ['useGetServiceRunByPlanQuery', 'function ServiceRunCard', 'Ca phục vụ thực tế'],
+  },
+  'src/features/reports/pages/ServiceRunReportPanel.tsx': {
+    rationale: 'The report panel owns its Service Run table and renders explicit error and ready-empty states rather than delegating an authoritative report query to a page-level empty state.',
+    requiredMarkers: ['useGetServiceRunPageQuery', 'Không tải được Ca phục vụ', 'Bảng Ca phục vụ'],
+  },
+  'src/features/service-runs/ServiceRunBlockerPanel.tsx': {
+    rationale: 'The blocker panel is a scoped operational exception projection and renders only blockers; absent rows intentionally mean no blocking document in this auxiliary panel.',
+    requiredMarkers: ['useGetServiceRunPageQuery', 'Ca phục vụ đang bị chặn', 'OPEN_SUPPLEMENTAL'],
+  },
   'src/features/projects/weekly-menu/demand/useMaterialDemand.ts': {
     rationale: 'The authoritative demand/documents/aggregate sources form one composite QueryView; daily staleness and approval history are supporting action/status probes.',
     requiredMarkers: ['const demandView = toQueryView', 'getWeekStalenessState', 'isApprovalHistoryError'],
