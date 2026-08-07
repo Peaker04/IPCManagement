@@ -1,6 +1,6 @@
 ---
-updated: 2026-08-04
-branch: feature/workflow-b17-b18
+updated: 2026-08-07
+branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
   api: 8001
@@ -64,6 +64,8 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
 
 ## Gate hiện hành
+
+Menu-amendment implementation commit `429263a` thêm snapshot yêu cầu thay đổi, hậu kiểm Admin/Quản lý, fail-closed khi đã có PO/nhập/xuất và materialize version/menu/schedule mới khi thực thi nhánh reversible. Backend `746 pass + 1 intentional skip`; frontend được chia ba partition vì full serial Vitest treo trong môi trường, tổng `135 file / 761 test` pass, hai build pass. Browser E2E cho migration mới chưa có evidence: runtime đã teardown và checkout không có `ConnectionStrings__DefaultConnection` trong appsettings/environment/User Secrets, nên không tự chọn hoặc đoán database lane để chạy migration.
 
 Lifecycle rerun chuẩn hóa ngày 05/08 trên `ipc_lane9` đã clone/sanitize riêng rồi chạy menu đúng tuần `2026-08-03`: import/publish một lần, sáu ngày schedule đi hết demand/duyệt/PR/PO/nhập/xuất/Bếp nhận. Friday Service Run khép ca 840/840 và direct DB có `ClosedAt` + snapshot + audit; Saturday thiếu BOM bị `BLOCKED` đúng token. Chrome headed đã đọc ảnh: cột `Mua dự kiến` chỉ là nhu cầu ban đầu, blocker hiện hành thuộc Ca phục vụ; console/page error 0, CLS 0, zero long task. Runner dùng preview token khi commit và tái sử dụng access token theo tuần để không tự chạm auth rate-limit. Runtime `3010/8010` đã teardown.
 
