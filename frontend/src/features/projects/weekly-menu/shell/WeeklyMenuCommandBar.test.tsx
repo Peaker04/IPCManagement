@@ -24,6 +24,28 @@ describe('WeeklyMenuCommandBar select labels', () => {
     expect(trigger).toHaveTextContent('ANV - Nhà máy An Việt')
     expect(trigger).not.toHaveTextContent('customer-1')
   })
+
+  it('opens the customer options returned by the query', async () => {
+    const user = userEvent.setup()
+    render(
+      <WeeklyMenuCommandBar
+        customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'AMANN' }]}
+        selectedCustomerId=""
+        weekStartDate=""
+        isCustomerLoading={false}
+        isImporting={false}
+        onEdit={vi.fn()}
+        onImport={vi.fn()}
+        onExport={vi.fn()}
+        onCustomerChange={vi.fn()}
+        onWeekChange={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('combobox'))
+
+    expect(screen.getByRole('option', { name: 'ANV - AMANN' })).toBeVisible()
+  })
 })
 
 it('offers a guarded publish action for a draft weekly menu', async () => {
