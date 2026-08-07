@@ -91,6 +91,7 @@ public static class DependencyInjection
         services.AddScoped<ISupplementalMaterialRequestService, SupplementalMaterialRequestService>();
         services.AddScoped<IInventoryReturnService, InventoryReturnService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
+        services.AddScoped<IServiceRunService, ServiceRunService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICustomerContractService, CustomerContractService>();
         services.AddScoped<IPortionRuleService, PortionRuleService>();

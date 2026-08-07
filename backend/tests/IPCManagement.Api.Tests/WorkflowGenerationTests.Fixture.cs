@@ -915,6 +915,20 @@ public partial class WorkflowGenerationTests
                     receivedAt TEXT NULL,
                     createdAt TEXT NOT NULL
                 );
+                CREATE TABLE supplementalmaterialrequests (
+                    requestId BLOB PRIMARY KEY,
+                    requestCode TEXT NOT NULL,
+                    issueId BLOB NOT NULL,
+                    issueLineId BLOB NOT NULL,
+                    warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    requestedQty TEXT NOT NULL,
+                    reason TEXT NULL,
+                    status TEXT NOT NULL,
+                    requestedBy BLOB NOT NULL,
+                    requestedAt TEXT NOT NULL
+                );
                 CREATE TABLE inventoryissuelines (
                     issueLineId BLOB PRIMARY KEY,
                     issueId BLOB NOT NULL,

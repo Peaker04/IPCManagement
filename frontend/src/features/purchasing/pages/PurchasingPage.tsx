@@ -12,6 +12,7 @@ import {
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { SupplementalPurchasingWorkbench } from '../SupplementalPurchasingWorkbench';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
+import { ServiceRunBlockerPanel } from '@/features/service-runs/ServiceRunBlockerPanel';
 import { PurchaseWorkflowGuide } from '../PurchaseWorkflowGuide';
 import { SupplierQuotationSection } from '../quotation/SupplierQuotationSection';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
@@ -264,6 +265,7 @@ export default function PurchasingPage() {
           <SupplementalPurchasingWorkbench week={routeState.week} />
           {workbenchView.phase === 'ready' ? (
             <>
+              <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
               <PurchaseWorkflowGuide
                 currentStage={activeDate?.currentStage}
                 selectedStage={routeState.stage}

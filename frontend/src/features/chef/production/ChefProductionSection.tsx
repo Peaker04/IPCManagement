@@ -41,18 +41,18 @@ export function ChefProductionSection({
     : isError
       ? 'Chưa tải được kế hoạch sản xuất. Thử lại trước khi xác nhận.'
       : !isLocked
-        ? 'Ca chưa chốt. Bếp chỉ được xem trước kế hoạch.'
+        ? 'Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.'
         : totalPlans === 0
           ? 'Chưa có kế hoạch sản xuất cho ngày/ca này.'
           : undefined
 
   return (
     <SectionPanel
-      title="Kế hoạch trong ngày đã gửi bếp"
+      title="Kế hoạch điều phối trong ngày"
       icon={<ClipboardList size={18} />}
       badge={(
         isComplete ? (
-          <StatusBadge variant="success">Kế hoạch đã gửi bếp</StatusBadge>
+          <StatusBadge variant="success">Kế hoạch đã đồng bộ</StatusBadge>
         ) : (
           <Button size="sm" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
             <ShieldCheck size={15} aria-hidden="true" />
@@ -62,12 +62,12 @@ export function ChefProductionSection({
       )}
     >
       {blockedReason ? <p className="mb-3 text-[12px] leading-[1.4] text-slate-600" role="status">{blockedReason}</p> : null}
-      <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp" caption="Kế hoạch sản xuất trong ngày đã gửi bếp">
+      <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch điều phối trong ngày" caption="Kế hoạch điều phối trong ngày">
         <table className="ipc-data-table ipc-status-action-table ipc-chef-production-table">
           <thead>
             <tr>
               <th>Kế hoạch</th><th>Khách hàng</th><th>Món</th><th>Ca</th>
-              <th>Suất</th><th>Định lượng</th><th>Thiếu</th><th>Trạng thái</th>
+              <th>Suất</th><th>Định lượng</th><th>Mua dự kiến</th><th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>

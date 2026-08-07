@@ -29,6 +29,7 @@ export { DocumentRail } from './DocumentRail';
 export { StockMovementTable } from './StockMovementTable';
 export { ViewSwitcher } from './ViewSwitcher';
 export { ToastProvider } from './ToastProvider';
+export { ActionGuard } from './ActionGuard';
 export { useToast } from './useToast';
 export { ConfirmDialog } from './ConfirmDialog';
 export type { ToastItem, ToastOptions, ToastVariant } from './toast-context';

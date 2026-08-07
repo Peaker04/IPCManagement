@@ -179,6 +179,17 @@ public class StockMovementReportService : IStockMovementReportService
                 AfterQty = item.AfterQty,
                 RefTable = item.RefTable,
                 RefId = item.RefId == null ? null : GuidHelper.ToGuidString(item.RefId),
+                KitchenReceiptStatus = item.MovementType == "ISSUE"
+                    ? item.RefTable == "inventoryissues"
+                        ? _context.Inventoryissues.Any(issue => issue.IssueId == item.RefId && issue.ReceivedAt != null)
+                            ? "RECEIVED"
+                            : "PENDING"
+                        : item.RefTable == "supplementalmaterialrequests"
+                            ? _context.Supplementalmaterialrequests.Any(request => request.RequestId == item.RefId && request.Status == "FULFILLED")
+                                ? "RECEIVED"
+                                : "PENDING"
+                            : null
+                    : null,
                 Reason = item.Reason,
                 Note = item.Note
             })

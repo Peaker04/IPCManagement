@@ -3271,6 +3271,228 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("roles", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ServiceRun", b =>
+                {
+                    b.Property<byte[]>("ServiceRunId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("serviceRunId")
+                        .IsFixedLength();
+
+                    b.Property<int?>("ActualServings")
+                        .HasColumnType("int")
+                        .HasColumnName("actualServings");
+
+                    b.Property<string>("ActualServingsReason")
+                        .HasColumnType("text")
+                        .HasColumnName("actualServingsReason");
+
+                    b.Property<DateTime?>("ActualServingsRecordedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("actualServingsRecordedAt");
+
+                    b.Property<byte[]>("ActualServingsRecordedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("actualServingsRecordedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("CloseSnapshotJson")
+                        .HasColumnType("longtext")
+                        .HasColumnName("closeSnapshotJson");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("closedAt");
+
+                    b.Property<byte[]>("ClosedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("closedBy")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<byte[]>("OpenedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("openedBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("PlanId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("planId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ServiceConfirmationPolicy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("WAIVABLE")
+                        .HasColumnName("serviceConfirmationPolicy");
+
+                    b.Property<DateTime?>("ServiceConfirmationWaivedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("serviceConfirmationWaivedAt");
+
+                    b.Property<byte[]>("ServiceConfirmationWaivedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("serviceConfirmationWaivedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("ServiceConfirmationWaiverReason")
+                        .HasColumnType("text")
+                        .HasColumnName("serviceConfirmationWaiverReason");
+
+                    b.Property<DateTime?>("ServiceConfirmedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("serviceConfirmedAt");
+
+                    b.Property<byte[]>("ServiceConfirmedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("serviceConfirmedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("ServingVarianceResolutionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("servingVarianceResolutionReason");
+
+                    b.Property<DateTime?>("ServingVarianceResolvedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("servingVarianceResolvedAt");
+
+                    b.Property<byte[]>("ServingVarianceResolvedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("servingVarianceResolvedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("ShiftName")
+                        .IsRequired()
+                        .HasColumnType("enum('MORNING','AFTERNOON')")
+                        .HasColumnName("shiftName");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("startedAt");
+
+                    b.Property<byte[]>("StartedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("startedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)")
+                        .HasDefaultValue("PLANNED")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt");
+
+                    b.Property<string>("VarianceResolutionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("varianceResolutionReason");
+
+                    b.Property<DateTime?>("VarianceResolvedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("varianceResolvedAt");
+
+                    b.Property<byte[]>("VarianceResolvedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("varianceResolvedBy")
+                        .IsFixedLength();
+
+                    b.HasKey("ServiceRunId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("ActualServingsRecordedBy");
+
+                    b.HasIndex("ClosedBy");
+
+                    b.HasIndex("OpenedBy");
+
+                    b.HasIndex("ServiceConfirmationWaivedBy");
+
+                    b.HasIndex("ServiceConfirmedBy");
+
+                    b.HasIndex("ServingVarianceResolvedBy");
+
+                    b.HasIndex("StartedBy");
+
+                    b.HasIndex("VarianceResolvedBy");
+
+                    b.HasIndex(new[] { "Status", "UpdatedAt" }, "ixServiceRunsStatusUpdatedAt");
+
+                    b.HasIndex(new[] { "PlanId", "ShiftName" }, "uqServiceRunsPlanShift")
+                        .IsUnique();
+
+                    b.ToTable("serviceruns", null, t =>
+                        {
+                            t.HasCheckConstraint("ckServiceRunsConfirmationOutcome", "`serviceConfirmedAt` IS NULL OR `serviceConfirmationWaivedAt` IS NULL");
+
+                            t.HasCheckConstraint("ckServiceRunsConfirmationPolicy", "`serviceConfirmationPolicy` IN ('REQUIRED', 'WAIVABLE')");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ServiceRunAdjustment", b =>
+                {
+                    b.Property<byte[]>("ServiceRunAdjustmentId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("serviceRunAdjustmentId")
+                        .IsFixedLength();
+
+                    b.Property<int>("CorrectedActualServings")
+                        .HasColumnType("int")
+                        .HasColumnName("correctedActualServings");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<byte[]>("ServiceRunId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("serviceRunId")
+                        .IsFixedLength();
+
+                    b.HasKey("ServiceRunAdjustmentId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex(new[] { "ServiceRunId", "CreatedAt" }, "ixServiceRunAdjustmentsRunCreatedAt");
+
+                    b.ToTable("servicerunadjustments", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.StockMovement", b =>
                 {
                     b.Property<byte[]>("MovementId")
@@ -5019,6 +5241,86 @@ namespace IPCManagement.Api.Migrations
                         .HasConstraintName("refreshtokens_ibfk_1");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ServiceRun", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActualServingsRecordedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsActualServingsRecordedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ClosedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsClosedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OpenedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fkServiceRunsOpenedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ProductionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fkServiceRunsPlan");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceConfirmationWaivedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsConfirmationWaivedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceConfirmedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsServiceConfirmedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ServingVarianceResolvedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsServingVarianceResolvedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("StartedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsStartedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("VarianceResolvedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fkServiceRunsVarianceResolvedBy");
+
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ServiceRunAdjustment", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fkServiceRunAdjustmentsCreatedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ServiceRun", "ServiceRun")
+                        .WithMany()
+                        .HasForeignKey("ServiceRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fkServiceRunAdjustmentsRun");
+
+                    b.Navigation("ServiceRun");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.StockMovement", b =>

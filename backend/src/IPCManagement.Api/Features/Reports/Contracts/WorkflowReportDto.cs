@@ -56,6 +56,8 @@ public class StockMovementViewDto
     public decimal AfterQty { get; set; }
     public string? RefTable { get; set; }
     public string? RefId { get; set; }
+    /// <summary>Trạng thái bếp xác nhận đối với phiếu xuất kho; null với biến động không cần bếp ký nhận.</summary>
+    public string? KitchenReceiptStatus { get; set; }
     public string? Reason { get; set; }
     public string? Note { get; set; }
 }

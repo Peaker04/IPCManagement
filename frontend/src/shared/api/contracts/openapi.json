@@ -7669,6 +7669,692 @@
         }
       }
     },
+    "/api/service-runs": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenServiceRunRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenServiceRunRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenServiceRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}": {
+      "get": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/by-plan": {
+      "get": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "PlanId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ShiftName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/page": {
+      "get": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "ServiceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ShiftName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDesc",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunOperationalRowDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunOperationalRowDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunOperationalRowDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/start": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/actual-servings": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordActualServingsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordActualServingsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordActualServingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/service-confirmation": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/service-confirmation/waive": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/variance/resolve": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/serving-variance/resolve": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/close": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/adjustments": {
+      "get": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Stocktakes": {
       "get": {
         "tags": [
@@ -18256,6 +18942,23 @@
         },
         "additionalProperties": false
       },
+      "CreateServiceRunAdjustmentRequest": {
+        "required": [
+          "correctedActualServings",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "correctedActualServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateStocktakeRequest": {
         "required": [
           "ingredientIds",
@@ -18596,6 +19299,7 @@
           "customerId",
           "customerimportmappings",
           "customerName",
+          "customerweekmenutiers",
           "dishboms",
           "mealquantityplanlines",
           "menuschedules",
@@ -18639,6 +19343,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CustomerContract"
+            }
+          },
+          "customerweekmenutiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerWeekMenuTier"
             }
           },
           "dishboms": {
@@ -18941,6 +19651,50 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerWeekMenuTier": {
+        "required": [
+          "createdAt",
+          "customer",
+          "customerId",
+          "menuschedules",
+          "priceTierAmount",
+          "tierId",
+          "weekStartDate"
+        ],
+        "type": "object",
+        "properties": {
+          "tierId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "weekStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "menuschedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuSchedule"
+            }
           }
         },
         "additionalProperties": false
@@ -23914,6 +24668,7 @@
           "bomRatePercent",
           "customer",
           "customerId",
+          "customerWeekMenuTier",
           "mealquantityplanlines",
           "menu",
           "menuId",
@@ -23967,6 +24722,9 @@
           },
           "customer": {
             "$ref": "#/components/schemas/Customer"
+          },
+          "customerWeekMenuTier": {
+            "$ref": "#/components/schemas/CustomerWeekMenuTier"
           },
           "mealquantityplanlines": {
             "type": "array",
@@ -24419,6 +25177,22 @@
             "type": "string"
           },
           "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OpenServiceRunRequest": {
+        "required": [
+          "planId",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "shiftName": {
             "type": "string"
           }
         },
@@ -27876,6 +28650,18 @@
         },
         "additionalProperties": false
       },
+      "ReasonRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReceiptPriceVarianceReportDto": {
         "required": [
           "ingredientId",
@@ -28034,6 +28820,23 @@
             "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoPagedResponseDto"
           },
           "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecordActualServingsRequest": {
+        "required": [
+          "actualServings"
+        ],
+        "type": "object",
+        "properties": {
+          "actualServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -28794,6 +29597,358 @@
         },
         "additionalProperties": false
       },
+      "ServiceRunAdjustmentDto": {
+        "required": [
+          "correctedActualServings",
+          "createdAt",
+          "reason",
+          "serviceRunAdjustmentId",
+          "serviceRunId"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceRunAdjustmentId": {
+            "type": "string"
+          },
+          "serviceRunId": {
+            "type": "string"
+          },
+          "correctedActualServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunAdjustmentDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ServiceRunAdjustmentDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunAdjustmentDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunAdjustmentDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunLifecycleProjectionDto": {
+        "required": [
+          "adjustmentCount",
+          "blockers",
+          "canClose",
+          "canConfirmService",
+          "canRecordActualServings",
+          "canResolveServingVariance",
+          "canResolveVariance",
+          "canStartService",
+          "canWaiveServiceConfirmation",
+          "hasBomBlocker",
+          "issueCount",
+          "materialRequestLineCount",
+          "openSupplementalCount",
+          "planCode",
+          "planId",
+          "plannedServings",
+          "serviceConfirmationOutcome",
+          "serviceDate",
+          "serviceRunId",
+          "shiftName",
+          "status",
+          "unreceivedIssueCount",
+          "unreceivedReturnCount"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceRunId": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "string"
+          },
+          "planCode": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "canStartService": {
+            "type": "boolean"
+          },
+          "canRecordActualServings": {
+            "type": "boolean"
+          },
+          "canConfirmService": {
+            "type": "boolean"
+          },
+          "canWaiveServiceConfirmation": {
+            "type": "boolean"
+          },
+          "canResolveVariance": {
+            "type": "boolean"
+          },
+          "canResolveServingVariance": {
+            "type": "boolean"
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "serviceConfirmationOutcome": {
+            "type": "string"
+          },
+          "plannedServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actualServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "materialRequestLineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unreceivedIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openSupplementalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unreceivedReturnCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasBomBlocker": {
+            "type": "boolean"
+          },
+          "adjustmentCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunLifecycleProjectionDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunOperationalRowDto": {
+        "required": [
+          "estimatedPurchaseCost",
+          "isCloseSnapshot",
+          "issueCodes",
+          "issueLineIds",
+          "lifecycle",
+          "materialRequestCodes",
+          "materialRequestLineIds",
+          "returnCodes",
+          "supplementalRequestCodes"
+        ],
+        "type": "object",
+        "properties": {
+          "lifecycle": {
+            "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDto"
+          },
+          "materialRequestCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issueCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "returnCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supplementalRequestCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "materialRequestLineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issueLineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estimatedPurchaseCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "actualReceivedCost": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isCloseSnapshot": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunOperationalRowDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunOperationalRowDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunOperationalRowDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ServiceRunOperationalRowDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SignoffOrderRequest": {
         "type": "object",
         "properties": {
@@ -29117,6 +30272,10 @@
             "nullable": true
           },
           "refId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kitchenReceiptStatus": {
             "type": "string",
             "nullable": true
           },

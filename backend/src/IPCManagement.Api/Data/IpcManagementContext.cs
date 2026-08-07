@@ -82,6 +82,9 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<ProductionPlanLine> Productionplanlines { get; set; }
 
+    public virtual DbSet<ServiceRun> Serviceruns { get; set; }
+    public virtual DbSet<ServiceRunAdjustment> Servicerunadjustments { get; set; }
+
     public virtual DbSet<PurchaseRequest> Purchaserequests { get; set; }
 
     public virtual DbSet<PurchaseRequestLine> Purchaserequestlines { get; set; }

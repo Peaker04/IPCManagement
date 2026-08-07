@@ -46,7 +46,8 @@ function Invoke-DailyLifecycle {
     param(
         [string]$Date,
         [switch]$ReusePublishedMenu,
-        [switch]$PreserveDatabase
+        [switch]$PreserveDatabase,
+        [string]$AccessToken = ""
     )
 
     $arguments = @{
@@ -60,6 +61,9 @@ function Invoke-DailyLifecycle {
         OutputRoot = $dayOutputRoot
         SkipSeedReset = $SkipSeedReset -or $PreserveDatabase
         SkipWeeklyMenuImport = $ReusePublishedMenu
+    }
+    if (-not [string]::IsNullOrWhiteSpace($AccessToken)) {
+        $arguments.AccessToken = $AccessToken
     }
     & $dailyRunner @arguments
     if (-not $?) {
@@ -86,7 +90,7 @@ if ($serviceDates.Count -eq 0) { throw "The imported template created no schedul
 if ($serviceDates -notcontains $WeekStartDate) { throw "The imported template did not create a schedule for week start $WeekStartDate." }
 
 foreach ($serviceDate in @($serviceDates | Where-Object { $_ -ne $WeekStartDate })) {
-    Invoke-DailyLifecycle -Date $serviceDate -ReusePublishedMenu -PreserveDatabase
+    Invoke-DailyLifecycle -Date $serviceDate -ReusePublishedMenu -PreserveDatabase -AccessToken $login.data.accessToken
 }
 
 $daySummaries = @(Get-ChildItem -LiteralPath $dayOutputRoot -Filter "happy-path-e2e-summary.md" -Recurse | Sort-Object FullName)

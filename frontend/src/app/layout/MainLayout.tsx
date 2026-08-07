@@ -133,7 +133,7 @@ export const MainLayout = () => {
       case ROUTES.CHEF_DASHBOARD:
         return { title: 'Bếp sản xuất', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.REPORTS:
-        return { title: 'Phân tích biến động giá', workflow: 'Biến động giá', state: 'Cảnh báo ngưỡng' };
+        return { title: 'Báo cáo vận hành', workflow: 'Báo cáo vận hành', state: 'Theo dõi vận hành' };
       case ROUTES.APPROVALS:
         return { title: 'Duyệt vận hành', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.PURCHASING:

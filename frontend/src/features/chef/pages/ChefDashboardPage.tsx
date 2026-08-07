@@ -12,6 +12,7 @@ import { ChefHeader } from '../components/chef-header'
 import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
 import { useChefJournal } from '../journal/useChefJournal'
 import { ChefProductionSection } from '../production/ChefProductionSection'
+import { ServiceRunSection } from '../production/ServiceRunSection'
 import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '../production/useChefProductionPlan'
 import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
@@ -55,11 +56,15 @@ export default function ChefDashboardPage() {
           ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
           : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
-    ...production.dailyPlanWarnings,
+    ...production.dailyPlanWarnings.map((warning) => warning === 'Có kế hoạch chưa gửi bếp.'
+      ? 'Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.'
+      : warning),
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
-  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.some((warning) =>
+    !warning.startsWith('KHSX có nhu cầu mua ban đầu;'),
+  ) ? 'warning' : 'info'
 
   const signOffMaterial = async (materialId: string, signed: boolean) => {
     await receipts.signOff(
@@ -74,7 +79,7 @@ export default function ChefDashboardPage() {
       context={(
         <>
           <ContextStrip items={[
-            { label: 'Kế hoạch hôm nay', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã gửi` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
+            { label: 'Kế hoạch điều phối', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã đồng bộ` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
             { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
             { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
@@ -121,6 +126,7 @@ export default function ChefDashboardPage() {
               sentPlans={production.dailyPlan?.sentPlans ?? 0}
               onReceivePlan={production.receiveDailyPlan}
             />
+            <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
             <KitchenReceiptSection
               productionPlan={production.productionPlan}
               returns={exceptions.activeReturns}
@@ -194,6 +200,6 @@ function ShiftAlert({ isLocked }: { isLocked: boolean }) {
   return isLocked ? (
     <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo kế hoạch sản xuất.</InlineAlert>
   ) : (
-    <InlineAlert title="Bản dự thảo từ điều phối" icon={<ShieldAlert className="size-4" />} variant="warning">Chưa chốt ca. Bếp chỉ xem trước kế hoạch sản xuất, chưa xác nhận nhận nguyên liệu.</InlineAlert>
+    <InlineAlert title="Kế hoạch điều phối chưa chốt" icon={<ShieldAlert className="size-4" />} variant="warning">Bếp có thể xem trước kế hoạch. Trạng thái nhận nguyên liệu được xác định riêng trong Checklist nhận nguyên liệu.</InlineAlert>
   )
 }

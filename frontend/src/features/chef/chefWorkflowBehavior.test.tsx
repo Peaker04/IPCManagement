@@ -95,7 +95,7 @@ describe('chef workflow service-date behavior', () => {
       dateFrom: '2026-07-20',
       dateTo: '2026-07-20',
       pageNumber: 1,
-      pageSize: 100,
+      pageSize: 20,
     }, { skip: false })
     expect(result.current.rows).toEqual([])
 
@@ -165,7 +165,7 @@ describe('chef workflow service-date behavior', () => {
     expect(result.current.allReceived).toBe(false)
 
     act(() => result.current.setPage(2))
-    expect(mocks.getKitchenIssues).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2, pageSize: 100 }), { skip: false })
+    expect(mocks.getKitchenIssues).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2, pageSize: 20 }), { skip: false })
   })
 
   it('does not expose supplemental or return mutations when the selected scope has no issue', async () => {
@@ -272,7 +272,7 @@ describe('chef workflow service-date behavior', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Nhận kế hoạch' })).toBeDisabled()
-    expect(screen.getByText('Ca chưa chốt. Bếp chỉ được xem trước kế hoạch.')).toBeInTheDocument()
+    expect(screen.getByText('Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.')).toBeInTheDocument()
   })
 
   it('replaces the plan receipt action with completion status after all plans are sent', () => {
@@ -290,7 +290,7 @@ describe('chef workflow service-date behavior', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Nhận kế hoạch' })).not.toBeInTheDocument()
-    expect(screen.getByText('Kế hoạch đã gửi bếp')).toBeInTheDocument()
+    expect(screen.getByText('Kế hoạch đã đồng bộ')).toBeInTheDocument()
   })
 
   it('uses the selected service date when creating an inventory return', async () => {

@@ -256,6 +256,16 @@ export interface DailyProductionPlan {
 export type ProductionPlanDto = components['schemas']['ProductionPlanDto'];
 export type DailyProductionPlanDto = components['schemas']['DailyProductionPlanDto'];
 export type SendDailyProductionPlanRequest = components['schemas']['SendDailyProductionPlanRequest'];
+  export type ServiceRunLifecycleProjectionDto = components['schemas']['ServiceRunLifecycleProjectionDto'];
+  export type ServiceRunOperationalRowDto = components['schemas']['ServiceRunOperationalRowDto'];
+  export type ServiceRunPageResponseDto = components['schemas']['ServiceRunOperationalRowDtoPagedResponseDto'];
+  export type ServiceRunPageQuery = { pageNumber?: number; pageSize?: number; serviceDate?: string; shiftName?: string; status?: string };
+  export type ServiceRunByPlanQuery = { planId: string; shiftName: string };
+export type OpenServiceRunRequest = components['schemas']['OpenServiceRunRequest'];
+export type RecordActualServingsRequest = components['schemas']['RecordActualServingsRequest'];
+  export type ReasonRequest = components['schemas']['ReasonRequest'];
+  export type CreateServiceRunAdjustmentRequest = components['schemas']['CreateServiceRunAdjustmentRequest'];
+  export type ServiceRunAdjustmentDto = components['schemas']['ServiceRunAdjustmentDto'];
 export type ApprovalInboxItemDto = components['schemas']['ApprovalInboxItemDto'];
 export type ApprovalRuleDto = components['schemas']['ApprovalRule'];
 export type ApprovalAssignmentDto = components['schemas']['ApprovalAssignment'];

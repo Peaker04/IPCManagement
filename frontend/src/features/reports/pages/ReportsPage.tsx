@@ -40,6 +40,7 @@ import { ReportsNavigation } from './ReportsNavigation';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import { ReportsPricePanel } from './ReportsPricePanel';
+import { ServiceRunReportPanel } from './ServiceRunReportPanel';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -137,6 +138,8 @@ return (
       }
     >
       <ReportsNavigation model={model} />
+
+      {activeView === 'audit' && <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />}
 
       {activeView === 'price' ? (
         <ReportsPricePanel model={model} />

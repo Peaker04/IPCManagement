@@ -46,7 +46,6 @@ import type {
   DemandLine,
   RoleInboxItem,
   StockMovement,
-  StockMovementType,
   WorkflowDocument,
   WorkflowLane,
   WorkflowTone,
@@ -61,7 +60,7 @@ import {
   workflowLaneDefinitions,
 } from '@/lib/workflowConfig';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
-import { mapDemandAggregateLine } from './reportMappers';
+import { mapDemandAggregateLine, mapStockMovement } from './reportMappers';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 const queryWithLimit = (query?: WorkflowReportQuery) => ({
@@ -111,35 +110,6 @@ const mapPurchasePlanRow = (item: PurchasePlanReportDto): PurchasePlanRow => ({
   expectedDeliveryDate: item.expectedDeliveryDate ?? undefined,
   warnings: [...item.warnings],
 });
-
-const mapStockMovement = (item: StockMovementViewDto): StockMovement => {
-  const movementType = item.movementType.toUpperCase();
-  const type: StockMovementType =
-    movementType === 'RECEIPT'
-      ? 'receipt'
-      : movementType === 'ISSUE'
-        ? 'issue'
-        : movementType === 'RETURN'
-          ? 'return'
-          : 'adjustment';
-  const quantity = type === 'issue' ? item.quantityOut : item.quantityIn;
-  const tone = type === 'adjustment' || type === 'return' ? 'success' : 'warning';
-
-  return {
-    id: item.movementId,
-    type,
-    documentNo: item.refTable ? `${item.refTable}${item.refId ? `-${item.refId.slice(0, 8)}` : ''}` : item.movementId.slice(0, 8),
-    material: item.ingredientName ?? item.ingredientId,
-    quantity,
-    beforeQty: item.beforeQty,
-    afterQty: item.afterQty,
-    unit: item.unitName ?? '',
-    owner: item.warehouseName ?? 'Kho',
-    status: type === 'receipt' ? 'Đã nhập kho' : type === 'issue' ? 'Đã xuất kho' : type === 'return' ? 'Đã hoàn kho' : 'Đã điều chỉnh tồn',
-    nextAction: type === 'issue' ? 'Bếp xác nhận nhận nguyên liệu' : 'Cập nhật tồn kho',
-    tone,
-  };
-};
 
 const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow => ({
   id: `${item.receiptId}-${item.ingredientId}-${item.unitId}`,

@@ -256,6 +256,97 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task StockMovements_Should_ProjectKitchenReceiptState_ForStandardAndSupplementalIssues()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 250m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string issueId;
+        await using (var context = fixture.CreateContext())
+        {
+            var issueService = CreateInventoryIssueService(context);
+            var created = await issueService.CreateAsync(new CreateInventoryIssueRequest
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId
+            }, fixture.UserIdString);
+            issueId = created!.IssueId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            await CreateInventoryIssueService(context).ConfirmReceiptAsync(
+                issueId,
+                new ConfirmInventoryIssueReceiptRequest(),
+                fixture.UserIdString);
+
+            var issued = await context.Inventoryissues.SingleAsync();
+            var issueLine = await context.Inventoryissuelines.SingleAsync();
+            var supplementalRequestId = GuidHelper.NewId();
+            context.Supplementalmaterialrequests.Add(new SupplementalMaterialRequest
+            {
+                RequestId = supplementalRequestId,
+                RequestCode = "SUP-RECEIVED",
+                IssueId = issued.IssueId,
+                IssueLineId = issueLine.IssueLineId,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                RequestedQty = 1m,
+                Status = "FULFILLED",
+                RequestedBy = fixture.UserId,
+                RequestedAt = DateTime.UtcNow
+            });
+            context.Stockmovements.Add(new StockMovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = DateTime.UtcNow,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                RefTable = "supplementalmaterialrequests",
+                RefId = supplementalRequestId,
+                QuantityOut = 1m,
+                BeforeQty = 50m,
+                AfterQty = 49m,
+                PerformedBy = fixture.UserId
+            });
+            await context.SaveChangesAsync();
+
+            var rows = await new StockMovementReportService(context)
+                .GetStockMovementsAsync(new WorkflowReportQueryDto { Limit = 10 });
+
+            rows.Should().Contain(row => row.RefTable == "inventoryissues" && row.KitchenReceiptStatus == "RECEIVED");
+            rows.Should().Contain(row => row.RefTable == "supplementalmaterialrequests" && row.KitchenReceiptStatus == "RECEIVED");
+        }
+    }
+
+    [Fact]
     public async Task InventoryReturnAndWaste_Should_RecordProductionVariance_AndFeedUsageReport()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

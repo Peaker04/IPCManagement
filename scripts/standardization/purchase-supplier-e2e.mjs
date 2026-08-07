@@ -68,6 +68,15 @@ const selectSaturdayOnChefDashboard = async () => {
   await page.getByRole('option', { name: 'Thứ Bảy', exact: true }).click()
   await page.waitForTimeout(300)
 }
+const waitForAuditReady = async (label) => {
+  const panel = page.locator('#admin-audit-panel')
+  await panel.waitFor({ state: 'visible', timeout: 20_000 })
+  const table = panel.locator('table.ipc-admin-audit-table')
+  await table.waitFor({ state: 'visible', timeout: 20_000 })
+  const rowCount = await table.locator('tbody tr').count()
+  evidence.auditReadiness ??= []
+  evidence.auditReadiness.push({ label, state: rowCount > 0 ? 'rows' : 'empty', rowCount })
+}
 
 try {
   probe = 'login'
@@ -446,6 +455,11 @@ try {
     await settle()
     await page.getByRole('tab', { name: 'Nhập/xuất kho', exact: true }).click()
     await page.getByText('Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày', { exact: true }).waitFor({ state: 'visible', timeout: 20_000 })
+    const receivedIssueRows = page.getByText('Bếp đã nhận', { exact: true })
+    await receivedIssueRows.first().waitFor({ state: 'visible', timeout: 20_000 })
+    if (await receivedIssueRows.count() < 2) {
+      throw new Error('Stock movement report did not render both standard and supplemental kitchen-received states.')
+    }
     await capturePerformance('reports-movement-after-reload')
     await page.screenshot({ path: path.join(root, 'reports-movement-after-reload.png'), fullPage: true })
 
@@ -453,10 +467,12 @@ try {
     await settle()
     await page.getByRole('tab', { name: 'Audit', exact: true }).click()
     await page.getByText('Nhật ký thay đổi hệ thống (Audit Trail)', { exact: true }).waitFor({ state: 'visible', timeout: 20_000 })
+    await waitForAuditReady('admin-audit-before-reload')
     await page.reload()
     await settle()
     await page.getByRole('tab', { name: 'Audit', exact: true }).click()
     await page.getByText('Nhật ký thay đổi hệ thống (Audit Trail)', { exact: true }).waitFor({ state: 'visible', timeout: 20_000 })
+    await waitForAuditReady('admin-audit-after-reload')
     await capturePerformance('admin-audit-after-reload')
     await page.screenshot({ path: path.join(root, 'admin-audit-after-reload.png'), fullPage: true })
   } else if (phase === 'terminal-visual-matrix') {
@@ -494,6 +510,7 @@ try {
       await settle()
       await page.getByRole('tab', { name: 'Audit', exact: true }).click()
       await page.getByText('Nhật ký thay đổi hệ thống (Audit Trail)', { exact: true }).waitFor({ state: 'visible', timeout: 20_000 })
+      await waitForAuditReady(`terminal-ui-${label}-admin-audit`)
       await capturePerformance(`terminal-ui-${label}`)
       await page.screenshot({ path: path.join(root, `${label}-admin-audit.png`), fullPage: true })
       evidence.visualMatrix.push({ viewport: label, routes: ['chef', 'warehouse-exceptions', 'reports-movement', 'admin-audit'] })

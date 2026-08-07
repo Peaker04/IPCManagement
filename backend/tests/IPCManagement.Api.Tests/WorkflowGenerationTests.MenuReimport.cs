@@ -85,6 +85,66 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task WeeklyMenuReimport_Should_RejectBeforeCancelling_WhenPurchaseOrderAlreadyExists()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        demand.Should().NotBeNull();
+        await ApproveDemandAsync(context, demand!.MaterialRequestId);
+        var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandRequest { MaterialRequestId = demand.MaterialRequestId },
+            fixture.UserIdString);
+        purchase.Should().NotBeNull();
+
+        context.Purchaseorders.Add(new PurchaseOrder
+        {
+            PurchaseOrderId = GuidHelper.NewId(),
+            PurchaseOrderCode = "PO-MENU-REIMPORT-BLOCK",
+            PurchaseRequestId = GuidHelper.ParseGuidString(purchase!.PurchaseRequestId)!,
+            SupplierId = fixture.SupplierId,
+            OrderDate = new DateOnly(2026, 6, 14),
+            Status = "ORDERED",
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        var customer = await context.Customers.SingleAsync();
+        var version = new MenuVersion
+        {
+            MenuVersionId = GuidHelper.NewId(),
+            CustomerId = customer.CustomerId,
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            VersionNo = 2,
+            Status = "DRAFT",
+            SourceImportBatch = "MENU-CUS-20260615-V02",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.Menuversions.Add(version);
+        await context.SaveChangesAsync();
+        var auditCountBefore = await context.Auditlogs.AsNoTracking().CountAsync();
+
+        var act = () => CreateWeeklyMenuImportPersistence(context).InvalidateWorkflowDocumentsForMenuReimportAsync(
+            customer,
+            new DateOnly(2026, 6, 15),
+            new DateOnly(2026, 6, 20),
+            version,
+            fixture.UserIdString,
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*đã có PO, phiếu nhập hoặc phiếu xuất*");
+        (await context.Materialrequests.AsNoTracking().SingleAsync()).Status.Should().Be("MANAGERAPPROVED");
+        (await context.Purchaserequests.AsNoTracking().SingleAsync()).Status.Should().Be("DRAFT");
+        (await context.Auditlogs.AsNoTracking().CountAsync()).Should().Be(auditCountBefore);
+    }
+
+    [Fact]
     public async Task WeeklyMenuImport_Should_PreserveExistingGlobalDishClassification()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

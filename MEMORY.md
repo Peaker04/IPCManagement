@@ -65,10 +65,14 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 
 ## Gate hiện hành
 
+Lifecycle rerun chuẩn hóa ngày 05/08 trên `ipc_lane9` đã clone/sanitize riêng rồi chạy menu đúng tuần `2026-08-03`: import/publish một lần, sáu ngày schedule đi hết demand/duyệt/PR/PO/nhập/xuất/Bếp nhận. Friday Service Run khép ca 840/840 và direct DB có `ClosedAt` + snapshot + audit; Saturday thiếu BOM bị `BLOCKED` đúng token. Chrome headed đã đọc ảnh: cột `Mua dự kiến` chỉ là nhu cầu ban đầu, blocker hiện hành thuộc Ca phục vụ; console/page error 0, CLS 0, zero long task. Runner dùng preview token khi commit và tái sử dụng access token theo tuần để không tự chạm auth rate-limit. Runtime `3010/8010` đã teardown.
+
 Gate Phase 26 chốt ngày `2026-08-02`: 5/5 plan, verifier `5/5 must-haves`, FLOOR-01..04 và
 SOURCE-01..03 đều Complete. Application `49/49`; API `705 pass + 1 intentional skip`; frontend
 `123 files / 724 tests`; UI-completeness `87/87`; ESLint, dependency-cruiser `0 violation / 373 modules /
 1,346 dependencies`, backend build và frontend production build đều pass.
+
+Service Run lifecycle closeout ngày 05/08 trên `ipc_e2e_template`: Reports tách `estimatedPurchaseCost` theo PurchaseRequestLine và `actualReceivedCost` theo ReceiptLine, giữ `null` khi chưa nhập; source-line issue projection đã scope đúng plan/date/shift. Chrome headed recheck xác nhận lệch suất `840 → 839`, waiver có lý do, close/reload, Warehouse/Purchasing/Reports API 200 và DB audit/snapshot. Hash authoritative nằm ở `docs/EVIDENCE-INDEX.md`; runtime `3010/8010` đã teardown.
 
 Current-source sau quick `260803-pwg` tại `7e58f94`: contract chuẩn hóa tiếp tục rollout sang Warehouse exceptions. Danh sách cấp bổ sung, danh sách phiếu trả và chi tiết phiếu trả dùng `QueryView`/`QueryViewBoundary`; error/forbidden không còn đi kèm bảng/form trống giả, retry thuộc đúng owner và refresh giữ hàng đang xem. Dashboard slice tại `e0f3361` vẫn giữ nguyên. Root gate pass Application `49/49`, API `705 pass + 1 intentional skip`, UI-completeness `87/87`, frontend `126 files / 741 tests`, ESLint, dependency-cruiser `0 violation / 375 modules / 1,350 dependencies`, backend build và frontend production build. Không browser/runtime/database mutation; Phase 27 chưa mở.
 
@@ -85,6 +89,8 @@ Local state-transition E2E ngày 04/08 đã dùng dữ liệu có kiểm soát t
 Dataset E2E tuần hiện tại được giữ lại trong `ipc_e2e_template`: ANV tuần `2026-08-03` có version đã publish, 12 schedule và 1 tier. Menu chuẩn có `Thịt heo kho sả ruốc` đủ 9 BOM và món định danh `Món E2E thiếu BOM tuần 20260803` thiếu BOM có chủ đích; browser headed reload + catalog API + DB probe đã xác nhận cả hai nhánh. Không import lại hoặc reset giữa các transition của lifecycle đã hoàn tất. Checkpoint rollback có trước import; hash/pointer nằm ở `docs/EVIDENCE-INDEX.md`. Không chạm `ipc_lane1`.
 
 Full-project lifecycle E2E đã hoàn tất ngày 04/08 trên `ipc_e2e_template`, không chạm `ipc_lane1`: import menu tuần ANV → publish → hoàn tất 12 ca → demand (đủ BOM, thiếu BOM và shortage) → duyệt demand/PR → supplier/PO/nhập kho → xuất kho/bếp ký nhận → phiếu trả `RET-20260804-201237-A8A8` được kho nhận → yêu cầu bổ sung `SUP-20260804-131528-E847` được cấp đủ và bếp ký nhận. Chrome headed reload đã xác nhận Reports và Admin Audit; matrix read-only 5 viewport × Bếp/Kho ngoại lệ/Báo cáo/Admin Audit có 20 screenshot, console/page error `0`, CLS `0`, zero long task. DB direct read-only trả `ReceivedIssueCount=1`, `IssueLineCount=7`, `ReceivedReturnCount=1`, `FulfilledSupplementalCount=1`. Evidence authoritative và hash nằm ở `docs/EVIDENCE-INDEX.md`; API audit runtime `3010/8010` hiện vẫn chạy với override `ipc_e2e_template`, không restart nếu chưa giữ override đó.
+
+Audit evidence-led ngày 05/08 trên current worktree sửa projection Reports: ISSUE chuẩn dùng `InventoryIssue.ReceivedAt`, ISSUE bổ sung dùng `SupplementalMaterialRequest.FULFILLED`; sau Chrome headed reload cả hai hiển thị `Bếp đã nhận`/`Đã hoàn tất`. Audit table được chờ đến khi render thực sự (8 rows trước/sau reload) thay vì chỉ chờ tiêu đề panel; matrix 5 viewport lặp lại cùng readiness. Kỳ đã chọn giữ kế hoạch điều phối và ký nhận vật tư là hai trạng thái độc lập: Chef giải thích rõ kế hoạch chưa đồng bộ không chặn checklist nhận nguyên liệu; không thêm prerequisite xuất kho. Runtime `3010/8010` đã teardown sau run.
 
 Source-ownership headed gate pass `6/6` trên đủ 50 canonical state × năm viewport `1920×1080`,
 `1440×900`, `1366×768`, `1365×900`, `1280×900`, tổng 250 viewport-state cell. DOM/bundle leakage,

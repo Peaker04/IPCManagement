@@ -46,7 +46,7 @@ describe('ChefDashboardPage select labels', () => {
     mocks.production.mockReturnValue({
       status: { isCatalogEmpty: false, isDailyPlanLoading: false, isDailyPlanError: false },
       productionPlan: { date: '2026-07-27', shift: 'Ca Sáng', kitchenAssignment: { kitchenName: 'Bếp', kitchenCode: 'B01', responsibleChefs: [] }, totalMeals: 0, activeDishes: [], receivedMaterials: [], plannedMaterials: [] },
-      queryViews: { dailyPlan: ready }, dailyPlanWarnings: [], isLocked: false, dailyPlan: undefined,
+      queryViews: { dailyPlan: ready }, dailyPlanWarnings: ['Có kế hoạch chưa gửi bếp.'], isLocked: false, dailyPlan: undefined,
       isSendingDailyPlan: false, receiveDailyPlan: vi.fn(),
     })
     mocks.exceptions.mockReturnValue({ queryView: ready, activeReturns: [], isCreatingReturn: false, isSubmittingSupplemental: false, requestSupplemental: vi.fn(), recordReturn: vi.fn() })
@@ -56,5 +56,6 @@ describe('ChefDashboardPage select labels', () => {
 
     expect(screen.getByRole('combobox', { name: 'Chọn ca sản xuất' })).toHaveTextContent('Ca Sáng')
     expect(screen.getByRole('combobox', { name: 'Chọn ca sản xuất' })).not.toHaveTextContent('MORNING')
+    expect(screen.getByText('Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.')).toBeInTheDocument()
   })
 })

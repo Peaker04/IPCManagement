@@ -1489,3 +1489,10 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Google Chrome headed read-only stub gate pass đủ năm viewport: 50 request, 50 unique key, zero duplicate
   group, console error và page error; sáu artifact authoritative nằm trong evidence index. Không mutate
   database, không dùng GitNexus, không commit/push.
+
+## Service Run lifecycle closeout — 05/08/2026
+
+- Hoàn tất lifecycle theo grain `ProductionPlan + Shift`: trạng thái backend, blocker source-line, close snapshot bất biến và correction append-only.
+- Reports/Audit tách chi phí ước tính PurchaseRequestLine và chi phí thực nhận InventoryReceiptLine; thực nhận không có receipt giữ `null`, không hiển thị `0`. Projection issue/source document được scope theo plan, ngày và ca.
+- Fixture append-only trên `ipc_e2e_template` xác nhận Chrome headed `840 → 839`, lý do chênh lệch, Manager/Admin waiver có lý do, close và browser reload. DB trực tiếp xác nhận snapshot cùng audit ActualServings/Waiver/Close.
+- Final current-source gate qua Chef, Warehouse, Purchasing và Reports: API 200, console/page error 0, CLS 0, zero long task. Vite module navigation abort được lưu trong artifact như cancellation điều hướng, không phải lỗi nghiệp vụ. Không chạm `ipc_lane1`, không dùng GitNexus, không commit/push.

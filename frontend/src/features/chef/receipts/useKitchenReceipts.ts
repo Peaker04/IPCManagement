@@ -6,6 +6,8 @@ import { filterKitchenIssues } from '../production/chefProductionModel'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 import { toChefView } from '../chefQueryView'
 
+const KITCHEN_RECEIPT_PAGE_SIZE = 20
+
 export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void, enabled = true) {
   const scopeKey = `${scope.serviceDate}-${scope.apiShiftName}`
   const [pagination, setPagination] = useState({ scopeKey, page: 1 })
@@ -15,7 +17,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     dateFrom: scope.serviceDate,
     dateTo: scope.serviceDate,
     pageNumber: page,
-    pageSize: 100,
+    pageSize: KITCHEN_RECEIPT_PAGE_SIZE,
   }, { skip: !enabled })
   const queryView = toChefView(query, 'phiếu xuất kho bàn giao cho bếp')
   const [confirmReceipt, confirmState] = useConfirmInventoryIssueReceiptMutation()
@@ -74,7 +76,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     signedMaterials,
     pendingCount,
     page: response?.pageNumber ?? page,
-    pageSize: response?.pageSize ?? 100,
+    pageSize: response?.pageSize ?? KITCHEN_RECEIPT_PAGE_SIZE,
     totalCount: response?.totalCount ?? rows.length,
     hasAdditionalPages,
     allReceived: rows.length > 0 && pendingCount === 0 && !hasAdditionalPages,

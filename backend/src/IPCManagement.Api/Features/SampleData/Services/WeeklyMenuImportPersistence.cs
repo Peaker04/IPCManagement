@@ -182,6 +182,12 @@ internal sealed class WeeklyMenuImportPersistence(
         string? actorUserId,
         CancellationToken cancellationToken)
     {
+        await RequireNoIrreversibleDownstreamDocumentsAsync(
+            customer,
+            weekStartDate,
+            weekEndDate,
+            cancellationToken);
+
         var actorId = await actorResolver.ResolveAsync(actorUserId, cancellationToken);
         var changedAt = DateTime.UtcNow;
         var reason = $"Menu re-import {version.SourceImportBatch} invalidated downstream demand/PR; regenerate required.";
@@ -239,6 +245,40 @@ internal sealed class WeeklyMenuImportPersistence(
         }
 
         return invalidatedCount;
+    }
+
+    private async Task RequireNoIrreversibleDownstreamDocumentsAsync(
+        Customer customer,
+        DateOnly weekStartDate,
+        DateOnly weekEndDate,
+        CancellationToken cancellationToken)
+    {
+        var hasPurchaseOrder = await context.Purchaseorders.AnyAsync(order =>
+            order.PurchaseRequest.PurchaseForDate >= weekStartDate &&
+            order.PurchaseRequest.PurchaseForDate <= weekEndDate &&
+            order.PurchaseRequest.Purchaserequestlines.Any(line =>
+                line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
+            cancellationToken);
+        var hasReceipt = await context.Inventoryreceipts.AnyAsync(receipt =>
+            receipt.PurchaseRequest != null &&
+            receipt.PurchaseRequest.PurchaseForDate >= weekStartDate &&
+            receipt.PurchaseRequest.PurchaseForDate <= weekEndDate &&
+            receipt.PurchaseRequest.Purchaserequestlines.Any(line =>
+                line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
+            cancellationToken);
+        var hasIssue = await context.Inventoryissues.AnyAsync(issue =>
+            issue.MaterialRequest.RequestDate >= weekStartDate &&
+            issue.MaterialRequest.RequestDate <= weekEndDate &&
+            issue.MaterialRequest.Plan.Productionplanlines.Any(line =>
+                line.CustomerId.SequenceEqual(customer.CustomerId)),
+            cancellationToken);
+
+        if (hasPurchaseOrder || hasReceipt || hasIssue)
+        {
+            throw new BusinessRuleException(
+                "Không thể import lại thực đơn vì đã có PO, phiếu nhập hoặc phiếu xuất liên quan. " +
+                "Hãy dùng luồng điều chỉnh/đối soát thay vì hủy chứng từ nguồn.");
+        }
     }
 
     private static AuditLog CreateStatusAudit(

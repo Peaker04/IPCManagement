@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { addIsoDays } from '../warehouseDateRange';
+import { ServiceRunBlockerPanel } from '@/features/service-runs/ServiceRunBlockerPanel';
 
 const EMPTY_QUERY_ROWS: never[] = [];
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
@@ -739,8 +740,8 @@ export default function WarehousePage() {
         </div>
       )}
 
-      {activeView === 'demand' && (
-        <WarehouseDemandPanel
+        {activeView === 'demand' && (
+          <><ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" /><WarehouseDemandPanel
           demandSearch={demandSearch}
           onDemandSearchChange={(value) => { setDemandSearch(value); setDemandPage(1); }}
           requestedDemandDate={requestedDemandDate}
@@ -755,7 +756,7 @@ export default function WarehousePage() {
           totalItems={demandPageResponse?.totalCount ?? 0}
           onPageChange={setDemandPage}
           inboxItems={warehouseInbox}
-        />
+          /></>
       )}
 
       {activeView === 'exceptions' && (

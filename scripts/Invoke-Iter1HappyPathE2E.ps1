@@ -8,7 +8,8 @@ param(
     [string]$WeeklyMenuTemplatePath = "",
     [string]$OutputRoot = ".artifacts/e2e",
     [switch]$SkipSeedReset,
-    [switch]$SkipWeeklyMenuImport
+    [switch]$SkipWeeklyMenuImport,
+    [string]$AccessToken = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -188,13 +189,19 @@ if (-not $SkipSeedReset) {
     }
 }
 
-$login = Invoke-E2EApi -Method "POST" -Path "/api/auth/login" -Body @{
-    username = $Username
-    password = $Password
+if ([string]::IsNullOrWhiteSpace($AccessToken)) {
+    $login = Invoke-E2EApi -Method "POST" -Path "/api/auth/login" -Body @{
+        username = $Username
+        password = $Password
+    }
+    Assert-Success $login "Login"
+    $token = $login.data.accessToken
+    Write-E2ELog "Logged in as $Username."
 }
-Assert-Success $login "Login"
-$token = $login.data.accessToken
-Write-E2ELog "Logged in as $Username."
+else {
+    $token = $AccessToken
+    Write-E2ELog "Reused weekly access token."
+}
 
 $customers = Invoke-E2EApi -Method "GET" -Path "/api/coordination/customers" -Token $token
 Assert-Success $customers "Customer lookup"
@@ -220,14 +227,22 @@ if (-not $SkipWeeklyMenuImport) {
         -Token $token
     Assert-Success $preview "Weekly menu preview"
     if ($preview.data.validation.hasCriticalErrors -or $preview.data.rows.Count -eq 0) {
-        throw "Weekly menu preview is not committable."
+        $issues = @($preview.data.validation.issues | ForEach-Object { "$($_.code): $($_.message)" }) -join '; '
+        throw "Weekly menu preview is not committable. $issues"
+    }
+    $previewToken = [string]$preview.data.previewToken
+    if ([string]::IsNullOrWhiteSpace($previewToken)) {
+        throw "Weekly menu preview did not return a preview token."
     }
     Write-E2ELog "Weekly menu preview passed: rows=$($preview.data.rows.Count), tier=$PriceTierAmount."
 
+    $commitFields = @{}
+    foreach ($entry in $menuFields.GetEnumerator()) { $commitFields[$entry.Key] = $entry.Value }
+    $commitFields.previewToken = $previewToken
     $committedMenu = Invoke-E2EMultipart `
         -Path "/api/coordination/weekly-menu/import/commit" `
         -FilePath $WeeklyMenuTemplatePath `
-        -Fields $menuFields `
+        -Fields $commitFields `
         -Token $token
     Assert-Success $committedMenu "Weekly menu commit"
     Write-E2ELog "Weekly menu committed: version=$($committedMenu.data.menuVersionNo), status=$($committedMenu.data.menuVersionStatus)."

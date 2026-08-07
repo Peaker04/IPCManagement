@@ -6,6 +6,15 @@ import type {
   ProductionPlanDto,
   DailyProductionPlanDto,
   WorkflowReportQuery,
+  ServiceRunLifecycleProjectionDto,
+  ServiceRunByPlanQuery,
+  OpenServiceRunRequest,
+  RecordActualServingsRequest,
+  ReasonRequest,
+  CreateServiceRunAdjustmentRequest,
+  ServiceRunAdjustmentDto,
+  ServiceRunPageQuery,
+  ServiceRunPageResponseDto,
 } from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
@@ -81,6 +90,56 @@ export const chefApi = apiSlice.injectEndpoints({
         workflowCacheTags.kitchenIssues,
       ],
     }),
+    openServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, OpenServiceRunRequest>({
+      query: (body) => ({ url: '/service-runs', method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    getServiceRunByPlan: builder.query<ServiceRunLifecycleProjectionDto | null, ServiceRunByPlanQuery>({
+      query: (params) => ({ url: '/service-runs/by-plan', params }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto | null>) => response.data ?? null,
+      providesTags: [workflowCacheTags.productionPlans],
+    }),
+    getServiceRunPage: builder.query<ServiceRunPageResponseDto, ServiceRunPageQuery>({
+      query: (params) => ({ url: '/service-runs/page', params }),
+      transformResponse: (response: ApiResponse<ServiceRunPageResponseDto>) => response.data!,
+      providesTags: [workflowCacheTags.productionPlans],
+    }),
+    startServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, string>({
+      query: (id) => ({ url: `/service-runs/${id}/start`, method: 'POST' }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    recordServiceRunActualServings: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: RecordActualServingsRequest }>({
+      query: ({ id, body }) => ({ url: `/service-runs/${id}/actual-servings`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    confirmServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, string>({
+      query: (id) => ({ url: `/service-runs/${id}/service-confirmation`, method: 'POST' }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    resolveServiceRunVariance: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: ReasonRequest }>({
+      query: ({ id, body }) => ({ url: `/service-runs/${id}/variance/resolve`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    resolveServiceRunServingVariance: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: ReasonRequest }>({
+      query: ({ id, body }) => ({ url: `/service-runs/${id}/serving-variance/resolve`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    waiveServiceRunConfirmation: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: ReasonRequest }>({
+      query: ({ id, body }) => ({ url: `/service-runs/${id}/service-confirmation/waive`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    closeServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, string>({
+      query: (id) => ({ url: `/service-runs/${id}/close`, method: 'POST' }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
+    }),
+    getServiceRunAdjustments: builder.query<ServiceRunAdjustmentDto[], string>({
+      query: (id) => ({ url: `/service-runs/${id}/adjustments` }),
+      transformResponse: (response: ApiResponse<ServiceRunAdjustmentDto[]>) => response.data ?? [],
+    }),
+    createServiceRunAdjustment: builder.mutation<ServiceRunAdjustmentDto, { id: string; body: CreateServiceRunAdjustmentRequest }>({
+      query: ({ id, body }) => ({ url: `/service-runs/${id}/adjustments`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ServiceRunAdjustmentDto>) => response.data!,
+    }),
   }),
   overrideExisting: false,
 });
@@ -88,4 +147,16 @@ export const chefApi = apiSlice.injectEndpoints({
 export const {
   useGetDailyProductionPlanQuery,
   useSendDailyProductionPlanToKitchenMutation,
+  useOpenServiceRunMutation,
+  useGetServiceRunByPlanQuery,
+  useGetServiceRunPageQuery,
+  useStartServiceRunMutation,
+  useRecordServiceRunActualServingsMutation,
+  useConfirmServiceRunMutation,
+  useResolveServiceRunVarianceMutation,
+  useResolveServiceRunServingVarianceMutation,
+  useWaiveServiceRunConfirmationMutation,
+  useCloseServiceRunMutation,
+  useGetServiceRunAdjustmentsQuery,
+  useCreateServiceRunAdjustmentMutation,
 } = chefApi;
