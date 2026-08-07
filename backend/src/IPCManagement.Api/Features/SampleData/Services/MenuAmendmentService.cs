@@ -39,9 +39,10 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         var purchases = await context.Purchaserequests.Where(item => item.PurchaseForDate >= amendment.WeekStartDate && item.PurchaseForDate < amendment.WeekStartDate.AddDays(7) && item.Purchaserequestlines.Any(line => line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(amendment.CustomerId))).ToListAsync(cancellationToken);
         var purchaseIds = purchases.Select(item => item.PurchaseRequestId).ToList();
         var demandIds = demands.Select(item => item.RequestId).ToList();
-        var hasPhysical = await context.Purchaseorders.AnyAsync(item => purchaseIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken)
-            || await context.Inventoryreceipts.AnyAsync(item => item.PurchaseRequestId != null && purchaseIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken)
-            || await context.Inventoryissues.AnyAsync(item => demandIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
+        var hasPurchaseOrder = purchaseIds.Count > 0 && await context.Purchaseorders.AnyAsync(item => purchaseIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
+        var hasReceipt = purchaseIds.Count > 0 && await context.Inventoryreceipts.AnyAsync(item => item.PurchaseRequestId != null && purchaseIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
+        var hasIssue = demandIds.Count > 0 && await context.Inventoryissues.AnyAsync(item => demandIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
+        var hasPhysical = hasPurchaseOrder || hasReceipt || hasIssue;
         if (hasPhysical) throw new BusinessRuleException("Đã phát sinh PO, nhập hoặc xuất; cần đối soát append-only, không thể regeneration.");
         var now = DateTime.UtcNow;
         foreach (var demand in demands.Where(item => item.Status != "CANCELLED"))
@@ -179,10 +180,10 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
 
         var materialRequests = await context.Materialrequests.Where(item => item.RequestDate >= request.WeekStartDate && item.RequestDate < request.WeekStartDate.AddDays(7) && item.Plan.Productionplanlines.Any(line => line.CustomerId.SequenceEqual(customerId))).ToListAsync(cancellationToken);
         var purchaseRequestIds = await context.Purchaserequests.Where(item => item.PurchaseForDate >= request.WeekStartDate && item.PurchaseForDate < request.WeekStartDate.AddDays(7) && item.Purchaserequestlines.Any(line => line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customerId))).Select(item => item.PurchaseRequestId).ToListAsync(cancellationToken);
-        var hasPurchaseOrder = await context.Purchaseorders.AnyAsync(item => purchaseRequestIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
-        var hasReceipt = await context.Inventoryreceipts.AnyAsync(item => item.PurchaseRequestId != null && purchaseRequestIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
+        var hasPurchaseOrder = purchaseRequestIds.Count > 0 && await context.Purchaseorders.AnyAsync(item => purchaseRequestIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
+        var hasReceipt = purchaseRequestIds.Count > 0 && await context.Inventoryreceipts.AnyAsync(item => item.PurchaseRequestId != null && purchaseRequestIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
         var requestIds = materialRequests.Select(item => item.RequestId).ToList();
-        var hasIssue = await context.Inventoryissues.AnyAsync(item => requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
+        var hasIssue = requestIds.Count > 0 && await context.Inventoryissues.AnyAsync(item => requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
         var requiresReconciliation = hasPurchaseOrder || hasReceipt || hasIssue;
         var result = new MenuAmendmentResultDto { Status = requiresReconciliation ? "RECONCILIATION_REQUIRED" : "PENDING_REVIEW", RequiresReconciliation = requiresReconciliation, AffectedDemandCount = materialRequests.Count, AffectedPurchaseRequestCount = purchaseRequestIds.Count, HasPurchaseOrder = hasPurchaseOrder, HasReceipt = hasReceipt, HasIssue = hasIssue };
         var amendment = new MenuAmendment { MenuAmendmentId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = request.WeekStartDate, BaseMenuVersionId = baseVersionId, Status = result.Status, Reason = request.Reason.Trim(), ImpactSnapshotJson = JsonSerializer.Serialize(result), CreatedBy = actorId, CreatedAt = DateTime.UtcNow, Lines = mappedLines };
