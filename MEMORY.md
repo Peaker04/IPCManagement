@@ -18,7 +18,8 @@ workbook:
 # Memory hiện hành
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
-lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ MySQL listen; các app runtime đã teardown.
+lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Runtime audit đang chạy trên `3010/8010`, kết nối
+`ipc_e2e_template`; `/health/ready` trả `Healthy` cho database và migrations lúc `2026-08-07`.
 
 ## Memory ngắn cho phiên tiếp theo
 
@@ -65,7 +66,7 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Hiện chỉ M
 
 ## Gate hiện hành
 
-Menu-amendment implementation commit `429263a` thêm snapshot yêu cầu thay đổi, hậu kiểm Admin/Quản lý, fail-closed khi đã có PO/nhập/xuất và materialize version/menu/schedule mới khi thực thi nhánh reversible. Backend `746 pass + 1 intentional skip`; frontend được chia ba partition vì full serial Vitest treo trong môi trường, tổng `135 file / 761 test` pass, hai build pass. Browser E2E cho migration mới chưa có evidence: runtime đã teardown và checkout không có `ConnectionStrings__DefaultConnection` trong appsettings/environment/User Secrets, nên không tự chọn hoặc đoán database lane để chạy migration.
+Menu-amendment implementation commit `429263a` thêm snapshot yêu cầu thay đổi, hậu kiểm Admin/Quản lý, fail-closed khi đã có PO/nhập/xuất và materialize version/menu/schedule mới khi thực thi nhánh reversible. Backend `746 pass + 1 intentional skip`; frontend trước đó pass `135 file / 761 test`, hai build pass. Migration đã chạy thành công trên `ipc_e2e_template`; ANV tuần `2026-08-03` có dữ liệu chứng từ vật lý nên mọi yêu cầu đúng phải giữ `RECONCILIATION_REQUIRED`, không được thực thi trực tiếp. Headed Chrome đã đọc trạng thái đó ở Admin. Lần xác minh Manager ngày `2026-08-07` bị chặn tại `POST /api/auth/login` `401`: credential `quanly/quanly` (và secret K6 hiện có) không khớp password hash của account Manager trong lane này. Không thử brute-force/reset account. Commit `9d58beb` sửa UI: `401` báo sai credentials thay vì lỗi kết nối; inbox sửa thực đơn hiển thị retry/error thay vì giả là trống. Targeted tests `5/5`, ESLint và production build pass; screenshot/response local ở `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-login-feedback-1440x900.png` và `manager-reconciliation-probe.json`. Cần credential Manager hợp lệ hoặc một reset được Kỳ chấp thuận trước khi hoàn tất browser E2E quyền duyệt/thực thi của Manager.
 
 Lifecycle rerun chuẩn hóa ngày 05/08 trên `ipc_lane9` đã clone/sanitize riêng rồi chạy menu đúng tuần `2026-08-03`: import/publish một lần, sáu ngày schedule đi hết demand/duyệt/PR/PO/nhập/xuất/Bếp nhận. Friday Service Run khép ca 840/840 và direct DB có `ClosedAt` + snapshot + audit; Saturday thiếu BOM bị `BLOCKED` đúng token. Chrome headed đã đọc ảnh: cột `Mua dự kiến` chỉ là nhu cầu ban đầu, blocker hiện hành thuộc Ca phục vụ; console/page error 0, CLS 0, zero long task. Runner dùng preview token khi commit và tái sử dụng access token theo tuần để không tự chạm auth rate-limit. Runtime `3010/8010` đã teardown.
 

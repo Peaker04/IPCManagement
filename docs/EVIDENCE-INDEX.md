@@ -114,6 +114,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Lý do loại |
 |---|---|---|
+| `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-probe.json` | `77F41C45D6BB23E13F5797025C32DEF05E00D2A3D46297D1A203C62121A8A02F` | Attempt Manager bị dừng ở `POST /api/auth/login` `401`; ghi nhận credential supplied không khớp lane, không có mutation hay kết luận quyền duyệt. |
+| `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-login-feedback-1440x900.png` | `F76A62709604CAE02E81CEA73BE747756FFAD842C2D9E7906C0FA40E5DC2500C` | Chrome headed screenshot xác nhận UI sau `9d58beb` hiển thị lỗi credential chính xác; không chứng minh lifecycle Manager. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.json` | `5DD7189E1C844A1275616417338002E746E9913F9056ED6C3FB8AE4F1BB1C144` | Attempt locator timeout lúc 04:07; run final cùng thư mục lúc 04:10 mới authoritative. |
 | `.artifacts/shipyard-live/badge-transition-e2e-20260804/phase6-headed-workbook-e2e-error.json` | `067750603E8621E9F2C1447FDE028F08FCA215537B7104976F9A67507A284FF4` | Attempt setup thiếu stage workbook theo output directory mới; không gửi mutation và không dùng làm kết quả. Run JSON cùng thư mục sau bổ sung stage/hash fixture mới là evidence hợp lệ. |
 | `.artifacts/shipyard-live/current-week-bom-e2e-20260804/current-week-bom-e2e-error.json` | `6E9E5940E909CEA265DDA7FC0D54B03CE49D4291279078ADDA2CC461DBD388B6` | Attempt import đã commit thành công nhưng harness nhận nhầm response `import-history` là commit response; không dùng để kết luận coverage. Verify final cùng lane là evidence hợp lệ. |
