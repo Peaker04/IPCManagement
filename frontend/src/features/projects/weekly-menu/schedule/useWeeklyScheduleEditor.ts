@@ -71,8 +71,15 @@ export function useWeeklyScheduleEditor({
   )
   const isLocked = useCallback((dayKey: string, slotType: keyof WeeklyMenuState[string]) => {
     const shift = slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'
-    return !!lockedShifts[`${dayKey}-${shift}`]
-  }, [lockedShifts])
+    const apiShift = slotType.startsWith('morning') ? 'MORNING' : 'AFTERNOON'
+    const persistedStatus = menuSchedules.find((schedule) =>
+      schedule.customerId === scope.customerId
+      && schedule.serviceDate.split('T')[0] === serviceDate(dayKey)
+      && schedule.shiftName === apiShift,
+    )?.status
+    return persistedStatus !== undefined && persistedStatus !== 'DRAFT'
+      || !!lockedShifts[`${dayKey}-${shift}`]
+  }, [lockedShifts, menuSchedules, scope.customerId, serviceDate])
   const getSlotServingInfo = useCallback((dayKey: string, slotType: keyof WeeklyMenuState[string]) => {
     const shiftInfo = getShiftServingInfo({
       dayKey,
