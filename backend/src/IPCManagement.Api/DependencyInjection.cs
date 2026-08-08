@@ -14,6 +14,7 @@ using IPCManagement.Api.Features.Planning.Services;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
+using IPCManagement.Api.Shared.Lifecycle;
 
 namespace IPCManagement.Api;
 
@@ -48,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>
             new EfTransactionRunner(serviceProvider.GetRequiredService<IpcManagementContext>()));
+        services.AddScoped<ILifecycleTransitionRecorder, LifecycleTransitionRecorder>();
 
         // Security
         services.AddScoped<ICurrentUserService, CurrentUserService>();

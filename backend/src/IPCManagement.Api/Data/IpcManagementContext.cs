@@ -137,6 +137,12 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<ApprovalAssignment> Approvalassignments { get; set; }
 
+    public virtual DbSet<LifecycleTransition> Lifecycletransitions { get; set; }
+
+    public virtual DbSet<LifecycleOutboxMessage> Lifecycleoutboxmessages { get; set; }
+
+    public virtual DbSet<LifecycleCommandReceipt> Lifecyclecommandreceipts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
