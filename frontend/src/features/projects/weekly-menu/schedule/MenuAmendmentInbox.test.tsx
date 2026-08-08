@@ -9,6 +9,7 @@ vi.mock('@/api/coordinationApi', () => ({
   useGetMenuAmendmentsQuery: () => ({ data: undefined, isError: true, isLoading: false, refetch: mocks.refetch }),
   useReviewMenuAmendmentMutation: () => [vi.fn(), { isLoading: false }],
   useExecuteMenuAmendmentMutation: () => [vi.fn(), { isLoading: false }],
+  useBreakGlassExecuteMenuAmendmentMutation: () => [vi.fn(), { isLoading: false }],
 }))
 
 import { MenuAmendmentInbox } from './MenuAmendmentInbox'

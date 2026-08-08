@@ -80,9 +80,11 @@ public partial class WorkflowGenerationTests
             CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Sửa bản nháp.",
             Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = dishSlot, NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
         }, fixture.UserIdString);
-        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, fixture.UserIdString);
+        var reviewerId = await CreateApprovalActorAsync(context, "menu-reviewer");
+        var executorId = await CreateApprovalActorAsync(context, "menu-executor");
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, reviewerId);
 
-        var result = await service.ExecuteAsync(amendment.MenuAmendmentId, fixture.UserIdString);
+        var result = await service.ExecuteAsync(amendment.MenuAmendmentId, executorId);
 
         result.Status.Should().Be("EXECUTED");
         (await context.Menuamendments.SingleAsync()).Status.Should().Be("EXECUTED");
@@ -108,9 +110,11 @@ public partial class WorkflowGenerationTests
             CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Đổi món sau demand.",
             Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
         }, fixture.UserIdString);
-        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, fixture.UserIdString);
+        var reviewerId = await CreateApprovalActorAsync(context, "demand-reviewer");
+        var executorId = await CreateApprovalActorAsync(context, "demand-executor");
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, reviewerId);
 
-        var result = await service.ExecuteAsync(amendment.MenuAmendmentId, fixture.UserIdString);
+        var result = await service.ExecuteAsync(amendment.MenuAmendmentId, executorId);
 
         result.Status.Should().Be("EXECUTED");
         (await context.Materialrequests.SingleAsync()).Status.Should().Be("CANCELLED");
@@ -130,11 +134,57 @@ public partial class WorkflowGenerationTests
             CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Đổi món.",
             Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
         }, fixture.UserIdString);
-        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = false, Reason = "Cần xác minh BOM." }, fixture.UserIdString);
+        var reviewerId = await CreateApprovalActorAsync(context, "correction-reviewer");
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = false, Reason = "Cần xác minh BOM." }, reviewerId);
 
         var act = () => service.ExecuteAsync(amendment.MenuAmendmentId, fixture.UserIdString);
 
         await act.Should().ThrowAsync<BusinessRuleException>().WithMessage("*chưa đủ điều kiện thực thi*");
+    }
+
+    [Fact]
+    public async Task MenuAmendment_Should_RejectSelfReview_And_AuditBreakGlassExecution()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        (await context.Menuschedules.SingleAsync()).Status = "DRAFT";
+        await context.SaveChangesAsync();
+        var service = new MenuAmendmentService(context);
+        var amendment = await service.CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Đổi món khẩn.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+
+        var selfReview = () => service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, fixture.UserIdString);
+        await selfReview.Should().ThrowAsync<BusinessRuleException>().WithMessage("*không được tự hậu kiểm*");
+
+        var result = await service.BreakGlassExecuteAsync(amendment.MenuAmendmentId, new BreakGlassMenuAmendmentRequest { Reason = "Khách hàng yêu cầu đổi suất gấp." }, fixture.UserIdString);
+
+        result.Status.Should().Be("EXECUTED");
+        var audit = await context.Auditlogs.SingleAsync(item => item.FieldName == "BreakGlassExecute");
+        audit.EntityId.Should().NotBeNull();
+        audit.EntityId!.SequenceEqual(GuidHelper.ParseGuidString(amendment.MenuAmendmentId)!).Should().BeTrue();
+        audit.Reason.Should().Be("Khách hàng yêu cầu đổi suất gấp.");
+    }
+
+    private static async Task<string> CreateApprovalActorAsync(IpcManagementContext context, string username)
+    {
+        var id = GuidHelper.NewId();
+        var roleId = await context.Roles.Select(role => role.RoleId).SingleAsync();
+        context.Users.Add(new User
+        {
+            UserId = id,
+            Username = username,
+            FullName = username,
+            PasswordHash = "test-hash",
+            RoleId = roleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        return GuidHelper.ToGuidString(id);
     }
 
     [Fact]

@@ -1741,6 +1741,16 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("customerId")
                         .IsFixedLength();
 
+                    b.Property<DateTime?>("ExecutedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("executedAt");
+
+                    b.Property<byte[]>("ExecutedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("executedBy")
+                        .IsFixedLength();
+
                     b.Property<string>("ImpactSnapshotJson")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -1750,6 +1760,16 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("reason");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("reviewedAt");
+
+                    b.Property<byte[]>("ReviewedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reviewedBy")
+                        .IsFixedLength();
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1767,6 +1787,10 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex("BaseMenuVersionId");
 
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ExecutedBy");
+
+                    b.HasIndex("ReviewedBy");
 
                     b.HasIndex(new[] { "CustomerId", "WeekStartDate", "Status" }, "ixMenuAmendmentsScopeStatus");
 
@@ -4955,17 +4979,31 @@ namespace IPCManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ExecutedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ExecutedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ReviewedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("BaseMenuVersion");
 
                     b.Navigation("CreatedByNavigation");
 
+                    b.Navigation("ExecutedByNavigation");
+
                     b.Navigation("Customer");
+
+                    b.Navigation("ReviewedByNavigation");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuAmendmentLine", b =>

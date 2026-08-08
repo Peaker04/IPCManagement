@@ -393,7 +393,8 @@ export const coordinationApi = apiSlice.injectEndpoints({
     }),
     getMenuAmendments: builder.query<ApiResponse<MenuAmendmentInboxItem[]>, string | void>({ query: (status) => ({ url: '/coordination/weekly-menu/amendments', params: status ? { status } : undefined }), providesTags: ['Coordination'] }),
     reviewMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; approved: boolean; reason?: string }>({ query: ({ id, approved, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/review`, method: 'POST', body: { approved, reason } }), invalidatesTags: ['Coordination'] }),
-    executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: ['Coordination'] }),
+executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: ['Coordination'] }),
+breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; reason: string }>({ query: ({ id, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/break-glass-execute`, method: 'POST', body: { reason } }), invalidatesTags: ['Coordination'] }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, WeeklyMenuImportHistoryQuery | void>({
       query: (params) => {
         const customerId = params?.customerId;
@@ -454,7 +455,8 @@ export const {
   useCreateMenuAmendmentMutation,
   useGetMenuAmendmentsQuery,
   useReviewMenuAmendmentMutation,
-  useExecuteMenuAmendmentMutation,
+useExecuteMenuAmendmentMutation,
+useBreakGlassExecuteMenuAmendmentMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
   useGetProductionPlansQuery,

@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
+  useBreakGlassExecuteMenuAmendmentMutation,
   useExecuteMenuAmendmentMutation,
   useGetMenuAmendmentsQuery,
   useReviewMenuAmendmentMutation,
 } from '@/api/coordinationApi'
-import { ActionGuard } from '@/components/common/ActionGuard'
 import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import type { AuthState } from '@/lib/auth/authTypes'
+import { useSelector } from 'react-redux'
 
 const statusLabel: Record<string, string> = {
   PENDING_REVIEW: 'Chờ hậu kiểm',
@@ -18,12 +20,25 @@ const statusLabel: Record<string, string> = {
   EXECUTED: 'Đã thực thi',
 }
 
+const StandardManagerAction = ({ children }: { children: ReactNode }) => {
+  const user = useSelector((state: { auth: AuthState }) => state.auth.user)
+  return user?.role === 'quanly' ? <>{children}</> : null
+}
+
+const AdminExecutionAction = ({ children }: { children: ReactNode }) => {
+  const user = useSelector((state: { auth: AuthState }) => state.auth.user)
+  return user?.isAdminFullAccess || user?.role === 'admin' ? <>{children}</> : null
+}
+
 export function MenuAmendmentInbox() {
   const { data, isError, isLoading, refetch } = useGetMenuAmendmentsQuery()
   const [review, { isLoading: reviewing }] = useReviewMenuAmendmentMutation()
   const [execute, { isLoading: executing }] = useExecuteMenuAmendmentMutation()
+  const [breakGlassExecute, { isLoading: breakGlassing }] = useBreakGlassExecuteMenuAmendmentMutation()
   const [correctionId, setCorrectionId] = useState<string | null>(null)
   const [correctionReason, setCorrectionReason] = useState('')
+  const [breakGlassId, setBreakGlassId] = useState<string | null>(null)
+  const [breakGlassReason, setBreakGlassReason] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
   const items = data?.data ?? []
 
@@ -66,7 +81,7 @@ export function MenuAmendmentInbox() {
                     </small>
                   )}
                 </span>
-                <ActionGuard allowedRoles={['admin', 'quanly']}>
+                <StandardManagerAction>
                   <span className="flex gap-2">
                     {item.status === 'PENDING_REVIEW' && <>
                       <Button size="sm" onClick={() => void complete(
@@ -75,14 +90,17 @@ export function MenuAmendmentInbox() {
                       )} disabled={reviewing}>Duyệt</Button>
                       <Button size="sm" variant="outline" onClick={() => setCorrectionId(item.menuAmendmentId)} disabled={reviewing}>Yêu cầu sửa</Button>
                     </>}
-                    {item.status === 'APPROVED_FOR_EXECUTION' && <Button size="sm" onClick={() => void complete(
-                      () => execute(item.menuAmendmentId).unwrap(),
-                      'Đã thực thi thay đổi và tạo version thực đơn mới.',
-                    )} disabled={executing}>Thực thi</Button>}
                   </span>
-                </ActionGuard>
+                </StandardManagerAction>
+                <AdminExecutionAction>
+                  {item.status === 'APPROVED_FOR_EXECUTION' && <Button size="sm" onClick={() => void complete(
+                    () => execute(item.menuAmendmentId).unwrap(),
+                    'Đã thực thi thay đổi và tạo version thực đơn mới.',
+                  )} disabled={executing}>Thực thi</Button>}
+                  {item.status === 'PENDING_REVIEW' && <Button size="sm" variant="outline" onClick={() => setBreakGlassId(item.menuAmendmentId)} disabled={breakGlassing}>Thực thi khẩn</Button>}
+                </AdminExecutionAction>
               </div>
-              <ActionGuard allowedRoles={['admin', 'quanly']}>
+              <StandardManagerAction>
                 {correctionId === item.menuAmendmentId && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Lý do cần chỉnh sửa" />
@@ -96,7 +114,22 @@ export function MenuAmendmentInbox() {
                     )}>Gửi</Button>
                   </div>
                 )}
-              </ActionGuard>
+              </StandardManagerAction>
+              <AdminExecutionAction>
+                {breakGlassId === item.menuAmendmentId && (
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-amber-200 pt-2">
+                    <Input value={breakGlassReason} onChange={(event) => setBreakGlassReason(event.target.value)} placeholder="Lý do break-glass bắt buộc" aria-label="Lý do break-glass" />
+                    <Button size="sm" variant="destructive" disabled={!breakGlassReason.trim() || breakGlassing} onClick={() => void complete(
+                      async () => {
+                        await breakGlassExecute({ id: item.menuAmendmentId, reason: breakGlassReason }).unwrap()
+                        setBreakGlassId(null)
+                        setBreakGlassReason('')
+                      },
+                      'Đã thực thi khẩn; hành động và lý do đã được ghi audit để hậu kiểm.',
+                    )}>Xác nhận khẩn</Button>
+                  </div>
+                )}
+              </AdminExecutionAction>
             </li>
           ))}
         </ul>

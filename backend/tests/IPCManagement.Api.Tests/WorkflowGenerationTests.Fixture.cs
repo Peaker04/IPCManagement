@@ -606,7 +606,11 @@ public partial class WorkflowGenerationTests
                     reason TEXT NOT NULL,
                     impactSnapshotJson TEXT NOT NULL,
                     createdBy BLOB NOT NULL,
-                    createdAt TEXT NOT NULL
+                    createdAt TEXT NOT NULL,
+                    reviewedBy BLOB NULL,
+                    reviewedAt TEXT NULL,
+                    executedBy BLOB NULL,
+                    executedAt TEXT NULL
                 );
                 CREATE TABLE menuamendmentlines (
                     menuAmendmentLineId BLOB PRIMARY KEY,

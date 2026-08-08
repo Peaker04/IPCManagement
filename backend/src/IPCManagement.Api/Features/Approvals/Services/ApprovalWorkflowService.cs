@@ -1,5 +1,10 @@
 using IPCManagement.Api.Security;
 using System.Security.Claims;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 
 namespace IPCManagement.Api.Features.Approvals.Services;
@@ -17,10 +22,19 @@ public interface IApprovalWorkflowService
 public class ApprovalWorkflowService : IApprovalWorkflowService
 {
     private readonly IReadOnlyDictionary<ApprovalTargetType, IApprovalTargetHandler> _handlers;
+    private readonly IpcManagementContext? _context;
+    private readonly IApprovalRoutingService? _routingService;
 
     public ApprovalWorkflowService(IEnumerable<IApprovalTargetHandler> handlers)
     {
         _handlers = handlers.ToDictionary(handler => handler.TargetType);
+    }
+
+    public ApprovalWorkflowService(IpcManagementContext context, IApprovalRoutingService routingService, IEnumerable<IApprovalTargetHandler> handlers)
+        : this(handlers)
+    {
+        _context = context;
+        _routingService = routingService;
     }
 
     public async Task<ApprovalResultDto?> ExecuteAsync(
@@ -53,7 +67,64 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
             throw new UnauthorizedAccessException("Không có quyền phê duyệt chứng từ này.");
         }
 
+        var stepResult = await RecordRequiredApprovalStepAsync(
+            normalizedTargetType.Value, targetId, request, actorId, actor);
+        if (stepResult is not null)
+        {
+            return stepResult;
+        }
+
         return await handler.HandleAsync(targetId, request, actorId);
+    }
+
+    private async Task<ApprovalResultDto?> RecordRequiredApprovalStepAsync(
+        ApprovalTargetType targetType,
+        string targetId,
+        ApprovalRequest request,
+        byte[] actorId,
+        ClaimsPrincipal? actor)
+    {
+        if (_context is null || _routingService is null || actor is null || request.Status != ApprovalDecision.Approve)
+        {
+            return null;
+        }
+
+        var targetIdBytes = GuidHelper.ParseGuidString(targetId);
+        if (targetIdBytes is null) return null;
+        var targetTypeName = targetType switch
+        {
+            ApprovalTargetType.MaterialDemand => "material-demand",
+            ApprovalTargetType.PurchaseRequest => "purchase-request",
+            _ => string.Empty
+        };
+        if (string.IsNullOrEmpty(targetTypeName)) return null;
+
+        var rule = await _routingService.GetMatchingRuleAsync(targetTypeName, null);
+        if (rule is null) return null;
+        var assignments = (await _routingService.GetAssignmentsForRuleAsync(rule.RuleId))
+            .Where(item => item.IsRequired).OrderBy(item => item.Sequence).ToList();
+        if (assignments.Count < 2) return null;
+
+        var history = await _context.Approvalhistories
+            .Where(item => item.TargetType == targetTypeName && item.TargetId == targetIdBytes && item.Decision == "STEP_APPROVED")
+            .OrderBy(item => item.ActionAt).ToListAsync();
+        var next = assignments.Skip(history.Count).FirstOrDefault();
+        if (next is null) return null;
+        if (history.Any(item => item.ActionBy.SequenceEqual(actorId)))
+            throw new BusinessRuleException("Một người không được hoàn thành hai bước phê duyệt.");
+        if (next.ApproverUserId is not null && !next.ApproverUserId.SequenceEqual(actorId))
+            throw new UnauthorizedAccessException("Bạn không phải người được chỉ định cho bước duyệt này.");
+        var actorRoles = actor.FindAll(ClaimTypes.Role).Select(item => item.Value);
+        if (next.ApproverUserId is null && !actorRoles.Any(role => string.Equals(role, next.ApproverRole, StringComparison.OrdinalIgnoreCase)))
+            throw new UnauthorizedAccessException("Vai trò hiện tại không được phép thực hiện bước duyệt này.");
+
+        var now = DateTime.UtcNow;
+        var step = new ApprovalHistory { ApprovalHistoryId = GuidHelper.NewId(), TargetType = targetTypeName, TargetId = targetIdBytes, Decision = "STEP_APPROVED", OldStatus = next.Sequence.ToString(), NewStatus = "PENDING", Reason = request.Reason, ActionBy = actorId, ActionAt = now };
+        _context.Approvalhistories.Add(step);
+        await _context.SaveChangesAsync();
+        return history.Count + 1 < assignments.Count
+            ? new ApprovalResultDto { TargetType = targetTypeName, TargetId = targetId, Status = "PENDING_NEXT_APPROVAL", OldStatus = next.Sequence.ToString(), NewStatus = "PENDING", HistoryId = GuidHelper.ToGuidString(step.ApprovalHistoryId), ActionAt = now }
+            : null;
     }
 
     private static bool HasPermission(ClaimsPrincipal actor, ApprovalTargetType targetType)

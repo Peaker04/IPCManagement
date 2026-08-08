@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-07
+updated: 2026-08-08
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -55,6 +55,13 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Runtime audit 
   mixed diff là full-analysis. Graph-free risk ghi `N/A`, không tạo LOW giả bằng graph call.
 
 ## Còn mở
+
+## Governance checkpoint · tiếp tục ở chat mới
+
+- Checkpoint chưa hoàn tất: menu amendment đã enforce luồng chuẩn `Điều phối tạo → Manager review → Admin thực thi`, chặn tự review/tự execute và có break-glass Admin bắt buộc reason + audit. Migration `20260808160000_EnforceMenuAmendmentSeparation` đang chờ apply vào lane được kiểm tra trước.
+- Approval rule có >=2 required assignment nay được backend xử lý theo sequence cho demand/PR; một actor không thể hoàn thành hai bước, và inbox giữ chứng từ sau bước trung gian. Chưa có immutable snapshot/invalidation round chung.
+- Receipt chưa được chuyển: hiện creation ghi ledger ngay. Việc kế tiếp là refactor `DRAFT → dual approval → POSTED` với movement chỉ sinh ở POSTED, sau đó route PO/issue/adjustment/stocktake/service-run và UI inbox chung.
+- Checkpoint gates: backend build pass; targeted MenuAmendment `5/5`, MaterialDemand/PriceException approval `46/46`, workflow+approval regression `182/182`; frontend amendment test + production build pass; migration model check và `git diff --check` pass. Chưa chạy migration thật hay browser/E2E mới, không khởi động/reset/import lane.
 
 - `OPEN-04` · owner `Ops/Backup` · đóng khi dump + binlog được mã hóa lên object storage immutable, có SSD luân phiên off-premises và restore drill chỉ từ off-site pass toàn bộ gate runbook.
 

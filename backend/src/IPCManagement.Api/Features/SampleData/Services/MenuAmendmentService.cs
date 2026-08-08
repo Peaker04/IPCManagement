@@ -29,12 +29,29 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         }).ToList();
     }
 
-    public async Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default)
+    public Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default)
+        => ExecuteCoreAsync(amendmentId, actorUserId, null, cancellationToken);
+
+    public Task<MenuAmendmentResultDto> BreakGlassExecuteAsync(string amendmentId, BreakGlassMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            throw new ArgumentException("Break-glass cần nêu lý do vận hành.");
+        return ExecuteCoreAsync(amendmentId, actorUserId, request.Reason.Trim(), cancellationToken);
+    }
+
+    private async Task<MenuAmendmentResultDto> ExecuteCoreAsync(string amendmentId, string? actorUserId, string? breakGlassReason, CancellationToken cancellationToken)
     {
         var id = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã yêu cầu thay đổi không hợp lệ.");
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người thực thi.");
         var amendment = await context.Menuamendments.Include(item => item.Lines).SingleOrDefaultAsync(item => item.MenuAmendmentId.SequenceEqual(id), cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
-        if (amendment.Status != "APPROVED_FOR_EXECUTION") throw new BusinessRuleException("Yêu cầu thay đổi chưa đủ điều kiện thực thi.");
+        var isBreakGlass = breakGlassReason is not null;
+        if (!isBreakGlass && amendment.Status != "APPROVED_FOR_EXECUTION") throw new BusinessRuleException("Yêu cầu thay đổi chưa đủ điều kiện thực thi.");
+        if (isBreakGlass && amendment.Status is not ("PENDING_REVIEW" or "APPROVED_FOR_EXECUTION"))
+            throw new BusinessRuleException("Break-glass chỉ áp dụng cho yêu cầu chưa có chứng từ vật lý và chưa bị đối soát.");
+        if (!isBreakGlass && (amendment.ReviewedBy is null || amendment.ReviewedAt is null))
+            throw new BusinessRuleException("Yêu cầu thay đổi chưa có hậu kiểm hợp lệ.");
+        if (!isBreakGlass && (actorId.SequenceEqual(amendment.CreatedBy) || actorId.SequenceEqual(amendment.ReviewedBy!)))
+            throw new BusinessRuleException("Người tạo hoặc người hậu kiểm không được tự thực thi thay đổi thực đơn.");
         var demands = await context.Materialrequests.Include(item => item.Plan).Where(item => item.RequestDate >= amendment.WeekStartDate && item.RequestDate < amendment.WeekStartDate.AddDays(7) && item.Plan.Productionplanlines.Any(line => line.CustomerId.SequenceEqual(amendment.CustomerId))).ToListAsync(cancellationToken);
         var purchases = await context.Purchaserequests.Where(item => item.PurchaseForDate >= amendment.WeekStartDate && item.PurchaseForDate < amendment.WeekStartDate.AddDays(7) && item.Purchaserequestlines.Any(line => line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(amendment.CustomerId))).ToListAsync(cancellationToken);
         var purchaseIds = purchases.Select(item => item.PurchaseRequestId).ToList();
@@ -70,8 +87,11 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
                 ?? throw new BusinessRuleException("Không tìm thấy slot thực đơn nguồn.");
             menuItem.DishId = line.NewDishId;
         }
+        var previousStatus = amendment.Status;
         amendment.Status = "EXECUTED";
-        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MenuAmendment), EntityId = amendment.MenuAmendmentId, FieldName = "Status", OldValue = "APPROVED_FOR_EXECUTION", NewValue = "EXECUTED", Reason = amendment.Reason });
+        amendment.ExecutedBy = actorId;
+        amendment.ExecutedAt = DateTime.UtcNow;
+        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MenuAmendment), EntityId = amendment.MenuAmendmentId, FieldName = isBreakGlass ? "BreakGlassExecute" : "Status", OldValue = previousStatus, NewValue = "EXECUTED", Reason = breakGlassReason ?? amendment.Reason });
         await context.SaveChangesAsync(cancellationToken);
         var result = JsonSerializer.Deserialize<MenuAmendmentResultDto>(amendment.ImpactSnapshotJson) ?? new(); result.MenuAmendmentId = amendmentId; result.Status = amendment.Status; result.AppliedMenuVersionId = GuidHelper.ToGuidString(version.MenuVersionId); return result;
     }
@@ -140,10 +160,14 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người hậu kiểm.");
         var amendment = await context.Menuamendments.FindAsync([id], cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
         if (amendment.Status is not ("PENDING_REVIEW" or "RECONCILIATION_REQUIRED")) throw new BusinessRuleException("Yêu cầu thay đổi không còn chờ review.");
+        if (actorId.SequenceEqual(amendment.CreatedBy))
+            throw new BusinessRuleException("Người tạo không được tự hậu kiểm yêu cầu thay đổi thực đơn.");
         var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
         if (!request.Approved && reason is null) throw new BusinessRuleException("Cần nêu lý do khi yêu cầu chỉnh sửa.");
         var oldStatus = amendment.Status;
         amendment.Status = request.Approved ? (oldStatus == "RECONCILIATION_REQUIRED" ? "RATIFIED_RECONCILIATION_REQUIRED" : "APPROVED_FOR_EXECUTION") : "CORRECTION_REQUIRED";
+        amendment.ReviewedBy = actorId;
+        amendment.ReviewedAt = DateTime.UtcNow;
         context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MenuAmendment), EntityId = amendment.MenuAmendmentId, FieldName = "Status", OldValue = oldStatus, NewValue = amendment.Status, Reason = reason });
         await context.SaveChangesAsync(cancellationToken);
         var result = JsonSerializer.Deserialize<MenuAmendmentResultDto>(amendment.ImpactSnapshotJson) ?? new MenuAmendmentResultDto();

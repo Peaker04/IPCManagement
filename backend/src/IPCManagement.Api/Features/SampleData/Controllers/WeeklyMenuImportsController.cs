@@ -332,7 +332,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
     }
 
     [HttpPost("weekly-menu/amendments/{amendmentId}/review")]
-    [Authorize(Roles = "Admin,ADMIN,Manager,MANAGER,Quản lý")]
+    [Authorize(Roles = "Manager,MANAGER,Quản lý")]
     public async Task<IActionResult> ReviewMenuAmendmentAsync(string amendmentId, [FromBody] ReviewMenuAmendmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -346,10 +346,20 @@ public sealed class WeeklyMenuImportsController : ControllerBase
     }
 
     [HttpPost("weekly-menu/amendments/{amendmentId}/execute")]
-    [Authorize(Roles = "Admin,ADMIN,Manager,MANAGER,Quản lý")]
+    [Authorize(Roles = "Admin,ADMIN,Quản trị")]
     public async Task<IActionResult> ExecuteMenuAmendmentAsync(string amendmentId, CancellationToken cancellationToken)
     {
         try { return Ok(ApiResponse<MenuAmendmentResultDto>.SuccessResult(await _menuAmendmentService.ExecuteAsync(amendmentId, _currentUserService.GetUserId(User), cancellationToken), "Đã thực thi thay đổi thực đơn.")); }
+        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.FailResult(ex.Message)); }
+        catch (BusinessRuleException ex) { return BadRequest(ApiResponse.FailResult(ex.Message)); }
+        catch (ArgumentException ex) { return BadRequest(ApiResponse.FailResult(ex.Message)); }
+    }
+
+    [HttpPost("weekly-menu/amendments/{amendmentId}/break-glass-execute")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    public async Task<IActionResult> BreakGlassExecuteMenuAmendmentAsync(string amendmentId, [FromBody] BreakGlassMenuAmendmentRequest request, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<MenuAmendmentResultDto>.SuccessResult(await _menuAmendmentService.BreakGlassExecuteAsync(amendmentId, request, _currentUserService.GetUserId(User), cancellationToken), "Đã thực thi break-glass và ghi audit hậu kiểm.")); }
         catch (KeyNotFoundException ex) { return NotFound(ApiResponse.FailResult(ex.Message)); }
         catch (BusinessRuleException ex) { return BadRequest(ApiResponse.FailResult(ex.Message)); }
         catch (ArgumentException ex) { return BadRequest(ApiResponse.FailResult(ex.Message)); }

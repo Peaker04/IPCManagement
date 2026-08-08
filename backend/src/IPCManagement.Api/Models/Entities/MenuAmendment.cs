@@ -11,10 +11,16 @@ public sealed class MenuAmendment
     public string ImpactSnapshotJson { get; set; } = null!;
     public byte[] CreatedBy { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+    public byte[]? ReviewedBy { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public byte[]? ExecutedBy { get; set; }
+    public DateTime? ExecutedAt { get; set; }
 
     public Customer Customer { get; set; } = null!;
     public MenuVersion? BaseMenuVersion { get; set; }
     public User CreatedByNavigation { get; set; } = null!;
+    public User? ReviewedByNavigation { get; set; }
+    public User? ExecutedByNavigation { get; set; }
     public ICollection<MenuAmendmentLine> Lines { get; set; } = new List<MenuAmendmentLine>();
 }
 

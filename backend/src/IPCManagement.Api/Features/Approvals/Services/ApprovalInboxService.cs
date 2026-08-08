@@ -434,7 +434,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 item.Status == "SENTTOSUPPLIER" &&
                 !_context.Approvalhistories.Any(history =>
                     history.TargetType == PurchaseRequestTargetType &&
-                    history.TargetId == item.PurchaseRequestId));
+                    history.TargetId == item.PurchaseRequestId &&
+                    (history.Decision == "APPROVE" || history.Decision == "REJECT")));
         if (cursor is not null)
         {
             requestQuery = requestQuery.Where(item =>
@@ -631,7 +632,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 item.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
                 !_context.Approvalhistories.Any(history =>
                     history.TargetType == InventoryIssueTargetType &&
-                    history.TargetId == item.IssueId));
+                    history.TargetId == item.IssueId &&
+                    (history.Decision == "APPROVE" || history.Decision == "REJECT")));
         if (cursor is not null)
         {
             issueQuery = issueQuery.Where(item =>

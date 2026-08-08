@@ -35,6 +35,11 @@ public sealed class ReviewMenuAmendmentRequest
     public string? Reason { get; set; }
 }
 
+public sealed class BreakGlassMenuAmendmentRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
 public sealed class MenuAmendmentInboxItemDto
 {
     public string MenuAmendmentId { get; set; } = string.Empty;

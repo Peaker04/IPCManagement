@@ -71,7 +71,8 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
     {
         var alreadyResolved = await Context.Approvalhistories
             .AsNoTracking()
-            .AnyAsync(item => item.TargetType == targetType && item.TargetId == targetId);
+            .AnyAsync(item => item.TargetType == targetType && item.TargetId == targetId &&
+                (item.Decision == "APPROVE" || item.Decision == "REJECT"));
         if (alreadyResolved)
         {
             throw new BusinessRuleException("Phiếu này đã được xử lý.");
@@ -198,7 +199,8 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
 
         var existingHistory = await Context.Approvalhistories
             .AsNoTracking()
-            .SingleOrDefaultAsync(item => item.TargetType == TargetTypeName && item.TargetId == targetId);
+            .SingleOrDefaultAsync(item => item.TargetType == TargetTypeName && item.TargetId == targetId &&
+                (item.Decision == "APPROVE" || item.Decision == "REJECT"));
         if (existingHistory is not null)
         {
             var requestedDecision = request.Status.ToString().ToUpperInvariant();
@@ -289,7 +291,8 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
 
         var existingHistory = await Context.Approvalhistories
             .AsNoTracking()
-            .Where(item => item.TargetType == MaterialDemandTargetType && item.TargetId == targetId)
+            .Where(item => item.TargetType == MaterialDemandTargetType && item.TargetId == targetId &&
+                (item.Decision == "APPROVE" || item.Decision == "REJECT"))
             .OrderBy(item => item.ActionAt)
             .FirstOrDefaultAsync();
         if (existingHistory is not null)

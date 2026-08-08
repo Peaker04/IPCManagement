@@ -13,6 +13,10 @@ IPC Management điều phối bữa ăn công nghiệp từ thực đơn và s�
 
 Admin và Manager là lớp quản trị/phê duyệt xuyên luồng: quản lý master data, permission và các quyết định cần separation of duties. Họ không thay thế bốn owner vận hành bên trên.
 
+### Thay đổi thực đơn đã khóa
+
+Một thay đổi thực đơn đã gửi phải giữ snapshot impact tại lúc tạo. Luồng chuẩn là **Điều phối tạo → Manager hậu kiểm → Admin thực thi**; ba thao tác dùng ba danh tính khác nhau. Khi đã có PO, nhập hoặc xuất kho, thay đổi chuyển sang đối soát append-only và không được regeneration trực tiếp. Admin vẫn có break-glass cho yêu cầu chưa phát sinh chứng từ vật lý, nhưng phải nêu lý do; hành động đó ghi audit `BreakGlassExecute` để hậu kiểm.
+
 ## Luồng lõi
 
 ```text

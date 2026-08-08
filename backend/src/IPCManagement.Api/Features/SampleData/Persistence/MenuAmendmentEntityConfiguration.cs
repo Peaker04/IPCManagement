@@ -20,9 +20,15 @@ internal sealed class MenuAmendmentConfiguration : IEntityTypeConfiguration<Menu
         entity.Property(item => item.ImpactSnapshotJson).HasColumnType("longtext").HasColumnName("impactSnapshotJson");
         entity.Property(item => item.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
         entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+        entity.Property(item => item.ReviewedBy).HasMaxLength(16).IsFixedLength().HasColumnName("reviewedBy");
+        entity.Property(item => item.ReviewedAt).HasColumnType("datetime").HasColumnName("reviewedAt");
+        entity.Property(item => item.ExecutedBy).HasMaxLength(16).IsFixedLength().HasColumnName("executedBy");
+        entity.Property(item => item.ExecutedAt).HasColumnType("datetime").HasColumnName("executedAt");
         entity.HasOne(item => item.Customer).WithMany().HasForeignKey(item => item.CustomerId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(item => item.BaseMenuVersion).WithMany().HasForeignKey(item => item.BaseMenuVersionId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(item => item.CreatedByNavigation).WithMany().HasForeignKey(item => item.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne(item => item.ReviewedByNavigation).WithMany().HasForeignKey(item => item.ReviewedBy).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne(item => item.ExecutedByNavigation).WithMany().HasForeignKey(item => item.ExecutedBy).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
