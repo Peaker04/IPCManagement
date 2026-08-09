@@ -2,6 +2,78 @@ using System.Text.Json;
 using IPCManagement.DatabaseTool;
 using MySqlConnector;
 
+if (args.Length == 15 &&
+    args[0] == "phase42-rehearse" &&
+    args[1] == "--settings" &&
+    args[3] == "--request" &&
+    args[5] == "--preflight" &&
+    args[7] == "--apply" &&
+    args[9] == "--postflight" &&
+    args[11] == "--rollback" &&
+    args[13] == "--manifest")
+{
+    try
+    {
+        var requestPath = Path.GetFullPath(args[4]);
+        var request = JsonSerializer.Deserialize<Phase42RehearsalRequest>(
+                await File.ReadAllBytesAsync(requestPath),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidOperationException("Phase 4.2 rehearsal request is empty.");
+        Phase42DisposableRehearsalCommand.ValidateRequest(request);
+        Phase42DisposableRehearsalCommand.ValidateAdministrativeCommand(
+            $"phase42-rehearse --source {request.SourceDatabase} --target {request.TargetDatabase} --run-id {request.RunId}");
+
+        var artifacts = new Phase42RehearsalArtifacts(
+            Path.GetFullPath(args[6]),
+            Path.GetFullPath(args[8]),
+            Path.GetFullPath(args[10]),
+            Path.GetFullPath(args[12]),
+            Path.GetFullPath(args[14]));
+        await using var connection = await OpenServerConnectionAsync(Path.GetFullPath(args[2]));
+        var operations = new MySqlPhase42DisposableRehearsalOperations(connection, request, artifacts);
+        var result = await Phase42DisposableRehearsalCommand.ExecuteAsync(request, operations);
+        Console.WriteLine(JsonSerializer.Serialize(result));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Phase 4.2 disposable rehearsal failed: {exception.Message}");
+        return 1;
+    }
+}
+
+if (args.Length == 7 &&
+    args[0] == "backup-table-retirement" &&
+    args[1] == "--mode" &&
+    args[3] == "--target" &&
+    args[5] == "--sql")
+{
+    try
+    {
+        var mode = args[2];
+        var target = args[4];
+        BackupTableRetirementCommand.ValidateModeTarget(mode, target);
+        var sql = await File.ReadAllTextAsync(Path.GetFullPath(args[6]));
+        if (string.Equals(mode, "apply", StringComparison.OrdinalIgnoreCase))
+        {
+            BackupTableRetirementCommand.ValidateDropSql(sql);
+        }
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Status = "RETIREMENT_CONTRACT_VALIDATED",
+            Mode = mode,
+            Target = target,
+            MutationStatements = 0,
+        }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Backup-table retirement validation failed: {exception.Message}");
+        return 1;
+    }
+}
+
 if (args.Length == 7 &&
     args[0] == "weekly-menu-evidence" &&
     args[1] == "--settings" &&
