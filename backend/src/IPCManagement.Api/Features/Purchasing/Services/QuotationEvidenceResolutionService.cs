@@ -271,7 +271,7 @@ internal sealed class DurableResolutionStore(
                     item.IssueType == issueType && item.SourceEntityId.SequenceEqual(subject) &&
                     item.SourceFingerprint == fingerprint, token))
                 throw new InvalidOperationException("A current business evidence resolution already exists.");
-            var package = ToPackage(issueType, subject, evidence, packageId);
+            var package = ToPackage(issueType, subject, evidence, packageId, outcomeId);
             context.Businessevidencepackages.Add(package);
             foreach (var attestation in evidence.Attestations)
                 context.Businessevidenceattestations.Add(ToAttestation(packageId, evidence, attestation));
@@ -349,16 +349,19 @@ internal sealed class DurableResolutionStore(
         System.Data.IsolationLevel.Serializable).GetAwaiter().GetResult();
     }
 
-    private static BusinessEvidencePackage ToPackage(string issueType, byte[] subject, EvidencePackageInput input, byte[] packageId)
-        => new()
+    private static BusinessEvidencePackage ToPackage(string issueType, byte[] subject, EvidencePackageInput input, byte[] packageId, string outcomeId)
+    {
+        var linkedOutcome = input.OutcomeEntityId ?? (GuidHelper.ParseGuidString(outcomeId) is not null ? outcomeId : null);
+        return new BusinessEvidencePackage
         {
             PackageId = packageId, SchemaVersion = 1, IssueType = issueType, SubjectId = subject,
             SourceFingerprint = input.SourceFingerprint, ManifestUtf8 = input.ManifestUtf8, ManifestSha256 = input.ManifestSha256,
             SourceDatabase = "ipcmanagement", MigrationHead = "current", Decision = input.Decision,
-            OutcomeEntityType = input.OutcomeEntityId is null ? null : "DomainOutcome",
-            OutcomeEntityId = input.OutcomeEntityId is null ? null : Parse(input.OutcomeEntityId, "Outcome ID is invalid."),
+            OutcomeEntityType = linkedOutcome is null ? null : "DomainOutcome",
+            OutcomeEntityId = linkedOutcome is null ? null : Parse(linkedOutcome, "Outcome ID is invalid."),
             CommandId = input.PackageId, CreatedAtUtc = input.CreatedAtUtc, ExpiresAtUtc = input.ExpiresAtUtc, Version = 0
         };
+    }
 
     private static BusinessEvidenceAttestation ToAttestation(byte[] packageId, EvidencePackageInput input, EvidenceAttestationInput attestation)
         => new()

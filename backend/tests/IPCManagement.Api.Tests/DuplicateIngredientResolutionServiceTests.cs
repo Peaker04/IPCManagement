@@ -9,6 +9,7 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Helpers;
 
 namespace IPCManagement.Api.Tests;
 
@@ -79,7 +80,8 @@ public sealed class DuplicateIngredientResolutionServiceTests
         var reviewed = service.Review(preview.ResolutionId, Context("duplicate-review", 0, Guid.NewGuid().ToString(), "Manager"));
         var applied = service.Apply(reviewed.ResolutionId, request, Context("duplicate-apply", 1, Guid.NewGuid().ToString(), "Admin"), Now);
         applied.Status.Should().Be("APPLIED");
-        (await context.Dataqualitydispositions.SingleAsync()).CorrectionEntityId.Should().NotBeNull();
+        var persisted = await context.Dataqualitydispositions.SingleAsync();
+        GuidHelper.ToGuidString(persisted.CorrectionEntityId!).Should().Be(request.CanonicalMemberId);
         (await context.Lifecycletransitions.CountAsync()).Should().Be(3);
         (await context.Lifecycleoutboxmessages.CountAsync()).Should().Be(3);
         service.Review(preview.ResolutionId, Context("duplicate-review", 0, Guid.NewGuid().ToString(), "Manager")).Should().Be(reviewed);

@@ -8,6 +8,7 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Helpers;
 
 namespace IPCManagement.Api.Tests;
 
@@ -68,7 +69,9 @@ public sealed class BomEvidenceResolutionServiceTests
         var reviewed = service.Review(preview.ResolutionId, Context("bom-review", 0, Guid.NewGuid().ToString(), "Manager"));
         var applied = service.Apply(reviewed.ResolutionId, Context("bom-apply", 1, Guid.NewGuid().ToString(), "Admin"), Now);
         applied.Status.Should().Be("APPLIED");
-        (await first.Dataqualitydispositions.SingleAsync()).CorrectionEntityType.Should().Be("BusinessEvidencePackage");
+        var persisted = await first.Dataqualitydispositions.SingleAsync();
+        persisted.CorrectionEntityType.Should().Be("DomainOutcome");
+        GuidHelper.ToGuidString(persisted.CorrectionEntityId!).Should().Be(request.Lines[0].BomLineId);
         service.Review(preview.ResolutionId, Context("bom-review", 0, Guid.NewGuid().ToString(), "Manager")).Should().Be(reviewed);
     }
 
