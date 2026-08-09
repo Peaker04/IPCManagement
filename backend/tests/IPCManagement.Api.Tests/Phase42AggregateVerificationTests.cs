@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using FluentAssertions;
 
 namespace IPCManagement.Api.Tests;
@@ -93,12 +94,116 @@ public class Phase42AggregateVerificationTests
         ]);
     }
 
+    [Fact]
+    public void Contract_only_runner_should_enumerate_every_gate_and_evidence_field()
+    {
+        var output = Path.Combine(Path.GetTempPath(), $"phase42-contract-{Guid.NewGuid():N}.json");
+        try
+        {
+            var result = RunVerifier(
+                $"-ContractOnly -GateSpec scripts/standardization/phase42-verification-gates.json -Output \"{output}\"");
+
+            result.ExitCode.Should().Be(0, result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(output));
+            var root = document.RootElement;
+            root.GetProperty("contractOnly").GetBoolean().Should().BeTrue();
+            root.GetProperty("gates").GetArrayLength().Should().Be(20);
+            root.GetProperty("gates").EnumerateArray()
+                .Should().OnlyContain(gate => gate.GetProperty("status").GetString() == "NOT_RUN");
+            foreach (var gate in root.GetProperty("gates").EnumerateArray())
+            {
+                foreach (var field in EvidenceFields)
+                {
+                    gate.TryGetProperty(field, out _).Should().BeTrue($"{field} is required");
+                }
+            }
+        }
+        finally
+        {
+            File.Delete(output);
+        }
+    }
+
+    [Fact]
+    public void Runner_should_stop_at_first_failure_and_mark_every_successor_not_run()
+    {
+        var spec = Path.Combine(Path.GetTempPath(), $"phase42-spec-{Guid.NewGuid():N}.json");
+        var output = Path.Combine(Path.GetTempPath(), $"phase42-result-{Guid.NewGuid():N}.json");
+        try
+        {
+            File.WriteAllText(spec, JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                requirementsTotal = 3,
+                requiredExecutionInputs = new[] { "runId", "target" },
+                requiredEvidenceFields = EvidenceFields,
+                failureStatuses = new[] { "FAILED" },
+                gates = new object[]
+                {
+                    FixtureGate(1, "first", "DCR-01", "powershell -NoProfile -Command exit 0"),
+                    FixtureGate(2, "failure", "DCR-02", "powershell -NoProfile -Command exit 7"),
+                    FixtureGate(3, "must-not-run", "VER-03", "powershell -NoProfile -Command exit 0"),
+                },
+            }));
+
+            var result = RunVerifier(
+                $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId contract -Target ipcmanagement");
+
+            result.ExitCode.Should().NotBe(0);
+            using var document = JsonDocument.Parse(File.ReadAllText(output));
+            var gates = document.RootElement.GetProperty("gates").EnumerateArray().ToArray();
+            gates.Select(gate => gate.GetProperty("status").GetString())
+                .Should().Equal("PASS", "FAILED", "NOT_RUN");
+            gates[1].GetProperty("exitCode").GetInt32().Should().Be(7);
+            gates[2].GetProperty("exitCode").ValueKind.Should().Be(JsonValueKind.Null);
+            document.RootElement.GetProperty("requirementsPassed").GetInt32().Should().Be(1);
+        }
+        finally
+        {
+            File.Delete(spec);
+            File.Delete(output);
+        }
+    }
+
+    private static object FixtureGate(int order, string id, string requirementId, string command) => new
+    {
+        order,
+        id,
+        stage = "FIXTURE",
+        requirementId,
+        kind = "command",
+        command,
+        versionCommand = "powershell -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
+        targetMode = "none",
+        requiredArtifacts = Array.Empty<string>(),
+    };
+
+    private static (int ExitCode, string StdErr) RunVerifier(string arguments)
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -NonInteractive -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 {arguments}",
+            WorkingDirectory = FindRepositoryRoot(),
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        }) ?? throw new InvalidOperationException("Could not start aggregate verifier.");
+        var stdErr = process.StandardError.ReadToEnd();
+        process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return (process.ExitCode, stdErr);
+    }
+
     private static int IndexOfRequirement(JsonElement[] gates, string requirement)
         => Array.FindIndex(gates, gate => gate.GetProperty("requirementId").GetString() == requirement);
 
     private static JsonDocument ReadGateSpec()
-        => JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            FindRepositoryRoot(), "scripts", "standardization", "phase42-verification-gates.json")));
+        => JsonDocument.Parse(File.ReadAllText(GateSpecPath()));
+
+    private static string GateSpecPath()
+        => Path.Combine(FindRepositoryRoot(), "scripts", "standardization", "phase42-verification-gates.json");
 
     private static string FindRepositoryRoot()
     {
