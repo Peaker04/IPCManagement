@@ -10,7 +10,7 @@ function Assert-ProviderReceipt {
         'provider', 'accountSecurityDomain', 'objectKey', 'objectVersion',
         'archiveSha256', 'archiveBytes', 'encryptionKeyReference', 'lockMode',
         'lockState', 'retainUntilUtc', 'legalHoldState', 'uploadRequestId',
-        'metadataRequestId', 'downloadRequestId'
+        'metadataRequestId'
     )
     foreach ($field in $required) {
         if ($null -eq $Receipt.$field -or [string]::IsNullOrWhiteSpace([string]$Receipt.$field)) {
@@ -117,6 +117,9 @@ function Receive-ImmutableObjectVersion {
     $result = & $ProviderAdapter -Receipt $Receipt -Destination $Destination
     if ($null -eq $result -or [string]::IsNullOrWhiteSpace([string]$result.archivePath)) {
         throw 'Provider adapter returned no downloaded archive.'
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$result.downloadRequestId)) {
+        throw 'Provider adapter returned no downloadRequestId audit proof.'
     }
     return $result
 }
