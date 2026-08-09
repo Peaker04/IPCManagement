@@ -88,6 +88,37 @@ public sealed class BusinessEvidencePolicyTests
         unsignedAuthority.Should().Throw<InvalidOperationException>().WithMessage("*authority*");
     }
 
+    [Fact]
+    public void Package_RequiresInitialOptimisticVersionAndDurableCommandIdentity()
+    {
+        var manifestBytes = Encoding.UTF8.GetBytes("{\"schemaVersion\":1,\"subjectId\":\"movement-1\"}");
+        var manifestDigest = BusinessEvidencePolicy.ComputeManifestSha256(manifestBytes);
+        var fingerprint = new string('A', 64);
+        var package = CreatePackage(manifestBytes, manifestDigest, fingerprint);
+        var envelope = CreateEnvelope(package, fingerprint,
+        [
+            new("LEDGER", "ledger/ref/1", new string('1', 64)),
+            new("RECEIPT", "receipt/ref/1", new string('2', 64)),
+            new("STOCK_SNAPSHOT", "stock/ref/1", new string('3', 64))
+        ]);
+        var attestations = new[]
+        {
+            CreateAttestation(package, "WAREHOUSE_SOURCE_OWNER", "warehouse-authority", NowUtc.AddHours(1)),
+            CreateAttestation(package, "FINANCE_SOURCE_OWNER", "finance-authority", NowUtc.AddHours(1))
+        };
+
+        package.CommandId = " ";
+        var missingCommand = () => BusinessEvidencePolicy.Validate(
+            envelope, package, attestations, fingerprint, NowUtc);
+        missingCommand.Should().Throw<ArgumentException>().WithMessage("*CommandId*");
+
+        package.CommandId = "business-evidence-create-1";
+        package.Version = 1;
+        var nonInitialVersion = () => BusinessEvidencePolicy.Validate(
+            envelope, package, attestations, fingerprint, NowUtc);
+        nonInitialVersion.Should().Throw<InvalidOperationException>().WithMessage("*version 0*");
+    }
+
     private static BusinessEvidencePackage CreatePackage(byte[] manifestBytes, string manifestDigest, string fingerprint) => new()
     {
         PackageId = GuidHelper.NewId(),
