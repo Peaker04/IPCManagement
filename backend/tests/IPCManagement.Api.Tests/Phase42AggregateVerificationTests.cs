@@ -147,11 +147,16 @@ public class Phase42AggregateVerificationTests
             }));
 
             var result = RunVerifier(
-                $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId contract -Target ipcmanagement");
+                $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId contract -Target ipcmanagement " +
+                "-MigrationHead 20260810120000_AddBusinessEvidenceClosure");
 
             result.ExitCode.Should().NotBe(0);
             using var document = JsonDocument.Parse(File.ReadAllText(output));
-            var gates = document.RootElement.GetProperty("gates").EnumerateArray().ToArray();
+            var root = document.RootElement;
+            var gates = root.GetProperty("gates").EnumerateArray().ToArray();
+            gates.Should().HaveCount(3, root.TryGetProperty("redactedError", out var error)
+                ? error.GetString()
+                : result.StdErr);
             gates.Select(gate => gate.GetProperty("status").GetString())
                 .Should().Equal("PASS", "FAILED", "NOT_RUN");
             gates[1].GetProperty("exitCode").GetInt32().Should().Be(7);
