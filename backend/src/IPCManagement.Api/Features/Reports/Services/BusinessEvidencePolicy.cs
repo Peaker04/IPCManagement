@@ -99,6 +99,12 @@ internal static class BusinessEvidencePolicy
             !string.Equals(package.MigrationHead, envelope.MigrationHead, StringComparison.Ordinal) ||
             !string.Equals(package.Decision, envelope.Decision, StringComparison.Ordinal))
             throw new InvalidOperationException("Envelope metadata does not match the persisted package.");
+        if (!string.Equals(package.OutcomeEntityType, envelope.OutcomeEntityType, StringComparison.Ordinal) ||
+            !string.Equals(
+                package.OutcomeEntityId is null ? null : GuidHelper.ToGuidString(package.OutcomeEntityId),
+                envelope.OutcomeEntityId,
+                StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Envelope outcome does not match the exact persisted outcome link.");
 
         var normalizedCurrentFingerprint = DataQualityDispositionPolicy.NormalizeFingerprint(currentFingerprint);
         if (!string.Equals(package.SourceFingerprint, normalizedCurrentFingerprint, StringComparison.Ordinal))
