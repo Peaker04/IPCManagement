@@ -119,6 +119,35 @@ public sealed class BusinessEvidencePolicyTests
         nonInitialVersion.Should().Throw<InvalidOperationException>().WithMessage("*version 0*");
     }
 
+    [Fact]
+    public void CorrectionEnvelope_MustLinkTheExactPersistedOutcome()
+    {
+        var manifestBytes = Encoding.UTF8.GetBytes("{\"schemaVersion\":1,\"subjectId\":\"movement-1\"}");
+        var manifestDigest = BusinessEvidencePolicy.ComputeManifestSha256(manifestBytes);
+        var fingerprint = new string('A', 64);
+        var package = CreatePackage(manifestBytes, manifestDigest, fingerprint);
+        package.Decision = "CORRECTED";
+        package.OutcomeEntityType = "StockMovement";
+        package.OutcomeEntityId = GuidHelper.NewId();
+        var envelope = CreateEnvelope(package, fingerprint,
+        [
+            new("LEDGER", "ledger/ref/1", new string('1', 64)),
+            new("RECEIPT", "receipt/ref/1", new string('2', 64)),
+            new("STOCK_SNAPSHOT", "stock/ref/1", new string('3', 64))
+        ]);
+        var attestations = new[]
+        {
+            CreateAttestation(package, "WAREHOUSE_SOURCE_OWNER", "warehouse-authority", NowUtc.AddHours(1)),
+            CreateAttestation(package, "FINANCE_SOURCE_OWNER", "finance-authority", NowUtc.AddHours(1))
+        };
+
+        var mismatchedEnvelope = envelope with { OutcomeEntityId = Guid.NewGuid().ToString() };
+        var act = () => BusinessEvidencePolicy.Validate(
+            mismatchedEnvelope, package, attestations, fingerprint, NowUtc);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*outcome*");
+    }
+
     private static BusinessEvidencePackage CreatePackage(byte[] manifestBytes, string manifestDigest, string fingerprint) => new()
     {
         PackageId = GuidHelper.NewId(),
@@ -152,8 +181,8 @@ public sealed class BusinessEvidencePolicyTests
             package.ExpiresAtUtc,
             sources,
             package.Decision,
-            null,
-            null);
+            package.OutcomeEntityType,
+            package.OutcomeEntityId is null ? null : GuidHelper.ToGuidString(package.OutcomeEntityId));
 
     private static BusinessEvidenceAttestation CreateAttestation(
         BusinessEvidencePackage package,
