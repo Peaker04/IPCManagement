@@ -82,8 +82,9 @@ public sealed class QuotationEvidenceResolutionServiceTests
         FluentActions.Invoking(() => service2.Review(preview.ResolutionId, Context("durable-self", 0, "owner-p", "Manager")))
             .Should().Throw<InvalidOperationException>().WithMessage("*source-owner*");
         var reviewed = service2.Review(preview.ResolutionId, Context("durable-review", 0, Guid.NewGuid().ToString(), "Manager"));
-        FluentActions.Invoking(() => service2.Apply(preview.ResolutionId, Context("durable-apply-stale", 0, Guid.NewGuid().ToString(), "Admin"), Now))
-            .Should().Throw<InvalidOperationException>().WithMessage("*stale*");
+        FluentActions.Invoking(() => service2.Apply(preview.ResolutionId,
+                Context("durable-apply-stale", 1, Guid.NewGuid().ToString(), "Admin") with { CurrentFingerprint = new string('Z', 64) }, Now))
+            .Should().Throw<InvalidOperationException>().WithMessage("*fingerprint*");
         (await reviewContext.Dataqualitydispositions.SingleAsync()).Status.Should().Be("APPROVED");
         (await reviewContext.Lifecycletransitions.CountAsync()).Should().Be(2);
 

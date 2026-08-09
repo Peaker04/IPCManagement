@@ -115,7 +115,7 @@ public sealed class DuplicateIngredientResolutionService : IDuplicateIngredientR
         if (_durable is not null)
         {
             ValidatePlan(current, nowUtc);
-            return _durable.Apply("DUPLICATE_INGREDIENT", resolutionId, command, nowUtc);
+            return _durable.Apply("DUPLICATE_INGREDIENT", resolutionId, command with { CurrentFingerprint = current.CurrentFingerprint }, nowUtc);
         }
         lock (_sync)
         {

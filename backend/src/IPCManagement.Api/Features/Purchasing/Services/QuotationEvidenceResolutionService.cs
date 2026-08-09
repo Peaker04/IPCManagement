@@ -35,7 +35,8 @@ public sealed record ResolutionCommandContext(
     long ExpectedVersion,
     string ActorId,
     string ActorRole,
-    DateTime NowUtc);
+    DateTime NowUtc,
+    string? CurrentFingerprint = null);
 
 public sealed record EvidenceResolutionState(
     string ResolutionId,
@@ -318,6 +319,8 @@ internal sealed class DurableResolutionStore(
         {
             var item = await context.Dataqualitydispositions.SingleAsync(value => value.DispositionId.SequenceEqual(id), token);
             if (item.Version != command.ExpectedVersion) throw new InvalidOperationException("Resolution version is stale.");
+            if (command.CurrentFingerprint is not null && command.CurrentFingerprint != item.SourceFingerprint)
+                throw new InvalidOperationException("Current source fingerprint changed after evidence review.");
             if (item.Status != expectedStatus) throw new InvalidOperationException($"Resolution must be {expectedStatus}.");
             var package = await context.Businessevidencepackages.AsNoTracking()
                 .SingleAsync(value => value.IssueType == issueType && value.SubjectId.SequenceEqual(item.SourceEntityId) && value.SourceFingerprint == item.SourceFingerprint, token);
