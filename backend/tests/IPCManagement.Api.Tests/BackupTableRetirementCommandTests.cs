@@ -54,6 +54,7 @@ public class BackupTableRetirementCommandTests
 
         action.Should().NotThrow();
         Enum.GetValues<BackupConsumerSurface>().Should().Contain(
+        [
             BackupConsumerSurface.ApplicationSource,
             BackupConsumerSurface.EfModel,
             BackupConsumerSurface.RawSql,
@@ -64,7 +65,8 @@ public class BackupTableRetirementCommandTests
             BackupConsumerSurface.Event,
             BackupConsumerSurface.DeclaredJob,
             BackupConsumerSurface.DeclaredReport,
-            BackupConsumerSurface.DeclaredTaskAction);
+            BackupConsumerSurface.DeclaredTaskAction,
+        ]);
     }
 
     [Fact]

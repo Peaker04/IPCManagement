@@ -1,5 +1,7 @@
 using FluentAssertions;
 using IPCManagement.DatabaseTool;
+using System.Text;
+using System.Text.Json;
 
 namespace IPCManagement.Api.Tests;
 
@@ -20,7 +22,7 @@ public class Phase42DisposableRehearsalCommandTests
         operations.Calls.Should().Equal(
             "Exists:ipc_rehearsal_phase42_contract",
             "Snapshot:ipcmanagement:" + Hash,
-            "Clone:ipcmanagement:ipc_rehearsal_phase42_contract:phase42_contract",
+            "Clone:ipcmanagement:ipc_rehearsal_phase42_contract:contract",
             "CloneFidelity:ipc_rehearsal_phase42_contract",
             "Targets:ipc_rehearsal_phase42_contract",
             "Apply:ipc_rehearsal_phase42_contract:" + Hash,
@@ -29,7 +31,7 @@ public class Phase42DisposableRehearsalCommandTests
             "ExactState:ipc_rehearsal_phase42_contract:" + Hash,
             "Apply:ipc_rehearsal_phase42_contract:" + Hash,
             "Postflight:ipc_rehearsal_phase42_contract",
-            "Drop:ipc_rehearsal_phase42_contract:phase42_contract",
+            "Drop:ipc_rehearsal_phase42_contract:contract",
             "Absent:ipc_rehearsal_phase42_contract");
     }
 
@@ -71,8 +73,8 @@ public class Phase42DisposableRehearsalCommandTests
         var action = () => Phase42DisposableRehearsalCommand.ExecuteAsync(ValidRequest(), operations);
 
         await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("fixture failure");
-        operations.Calls.Should().EndWith(
-            "Drop:ipc_rehearsal_phase42_contract:phase42_contract",
+        operations.Calls.TakeLast(2).Should().Equal(
+            "Drop:ipc_rehearsal_phase42_contract:contract",
             "Absent:ipc_rehearsal_phase42_contract");
     }
 
@@ -109,15 +111,49 @@ public class Phase42DisposableRehearsalCommandTests
             var script = ReadRepositoryFile("tools", "db", "phase-04.2", name);
             script.Should().Contain("{{TARGET_DATABASE}}");
             script.Should().NotContain("USE ");
-            script.Should().NotContain("CREATE DATABASE", Exactly.Once());
-            script.Should().NotContain("DROP DATABASE", Exactly.Once());
+            script.Should().NotContain("CREATE DATABASE");
+            script.Should().NotContain("DROP DATABASE");
         }
+    }
+
+    [Fact]
+    public void Command_manifest_schema_should_be_strict_and_require_business_identity_fields()
+    {
+        using var schema = JsonDocument.Parse(ReadRepositoryFile(
+            "tools", "db", "phase-04.2", "business-command-manifest.schema.json"));
+        var root = schema.RootElement;
+
+        root.GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
+        var required = root.GetProperty("required").EnumerateArray().Select(item => item.GetString()).ToArray();
+        required.Should().Contain(
+        [
+            "targetDatabase", "scriptSha256", "stableSubjectId", "currentFingerprint",
+            "expectedVersion", "commandId", "signerPackageDigest", "appendOnlyOutcome",
+        ]);
+        root.GetProperty("properties").GetProperty("targetDatabase").GetProperty("pattern").GetString()
+            .Should().Be("^ipc_rehearsal_phase42_[a-z0-9_]+$");
+    }
+
+    [Fact]
+    public void Release_identity_should_change_when_either_exact_byte_sequence_changes()
+    {
+        var script = Encoding.UTF8.GetBytes("SELECT '{{TARGET_DATABASE}}';\n");
+        var manifest = Encoding.UTF8.GetBytes("{\"commandId\":\"01\"}\n");
+
+        var baseline = Phase42ReleaseIdentity.FromExactBytes(script, manifest);
+        var changedScript = Phase42ReleaseIdentity.FromExactBytes([.. script, (byte)' '], manifest);
+        var changedManifest = Phase42ReleaseIdentity.FromExactBytes(script, [.. manifest, (byte)' ']);
+
+        baseline.ScriptSha256.Should().NotBe(changedScript.ScriptSha256);
+        baseline.RuntimeManifestSha256.Should().NotBe(changedManifest.RuntimeManifestSha256);
+        baseline.ScriptSha256.Should().MatchRegex("^[A-F0-9]{64}$");
+        baseline.RuntimeManifestSha256.Should().MatchRegex("^[A-F0-9]{64}$");
     }
 
     private static Phase42RehearsalRequest ValidRequest() => new(
         SourceDatabase: "ipcmanagement",
         TargetDatabase: "ipc_rehearsal_phase42_contract",
-        RunId: "phase42_contract",
+        RunId: "contract",
         ApprovedSourceSnapshotSha256: Hash,
         ApplyScriptSha256: Hash,
         RuntimeManifestSha256: "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
