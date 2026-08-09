@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -28,6 +29,45 @@ internal static class BusinessEvidencePolicy
 
     internal static string ComputeManifestSha256(ReadOnlySpan<byte> manifestUtf8)
         => Convert.ToHexString(SHA256.HashData(manifestUtf8));
+
+    internal static string ComputeMovementFingerprint(StockMovement movement)
+        => ComputeCanonicalFingerprint(
+            Convert.ToHexString(movement.MovementId),
+            movement.MovementDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            movement.BeforeQty.ToString(CultureInfo.InvariantCulture),
+            movement.QuantityIn.ToString(CultureInfo.InvariantCulture),
+            movement.QuantityOut.ToString(CultureInfo.InvariantCulture),
+            movement.AfterQty.ToString(CultureInfo.InvariantCulture),
+            movement.MovementType,
+            movement.RefTable ?? string.Empty,
+            movement.RefId is null ? string.Empty : Convert.ToHexString(movement.RefId));
+
+    internal static string ComputeMenuWeekFingerprint(MenuSchedule schedule)
+    {
+        var mondayOffset = ((int)schedule.ServiceDate.DayOfWeek + 6) % 7;
+        var expectedWeekStart = schedule.ServiceDate.AddDays(-mondayOffset);
+        return ComputeCanonicalFingerprint(
+            Convert.ToHexString(schedule.MenuScheduleId),
+            schedule.ServiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            schedule.WeekStartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            expectedWeekStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            schedule.ShiftName,
+            schedule.Status,
+            schedule.MenuVersionId is null ? string.Empty : Convert.ToHexString(schedule.MenuVersionId));
+    }
+
+    internal static string ComputeUnitReviewFingerprint(UnitNormalizationReview review)
+        => ComputeCanonicalFingerprint(
+            Convert.ToHexString(review.ReviewId),
+            Convert.ToHexString(review.IngredientId),
+            Convert.ToHexString(review.SourceUnitId),
+            review.SourceUnit.UnitCode,
+            review.SourceUnit.BaseUnitCode ?? string.Empty,
+            review.SourceUnit.ConvertRateToBase.ToString(CultureInfo.InvariantCulture),
+            Convert.ToHexString(review.CatalogUnitId),
+            review.CatalogUnit.UnitCode,
+            review.CatalogUnit.BaseUnitCode ?? string.Empty,
+            review.CatalogUnit.ConvertRateToBase.ToString(CultureInfo.InvariantCulture));
 
     internal static void Validate(
         BusinessEvidenceEnvelopeDto envelope,
@@ -116,15 +156,15 @@ internal static class BusinessEvidencePolicy
         var decision = envelope.Decision?.Trim().ToUpperInvariant();
         var allowed = issueType switch
         {
-            "STOCK_MOVEMENT_BALANCE" => decision is "RESOLVED_NO_CHANGE" or "CORRECTION_REQUIRED",
-            "MENU_WEEK_MISMATCH" => decision is "SUPERSESSION_REQUIRED" or "CORRECTION_REQUIRED",
+            "STOCK_MOVEMENT_BALANCE" => decision is "RESOLVED_NO_CHANGE" or "CORRECTED",
+            "MENU_WEEK_MISMATCH" => decision is "SUPERSEDED" or "CORRECTED",
             "UNIT_NORMALIZATION" => decision is "CONFIRMED" or "RETAIN_DISTINCT",
             _ => false
         };
         if (!allowed || decision is "BLOCKED_BUSINESS" or "NEEDS_CONFIRMATION")
             throw new InvalidOperationException("Business evidence decision is not a terminal DCR outcome.");
 
-        var needsOutcome = decision is "CORRECTION_REQUIRED" or "SUPERSESSION_REQUIRED";
+        var needsOutcome = decision is "CORRECTED" or "SUPERSEDED";
         if (needsOutcome && (string.IsNullOrWhiteSpace(envelope.OutcomeEntityType) ||
             GuidHelper.ParseGuidString(envelope.OutcomeEntityId) is null))
             throw new InvalidOperationException("Append-only correction or supersession outcome link is required.");
@@ -136,9 +176,18 @@ internal static class BusinessEvidencePolicy
         IReadOnlyCollection<BusinessEvidenceAttestation> attestations,
         DateTime nowUtc)
     {
-        var requiredSlots = RequiredAuthoritySlots[issueType];
         var bySlot = attestations.GroupBy(item => item.AuthoritySlot?.Trim().ToUpperInvariant() ?? string.Empty)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+
+        var requiredSlots = RequiredAuthoritySlots[issueType];
+        if (issueType == "UNIT_NORMALIZATION")
+        {
+            var unitOwnerSlots = new[] { "CATALOG_SOURCE_OWNER", "WAREHOUSE_SOURCE_OWNER" };
+            var unitOwners = unitOwnerSlots.Where(bySlot.ContainsKey).SelectMany(slot => bySlot[slot]).ToArray();
+            if (unitOwners.Length != 1)
+                throw new InvalidOperationException("Exactly one Catalog or Warehouse source-owner attestation is required.");
+            requiredSlots = [unitOwners[0].AuthoritySlot.Trim().ToUpperInvariant()];
+        }
 
         foreach (var requiredSlot in requiredSlots)
         {
@@ -174,6 +223,9 @@ internal static class BusinessEvidencePolicy
 
     private static bool IsSha256(string? value)
         => value is { Length: 64 } && value.All(Uri.IsHexDigit);
+
+    private static string ComputeCanonicalFingerprint(params string[] fields)
+        => ComputeManifestSha256(Encoding.UTF8.GetBytes(string.Join('|', fields)));
 
     private static bool IsPlaceholder(string value)
     {
