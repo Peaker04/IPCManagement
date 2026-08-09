@@ -144,3 +144,6 @@ public static class DependencyInjection
         return services;
     }
 }
+        services.AddSingleton<IQuotationEvidenceResolutionService, QuotationEvidenceResolutionService>();
+        services.AddSingleton<IBomEvidenceResolutionService, BomEvidenceResolutionService>();
+        services.AddSingleton<IDuplicateIngredientResolutionService, DuplicateIngredientResolutionService>();

@@ -22,7 +22,10 @@ public sealed record BusinessEvidenceClosureRow(
 public sealed record BusinessEvidenceClosureSnapshot(
     IReadOnlyList<BusinessEvidenceClosureRow> Movements,
     IReadOnlyList<BusinessEvidenceClosureRow> MenuWeeks,
-    IReadOnlyList<BusinessEvidenceClosureRow> UnitReviews);
+    IReadOnlyList<BusinessEvidenceClosureRow> UnitReviews,
+    IReadOnlyList<CatalogEvidenceClosureRow>? Quotations = null,
+    IReadOnlyList<CatalogEvidenceClosureRow>? Boms = null,
+    IReadOnlyList<CatalogEvidenceClosureRow>? Duplicates = null);
 
 public sealed record BusinessEvidenceClosureResult(
     bool IsClosed,
@@ -32,11 +35,54 @@ public sealed record BusinessEvidenceClosureResult(
     int MutationStatements,
     IReadOnlyList<string> Issues);
 
+public sealed record CatalogEvidenceClosureRow(
+    string SourceEntityId,
+    string PackageFingerprint,
+    string CurrentFingerprint,
+    string Decision,
+    bool HasRequiredAttestations,
+    DateTime? ExpiresAtUtc,
+    bool HasEffectiveCoverage,
+    bool HasCompleteReferenceMap,
+    bool HasRollbackDigest);
+
 public static class BusinessEvidenceClosureCommand
 {
     private const int ExpectedMovementCount = 2461;
     private const int ExpectedMenuWeekCount = 84;
     private const int ExpectedUnitReviewCount = 44;
+
+    public static IReadOnlyList<string> ValidateCatalogRows(
+        string family,
+        IReadOnlyList<CatalogEvidenceClosureRow> rows,
+        DateTime nowUtc)
+    {
+        var issues = new List<string>();
+        foreach (var duplicate in rows.GroupBy(row => row.SourceEntityId, StringComparer.Ordinal).Where(group => group.Count() != 1))
+            issues.Add($"{family} source {duplicate.Key} is duplicate.");
+        foreach (var row in rows)
+        {
+            if (!IsSha256(row.PackageFingerprint) || row.PackageFingerprint != row.CurrentFingerprint)
+                issues.Add($"{family} {row.SourceEntityId} has stale fingerprint evidence.");
+            if (!row.HasRequiredAttestations)
+                issues.Add($"{family} {row.SourceEntityId} is missing required attestations.");
+            if (row.ExpiresAtUtc is { } expiry && expiry <= nowUtc)
+                issues.Add($"{family} {row.SourceEntityId} evidence is expired.");
+            if (!row.HasEffectiveCoverage)
+                issues.Add($"{family} {row.SourceEntityId} has no current effective coverage.");
+            if (family == "duplicate" && !row.HasCompleteReferenceMap)
+                issues.Add($"duplicate {row.SourceEntityId} has an incomplete reference map.");
+            if (family == "duplicate" && !row.HasRollbackDigest)
+                issues.Add($"duplicate {row.SourceEntityId} has no rollback digest.");
+            if (family == "quotation" && row.Decision is not ("EFFECTIVE_QUOTATION" or "TIME_BOUND_EXCEPTION"))
+                issues.Add($"quotation {row.SourceEntityId} is not terminal.");
+            if (family == "bom" && row.Decision is not ("PUBLISHED_BOM" or "BOM_EXEMPTION"))
+                issues.Add($"bom {row.SourceEntityId} is not terminal.");
+            if (family == "duplicate" && row.Decision is not ("KEEP_DISTINCT" or "MERGE_PLAN"))
+                issues.Add($"duplicate {row.SourceEntityId} is not terminal.");
+        }
+        return issues;
+    }
 
     public static BusinessEvidenceClosureResult Evaluate(BusinessEvidenceClosureSnapshot snapshot)
     {
@@ -90,6 +136,22 @@ public static class BusinessEvidenceClosureCommand
             {
                 issues.Add($"unit review {row.SourceEntityId} is not CONFIRMED or RETAIN_DISTINCT.");
             }
+        }
+
+        if (snapshot.Quotations is not null)
+        {
+            RequireCatalogRows("quotation", snapshot.Quotations, issues);
+            issues.AddRange(ValidateCatalogRows("quotation", snapshot.Quotations, DateTime.UtcNow));
+        }
+        if (snapshot.Boms is not null)
+        {
+            RequireCatalogRows("bom", snapshot.Boms, issues);
+            issues.AddRange(ValidateCatalogRows("bom", snapshot.Boms, DateTime.UtcNow));
+        }
+        if (snapshot.Duplicates is not null)
+        {
+            RequireCatalogRows("duplicate", snapshot.Duplicates, issues);
+            issues.AddRange(ValidateCatalogRows("duplicate", snapshot.Duplicates, DateTime.UtcNow));
         }
 
         return new BusinessEvidenceClosureResult(
@@ -163,6 +225,12 @@ public static class BusinessEvidenceClosureCommand
             issues.Add($"Expected exactly {expected} {family} rows but found {actual}.");
     }
 
+    private static void RequireCatalogRows(string family, IReadOnlyList<CatalogEvidenceClosureRow> rows, ICollection<string> issues)
+    {
+        if (rows.Count == 0)
+            issues.Add($"No current {family} closure rows were supplied; catalog closure is fail-closed.");
+    }
+
     private static void ValidateStableRows(
         string family,
         IReadOnlyList<BusinessEvidenceClosureRow> rows,
@@ -216,7 +284,10 @@ public static class BusinessEvidenceClosureCommand
         return new BusinessEvidenceClosureSnapshot(
             rows.Where(row => row.IssueType == "STOCK_MOVEMENT_BALANCE").Select(row => row.Row).ToArray(),
             rows.Where(row => row.IssueType == "MENU_WEEK_MISMATCH").Select(row => row.Row).ToArray(),
-            rows.Where(row => row.IssueType == "UNIT_NORMALIZATION").Select(row => row.Row).ToArray());
+            rows.Where(row => row.IssueType == "UNIT_NORMALIZATION").Select(row => row.Row).ToArray(),
+            [],
+            [],
+            []);
     }
 
     private static async Task<Dictionary<(string IssueType, string SourceId), string>> ReadCurrentFingerprintsAsync(
