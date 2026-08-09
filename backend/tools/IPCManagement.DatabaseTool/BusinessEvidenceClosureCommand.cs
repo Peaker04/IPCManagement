@@ -244,10 +244,14 @@ public static class BusinessEvidenceClosureCommand
             """, "MENU_WEEK_MISMATCH", result);
         await ReadFingerprintFamilyAsync(connection,
             $"""
-            SELECT HEX(reviewId) AS sourceId,
-                   SHA2(CONCAT_WS('|', HEX(reviewId), HEX(ingredientId), HEX(sourceUnitId),
-                       HEX(catalogUnitId), status, COALESCE(CAST(proposedSourceToCatalogFactor AS CHAR), '')), 256) AS fingerprint
-            FROM {Quote(database)}.unitnormalizationreviews;
+            SELECT HEX(review.reviewId) AS sourceId,
+                   SHA2(CONCAT_WS('|', HEX(review.reviewId), HEX(review.ingredientId), HEX(review.sourceUnitId),
+                       sourceUnit.unitCode, COALESCE(sourceUnit.baseUnitCode, ''), sourceUnit.convertRateToBase,
+                       HEX(review.catalogUnitId), catalogUnit.unitCode, COALESCE(catalogUnit.baseUnitCode, ''),
+                       catalogUnit.convertRateToBase), 256) AS fingerprint
+            FROM {Quote(database)}.unitnormalizationreviews AS review
+            INNER JOIN {Quote(database)}.units AS sourceUnit ON sourceUnit.unitId = review.sourceUnitId
+            INNER JOIN {Quote(database)}.units AS catalogUnit ON catalogUnit.unitId = review.catalogUnitId;
             """, "UNIT_NORMALIZATION", result);
         return result;
     }
