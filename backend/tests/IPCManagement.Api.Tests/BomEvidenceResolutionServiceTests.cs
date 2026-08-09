@@ -58,9 +58,10 @@ public sealed class BomEvidenceResolutionServiceTests
         var evidence = new EvidencePackageInput(Guid.NewGuid().ToString(), "BOM_GAP", dish, new string('C', 64),
             manifest, digest, decision, null, Now.AddDays(-1), expiry, ["BOM_WORKBOOK"],
             [new EvidenceAttestationInput("CATALOG_SOURCE_OWNER", "owner-c", digest, Now.AddDays(-1), expiry)]);
+        var unit = Guid.NewGuid().ToString();
         return new BomResolutionRequest(dish, customer, 30000m, new DateOnly(2026, 8, 10), new string('C', 64),
             evidence, [new BomCoverageLine(Guid.NewGuid().ToString(), dish, Guid.NewGuid().ToString(),
-                Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), customer, 30000m, 1, 0.25m,
+                unit, unit, customer, 30000m, 1, 0.25m,
                 true, new DateOnly(2026, 8, 1), null, new string('D', 64))]);
     }
 
