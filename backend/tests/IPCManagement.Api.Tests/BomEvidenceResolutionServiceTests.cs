@@ -3,6 +3,11 @@ using System.Text;
 using FluentAssertions;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Tests;
 
@@ -47,6 +52,24 @@ public sealed class BomEvidenceResolutionServiceTests
         var applied = service.Apply(reviewed.ResolutionId, Context("apply", 1, "admin-c", "Admin"), Now);
         service.Apply(reviewed.ResolutionId, Context("apply", 1, "admin-c", "Admin"), Now).Should().Be(applied);
         applied.AuditCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task DurableBomWorkflow_ReplaysAfterReconstruction_AndLinksExactPackageOutcome()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite(connection).Options;
+        await using (var setup = new IpcManagementContext(options)) await DurableEvidenceTestSchema.CreateAsync(setup);
+        var request = Request("PUBLISHED_BOM", null);
+        await using var first = new IpcManagementContext(options);
+        var service = new BomEvidenceResolutionService(first, new EfTransactionRunner(first), new LifecycleTransitionRecorder(first));
+        var preview = service.Preview(request, Context("bom-preview", 0, Guid.NewGuid().ToString(), "Catalog"));
+        var reviewed = service.Review(preview.ResolutionId, Context("bom-review", 0, Guid.NewGuid().ToString(), "Manager"));
+        var applied = service.Apply(reviewed.ResolutionId, Context("bom-apply", 1, Guid.NewGuid().ToString(), "Admin"), Now);
+        applied.Status.Should().Be("APPLIED");
+        (await first.Dataqualitydispositions.SingleAsync()).CorrectionEntityType.Should().Be("BusinessEvidencePackage");
+        service.Review(preview.ResolutionId, Context("bom-review", 0, Guid.NewGuid().ToString(), "Manager")).Should().Be(reviewed);
     }
 
     private static BomResolutionRequest Request(string decision, DateTime? expiry)

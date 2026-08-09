@@ -37,9 +37,18 @@ public interface IBomEvidenceResolutionService
 
 public sealed class BomEvidenceResolutionService : IBomEvidenceResolutionService
 {
+    private readonly DurableResolutionStore? _durable;
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EvidenceResolutionState> _receipts = new(StringComparer.Ordinal);
     private readonly object _sync = new();
+
+    public BomEvidenceResolutionService() { }
+
+    public BomEvidenceResolutionService(
+        IPCManagement.Api.Data.IpcManagementContext context,
+        IPCManagement.Api.Data.Transactions.IEfTransactionRunner transactionRunner,
+        IPCManagement.Api.Infrastructure.Lifecycle.ILifecycleTransitionRecorder lifecycleRecorder)
+        => _durable = new DurableResolutionStore(context, transactionRunner, lifecycleRecorder);
 
     public static BomCoverage EvaluateCoverage(BomResolutionRequest request, DateTime nowUtc)
     {
@@ -79,6 +88,9 @@ public sealed class BomEvidenceResolutionService : IBomEvidenceResolutionService
         RequireRole(command, "Catalog", "Admin");
         var coverage = EvaluateCoverage(request, command.NowUtc);
         EvidencePackageGuard.RequireIndependentActor(request.Evidence, command.ActorId);
+        if (_durable is not null)
+            return _durable.Preview("BOM_GAP", request.DishId, request.CurrentFingerprint, request.Evidence,
+                command, coverage.ExemptionId ?? string.Join(',', coverage.BomLineIds));
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -94,6 +106,7 @@ public sealed class BomEvidenceResolutionService : IBomEvidenceResolutionService
     public EvidenceResolutionState Review(string resolutionId, ResolutionCommandContext command)
     {
         RequireRole(command, "Manager");
+        if (_durable is not null) return _durable.Review("BOM_GAP", resolutionId, command);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -110,6 +123,7 @@ public sealed class BomEvidenceResolutionService : IBomEvidenceResolutionService
     public EvidenceResolutionState Apply(string resolutionId, ResolutionCommandContext command, DateTime nowUtc)
     {
         RequireRole(command, "Admin");
+        if (_durable is not null) return _durable.Apply("BOM_GAP", resolutionId, command, nowUtc);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;

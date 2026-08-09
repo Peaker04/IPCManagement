@@ -1,4 +1,11 @@
 using System.Security.Cryptography;
+using System.Text.Json;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
@@ -72,9 +79,18 @@ public interface IQuotationEvidenceResolutionService
 
 public sealed class QuotationEvidenceResolutionService : IQuotationEvidenceResolutionService
 {
+    private readonly DurableResolutionStore? _durable;
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EvidenceResolutionState> _receipts = new(StringComparer.Ordinal);
     private readonly object _sync = new();
+
+    public QuotationEvidenceResolutionService() { }
+
+    public QuotationEvidenceResolutionService(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner,
+        ILifecycleTransitionRecorder lifecycleRecorder)
+        => _durable = new DurableResolutionStore(context, transactionRunner, lifecycleRecorder);
 
     public static QuotationCoverage EvaluateCoverage(QuotationResolutionRequest request, DateTime nowUtc)
     {
@@ -110,6 +126,9 @@ public sealed class QuotationEvidenceResolutionService : IQuotationEvidenceResol
         RequireRole(command, "Admin", "Purchasing", "PurchaseStaff", "ProcurementStaff");
         var coverage = EvaluateCoverage(request, command.NowUtc);
         EvidencePackageGuard.RequireIndependentActor(request.Evidence, command.ActorId);
+        if (_durable is not null)
+            return _durable.Preview("QUOTATION_GAP", request.IngredientId, request.CurrentFingerprint, request.Evidence,
+                command, coverage.OutcomeId);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -125,6 +144,7 @@ public sealed class QuotationEvidenceResolutionService : IQuotationEvidenceResol
     public EvidenceResolutionState Review(string resolutionId, ResolutionCommandContext command)
     {
         RequireRole(command, "Manager");
+        if (_durable is not null) return _durable.Review("QUOTATION_GAP", resolutionId, command);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -144,6 +164,7 @@ public sealed class QuotationEvidenceResolutionService : IQuotationEvidenceResol
     public EvidenceResolutionState Apply(string resolutionId, ResolutionCommandContext command, DateTime nowUtc)
     {
         RequireRole(command, "Admin", "Purchasing", "PurchaseStaff", "ProcurementStaff");
+        if (_durable is not null) return _durable.Apply("QUOTATION_GAP", resolutionId, command, nowUtc);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -222,4 +243,144 @@ internal static class EvidencePackageGuard
     }
 
     internal static bool IsSha256(string? value) => value is { Length: 64 } && value.All(Uri.IsHexDigit);
+}
+
+internal sealed class DurableResolutionStore(
+    IpcManagementContext context,
+    IEfTransactionRunner transactionRunner,
+    ILifecycleTransitionRecorder lifecycleRecorder)
+{
+    public EvidenceResolutionState Preview(
+        string issueType,
+        string subjectId,
+        string fingerprint,
+        EvidencePackageInput evidence,
+        ResolutionCommandContext command,
+        string outcomeId)
+    {
+        var subject = Parse(subjectId, "Resolution subject ID is invalid.");
+        var actor = Identity(command.ActorId);
+        var aggregateType = $"BusinessEvidence:{issueType}";
+        var replay = lifecycleRecorder.FindExistingCommandAsync(command.CommandId, aggregateType, subject).GetAwaiter().GetResult();
+        if (replay is not null) return Deserialize(replay.ResponseJson);
+        return transactionRunner.ExecuteAsync(async token =>
+        {
+            var packageId = Parse(evidence.PackageId, "Evidence package ID is invalid.");
+            if (await context.Dataqualitydispositions.AnyAsync(item =>
+                    item.IssueType == issueType && item.SourceEntityId.SequenceEqual(subject) &&
+                    item.SourceFingerprint == fingerprint, token))
+                throw new InvalidOperationException("A current business evidence resolution already exists.");
+            var package = ToPackage(issueType, subject, evidence, packageId);
+            context.Businessevidencepackages.Add(package);
+            foreach (var attestation in evidence.Attestations)
+                context.Businessevidenceattestations.Add(ToAttestation(packageId, evidence, attestation));
+            var item = new DataQualityDisposition
+            {
+                DispositionId = GuidHelper.NewId(), IssueType = issueType, SourceEntityId = subject,
+                SourceFingerprint = fingerprint, ProposedAction = evidence.Decision,
+                EvidenceJson = Convert.ToBase64String(evidence.ManifestUtf8), Status = "PENDING_MANAGER_REVIEW",
+                Reason = "Business evidence resolution registered.", CreatedBy = actor, CreatedAt = command.NowUtc, Version = 0
+            };
+            context.Dataqualitydispositions.Add(item);
+            var state = Map(item, outcomeId);
+            lifecycleRecorder.Stage(new LifecycleTransitionRequest(
+                aggregateType, subject, command.CommandId, 0, null, item.Status, actor, 0,
+                item.Reason, command.CommandId, null, JsonSerializer.Serialize(state), JsonSerializer.Serialize(state)));
+            await context.SaveChangesAsync(token);
+            return state;
+        }, token => Task.FromResult(lifecycleRecorder.FindExistingCommandAsync(command.CommandId, aggregateType, subject).GetAwaiter().GetResult() is not null),
+        System.Data.IsolationLevel.Serializable).GetAwaiter().GetResult();
+    }
+
+    public EvidenceResolutionState Review(string issueType, string resolutionId, ResolutionCommandContext command)
+        => Transition(issueType, resolutionId, command, "APPROVED", "PENDING_MANAGER_REVIEW", 1);
+
+    public EvidenceResolutionState Apply(string issueType, string resolutionId, ResolutionCommandContext command, DateTime nowUtc)
+        => Transition(issueType, resolutionId, command, "APPLIED", "APPROVED", 2, nowUtc);
+
+    private EvidenceResolutionState Transition(
+        string issueType,
+        string resolutionId,
+        ResolutionCommandContext command,
+        string target,
+        string expectedStatus,
+        int sequence,
+        DateTime? nowUtc = null)
+    {
+        var id = Parse(resolutionId, "Resolution ID is invalid.");
+        var aggregateType = $"BusinessEvidence:{issueType}";
+        var snapshot = context.Dataqualitydispositions.AsNoTracking().SingleOrDefault(item => item.DispositionId.SequenceEqual(id))
+            ?? throw new KeyNotFoundException("Business evidence resolution was not found.");
+        var subject = snapshot.SourceEntityId;
+        var replay = lifecycleRecorder.FindExistingCommandAsync(command.CommandId, aggregateType, subject).GetAwaiter().GetResult();
+        if (replay is not null) return Deserialize(replay.ResponseJson);
+        return transactionRunner.ExecuteAsync(async token =>
+        {
+            var item = await context.Dataqualitydispositions.SingleAsync(value => value.DispositionId.SequenceEqual(id), token);
+            if (item.Version != command.ExpectedVersion) throw new InvalidOperationException("Resolution version is stale.");
+            if (item.Status != expectedStatus) throw new InvalidOperationException($"Resolution must be {expectedStatus}.");
+            var package = await context.Businessevidencepackages.AsNoTracking()
+                .SingleAsync(value => value.IssueType == issueType && value.SubjectId.SequenceEqual(item.SourceEntityId) && value.SourceFingerprint == item.SourceFingerprint, token);
+            ValidatePersisted(package, nowUtc ?? command.NowUtc);
+            var actor = Identity(command.ActorId);
+            if (await context.Businessevidenceattestations.AsNoTracking()
+                    .AnyAsync(value => value.PackageId.SequenceEqual(package.PackageId) && value.ActorId.SequenceEqual(actor), token))
+                throw new InvalidOperationException("Workflow actor must differ from every persisted source-owner attestation.");
+            if (target == "APPROVED")
+            {
+                item.Status = target; item.ReviewedBy = actor; item.ReviewedAt = command.NowUtc; item.Version++;
+            }
+            else
+            {
+                item.Status = target; item.AppliedBy = actor; item.AppliedAt = command.NowUtc;
+                item.CorrectionEntityType = package.OutcomeEntityType ?? nameof(BusinessEvidencePackage);
+                item.CorrectionEntityId = package.OutcomeEntityId ?? package.PackageId; item.Version++;
+            }
+            var state = Map(item, item.CorrectionEntityId is null ? GuidHelper.ToGuidString(package.PackageId) : GuidHelper.ToGuidString(item.CorrectionEntityId));
+            lifecycleRecorder.Stage(new LifecycleTransitionRequest(
+                aggregateType, subject, command.CommandId, sequence, expectedStatus, target, actor, command.ExpectedVersion,
+                "Business evidence workflow transition.", command.CommandId, null, JsonSerializer.Serialize(state), JsonSerializer.Serialize(state)));
+            await context.SaveChangesAsync(token);
+            return state;
+        }, token => Task.FromResult(lifecycleRecorder.FindExistingCommandAsync(command.CommandId, aggregateType, subject).GetAwaiter().GetResult() is not null),
+        System.Data.IsolationLevel.Serializable).GetAwaiter().GetResult();
+    }
+
+    private static BusinessEvidencePackage ToPackage(string issueType, byte[] subject, EvidencePackageInput input, byte[] packageId)
+        => new()
+        {
+            PackageId = packageId, SchemaVersion = 1, IssueType = issueType, SubjectId = subject,
+            SourceFingerprint = input.SourceFingerprint, ManifestUtf8 = input.ManifestUtf8, ManifestSha256 = input.ManifestSha256,
+            SourceDatabase = "ipcmanagement", MigrationHead = "current", Decision = input.Decision,
+            OutcomeEntityType = input.OutcomeEntityId is null ? null : "DomainOutcome",
+            OutcomeEntityId = input.OutcomeEntityId is null ? null : Parse(input.OutcomeEntityId, "Outcome ID is invalid."),
+            CommandId = input.PackageId, CreatedAtUtc = input.CreatedAtUtc, ExpiresAtUtc = input.ExpiresAtUtc, Version = 0
+        };
+
+    private static BusinessEvidenceAttestation ToAttestation(byte[] packageId, EvidencePackageInput input, EvidenceAttestationInput attestation)
+        => new()
+        {
+            AttestationId = GuidHelper.NewId(), PackageId = packageId, AuthoritySlot = attestation.AuthoritySlot,
+            ActorId = Identity(attestation.ActorId), AuthorityReference = "redacted", AuthoritySha256 = attestation.ManifestSha256,
+            ManifestSha256 = input.ManifestSha256, AttestedAtUtc = attestation.AttestedAtUtc, ExpiresAtUtc = attestation.ExpiresAtUtc
+        };
+
+    private static void ValidatePersisted(BusinessEvidencePackage package, DateTime now)
+    {
+        if (package.ManifestSha256 != Convert.ToHexString(SHA256.HashData(package.ManifestUtf8)))
+            throw new InvalidOperationException("Persisted evidence exact-byte digest is invalid.");
+        if (package.ExpiresAtUtc is { } expiry && expiry <= now) throw new InvalidOperationException("Persisted evidence package is expired.");
+    }
+
+    private static EvidenceResolutionState Map(DataQualityDisposition item, string outcomeId)
+        => new(GuidHelper.ToGuidString(item.DispositionId), GuidHelper.ToGuidString(item.SourceEntityId), item.Status,
+            item.Version, GuidHelper.ToGuidString(item.CreatedBy), item.ReviewedBy is null ? null : GuidHelper.ToGuidString(item.ReviewedBy),
+            item.AppliedBy is null ? null : GuidHelper.ToGuidString(item.AppliedBy), item.ProposedAction, outcomeId,
+            item.Status == "PENDING_MANAGER_REVIEW" ? 1 : item.Status == "APPROVED" ? 2 : 3);
+
+    private static EvidenceResolutionState Deserialize(string json)
+        => JsonSerializer.Deserialize<EvidenceResolutionState>(json) ?? throw new InvalidOperationException("Durable command receipt is invalid.");
+    private static byte[] Parse(string value, string message) => GuidHelper.ParseGuidString(value) ?? throw new ArgumentException(message);
+    private static byte[] Identity(string value)
+        => GuidHelper.ParseGuidString(value) ?? SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value))[..16];
 }

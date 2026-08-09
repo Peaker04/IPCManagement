@@ -24,6 +24,7 @@ public interface IDuplicateIngredientResolutionService
 
 public sealed class DuplicateIngredientResolutionService : IDuplicateIngredientResolutionService
 {
+    private readonly DurableResolutionStore? _durable;
     public static readonly string[] RequiredConsumerSurfaces =
     [
         "dishbom", "materialrequestlines", "purchaserequestlines", "purchaseorderlines",
@@ -35,6 +36,14 @@ public sealed class DuplicateIngredientResolutionService : IDuplicateIngredientR
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EvidenceResolutionState> _receipts = new(StringComparer.Ordinal);
     private readonly object _sync = new();
+
+    public DuplicateIngredientResolutionService() { }
+
+    public DuplicateIngredientResolutionService(
+        IPCManagement.Api.Data.IpcManagementContext context,
+        IPCManagement.Api.Data.Transactions.IEfTransactionRunner transactionRunner,
+        IPCManagement.Api.Infrastructure.Lifecycle.ILifecycleTransitionRecorder lifecycleRecorder)
+        => _durable = new DurableResolutionStore(context, transactionRunner, lifecycleRecorder);
 
     public static string ValidatePlan(DuplicateIngredientResolutionRequest request, DateTime nowUtc)
     {
@@ -68,6 +77,9 @@ public sealed class DuplicateIngredientResolutionService : IDuplicateIngredientR
         RequireRole(command, "Catalog", "Admin");
         ValidatePlan(request, command.NowUtc);
         EvidencePackageGuard.RequireIndependentActor(request.Evidence, command.ActorId);
+        if (_durable is not null)
+            return _durable.Preview("DUPLICATE_INGREDIENT", request.GroupId, request.CurrentFingerprint, request.Evidence,
+                command, request.CanonicalMemberId ?? request.Evidence.PackageId);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -83,6 +95,7 @@ public sealed class DuplicateIngredientResolutionService : IDuplicateIngredientR
     public EvidenceResolutionState Review(string resolutionId, ResolutionCommandContext command)
     {
         RequireRole(command, "Manager");
+        if (_durable is not null) return _durable.Review("DUPLICATE_INGREDIENT", resolutionId, command);
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;
@@ -99,6 +112,11 @@ public sealed class DuplicateIngredientResolutionService : IDuplicateIngredientR
     public EvidenceResolutionState Apply(string resolutionId, DuplicateIngredientResolutionRequest current, ResolutionCommandContext command, DateTime nowUtc)
     {
         RequireRole(command, "Admin");
+        if (_durable is not null)
+        {
+            ValidatePlan(current, nowUtc);
+            return _durable.Apply("DUPLICATE_INGREDIENT", resolutionId, command, nowUtc);
+        }
         lock (_sync)
         {
             if (_receipts.TryGetValue(command.CommandId, out var replay)) return replay;

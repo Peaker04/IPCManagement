@@ -4,6 +4,11 @@ using FluentAssertions;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.DatabaseTool;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Tests;
 
@@ -58,6 +63,26 @@ public sealed class DuplicateIngredientResolutionServiceTests
             .Should().ContainSingle(message => message.Contains("expired"));
         BusinessEvidenceClosureCommand.ValidateCatalogRows("duplicate", [good with { HasCompleteReferenceMap = false }], Now)
             .Should().ContainSingle(message => message.Contains("reference map"));
+    }
+
+    [Fact]
+    public async Task DurableDuplicateWorkflow_ReplaysAfterReconstruction_AndPersistsAllAuditSurfaces()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite(connection).Options;
+        await using (var setup = new IpcManagementContext(options)) await DurableEvidenceTestSchema.CreateAsync(setup);
+        var request = Request("MERGE_PLAN");
+        await using var context = new IpcManagementContext(options);
+        var service = new DuplicateIngredientResolutionService(context, new EfTransactionRunner(context), new LifecycleTransitionRecorder(context));
+        var preview = service.Preview(request, Context("duplicate-preview", 0, Guid.NewGuid().ToString(), "Catalog"));
+        var reviewed = service.Review(preview.ResolutionId, Context("duplicate-review", 0, Guid.NewGuid().ToString(), "Manager"));
+        var applied = service.Apply(reviewed.ResolutionId, request, Context("duplicate-apply", 1, Guid.NewGuid().ToString(), "Admin"), Now);
+        applied.Status.Should().Be("APPLIED");
+        (await context.Dataqualitydispositions.SingleAsync()).CorrectionEntityId.Should().NotBeNull();
+        (await context.Lifecycletransitions.CountAsync()).Should().Be(3);
+        (await context.Lifecycleoutboxmessages.CountAsync()).Should().Be(3);
+        service.Review(preview.ResolutionId, Context("duplicate-review", 0, Guid.NewGuid().ToString(), "Manager")).Should().Be(reviewed);
     }
 
     private static DuplicateIngredientResolutionRequest Request(string decision)
