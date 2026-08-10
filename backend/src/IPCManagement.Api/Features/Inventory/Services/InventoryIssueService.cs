@@ -85,7 +85,15 @@ public class InventoryIssueService : IInventoryIssueService
 
                     var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
                     var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
-                    await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
+                    await InventoryIssueStockValidator.EnsureAvailableAsync(
+                        _context,
+                        warehouseBytes,
+                        dto.IssueDate,
+                        materialRequest,
+                        issueLines.Select(line => new InventoryIssueStockLine(
+                            line.IngredientId,
+                            line.UnitId,
+                            line.IssuedQty)));
 
                     var issue = new InventoryIssue
                     {
@@ -308,74 +316,6 @@ public class InventoryIssueService : IInventoryIssueService
                     cancellationToken));
     }
 
-    private async Task EnsureStockAvailableAsync(
-        byte[] warehouseId,
-        DateOnly issueDate,
-        MaterialRequest materialRequest,
-        IReadOnlyList<ResolvedIssueLine> issueLines,
-        byte[] actorId)
-    {
-        if (_context is null)
-        {
-            return;
-        }
-
-        var stocks = await _context.Currentstocks
-            .AsNoTracking()
-            .Include(stock => stock.Warehouse)
-            .Include(stock => stock.Ingredient)
-            .Include(stock => stock.Unit)
-            .Where(stock => stock.WarehouseId == warehouseId)
-            .ToListAsync();
-        var warehouse = await _context.Warehouses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.WarehouseId == warehouseId);
-        var demandInfo = materialRequest.Materialrequestlines
-            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
-            .ToDictionary(
-                group => group.Key,
-                group => group.First());
-
-        var shortageLines = new List<StockShortageLineDto>();
-        foreach (var line in issueLines)
-        {
-            var stock = stocks.FirstOrDefault(item => item.IngredientId.SequenceEqual(line.IngredientId));
-            var demandLine = demandInfo.GetValueOrDefault(BuildKey(line.IngredientId, line.UnitId));
-            var availableQty = CalculateAvailableQuantity(stock, demandLine?.Unit);
-            if (!DecimalPolicy.LessThanQuantity(availableQty, line.IssuedQty))
-            {
-                continue;
-            }
-
-            shortageLines.Add(new StockShortageLineDto
-            {
-                IngredientId = GuidHelper.ToGuidString(line.IngredientId),
-                IngredientName = demandLine?.Ingredient.IngredientName ?? stock?.Ingredient.IngredientName ?? GuidHelper.ToGuidString(line.IngredientId),
-                UnitId = GuidHelper.ToGuidString(line.UnitId),
-                UnitName = demandLine?.Unit.UnitName ?? stock?.Unit.UnitName ?? GuidHelper.ToGuidString(line.UnitId),
-                RequiredQty = DecimalPolicy.RoundQuantity(line.IssuedQty),
-                AvailableQty = availableQty,
-                MissingQty = DecimalPolicy.RoundQuantity(line.IssuedQty - availableQty)
-            });
-        }
-
-        if (shortageLines.Count == 0)
-        {
-            return;
-        }
-
-        var shortage = new StockShortageIssueDto
-        {
-            MaterialRequestId = GuidHelper.ToGuidString(materialRequest.RequestId),
-            MaterialRequestCode = materialRequest.RequestCode,
-            WarehouseId = GuidHelper.ToGuidString(warehouseId),
-            WarehouseName = warehouse?.WarehouseName,
-            IssueDate = issueDate,
-            Lines = shortageLines
-        };
-        throw new StockShortageException(shortage);
-    }
-
     private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId)
     {
         if (_context is null)
@@ -590,51 +530,6 @@ public class InventoryIssueService : IInventoryIssueService
     private static string BuildKey(byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToHexString(ingredientId)}:{Convert.ToHexString(unitId)}";
 
-    private static decimal CalculateAvailableQuantity(CurrentStock? stock, Unit? targetUnit)
-    {
-        if (stock is null)
-        {
-            return 0m;
-        }
-
-        if (targetUnit is not null)
-        {
-            return TryConvertQuantity(stock.CurrentQty, stock.Unit, targetUnit, out var convertedQty)
-                ? convertedQty
-                : 0m;
-        }
-
-        return DecimalPolicy.RoundQuantity(stock.CurrentQty);
-    }
-
-    private static bool TryConvertQuantity(decimal quantity, Unit sourceUnit, Unit targetUnit, out decimal convertedQty)
-    {
-        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
-        {
-            convertedQty = DecimalPolicy.RoundQuantity(quantity);
-            return true;
-        }
-
-        if (!CanConvertUnits(sourceUnit, targetUnit))
-        {
-            convertedQty = 0m;
-            return false;
-        }
-
-        convertedQty = DecimalPolicy.RoundQuantity(quantity * sourceUnit.ConvertRateToBase / targetUnit.ConvertRateToBase);
-        return true;
-    }
-
-    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
-        => sourceUnit.ConvertRateToBase > 0 &&
-           targetUnit.ConvertRateToBase > 0 &&
-           string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
-
-    private static string NormalizedBaseUnitCode(Unit unit)
-        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
-            ? unit.UnitCode.Trim().ToUpperInvariant()
-            : unit.BaseUnitCode.Trim().ToUpperInvariant();
-
     private sealed record DemandLineSummary(
         byte[] IngredientId,
         byte[] UnitId,
@@ -649,3 +544,4 @@ public class InventoryIssueService : IInventoryIssueService
         decimal IssuedQty);
 
 }
+using IPCManagement.Api.Features.Inventory.Validators;
