@@ -4,6 +4,7 @@ using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IPCManagement.Api.Migrations
 {
     [DbContext(typeof(IpcManagementContext))]
-    partial class IpcManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20260810120000_AddBusinessEvidenceClosure")]
+    partial class AddBusinessEvidenceClosure
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -807,6 +810,126 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("customerweekmenutiers", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.DataQualityDisposition", b =>
+                {
+                    b.Property<byte[]>("DispositionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("dispositionId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("AppliedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("appliedAt");
+
+                    b.Property<byte[]>("AppliedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("appliedBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CorrectionEntityId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("correctionEntityId")
+                        .IsFixedLength();
+
+                    b.Property<string>("CorrectionEntityType")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("correctionEntityType");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("evidenceJson");
+
+                    b.Property<string>("IssueType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("issueType");
+
+                    b.Property<string>("ProposedAction")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("proposedAction");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reviewReason");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("reviewedAt");
+
+                    b.Property<byte[]>("ReviewedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reviewedBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("SourceEntityId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("sourceEntityId")
+                        .IsFixedLength();
+
+                    b.Property<string>("SourceFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("sourceFingerprint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("PENDING_MANAGER_REVIEW")
+                        .HasColumnName("status");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("version");
+
+                    b.HasKey("DispositionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "Status", "CreatedAt" }, "ixDataQualityDispositionQueue");
+
+                    b.HasIndex(new[] { "IssueType", "SourceEntityId", "SourceFingerprint" }, "uqDataQualityDispositionSourceFingerprint")
+                        .IsUnique();
+
+                    b.ToTable("dataqualitydispositions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckDataQualityDispositionStatus", "`status` IN ('PENDING_MANAGER_REVIEW','APPROVED','REJECTED','BLOCKED_BUSINESS','APPLIED')");
+                        });
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dish", b =>
                 {
                     b.Property<byte[]>("DishId")
@@ -1125,6 +1248,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("decimal(18,6)")
                         .HasColumnName("issuedQty");
 
+                    b.Property<byte[]>("MaterialRequestLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("materialRequestLineId")
+                        .IsFixedLength();
+
                     b.Property<decimal>("RequestedQty")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
@@ -1145,6 +1274,8 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasIndex(new[] { "IssueId" }, "issueId");
 
+                    b.HasIndex(new[] { "MaterialRequestLineId" }, "ixInventoryIssueLinesMaterialRequestLine");
+
                     b.HasIndex(new[] { "UnitId" }, "unitId")
                         .HasDatabaseName("unitId2");
 
@@ -1159,6 +1290,13 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("receiptId")
                         .IsFixedLength();
 
+                    b.Property<long>("ConcurrencyVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("concurrencyVersion");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -1172,11 +1310,59 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("createdBy")
                         .IsFixedLength();
 
+                    b.Property<string>("ManagerApprovalReason")
+                        .HasColumnType("text")
+                        .HasColumnName("managerApprovalReason");
+
+                    b.Property<DateTime?>("ManagerApprovedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("managerApprovedAt");
+
+                    b.Property<byte[]>("ManagerApprovedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("managerApprovedBy")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("postedAt");
+
+                    b.Property<byte[]>("PostedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("postedBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("PurchaseOrderId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderId")
+                        .IsFixedLength();
+
                     b.Property<byte[]>("PurchaseRequestId")
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("purchaseRequestId")
                         .IsFixedLength();
+
+                    b.Property<DateTime?>("QualityCheckedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("qualityCheckedAt");
+
+                    b.Property<byte[]>("QualityCheckedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("qualityCheckedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("QualityStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("PENDING_INSPECTION")
+                        .HasColumnName("qualityStatus");
 
                     b.Property<string>("ReceiptCode")
                         .IsRequired()
@@ -1187,6 +1373,28 @@ namespace IPCManagement.Api.Migrations
                     b.Property<DateOnly>("ReceiptDate")
                         .HasColumnType("date")
                         .HasColumnName("receiptDate");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("rejectedAt");
+
+                    b.Property<byte[]>("RejectedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("rejectedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("rejectionReason");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("DRAFT")
+                        .HasColumnName("status");
 
                     b.Property<byte[]>("SupplierId")
                         .IsRequired()
@@ -1206,6 +1414,10 @@ namespace IPCManagement.Api.Migrations
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CreatedBy" }, "createdBy");
+
+                    b.HasIndex(new[] { "Status", "QualityStatus", "CreatedAt" }, "ixInventoryReceiptsLifecycle");
+
+                    b.HasIndex(new[] { "PurchaseOrderId" }, "ixInventoryReceiptsPurchaseOrder");
 
                     b.HasIndex(new[] { "PurchaseRequestId" }, "purchaseRequestId");
 
@@ -1227,6 +1439,11 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("receiptLineId")
                         .IsFixedLength();
+
+                    b.Property<decimal?>("AcceptedQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("acceptedQuantity");
 
                     b.Property<decimal?>("Amount")
                         .ValueGeneratedOnAddOrUpdate()
@@ -1277,6 +1494,11 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("purchaseRequestLineId")
                         .IsFixedLength();
 
+                    b.Property<string>("QualityReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("qualityReason");
+
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
@@ -1288,6 +1510,11 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("receiptId")
                         .IsFixedLength();
+
+                    b.Property<decimal?>("RejectedQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("rejectedQuantity");
 
                     b.Property<byte[]>("UnitId")
                         .IsRequired()
@@ -1441,6 +1668,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("returnId")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("SourceIssueLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("sourceIssueLineId")
+                        .IsFixedLength();
+
                     b.Property<byte[]>("UnitId")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -1454,12 +1687,135 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex(new[] { "IngredientId" }, "ingredientId")
                         .HasDatabaseName("ingredientId2");
 
+                    b.HasIndex(new[] { "SourceIssueLineId" }, "ixInventoryReturnLinesSourceIssueLine");
+
                     b.HasIndex(new[] { "ReturnId" }, "returnId");
 
                     b.HasIndex(new[] { "UnitId" }, "unitId")
                         .HasDatabaseName("unitId4");
 
                     b.ToTable("inventoryreturnlines", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.LegacyLineageDisposition", b =>
+                {
+                    b.Property<byte[]>("DispositionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("dispositionId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("AppliedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("appliedAt");
+
+                    b.Property<byte[]>("AppliedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("appliedBy")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("LegacyLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("legacyLineId")
+                        .IsFixedLength();
+
+                    b.Property<string>("LegacyLineType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("legacyLineType");
+
+                    b.Property<int?>("OpenDispositionKey")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("int")
+                        .HasColumnName("openDispositionKey")
+                        .HasComputedColumnSql("CASE WHEN `status` IN ('PENDING_MANAGER_REVIEW', 'APPROVED') THEN 1 ELSE NULL END", false);
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reviewReason");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("reviewedAt");
+
+                    b.Property<byte[]>("ReviewedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reviewedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("TargetIssueLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("targetIssueLineId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("TargetMaterialRequestLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("targetMaterialRequestLineId")
+                        .IsFixedLength();
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("version");
+
+                    b.HasKey("DispositionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("AppliedBy");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ReviewedBy");
+
+                    b.HasIndex("TargetIssueLineId");
+
+                    b.HasIndex("TargetMaterialRequestLineId");
+
+                    b.HasIndex("LegacyLineType", "LegacyLineId");
+
+                    b.HasIndex("LegacyLineType", "LegacyLineId", "OpenDispositionKey")
+                        .IsUnique()
+                        .HasDatabaseName("uxLegacyLineageDispositionsOpenLine");
+
+                    b.ToTable("legacylinedispositions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckLegacyLineageDispositionsStatus", "`status` IN ('PENDING_MANAGER_REVIEW', 'APPROVED', 'REJECTED', 'APPLIED')");
+
+                            t.HasCheckConstraint("ckLegacyLineageDispositionsTypeTarget", "(`legacyLineType` = 'ISSUE_LINE' AND `targetMaterialRequestLineId` IS NOT NULL AND `targetIssueLineId` IS NULL) OR (`legacyLineType` = 'RETURN_LINE' AND `targetIssueLineId` IS NOT NULL AND `targetMaterialRequestLineId` IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.LifecycleCommandReceipt", b =>
@@ -1509,6 +1865,42 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("lifecyclecommandreceipts", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.LifecycleOutboxDelivery", b =>
+                {
+                    b.Property<byte[]>("DeliveryId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("deliveryId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ConsumerName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)")
+                        .HasColumnName("consumerName");
+
+                    b.Property<byte[]>("OutboxMessageId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("outboxMessageId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("ProcessedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("processedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("DeliveryId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "OutboxMessageId", "ConsumerName" }, "uqLifecycleOutboxDeliveriesMessageConsumer")
+                        .IsUnique();
+
+                    b.ToTable("lifecycleoutboxdeliveries", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.LifecycleOutboxMessage", b =>
@@ -3720,6 +4112,154 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("quantityimportbatches", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReceiptCorrection", b =>
+                {
+                    b.Property<byte[]>("CorrectionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("correctionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("CommandId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("commandId");
+
+                    b.Property<long>("ConcurrencyVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L)
+                        .HasColumnName("concurrencyVersion");
+
+                    b.Property<string>("CorrectionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("correctionCode");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<byte[]>("ReceiptId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("receiptId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("POSTED")
+                        .HasColumnName("status");
+
+                    b.HasKey("CorrectionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex(new[] { "ReceiptId" }, "ixReceiptCorrectionsReceipt");
+
+                    b.HasIndex(new[] { "CorrectionCode" }, "uqReceiptCorrectionsCode")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "CommandId" }, "uqReceiptCorrectionsCommand")
+                        .IsUnique();
+
+                    b.ToTable("receiptcorrections", null, t =>
+                        {
+                            t.HasCheckConstraint("ckReceiptCorrectionsStatus", "`status` = 'POSTED'");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReceiptCorrectionLine", b =>
+                {
+                    b.Property<byte[]>("CorrectionLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("correctionLineId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CorrectionId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("correctionId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantity");
+
+                    b.Property<byte[]>("ReceiptLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("receiptLineId")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly?>("SourceExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("sourceExpiredDate");
+
+                    b.Property<string>("SourceLotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("sourceLotNumber");
+
+                    b.Property<DateOnly?>("SourceManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("sourceManufactureDate");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.HasKey("CorrectionLineId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex(new[] { "CorrectionId" }, "ixReceiptCorrectionLinesCorrection");
+
+                    b.HasIndex(new[] { "ReceiptLineId" }, "ixReceiptCorrectionLinesReceiptLine");
+
+                    b.ToTable("receiptcorrectionlines", null, t =>
+                        {
+                            t.HasCheckConstraint("ckReceiptCorrectionLinesQuantity", "`quantity` > 0");
+                        });
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.RefreshToken", b =>
                 {
                     b.Property<byte[]>("TokenId")
@@ -4089,7 +4629,7 @@ namespace IPCManagement.Api.Migrations
 
                     b.Property<string>("MovementType")
                         .IsRequired()
-                        .HasColumnType("enum('RECEIPT','ISSUE','RETURN','ADJUSTMENT')")
+                        .HasColumnType("enum('RECEIPT','ISSUE','RETURN','ADJUSTMENT','RECEIPT_CORRECTION')")
                         .HasColumnName("movementType");
 
                     b.Property<string>("Note")
@@ -4406,6 +4946,14 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("issueLineId")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("OpenIssueLineId")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("openIssueLineId")
+                        .HasComputedColumnSql("CASE WHEN `status` IN ('REJECTED', 'FULFILLED') THEN NULL ELSE `issueLineId` END", false)
+                        .IsFixedLength();
+
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)")
@@ -4461,6 +5009,10 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex("IssueId");
 
                     b.HasIndex("IssueLineId");
+
+                    b.HasIndex("OpenIssueLineId")
+                        .IsUnique()
+                        .HasDatabaseName("uxSupplementalMaterialRequestsOpenIssueLine");
 
                     b.HasIndex("RequestCode")
                         .IsUnique();
@@ -5105,6 +5657,12 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryissuelines_ibfk_1");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.MaterialRequestLine", "MaterialRequestLine")
+                        .WithMany("Inventoryissuelines")
+                        .HasForeignKey("MaterialRequestLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("inventoryissuelines_ibfk_4");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
                         .WithMany("Inventoryissuelines")
                         .HasForeignKey("UnitId")
@@ -5114,6 +5672,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Ingredient");
 
                     b.Navigation("Issue");
+
+                    b.Navigation("MaterialRequestLine");
 
                     b.Navigation("Unit");
                 });
@@ -5242,6 +5802,12 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreturnlines_ibfk_1");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", "SourceIssueLine")
+                        .WithMany()
+                        .HasForeignKey("SourceIssueLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("inventoryreturnlines_ibfk_4");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
                         .WithMany("Inventoryreturnlines")
                         .HasForeignKey("UnitId")
@@ -5252,7 +5818,48 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Return");
 
+                    b.Navigation("SourceIssueLine");
+
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.LegacyLineageDisposition", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", null)
+                        .WithMany()
+                        .HasForeignKey("TargetIssueLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.MaterialRequestLine", null)
+                        .WithMany()
+                        .HasForeignKey("TargetMaterialRequestLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.LifecycleOutboxDelivery", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.LifecycleOutboxMessage", null)
+                        .WithMany()
+                        .HasForeignKey("OutboxMessageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fkLifecycleOutboxDeliveriesMessage");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequest", b =>
@@ -5859,6 +6466,54 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("ImportedByNavigation");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReceiptCorrection", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("receiptcorrections_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryReceipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("receiptcorrections_ibfk_1");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReceiptCorrectionLine", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReceiptCorrection", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("CorrectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("receiptcorrectionlines_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", null)
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("receiptcorrectionlines_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryReceiptLine", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("receiptcorrectionlines_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("receiptcorrectionlines_ibfk_4");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.RefreshToken", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "User")
@@ -6283,6 +6938,8 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequestLine", b =>
                 {
+                    b.Navigation("Inventoryissuelines");
+
                     b.Navigation("Purchaserequestlines");
                 });
 
@@ -6379,6 +7036,11 @@ namespace IPCManagement.Api.Migrations
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.QuantityImportBatch", b =>
                 {
                     b.Navigation("Mealquantityplans");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReceiptCorrection", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Role", b =>
