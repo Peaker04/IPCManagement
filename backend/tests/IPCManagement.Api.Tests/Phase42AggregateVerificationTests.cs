@@ -547,20 +547,19 @@ public class Phase42AggregateVerificationTests
         int destructiveExecutionCount = 0,
         string dropExecution = "NOT_RUN_DORMANT_D03")
     {
+        var artifact = D03Topology();
+        artifact["tables"] = BackupTables;
+        artifact["retained"] = true;
+        artifact["dropSqlStatus"] = "DORMANT_FORBIDDEN_UNDER_D03";
+        artifact["dropExecution"] = dropExecution;
+        artifact["cleanupRehearsal"] = "NOT_RUN_DORMANT_D03";
+        artifact["rollbackExtractRehearsal"] = "NOT_RUN_DORMANT_D03";
+        artifact["cleanupApproval"] = "NOT_RUN_DORMANT_D03";
+        artifact["baseCleanupPromotion"] = "NOT_RUN_DORMANT_D03";
+        artifact["destructiveExecutionCount"] = destructiveExecutionCount;
         File.WriteAllText(
             Path.Combine(root, "dcr-09-seven-table-retention.json"),
-            JsonSerializer.Serialize(new
-            {
-                tables = BackupTables,
-                retained = true,
-                dropSqlStatus = "DORMANT_FORBIDDEN_UNDER_D03",
-                dropExecution,
-                cleanupRehearsal = "NOT_RUN_DORMANT_D03",
-                rollbackExtractRehearsal = "NOT_RUN_DORMANT_D03",
-                cleanupApproval = "NOT_RUN_DORMANT_D03",
-                baseCleanupPromotion = "NOT_RUN_DORMANT_D03",
-                destructiveExecutionCount,
-            }));
+            JsonSerializer.Serialize(artifact));
     }
 
     private static Dictionary<string, object?> D03Topology(bool offSite = false) => new()

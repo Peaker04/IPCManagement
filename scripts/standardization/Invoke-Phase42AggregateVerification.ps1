@@ -162,7 +162,7 @@ function Test-ArtifactGate($Gate) {
         foreach ($required in @($Gate.requiredArtifacts)) {
             if ($declared -notcontains $required) { throw "Artifact proof is missing: $required" }
         }
-        if ($Gate.requirementId -in @('DCR-07', 'DCR-08')) {
+        if ($Gate.requirementId -in @('DCR-07', 'DCR-08', 'DCR-09')) {
             Assert-D03Topology $artifact $Gate.requirementId
         }
         if ($Gate.requirementId -eq 'DCR-08') {
@@ -476,6 +476,7 @@ function Invoke-HygieneVerification {
             $retention = Get-Content -Raw -LiteralPath $d03Paths.dcr09 | ConvertFrom-Json
             Assert-D03Topology $archive 'DCR-07'
             Assert-D03Topology $restore 'DCR-08'
+            Assert-D03Topology $retention 'DCR-09'
             Assert-D03Retention $retention 'DCR-09'
             foreach ($activePath in @($d03Paths.dcr07, $d03Paths.dcr08, $d03Paths.dcr09)) {
                 $activeText = Get-Content -Raw -LiteralPath $activePath
