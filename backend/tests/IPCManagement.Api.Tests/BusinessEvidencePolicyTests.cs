@@ -30,8 +30,8 @@ public sealed partial class BusinessEvidencePolicyTests
 
         contextSource.Contains("BusinessEvidence", StringComparison.OrdinalIgnoreCase).Should().BeFalse();
         snapshotSource.Contains("BusinessEvidence", StringComparison.OrdinalIgnoreCase).Should().BeFalse();
-        snapshotSource.Should().Contain("Dataqualitydispositions");
-        snapshotSource.Should().Contain("Unitnormalizationreviews");
+        snapshotSource.Should().Contain("dataqualitydispositions");
+        snapshotSource.Should().Contain("unitnormalizationreviews");
 
         var migrationsDirectory = Path.Combine(
             root, "backend/src/IPCManagement.Api/Migrations");

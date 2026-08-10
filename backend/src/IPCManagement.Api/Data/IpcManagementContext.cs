@@ -26,9 +26,6 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<AuditLog> Auditlogs { get; set; }
 
-    public virtual DbSet<BusinessEvidencePackage> Businessevidencepackages { get; set; }
-
-    public virtual DbSet<BusinessEvidenceAttestation> Businessevidenceattestations { get; set; }
 
     public virtual DbSet<ApprovalHistory> Approvalhistories { get; set; }
 

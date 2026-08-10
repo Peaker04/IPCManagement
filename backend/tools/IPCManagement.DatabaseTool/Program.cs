@@ -75,26 +75,6 @@ if (args.Length == 7 &&
 }
 
 if (args.Length == 7 &&
-    args[0] == "business-evidence-export" &&
-    args[1] == "--settings" &&
-    args[3] == "--database" &&
-    args[5] == "--output")
-{
-    try
-    {
-        var exportSettingsPath = Path.GetFullPath(args[2]);
-        var database = args[4];
-        var outputPath = Path.GetFullPath(args[6]);
-        return await BusinessEvidenceExportCommand.ExecuteAsync(
-            async () => await OpenServerConnectionAsync(exportSettingsPath), database, outputPath);
-    }
-    catch (Exception exception)
-    {
-        Console.Error.WriteLine($"Business evidence export failed: {exception.Message}");
-        return 1;
-    }
-}
-if (args.Length == 7 &&
     args[0] == "weekly-menu-evidence" &&
     args[1] == "--settings" &&
     args[3] == "--database" &&
@@ -741,23 +721,3 @@ static string Quote(string identifier) => $"`{identifier.Replace("`", "``")}`";
 
 sealed record ServiceRunFixture(byte[] PlanId, byte[] PlanLineId, byte[] RequestId, byte[] IssueId, byte[] SourcePlanLineId, string PlanCode, string RequestCode, string IssueCode);
 sealed record ServiceRunFixtureSource(byte[] SourcePlanLineId, byte[] QuantityPlanLineId, byte[] CustomerId, byte[] MenuId, byte[] DishId, byte[]? MenuVersionId, DateOnly PlanDate, DateOnly? WeekStartDate, int TotalServings, byte[] CreatedBy, string PlanStatus, string RequestStatus);
-if ((args.Length == 5 || args.Length == 7) &&
-    args[0] == "business-evidence-close" &&
-    args[1] == "--settings" &&
-    args[3] == "--database" &&
-    (args.Length == 5 || args[5] == "--output"))
-{
-    try
-    {
-        var closureSettingsPath = Path.GetFullPath(args[2]);
-        var database = args[4];
-        var outputPath = args.Length == 7 ? args[6] : null;
-        return await BusinessEvidenceClosureCommand.ExecuteAsync(
-            async () => await OpenServerConnectionAsync(closureSettingsPath), database, outputPath);
-    }
-    catch (Exception exception)
-    {
-        Console.Error.WriteLine($"Business evidence closure failed: {exception.Message}");
-        return 1;
-    }
-}

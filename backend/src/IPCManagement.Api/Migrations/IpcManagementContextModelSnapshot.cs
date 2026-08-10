@@ -318,172 +318,6 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("bomadjustments", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.BusinessEvidenceAttestation", b =>
-                {
-                    b.Property<byte[]>("AttestationId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("attestationId")
-                        .IsFixedLength();
-
-                    b.Property<byte[]>("ActorId")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("actorId")
-                        .IsFixedLength();
-
-                    b.Property<DateTime>("AttestedAtUtc")
-                        .HasColumnType("datetime")
-                        .HasColumnName("attestedAtUtc");
-
-                    b.Property<string>("AuthorityReference")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
-                        .HasColumnName("authorityReference");
-
-                    b.Property<string>("AuthoritySha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .HasColumnName("authoritySha256");
-
-                    b.Property<string>("AuthoritySlot")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("varchar(60)")
-                        .HasColumnName("authoritySlot");
-
-                    b.Property<DateTime?>("ExpiresAtUtc")
-                        .HasColumnType("datetime")
-                        .HasColumnName("expiresAtUtc");
-
-                    b.Property<string>("ManifestSha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .HasColumnName("manifestSha256");
-
-                    b.Property<byte[]>("PackageId")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("packageId")
-                        .IsFixedLength();
-
-                    b.HasKey("AttestationId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex(new[] { "PackageId", "AuthoritySlot" }, "uqBusinessEvidenceAttestationSlot")
-                        .IsUnique();
-
-                    b.ToTable("businessevidenceattestations", (string)null);
-                });
-
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.BusinessEvidencePackage", b =>
-                {
-                    b.Property<byte[]>("PackageId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("packageId")
-                        .IsFixedLength();
-
-                    b.Property<string>("CommandId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .HasColumnName("commandId");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime")
-                        .HasColumnName("createdAtUtc");
-
-                    b.Property<string>("Decision")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("decision");
-
-                    b.Property<DateTime?>("ExpiresAtUtc")
-                        .HasColumnType("datetime")
-                        .HasColumnName("expiresAtUtc");
-
-                    b.Property<string>("IssueType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("issueType");
-
-                    b.Property<string>("ManifestSha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .HasColumnName("manifestSha256");
-
-                    b.Property<byte[]>("ManifestUtf8")
-                        .IsRequired()
-                        .HasColumnType("longblob")
-                        .HasColumnName("manifestUtf8");
-
-                    b.Property<string>("MigrationHead")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("varchar(180)")
-                        .HasColumnName("migrationHead");
-
-                    b.Property<byte[]>("OutcomeEntityId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("outcomeEntityId")
-                        .IsFixedLength();
-
-                    b.Property<string>("OutcomeEntityType")
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .HasColumnName("outcomeEntityType");
-
-                    b.Property<int>("SchemaVersion")
-                        .HasColumnType("int")
-                        .HasColumnName("schemaVersion");
-
-                    b.Property<string>("SourceDatabase")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .HasColumnName("sourceDatabase");
-
-                    b.Property<string>("SourceFingerprint")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .HasColumnName("sourceFingerprint");
-
-                    b.Property<byte[]>("SubjectId")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("subjectId")
-                        .IsFixedLength();
-
-                    b.Property<long>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L)
-                        .HasColumnName("version");
-
-                    b.HasKey("PackageId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex(new[] { "IssueType", "SubjectId", "SourceFingerprint" }, "ixBusinessEvidencePackageSubjectFingerprint");
-
-                    b.HasIndex(new[] { "CommandId" }, "uqBusinessEvidencePackageCommand")
-                        .IsUnique();
-
-                    b.ToTable("businessevidencepackages", (string)null);
-                });
-
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.CurrentStock", b =>
                 {
                     b.Property<byte[]>("WarehouseId")
@@ -4903,18 +4737,6 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Bom");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.BusinessEvidenceAttestation", b =>
-                {
-                    b.HasOne("IPCManagement.Api.Models.Entities.BusinessEvidencePackage", "Package")
-                        .WithMany("Attestations")
-                        .HasForeignKey("PackageId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fkBusinessEvidenceAttestationPackage");
-
-                    b.Navigation("Package");
-                });
-
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.CurrentStock", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
@@ -6179,11 +6001,6 @@ namespace IPCManagement.Api.Migrations
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalRule", b =>
                 {
                     b.Navigation("Approvalassignments");
-                });
-
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.BusinessEvidencePackage", b =>
-                {
-                    b.Navigation("Attestations");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
