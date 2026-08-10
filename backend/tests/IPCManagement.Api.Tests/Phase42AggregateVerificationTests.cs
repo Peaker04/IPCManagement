@@ -729,6 +729,12 @@ public class Phase42AggregateVerificationTests
                 .Should().Be("phase_04_2_gap_closure_05");
             manifestDocument.RootElement.GetProperty("archiveRunId").GetString()
                 .Should().Be("phase_04_2_execution");
+            manifestDocument.RootElement.GetProperty("sourceCommit").GetString()
+                .Should().MatchRegex("^[0-9a-f]{40}$");
+            manifestDocument.RootElement.GetProperty("businessReleaseSha256").GetString()
+                .Should().Be("33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482");
+            manifestDocument.RootElement.GetProperty("archiveManifestSha256").GetString()
+                .Should().Be("A2E497BC62C1C79883DB7702EADCF5A4BB793E917176A8AB3F7307B1BCD2709D");
             manifestDocument.RootElement.GetProperty("archiveReceiptPath").GetString()
                 .Should().Be(archive);
         }

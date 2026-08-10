@@ -300,11 +300,22 @@ function Invoke-GapSourceContract {
     if (-not [string]::IsNullOrWhiteSpace($manifestDirectory)) {
         New-Item -ItemType Directory -Path $manifestDirectory -Force | Out-Null
     }
+    $businessReleasePath = '.artifacts/shipyard-live/phase-04.2-execution/db/reconciliation/business-release.json'
+    $archiveManifestPath = '.artifacts/shipyard-live/phase-04.2-execution/manifest.json'
+    if (-not (Test-Path -LiteralPath $businessReleasePath -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $archiveManifestPath -PathType Leaf)) {
+        throw 'The immutable release or archive manifest is missing.'
+    }
+    $businessReleaseSha256 = Get-Sha256File $businessReleasePath
+    if ($businessReleaseSha256 -ne '33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482') {
+        throw 'The immutable D-05 release hash changed.'
+    }
     $gapManifest = [ordered]@{
         schemaVersion = 3
         plan = '04.2-05'
         planRevision = 'GAP_CLOSURE_TASKS_9_12'
         status = 'SOURCE_CONTRACT_PASS'
+        sourceCommit = (git rev-parse HEAD).Trim()
         runId = $RunId
         evidenceRunId = $RunId
         archiveRunId = $ArchiveRunId
@@ -327,8 +338,10 @@ function Invoke-GapSourceContract {
         innerManifestSha256 = [string]$archive.innerManifestSha256
         expectedRestoreTargetSource = 'IMMUTABLE_APPROVAL_RECEIPT'
         expectedRestoreTarget = $expectedRestoreTarget
-        businessReleasePath = '.artifacts/shipyard-live/phase-04.2-execution/db/reconciliation/business-release.json'
-        archiveManifestPath = '.artifacts/shipyard-live/phase-04.2-execution/manifest.json'
+        businessReleasePath = $businessReleasePath
+        businessReleaseSha256 = $businessReleaseSha256
+        archiveManifestPath = $archiveManifestPath
+        archiveManifestSha256 = Get-Sha256File $archiveManifestPath
         restoreReceiptPath = Join-Path $manifestDirectory 'db/recovery/restore-drill.json'
         retentionReceiptPath = Join-Path $manifestDirectory 'db/cleanup/seven-table-retention.json'
         baseMutationStatements = 0
