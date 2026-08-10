@@ -87,9 +87,6 @@ public static class DependencyInjection
         services.AddScoped<IDishBomTemplateService, DishBomTemplateService>();
         services.AddScoped<IDishBomImportService, DishBomImportService>();
         services.AddScoped<IDishBomService, DishBomService>();
-        services.AddScoped<IQuotationEvidenceResolutionService, QuotationEvidenceResolutionService>();
-        services.AddScoped<IBomEvidenceResolutionService, BomEvidenceResolutionService>();
-        services.AddScoped<IDuplicateIngredientResolutionService, DuplicateIngredientResolutionService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();

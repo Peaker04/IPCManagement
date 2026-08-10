@@ -1,6 +1,4 @@
 using System.Text.RegularExpressions;
-using IPCManagement.Api.Infrastructure.Lifecycle;
-using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Application.Tests;
 
@@ -62,12 +60,6 @@ public class FeatureDependencyConventionTests
             + string.Join(", ", grownLegacyEdges.Select(item =>
                 $"{item.Edge} ({item.Actual}>{item.Ceiling})")));
 
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidencePackageInput).Namespace);
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceAttestationInput).Namespace);
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(ResolutionCommandContext).Namespace);
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceResolutionState).Namespace);
-        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(EvidencePackageGuard).Namespace);
-        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(DurableResolutionStore).Namespace);
     }
 
     [Fact]
