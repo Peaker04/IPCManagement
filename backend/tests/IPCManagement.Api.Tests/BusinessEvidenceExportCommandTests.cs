@@ -67,7 +67,7 @@ public sealed class BusinessEvidenceExportCommandTests
             var receipt = await BusinessEvidenceExportCommand.WritePackageAsync(FixtureSnapshot(), output);
             var bytes = await File.ReadAllBytesAsync(output);
 
-            bytes.Should().NotStartWith(Encoding.UTF8.GetPreamble());
+            bytes.Take(Encoding.UTF8.GetPreamble().Length).Should().NotEqual(Encoding.UTF8.GetPreamble());
             receipt.PackageSha256.Should().Be(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)));
             (await File.ReadAllTextAsync(output + ".sha256")).Trim().Should().Be(receipt.PackageSha256);
             receipt.MutationStatements.Should().Be(0);
@@ -82,7 +82,8 @@ public sealed class BusinessEvidenceExportCommandTests
     private static BusinessEvidenceExportSnapshot FixtureSnapshot()
     {
         var movement = Enumerable.Range(1, 2461)
-            .Select(index => new BusinessEvidenceSubject($"{index:x32}", Fingerprint(index), []))
+            .Select(index => new BusinessEvidenceSubject($"{index:x32}", Fingerprint(index),
+                new Dictionary<string, string?>()))
             .ToArray();
         var physical = BusinessEvidenceExportCommand.RequiredMenuReferenceSurfaces
             .ToDictionary(surface => surface, _ => (IReadOnlyList<string>)[]);
@@ -90,7 +91,8 @@ public sealed class BusinessEvidenceExportCommandTests
             .Select(index => new MenuEvidenceSubject($"{index:x32}", Fingerprint(index), physical))
             .ToArray();
         var units = Enumerable.Range(1, 44)
-            .Select(index => new BusinessEvidenceSubject($"{index:x32}", Fingerprint(index), []))
+            .Select(index => new BusinessEvidenceSubject($"{index:x32}", Fingerprint(index),
+                new Dictionary<string, string?>()))
             .ToArray();
         var maps = BusinessEvidenceExportCommand.RequiredDuplicateConsumerSurfaces
             .ToDictionary(surface => surface, _ => (IReadOnlyList<StableConsumerReference>)[]);

@@ -75,6 +75,26 @@ if (args.Length == 7 &&
 }
 
 if (args.Length == 7 &&
+    args[0] == "business-evidence-export" &&
+    args[1] == "--settings" &&
+    args[3] == "--database" &&
+    args[5] == "--output")
+{
+    try
+    {
+        var exportSettingsPath = Path.GetFullPath(args[2]);
+        var database = args[4];
+        var outputPath = Path.GetFullPath(args[6]);
+        return await BusinessEvidenceExportCommand.ExecuteAsync(
+            async () => await OpenServerConnectionAsync(exportSettingsPath), database, outputPath);
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Business evidence export failed: {exception.Message}");
+        return 1;
+    }
+}
+if (args.Length == 7 &&
     args[0] == "weekly-menu-evidence" &&
     args[1] == "--settings" &&
     args[3] == "--database" &&

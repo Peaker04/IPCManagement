@@ -208,19 +208,19 @@ public class Phase42AggregateVerificationTests
                 failureStatuses = new[] { "FAILED" },
                 gates = new object[]
                 {
-                    FixtureGate(1, "package-export", "DCR-01", "powershell -NoProfile -Command exit 0"),
+                    FixtureGate(1, "first", "DCR-01", "powershell -NoProfile -Command exit 0"),
                     FixtureGate(2, "must-not-run", "DCR-02", "powershell -NoProfile -Command exit 9"),
                 },
             }));
 
             var result = RunVerifier(
                 $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId phase_04_2_execution " +
-                "-Database ipcmanagement -MigrationHead head -StopAfter package-export");
+                "-Database ipcmanagement -MigrationHead head -StopAfter first");
 
             result.ExitCode.Should().Be(0, result.StdErr);
             using var document = JsonDocument.Parse(File.ReadAllText(output));
             document.RootElement.GetProperty("status").GetString().Should().Be("STOPPED");
-            document.RootElement.GetProperty("stoppedAfter").GetString().Should().Be("package-export");
+            document.RootElement.GetProperty("stoppedAfter").GetString().Should().Be("first");
             document.RootElement.GetProperty("gates").EnumerateArray()
                 .Select(gate => gate.GetProperty("status").GetString())
                 .Should().Equal("PASS", "NOT_RUN");

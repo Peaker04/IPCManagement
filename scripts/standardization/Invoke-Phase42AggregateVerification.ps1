@@ -2,18 +2,30 @@
 param(
     [switch]$ContractOnly,
     [switch]$HygieneOnly,
+    [switch]$FailFast,
     [string]$GateSpec = 'scripts/standardization/phase42-verification-gates.json',
     [string]$Output,
     [string]$RunId,
     [string]$Target,
+    [string]$Database,
     [string]$MigrationHead,
+    [string]$StopAfter,
+    [string]$Only,
+    [string]$Manifest,
+    [string]$Approval,
+    [string]$Settings = 'backend/src/IPCManagement.Api/appsettings.json',
     [string]$EvidenceRoot = '.artifacts/shipyard-live/phase-04.2',
     [string[]]$AdditionalScanPath = @()
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$script:VerifierVersion = '1.0.0'
+$script:VerifierVersion = '1.1.0'
+$script:Plan05StopModes = @(
+    'package-export', 'business-release-preflight', 'business-base-and-lock-preflight',
+    'business-base-promotion', 'restore-preflight', 'cleanup-release-preflight',
+    'cleanup-base-preflight', 'cleanup-base-promotion'
+)
 
 function Get-Sha256Text([AllowEmptyString()][string]$Text) {
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
@@ -126,6 +138,26 @@ function Write-Manifest($Manifest) {
     [System.IO.File]::WriteAllText($resolvedOutput, $json, (New-Object System.Text.UTF8Encoding($false)))
 }
 
+function Invoke-PackageExport {
+    if ([string]::IsNullOrWhiteSpace($Output)) { throw '-Output is required for package-export.' }
+    if ($Target -ne 'ipcmanagement') { throw "Package export target is forbidden: $Target" }
+    if (-not (Test-Path -LiteralPath $Settings -PathType Leaf)) { throw "Settings file is missing: $Settings" }
+    $prefix = Join-Path $EvidenceRoot 'commands/00-package-export'
+    $command = 'dotnet run --project backend/tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj ' +
+        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-export/ ' +
+        '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- business-evidence-export ' +
+        '--settings "' + $Settings + '" --database "' + $Target + '" --output "' + $Output + '"'
+    $execution = Invoke-CapturedCommand $command $prefix
+    if ($execution.ExitCode -ne 0) { throw (Protect-LogText $execution.StdErr) }
+    if (-not (Test-Path -LiteralPath $Output -PathType Leaf)) { throw 'Package exporter did not create its output.' }
+    $sidecar = "$Output.sha256"
+    if (-not (Test-Path -LiteralPath $sidecar -PathType Leaf)) { throw 'Package exporter did not create the exact-byte hash sidecar.' }
+    $declared = (Get-Content -Raw -LiteralPath $sidecar).Trim()
+    $actual = Get-Sha256File $Output
+    if ($declared -ne $actual) { throw 'Package exact-byte SHA-256 sidecar does not match persisted UTF-8 bytes.' }
+    return 0
+}
+
 function Invoke-HygieneVerification {
     $findings = New-Object System.Collections.Generic.List[string]
     $repoOwnedPaths = @(
@@ -223,6 +255,19 @@ function Invoke-HygieneVerification {
 
 function Invoke-Phase42AggregateVerification {
     if ([string]::IsNullOrWhiteSpace($Output)) { throw '-Output is required.' }
+    if (-not [string]::IsNullOrWhiteSpace($Database)) {
+        if (-not [string]::IsNullOrWhiteSpace($Target) -and $Target -ne $Database) {
+            throw '-Target and -Database must identify the same exact database.'
+        }
+        $Target = $Database
+    }
+    if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
+        $Target = 'ipcmanagement'
+    }
+    $script:Target = $Target
+    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and -not [string]::IsNullOrWhiteSpace($Only)) {
+        throw '-StopAfter and -Only are mutually exclusive.'
+    }
     $resolvedSpec = (Resolve-Path -LiteralPath $GateSpec).Path
     $spec = Get-Content -Raw -LiteralPath $resolvedSpec | ConvertFrom-Json
     $specHash = Get-Sha256File $resolvedSpec
@@ -253,13 +298,28 @@ function Invoke-Phase42AggregateVerification {
     if ($Target -eq 'ipc_lane1' -or $Target -notmatch '^(ipcmanagement|ipc_rehearsal_phase42_[a-z0-9_]+|ipc_restore_[a-z0-9_]+)$') {
         throw "Aggregate target is forbidden: $Target"
     }
-    if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if ($HygieneOnly) { return Invoke-HygieneVerification }
+    if ($StopAfter -eq 'package-export') { return Invoke-PackageExport }
+    if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
+    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
+        @($spec.gates.id) -notcontains $StopAfter) {
+        throw "Unknown -StopAfter selector: $StopAfter"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -contains $StopAfter) {
+        throw "Plan 05 mode '$StopAfter' is declared but has no reviewed executor registered."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Only) -and @($spec.gates.id) -notcontains $Only) {
+        throw "Unknown -Only selector: $Only"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Manifest) -and -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw "Manifest is missing: $Manifest"
+    }
 
     $gateResults = New-Object System.Collections.Generic.List[object]
     $failed = $false
+    $stopped = $false
     foreach ($gate in $spec.gates) {
-        if ($failed) {
+        if ($failed -or $stopped -or (-not [string]::IsNullOrWhiteSpace($Only) -and $gate.id -ne $Only)) {
             $gateResults.Add((New-NotRunGate $gate $sourceCommit $specHash $false))
             continue
         }
@@ -299,6 +359,9 @@ function Invoke-Phase42AggregateVerification {
         }
         $gateResults.Add($result)
         if ($status -ne 'PASS') { $failed = $true }
+        if (-not $failed -and -not [string]::IsNullOrWhiteSpace($StopAfter) -and $gate.id -eq $StopAfter) {
+            $stopped = $true
+        }
     }
 
     $requirements = @($spec.gates.requirementId | Where-Object { $null -ne $_ } | Select-Object -Unique)
@@ -306,7 +369,11 @@ function Invoke-Phase42AggregateVerification {
         $requirement = $_
         @($gateResults | Where-Object { $_.requirementId -eq $requirement -and $_.status -ne 'PASS' }).Count -eq 0
     }).Count
-    $overallStatus = if (-not $failed -and $requirementsPassed -eq [int]$spec.requirementsTotal) { 'PASS' } else { 'FAILED' }
+    $overallStatus = if ($failed) { 'FAILED' }
+        elseif ($stopped) { 'STOPPED' }
+        elseif (-not [string]::IsNullOrWhiteSpace($Only)) { 'PASS' }
+        elseif ($requirementsPassed -eq [int]$spec.requirementsTotal) { 'PASS' }
+        else { 'FAILED' }
     Write-Manifest ([ordered]@{
         schemaVersion = 1
         verifierVersion = $script:VerifierVersion
@@ -316,11 +383,15 @@ function Invoke-Phase42AggregateVerification {
         migrationHead = $MigrationHead
         sourceCommit = $sourceCommit
         status = $overallStatus
+        stoppedAfter = if ($stopped) { $StopAfter } else { $null }
+        selectedOnly = if ([string]::IsNullOrWhiteSpace($Only)) { $null } else { $Only }
+        manifest = if ([string]::IsNullOrWhiteSpace($Manifest)) { $null } else { $Manifest }
+        failFast = $true
         requirementsPassed = $requirementsPassed
         requirementsTotal = [int]$spec.requirementsTotal
         gates = [object[]]$gateResults
     })
-    return $(if ($overallStatus -eq 'PASS') { 0 } else { 1 })
+    return $(if ($overallStatus -in @('PASS', 'STOPPED')) { 0 } else { 1 })
 }
 
 try {
