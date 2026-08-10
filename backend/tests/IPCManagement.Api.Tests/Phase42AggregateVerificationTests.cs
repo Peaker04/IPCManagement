@@ -636,7 +636,13 @@ public class Phase42AggregateVerificationTests
         tool.Should().NotContain("IPC_BACKUP_ENCRYPTION_PASSWORD");
         tool.Should().NotContain("Environment.SetEnvironmentVariable");
         tool.Should().NotContain("ProviderAdapter");
+        tool.Should().Contain("RestoreApprovedArchiveAsync");
+        tool.Should().Contain("targetAbsentBefore");
+        tool.Should().Contain("DROP DATABASE");
+        tool.Should().Contain("finally");
+        tool.Should().Contain("CompareRestoreOracles");
         runner.Should().Contain("Invoke-D03LocalArchive");
+        runner.Should().Contain("Invoke-D03RestoreDrill");
         runner.Should().Contain("IPCManagement.Phase42ArchiveTool.csproj");
     }
 

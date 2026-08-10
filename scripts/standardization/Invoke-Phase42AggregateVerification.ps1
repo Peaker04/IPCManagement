@@ -842,6 +842,82 @@ function Invoke-D03RestoreApproval {
     return 0
 }
 
+function Invoke-D03RestoreDrill {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'd03-restore-drill requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.planRevision -ne 'D03_D04_D05_8_TASK' -or
+        [string]$run.status -ne 'RESTORE_DRILL_PENDING' -or [int]$run.currentTask -ne 6 -or
+        [int]$run.completedTasks -ne 5 -or [int]$run.totalTasks -ne 8 -or
+        [string]$run.revisedTaskCompletions.task5.status -ne 'PASS') {
+        throw 'D-03 restore drill is not at the exact approved Task 6 position.'
+    }
+    $task4 = $run.revisedTaskCompletions.task4
+    $task5 = $run.revisedTaskCompletions.task5
+    $archiveReceiptPath = [string]$task4.receiptPath
+    $approvalReceiptPath = [string]$task5.approvalReceiptPath
+    $releasePath = [string]$run.revisedTaskCompletions.task3.releasePath
+    if (-not (Test-Path -LiteralPath $archiveReceiptPath -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $approvalReceiptPath -PathType Leaf) -or
+        (Get-Sha256File $approvalReceiptPath) -ne [string]$task5.approvalReceiptSha256) {
+        throw 'D-03 restore approval or archive receipt is missing or stale.'
+    }
+    $restoreTarget = [string]$task5.restoreTarget
+    if ($restoreTarget -ne "ipc_restore_phase42_$RunId" -or
+        $restoreTarget -in @('ipcmanagement','ipc_lane1','ipc_lane9','ipc_e2e_template')) {
+        throw 'D-03 restore target is not the canonical run-owned target.'
+    }
+    $prefix = Join-Path $EvidenceRoot 'commands/06-restore-drill'
+    $command = 'dotnet run --project backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj ' +
+        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-restore-drill/ ' +
+        '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- ' +
+        '--mode restore --settings "' + $Settings + '" --database ipcmanagement --run-id "' + $RunId +
+        '" --release "' + $releasePath + '" --archive-receipt "' + $archiveReceiptPath +
+        '" --approval-receipt "' + $approvalReceiptPath + '" --restore-target "' + $restoreTarget +
+        '" --output "' + $Output + '"'
+    $execution = Invoke-CapturedCommand $command $prefix
+    if ($execution.ExitCode -ne 0) { throw (Protect-LogText $execution.StdErr) }
+    if (-not (Test-Path -LiteralPath $Output -PathType Leaf)) { throw 'Restore drill did not create its receipt.' }
+    $receipt = Get-Content -Raw -LiteralPath $Output | ConvertFrom-Json
+    if ([string]$receipt.status -ne 'PASS' -or
+        [string]$receipt.classification -ne 'ACCEPTED_LOCAL_ONLY_RISK' -or
+        $receipt.approvedArchiveOnly -ne $true -or $receipt.allExactOraclesPass -ne $true -or
+        $receipt.businessSourceUnchanged -ne $true -or $receipt.restoreDatabaseAbsent -ne $true -or
+        $receipt.plaintextAbsent -ne $true -or $receipt.existingDatabaseTouched -ne $false -or
+        $receipt.providerAccessed -ne $false -or $receipt.ipcLane1Accessed -ne $false -or
+        [int]$receipt.businessMutationStatements -ne 0 -or
+        [string]$receipt.archiveSha256 -ne [string]$task5.archiveSha256 -or
+        [long]$receipt.archiveBytes -ne [long]$task5.archiveBytes -or
+        [string]$receipt.innerManifestSha256 -ne [string]$task5.innerManifestSha256 -or
+        [string]$receipt.restoreTarget -ne $restoreTarget -or
+        [string]$receipt.releaseSha256 -ne [string]$run.revisedTaskCompletions.task3.releaseSha256 -or
+        [int]$receipt.releaseSubjectCount -ne 3555) {
+        throw 'D-03 restore drill receipt is incomplete, stale or unsafe.'
+    }
+    $task6 = [ordered]@{
+        status='PASS'; completedAtUtc=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        receiptPath=$Output; receiptSha256=(Get-Sha256File $Output)
+        archiveReference=[string]$receipt.archiveReference; archiveSha256=[string]$receipt.archiveSha256
+        archiveBytes=[long]$receipt.archiveBytes; restoreTarget=$restoreTarget
+        allExactOraclesPass=$true; businessSourceUnchanged=$true
+        restoreDatabaseAbsent=$true; plaintextAbsent=$true; existingDatabaseTouched=$false
+        mutationStatements=0
+    }
+    $run.revisedTaskCompletions | Add-Member -NotePropertyName task6 -NotePropertyValue $task6 -Force
+    $run.status = 'SEVEN_TABLE_RETENTION_PENDING'
+    $run.currentTask = 7
+    $run.currentTaskName = 'Prove seven-table retention and destructive-path dormancy'
+    $run.completedTasks = 6
+    $run.resumeGuardrails.completedTasksPreserved = 6
+    $run.resumeGuardrails.nextTask = 7
+    $resolvedManifest = if ([IO.Path]::IsPathRooted($Manifest)) { $Manifest } else { Join-Path (Get-Location) $Manifest }
+    [System.IO.File]::WriteAllText(
+        $resolvedManifest, ($run | ConvertTo-Json -Depth 30),
+        (New-Object System.Text.UTF8Encoding($false)))
+    return 0
+}
+
 function Invoke-BusinessAuthorityCheck {
     if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         throw 'business-authority-check requires an existing -Manifest.'
@@ -1018,7 +1094,7 @@ function Invoke-Phase42AggregateVerification {
     if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
         $Target = 'ipcmanagement'
     }
-    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'd05-evidence-release', 'approval-check') -and
+    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'd05-evidence-release', 'approval-check', 'd03-restore-drill') -and
         -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
@@ -1067,6 +1143,7 @@ function Invoke-Phase42AggregateVerification {
     if ($Only -eq 'd04-role-rebind-check') { return Invoke-D04RoleRebindCheck }
     if ($Only -eq 'd05-evidence-release') { return Invoke-D05EvidenceRelease }
     if ($Only -eq 'approval-check') { return Invoke-D03RestoreApproval }
+    if ($Only -eq 'd03-restore-drill') { return Invoke-D03RestoreDrill }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {
