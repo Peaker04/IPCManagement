@@ -25,9 +25,8 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $PSDefaultParameterValues['Get-Content:Encoding'] = 'UTF8'
 $script:VerifierVersion = '3.0.0-d05'
-$script:Plan05StopModes = @(
-    'package-export', 'local-archive'
-)
+$script:SelectorRejected = $false
+$script:SelectorContract = $null
 $script:ExpectedPackageSha256 = 'C281CB92E66939657680F0D31CA80B4A3451F5EE71A94745DBD60335DAE66EC2'
 $script:ExpectedApprovalReceiptSha256 = '158C35AAD17463DAD851CB4662A1C69B0252F8B375134446DF63CCAF4E0F90E2'
 $script:BackupTables = @(
@@ -202,6 +201,8 @@ function Assert-RetiredGapSourceAbsent {
     if ($present.Count -ne 0) { throw "Retired pre-D-05 source remains: $($present -join ', ')" }
 
     $scanFiles = New-Object System.Collections.Generic.List[string]
+    $runnerPath = (Resolve-Path -LiteralPath $PSCommandPath).Path
+    $scanFiles.Add($runnerPath)
     foreach ($root in @('backend/src/IPCManagement.Api', 'backend/tools/IPCManagement.DatabaseTool')) {
         if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
         foreach ($file in @(& rg --files $root -g '*.cs' -g '!**/bin*/**' -g '!**/obj*/**' -g '!**/.artifacts/**')) {
@@ -211,10 +212,34 @@ function Assert-RetiredGapSourceAbsent {
     foreach ($path in @($AdditionalScanPath)) {
         if (Test-Path -LiteralPath $path -PathType Leaf) { $scanFiles.Add((Resolve-Path -LiteralPath $path).Path) }
     }
-    $forbidden = '(?i)FINANCE_SOURCE_OWNER|CATALOG_SOURCE_OWNER|ActorRole\s*=\s*"(?:Catalog|Finance|Manager)"|BusinessEvidence(?:Package|Attestation|Policy|Envelope|ClosureCommand|ExportCommand)|Businessevidence(?:packages|attestations)|business-evidence-(?:close|export)'
-    $findings = @($scanFiles | Select-Object -Unique | Where-Object {
+    $authorityPattern = @($script:SelectorContract.retiredAuthorityTokens | ForEach-Object {
+        [regex]::Escape([string]$_)
+    }) -join '|'
+    $forbidden = '(?i)(?:' + $authorityPattern + ')|ActorRole\s*=\s*"(?:Catalog|Finance|Manager)"|BusinessEvidence(?:Package|Attestation|Policy|Envelope|ClosureCommand|ExportCommand)|Businessevidence(?:packages|attestations)|business-evidence-(?:close|export)'
+    $sourceFiles = @($scanFiles | Select-Object -Unique | Where-Object { $_ -ne $runnerPath })
+    $findings = @($sourceFiles | Where-Object {
         (Get-Content -Raw -LiteralPath $_) -match $forbidden
     })
+
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+        $runnerPath, [ref]$tokens, [ref]$parseErrors)
+    if (@($parseErrors).Count -ne 0) { throw 'Aggregate runner source cannot be parsed for retirement checks.' }
+    $retiredFunctions = @($script:SelectorContract.retiredFunctions | ForEach-Object { [string]$_ })
+    $retiredLiterals = @($script:SelectorContract.retiredSelectors + $script:SelectorContract.retiredAuthorityTokens |
+        ForEach-Object { [string]$_ })
+    $functionFindings = @($ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+    }, $true) | Where-Object { $retiredFunctions -contains $_.Name })
+    $literalFindings = @($ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.StringConstantExpressionAst]
+    }, $true) | Where-Object { $retiredLiterals -contains $_.Value })
+    if ($functionFindings.Count -ne 0 -or $literalFindings.Count -ne 0) {
+        $findings += $runnerPath
+    }
     if ($findings.Count -ne 0) { throw "Retired or synthesized authority source remains: $($findings -join ', ')" }
 }
 
@@ -664,96 +689,6 @@ function Write-Manifest($Manifest) {
     if (-not [string]::IsNullOrWhiteSpace($parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
     $json = $Manifest | ConvertTo-Json -Depth 20
     [System.IO.File]::WriteAllText($resolvedOutput, $json, (New-Object System.Text.UTF8Encoding($false)))
-}
-
-function Invoke-PackageExport {
-    if ([string]::IsNullOrWhiteSpace($Output)) { throw '-Output is required for package-export.' }
-    if ($Target -ne 'ipcmanagement') { throw "Package export target is forbidden: $Target" }
-    if (-not (Test-Path -LiteralPath $Settings -PathType Leaf)) { throw "Settings file is missing: $Settings" }
-    $prefix = Join-Path $EvidenceRoot 'commands/00-package-export'
-    $command = 'dotnet run --project backend/tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj ' +
-        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-export/ ' +
-        '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- business-evidence-export ' +
-        '--settings "' + $Settings + '" --database "' + $Target + '" --output "' + $Output + '"'
-    $execution = Invoke-CapturedCommand $command $prefix
-    if ($execution.ExitCode -ne 0) { throw (Protect-LogText $execution.StdErr) }
-    if (-not (Test-Path -LiteralPath $Output -PathType Leaf)) { throw 'Package exporter did not create its output.' }
-    $sidecar = "$Output.sha256"
-    if (-not (Test-Path -LiteralPath $sidecar -PathType Leaf)) { throw 'Package exporter did not create the exact-byte hash sidecar.' }
-    $declared = (Get-Content -Raw -LiteralPath $sidecar).Trim()
-    $actual = Get-Sha256File $Output
-    if ($declared -ne $actual) { throw 'Package exact-byte SHA-256 sidecar does not match persisted UTF-8 bytes.' }
-    return 0
-}
-
-function Invoke-AuthorityCheck {
-    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
-        throw 'authority-check requires an existing -Manifest.'
-    }
-    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
-    if ($run.runId -ne $RunId -or $run.target -ne $Target) { throw 'Authority manifest run/target does not match.' }
-    $packagePath = [string]$run.task1.packagePath
-    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Signed business package is missing.' }
-    $packageHash = Get-Sha256File $packagePath
-    if ($packageHash -ne [string]$run.task1.packageSha256) { throw 'Signed business package digest is stale.' }
-
-    $requiredBusinessSlots = @(
-        'WAREHOUSE_SOURCE_OWNER', 'FINANCE_SOURCE_OWNER', 'COORDINATION_SOURCE_OWNER',
-        'UNIT_SOURCE_OWNER', 'PURCHASING_SOURCE_OWNER', 'BOM_SOURCE_OWNER',
-        'CATALOG_SOURCE_OWNER', 'WAREHOUSE_IMPACT_OWNER', 'PURCHASING_IMPACT_OWNER'
-    )
-    if ($run.PSObject.Properties.Name -notcontains 'authorityRecords' -or
-        $null -eq $run.authorityRecords -or $null -eq $run.authorityRecords.business) {
-        throw 'Authority records are not supplied.'
-    }
-    $records = @($run.authorityRecords.business)
-    foreach ($slot in $requiredBusinessSlots) {
-        $matches = @($records | Where-Object { $_.authoritySlot -eq $slot })
-        if ($matches.Count -ne 1) { throw "Authority slot must occur exactly once: $slot" }
-        $record = $matches[0]
-        foreach ($field in @('actorReference', 'authorityReference', 'authoritySha256', 'signedAtUtc')) {
-            if ([string]::IsNullOrWhiteSpace([string]$record.$field)) { throw "Authority $slot is missing $field." }
-        }
-        if ([string]$record.packageSha256 -ne $packageHash) { throw "Authority $slot signed a different package digest." }
-        if ([string]$record.authoritySha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw "Authority $slot has an invalid authority digest." }
-        if ([string]$record.actorReference -match '(?i)^(placeholder|test|demo|unknown|admin)$') {
-            throw "Authority $slot uses a fabricated actor reference."
-        }
-    }
-    $warehouse = [string](@($records | Where-Object authoritySlot -eq 'WAREHOUSE_SOURCE_OWNER')[0].actorReference)
-    $finance = [string](@($records | Where-Object authoritySlot -eq 'FINANCE_SOURCE_OWNER')[0].actorReference)
-    if ($warehouse -eq $finance) { throw 'Warehouse and Finance source owners must be independent.' }
-
-    $provider = $run.authorityRecords.provider
-    foreach ($field in @(
-        'providerReference', 'accountReference', 'containerReference', 'securityDomainReference',
-        'rpo', 'rto', 'lockMode', 'retainUntilPolicyReference', 'legalHoldDecisionReference',
-        'keyOwnerReference', 'keyCustodyReference', 'keyRecoveryReference',
-        'credentialReference', 'legacyScheduleOverlapDecisionReference')) {
-        if ([string]::IsNullOrWhiteSpace([string]$provider.$field)) { throw "Provider authority is missing $field." }
-        if ([string]$provider.$field -match '(?i)(^[A-Z]:\\|^file:|^\\\\|placeholder|unknown|demo)') {
-            throw "Provider authority $field is local or fabricated."
-        }
-    }
-    $manifestText = Get-Content -Raw -LiteralPath $Manifest
-    if ($manifestText -match '(?is)"(password|secret|token|apiKey|connectionString|keyMaterial)"\s*:') {
-        throw 'Authority manifest contains a prohibited secret-value field.'
-    }
-    $receiptPath = "$Manifest.authority-check.json"
-    $receipt = [ordered]@{
-        schemaVersion = 1
-        verifierVersion = $script:VerifierVersion
-        runId = $RunId
-        target = $Target
-        packageSha256 = $packageHash
-        businessAuthoritySlots = $requiredBusinessSlots
-        providerAuthority = 'PASS'
-        status = 'PASS'
-        mutationStatements = 0
-    }
-    $json = $receipt | ConvertTo-Json -Depth 10
-    [System.IO.File]::WriteAllText((Join-Path (Get-Location) $receiptPath), $json, (New-Object System.Text.UTF8Encoding($false)))
-    return 0
 }
 
 function Invoke-D03RebindCheck {
@@ -1452,63 +1387,6 @@ function Invoke-D03SevenTableRetention {
     return 0
 }
 
-function Invoke-BusinessAuthorityCheck {
-    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
-        throw 'business-authority-check requires an existing -Manifest.'
-    }
-    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
-    if ($run.runId -ne $RunId -or $run.target -ne $Target) { throw 'Business authority manifest run/target does not match.' }
-    $packagePath = [string]$run.priorPackageEvidence.packagePath
-    if ((Get-Sha256File $packagePath) -ne $script:ExpectedPackageSha256) { throw 'Business authority package digest is stale.' }
-    if ($run.PSObject.Properties.Name -notcontains 'businessAuthorityRecords') {
-        throw 'Business authority records are not supplied.'
-    }
-    $requiredSlots = @(
-        'WAREHOUSE_SOURCE_OWNER', 'FINANCE_SOURCE_OWNER', 'COORDINATION_SOURCE_OWNER',
-        'UNIT_SOURCE_OWNER', 'PURCHASING_SOURCE_OWNER', 'BOM_SOURCE_OWNER',
-        'CATALOG_SOURCE_OWNER', 'WAREHOUSE_IMPACT_OWNER', 'PURCHASING_IMPACT_OWNER'
-    )
-    $records = @($run.businessAuthorityRecords)
-    foreach ($slot in $requiredSlots) {
-        $matches = @($records | Where-Object { $_.authoritySlot -eq $slot })
-        if ($matches.Count -ne 1) { throw "Business authority slot must occur exactly once: $slot" }
-        $record = $matches[0]
-        foreach ($field in @('actorReference', 'authorityReference', 'authoritySha256', 'signedAtUtc')) {
-            if ([string]::IsNullOrWhiteSpace([string]$record.$field)) { throw "Business authority $slot is missing $field." }
-        }
-        if ([string]$record.packageSha256 -ne $script:ExpectedPackageSha256 -or
-            [string]$record.authoritySha256 -notmatch '^[A-Fa-f0-9]{64}$') {
-            throw "Business authority $slot is not bound to the exact package."
-        }
-        if ([string]$record.actorReference -match '(?i)^(placeholder|test|demo|unknown|admin|manager)$') {
-            throw "Business authority $slot uses a fabricated actor reference."
-        }
-        $sources = @($record.sourceReferences)
-        if ($sources.Count -eq 0) { throw "Business authority $slot has no source references." }
-        foreach ($source in $sources) {
-            if ([string]::IsNullOrWhiteSpace([string]$source.reference) -or
-                [string]$source.sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
-                throw "Business authority $slot has an invalid source reference."
-            }
-        }
-    }
-    $actors = @($records.actorReference)
-    if (@($actors | Select-Object -Unique).Count -ne $requiredSlots.Count) {
-        throw 'Business authority identities must be independent across all required slots.'
-    }
-    Write-Manifest ([ordered]@{
-        schemaVersion = 1
-        verifierVersion = $script:VerifierVersion
-        runId = $RunId
-        target = $Target
-        packageSha256 = $script:ExpectedPackageSha256
-        businessAuthoritySlots = $requiredSlots
-        status = 'PASS'
-        mutationStatements = 0
-    })
-    return 0
-}
-
 function Invoke-HygieneVerification {
     $findings = New-Object System.Collections.Generic.List[string]
     $manifestCandidate = if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
@@ -1666,9 +1544,26 @@ function Invoke-HygieneVerification {
 }
 
 function Invoke-Phase42AggregateVerification {
-    if ([string]::IsNullOrWhiteSpace($Output) -and $Only -eq 'business-authority-check' -and
-        -not [string]::IsNullOrWhiteSpace($Manifest)) {
-        $Output = "$Manifest.business-authority-check.json"
+    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and -not [string]::IsNullOrWhiteSpace($Only)) {
+        throw '-StopAfter and -Only are mutually exclusive.'
+    }
+    $resolvedSpec = (Resolve-Path -LiteralPath $GateSpec).Path
+    $spec = Get-Content -Raw -LiteralPath $resolvedSpec | ConvertFrom-Json
+    $script:SelectorContract = if ($spec.PSObject.Properties.Name -contains 'selectorContract') {
+        $spec.selectorContract
+    } else {
+        [pscustomobject]@{
+            retiredSelectors = @()
+            retiredFunctions = @()
+            retiredAuthorityTokens = @()
+            activeStopAfterSelectors = @()
+            activeOnlySelectors = @()
+        }
+    }
+    $retiredSelectors = @($script:SelectorContract.retiredSelectors | ForEach-Object { [string]$_ })
+    if ($retiredSelectors -contains $StopAfter -or $retiredSelectors -contains $Only) {
+        $script:SelectorRejected = $true
+        throw 'SUPERSEDED_D05_NOT_APPLICABLE: aggregate selector is retired.'
     }
     if ([string]::IsNullOrWhiteSpace($Output) -and $Only -eq 'approval-check' -and
         -not [string]::IsNullOrWhiteSpace($Manifest)) {
@@ -1681,21 +1576,13 @@ function Invoke-Phase42AggregateVerification {
         }
         $Target = $Database
     }
-    if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
-        $Target = 'ipcmanagement'
-    }
-    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'd05-evidence-release', 'approval-check', 'd03-restore-drill', 'd03-seven-table-retention') -and
+    if ($Only -in @($script:SelectorContract.activeOnlySelectors) -and
         -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
         if ([string]::IsNullOrWhiteSpace($MigrationHead)) { $MigrationHead = [string]$manifestHeader.migrationHead }
     }
     $script:Target = $Target
-    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and -not [string]::IsNullOrWhiteSpace($Only)) {
-        throw '-StopAfter and -Only are mutually exclusive.'
-    }
-    $resolvedSpec = (Resolve-Path -LiteralPath $GateSpec).Path
-    $spec = Get-Content -Raw -LiteralPath $resolvedSpec | ConvertFrom-Json
     $specHash = Get-Sha256File $resolvedSpec
     $sourceCommit = (git rev-parse HEAD).Trim()
     $orders = @($spec.gates | ForEach-Object { [int]$_.order })
@@ -1726,10 +1613,7 @@ function Invoke-Phase42AggregateVerification {
         throw "Aggregate target is forbidden: $Target"
     }
     if ($HygieneOnly) { return Invoke-HygieneVerification }
-    if ($StopAfter -eq 'package-export') { return Invoke-PackageExport }
     if ($StopAfter -eq 'local-archive') { return Invoke-D03LocalArchive }
-    if ($Only -eq 'authority-check') { return Invoke-AuthorityCheck }
-    if ($Only -eq 'business-authority-check') { return Invoke-BusinessAuthorityCheck }
     if ($Only -eq 'd03-rebind-check') { return Invoke-D03RebindCheck }
     if ($Only -eq 'd04-role-rebind-check') { return Invoke-D04RoleRebindCheck }
     if ($Only -eq 'd05-evidence-release') { return Invoke-D05EvidenceRelease }
@@ -1737,14 +1621,14 @@ function Invoke-Phase42AggregateVerification {
     if ($Only -eq 'd03-restore-drill') { return Invoke-D03RestoreDrill }
     if ($Only -eq 'd03-seven-table-retention') { return Invoke-D03SevenTableRetention }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
-    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
+    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and
+        @($script:SelectorContract.activeStopAfterSelectors) -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {
         throw "Unknown -StopAfter selector: $StopAfter"
     }
-    if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -contains $StopAfter) {
-        throw "Plan 05 mode '$StopAfter' is declared but has no reviewed executor registered."
-    }
-    if (-not [string]::IsNullOrWhiteSpace($Only) -and @($spec.gates.id) -notcontains $Only) {
+    if (-not [string]::IsNullOrWhiteSpace($Only) -and
+        @($script:SelectorContract.activeOnlySelectors) -notcontains $Only -and
+        @($spec.gates.id) -notcontains $Only) {
         throw "Unknown -Only selector: $Only"
     }
     if (-not [string]::IsNullOrWhiteSpace($Manifest) -and -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
@@ -1867,7 +1751,7 @@ try {
 }
 catch {
     if (-not [string]::IsNullOrWhiteSpace($Output) -and
-        [string]::IsNullOrWhiteSpace($Only) -and $StopAfter -ne 'package-export') {
+        [string]::IsNullOrWhiteSpace($Only) -and -not $script:SelectorRejected) {
         try {
             Write-Manifest ([ordered]@{
                 schemaVersion = 1

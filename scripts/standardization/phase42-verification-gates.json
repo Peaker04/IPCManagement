@@ -1,6 +1,21 @@
 {
   "schemaVersion": 1,
   "requirementsTotal": 10,
+  "selectorContract": {
+    "retiredSelectors": ["package-export", "authority-check", "business-authority-check"],
+    "retiredFunctions": ["Invoke-PackageExport", "Invoke-AuthorityCheck", "Invoke-BusinessAuthorityCheck"],
+    "retiredAuthorityTokens": ["FINANCE_SOURCE_OWNER", "CATALOG_SOURCE_OWNER"],
+    "activeStopAfterSelectors": ["local-archive"],
+    "activeOnlySelectors": [
+      "gap-source-contract",
+      "d03-rebind-check",
+      "d03-restore-drill",
+      "d03-seven-table-retention",
+      "d04-role-rebind-check",
+      "d05-evidence-release",
+      "approval-check"
+    ]
+  },
   "requiredExecutionInputs": ["runId", "archiveRunId", "target", "migrationHead", "evidenceRoot", "archiveReceipt", "approvalReceipt"],
   "requiredEvidenceFields": [
     "gateId",
