@@ -186,47 +186,47 @@
     },
     {
       "order": 15,
-      "id": "dcr-07-immutable-provider-receipt",
+      "id": "dcr-07-local-archive-risk",
       "stage": "W2",
       "requirementId": "DCR-07",
       "kind": "artifact",
-      "command": "validate-artifact dcr-07-provider-object-receipt.json",
+      "command": "validate-artifact dcr-07-local-archive.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["provider-object-receipt"]
+      "requiredArtifacts": ["accepted-local-only-risk", "encrypted-local-archive", "opaque-dpapi-key-reference"]
     },
     {
       "order": 16,
-      "id": "dcr-08-remote-restore",
+      "id": "dcr-08-approved-local-restore",
       "stage": "W2",
       "requirementId": "DCR-08",
       "kind": "artifact",
-      "command": "validate-artifact dcr-08-remote-restore.json",
+      "command": "validate-artifact dcr-08-approved-local-restore.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["remote-only-restore", "restore-teardown"]
+      "requiredArtifacts": ["approved-local-archive-only", "restore-teardown", "plaintext-teardown"]
     },
     {
       "order": 17,
-      "id": "dcr-09-cleanup-rehearsal-promotion",
+      "id": "dcr-09-seven-table-retention",
       "stage": "W2",
       "requirementId": "DCR-09",
       "kind": "artifact",
-      "command": "validate-artifact dcr-09-cleanup-rehearsal-promotion.json",
+      "command": "validate-artifact dcr-09-seven-table-retention.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["seven-table-preflight", "rollback-extract", "rehearsal-teardown", "base-promotion"]
+      "requiredArtifacts": ["seven-table-retention", "zero-consumer-scan", "destructive-path-dormancy"]
     },
     {
       "order": 18,
-      "id": "ver-03-secret-stub-local-offsite",
+      "id": "ver-03-secret-stub-d03-dormancy",
       "stage": "VER",
       "requirementId": "VER-03",
       "kind": "command",
       "command": "powershell -NoProfile -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 -HygieneOnly -RunId {runId} -Target {target} -MigrationHead {migrationHead} -EvidenceRoot {evidenceRoot} -Output {artifactPath}",
       "versionCommand": "powershell -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
       "targetMode": "explicit",
-      "requiredArtifacts": ["secret-scan", "stub-scan", "local-offsite-scan", "teardown-reconciliation"]
+      "requiredArtifacts": ["secret-scan", "raw-key-scan", "d03-topology-scan", "destructive-dormancy-scan", "teardown-reconciliation"]
     },
     {
       "order": 19,

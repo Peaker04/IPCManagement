@@ -20,11 +20,20 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$script:VerifierVersion = '1.1.0'
+$script:VerifierVersion = '2.0.0-d03'
 $script:Plan05StopModes = @(
-    'package-export', 'business-release-preflight', 'business-base-and-lock-preflight',
-    'business-base-promotion', 'restore-preflight', 'cleanup-release-preflight',
-    'cleanup-base-preflight', 'cleanup-base-promotion'
+    'package-export', 'business-release-preflight', 'business-base-preflight',
+    'business-base-promotion', 'local-archive'
+)
+$script:ExpectedPackageSha256 = 'C281CB92E66939657680F0D31CA80B4A3451F5EE71A94745DBD60335DAE66EC2'
+$script:BackupTables = @(
+    'backup_bomadjustments_20260717_141300',
+    'backup_dishbom_20260717_141300',
+    'backup_dishes_20260717_141300',
+    'backup_ingredients_20260717_141300',
+    'backup_materialrequestlines_bom_20260717_141300',
+    'backup_menuitems_20260717_141300',
+    'backup_menuitems_pre2026_20260717_141300'
 )
 
 function Get-Sha256Text([AllowEmptyString()][string]$Text) {
@@ -37,6 +46,36 @@ function Get-Sha256Text([AllowEmptyString()][string]$Text) {
 function Get-Sha256File([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+}
+
+function Assert-D03Topology($Value, [string]$Label) {
+    if ([string]$Value.recoveryClassification -ne 'ACCEPTED_LOCAL_ONLY_RISK') {
+        throw "$Label recovery classification is not ACCEPTED_LOCAL_ONLY_RISK."
+    }
+    foreach ($field in @('sameHost', 'samePhysicalNvme')) {
+        if ($Value.$field -ne $true) { throw "$Label requires $field=true." }
+    }
+    foreach ($field in @('offSite', 'worm', 'independentSecurityDomain')) {
+        if ($Value.$field -ne $false) { throw "$Label requires $field=false." }
+    }
+    $activeText = $Value | ConvertTo-Json -Depth 30
+    if ($activeText -match '(?i)"(providerReference|accountReference|credentialReference|objectVersion|retentionLock|legalHold|immutableInfrastructure)"\s*:') {
+        throw "$Label contains an active provider-shaped field."
+    }
+}
+
+function Assert-D03Retention($Value, [string]$Label) {
+    $tables = @($Value.tables)
+    if ($tables.Count -ne $script:BackupTables.Count -or (@(Compare-Object $script:BackupTables $tables).Count -ne 0)) {
+        throw "$Label does not retain the exact seven backup tables."
+    }
+    if ($Value.retained -ne $true -or [string]$Value.dropSqlStatus -ne 'DORMANT_FORBIDDEN_UNDER_D03') {
+        throw "$Label does not enforce D-03 retention/dormancy."
+    }
+    foreach ($field in @('dropExecution', 'cleanupRehearsal', 'rollbackExtractRehearsal', 'cleanupApproval', 'baseCleanupPromotion')) {
+        if ([string]$Value.$field -ne 'NOT_RUN_DORMANT_D03') { throw "$Label activated destructive field $field." }
+    }
+    if ([int]$Value.destructiveExecutionCount -ne 0) { throw "$Label records destructive execution." }
 }
 
 function Protect-LogText([AllowNull()][string]$Text) {
@@ -122,6 +161,18 @@ function Test-ArtifactGate($Gate) {
         $declared = @($artifact.artifacts)
         foreach ($required in @($Gate.requiredArtifacts)) {
             if ($declared -notcontains $required) { throw "Artifact proof is missing: $required" }
+        }
+        if ($Gate.requirementId -in @('DCR-07', 'DCR-08')) {
+            Assert-D03Topology $artifact $Gate.requirementId
+        }
+        if ($Gate.requirementId -eq 'DCR-08') {
+            if ($artifact.approvedArchiveOnly -ne $true -or $artifact.restoreDatabaseAbsent -ne $true -or
+                $artifact.plaintextAbsent -ne $true -or $artifact.existingDatabaseTouched -ne $false) {
+                throw 'DCR-08 local restore or teardown proof is incomplete.'
+            }
+        }
+        if ($Gate.requirementId -eq 'DCR-09') {
+            Assert-D03Retention $artifact 'DCR-09'
         }
         return [pscustomobject]@{ ExitCode = 0; StdOut = Get-Content -Raw -LiteralPath $path; StdErr = ''; ArtifactPath = $path }
     }
@@ -228,6 +279,147 @@ function Invoke-AuthorityCheck {
     return 0
 }
 
+function Invoke-D03RebindCheck {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'd03-rebind-check requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.target -ne $Target -or $run.planRevision -ne 'D03_13_TASK') {
+        throw 'D-03 manifest run, target or revision does not match.'
+    }
+    if ([int]$run.completedTasks -ne 1 -or [int]$run.currentTask -ne 2 -or [int]$run.totalTasks -ne 13 -or
+        [string]$run.status -ne 'AWAITING_BUSINESS_AUTHORITY') {
+        throw 'D-03 manifest task position is not rebound to the business-authority checkpoint.'
+    }
+    $package = $run.priorPackageEvidence
+    if ([string]$package.status -ne 'PASS' -or [int]$run.mutationStatements -ne 0) {
+        throw 'Preserved Task 1 package is not PASS or is not read-only.'
+    }
+    $packagePath = [string]$package.packagePath
+    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Preserved Task 1 package is missing.' }
+    if ((Get-Sha256File $packagePath) -ne $script:ExpectedPackageSha256 -or
+        [string]$package.packageSha256 -ne $script:ExpectedPackageSha256) {
+        throw 'Preserved Task 1 package exact-byte SHA-256 changed.'
+    }
+    $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $packagePath).Path)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        throw 'Preserved Task 1 package unexpectedly contains a UTF-8 BOM.'
+    }
+    $counts = $package.counts
+    $expectedCounts = [ordered]@{
+        movements = 2461; menuWeeks = 84; menuFullPhysicalTraversal = 84; unitReviews = 44
+        quotationSubjects = 756; bomSubjects = 194; duplicateGroups = 16
+        duplicateCompleteFifteenConsumerMaps = 16
+    }
+    foreach ($field in $expectedCounts.Keys) {
+        if ([int]$counts.$field -ne [int]$expectedCounts[$field]) { throw "Preserved Task 1 count drifted: $field" }
+    }
+    if ([string]$run.sourceCommit -notmatch '^[A-Fa-f0-9]{40}$' -or [string]::IsNullOrWhiteSpace([string]$run.migrationHead)) {
+        throw 'Preserved Task 1 source commit or migration head is missing.'
+    }
+
+    $policy = $run.activeRecoveryPolicy
+    Assert-D03Topology $policy 'Active manifest policy'
+    if ([string]$policy.decisionReference -notmatch '^opaque:d03:[a-z0-9:_-]+$' -or
+        [string]$policy.decisionSha256 -notmatch '^[A-Fa-f0-9]{64}$' -or
+        [string]::IsNullOrWhiteSpace([string]$policy.decisionCapturedAtUtc)) {
+        throw 'D-03 decision reference, digest or timestamp is incomplete.'
+    }
+    Assert-D03Retention $policy.backupTablePolicy 'Active manifest backup-table policy'
+
+    $superseded = @($run.supersededEvidence)
+    if ($superseded.Count -lt 8) { throw 'Superseded provider evidence index is incomplete.' }
+    foreach ($entry in $superseded) {
+        if ([string]$entry.status -ne 'SUPERSEDED_D03_NOT_CURRENT_AUTHORITY' -or
+            -not (Test-Path -LiteralPath $entry.path -PathType Leaf) -or
+            (Get-Sha256File $entry.path) -ne [string]$entry.sha256 -or
+            [string]::IsNullOrWhiteSpace([string]$entry.capturedAtUtc)) {
+            throw "Superseded evidence index is stale: $($entry.path)"
+        }
+    }
+    if ($run.activeRequiredInputsAfterTask1.PSObject.Properties.Name -contains 'provider' -or
+        $run.activeRequiredInputsAfterTask1.PSObject.Properties.Name -contains 'recoveryProviderAuthority') {
+        throw 'Active required inputs still contain provider authority.'
+    }
+
+    Write-Manifest ([ordered]@{
+        schemaVersion = 1
+        verifierVersion = $script:VerifierVersion
+        runId = $RunId
+        target = $Target
+        migrationHead = $MigrationHead
+        packageSha256 = $script:ExpectedPackageSha256
+        recoveryClassification = 'ACCEPTED_LOCAL_ONLY_RISK'
+        sameHost = $true
+        samePhysicalNvme = $true
+        offSite = $false
+        worm = $false
+        independentSecurityDomain = $false
+        sevenBackupTablesRetained = $true
+        supersededEvidenceCount = $superseded.Count
+        status = 'PASS'
+        mutationStatements = 0
+    })
+    return 0
+}
+
+function Invoke-BusinessAuthorityCheck {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'business-authority-check requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.target -ne $Target) { throw 'Business authority manifest run/target does not match.' }
+    $packagePath = [string]$run.priorPackageEvidence.packagePath
+    if ((Get-Sha256File $packagePath) -ne $script:ExpectedPackageSha256) { throw 'Business authority package digest is stale.' }
+    if ($run.PSObject.Properties.Name -notcontains 'businessAuthorityRecords') {
+        throw 'Business authority records are not supplied.'
+    }
+    $requiredSlots = @(
+        'WAREHOUSE_SOURCE_OWNER', 'FINANCE_SOURCE_OWNER', 'COORDINATION_SOURCE_OWNER',
+        'UNIT_SOURCE_OWNER', 'PURCHASING_SOURCE_OWNER', 'BOM_SOURCE_OWNER',
+        'CATALOG_SOURCE_OWNER', 'WAREHOUSE_IMPACT_OWNER', 'PURCHASING_IMPACT_OWNER'
+    )
+    $records = @($run.businessAuthorityRecords)
+    foreach ($slot in $requiredSlots) {
+        $matches = @($records | Where-Object { $_.authoritySlot -eq $slot })
+        if ($matches.Count -ne 1) { throw "Business authority slot must occur exactly once: $slot" }
+        $record = $matches[0]
+        foreach ($field in @('actorReference', 'authorityReference', 'authoritySha256', 'signedAtUtc')) {
+            if ([string]::IsNullOrWhiteSpace([string]$record.$field)) { throw "Business authority $slot is missing $field." }
+        }
+        if ([string]$record.packageSha256 -ne $script:ExpectedPackageSha256 -or
+            [string]$record.authoritySha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+            throw "Business authority $slot is not bound to the exact package."
+        }
+        if ([string]$record.actorReference -match '(?i)^(placeholder|test|demo|unknown|admin|manager)$') {
+            throw "Business authority $slot uses a fabricated actor reference."
+        }
+        $sources = @($record.sourceReferences)
+        if ($sources.Count -eq 0) { throw "Business authority $slot has no source references." }
+        foreach ($source in $sources) {
+            if ([string]::IsNullOrWhiteSpace([string]$source.reference) -or
+                [string]$source.sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+                throw "Business authority $slot has an invalid source reference."
+            }
+        }
+    }
+    $actors = @($records.actorReference)
+    if (@($actors | Select-Object -Unique).Count -ne $requiredSlots.Count) {
+        throw 'Business authority identities must be independent across all required slots.'
+    }
+    Write-Manifest ([ordered]@{
+        schemaVersion = 1
+        verifierVersion = $script:VerifierVersion
+        runId = $RunId
+        target = $Target
+        packageSha256 = $script:ExpectedPackageSha256
+        businessAuthoritySlots = $requiredSlots
+        status = 'PASS'
+        mutationStatements = 0
+    })
+    return 0
+}
+
 function Invoke-HygieneVerification {
     $findings = New-Object System.Collections.Generic.List[string]
     $repoOwnedPaths = @(
@@ -267,37 +459,39 @@ function Invoke-HygieneVerification {
         }
     }
 
-    $providerPath = Join-Path $EvidenceRoot 'dcr-07-provider-object-receipt.json'
-    if (-not (Test-Path -LiteralPath $providerPath -PathType Leaf)) {
-        $findings.Add('Missing provider-object receipt.')
-    } else {
-        $providerText = Get-Content -Raw -LiteralPath $providerPath
-        if ($providerText -match '(?i)"provider"\s*:\s*"(local|filesystem|file)') {
-            $findings.Add('Local filesystem is not an off-site provider.')
-        }
-        if ($providerText -match '(?i)"(objectKey|offsite|destination)"\s*:\s*"([A-Z]:\\|file:|\\\\)') {
-            $findings.Add('Local path is presented as off-site evidence.')
+    $d03Paths = [ordered]@{
+        dcr07 = Join-Path $EvidenceRoot 'dcr-07-local-archive.json'
+        dcr08 = Join-Path $EvidenceRoot 'dcr-08-approved-local-restore.json'
+        dcr09 = Join-Path $EvidenceRoot 'dcr-09-seven-table-retention.json'
+    }
+    foreach ($entry in $d03Paths.GetEnumerator()) {
+        if (-not (Test-Path -LiteralPath $entry.Value -PathType Leaf)) {
+            $findings.Add("Missing D-03 artifact: $($entry.Value)")
         }
     }
-
-    foreach ($teardown in @(
-        @{ File = 'dcr-08-remote-restore.json'; Prefix = 'ipc_restore_' },
-        @{ File = 'dcr-09-cleanup-rehearsal-promotion.json'; Prefix = 'ipc_rehearsal_phase42_' }
-    )) {
-        $path = Join-Path $EvidenceRoot $teardown.File
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            $findings.Add("Missing teardown artifact: $($teardown.File)")
-            continue
-        }
+    if (@($findings | Where-Object { $_ -like 'Missing D-03*' }).Count -eq 0) {
         try {
-            $artifact = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
-            $proof = $artifact.teardown
-            $expected = "$($teardown.Prefix)$RunId"
-            if ($proof.target -ne $expected -or $proof.runId -ne $RunId -or $proof.absentAfterTeardown -ne $true) {
-                $findings.Add("Invalid run-owned teardown proof: $($teardown.File)")
+            $archive = Get-Content -Raw -LiteralPath $d03Paths.dcr07 | ConvertFrom-Json
+            $restore = Get-Content -Raw -LiteralPath $d03Paths.dcr08 | ConvertFrom-Json
+            $retention = Get-Content -Raw -LiteralPath $d03Paths.dcr09 | ConvertFrom-Json
+            Assert-D03Topology $archive 'DCR-07'
+            Assert-D03Topology $restore 'DCR-08'
+            Assert-D03Retention $retention 'DCR-09'
+            foreach ($activePath in @($d03Paths.dcr07, $d03Paths.dcr08, $d03Paths.dcr09)) {
+                $activeText = Get-Content -Raw -LiteralPath $activePath
+                if ($activeText -match '(?i)"(rawKey(?:Base64)?|keyMaterial|plaintextKey|keyBytes|keyBase64)"\s*:') {
+                    $findings.Add("Raw key field in active D-03 evidence: $activePath")
+                }
             }
-        } catch {
-            $findings.Add("Invalid teardown JSON: $($teardown.File)")
+            $expectedRestore = "ipc_restore_phase42_$RunId"
+            if ($restore.approvedArchiveOnly -ne $true -or $restore.restoreDatabaseAbsent -ne $true -or
+                $restore.plaintextAbsent -ne $true -or $restore.existingDatabaseTouched -ne $false -or
+                [string]$restore.restoreTarget -ne $expectedRestore) {
+                $findings.Add('Invalid approved-local-archive restore or teardown proof.')
+            }
+        }
+        catch {
+            $findings.Add("Invalid D-03 evidence: $($_.Exception.Message)")
         }
     }
 
@@ -313,9 +507,11 @@ function Invoke-HygieneVerification {
         checks = [ordered]@{
             secretScan = if (@($findings | Where-Object { $_ -like 'Secret-*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
             stubScan = if (@($findings | Where-Object { $_ -like 'Stub*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
-            localOffsiteScan = if (@($findings | Where-Object { $_ -like 'Local*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            rawKeyScan = if (@($findings | Where-Object { $_ -like 'Raw key*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            d03TopologyScan = if (@($findings | Where-Object { $_ -like '*D-03*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            destructiveDormancyScan = if (@($findings | Where-Object { $_ -like '*destructive*' -or $_ -like '*retention*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
             fabricatedActorScan = if (@($findings | Where-Object { $_ -like 'Fabricated*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
-            teardownReconciliation = if (@($findings | Where-Object { $_ -like '*teardown*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            teardownReconciliation = if (@($findings | Where-Object { $_ -like '*teardown*' -or $_ -like '*restore*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
             dirtyOwnedPaths = $dirtyOwned
         }
         findings = @($findings | ForEach-Object { Protect-LogText $_ })
@@ -324,6 +520,10 @@ function Invoke-HygieneVerification {
 }
 
 function Invoke-Phase42AggregateVerification {
+    if ([string]::IsNullOrWhiteSpace($Output) -and $Only -eq 'business-authority-check' -and
+        -not [string]::IsNullOrWhiteSpace($Manifest)) {
+        $Output = "$Manifest.business-authority-check.json"
+    }
     if ([string]::IsNullOrWhiteSpace($Output)) { throw '-Output is required.' }
     if (-not [string]::IsNullOrWhiteSpace($Database)) {
         if (-not [string]::IsNullOrWhiteSpace($Target) -and $Target -ne $Database) {
@@ -334,7 +534,7 @@ function Invoke-Phase42AggregateVerification {
     if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
         $Target = 'ipcmanagement'
     }
-    if ($Only -in @('authority-check', 'approval-check') -and
+    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'approval-check') -and
         -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
@@ -371,12 +571,14 @@ function Invoke-Phase42AggregateVerification {
 
     if ([string]::IsNullOrWhiteSpace($RunId) -or $RunId -notmatch '^[a-z0-9_]+$') { throw 'A lowercase run-owned -RunId is required.' }
     if ([string]::IsNullOrWhiteSpace($Target)) { throw 'An explicit -Target is required.' }
-    if ($Target -eq 'ipc_lane1' -or $Target -notmatch '^(ipcmanagement|ipc_rehearsal_phase42_[a-z0-9_]+|ipc_restore_[a-z0-9_]+)$') {
+    if ($Target -eq 'ipc_lane1' -or $Target -notmatch '^(ipcmanagement|ipc_rehearsal_phase42_[a-z0-9_]+|ipc_restore_phase42_[a-z0-9_]+)$') {
         throw "Aggregate target is forbidden: $Target"
     }
     if ($HygieneOnly) { return Invoke-HygieneVerification }
     if ($StopAfter -eq 'package-export') { return Invoke-PackageExport }
     if ($Only -eq 'authority-check') { return Invoke-AuthorityCheck }
+    if ($Only -eq 'business-authority-check') { return Invoke-BusinessAuthorityCheck }
+    if ($Only -eq 'd03-rebind-check') { return Invoke-D03RebindCheck }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {

@@ -99,7 +99,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
-    public void Gate_spec_should_make_run_target_receipts_and_teardown_first_class_inputs()
+    public void Gate_spec_should_make_business_authority_local_recovery_and_retention_first_class_inputs()
     {
         using var document = ReadGateSpec();
         var root = document.RootElement;
@@ -111,9 +111,12 @@ public class Phase42AggregateVerificationTests
 
         inputs.Should().Contain(["runId", "target"]);
         artifacts.Should().Contain([
-            "source-owner-attestations", "provider-object-receipt",
-            "restore-teardown", "rehearsal-teardown",
+            "source-owner-attestations", "accepted-local-only-risk",
+            "encrypted-local-archive", "approved-local-archive-only",
+            "restore-teardown", "plaintext-teardown", "seven-table-retention",
+            "destructive-path-dormancy",
         ]);
+        artifacts.Should().NotContain(["provider-object-receipt", "remote-only-restore", "base-promotion"]);
     }
 
     [Fact]
@@ -295,7 +298,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
-    public void Hygiene_should_pass_clean_offsite_actor_and_teardown_fixtures()
+    public void Hygiene_should_pass_clean_d03_local_archive_restore_and_retention_fixtures()
     {
         var fixture = CreateHygieneFixture();
         try
@@ -317,9 +320,12 @@ public class Phase42AggregateVerificationTests
     [Theory]
     [InlineData("secret")]
     [InlineData("stub")]
-    [InlineData("local-offsite")]
+    [InlineData("offsite")]
+    [InlineData("provider-field")]
+    [InlineData("raw-key")]
     [InlineData("fabricated-actor")]
     [InlineData("missing-teardown")]
+    [InlineData("cleanup-executed")]
     public void Hygiene_should_fail_closed_and_redact_sensitive_fixture_values(string violation)
     {
         var fixture = CreateHygieneFixture();
@@ -333,15 +339,23 @@ public class Phase42AggregateVerificationTests
                 case "stub":
                     File.WriteAllText(fixture.ScanFile, "TODO wire production evidence");
                     break;
-                case "local-offsite":
-                    File.WriteAllText(Path.Combine(fixture.Root, "dcr-07-provider-object-receipt.json"),
-                        "{\"provider\":\"local-filesystem\",\"objectKey\":\"D:\\\\Backups\\\\x.zip\"}");
+                case "offsite":
+                    WriteD03Archive(fixture.Root, offSite: true);
+                    break;
+                case "provider-field":
+                    WriteD03Archive(fixture.Root, providerReference: "must-not-be-active");
+                    break;
+                case "raw-key":
+                    WriteD03Archive(fixture.Root, rawKeyBase64: "must-never-persist");
                     break;
                 case "fabricated-actor":
                     File.WriteAllText(Path.Combine(fixture.Root, "actor.json"), "{\"actorId\":\"placeholder\"}");
                     break;
                 case "missing-teardown":
-                    File.Delete(Path.Combine(fixture.Root, "dcr-08-remote-restore.json"));
+                    File.Delete(Path.Combine(fixture.Root, "dcr-08-approved-local-restore.json"));
+                    break;
+                case "cleanup-executed":
+                    WriteD03Retention(fixture.Root, destructiveExecutionCount: 1, dropExecution: "PASS");
                     break;
             }
 
@@ -356,6 +370,47 @@ public class Phase42AggregateVerificationTests
         {
             Directory.Delete(fixture.Root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Runner_should_lock_d03_rebind_and_business_authority_without_provider_dependency()
+    {
+        var script = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "scripts", "standardization", "Invoke-Phase42AggregateVerification.ps1"));
+
+        script.Should().Contain("Invoke-D03RebindCheck");
+        script.Should().Contain("Invoke-BusinessAuthorityCheck");
+        script.Should().Contain("ACCEPTED_LOCAL_ONLY_RISK");
+        script.Should().Contain("SUPERSEDED_D03_NOT_CURRENT_AUTHORITY");
+        script.Should().Contain("DORMANT_FORBIDDEN_UNDER_D03");
+        script.Should().Contain("NOT_RUN_DORMANT_D03");
+
+        var businessStart = script.IndexOf("function Invoke-BusinessAuthorityCheck", StringComparison.Ordinal);
+        var hygieneStart = script.IndexOf("function Invoke-HygieneVerification", StringComparison.Ordinal);
+        var businessContract = script[businessStart..hygieneStart];
+        businessContract.Should().Contain("businessAuthorityRecords");
+        businessContract.Should().Contain("sourceReferences");
+        businessContract.Should().NotContain("providerReference");
+        businessContract.Should().NotContain("credentialReference");
+    }
+
+    [Fact]
+    public void Gate_spec_should_replace_provider_remote_restore_and_cleanup_promotion_with_d03_semantics()
+    {
+        using var document = ReadGateSpec();
+        var gates = document.RootElement.GetProperty("gates").EnumerateArray().ToArray();
+
+        gates.Single(gate => gate.GetProperty("requirementId").GetString() == "DCR-07")
+            .GetProperty("id").GetString().Should().Be("dcr-07-local-archive-risk");
+        gates.Single(gate => gate.GetProperty("requirementId").GetString() == "DCR-08")
+            .GetProperty("id").GetString().Should().Be("dcr-08-approved-local-restore");
+        gates.Single(gate => gate.GetProperty("requirementId").GetString() == "DCR-09")
+            .GetProperty("id").GetString().Should().Be("dcr-09-seven-table-retention");
+
+        var text = File.ReadAllText(GateSpecPath());
+        text.Should().NotContain("provider-object-receipt");
+        text.Should().NotContain("remote-only-restore");
+        text.Should().NotContain("cleanup-rehearsal-promotion");
     }
 
     [Fact]
@@ -447,14 +502,76 @@ public class Phase42AggregateVerificationTests
         var output = Path.Combine(root, "hygiene-output.json");
         var scanFile = Path.Combine(root, "owned-source.txt");
         File.WriteAllText(scanFile, "verified production evidence");
-        File.WriteAllText(Path.Combine(root, "dcr-07-provider-object-receipt.json"),
-            "{\"provider\":\"r2\",\"objectKey\":\"immutable/ipc/archive.zip\",\"actorId\":\"5c0f9498-0ca5-4678-978f-f3f90e6738da\"}");
-        File.WriteAllText(Path.Combine(root, "dcr-08-remote-restore.json"),
-            "{\"teardown\":{\"target\":\"ipc_restore_contract\",\"runId\":\"contract\",\"absentAfterTeardown\":true}}");
-        File.WriteAllText(Path.Combine(root, "dcr-09-cleanup-rehearsal-promotion.json"),
-            "{\"teardown\":{\"target\":\"ipc_rehearsal_phase42_contract\",\"runId\":\"contract\",\"absentAfterTeardown\":true}}");
+        WriteD03Archive(root);
+        WriteD03Restore(root);
+        WriteD03Retention(root);
         return (root, output, scanFile);
     }
+
+    private static void WriteD03Archive(
+        string root,
+        bool offSite = false,
+        string? providerReference = null,
+        string? rawKeyBase64 = null)
+    {
+        var artifact = D03Topology(offSite);
+        artifact["opaqueKeyReferenceSha256"] = new string('A', 64);
+        if (providerReference is not null)
+        {
+            artifact["providerReference"] = providerReference;
+        }
+        if (rawKeyBase64 is not null)
+        {
+            artifact["rawKeyBase64"] = rawKeyBase64;
+        }
+        File.WriteAllText(
+            Path.Combine(root, "dcr-07-local-archive.json"),
+            JsonSerializer.Serialize(artifact));
+    }
+
+    private static void WriteD03Restore(string root)
+    {
+        var artifact = D03Topology();
+        artifact["approvedArchiveOnly"] = true;
+        artifact["restoreTarget"] = "ipc_restore_phase42_contract";
+        artifact["restoreDatabaseAbsent"] = true;
+        artifact["plaintextAbsent"] = true;
+        artifact["existingDatabaseTouched"] = false;
+        File.WriteAllText(
+            Path.Combine(root, "dcr-08-approved-local-restore.json"),
+            JsonSerializer.Serialize(artifact));
+    }
+
+    private static void WriteD03Retention(
+        string root,
+        int destructiveExecutionCount = 0,
+        string dropExecution = "NOT_RUN_DORMANT_D03")
+    {
+        File.WriteAllText(
+            Path.Combine(root, "dcr-09-seven-table-retention.json"),
+            JsonSerializer.Serialize(new
+            {
+                tables = BackupTables,
+                retained = true,
+                dropSqlStatus = "DORMANT_FORBIDDEN_UNDER_D03",
+                dropExecution,
+                cleanupRehearsal = "NOT_RUN_DORMANT_D03",
+                rollbackExtractRehearsal = "NOT_RUN_DORMANT_D03",
+                cleanupApproval = "NOT_RUN_DORMANT_D03",
+                baseCleanupPromotion = "NOT_RUN_DORMANT_D03",
+                destructiveExecutionCount,
+            }));
+    }
+
+    private static Dictionary<string, object?> D03Topology(bool offSite = false) => new()
+    {
+        ["recoveryClassification"] = "ACCEPTED_LOCAL_ONLY_RISK",
+        ["sameHost"] = true,
+        ["samePhysicalNvme"] = true,
+        ["offSite"] = offSite,
+        ["worm"] = false,
+        ["independentSecurityDomain"] = false,
+    };
 
     private static string HygieneArguments(string root, string output, string scanFile)
         => $"-HygieneOnly -Output \"{output}\" -RunId contract -Target ipcmanagement " +
