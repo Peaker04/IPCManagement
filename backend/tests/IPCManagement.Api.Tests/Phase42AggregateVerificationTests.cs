@@ -300,6 +300,76 @@ public class Phase42AggregateVerificationTests
         }
     }
 
+    [Theory]
+    [InlineData("-StopAfter package-export -Target ipcmanagement -Output \"{output}\"")]
+    [InlineData("-StopAfter package-export -Output \"{output}\"")]
+    [InlineData("-Only authority-check -Output \"{output}\"")]
+    [InlineData("-Only business-authority-check")]
+    [InlineData("-Only business-authority-check -Output \"{output}\"")]
+    public void Retired_selector_should_fail_before_reads_commands_or_writes(string selectorArguments)
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"phase42-retired-selector-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var output = Path.Combine(root, "explicit-output.json");
+        var manifest = Path.Combine(root, "missing-manifest.json");
+        var settings = Path.Combine(root, "missing-settings.json");
+        var evidenceRoot = Path.Combine(root, "evidence");
+        try
+        {
+            var arguments = selectorArguments.Replace("{output}", output, StringComparison.Ordinal);
+            var result = RunVerifier(
+                $"{arguments} -GateSpec scripts/standardization/phase42-verification-gates.json " +
+                $"-Manifest \"{manifest}\" -Settings \"{settings}\" -EvidenceRoot \"{evidenceRoot}\"");
+
+            result.ExitCode.Should().NotBe(0);
+            result.StdErr.Should().Contain("SUPERSEDED_D05_NOT_APPLICABLE");
+            result.StdErr.Should().NotContain("missing-manifest", "selector validation must precede manifest reads");
+            result.StdErr.Should().NotContain("missing-settings", "selector validation must precede settings reads");
+            File.Exists(output).Should().BeFalse();
+            File.Exists($"{manifest}.authority-check.json").Should().BeFalse();
+            File.Exists($"{manifest}.business-authority-check.json").Should().BeFalse();
+            File.Exists(Path.Combine(evidenceRoot, "db", "reconciliation", "business-evidence.json"))
+                .Should().BeFalse();
+            File.Exists(Path.Combine(evidenceRoot, "db", "reconciliation", "business-evidence.json.sha256"))
+                .Should().BeFalse();
+            Directory.Exists(Path.Combine(evidenceRoot, "commands", "00-package-export"))
+                .Should().BeFalse();
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Gate_spec_should_keep_retired_selectors_data_only_and_active_selectors_explicit()
+    {
+        using var document = ReadGateSpec();
+        var contract = document.RootElement.GetProperty("selectorContract");
+
+        contract.GetProperty("retiredSelectors").EnumerateArray()
+            .Select(item => item.GetString()).Should().Equal([
+                "package-export", "authority-check", "business-authority-check",
+            ]);
+        contract.GetProperty("retiredFunctions").EnumerateArray()
+            .Select(item => item.GetString()).Should().Equal([
+                "Invoke-PackageExport", "Invoke-AuthorityCheck", "Invoke-BusinessAuthorityCheck",
+            ]);
+        contract.GetProperty("retiredAuthorityTokens").EnumerateArray()
+            .Select(item => item.GetString()).Should().Equal([
+                "FINANCE_SOURCE_OWNER", "CATALOG_SOURCE_OWNER",
+            ]);
+        contract.GetProperty("activeStopAfterSelectors").EnumerateArray()
+            .Select(item => item.GetString()).Should().Equal(["local-archive"]);
+        contract.GetProperty("activeOnlySelectors").EnumerateArray()
+            .Select(item => item.GetString()).Should().Contain([
+                "gap-source-contract", "d03-rebind-check", "d03-restore-drill",
+                "d03-seven-table-retention", "d04-role-rebind-check", "d05-evidence-release",
+            ]);
+        document.RootElement.GetProperty("requirementsTotal").GetInt32().Should().Be(10);
+        document.RootElement.GetProperty("gates").GetArrayLength().Should().Be(20);
+    }
+
     [Fact]
     public void Hygiene_should_pass_clean_d03_local_archive_restore_and_retention_fixtures()
     {
@@ -376,25 +446,30 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
-    public void Runner_should_lock_d03_rebind_and_business_authority_without_provider_dependency()
+    public void Runner_should_expose_only_active_d03_d04_d05_and_gap_dispatch()
     {
         var script = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(), "scripts", "standardization", "Invoke-Phase42AggregateVerification.ps1"));
 
         script.Should().Contain("Invoke-D03RebindCheck");
-        script.Should().Contain("Invoke-BusinessAuthorityCheck");
+        script.Should().Contain("Invoke-D03LocalArchive");
+        script.Should().Contain("Invoke-D03RestoreDrill");
+        script.Should().Contain("Invoke-D03SevenTableRetention");
+        script.Should().Contain("Invoke-D04RoleRebindCheck");
+        script.Should().Contain("Invoke-D05EvidenceRelease");
+        script.Should().Contain("Invoke-GapSourceContract");
+        script.Should().NotContain("function Invoke-PackageExport");
+        script.Should().NotContain("function Invoke-AuthorityCheck");
+        script.Should().NotContain("function Invoke-BusinessAuthorityCheck");
+        script.Should().NotContain("'package-export'");
+        script.Should().NotContain("'authority-check'");
+        script.Should().NotContain("'business-authority-check'");
+        script.Should().NotContain("FINANCE_SOURCE_OWNER");
+        script.Should().NotContain("CATALOG_SOURCE_OWNER");
         script.Should().Contain("ACCEPTED_LOCAL_ONLY_RISK");
         script.Should().Contain("SUPERSEDED_D03_NOT_CURRENT_AUTHORITY");
         script.Should().Contain("DORMANT_FORBIDDEN_UNDER_D03");
         script.Should().Contain("NOT_RUN_DORMANT_D03");
-
-        var businessStart = script.IndexOf("function Invoke-BusinessAuthorityCheck", StringComparison.Ordinal);
-        var hygieneStart = script.IndexOf("function Invoke-HygieneVerification", StringComparison.Ordinal);
-        var businessContract = script[businessStart..hygieneStart];
-        businessContract.Should().Contain("businessAuthorityRecords");
-        businessContract.Should().Contain("sourceReferences");
-        businessContract.Should().NotContain("providerReference");
-        businessContract.Should().NotContain("credentialReference");
     }
 
     [Fact]
