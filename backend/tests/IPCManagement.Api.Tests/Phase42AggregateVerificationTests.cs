@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Diagnostics;
 using FluentAssertions;
 using IPCManagement.Api.Security;
@@ -480,6 +481,113 @@ public class Phase42AggregateVerificationTests
         finally
         {
             Directory.Delete(fixture.Root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void D05_evidence_release_should_emit_exact_accepted_risk_rows_without_business_execution_claims()
+    {
+        var root = FindRepositoryRoot();
+        var manifest = Path.Combine(
+            root, ".artifacts", "shipyard-live", "phase-04.2-execution", "manifest.json");
+        var temp = Path.Combine(Path.GetTempPath(), $"phase42-d05-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        var output = Path.Combine(temp, "business-release.json");
+        try
+        {
+            var result = RunVerifier(
+                $"-RunId phase_04_2_execution -Only d05-evidence-release " +
+                $"-Manifest \"{manifest}\" -Output \"{output}\"");
+
+            result.ExitCode.Should().Be(0, result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(output));
+            var release = document.RootElement;
+            release.GetProperty("status").GetString().Should().Be("PASS");
+            release.GetProperty("subjectCount").GetInt32().Should().Be(3555);
+            release.GetProperty("businessSqlStatements").GetInt32().Should().Be(0);
+            release.GetProperty("databaseConnections").GetInt32().Should().Be(0);
+            release.GetProperty("runtimeBooted").GetBoolean().Should().BeFalse();
+            release.GetProperty("mutationStatements").GetInt32().Should().Be(0);
+
+            var rows = release.GetProperty("rows").EnumerateArray().ToArray();
+            rows.Should().HaveCount(3555);
+            rows.Should().OnlyContain(row =>
+                row.GetProperty("businessClassification").GetString() ==
+                "ACCEPTED_UNVERIFIED_BUSINESS_RISK");
+            var expected = new Dictionary<string, (int Count, string Outcome)>
+            {
+                ["movement"] = (2461, "NO_CORRECTION"),
+                ["menu-week"] = (84, "NO_CORRECTION"),
+                ["unit"] = (44, "RETAIN_DISTINCT"),
+                ["quotation"] = (756, "NO_PRICE_CREATED"),
+                ["bom"] = (194, "NO_BOM_CREATED"),
+                ["duplicate-group"] = (16, "KEEP_DISTINCT"),
+            };
+            foreach (var (family, contract) in expected)
+            {
+                var familyRows = rows.Where(row => row.GetProperty("family").GetString() == family).ToArray();
+                familyRows.Should().HaveCount(contract.Count);
+                familyRows.Should().OnlyContain(row =>
+                    row.GetProperty("outcome").GetString() == contract.Outcome);
+            }
+
+            var text = File.ReadAllText(output);
+            text.Should().NotContain("VERIFIED_IN_APP");
+            text.Should().NotContain("runtimeActor");
+            text.Should().NotContain("signature");
+            text.Should().NotContain("independentActor");
+            text.Should().NotContain("commandManifest");
+            text.Should().NotContain("SELECT ");
+            text.Should().NotContain("INSERT ");
+            text.Should().NotContain("UPDATE ");
+            text.Should().NotContain("DELETE ");
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("database-connection")]
+    [InlineData("runtime-boot")]
+    [InlineData("mutation")]
+    [InlineData("signature")]
+    [InlineData("finance-role")]
+    [InlineData("business-sql")]
+    public void D05_evidence_release_should_reject_execution_identity_and_sql_claims(string violation)
+    {
+        var root = FindRepositoryRoot();
+        var sourceManifest = Path.Combine(
+            root, ".artifacts", "shipyard-live", "phase-04.2-execution", "manifest.json");
+        var temp = Path.Combine(Path.GetTempPath(), $"phase42-d05-negative-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        var manifest = Path.Combine(temp, "manifest.json");
+        var output = Path.Combine(temp, "business-release.json");
+        var node = JsonNode.Parse(File.ReadAllText(sourceManifest))!.AsObject();
+        var closure = node["activeBusinessClosure"]!.AsObject();
+        switch (violation)
+        {
+            case "database-connection": closure["databaseConnections"] = 1; break;
+            case "runtime-boot": closure["runtimeBooted"] = true; break;
+            case "mutation": closure["mutationStatements"] = 1; break;
+            case "signature": closure["runtimeActorSignature"] = "opaque"; break;
+            case "business-sql": closure["businessSql"] = "SELECT 1"; break;
+            case "finance-role":
+                node["completedD04RolePolicy"]!["allowedRoleFamilies"]!.AsArray()[0] = "Finance";
+                break;
+        }
+        File.WriteAllText(manifest, node.ToJsonString());
+        try
+        {
+            var result = RunVerifier(
+                $"-RunId phase_04_2_execution -Only d05-evidence-release " +
+                $"-Manifest \"{manifest}\" -Output \"{output}\"");
+            result.ExitCode.Should().NotBe(0);
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
         }
     }
 
