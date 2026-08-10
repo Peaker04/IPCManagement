@@ -11,7 +11,7 @@ namespace IPCManagement.Api.Features.Planning.Controllers;
 [ApiController]
 [Route("api/service-runs")]
 [Authorize]
-public sealed class ServiceRunsController(IServiceRunService serviceRunService, ICurrentUserService currentUserService) : ControllerBase
+public sealed partial class ServiceRunsController(IServiceRunService serviceRunService, ICurrentUserService currentUserService) : ControllerBase
 {
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
@@ -99,18 +99,4 @@ public sealed class ServiceRunsController(IServiceRunService serviceRunService, 
         => Ok(ApiResponse<ServiceRunLifecycleProjectionDto>.SuccessResult(
             (await serviceRunService.CloseAsync(id, currentUserService.GetUserId(User), cancellationToken))!));
 
-    [HttpGet("{id}/adjustments")]
-    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ServiceRunAdjustmentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAdjustmentsAsync(string id, CancellationToken cancellationToken)
-        => Ok(ApiResponse<IReadOnlyList<ServiceRunAdjustmentDto>>.SuccessResult(
-            await serviceRunService.GetAdjustmentsAsync(id, cancellationToken)));
-
-    [HttpPost("{id}/adjustments")]
-    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
-    [Authorize(Policy = AuthorizationPolicies.CoordinationAccess)]
-    [ProducesResponseType(typeof(ApiResponse<ServiceRunAdjustmentDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> CreateAdjustmentAsync(string id, [FromBody] CreateServiceRunAdjustmentRequest request, CancellationToken cancellationToken)
-        => Ok(ApiResponse<ServiceRunAdjustmentDto>.SuccessResult(
-            (await serviceRunService.CreateAdjustmentAsync(id, request, currentUserService.GetUserId(User), cancellationToken))!));
 }
