@@ -69,6 +69,17 @@ public class Phase42AggregateVerificationTests
             gate.GetProperty("targetMode").GetString().Should().BeOneOf("none", "explicit");
             gate.GetProperty("requiredArtifacts").ValueKind.Should().Be(JsonValueKind.Array);
         }
+
+        var dotnetCommands = root.GetProperty("gates").EnumerateArray()
+            .Select(gate => gate.GetProperty("command").GetString() ?? string.Empty)
+            .Where(command => command.Contains("dotnet ", StringComparison.Ordinal))
+            .ToArray();
+        dotnetCommands.Should().OnlyContain(command =>
+            command.Contains("BaseOutputPath", StringComparison.Ordinal) &&
+            command.Contains("EnableDefaultContentItems", StringComparison.Ordinal));
+        root.GetProperty("gates").EnumerateArray()
+            .Single(gate => gate.GetProperty("id").GetString() == "ver-03-root-verify")
+            .GetProperty("command").GetString().Should().Contain("BaseOutputPath");
     }
 
     [Theory]
