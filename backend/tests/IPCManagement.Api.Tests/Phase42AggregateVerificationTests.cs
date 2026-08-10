@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Diagnostics;
 using FluentAssertions;
+using IPCManagement.Api.Security;
 
 namespace IPCManagement.Api.Tests;
 
@@ -414,6 +415,74 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
+    public void Existing_roles_should_resolve_the_required_d04_permissions_without_finance_or_catalog()
+    {
+        var required = new (string Role, string Permission)[]
+        {
+            ("Admin", AuthorizationPolicies.InventoryAdjustmentApprove),
+            ("Manager", AuthorizationPolicies.CoordinationOrderSignoff),
+            ("Coordinator", AuthorizationPolicies.CoordinationOrderSignoff),
+            ("Purchasing", AuthorizationPolicies.PurchaseQuotationManage),
+            ("WarehouseStaff", AuthorizationPolicies.InventoryAdjustmentApprove),
+            ("Chef", AuthorizationPolicies.CatalogRead),
+        };
+
+        foreach (var (role, permission) in required)
+        {
+            AuthorizationPolicies.ResolvePermissions(role).Should().Contain(permission);
+        }
+        AuthorizationPolicies.ResolvePermissions("Finance").Should().BeEmpty();
+        AuthorizationPolicies.ResolvePermissions("Catalog").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void D04_role_rebind_should_accept_the_exact_existing_role_permission_contract()
+    {
+        var fixture = CreateD04RoleRebindFixture();
+        try
+        {
+            var result = RunVerifier(
+                $"-RunId phase_04_2_execution -Only d04-role-rebind-check " +
+                $"-Manifest \"{fixture.Manifest}\" -Output \"{fixture.Output}\"");
+
+            result.ExitCode.Should().Be(0, result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(fixture.Output));
+            document.RootElement.GetProperty("status").GetString().Should().Be("PASS");
+            document.RootElement.GetProperty("allowedRoleFamilyCount").GetInt32().Should().Be(6);
+            document.RootElement.GetProperty("governanceDecisionUsedAsActor").GetBoolean().Should().BeFalse();
+        }
+        finally
+        {
+            Directory.Delete(fixture.Root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("finance-role")]
+    [InlineData("catalog-role")]
+    [InlineData("unknown-role")]
+    [InlineData("permission-bypass")]
+    [InlineData("fake-signature")]
+    [InlineData("finance-independence")]
+    [InlineData("inferred-correction")]
+    public void D04_role_rebind_should_reject_prohibited_identity_permission_and_inference_claims(string violation)
+    {
+        var fixture = CreateD04RoleRebindFixture(violation);
+        try
+        {
+            var result = RunVerifier(
+                $"-RunId phase_04_2_execution -Only d04-role-rebind-check " +
+                $"-Manifest \"{fixture.Manifest}\" -Output \"{fixture.Output}\"");
+
+            result.ExitCode.Should().NotBe(0);
+        }
+        finally
+        {
+            Directory.Delete(fixture.Root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Runner_should_never_reset_clean_or_retarget_unrelated_work()
     {
         var script = File.ReadAllText(Path.Combine(
@@ -493,6 +562,130 @@ public class Phase42AggregateVerificationTests
         {
             sql.Should().NotMatchRegex("(?im)^\\s*DROP\\s+TABLE\\b");
         }
+    }
+
+    private static (string Root, string Manifest, string Output) CreateD04RoleRebindFixture(
+        string? violation = null)
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"phase42-d04-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var manifest = Path.Combine(root, "manifest.json");
+        var output = Path.Combine(root, "result.json");
+        var authorizationPolicyPath = Path.Combine(
+            FindRepositoryRoot(), "backend", "src", "IPCManagement.Api", "Security", "AuthorizationPolicies.cs");
+        var authorizationPolicySha256 = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(authorizationPolicyPath)));
+
+        var matrix = new List<Dictionary<string, object?>>
+        {
+            RoleContract("Admin", "Admin", [
+                AuthorizationPolicies.InventoryAdjustmentApprove,
+                AuthorizationPolicies.CoordinationOrderSignoff,
+                AuthorizationPolicies.CatalogWrite,
+                AuthorizationPolicies.PurchaseQuotationManage,
+            ]),
+            RoleContract("Manager", "Manager", [AuthorizationPolicies.CoordinationOrderSignoff]),
+            RoleContract("Coordinator", "Coordinator", [AuthorizationPolicies.CoordinationOrderSignoff]),
+            RoleContract("Procurement/Purchasing", "Purchasing", [AuthorizationPolicies.PurchaseQuotationManage]),
+            RoleContract("Warehouse", "WarehouseStaff", [AuthorizationPolicies.InventoryAdjustmentApprove]),
+            RoleContract("Chef/Kitchen", "Chef", [AuthorizationPolicies.CatalogRead]),
+        };
+
+        if (violation is "finance-role" or "catalog-role" or "unknown-role")
+        {
+            var role = violation switch
+            {
+                "finance-role" => "Finance",
+                "catalog-role" => "Catalog",
+                _ => "ExternalReviewer",
+            };
+            matrix.Add(RoleContract(role, role, [AuthorizationPolicies.ReportRead]));
+        }
+        if (violation == "permission-bypass")
+        {
+            matrix.Single(item => (string)item["roleFamily"]! == "Warehouse")["resolvedPermissions"] =
+                AuthorizationPolicies.ResolvePermissions("WarehouseStaff")
+                    .Where(permission => permission != AuthorizationPolicies.InventoryAdjustmentApprove)
+                    .ToArray();
+        }
+
+        var businessPolicy = new Dictionary<string, object?>
+        {
+            ["status"] = "D04_ROLE_REBIND_PENDING",
+            ["decision"] = "ROLE_BOUNDED_OPERATIONAL_DISPOSITION",
+            ["decisionReference"] = "opaque:d04:session-decision:2026-08-10",
+            ["decisionSha256"] = "91AABB097AE68F473C0CCF6521234316D7826B630F20B00CC3BD77261B36ADBD",
+            ["decisionCapturedAtUtc"] = "2026-08-10T09:12:50Z",
+            ["governanceDecisionIsApplicationActorOrSignature"] = false,
+            ["authorizationPolicyPath"] = "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+            ["authorizationPolicySha256"] = authorizationPolicySha256,
+            ["allowedRoleFamilies"] = new[]
+            {
+                "Admin", "Manager", "Coordinator", "Procurement/Purchasing", "Warehouse", "Chef/Kitchen",
+            },
+            ["rolePermissionMatrix"] = matrix,
+            ["finalResidualRiskAcceptanceRole"] = "Admin",
+            ["businessClassifications"] = new[] { "VERIFIED_IN_APP", "ACCEPTED_UNVERIFIED_BUSINESS_RISK" },
+            ["financeIndependenceClaimed"] = violation == "finance-independence",
+            ["fakeSignaturePresent"] = violation == "fake-signature",
+            ["inferencePolicy"] = new Dictionary<string, object?>
+            {
+                ["correction"] = violation == "inferred-correction",
+                ["conversion"] = false,
+                ["price"] = false,
+                ["bom"] = false,
+                ["merge"] = false,
+            },
+        };
+
+        File.WriteAllText(manifest, JsonSerializer.Serialize(new
+        {
+            schemaVersion = 2,
+            runId = "phase_04_2_execution",
+            planRevision = "D03_D04_13_TASK",
+            target = "ipcmanagement",
+            migrationHead = "20260810030000_AddDataQualityDispositions",
+            status = "D04_ROLE_REBIND_PENDING",
+            currentTask = 2,
+            completedTasks = 1,
+            totalTasks = 13,
+            mutationStatements = 0,
+            priorPackageEvidence = new
+            {
+                status = "PASS",
+                packageSha256 = "C281CB92E66939657680F0D31CA80B4A3451F5EE71A94745DBD60335DAE66EC2",
+                counts = new
+                {
+                    movements = 2461,
+                    menuWeeks = 84,
+                    unitReviews = 44,
+                    quotationSubjects = 756,
+                    bomSubjects = 194,
+                    duplicateGroups = 16,
+                },
+            },
+            revisedTaskCompletions = new { task1 = new { status = "PASS" } },
+            activeBusinessPolicy = businessPolicy,
+            supersededBusinessAuthorityWorkflow = new
+            {
+                status = "SUPERSEDED_D04_NOT_CURRENT_AUTHORITY",
+                formerExternalSlotCount = 9,
+                newIdentitySetupRequired = false,
+                externalSignatureInputRequired = false,
+            },
+        }));
+        return (root, manifest, output);
+
+        Dictionary<string, object?> RoleContract(
+            string roleFamily,
+            string roleName,
+            string[] requiredPermissions) => new()
+        {
+            ["roleFamily"] = roleFamily,
+            ["representativeRole"] = roleName,
+            ["resolvedPermissions"] = AuthorizationPolicies.ResolvePermissions(roleName).ToArray(),
+            ["requiredPermissions"] = requiredPermissions,
+        };
     }
 
     private static (string Root, string Output, string ScanFile) CreateHygieneFixture()
