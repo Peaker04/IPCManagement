@@ -7,7 +7,8 @@ param(
     [string]$RunId,
     [string]$Target,
     [string]$MigrationHead,
-    [string]$EvidenceRoot = '.artifacts/shipyard-live/phase-04.2'
+    [string]$EvidenceRoot = '.artifacts/shipyard-live/phase-04.2',
+    [string[]]$AdditionalScanPath = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,7 +69,8 @@ function Invoke-CapturedCommand([string]$Command, [string]$ArtifactPrefix) {
 
 function Resolve-CommandTokens([string]$Command, [string]$GateArtifactPath) {
     $resolved = $Command.Replace('{runId}', $RunId).Replace('{target}', $Target)
-    $resolved = $resolved.Replace('{evidenceRoot}', $EvidenceRoot).Replace('{artifactPath}', $GateArtifactPath)
+    $resolved = $resolved.Replace('{migrationHead}', $MigrationHead).Replace('{evidenceRoot}', $EvidenceRoot)
+    $resolved = $resolved.Replace('{artifactPath}', $GateArtifactPath)
     return $resolved
 }
 
@@ -125,7 +127,98 @@ function Write-Manifest($Manifest) {
 }
 
 function Invoke-HygieneVerification {
-    throw 'Hygiene verification requires the complete Plan 04 reconciliation implementation.'
+    $findings = New-Object System.Collections.Generic.List[string]
+    $repoOwnedPaths = @(
+        'scripts/standardization/Invoke-Phase42AggregateVerification.ps1',
+        'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.cs',
+        'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.Designer.cs',
+        'tools/db/phase-04.2/backup-tables-preflight.sql',
+        'tools/db/phase-04.2/backup-tables-drop.sql',
+        'tools/db/phase-04.2/backup-tables-postflight.sql',
+        'tools/db/phase-04.2/backup-tables-restore.sql'
+    )
+    $ownedPaths = $repoOwnedPaths + @($AdditionalScanPath)
+    foreach ($path in $ownedPaths | Select-Object -Unique) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        $text = Get-Content -Raw -LiteralPath $path
+        $stubText = if ($path -like '*Invoke-Phase42AggregateVerification.ps1') {
+            (($text -split "`r?`n") | Where-Object { $_ -notmatch 'TODO' }) -join "`n"
+        } else { $text }
+        if ($stubText -match '(?i)\b(TODO|FIXME|coming\s+soon|not\s+available)\b') {
+            $findings.Add("Stub marker in $path")
+        }
+        if ($text -match '(?is)(password|secret|api[-_]?key|connection[-_]?string)\s*[=:]\s*["'']?(?!\[?REDACTED|<required|design-time-only)[^\s;"'']{4,}') {
+            $findings.Add("Secret-like value in $path")
+        }
+    }
+
+    $jsonFiles = if (Test-Path -LiteralPath $EvidenceRoot -PathType Container) {
+        @(Get-ChildItem -LiteralPath $EvidenceRoot -Filter '*.json' -File -Recurse)
+    } else { @() }
+    foreach ($file in $jsonFiles) {
+        $text = Get-Content -Raw -LiteralPath $file.FullName
+        if ($text -match '(?is)"(password|secret|apiKey|connectionString)"\s*:\s*"(?!\[REDACTED\]|<required)[^"]{4,}"') {
+            $findings.Add("Secret-like value in evidence $($file.Name)")
+        }
+        if ($text -match '(?is)"actor(Id)?"\s*:\s*"(placeholder|test|demo|unknown|admin)"') {
+            $findings.Add("Fabricated actor in evidence $($file.Name)")
+        }
+    }
+
+    $providerPath = Join-Path $EvidenceRoot 'dcr-07-provider-object-receipt.json'
+    if (-not (Test-Path -LiteralPath $providerPath -PathType Leaf)) {
+        $findings.Add('Missing provider-object receipt.')
+    } else {
+        $providerText = Get-Content -Raw -LiteralPath $providerPath
+        if ($providerText -match '(?i)"provider"\s*:\s*"(local|filesystem|file)') {
+            $findings.Add('Local filesystem is not an off-site provider.')
+        }
+        if ($providerText -match '(?i)"(objectKey|offsite|destination)"\s*:\s*"([A-Z]:\\|file:|\\\\)') {
+            $findings.Add('Local path is presented as off-site evidence.')
+        }
+    }
+
+    foreach ($teardown in @(
+        @{ File = 'dcr-08-remote-restore.json'; Prefix = 'ipc_restore_' },
+        @{ File = 'dcr-09-cleanup-rehearsal-promotion.json'; Prefix = 'ipc_rehearsal_phase42_' }
+    )) {
+        $path = Join-Path $EvidenceRoot $teardown.File
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            $findings.Add("Missing teardown artifact: $($teardown.File)")
+            continue
+        }
+        try {
+            $artifact = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+            $proof = $artifact.teardown
+            $expected = "$($teardown.Prefix)$RunId"
+            if ($proof.target -ne $expected -or $proof.runId -ne $RunId -or $proof.absentAfterTeardown -ne $true) {
+                $findings.Add("Invalid run-owned teardown proof: $($teardown.File)")
+            }
+        } catch {
+            $findings.Add("Invalid teardown JSON: $($teardown.File)")
+        }
+    }
+
+    $dirtyOwned = @((git status --porcelain -- $repoOwnedPaths) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $status = if ($findings.Count -eq 0) { 'PASS' } else { 'FAILED' }
+    Write-Manifest ([ordered]@{
+        schemaVersion = 1
+        verifierVersion = $script:VerifierVersion
+        runId = $RunId
+        target = $Target
+        migrationHead = $MigrationHead
+        status = $status
+        checks = [ordered]@{
+            secretScan = if (@($findings | Where-Object { $_ -like 'Secret-*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            stubScan = if (@($findings | Where-Object { $_ -like 'Stub*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            localOffsiteScan = if (@($findings | Where-Object { $_ -like 'Local*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            fabricatedActorScan = if (@($findings | Where-Object { $_ -like 'Fabricated*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            teardownReconciliation = if (@($findings | Where-Object { $_ -like '*teardown*' }).Count -eq 0) { 'PASS' } else { 'FAILED' }
+            dirtyOwnedPaths = $dirtyOwned
+        }
+        findings = @($findings | ForEach-Object { Protect-LogText $_ })
+    })
+    return $(if ($status -eq 'PASS') { 0 } else { 1 })
 }
 
 function Invoke-Phase42AggregateVerification {
@@ -155,13 +248,13 @@ function Invoke-Phase42AggregateVerification {
         return 0
     }
 
-    if ($HygieneOnly) { return Invoke-HygieneVerification }
     if ([string]::IsNullOrWhiteSpace($RunId) -or $RunId -notmatch '^[a-z0-9_]+$') { throw 'A lowercase run-owned -RunId is required.' }
     if ([string]::IsNullOrWhiteSpace($Target)) { throw 'An explicit -Target is required.' }
     if ($Target -eq 'ipc_lane1' -or $Target -notmatch '^(ipcmanagement|ipc_rehearsal_phase42_[a-z0-9_]+|ipc_restore_[a-z0-9_]+)$') {
         throw "Aggregate target is forbidden: $Target"
     }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
+    if ($HygieneOnly) { return Invoke-HygieneVerification }
 
     $gateResults = New-Object System.Collections.Generic.List[object]
     $failed = $false

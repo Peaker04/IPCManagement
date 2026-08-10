@@ -170,6 +170,103 @@ public class Phase42AggregateVerificationTests
         }
     }
 
+    [Fact]
+    public void Hygiene_should_pass_clean_offsite_actor_and_teardown_fixtures()
+    {
+        var fixture = CreateHygieneFixture();
+        try
+        {
+            var result = RunVerifier(HygieneArguments(fixture.Root, fixture.Output, fixture.ScanFile));
+
+            result.ExitCode.Should().Be(0, File.Exists(fixture.Output)
+                ? File.ReadAllText(fixture.Output)
+                : result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(fixture.Output));
+            document.RootElement.GetProperty("status").GetString().Should().Be("PASS");
+        }
+        finally
+        {
+            Directory.Delete(fixture.Root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("secret")]
+    [InlineData("stub")]
+    [InlineData("local-offsite")]
+    [InlineData("fabricated-actor")]
+    [InlineData("missing-teardown")]
+    public void Hygiene_should_fail_closed_and_redact_sensitive_fixture_values(string violation)
+    {
+        var fixture = CreateHygieneFixture();
+        try
+        {
+            switch (violation)
+            {
+                case "secret":
+                    File.WriteAllText(Path.Combine(fixture.Root, "secret.json"), "{\"apiKey\":\"super-secret-value\"}");
+                    break;
+                case "stub":
+                    File.WriteAllText(fixture.ScanFile, "TODO wire production evidence");
+                    break;
+                case "local-offsite":
+                    File.WriteAllText(Path.Combine(fixture.Root, "dcr-07-provider-object-receipt.json"),
+                        "{\"provider\":\"local-filesystem\",\"objectKey\":\"D:\\\\Backups\\\\x.zip\"}");
+                    break;
+                case "fabricated-actor":
+                    File.WriteAllText(Path.Combine(fixture.Root, "actor.json"), "{\"actorId\":\"placeholder\"}");
+                    break;
+                case "missing-teardown":
+                    File.Delete(Path.Combine(fixture.Root, "dcr-08-remote-restore.json"));
+                    break;
+            }
+
+            var result = RunVerifier(HygieneArguments(fixture.Root, fixture.Output, fixture.ScanFile));
+
+            result.ExitCode.Should().NotBe(0);
+            var output = File.ReadAllText(fixture.Output);
+            output.Should().Contain("\"status\":  \"FAILED\"");
+            output.Should().NotContain("super-secret-value");
+        }
+        finally
+        {
+            Directory.Delete(fixture.Root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Runner_should_never_reset_clean_or_retarget_unrelated_work()
+    {
+        var script = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), "scripts", "standardization", "Invoke-Phase42AggregateVerification.ps1"));
+
+        script.Should().Contain("git status --porcelain -- $repoOwnedPaths");
+        script.Should().NotContain("git reset");
+        script.Should().NotContain("git clean");
+        script.Should().NotContain("git checkout --");
+    }
+
+    private static (string Root, string Output, string ScanFile) CreateHygieneFixture()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"phase42-hygiene-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var output = Path.Combine(root, "hygiene-output.json");
+        var scanFile = Path.Combine(root, "owned-source.txt");
+        File.WriteAllText(scanFile, "verified production evidence");
+        File.WriteAllText(Path.Combine(root, "dcr-07-provider-object-receipt.json"),
+            "{\"provider\":\"r2\",\"objectKey\":\"immutable/ipc/archive.zip\",\"actorId\":\"5c0f9498-0ca5-4678-978f-f3f90e6738da\"}");
+        File.WriteAllText(Path.Combine(root, "dcr-08-remote-restore.json"),
+            "{\"teardown\":{\"target\":\"ipc_restore_contract\",\"runId\":\"contract\",\"absentAfterTeardown\":true}}");
+        File.WriteAllText(Path.Combine(root, "dcr-09-cleanup-rehearsal-promotion.json"),
+            "{\"teardown\":{\"target\":\"ipc_rehearsal_phase42_contract\",\"runId\":\"contract\",\"absentAfterTeardown\":true}}");
+        return (root, output, scanFile);
+    }
+
+    private static string HygieneArguments(string root, string output, string scanFile)
+        => $"-HygieneOnly -Output \"{output}\" -RunId contract -Target ipcmanagement " +
+           $"-MigrationHead 20260810120000_AddBusinessEvidenceClosure -EvidenceRoot \"{root}\" " +
+           $"-AdditionalScanPath \"{scanFile}\"";
+
     private static object FixtureGate(int order, string id, string requirementId, string command) => new
     {
         order,
