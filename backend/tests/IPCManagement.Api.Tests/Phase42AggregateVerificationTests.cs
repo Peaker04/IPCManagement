@@ -193,6 +193,108 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
+    public void Runner_should_stop_after_named_gate_without_running_successors()
+    {
+        var spec = Path.Combine(Path.GetTempPath(), $"phase42-stop-spec-{Guid.NewGuid():N}.json");
+        var output = Path.Combine(Path.GetTempPath(), $"phase42-stop-result-{Guid.NewGuid():N}.json");
+        try
+        {
+            File.WriteAllText(spec, JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                requirementsTotal = 2,
+                requiredExecutionInputs = new[] { "runId", "target" },
+                requiredEvidenceFields = EvidenceFields,
+                failureStatuses = new[] { "FAILED" },
+                gates = new object[]
+                {
+                    FixtureGate(1, "package-export", "DCR-01", "powershell -NoProfile -Command exit 0"),
+                    FixtureGate(2, "must-not-run", "DCR-02", "powershell -NoProfile -Command exit 9"),
+                },
+            }));
+
+            var result = RunVerifier(
+                $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId phase_04_2_execution " +
+                "-Database ipcmanagement -MigrationHead head -StopAfter package-export");
+
+            result.ExitCode.Should().Be(0, result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(output));
+            document.RootElement.GetProperty("status").GetString().Should().Be("STOPPED");
+            document.RootElement.GetProperty("stoppedAfter").GetString().Should().Be("package-export");
+            document.RootElement.GetProperty("gates").EnumerateArray()
+                .Select(gate => gate.GetProperty("status").GetString())
+                .Should().Equal("PASS", "NOT_RUN");
+        }
+        finally
+        {
+            File.Delete(spec);
+            File.Delete(output);
+        }
+    }
+
+    [Fact]
+    public void Runner_should_select_exactly_one_named_gate()
+    {
+        var spec = Path.Combine(Path.GetTempPath(), $"phase42-only-spec-{Guid.NewGuid():N}.json");
+        var output = Path.Combine(Path.GetTempPath(), $"phase42-only-result-{Guid.NewGuid():N}.json");
+        try
+        {
+            File.WriteAllText(spec, JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                requirementsTotal = 1,
+                requiredExecutionInputs = new[] { "runId", "target" },
+                requiredEvidenceFields = EvidenceFields,
+                failureStatuses = new[] { "FAILED" },
+                gates = new object[]
+                {
+                    FixtureGate(1, "not-selected", "DCR-01", "powershell -NoProfile -Command exit 9"),
+                    FixtureGate(2, "authority-check", "DCR-01", "powershell -NoProfile -Command exit 0"),
+                },
+            }));
+
+            var result = RunVerifier(
+                $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId phase_04_2_execution " +
+                "-Database ipcmanagement -MigrationHead head -Only authority-check");
+
+            result.ExitCode.Should().Be(0, result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(output));
+            document.RootElement.GetProperty("selectedOnly").GetString().Should().Be("authority-check");
+            document.RootElement.GetProperty("gates").EnumerateArray()
+                .Select(gate => gate.GetProperty("status").GetString())
+                .Should().Equal("NOT_RUN", "PASS");
+        }
+        finally
+        {
+            File.Delete(spec);
+            File.Delete(output);
+        }
+    }
+
+    [Theory]
+    [InlineData("phase-04.2-execution", "lowercase run-owned")]
+    [InlineData("phase_04_2_execution", "forbidden")]
+    public void Runner_should_validate_canonical_run_id_and_database_target(string runId, string expectedError)
+    {
+        var output = Path.Combine(Path.GetTempPath(), $"phase42-guard-{Guid.NewGuid():N}.json");
+        try
+        {
+            var database = runId.Contains('-', StringComparison.Ordinal) ? "ipcmanagement" : "ipc_lane1";
+            var result = RunVerifier(
+                $"-GateSpec scripts/standardization/phase42-verification-gates.json -Output \"{output}\" " +
+                $"-RunId {runId} -Database {database} -MigrationHead head -FailFast");
+
+            result.ExitCode.Should().NotBe(0);
+            (result.StdErr + (File.Exists(output) ? File.ReadAllText(output) : string.Empty))
+                .Should().Contain(expectedError);
+        }
+        finally
+        {
+            File.Delete(output);
+        }
+    }
+
+    [Fact]
     public void Hygiene_should_pass_clean_offsite_actor_and_teardown_fixtures()
     {
         var fixture = CreateHygieneFixture();
