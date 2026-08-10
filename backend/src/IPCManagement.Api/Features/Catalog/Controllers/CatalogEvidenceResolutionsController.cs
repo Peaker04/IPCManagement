@@ -1,5 +1,4 @@
 using IPCManagement.Api.Features.Catalog.Services;
-using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Shared.Contracts;

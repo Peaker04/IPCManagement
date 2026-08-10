@@ -5,6 +5,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Shared.Contracts;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 

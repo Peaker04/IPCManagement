@@ -61,6 +61,13 @@ public class FeatureDependencyConventionTests
             "Legacy cycle reference ceiling exceeded: "
             + string.Join(", ", grownLegacyEdges.Select(item =>
                 $"{item.Edge} ({item.Actual}>{item.Ceiling})")));
+
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidencePackageInput).Namespace);
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceAttestationInput).Namespace);
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(ResolutionCommandContext).Namespace);
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceResolutionState).Namespace);
+        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(EvidencePackageGuard).Namespace);
+        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(DurableResolutionStore).Namespace);
     }
 
     [Fact]
@@ -95,17 +102,6 @@ public class FeatureDependencyConventionTests
             violations.Length == 0,
             "Feature controller(s) reference IpcManagementContext directly: "
             + string.Join(", ", violations));
-    }
-
-    [Fact]
-    public void EvidenceResolutionSeam_Should_BeOwnedOutsideFeatureNamespaces()
-    {
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidencePackageInput).Namespace);
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceAttestationInput).Namespace);
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(ResolutionCommandContext).Namespace);
-        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceResolutionState).Namespace);
-        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(EvidencePackageGuard).Namespace);
-        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(DurableResolutionStore).Namespace);
     }
 
     private static Dictionary<FeatureEdge, int> ScanFeatureReferences()

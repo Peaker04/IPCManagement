@@ -1,4 +1,5 @@
-using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.Catalog.Services;
 
