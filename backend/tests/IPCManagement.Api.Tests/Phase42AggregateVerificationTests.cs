@@ -493,7 +493,7 @@ public class Phase42AggregateVerificationTests
         var temp = Path.Combine(Path.GetTempPath(), $"phase42-d05-{Guid.NewGuid():N}");
         Directory.CreateDirectory(temp);
         var manifest = Path.Combine(temp, "manifest.json");
-        File.Copy(sourceManifest, manifest);
+        File.WriteAllText(manifest, CreateD05PendingManifest(sourceManifest).ToJsonString());
         var output = Path.Combine(temp, "business-release.json");
         try
         {
@@ -566,7 +566,7 @@ public class Phase42AggregateVerificationTests
         Directory.CreateDirectory(temp);
         var manifest = Path.Combine(temp, "manifest.json");
         var output = Path.Combine(temp, "business-release.json");
-        var node = JsonNode.Parse(File.ReadAllText(sourceManifest))!.AsObject();
+        var node = CreateD05PendingManifest(sourceManifest);
         var closure = node["activeBusinessClosure"]!.AsObject();
         switch (violation)
         {
@@ -591,6 +591,53 @@ public class Phase42AggregateVerificationTests
         {
             Directory.Delete(temp, recursive: true);
         }
+    }
+
+    private static JsonObject CreateD05PendingManifest(string sourceManifest)
+    {
+        var node = JsonNode.Parse(File.ReadAllText(sourceManifest))!.AsObject();
+        node["status"] = "D05_EVIDENCE_RELEASE_PENDING";
+        node["currentTask"] = 3;
+        node["currentTaskName"] = "Produce the exact D-05 evidence-only accepted-risk release";
+        node["completedTasks"] = 2;
+        node["revisedTaskCompletions"]!.AsObject().Remove("task3");
+        var closure = node["activeBusinessClosure"]!.AsObject();
+        closure["status"] = "D05_EVIDENCE_RELEASE_PENDING";
+        closure["releaseArtifactStatus"] = "PENDING_TASK_3";
+        closure.Remove("releasePath");
+        closure.Remove("releaseSha256");
+        closure.Remove("releaseBytes");
+        var guardrails = node["resumeGuardrails"]!.AsObject();
+        guardrails["completedTasksPreserved"] = 2;
+        guardrails["nextTask"] = 3;
+        guardrails["d05EvidenceReleaseMustRun"] = true;
+        return node;
+    }
+
+    [Fact]
+    public void D03_local_archive_executor_should_keep_key_material_out_of_commands_environment_and_evidence()
+    {
+        var root = FindRepositoryRoot();
+        var tool = File.ReadAllText(Path.Combine(
+            root, "backend", "tools", "IPCManagement.Phase42ArchiveTool", "Program.cs"));
+        var runner = File.ReadAllText(Path.Combine(
+            root, "scripts", "standardization", "Invoke-Phase42AggregateVerification.ps1"));
+
+        tool.Should().Contain("CryptProtectData");
+        tool.Should().Contain("CryptUnprotectData");
+        tool.Should().Contain("UiForbidden");
+        tool.Should().Contain("RandomNumberGenerator.GetBytes(64)");
+        tool.Should().Contain("CryptographicOperations.ZeroMemory");
+        tool.Should().Contain("AES-256-CBC/HMAC-SHA256");
+        tool.Should().Contain("WindowsCurrentUserDPAPI");
+        tool.Should().Contain("icacls.exe");
+        tool.Should().Contain("rawKeyInCommandLine = false");
+        tool.Should().Contain("rawKeyInEnvironment = false");
+        tool.Should().NotContain("IPC_BACKUP_ENCRYPTION_PASSWORD");
+        tool.Should().NotContain("Environment.SetEnvironmentVariable");
+        tool.Should().NotContain("ProviderAdapter");
+        runner.Should().Contain("Invoke-D03LocalArchive");
+        runner.Should().Contain("IPCManagement.Phase42ArchiveTool.csproj");
     }
 
     [Fact]

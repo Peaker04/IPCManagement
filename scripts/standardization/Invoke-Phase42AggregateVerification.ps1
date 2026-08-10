@@ -683,6 +683,92 @@ function Invoke-D05EvidenceRelease {
     return 0
 }
 
+function Invoke-D03LocalArchive {
+    if ($Target -ne 'ipcmanagement') { throw 'D-03 local archive source must be ipcmanagement.' }
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'local-archive requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.target -ne $Target -or
+        $run.planRevision -ne 'D03_D04_D05_8_TASK' -or [int]$run.completedTasks -ne 3 -or
+        [int]$run.currentTask -ne 4 -or [int]$run.totalTasks -ne 8 -or
+        [string]$run.status -ne 'LOCAL_ARCHIVE_PENDING' -or
+        [string]$run.revisedTaskCompletions.task3.status -ne 'PASS') {
+        throw 'D-03 archive must preserve Tasks 1-3 and remain at Task 4 during execution.'
+    }
+    $releasePath = [string]$run.revisedTaskCompletions.task3.releasePath
+    if (-not (Test-Path -LiteralPath $releasePath -PathType Leaf) -or
+        (Get-Sha256File $releasePath) -ne [string]$run.revisedTaskCompletions.task3.releaseSha256 -or
+        [long](Get-Item -LiteralPath $releasePath).Length -ne [long]$run.revisedTaskCompletions.task3.releaseBytes) {
+        throw 'D-03 archive input release bytes are missing or stale.'
+    }
+    Assert-D03Topology $run.activeRecoveryPolicy 'D-03 active recovery policy'
+    Assert-D03Retention $run.activeRecoveryPolicy.backupTablePolicy 'D-03 active backup-table policy'
+
+    $prefix = Join-Path $EvidenceRoot 'commands/04-local-archive'
+    $command = 'dotnet run --project backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj ' +
+        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-local-archive/ ' +
+        '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- ' +
+        '--settings "' + $Settings + '" --database "' + $Target + '" --run-id "' + $RunId +
+        '" --release "' + $releasePath + '" --output "' + $Output + '"'
+    $execution = Invoke-CapturedCommand $command $prefix
+    if ($execution.ExitCode -ne 0) { throw (Protect-LogText $execution.StdErr) }
+    if (-not (Test-Path -LiteralPath $Output -PathType Leaf)) { throw 'Local archive tool did not create its receipt.' }
+    $receipt = Get-Content -Raw -LiteralPath $Output | ConvertFrom-Json
+    Assert-D03Topology $receipt 'DCR-07 local archive'
+    $expectedBackupTables = @($script:BackupTables | Sort-Object)
+    if ([string]$receipt.status -ne 'PASS' -or [string]$receipt.sourceDatabase -ne 'ipcmanagement' -or
+        -not (Test-Path -LiteralPath ([string]$receipt.archivePath) -PathType Leaf) -or
+        (Get-Sha256File ([string]$receipt.archivePath)) -ne [string]$receipt.archiveSha256 -or
+        [long](Get-Item -LiteralPath ([string]$receipt.archivePath)).Length -ne [long]$receipt.archiveBytes -or
+        [string]$receipt.releaseSha256 -ne [string]$run.revisedTaskCompletions.task3.releaseSha256 -or
+        [long]$receipt.releaseBytes -ne [long]$run.revisedTaskCompletions.task3.releaseBytes -or
+        [int]$receipt.releaseSubjectCount -ne 3555 -or $receipt.archiveHeaderEncrypted -ne $true -or
+        [string]$receipt.encryptionKeyScope -ne 'WindowsCurrentUserDPAPI' -or
+        [int]$receipt.keyEntropyBits -ne 512 -or $receipt.keyAcl.inheritanceDisabled -ne $true -or
+        $receipt.keyAcl.currentUserFullControl -ne $true -or
+        $receipt.keyAcl.pathOutsideRepositoryAndArtifacts -ne $true -or
+        $receipt.archiveRoundTripVerified -ne $true -or $receipt.rawKeyPersisted -ne $false -or
+        $receipt.rawKeyInCommandLine -ne $false -or $receipt.rawKeyInEnvironment -ne $false -or
+        $receipt.providerAccessed -ne $false -or $receipt.schedulerAccessed -ne $false -or
+        $receipt.ipcLane1Accessed -ne $false -or [int]$receipt.businessMutationStatements -ne 0 -or
+        $receipt.sevenBackupTablesRetained -ne $true -or
+        @(Compare-Object $expectedBackupTables @($receipt.backupTables | Sort-Object)).Count -ne 0) {
+        throw 'D-03 encrypted local archive receipt is incomplete, stale or overclaims recovery.'
+    }
+    $receiptText = Get-Content -Raw -LiteralPath $Output
+    foreach ($forbidden in @('rawKeyBase64','plaintextKey','providerObject','objectVersion','lockMode','legalHold')) {
+        if ($receiptText -match ('(?i)"' + [regex]::Escape($forbidden) + '"')) {
+            throw "D-03 receipt contains forbidden key/provider field: $forbidden"
+        }
+    }
+
+    $archiveHash = Get-Sha256File $Output
+    $archiveReceiptBytes = (Get-Item -LiteralPath $Output).Length
+    $task4 = [ordered]@{
+        status='PASS'; completedAtUtc=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        receiptPath=$Output; receiptSha256=$archiveHash; receiptBytes=$archiveReceiptBytes
+        archiveReference=[string]$receipt.archiveReference; archiveSha256=[string]$receipt.archiveSha256
+        archiveBytes=[long]$receipt.archiveBytes; innerManifestSha256=[string]$receipt.innerManifestSha256
+        encryptionKeyReference=[string]$receipt.encryptionKeyReference
+        recoveryClassification='ACCEPTED_LOCAL_ONLY_RISK'; mutationStatements=0
+    }
+    $run.revisedTaskCompletions | Add-Member -NotePropertyName task4 -NotePropertyValue $task4 -Force
+    $run.status = 'AWAITING_LOCAL_ARCHIVE_RESTORE_APPROVAL'
+    $run.currentTask = 5
+    $run.currentTaskName = 'Approve exact local archive restore'
+    $run.completedTasks = 4
+    $run.resumeGuardrails.completedTasksPreserved = 4
+    $run.resumeGuardrails.nextTask = 5
+    $run.resumeGuardrails | Add-Member -NotePropertyName localArchiveMustRun -NotePropertyValue $false -Force
+    $run.resumeGuardrails | Add-Member -NotePropertyName restoreApprovalRequired -NotePropertyValue $true -Force
+    $resolvedManifest = if ([IO.Path]::IsPathRooted($Manifest)) { $Manifest } else { Join-Path (Get-Location) $Manifest }
+    [System.IO.File]::WriteAllText(
+        $resolvedManifest, ($run | ConvertTo-Json -Depth 30),
+        (New-Object System.Text.UTF8Encoding($false)))
+    return 0
+}
+
 function Invoke-BusinessAuthorityCheck {
     if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         throw 'business-authority-check requires an existing -Manifest.'
@@ -897,6 +983,7 @@ function Invoke-Phase42AggregateVerification {
     }
     if ($HygieneOnly) { return Invoke-HygieneVerification }
     if ($StopAfter -eq 'package-export') { return Invoke-PackageExport }
+    if ($StopAfter -eq 'local-archive') { return Invoke-D03LocalArchive }
     if ($Only -eq 'authority-check') { return Invoke-AuthorityCheck }
     if ($Only -eq 'business-authority-check') { return Invoke-BusinessAuthorityCheck }
     if ($Only -eq 'd03-rebind-check') { return Invoke-D03RebindCheck }
