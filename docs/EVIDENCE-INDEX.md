@@ -96,6 +96,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/recovery/restore-drill.json` | `27799965A81FB8B73FBCEADFFC5DCDAE13ED221BAED95ED1E0B5664932CD10C0` | Fresh exact-ciphertext restore receipt với ordered migration IDs; approval-bound target và plaintext đều absent sau teardown. |
 | `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/cleanup/seven-table-retention.json` | `C80C175AF09EDD6AE22039937471E45C2ED9E1B6E69AA140F9C08D0EFB2C5419` | Fresh seven-table retention PASS, zero consumer/mutation và không truy cập `ipc_lane1`/provider. |
 | `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report.json` | `253C87D4513B18D55D8375B669E5D500F5B9CF3DCEF732673CE53590809E27C8` | Gap aggregate PASS 10/10 trên source `351ded13`; implementation/evidence sẵn sàng cho independent GSD re-verification, chưa phải verifier verdict. |
+| `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report-task13.json` | `08B22E2874BE6C3AD060097442817993C52B4105F53A9E0B1DCD854459C79301` | Task 13 aggregate PASS 20/20 và 10/10 sau khi retire selector cũ; sẵn sàng cho independent GSD re-verification, chưa phải verifier verdict. |
 
 ## Historical
 
