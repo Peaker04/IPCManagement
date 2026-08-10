@@ -104,12 +104,32 @@ function Invoke-CapturedCommand([string]$Command, [string]$ArtifactPrefix) {
     $stdoutPath = "$ArtifactPrefix.stdout.txt"
     $stderrPath = "$ArtifactPrefix.stderr.txt"
     [System.IO.File]::WriteAllText($commandFile, "@echo off`r`n$Command`r`n", [System.Text.Encoding]::ASCII)
-    $process = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d', '/s', '/c', "`"$commandFile`"") `
-        -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -Wait -PassThru -NoNewWindow
-    $stdout = if (Test-Path -LiteralPath $stdoutPath) { Get-Content -Raw -LiteralPath $stdoutPath } else { '' }
-    $stderr = if (Test-Path -LiteralPath $stderrPath) { Get-Content -Raw -LiteralPath $stderrPath } else { '' }
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = 'cmd.exe'
+    $startInfo.Arguments = '/d /s /c ""' + $commandFile + '""'
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    try {
+        if (-not $process.Start()) { throw "Failed to start captured command: $commandFile" }
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+        $stdout = $stdoutTask.GetAwaiter().GetResult()
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+        $exitCode = $process.ExitCode
+    }
+    finally {
+        $process.Dispose()
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($stdoutPath, $stdout, $utf8NoBom)
+    [System.IO.File]::WriteAllText($stderrPath, $stderr, $utf8NoBom)
     return [pscustomobject]@{
-        ExitCode = $process.ExitCode
+        ExitCode = $exitCode
         StdOut = $stdout
         StdErr = $stderr
         StdOutPath = $stdoutPath

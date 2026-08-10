@@ -648,6 +648,9 @@ public class Phase42AggregateVerificationTests
         runner.Should().Contain("Invoke-D03RestoreDrill");
         runner.Should().Contain("Invoke-D03SevenTableRetention");
         runner.Should().Contain("IPCManagement.Phase42ArchiveTool.csproj");
+        runner.Should().Contain("ReadToEndAsync");
+        runner.Should().Contain("WaitForExit");
+        runner.Should().NotContain("Start-Process -FilePath 'cmd.exe'");
     }
 
     [Fact]
