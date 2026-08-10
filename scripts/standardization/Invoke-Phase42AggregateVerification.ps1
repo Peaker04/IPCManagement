@@ -20,7 +20,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$script:VerifierVersion = '2.0.0-d03'
+$script:VerifierVersion = '2.1.0-d04'
 $script:Plan05StopModes = @(
     'package-export', 'business-release-preflight', 'business-base-preflight',
     'business-base-promotion', 'local-archive'
@@ -363,6 +363,143 @@ function Invoke-D03RebindCheck {
     return 0
 }
 
+function Invoke-D04RoleRebindCheck {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'd04-role-rebind-check requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.target -ne $Target -or $run.planRevision -ne 'D03_D04_13_TASK') {
+        throw 'D-04 manifest run, target or revision does not match.'
+    }
+    if ([int]$run.completedTasks -ne 1 -or [int]$run.currentTask -ne 2 -or [int]$run.totalTasks -ne 13 -or
+        [string]$run.status -ne 'D04_ROLE_REBIND_PENDING' -or
+        [string]$run.revisedTaskCompletions.task1.status -ne 'PASS') {
+        throw 'D-04 rebind must preserve completed Task 1 and remain at Task 2 during validation.'
+    }
+    if ([string]$run.priorPackageEvidence.packageSha256 -ne $script:ExpectedPackageSha256 -or
+        [string]$run.priorPackageEvidence.status -ne 'PASS' -or [int]$run.mutationStatements -ne 0) {
+        throw 'D-04 rebind changed the preserved Task 1 package contract.'
+    }
+    $counts = $run.priorPackageEvidence.counts
+    foreach ($expected in @(
+        @{ Field = 'movements'; Value = 2461 }, @{ Field = 'menuWeeks'; Value = 84 },
+        @{ Field = 'unitReviews'; Value = 44 }, @{ Field = 'quotationSubjects'; Value = 756 },
+        @{ Field = 'bomSubjects'; Value = 194 }, @{ Field = 'duplicateGroups'; Value = 16 }
+    )) {
+        if ([int]$counts.($expected.Field) -ne [int]$expected.Value) {
+            throw "D-04 rebind changed preserved count $($expected.Field)."
+        }
+    }
+
+    $policy = $run.activeBusinessPolicy
+    if ([string]$policy.decision -ne 'ROLE_BOUNDED_OPERATIONAL_DISPOSITION' -or
+        [string]$policy.decisionReference -ne 'opaque:d04:session-decision:2026-08-10' -or
+        [string]$policy.decisionSha256 -ne '91AABB097AE68F473C0CCF6521234316D7826B630F20B00CC3BD77261B36ADBD' -or
+        $policy.governanceDecisionIsApplicationActorOrSignature -ne $false) {
+        throw 'D-04 governance decision is missing, stale or presented as an application actor/signature.'
+    }
+    $policyPath = [string]$policy.authorizationPolicyPath
+    if ($policyPath -ne 'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs' -or
+        -not (Test-Path -LiteralPath $policyPath -PathType Leaf) -or
+        (Get-Sha256File $policyPath) -ne [string]$policy.authorizationPolicySha256) {
+        throw 'D-04 authorization policy source hash is stale.'
+    }
+
+    $expectedRoles = [ordered]@{
+        'Admin' = @{ Representative = 'Admin'; Permissions = @(
+            'auth.profile.read', 'dashboard.read', 'catalog.read', 'catalog.write', 'coordination.read',
+            'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff',
+            'demand.generate', 'inventory.read', 'purchase.read', 'purchase.generate',
+            'material-demand.approve', 'purchase.price-exception.approve', 'purchase.request.approve',
+            'purchase.quotation.manage', 'inventory.receipt.approve', 'inventory.issue.approve',
+            'inventory.adjustment.approve', 'production.read', 'warehouse.read', 'report.read') }
+        'Manager' = @{ Representative = 'Manager'; Permissions = @(
+            'auth.profile.read', 'dashboard.read', 'catalog.read', 'catalog.write', 'coordination.read',
+            'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff',
+            'demand.generate', 'inventory.read', 'purchase.read', 'purchase.generate',
+            'material-demand.approve', 'purchase.price-exception.approve', 'purchase.request.approve',
+            'purchase.quotation.manage', 'inventory.receipt.approve', 'inventory.issue.approve',
+            'inventory.adjustment.approve', 'production.read', 'warehouse.read', 'report.read') }
+        'Coordinator' = @{ Representative = 'Coordinator'; Permissions = @(
+            'auth.profile.read', 'dashboard.read', 'catalog.read', 'coordination.read',
+            'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff',
+            'demand.generate', 'warehouse.read', 'report.read') }
+        'Procurement/Purchasing' = @{ Representative = 'Purchasing'; Permissions = @(
+            'auth.profile.read', 'dashboard.read', 'inventory.read', 'purchase.read', 'purchase.generate',
+            'purchase.quotation.manage', 'inventory.receipt.approve', 'report.read') }
+        'Warehouse' = @{ Representative = 'WarehouseStaff'; Permissions = @(
+            'auth.profile.read', 'dashboard.read', 'inventory.read', 'inventory.receipt.approve',
+            'inventory.issue.approve', 'inventory.adjustment.approve', 'warehouse.read', 'report.read') }
+        'Chef/Kitchen' = @{ Representative = 'Chef'; Permissions = @(
+            'auth.profile.read', 'dashboard.read', 'catalog.read', 'production.read', 'report.read') }
+    }
+    $allowed = @($policy.allowedRoleFamilies)
+    $expectedRoleFamilies = @($expectedRoles.Keys | ForEach-Object { [string]$_ })
+    if ($allowed.Count -ne $expectedRoles.Count -or @(Compare-Object $expectedRoleFamilies $allowed).Count -ne 0) {
+        throw 'D-04 allowed role families differ from the six source-defined families.'
+    }
+    $matrix = @($policy.rolePermissionMatrix)
+    if ($matrix.Count -ne $expectedRoles.Count) { throw 'D-04 role/permission matrix must contain exactly six entries.' }
+    foreach ($family in $expectedRoles.Keys) {
+        $entries = @($matrix | Where-Object { $_.roleFamily -eq $family })
+        if ($entries.Count -ne 1) { throw "D-04 role family must occur exactly once: $family" }
+        $entry = $entries[0]
+        $expected = $expectedRoles[$family]
+        if ([string]$entry.representativeRole -ne [string]$expected.Representative -or
+            @(Compare-Object @($expected.Permissions) @($entry.resolvedPermissions)).Count -ne 0) {
+            throw "D-04 resolved permissions are stale or bypassed for $family."
+        }
+        foreach ($requiredPermission in @($entry.requiredPermissions)) {
+            if (@($entry.resolvedPermissions) -notcontains [string]$requiredPermission) {
+                throw "D-04 required permission is not resolved for $family."
+            }
+        }
+    }
+    if ([string]$policy.finalResidualRiskAcceptanceRole -ne 'Admin' -or
+        @(Compare-Object @('VERIFIED_IN_APP', 'ACCEPTED_UNVERIFIED_BUSINESS_RISK') @($policy.businessClassifications)).Count -ne 0) {
+        throw 'D-04 classifications or final Admin acceptance role are invalid.'
+    }
+    if ($policy.financeIndependenceClaimed -ne $false -or $policy.fakeSignaturePresent -ne $false) {
+        throw 'D-04 cannot claim Finance independence or signature evidence.'
+    }
+    foreach ($field in @('correction', 'conversion', 'price', 'bom', 'merge')) {
+        if ($policy.inferencePolicy.$field -ne $false) { throw "D-04 inferred business field is forbidden: $field" }
+    }
+    $superseded = $run.supersededBusinessAuthorityWorkflow
+    if ([string]$superseded.status -ne 'SUPERSEDED_D04_NOT_CURRENT_AUTHORITY' -or
+        [int]$superseded.formerExternalSlotCount -ne 9 -or
+        $superseded.newIdentitySetupRequired -ne $false -or $superseded.externalSignatureInputRequired -ne $false) {
+        throw 'Former external-owner workflow is not safely superseded under D-04.'
+    }
+
+    $spec = Get-Content -Raw -LiteralPath $GateSpec | ConvertFrom-Json
+    $requiredD04Artifacts = @(
+        'd04-role-permission-receipts', 'd04-business-classifications',
+        'admin-risk-acceptance', 'no-inference-outcomes'
+    )
+    foreach ($gate in @($spec.gates | Where-Object { $_.requirementId -in @('DCR-01','DCR-02','DCR-03','DCR-04','DCR-05','DCR-06') })) {
+        foreach ($artifact in $requiredD04Artifacts) {
+            if (@($gate.requiredArtifacts) -notcontains $artifact) { throw "D-04 gate $($gate.id) is missing $artifact." }
+        }
+    }
+
+    Write-Manifest ([ordered]@{
+        schemaVersion = 1
+        verifierVersion = $script:VerifierVersion
+        runId = $RunId
+        target = $Target
+        packageSha256 = $script:ExpectedPackageSha256
+        authorizationPolicySha256 = [string]$policy.authorizationPolicySha256
+        allowedRoleFamilyCount = $expectedRoles.Count
+        governanceDecisionUsedAsActor = $false
+        finalResidualRiskAcceptanceRole = 'Admin'
+        businessClassifications = @('VERIFIED_IN_APP', 'ACCEPTED_UNVERIFIED_BUSINESS_RISK')
+        status = 'PASS'
+        mutationStatements = 0
+    })
+    return 0
+}
+
 function Invoke-BusinessAuthorityCheck {
     if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         throw 'business-authority-check requires an existing -Manifest.'
@@ -535,7 +672,7 @@ function Invoke-Phase42AggregateVerification {
     if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
         $Target = 'ipcmanagement'
     }
-    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'approval-check') -and
+    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'approval-check') -and
         -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
@@ -580,6 +717,7 @@ function Invoke-Phase42AggregateVerification {
     if ($Only -eq 'authority-check') { return Invoke-AuthorityCheck }
     if ($Only -eq 'business-authority-check') { return Invoke-BusinessAuthorityCheck }
     if ($Only -eq 'd03-rebind-check') { return Invoke-D03RebindCheck }
+    if ($Only -eq 'd04-role-rebind-check') { return Invoke-D04RoleRebindCheck }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {

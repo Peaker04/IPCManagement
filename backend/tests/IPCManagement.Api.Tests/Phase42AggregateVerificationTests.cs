@@ -112,7 +112,8 @@ public class Phase42AggregateVerificationTests
 
         inputs.Should().Contain(["runId", "target"]);
         artifacts.Should().Contain([
-            "source-owner-attestations", "accepted-local-only-risk",
+            "d04-role-permission-receipts", "d04-business-classifications",
+            "admin-risk-acceptance", "no-inference-outcomes", "accepted-local-only-risk",
             "encrypted-local-archive", "approved-local-archive-only",
             "restore-teardown", "plaintext-teardown", "seven-table-retention",
             "destructive-path-dormancy",
