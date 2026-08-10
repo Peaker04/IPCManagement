@@ -12,27 +12,6 @@
   },
   "findings": [
     {
-      "id": "controller:WeeklyMenuImportsController.cs",
-      "kind": "controller",
-      "name": "WeeklyMenuImportsController.cs",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs"
-      ],
-      "lines": 312,
-      "actions": 11,
-      "level": "WARNING"
-    },
-    {
-      "id": "frontend:frontend/src/features/reports/reportsApi.ts",
-      "kind": "frontend",
-      "name": "frontend/src/features/reports/reportsApi.ts",
-      "files": [
-        "frontend/src/features/reports/reportsApi.ts"
-      ],
-      "lines": 839,
-      "level": "WARNING"
-    },
-    {
       "id": "frontend:frontend/src/features/warehouse/pages/WarehousePage.tsx",
       "kind": "frontend",
       "name": "frontend/src/features/warehouse/pages/WarehousePage.tsx",
@@ -63,26 +42,6 @@
       "level": "PLAN_REQUIRED"
     },
     {
-      "id": "service:ApprovalInboxService",
-      "kind": "service",
-      "name": "ApprovalInboxService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalInboxService.cs"
-      ],
-      "lines": 778,
-      "level": "WARNING"
-    },
-    {
-      "id": "service:InventoryIssueService",
-      "kind": "service",
-      "name": "InventoryIssueService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryIssueService.cs"
-      ],
-      "lines": 652,
-      "level": "WARNING"
-    },
-    {
       "id": "service:DataQualityReportService",
       "kind": "service",
       "name": "DataQualityReportService",
@@ -100,16 +59,6 @@
         "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseOrderService.cs"
       ],
       "lines": 604,
-      "level": "WARNING"
-    },
-    {
-      "id": "service:SupplementalMaterialRequestService",
-      "kind": "service",
-      "name": "SupplementalMaterialRequestService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Inventory/Services/SupplementalMaterialRequestService.cs"
-      ],
-      "lines": 602,
       "level": "WARNING"
     }
   ]
