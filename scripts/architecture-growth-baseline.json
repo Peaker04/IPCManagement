@@ -39,7 +39,7 @@
       "files": [
         "frontend/src/features/warehouse/pages/WarehousePage.tsx"
       ],
-      "lines": 770,
+      "lines": 762,
       "level": "WARNING"
     },
     {
