@@ -918,6 +918,62 @@ function Invoke-D03RestoreDrill {
     return 0
 }
 
+function Invoke-D03SevenTableRetention {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'd03-seven-table-retention requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or [string]$run.status -ne 'SEVEN_TABLE_RETENTION_PENDING' -or
+        [int]$run.currentTask -ne 7 -or [int]$run.completedTasks -ne 6 -or
+        [string]$run.revisedTaskCompletions.task6.status -ne 'PASS') {
+        throw 'D-03 retention proof is not at the exact Task 7 position.'
+    }
+    $archiveReceiptPath = [string]$run.revisedTaskCompletions.task4.receiptPath
+    $restoreReceiptPath = [string]$run.revisedTaskCompletions.task6.receiptPath
+    $releasePath = [string]$run.revisedTaskCompletions.task3.releasePath
+    $prefix = Join-Path $EvidenceRoot 'commands/07-seven-table-retention'
+    $command = 'dotnet run --project backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj ' +
+        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-retention/ ' +
+        '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- ' +
+        '--mode retention --settings "' + $Settings + '" --database ipcmanagement --run-id "' + $RunId +
+        '" --release "' + $releasePath + '" --archive-receipt "' + $archiveReceiptPath +
+        '" --restore-receipt "' + $restoreReceiptPath + '" --output "' + $Output + '"'
+    $execution = Invoke-CapturedCommand $command $prefix
+    if ($execution.ExitCode -ne 0) { throw (Protect-LogText $execution.StdErr) }
+    $receipt = Get-Content -Raw -LiteralPath $Output | ConvertFrom-Json
+    Assert-D03Topology $receipt 'DCR-09 retention proof'
+    Assert-D03Retention $receipt 'DCR-09 retention proof'
+    if ([string]$receipt.status -ne 'PASS' -or [int]$receipt.tablesPresentBefore -ne 7 -or
+        [int]$receipt.tablesPresentAfter -ne 7 -or [int]$receipt.databaseConsumerCount -ne 0 -or
+        [int]$receipt.productionConsumerCount -ne 0 -or
+        [string]$receipt.businessMutationContract -ne 'SUPERSEDED_D05_NOT_APPLICABLE' -or
+        [string]$receipt.businessRehearsal -ne 'NOT_RUN_D05' -or
+        [string]$receipt.businessBasePromotion -ne 'NOT_RUN_D05' -or
+        $receipt.providerAccessed -ne $false -or $receipt.ipcLane1Accessed -ne $false -or
+        [int]$receipt.mutationStatements -ne 0) {
+        throw 'D-03 seven-table retention receipt is incomplete or destructive.'
+    }
+    $task7 = [ordered]@{
+        status='PASS'; completedAtUtc=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        receiptPath=$Output; receiptSha256=(Get-Sha256File $Output)
+        tablesPresentBefore=7; tablesPresentAfter=7; retained=$true
+        dropSqlStatus='DORMANT_FORBIDDEN_UNDER_D03'; destructiveExecutionCount=0
+        businessMutationContract='SUPERSEDED_D05_NOT_APPLICABLE'; mutationStatements=0
+    }
+    $run.revisedTaskCompletions | Add-Member -NotePropertyName task7 -NotePropertyValue $task7 -Force
+    $run.status = 'FINAL_AGGREGATE_PENDING'
+    $run.currentTask = 8
+    $run.currentTaskName = 'Run D-05/D-03 fail-fast aggregate'
+    $run.completedTasks = 7
+    $run.resumeGuardrails.completedTasksPreserved = 7
+    $run.resumeGuardrails.nextTask = 8
+    $resolvedManifest = if ([IO.Path]::IsPathRooted($Manifest)) { $Manifest } else { Join-Path (Get-Location) $Manifest }
+    [System.IO.File]::WriteAllText(
+        $resolvedManifest, ($run | ConvertTo-Json -Depth 30),
+        (New-Object System.Text.UTF8Encoding($false)))
+    return 0
+}
+
 function Invoke-BusinessAuthorityCheck {
     if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         throw 'business-authority-check requires an existing -Manifest.'
@@ -1094,7 +1150,7 @@ function Invoke-Phase42AggregateVerification {
     if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
         $Target = 'ipcmanagement'
     }
-    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'd05-evidence-release', 'approval-check', 'd03-restore-drill') -and
+    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'd05-evidence-release', 'approval-check', 'd03-restore-drill', 'd03-seven-table-retention') -and
         -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
@@ -1144,6 +1200,7 @@ function Invoke-Phase42AggregateVerification {
     if ($Only -eq 'd05-evidence-release') { return Invoke-D05EvidenceRelease }
     if ($Only -eq 'approval-check') { return Invoke-D03RestoreApproval }
     if ($Only -eq 'd03-restore-drill') { return Invoke-D03RestoreDrill }
+    if ($Only -eq 'd03-seven-table-retention') { return Invoke-D03SevenTableRetention }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {

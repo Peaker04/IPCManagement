@@ -640,9 +640,13 @@ public class Phase42AggregateVerificationTests
         tool.Should().Contain("targetAbsentBefore");
         tool.Should().Contain("DROP DATABASE");
         tool.Should().Contain("finally");
-        tool.Should().Contain("CompareRestoreOracles");
+        tool.Should().Contain("FindRestoreOracleMismatches");
+        tool.Should().Contain("ProveSevenTableRetentionAsync");
+        tool.Should().Contain("DORMANT_FORBIDDEN_UNDER_D03");
+        tool.Should().Contain("SUPERSEDED_D05_NOT_APPLICABLE");
         runner.Should().Contain("Invoke-D03LocalArchive");
         runner.Should().Contain("Invoke-D03RestoreDrill");
+        runner.Should().Contain("Invoke-D03SevenTableRetention");
         runner.Should().Contain("IPCManagement.Phase42ArchiveTool.csproj");
     }
 

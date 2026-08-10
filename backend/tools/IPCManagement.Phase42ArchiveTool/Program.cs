@@ -28,8 +28,10 @@ var currentSid = WindowsIdentity.GetCurrent().User
     ?? throw new InvalidOperationException("Current Windows SID is unavailable.");
 if (mode == "restore")
     return await RestoreApprovedArchiveAsync(options, settingsPath, database, runId, releasePath, outputPath, currentSid);
+if (mode == "retention")
+    return await ProveSevenTableRetentionAsync(options, settingsPath, database, runId, outputPath);
 if (mode != "archive")
-    throw new InvalidOperationException("Phase 4.2 archive tool mode must be archive or restore.");
+    throw new InvalidOperationException("Phase 4.2 archive tool mode must be archive, restore or retention.");
 
 var releaseBytes = await File.ReadAllBytesAsync(releasePath);
 var releaseSha256 = Convert.ToHexString(SHA256.HashData(releaseBytes));
@@ -307,6 +309,146 @@ static string FindMySql()
     };
     return candidates.FirstOrDefault(File.Exists)
         ?? throw new FileNotFoundException("mysql client was not found in approved local installations.");
+}
+
+static async Task<int> ProveSevenTableRetentionAsync(
+    IReadOnlyDictionary<string, string> options,
+    string settingsPath,
+    string database,
+    string runId,
+    string outputPath)
+{
+    if (database != "ipcmanagement")
+        throw new InvalidOperationException("Seven-table retention proof is restricted to ipcmanagement.");
+    var archiveReceiptPath = Path.GetFullPath(Required(options, "archive-receipt"));
+    var restoreReceiptPath = Path.GetFullPath(Required(options, "restore-receipt"));
+    if (!File.Exists(archiveReceiptPath) || !File.Exists(restoreReceiptPath))
+        throw new FileNotFoundException("Archive-before or restore-drill receipt is missing.");
+    using var archiveDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(archiveReceiptPath));
+    using var restoreDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(restoreReceiptPath));
+    var archive = archiveDocument.RootElement;
+    var restore = restoreDocument.RootElement;
+    if (archive.GetProperty("status").GetString() != "PASS" ||
+        restore.GetProperty("status").GetString() != "PASS" ||
+        !restore.GetProperty("restoreDatabaseAbsent").GetBoolean() ||
+        !restore.GetProperty("plaintextAbsent").GetBoolean())
+        throw new InvalidOperationException("Retention proof requires completed archive and restore teardown.");
+
+    var expectedTables = new[]
+    {
+        "backup_bomadjustments_20260717_141300",
+        "backup_dishbom_20260717_141300",
+        "backup_dishes_20260717_141300",
+        "backup_ingredients_20260717_141300",
+        "backup_materialrequestlines_bom_20260717_141300",
+        "backup_menuitems_20260717_141300",
+        "backup_menuitems_pre2026_20260717_141300",
+    };
+    using var settings = JsonDocument.Parse(await File.ReadAllBytesAsync(settingsPath));
+    var sourceConnectionString = settings.RootElement.GetProperty("ConnectionStrings")
+        .GetProperty("DefaultConnection").GetString()
+        ?? throw new InvalidOperationException("DefaultConnection is missing.");
+    var builder = new MySqlConnectionStringBuilder(sourceConnectionString) { Database = string.Empty };
+    await using var connection = new MySqlConnection(builder.ConnectionString);
+    await connection.OpenAsync();
+    var after = await ReadDatabaseManifestAsync(connection, database);
+    var afterTables = after.TableNames.Where(name => name.StartsWith("backup_", StringComparison.Ordinal))
+        .Order(StringComparer.Ordinal).ToArray();
+    if (!afterTables.SequenceEqual(expectedTables.Order(StringComparer.Ordinal), StringComparer.Ordinal))
+        throw new InvalidOperationException("Exact seven backup tables are not present after restore drill.");
+
+    var beforeDefinitions = archive.GetProperty("tableDefinitions")
+        .Deserialize<SortedDictionary<string, string>>()!;
+    var beforeCounts = archive.GetProperty("rowCounts")
+        .Deserialize<SortedDictionary<string, long>>()!;
+    var beforeDigests = archive.GetProperty("rowDigests")
+        .Deserialize<SortedDictionary<string, string>>()!;
+    var tableProof = new List<object>();
+    foreach (var table in expectedTables.Order(StringComparer.Ordinal))
+    {
+        long afterCount = 0;
+        var definitionMatches = beforeDefinitions.TryGetValue(table, out var beforeDefinition) &&
+                                after.TableDefinitions.TryGetValue(table, out var afterDefinition) &&
+                                beforeDefinition == afterDefinition;
+        var countMatches = beforeCounts.TryGetValue(table, out var beforeCount) &&
+                           after.RowCounts.TryGetValue(table, out afterCount) && beforeCount == afterCount;
+        var digestMatches = beforeDigests.TryGetValue(table, out var beforeDigest) &&
+                            after.RowDigests.TryGetValue(table, out var afterDigest) && beforeDigest == afterDigest;
+        if (!definitionMatches || !countMatches || !digestMatches)
+            throw new InvalidOperationException($"Backup table changed across restore drill: {table}.");
+        tableProof.Add(new { table, definitionMatches, countMatches, digestMatches, rowCount = afterCount });
+    }
+
+    var databaseSurfaces = new List<string>();
+    databaseSurfaces.AddRange(await ReadRowsAsync(connection,
+        "SELECT table_name,constraint_name,referenced_table_name FROM information_schema.referential_constraints " +
+        "WHERE constraint_schema=@database ORDER BY table_name,constraint_name;", database));
+    databaseSurfaces.AddRange(await ReadRowsAsync(connection,
+        "SELECT table_name,view_definition FROM information_schema.views WHERE table_schema=@database ORDER BY table_name;", database));
+    databaseSurfaces.AddRange(await ReadRowsAsync(connection,
+        "SELECT trigger_name,action_statement FROM information_schema.triggers WHERE trigger_schema=@database ORDER BY trigger_name;", database));
+    databaseSurfaces.AddRange(await ReadRowsAsync(connection,
+        "SELECT routine_name,routine_definition FROM information_schema.routines WHERE routine_schema=@database ORDER BY routine_name;", database));
+    databaseSurfaces.AddRange(await ReadRowsAsync(connection,
+        "SELECT event_name,event_definition FROM information_schema.events WHERE event_schema=@database ORDER BY event_name;", database));
+    var databaseConsumerCount = databaseSurfaces.Count(surface =>
+        expectedTables.Any(table => surface.Contains(table, StringComparison.OrdinalIgnoreCase)));
+
+    var repositoryRoot = Directory.GetParent(Directory.GetParent(Directory.GetParent(
+        Path.GetDirectoryName(settingsPath)!)!.FullName)!.FullName)!.FullName;
+    var productionRoots = new[] { Path.Combine(repositoryRoot, "backend", "src"), Path.Combine(repositoryRoot, "frontend", "src") };
+    var extensions = new HashSet<string>([".cs", ".json", ".ts", ".tsx", ".js"], StringComparer.OrdinalIgnoreCase);
+    var productionConsumerFiles = productionRoots.Where(Directory.Exists)
+        .SelectMany(root => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        .Where(file => extensions.Contains(Path.GetExtension(file)))
+        .Where(file => expectedTables.Any(table => File.ReadAllText(file).Contains(table, StringComparison.OrdinalIgnoreCase)))
+        .Select(file => Path.GetRelativePath(repositoryRoot, file).Replace('\\', '/'))
+        .Order(StringComparer.Ordinal).ToArray();
+    if (databaseConsumerCount != 0 || productionConsumerFiles.Length != 0)
+        throw new InvalidOperationException("Backup tables still have a database or production-source consumer.");
+
+    var receipt = new
+    {
+        schemaVersion = 1,
+        status = "PASS",
+        runId,
+        sourceDatabase = database,
+        recoveryClassification = "ACCEPTED_LOCAL_ONLY_RISK",
+        sameHost = true,
+        samePhysicalNvme = true,
+        offSite = false,
+        worm = false,
+        independentSecurityDomain = false,
+        tables = expectedTables,
+        tablesPresentBefore = 7,
+        tablesPresentAfter = 7,
+        tableProof,
+        databaseConsumerCount,
+        productionConsumerCount = productionConsumerFiles.Length,
+        productionConsumerFiles,
+        retained = true,
+        dropSqlStatus = "DORMANT_FORBIDDEN_UNDER_D03",
+        dropExecution = "NOT_RUN_DORMANT_D03",
+        cleanupRehearsal = "NOT_RUN_DORMANT_D03",
+        rollbackExtractRehearsal = "NOT_RUN_DORMANT_D03",
+        cleanupApproval = "NOT_RUN_DORMANT_D03",
+        baseCleanupPromotion = "NOT_RUN_DORMANT_D03",
+        destructiveExecutionCount = 0,
+        businessMutationContract = "SUPERSEDED_D05_NOT_APPLICABLE",
+        businessRehearsal = "NOT_RUN_D05",
+        businessBasePromotion = "NOT_RUN_D05",
+        providerAccessed = false,
+        ipcLane1Accessed = false,
+        mutationStatements = 0,
+    };
+    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)
+        ?? throw new InvalidOperationException("Retention receipt output requires a parent directory."));
+    await File.WriteAllTextAsync(
+        outputPath,
+        JsonSerializer.Serialize(receipt, new JsonSerializerOptions { WriteIndented = true }),
+        new UTF8Encoding(false));
+    Console.WriteLine(JsonSerializer.Serialize(new { status = "PASS", outputPath }));
+    return 0;
 }
 
 static async Task<int> RestoreApprovedArchiveAsync(
