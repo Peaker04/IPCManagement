@@ -6,6 +6,17 @@ namespace IPCManagement.Api.Tests;
 
 public class Phase42AggregateVerificationTests
 {
+    private static readonly string[] BackupTables =
+    [
+        "backup_bomadjustments_20260717_141300",
+        "backup_dishbom_20260717_141300",
+        "backup_dishes_20260717_141300",
+        "backup_ingredients_20260717_141300",
+        "backup_materialrequestlines_bom_20260717_141300",
+        "backup_menuitems_20260717_141300",
+        "backup_menuitems_pre2026_20260717_141300",
+    ];
+
     private static readonly string[] Requirements =
     [
         "DCR-01", "DCR-02", "DCR-03", "DCR-04", "DCR-05",
@@ -244,6 +255,76 @@ public class Phase42AggregateVerificationTests
         script.Should().NotContain("git reset");
         script.Should().NotContain("git clean");
         script.Should().NotContain("git checkout --");
+    }
+
+    [Fact]
+    public void Cleanup_drop_template_should_name_exactly_seven_tables_without_dynamic_scope()
+    {
+        var sql = ReadCleanupSql("backup-tables-drop.sql");
+        var drops = System.Text.RegularExpressions.Regex.Matches(
+                sql, "(?im)^DROP TABLE `\\{\\{TARGET_DATABASE\\}\\}`\\.`([^`]+)`;")
+            .Select(match => match.Groups[1].Value).ToArray();
+
+        drops.Should().Equal(BackupTables);
+        AssertNoForbiddenCleanupSql(sql, allowDropTable: true);
+        sql.Should().NotContain("backup_%");
+        sql.Contains("PREPARE", StringComparison.OrdinalIgnoreCase).Should().BeFalse();
+        sql.Contains("EXECUTE", StringComparison.OrdinalIgnoreCase).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Cleanup_pre_and_postflight_should_pin_definitions_counts_consumers_and_scope_stability()
+    {
+        var preflight = ReadCleanupSql("backup-tables-preflight.sql");
+        var postflight = ReadCleanupSql("backup-tables-postflight.sql");
+
+        foreach (var sql in new[] { preflight, postflight })
+        {
+            BackupTables.Should().OnlyContain(table => sql.Contains(table, StringComparison.Ordinal));
+            sql.Should().Contain("{{TARGET_DATABASE}}");
+            sql.Should().Contain("consumer");
+            sql.Should().Contain("outsideScope");
+            sql.Should().Contain("SHA2");
+            AssertNoForbiddenCleanupSql(sql, allowDropTable: false);
+        }
+
+        preflight.Should().Contain("SHOW CREATE TABLE", Exactly.Times(7));
+        preflight.Should().Contain("rowCount");
+        preflight.Should().Contain("rowDigest");
+        postflight.Should().Contain("ABSENT");
+    }
+
+    [Fact]
+    public void Cleanup_restore_should_be_extract_bound_and_disposable_only()
+    {
+        var sql = ReadCleanupSql("backup-tables-restore.sql");
+
+        BackupTables.Should().OnlyContain(table => sql.Contains(table, StringComparison.Ordinal));
+        sql.Should().Contain("{{TARGET_DATABASE}}");
+        sql.Should().Contain("{{RUN_ID}}");
+        sql.Should().Contain("{{ROLLBACK_EXTRACT_SHA256}}");
+        sql.Should().Contain("{{ROLLBACK_EXTRACT_PATH}}");
+        sql.Should().Contain("ipc_rehearsal_phase42_");
+        sql.Should().Contain("NO_GO_TARGET");
+        sql.Should().NotContain("ipc_lane1");
+        sql.Should().NotContain("`ipcmanagement`");
+        AssertNoForbiddenCleanupSql(sql, allowDropTable: false);
+    }
+
+    private static string ReadCleanupSql(string name)
+        => File.ReadAllText(Path.Combine(FindRepositoryRoot(), "tools", "db", "phase-04.2", name));
+
+    private static void AssertNoForbiddenCleanupSql(string sql, bool allowDropTable)
+    {
+        sql.Should().NotMatchRegex("(?im)^\\s*USE\\s+");
+        sql.Should().NotMatchRegex("(?im)^\\s*CREATE\\s+DATABASE\\b");
+        sql.Should().NotMatchRegex("(?im)^\\s*DROP\\s+DATABASE\\b");
+        sql.Should().NotMatchRegex("(?im)^\\s*UPDATE\\s+");
+        sql.Should().NotMatchRegex("(?im)^\\s*DELETE\\s+");
+        if (!allowDropTable)
+        {
+            sql.Should().NotMatchRegex("(?im)^\\s*DROP\\s+TABLE\\b");
+        }
     }
 
     private static (string Root, string Output, string ScanFile) CreateHygieneFixture()
