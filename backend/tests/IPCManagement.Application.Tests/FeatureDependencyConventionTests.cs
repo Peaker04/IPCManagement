@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Application.Tests;
 
@@ -93,6 +95,17 @@ public class FeatureDependencyConventionTests
             violations.Length == 0,
             "Feature controller(s) reference IpcManagementContext directly: "
             + string.Join(", ", violations));
+    }
+
+    [Fact]
+    public void EvidenceResolutionSeam_Should_BeOwnedOutsideFeatureNamespaces()
+    {
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidencePackageInput).Namespace);
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceAttestationInput).Namespace);
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(ResolutionCommandContext).Namespace);
+        Assert.Equal("IPCManagement.Api.Shared.Contracts", typeof(EvidenceResolutionState).Namespace);
+        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(EvidencePackageGuard).Namespace);
+        Assert.Equal("IPCManagement.Api.Infrastructure.Lifecycle", typeof(DurableResolutionStore).Namespace);
     }
 
     private static Dictionary<FeatureEdge, int> ScanFeatureReferences()
