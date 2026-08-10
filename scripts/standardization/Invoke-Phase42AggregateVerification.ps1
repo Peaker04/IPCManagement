@@ -769,6 +769,79 @@ function Invoke-D03LocalArchive {
     return 0
 }
 
+function Invoke-D03RestoreApproval {
+    if ($Approval -ne 'd03-local-archive-restore') {
+        throw 'Task 5 approval must be exactly d03-local-archive-restore.'
+    }
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'Restore approval requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.planRevision -ne 'D03_D04_D05_8_TASK' -or
+        [string]$run.status -ne 'AWAITING_LOCAL_ARCHIVE_RESTORE_APPROVAL' -or
+        [int]$run.completedTasks -ne 4 -or [int]$run.currentTask -ne 5 -or
+        [int]$run.totalTasks -ne 8 -or [string]$run.revisedTaskCompletions.task4.status -ne 'PASS') {
+        throw 'Restore approval is not at the exact Task 5 checkpoint.'
+    }
+    $task4 = $run.revisedTaskCompletions.task4
+    $archiveReceipt = Get-Content -Raw -LiteralPath ([string]$task4.receiptPath) | ConvertFrom-Json
+    if ([string]$task4.archiveSha256 -ne 'EC5CEDEECE6C862A5B8EED630FE8CE8D59A81261117942D01FCF89393E70CBB3' -or
+        [long]$task4.archiveBytes -ne 2952088 -or
+        [string]$task4.innerManifestSha256 -ne 'D359AEC181B14BB7EAB22F3781B5542FCB583EE31877CF0C32AE3C7D8BEFC0CD' -or
+        [string]$archiveReceipt.archiveSha256 -ne [string]$task4.archiveSha256 -or
+        [long]$archiveReceipt.archiveBytes -ne [long]$task4.archiveBytes -or
+        [string]$archiveReceipt.innerManifestSha256 -ne [string]$task4.innerManifestSha256 -or
+        -not (Test-Path -LiteralPath ([string]$archiveReceipt.archivePath) -PathType Leaf) -or
+        (Get-Sha256File ([string]$archiveReceipt.archivePath)) -ne [string]$task4.archiveSha256 -or
+        [long](Get-Item -LiteralPath ([string]$archiveReceipt.archivePath)).Length -ne [long]$task4.archiveBytes) {
+        throw 'Restore approval archive bytes do not match the exact reviewed checkpoint.'
+    }
+    Assert-D03Topology $archiveReceipt 'Task 5 approved archive'
+    $restoreTarget = "ipc_restore_phase42_$RunId"
+    if ($restoreTarget -ne 'ipc_restore_phase42_phase_04_2_execution') {
+        throw 'Restore approval target is not the canonical run-owned target.'
+    }
+    $approvalReceipt = [ordered]@{
+        schemaVersion=1; verifierVersion=$script:VerifierVersion; runId=$RunId; status='PASS'
+        approval='d03-local-archive-restore'
+        approvalReference='opaque:checkpoint:approve-phase42-local-archive-restore:2026-08-10'
+        governanceApprovalIsRuntimeActorOrSignature=$false
+        archiveReference=[string]$task4.archiveReference
+        archiveSha256=[string]$task4.archiveSha256
+        archiveBytes=[long]$task4.archiveBytes
+        innerManifestSha256=[string]$task4.innerManifestSha256
+        encryptionKeyReference=[string]$task4.encryptionKeyReference
+        restoreTarget=$restoreTarget
+        existingDatabaseRestoreAllowed=$false
+        providerAccessAllowed=$false
+        businessMutationAllowed=$false
+        backupTableCleanupAllowed=$false
+    }
+    Write-Manifest $approvalReceipt
+    $approvalHash = Get-Sha256File $Output
+    $task5 = [ordered]@{
+        status='PASS'; completedAtUtc=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        approvalReceiptPath=$Output; approvalReceiptSha256=$approvalHash
+        approvalReference='opaque:checkpoint:approve-phase42-local-archive-restore:2026-08-10'
+        archiveReference=[string]$task4.archiveReference; archiveSha256=[string]$task4.archiveSha256
+        archiveBytes=[long]$task4.archiveBytes; innerManifestSha256=[string]$task4.innerManifestSha256
+        restoreTarget=$restoreTarget; mutationStatements=0
+    }
+    $run.revisedTaskCompletions | Add-Member -NotePropertyName task5 -NotePropertyValue $task5 -Force
+    $run.status = 'RESTORE_DRILL_PENDING'
+    $run.currentTask = 6
+    $run.currentTaskName = 'Restore only the approved archive and teardown'
+    $run.completedTasks = 5
+    $run.resumeGuardrails.completedTasksPreserved = 5
+    $run.resumeGuardrails.nextTask = 6
+    $run.resumeGuardrails.restoreApprovalRequired = $false
+    $resolvedManifest = if ([IO.Path]::IsPathRooted($Manifest)) { $Manifest } else { Join-Path (Get-Location) $Manifest }
+    [System.IO.File]::WriteAllText(
+        $resolvedManifest, ($run | ConvertTo-Json -Depth 30),
+        (New-Object System.Text.UTF8Encoding($false)))
+    return 0
+}
+
 function Invoke-BusinessAuthorityCheck {
     if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         throw 'business-authority-check requires an existing -Manifest.'
@@ -931,6 +1004,10 @@ function Invoke-Phase42AggregateVerification {
         -not [string]::IsNullOrWhiteSpace($Manifest)) {
         $Output = "$Manifest.business-authority-check.json"
     }
+    if ([string]::IsNullOrWhiteSpace($Output) -and $Only -eq 'approval-check' -and
+        -not [string]::IsNullOrWhiteSpace($Manifest)) {
+        $Output = "$Manifest.restore-approval.json"
+    }
     if ([string]::IsNullOrWhiteSpace($Output)) { throw '-Output is required.' }
     if (-not [string]::IsNullOrWhiteSpace($Database)) {
         if (-not [string]::IsNullOrWhiteSpace($Target) -and $Target -ne $Database) {
@@ -989,6 +1066,7 @@ function Invoke-Phase42AggregateVerification {
     if ($Only -eq 'd03-rebind-check') { return Invoke-D03RebindCheck }
     if ($Only -eq 'd04-role-rebind-check') { return Invoke-D04RoleRebindCheck }
     if ($Only -eq 'd05-evidence-release') { return Invoke-D05EvidenceRelease }
+    if ($Only -eq 'approval-check') { return Invoke-D03RestoreApproval }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {

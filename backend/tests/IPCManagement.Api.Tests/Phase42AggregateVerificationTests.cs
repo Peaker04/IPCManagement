@@ -641,6 +641,55 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
+    public void D03_restore_approval_should_bind_only_the_exact_reviewed_archive()
+    {
+        var root = FindRepositoryRoot();
+        var sourceManifest = Path.Combine(
+            root, ".artifacts", "shipyard-live", "phase-04.2-execution", "manifest.json");
+        var temp = Path.Combine(Path.GetTempPath(), $"phase42-d03-approval-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        var manifest = Path.Combine(temp, "manifest.json");
+        File.WriteAllText(manifest, CreateTask5ApprovalManifest(sourceManifest).ToJsonString());
+        try
+        {
+            var wrong = RunVerifier(
+                $"-RunId phase_04_2_execution -Only approval-check -Approval wrong " +
+                $"-Manifest \"{manifest}\"");
+            wrong.ExitCode.Should().NotBe(0);
+
+            var result = RunVerifier(
+                $"-RunId phase_04_2_execution -Only approval-check " +
+                $"-Approval d03-local-archive-restore -Manifest \"{manifest}\"");
+            result.ExitCode.Should().Be(0, result.StdErr);
+            var updated = JsonNode.Parse(File.ReadAllText(manifest))!.AsObject();
+            updated["status"]!.GetValue<string>().Should().Be("RESTORE_DRILL_PENDING");
+            updated["currentTask"]!.GetValue<int>().Should().Be(6);
+            updated["completedTasks"]!.GetValue<int>().Should().Be(5);
+            updated["revisedTaskCompletions"]!["task5"]!["status"]!
+                .GetValue<string>().Should().Be("PASS");
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    private static JsonObject CreateTask5ApprovalManifest(string sourceManifest)
+    {
+        var node = JsonNode.Parse(File.ReadAllText(sourceManifest))!.AsObject();
+        node["status"] = "AWAITING_LOCAL_ARCHIVE_RESTORE_APPROVAL";
+        node["currentTask"] = 5;
+        node["currentTaskName"] = "Approve exact local archive restore";
+        node["completedTasks"] = 4;
+        node["revisedTaskCompletions"]!.AsObject().Remove("task5");
+        var guardrails = node["resumeGuardrails"]!.AsObject();
+        guardrails["completedTasksPreserved"] = 4;
+        guardrails["nextTask"] = 5;
+        guardrails["restoreApprovalRequired"] = true;
+        return node;
+    }
+
+    [Fact]
     public void Runner_should_never_reset_clean_or_retarget_unrelated_work()
     {
         var script = File.ReadAllText(Path.Combine(
