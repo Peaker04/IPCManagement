@@ -223,7 +223,7 @@
       "stage": "VER",
       "requirementId": "VER-03",
       "kind": "command",
-      "command": "powershell -NoProfile -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 -HygieneOnly -RunId {runId} -Target {target} -MigrationHead {migrationHead} -EvidenceRoot {evidenceRoot} -Output {artifactPath}",
+      "command": "powershell -NoProfile -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 -HygieneOnly -RunId {runId} -Target {target} -MigrationHead {migrationHead} -Manifest \"{manifest}\" -EvidenceRoot {evidenceRoot} -Output {artifactPath}",
       "versionCommand": "powershell -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
       "targetMode": "explicit",
       "requiredArtifacts": ["secret-scan", "raw-key-scan", "d03-topology-scan", "destructive-dormancy-scan", "teardown-reconciliation"]

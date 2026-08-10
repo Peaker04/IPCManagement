@@ -48,7 +48,12 @@ function Get-Sha256File([string]$Path) {
 }
 
 function Assert-D03Topology($Value, [string]$Label) {
-    if ([string]$Value.recoveryClassification -ne 'ACCEPTED_LOCAL_ONLY_RISK') {
+    $classification = if ($Value.PSObject.Properties.Name -contains 'recoveryClassification') {
+        [string]$Value.recoveryClassification
+    } else {
+        [string]$Value.classification
+    }
+    if ($classification -ne 'ACCEPTED_LOCAL_ONLY_RISK') {
         throw "$Label recovery classification is not ACCEPTED_LOCAL_ONLY_RISK."
     }
     foreach ($field in @('sameHost', 'samePhysicalNvme')) {
@@ -140,6 +145,7 @@ function Invoke-CapturedCommand([string]$Command, [string]$ArtifactPrefix) {
 function Resolve-CommandTokens([string]$Command, [string]$GateArtifactPath) {
     $resolved = $Command.Replace('{runId}', $RunId).Replace('{target}', $Target)
     $resolved = $resolved.Replace('{migrationHead}', $MigrationHead).Replace('{evidenceRoot}', $EvidenceRoot)
+    $resolved = $resolved.Replace('{manifest}', $Manifest)
     $resolved = $resolved.Replace('{artifactPath}', $GateArtifactPath)
     return $resolved
 }
@@ -164,7 +170,159 @@ function New-NotRunGate($Gate, [string]$SourceCommit, [string]$SpecHash, [bool]$
     }
 }
 
+function Assert-D05Release($Release, $Run, [string]$Path) {
+    if ([string]$Release.status -ne 'PASS' -or [string]$Release.runId -ne $RunId -or
+        [string]$Release.target -ne $Target -or [string]$Release.decision -ne 'EVIDENCE_ONLY_ACCEPTED_RISK_RELEASE' -or
+        [string]$Release.packageSha256 -ne $script:ExpectedPackageSha256 -or
+        [string]$Release.businessClassification -ne 'ACCEPTED_UNVERIFIED_BUSINESS_RISK' -or
+        [int]$Release.subjectCount -ne 3555 -or $Release.sourceFactsReconciled -ne $false -or
+        [int]$Release.businessSqlStatements -ne 0 -or [int]$Release.databaseConnections -ne 0 -or
+        $Release.runtimeBooted -ne $false -or [int]$Release.mutationStatements -ne 0) {
+        throw 'D-05 release header or zero-execution contract is invalid.'
+    }
+    if ((Get-Sha256File $Path) -ne [string]$Run.revisedTaskCompletions.task3.releaseSha256 -or
+        (Get-Item -LiteralPath $Path).Length -ne [long]$Run.revisedTaskCompletions.task3.releaseBytes) {
+        throw 'D-05 release bytes do not match the completed Task 3 receipt.'
+    }
+    $rolePolicy = $Run.completedD04RolePolicy
+    if ([string]$Release.authorizationPolicySha256 -ne [string]$rolePolicy.authorizationPolicySha256 -or
+        (Get-Sha256File ([string]$rolePolicy.authorizationPolicyPath)) -ne [string]$rolePolicy.authorizationPolicySha256 -or
+        (($Release.allowedRoleFamilies | ConvertTo-Json -Compress) -ne ($rolePolicy.allowedRoleFamilies | ConvertTo-Json -Compress)) -or
+        (($Release.rolePermissionMatrix | ConvertTo-Json -Depth 20 -Compress) -ne ($rolePolicy.rolePermissionMatrix | ConvertTo-Json -Depth 20 -Compress))) {
+        throw 'D-05 release role/policy evidence is stale.'
+    }
+
+    $packagePath = [string]$Run.priorPackageEvidence.packagePath
+    if ((Get-Sha256File $packagePath) -ne $script:ExpectedPackageSha256) {
+        throw 'D-05 preserved package bytes are stale.'
+    }
+    $package = Get-Content -Raw -LiteralPath $packagePath | ConvertFrom-Json
+    $contracts = @(
+        [pscustomobject]@{ PackageField='movements'; CountField='movements'; Family='movement'; IdField='sourceEntityId'; Count=2461; Outcome='NO_CORRECTION' },
+        [pscustomobject]@{ PackageField='menuWeeks'; CountField='menuWeeks'; Family='menu-week'; IdField='sourceEntityId'; Count=84; Outcome='NO_CORRECTION' },
+        [pscustomobject]@{ PackageField='unitReviews'; CountField='unitReviews'; Family='unit'; IdField='sourceEntityId'; Count=44; Outcome='RETAIN_DISTINCT' },
+        [pscustomobject]@{ PackageField='quotations'; CountField='quotationSubjects'; Family='quotation'; IdField='sourceEntityId'; Count=756; Outcome='NO_PRICE_CREATED' },
+        [pscustomobject]@{ PackageField='boms'; CountField='bomSubjects'; Family='bom'; IdField='sourceEntityId'; Count=194; Outcome='NO_BOM_CREATED' },
+        [pscustomobject]@{ PackageField='duplicateGroups'; CountField='duplicateGroups'; Family='duplicate-group'; IdField='groupId'; Count=16; Outcome='KEEP_DISTINCT' }
+    )
+    $expectedRows = New-Object System.Collections.Generic.List[object]
+    foreach ($contract in $contracts) {
+        $sourceRows = @($package.($contract.PackageField) | Sort-Object { [string]$_.$($contract.IdField) })
+        if ($sourceRows.Count -ne $contract.Count -or [int]$Release.familyCounts.($contract.CountField) -ne $contract.Count) {
+            throw "D-05 release family count mismatch: $($contract.Family)"
+        }
+        foreach ($sourceRow in $sourceRows) {
+            $expectedRows.Add([pscustomobject]@{
+                Family = $contract.Family
+                StableId = [string]$sourceRow.($contract.IdField)
+                Fingerprint = [string]$sourceRow.currentFingerprint
+                Outcome = $contract.Outcome
+            })
+        }
+    }
+    $actualRows = @($Release.rows)
+    if ($actualRows.Count -ne $expectedRows.Count) { throw 'D-05 release row count is not exactly 3,555.' }
+    for ($index = 0; $index -lt $expectedRows.Count; $index++) {
+        $expected = $expectedRows[$index]
+        $actual = $actualRows[$index]
+        if ([string]$actual.family -ne $expected.Family -or [string]$actual.stableId -ne $expected.StableId -or
+            [string]$actual.sourceFingerprint -ne $expected.Fingerprint -or [string]$actual.outcome -ne $expected.Outcome -or
+            [string]$actual.packageSha256 -ne $script:ExpectedPackageSha256 -or
+            [string]$actual.businessClassification -ne 'ACCEPTED_UNVERIFIED_BUSINESS_RISK' -or
+            [string]$actual.unavailableFactMarker -ne 'SOURCE_FACTS_UNAVAILABLE_UNDER_D05') {
+            throw "D-05 release membership, fingerprint or fixed outcome drifted at row $index."
+        }
+    }
+}
+
+function Test-Plan05ArtifactGate($Gate, $Run) {
+    $taskNumber = if ($Gate.requirementId -in @('DCR-01','DCR-02','DCR-03','DCR-04','DCR-05','DCR-06')) { 3 }
+        elseif ($Gate.requirementId -eq 'DCR-07') { 4 }
+        elseif ($Gate.requirementId -eq 'DCR-08') { 6 }
+        elseif ($Gate.requirementId -eq 'DCR-09') { 7 }
+        else { $null }
+    if ($null -eq $taskNumber) {
+        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = "Unsupported Plan 05 artifact gate: $($Gate.id)"; ArtifactPath = $Manifest }
+    }
+    $task = $Run.revisedTaskCompletions."task$taskNumber"
+    $path = if ($taskNumber -eq 3) { [string]$task.releasePath } else { [string]$task.receiptPath }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = "Missing current Plan 05 artifact for $($Gate.requirementId)."; ArtifactPath = $path }
+    }
+    try {
+        if ([string]$Run.status -ne 'FINAL_AGGREGATE_PENDING' -or [int]$Run.currentTask -ne 8 -or
+            [int]$Run.completedTasks -ne 7 -or [int]$Run.totalTasks -ne 8 -or
+            [string]$task.status -ne 'PASS') {
+            throw 'Plan 05 manifest is not at the exact Task 8 aggregate position.'
+        }
+        $artifact = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+        if ($taskNumber -eq 3) {
+            Assert-D05Release $artifact $Run $path
+        }
+        elseif ($taskNumber -eq 4) {
+            Assert-D03Topology $artifact 'DCR-07'
+            if ((Get-Sha256File $path) -ne [string]$task.receiptSha256 -or
+                [string]$artifact.runId -ne $RunId -or [string]$artifact.sourceDatabase -ne $Target -or
+                [string]$artifact.archiveSha256 -ne [string]$Run.revisedTaskCompletions.task5.archiveSha256 -or
+                [string]$artifact.releaseSha256 -ne [string]$Run.revisedTaskCompletions.task3.releaseSha256 -or
+                [int]$artifact.releaseSubjectCount -ne 3555 -or [string]$artifact.migrationHead -ne $MigrationHead -or
+                [int]$artifact.businessSqlStatements -ne 0 -or [int]$artifact.businessDatabaseConnections -ne 0 -or
+                $artifact.businessRuntimeBooted -ne $false -or [int]$artifact.businessMutationStatements -ne 0 -or
+                $artifact.providerAccessed -ne $false -or $artifact.ipcLane1Accessed -ne $false -or
+                $artifact.sevenBackupTablesRetained -ne $true -or $artifact.rawKeyPersisted -ne $false -or
+                $artifact.rawKeyInCommandLine -ne $false -or $artifact.rawKeyInEnvironment -ne $false) {
+                throw 'DCR-07 archive receipt is stale, unsafe or not bound to D-05.'
+            }
+        }
+        elseif ($taskNumber -eq 6) {
+            $archive = Get-Content -Raw -LiteralPath ([string]$Run.revisedTaskCompletions.task4.receiptPath) | ConvertFrom-Json
+            Assert-D03Topology $archive 'DCR-08 approved archive'
+            if ((Get-Sha256File $path) -ne [string]$task.receiptSha256 -or [string]$artifact.runId -ne $RunId -or
+                [string]$artifact.classification -ne 'ACCEPTED_LOCAL_ONLY_RISK' -or
+                $artifact.approvedArchiveOnly -ne $true -or [string]$artifact.archiveSha256 -ne [string]$Run.revisedTaskCompletions.task5.archiveSha256 -or
+                [string]$artifact.restoreTarget -ne "ipc_restore_phase42_$RunId" -or $artifact.restoreTargetAbsentBefore -ne $true -or
+                $artifact.allExactOraclesPass -ne $true -or $artifact.migrationOraclePass -ne $true -or
+                $artifact.schemaOraclePass -ne $true -or $artifact.foreignKeyOraclePass -ne $true -or
+                $artifact.triggerOraclePass -ne $true -or $artifact.rowCountOraclePass -ne $true -or
+                $artifact.rowDigestOraclePass -ne $true -or $artifact.d05ReleaseOraclePass -ne $true -or
+                $artifact.businessSourceUnchanged -ne $true -or $artifact.restoreDatabaseAbsent -ne $true -or
+                $artifact.plaintextAbsent -ne $true -or $artifact.existingDatabaseTouched -ne $false -or
+                $artifact.providerAccessed -ne $false -or $artifact.ipcLane1Accessed -ne $false -or
+                [int]$artifact.businessMutationStatements -ne 0 -or [string]$artifact.migrationHead -ne $MigrationHead -or
+                [string]$artifact.releaseSha256 -ne [string]$Run.revisedTaskCompletions.task3.releaseSha256 -or
+                [int]$artifact.releaseSubjectCount -ne 3555) {
+                throw 'DCR-08 restore receipt is incomplete, stale or unsafe.'
+            }
+        }
+        else {
+            Assert-D03Topology $artifact 'DCR-09'
+            Assert-D03Retention $artifact 'DCR-09'
+            if ((Get-Sha256File $path) -ne [string]$task.receiptSha256 -or [string]$artifact.runId -ne $RunId -or
+                [string]$artifact.sourceDatabase -ne $Target -or [int]$artifact.tablesPresentBefore -ne 7 -or
+                [int]$artifact.tablesPresentAfter -ne 7 -or [int]$artifact.databaseConsumerCount -ne 0 -or
+                [int]$artifact.productionConsumerCount -ne 0 -or @($artifact.tableProof | Where-Object {
+                    $_.definitionMatches -ne $true -or $_.countMatches -ne $true -or $_.digestMatches -ne $true
+                }).Count -ne 0 -or [string]$artifact.businessMutationContract -ne 'SUPERSEDED_D05_NOT_APPLICABLE' -or
+                [string]$artifact.businessRehearsal -ne 'NOT_RUN_D05' -or [string]$artifact.businessBasePromotion -ne 'NOT_RUN_D05' -or
+                $artifact.providerAccessed -ne $false -or $artifact.ipcLane1Accessed -ne $false -or
+                [int]$artifact.mutationStatements -ne 0) {
+                throw 'DCR-09 retention or destructive-path dormancy proof is incomplete.'
+            }
+        }
+        return [pscustomobject]@{ ExitCode = 0; StdOut = Get-Content -Raw -LiteralPath $path; StdErr = ''; ArtifactPath = $path }
+    }
+    catch {
+        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = $_.Exception.Message; ArtifactPath = $path }
+    }
+}
+
 function Test-ArtifactGate($Gate) {
+    if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+        if ([string]$run.planRevision -eq 'D03_D04_D05_8_TASK') {
+            return Test-Plan05ArtifactGate $Gate $run
+        }
+    }
     $fileName = ($Gate.command -replace '^validate-artifact\s+', '').Trim()
     $path = Join-Path $EvidenceRoot $fileName
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -1053,33 +1211,53 @@ function Invoke-BusinessAuthorityCheck {
 
 function Invoke-HygieneVerification {
     $findings = New-Object System.Collections.Generic.List[string]
-    $repoOwnedPaths = @(
-        'scripts/standardization/Invoke-Phase42AggregateVerification.ps1',
-        'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.cs',
-        'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.Designer.cs',
-        'tools/db/phase-04.2/backup-tables-preflight.sql',
-        'tools/db/phase-04.2/backup-tables-drop.sql',
-        'tools/db/phase-04.2/backup-tables-postflight.sql',
-        'tools/db/phase-04.2/backup-tables-restore.sql'
-    )
+    $plan05Run = if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        $candidate = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+        if ([string]$candidate.planRevision -eq 'D03_D04_D05_8_TASK') { $candidate } else { $null }
+    } else { $null }
+    $repoOwnedPaths = if ($null -ne $plan05Run) {
+        @(
+            'scripts/standardization/Invoke-Phase42AggregateVerification.ps1',
+            'scripts/standardization/phase42-verification-gates.json',
+            'backend/tools/IPCManagement.Phase42ArchiveTool/Program.cs',
+            'backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs',
+            'backend/tests/IPCManagement.Api.Tests/AsyncActionRoutingContractTests.cs'
+        )
+    } else {
+        @(
+            'scripts/standardization/Invoke-Phase42AggregateVerification.ps1',
+            'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.cs',
+            'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.Designer.cs',
+            'tools/db/phase-04.2/backup-tables-preflight.sql',
+            'tools/db/phase-04.2/backup-tables-drop.sql',
+            'tools/db/phase-04.2/backup-tables-postflight.sql',
+            'tools/db/phase-04.2/backup-tables-restore.sql'
+        )
+    }
     $ownedPaths = $repoOwnedPaths + @($AdditionalScanPath)
     foreach ($path in $ownedPaths | Select-Object -Unique) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
         $text = Get-Content -Raw -LiteralPath $path
         $stubText = if ($path -like '*Invoke-Phase42AggregateVerification.ps1') {
             (($text -split "`r?`n") | Where-Object { $_ -notmatch 'TODO' }) -join "`n"
+        } elseif ($path -like '*Phase42AggregateVerificationTests.cs') {
+            (($text -split "`r?`n") | Where-Object { $_ -notmatch 'File\.WriteAllText.*TODO' }) -join "`n"
         } else { $text }
         if ($stubText -match '(?i)\b(TODO|FIXME|coming\s+soon|not\s+available)\b') {
             $findings.Add("Stub marker in $path")
         }
-        if ($text -match '(?is)(password|secret|api[-_]?key|connection[-_]?string)\s*[=:]\s*["'']?(?!\[?REDACTED|<required|design-time-only)[^\s;"'']{4,}') {
+        if ($text -match '(?is)(password|secret|api[-_]?key|connection[-_]?string)\s*[=:]\s*["''](?!\[?REDACTED|<required|design-time-only)[^"'']{4,}["'']') {
             $findings.Add("Secret-like value in $path")
         }
     }
 
-    $jsonFiles = if (Test-Path -LiteralPath $EvidenceRoot -PathType Container) {
-        @(Get-ChildItem -LiteralPath $EvidenceRoot -Filter '*.json' -File -Recurse)
-    } else { @() }
+    $evidenceRoots = @($EvidenceRoot)
+    if ($null -ne $plan05Run) { $evidenceRoots += (Split-Path -Parent $Manifest) }
+    $jsonFiles = @($evidenceRoots | Select-Object -Unique | Where-Object {
+        Test-Path -LiteralPath $_ -PathType Container
+    } | ForEach-Object {
+        Get-ChildItem -LiteralPath $_ -Filter '*.json' -File -Recurse
+    } | Sort-Object FullName -Unique)
     foreach ($file in $jsonFiles) {
         $text = Get-Content -Raw -LiteralPath $file.FullName
         if ($text -match '(?is)"(password|secret|apiKey|connectionString)"\s*:\s*"(?!\[REDACTED\]|<required)[^"]{4,}"') {
@@ -1090,10 +1268,18 @@ function Invoke-HygieneVerification {
         }
     }
 
-    $d03Paths = [ordered]@{
-        dcr07 = Join-Path $EvidenceRoot 'dcr-07-local-archive.json'
-        dcr08 = Join-Path $EvidenceRoot 'dcr-08-approved-local-restore.json'
-        dcr09 = Join-Path $EvidenceRoot 'dcr-09-seven-table-retention.json'
+    $d03Paths = if ($null -ne $plan05Run) {
+        [ordered]@{
+            dcr07 = [string]$plan05Run.revisedTaskCompletions.task4.receiptPath
+            dcr08 = [string]$plan05Run.revisedTaskCompletions.task6.receiptPath
+            dcr09 = [string]$plan05Run.revisedTaskCompletions.task7.receiptPath
+        }
+    } else {
+        [ordered]@{
+            dcr07 = Join-Path $EvidenceRoot 'dcr-07-local-archive.json'
+            dcr08 = Join-Path $EvidenceRoot 'dcr-08-approved-local-restore.json'
+            dcr09 = Join-Path $EvidenceRoot 'dcr-09-seven-table-retention.json'
+        }
     }
     foreach ($entry in $d03Paths.GetEnumerator()) {
         if (-not (Test-Path -LiteralPath $entry.Value -PathType Leaf)) {
@@ -1106,7 +1292,14 @@ function Invoke-HygieneVerification {
             $restore = Get-Content -Raw -LiteralPath $d03Paths.dcr08 | ConvertFrom-Json
             $retention = Get-Content -Raw -LiteralPath $d03Paths.dcr09 | ConvertFrom-Json
             Assert-D03Topology $archive 'DCR-07'
-            Assert-D03Topology $restore 'DCR-08'
+            if ($null -ne $plan05Run) {
+                if ([string]$restore.classification -ne 'ACCEPTED_LOCAL_ONLY_RISK' -or
+                    [string]$restore.archiveSha256 -ne [string]$archive.archiveSha256) {
+                    throw 'DCR-08 is not bound to the accepted local-only archive.'
+                }
+            } else {
+                Assert-D03Topology $restore 'DCR-08'
+            }
             Assert-D03Topology $retention 'DCR-09'
             Assert-D03Retention $retention 'DCR-09'
             foreach ($activePath in @($d03Paths.dcr07, $d03Paths.dcr08, $d03Paths.dcr09)) {
