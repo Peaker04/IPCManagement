@@ -249,17 +249,17 @@ public class Phase42AggregateVerificationTests
                 gates = new object[]
                 {
                     FixtureGate(1, "not-selected", "DCR-01", "powershell -NoProfile -Command exit 9"),
-                    FixtureGate(2, "authority-check", "DCR-01", "powershell -NoProfile -Command exit 0"),
+                    FixtureGate(2, "selected", "DCR-01", "powershell -NoProfile -Command exit 0"),
                 },
             }));
 
             var result = RunVerifier(
                 $"-GateSpec \"{spec}\" -Output \"{output}\" -RunId phase_04_2_execution " +
-                "-Database ipcmanagement -MigrationHead head -Only authority-check");
+                "-Database ipcmanagement -MigrationHead head -Only selected");
 
             result.ExitCode.Should().Be(0, result.StdErr);
             using var document = JsonDocument.Parse(File.ReadAllText(output));
-            document.RootElement.GetProperty("selectedOnly").GetString().Should().Be("authority-check");
+            document.RootElement.GetProperty("selectedOnly").GetString().Should().Be("selected");
             document.RootElement.GetProperty("gates").EnumerateArray()
                 .Select(gate => gate.GetProperty("status").GetString())
                 .Should().Equal("NOT_RUN", "PASS");

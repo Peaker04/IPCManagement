@@ -158,6 +158,76 @@ function Invoke-PackageExport {
     return 0
 }
 
+function Invoke-AuthorityCheck {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'authority-check requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.target -ne $Target) { throw 'Authority manifest run/target does not match.' }
+    $packagePath = [string]$run.task1.packagePath
+    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Signed business package is missing.' }
+    $packageHash = Get-Sha256File $packagePath
+    if ($packageHash -ne [string]$run.task1.packageSha256) { throw 'Signed business package digest is stale.' }
+
+    $requiredBusinessSlots = @(
+        'WAREHOUSE_SOURCE_OWNER', 'FINANCE_SOURCE_OWNER', 'COORDINATION_SOURCE_OWNER',
+        'UNIT_SOURCE_OWNER', 'PURCHASING_SOURCE_OWNER', 'BOM_SOURCE_OWNER',
+        'CATALOG_SOURCE_OWNER', 'WAREHOUSE_IMPACT_OWNER', 'PURCHASING_IMPACT_OWNER'
+    )
+    if ($run.PSObject.Properties.Name -notcontains 'authorityRecords' -or
+        $null -eq $run.authorityRecords -or $null -eq $run.authorityRecords.business) {
+        throw 'Authority records are not supplied.'
+    }
+    $records = @($run.authorityRecords.business)
+    foreach ($slot in $requiredBusinessSlots) {
+        $matches = @($records | Where-Object { $_.authoritySlot -eq $slot })
+        if ($matches.Count -ne 1) { throw "Authority slot must occur exactly once: $slot" }
+        $record = $matches[0]
+        foreach ($field in @('actorReference', 'authorityReference', 'authoritySha256', 'signedAtUtc')) {
+            if ([string]::IsNullOrWhiteSpace([string]$record.$field)) { throw "Authority $slot is missing $field." }
+        }
+        if ([string]$record.packageSha256 -ne $packageHash) { throw "Authority $slot signed a different package digest." }
+        if ([string]$record.authoritySha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw "Authority $slot has an invalid authority digest." }
+        if ([string]$record.actorReference -match '(?i)^(placeholder|test|demo|unknown|admin)$') {
+            throw "Authority $slot uses a fabricated actor reference."
+        }
+    }
+    $warehouse = [string](@($records | Where-Object authoritySlot -eq 'WAREHOUSE_SOURCE_OWNER')[0].actorReference)
+    $finance = [string](@($records | Where-Object authoritySlot -eq 'FINANCE_SOURCE_OWNER')[0].actorReference)
+    if ($warehouse -eq $finance) { throw 'Warehouse and Finance source owners must be independent.' }
+
+    $provider = $run.authorityRecords.provider
+    foreach ($field in @(
+        'providerReference', 'accountReference', 'containerReference', 'securityDomainReference',
+        'rpo', 'rto', 'lockMode', 'retainUntilPolicyReference', 'legalHoldDecisionReference',
+        'keyOwnerReference', 'keyCustodyReference', 'keyRecoveryReference',
+        'credentialReference', 'legacyScheduleOverlapDecisionReference')) {
+        if ([string]::IsNullOrWhiteSpace([string]$provider.$field)) { throw "Provider authority is missing $field." }
+        if ([string]$provider.$field -match '(?i)(^[A-Z]:\\|^file:|^\\\\|placeholder|unknown|demo)') {
+            throw "Provider authority $field is local or fabricated."
+        }
+    }
+    $manifestText = Get-Content -Raw -LiteralPath $Manifest
+    if ($manifestText -match '(?is)"(password|secret|token|apiKey|connectionString|keyMaterial)"\s*:') {
+        throw 'Authority manifest contains a prohibited secret-value field.'
+    }
+    $receiptPath = "$Manifest.authority-check.json"
+    $receipt = [ordered]@{
+        schemaVersion = 1
+        verifierVersion = $script:VerifierVersion
+        runId = $RunId
+        target = $Target
+        packageSha256 = $packageHash
+        businessAuthoritySlots = $requiredBusinessSlots
+        providerAuthority = 'PASS'
+        status = 'PASS'
+        mutationStatements = 0
+    }
+    $json = $receipt | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText((Join-Path (Get-Location) $receiptPath), $json, (New-Object System.Text.UTF8Encoding($false)))
+    return 0
+}
+
 function Invoke-HygieneVerification {
     $findings = New-Object System.Collections.Generic.List[string]
     $repoOwnedPaths = @(
@@ -264,6 +334,12 @@ function Invoke-Phase42AggregateVerification {
     if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
         $Target = 'ipcmanagement'
     }
+    if ($Only -in @('authority-check', 'approval-check') -and
+        -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+        if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
+        if ([string]::IsNullOrWhiteSpace($MigrationHead)) { $MigrationHead = [string]$manifestHeader.migrationHead }
+    }
     $script:Target = $Target
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and -not [string]::IsNullOrWhiteSpace($Only)) {
         throw '-StopAfter and -Only are mutually exclusive.'
@@ -300,6 +376,7 @@ function Invoke-Phase42AggregateVerification {
     }
     if ($HygieneOnly) { return Invoke-HygieneVerification }
     if ($StopAfter -eq 'package-export') { return Invoke-PackageExport }
+    if ($Only -eq 'authority-check') { return Invoke-AuthorityCheck }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {
@@ -398,7 +475,8 @@ try {
     exit (Invoke-Phase42AggregateVerification)
 }
 catch {
-    if (-not [string]::IsNullOrWhiteSpace($Output)) {
+    if (-not [string]::IsNullOrWhiteSpace($Output) -and
+        [string]::IsNullOrWhiteSpace($Only) -and $StopAfter -ne 'package-export') {
         try {
             Write-Manifest ([ordered]@{
                 schemaVersion = 1
