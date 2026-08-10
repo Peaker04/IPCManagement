@@ -729,6 +729,8 @@ public class Phase42AggregateVerificationTests
                 .Should().Be("phase_04_2_gap_closure_05");
             manifestDocument.RootElement.GetProperty("archiveRunId").GetString()
                 .Should().Be("phase_04_2_execution");
+            manifestDocument.RootElement.GetProperty("archiveReceiptPath").GetString()
+                .Should().Be(archive);
         }
         finally
         {

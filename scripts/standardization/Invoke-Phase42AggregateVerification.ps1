@@ -23,6 +23,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$PSDefaultParameterValues['Get-Content:Encoding'] = 'UTF8'
 $script:VerifierVersion = '3.0.0-d05'
 $script:Plan05StopModes = @(
     'package-export', 'local-archive'
