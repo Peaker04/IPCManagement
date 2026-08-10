@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { WeeklyMenuCommandBar } from './WeeklyMenuCommandBar'
@@ -42,9 +42,11 @@ describe('WeeklyMenuCommandBar select labels', () => {
       />,
     )
 
-    await user.click(screen.getByRole('combobox'))
+    const trigger = screen.getByRole('combobox')
+    await user.click(trigger)
+    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'true'))
 
-    expect(screen.getByRole('option', { name: 'ANV - AMANN' })).toBeVisible()
+    expect(await screen.findByRole('option', { name: 'ANV - AMANN' })).toBeVisible()
   })
 })
 
