@@ -58,7 +58,7 @@
       "stage": "W0",
       "requirementId": null,
       "kind": "command",
-      "command": "npm run test:unit -w frontend -- --maxWorkers=1",
+      "command": "powershell -NoProfile -Command $env:NODE_OPTIONS='--max-old-space-size=1024';npm run test:unit -w frontend -- --maxWorkers=1",
       "versionCommand": "npm --version",
       "targetMode": "none",
       "requiredArtifacts": []
