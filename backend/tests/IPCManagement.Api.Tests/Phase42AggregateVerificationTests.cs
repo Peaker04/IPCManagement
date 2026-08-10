@@ -690,6 +690,166 @@ public class Phase42AggregateVerificationTests
         }
     }
 
+    [Fact]
+    public void Gap_source_contract_should_bind_fresh_evidence_to_immutable_archive_and_approval_target()
+    {
+        var root = FindRepositoryRoot();
+        var temp = Path.Combine(Path.GetTempPath(), $"phase42-gap-source-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        var manifest = Path.Combine(temp, "manifest.json");
+        var output = Path.Combine(temp, "source-contract.json");
+        var archive = Path.Combine(root, ".artifacts", "shipyard-live", "phase-04.2-execution",
+            "db", "recovery", "local-archive.json");
+        var approval = Path.Combine(root, ".artifacts", "shipyard-live", "phase-04.2-execution",
+            "manifest.json.restore-approval.json");
+        try
+        {
+            var result = RunVerifier(
+                $"-Only gap-source-contract -RunId phase_04_2_gap_closure_05 " +
+                $"-ArchiveRunId phase_04_2_execution -ArchiveReceipt \"{archive}\" " +
+                $"-ApprovalReceipt \"{approval}\" -Manifest \"{manifest}\" -Output \"{output}\"");
+
+            result.ExitCode.Should().Be(0, result.StdErr);
+            using var document = JsonDocument.Parse(File.ReadAllText(output));
+            var receipt = document.RootElement;
+            receipt.GetProperty("status").GetString().Should().Be("PASS");
+            receipt.GetProperty("evidenceRunId").GetString().Should().Be("phase_04_2_gap_closure_05");
+            receipt.GetProperty("archiveRunId").GetString().Should().Be("phase_04_2_execution");
+            receipt.GetProperty("expectedRestoreTargetSource").GetString()
+                .Should().Be("IMMUTABLE_APPROVAL_RECEIPT");
+            receipt.GetProperty("expectedRestoreTarget").GetString()
+                .Should().Be("ipc_restore_phase42_phase_04_2_execution");
+            receipt.GetProperty("repositoryMigrationCount").GetInt32().Should().Be(63);
+            receipt.GetProperty("repositoryMigrationHead").GetString()
+                .Should().Be("20260810030000_AddDataQualityDispositions");
+            receipt.GetProperty("repositoryArchiveMigrationIdsExact").GetBoolean().Should().BeTrue();
+
+            using var manifestDocument = JsonDocument.Parse(File.ReadAllText(manifest));
+            manifestDocument.RootElement.GetProperty("evidenceRunId").GetString()
+                .Should().Be("phase_04_2_gap_closure_05");
+            manifestDocument.RootElement.GetProperty("archiveRunId").GetString()
+                .Should().Be("phase_04_2_execution");
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("missing-migration")]
+    [InlineData("extra-migration")]
+    [InlineData("reordered-migrations")]
+    [InlineData("stale-head")]
+    [InlineData("tampered-approval-target")]
+    [InlineData("retired-source")]
+    public void Gap_source_contract_should_fail_closed_on_source_archive_or_approval_drift(string violation)
+    {
+        var root = FindRepositoryRoot();
+        var temp = Path.Combine(Path.GetTempPath(), $"phase42-gap-negative-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temp);
+        var manifest = Path.Combine(temp, "manifest.json");
+        var output = Path.Combine(temp, "source-contract.json");
+        var sourceArchive = Path.Combine(root, ".artifacts", "shipyard-live", "phase-04.2-execution",
+            "db", "recovery", "local-archive.json");
+        var sourceApproval = Path.Combine(root, ".artifacts", "shipyard-live", "phase-04.2-execution",
+            "manifest.json.restore-approval.json");
+        var archive = sourceArchive;
+        var approval = sourceApproval;
+        var extraArgument = string.Empty;
+        try
+        {
+            if (violation is "missing-migration" or "extra-migration" or "reordered-migrations" or "stale-head")
+            {
+                var node = JsonNode.Parse(File.ReadAllText(sourceArchive))!.AsObject();
+                var ids = node["migrationIds"]!.AsArray();
+                if (violation == "missing-migration") ids.RemoveAt(ids.Count - 1);
+                if (violation == "extra-migration") ids.Add("20260810120000_AddBusinessEvidenceClosure");
+                if (violation == "reordered-migrations")
+                {
+                    var first = ids[0]!.DeepClone();
+                    ids[0] = ids[1]!.DeepClone();
+                    ids[1] = first;
+                }
+                if (violation == "stale-head") node["migrationHead"] = "20260810023000_AddLifecycleOutboxDeliveries";
+                archive = Path.Combine(temp, "local-archive.json");
+                File.WriteAllText(archive, node.ToJsonString());
+            }
+            else if (violation == "tampered-approval-target")
+            {
+                var node = JsonNode.Parse(File.ReadAllText(sourceApproval))!.AsObject();
+                node["restoreTarget"] = "ipc_restore_phase42_phase_04_2_gap_closure_05";
+                approval = Path.Combine(temp, "approval.json");
+                File.WriteAllText(approval, node.ToJsonString());
+            }
+            else
+            {
+                var retiredSource = Path.Combine(temp, "retired.cs");
+                File.WriteAllText(retiredSource, "const string Authority = \"FINANCE_SOURCE_OWNER\";");
+                extraArgument = $" -AdditionalScanPath \"{retiredSource}\"";
+            }
+
+            var result = RunVerifier(
+                $"-Only gap-source-contract -RunId phase_04_2_gap_closure_05 " +
+                $"-ArchiveRunId phase_04_2_execution -ArchiveReceipt \"{archive}\" " +
+                $"-ApprovalReceipt \"{approval}\" -Manifest \"{manifest}\" -Output \"{output}\"" +
+                extraArgument);
+
+            result.ExitCode.Should().NotBe(0);
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Canonical_frontend_unit_launcher_should_apply_only_the_reviewed_heap_and_forward_arguments()
+    {
+        var root = FindRepositoryRoot();
+        var package = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "package.json")))!.AsObject();
+        package["scripts"]!["test:fe:unit"]!.GetValue<string>()
+            .Should().Be("node scripts/run-frontend-unit-with-heap.mjs");
+
+        var launcher = File.ReadAllText(Path.Combine(root, "scripts", "run-frontend-unit-with-heap.mjs"));
+        launcher.Should().Contain("process.execPath");
+        launcher.Should().Contain("process.env.npm_execpath");
+        launcher.Should().Contain("process.argv.slice(2)");
+        launcher.Should().Contain("NODE_OPTIONS: '--max-old-space-size=1024'");
+        launcher.Should().Contain("stdio: 'inherit'");
+        launcher.Should().NotContain("maxWorkers");
+        launcher.Should().NotContain("timeout");
+        launcher.Should().NotContain("coverage");
+        launcher.Should().NotContain("--run");
+
+        using var spec = ReadGateSpec();
+        spec.RootElement.GetProperty("gates").EnumerateArray()
+            .Single(gate => gate.GetProperty("id").GetString() == "w0-frontend-tests")
+            .GetProperty("command").GetString().Should().Be("npm run test:fe:unit");
+    }
+
+    [Fact]
+    public void Restore_and_aggregate_contracts_should_require_actual_ordered_migration_ids_and_dual_run_identity()
+    {
+        var root = FindRepositoryRoot();
+        var tool = File.ReadAllText(Path.Combine(
+            root, "backend", "tools", "IPCManagement.Phase42ArchiveTool", "Program.cs"));
+        var runner = File.ReadAllText(Path.Combine(
+            root, "scripts", "standardization", "Invoke-Phase42AggregateVerification.ps1"));
+
+        tool.Should().Contain("evidenceRunId");
+        tool.Should().Contain("archiveRunId");
+        tool.Should().Contain("migrationIds = actual.MigrationIds");
+        tool.Should().Contain("approvalReceiptSha256");
+        tool.Should().Contain("expectedRestoreTargetSource = \"IMMUTABLE_APPROVAL_RECEIPT\"");
+        runner.Should().Contain("[string]$ArchiveRunId");
+        runner.Should().Contain("[string]$ArchiveReceipt");
+        runner.Should().Contain("[string]$ApprovalReceipt");
+        runner.Should().Contain("repositoryArchiveRestoreMigrationIdsExact");
+        runner.Should().Contain("approval.restoreTarget");
+        runner.Should().Contain("migrationIds");
+    }
+
     private static JsonObject CreateTask5ApprovalManifest(string sourceManifest)
     {
         var node = JsonNode.Parse(File.ReadAllText(sourceManifest))!.AsObject();
