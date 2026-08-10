@@ -20,10 +20,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$script:VerifierVersion = '2.1.0-d04'
+$script:VerifierVersion = '3.0.0-d05'
 $script:Plan05StopModes = @(
-    'package-export', 'business-release-preflight', 'business-base-preflight',
-    'business-base-promotion', 'local-archive'
+    'package-export', 'local-archive'
 )
 $script:ExpectedPackageSha256 = 'C281CB92E66939657680F0D31CA80B4A3451F5EE71A94745DBD60335DAE66EC2'
 $script:BackupTables = @(
@@ -477,9 +476,15 @@ function Invoke-D04RoleRebindCheck {
         'd04-role-permission-receipts', 'd04-business-classifications',
         'admin-risk-acceptance', 'no-inference-outcomes'
     )
+    $requiredD05Artifacts = @(
+        'd05-evidence-only-release', 'accepted-unverified-business-risk',
+        'fixed-no-correction-outcomes', 'zero-business-execution'
+    )
     foreach ($gate in @($spec.gates | Where-Object { $_.requirementId -in @('DCR-01','DCR-02','DCR-03','DCR-04','DCR-05','DCR-06') })) {
-        foreach ($artifact in $requiredD04Artifacts) {
-            if (@($gate.requiredArtifacts) -notcontains $artifact) { throw "D-04 gate $($gate.id) is missing $artifact." }
+        $hasCompleteD04Set = @($requiredD04Artifacts | Where-Object { @($gate.requiredArtifacts) -notcontains $_ }).Count -eq 0
+        $hasCompleteD05Set = @($requiredD05Artifacts | Where-Object { @($gate.requiredArtifacts) -notcontains $_ }).Count -eq 0
+        if (-not $hasCompleteD04Set -and -not $hasCompleteD05Set) {
+            throw "D-04 gate $($gate.id) has neither the complete historical D-04 nor current D-05 artifact set."
         }
     }
 
@@ -497,6 +502,184 @@ function Invoke-D04RoleRebindCheck {
         status = 'PASS'
         mutationStatements = 0
     })
+    return 0
+}
+
+function Invoke-D05EvidenceRelease {
+    if ([string]::IsNullOrWhiteSpace($Manifest) -or -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        throw 'd05-evidence-release requires an existing -Manifest.'
+    }
+    $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+    if ($run.runId -ne $RunId -or $run.target -ne $Target -or
+        $run.planRevision -ne 'D03_D04_D05_8_TASK') {
+        throw 'D-05 manifest run, target or revision does not match.'
+    }
+    if ([int]$run.completedTasks -ne 2 -or [int]$run.currentTask -ne 3 -or
+        [int]$run.totalTasks -ne 8 -or [string]$run.status -ne 'D05_EVIDENCE_RELEASE_PENDING' -or
+        [string]$run.revisedTaskCompletions.task1.status -ne 'PASS' -or
+        [string]$run.revisedTaskCompletions.task2.status -ne 'PASS') {
+        throw 'D-05 release must preserve completed Tasks 1-2 and remain at Task 3 during validation.'
+    }
+    if ([int]$run.mutationStatements -ne 0 -or $run.runtimeBooted -ne $false -or
+        $run.ipcLane1Accessed -ne $false -or $run.providerAccessed -ne $false) {
+        throw 'D-05 release cannot inherit runtime, provider, ipc_lane1 or mutation activity.'
+    }
+
+    $packagePath = [string]$run.priorPackageEvidence.packagePath
+    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf) -or
+        (Get-Sha256File $packagePath) -ne $script:ExpectedPackageSha256 -or
+        [string]$run.priorPackageEvidence.packageSha256 -ne $script:ExpectedPackageSha256) {
+        throw 'D-05 preserved package bytes or digest are missing or stale.'
+    }
+    $package = Get-Content -Raw -LiteralPath $packagePath | ConvertFrom-Json
+    if ([int]$package.mutationStatements -ne 0 -or [string]$package.database -ne 'ipcmanagement') {
+        throw 'D-05 package is not the read-only ipcmanagement evidence package.'
+    }
+
+    $rolePolicy = $run.completedD04RolePolicy
+    $expectedRoleFamilies = @('Admin','Manager','Coordinator','Procurement/Purchasing','Warehouse','Chef/Kitchen')
+    if ([string]$rolePolicy.status -ne 'PASS' -or
+        [string]$rolePolicy.authorizationPolicyPath -ne 'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs' -or
+        -not (Test-Path -LiteralPath ([string]$rolePolicy.authorizationPolicyPath) -PathType Leaf) -or
+        (Get-Sha256File ([string]$rolePolicy.authorizationPolicyPath)) -ne [string]$rolePolicy.authorizationPolicySha256 -or
+        @($rolePolicy.allowedRoleFamilies).Count -ne 6 -or
+        @(Compare-Object $expectedRoleFamilies @($rolePolicy.allowedRoleFamilies)).Count -ne 0 -or
+        @($rolePolicy.rolePermissionMatrix).Count -ne 6) {
+        throw 'D-05 completed D-04 role/policy receipt is stale or contains an unknown role.'
+    }
+
+    $closure = $run.activeBusinessClosure
+    $allowedClosureFields = @(
+        'status','decision','decisionReference','decisionSha256','decisionCapturedAtUtc','subjectCount',
+        'familyCounts','businessClassification','adminGovernanceAcceptanceReference',
+        'adminGovernanceAcceptanceIsRuntimeActorOrSignature','businessSqlStatements','databaseConnections',
+        'runtimeBooted','mutationStatements','sourceFactsReconciled','releaseArtifactStatus','fixedOutcomes'
+    )
+    if (@(Compare-Object $allowedClosureFields @($closure.PSObject.Properties.Name)).Count -ne 0) {
+        throw 'D-05 closure contains an identity, signature, SQL, command or other undeclared execution field.'
+    }
+    if ([string]$closure.status -ne 'D05_EVIDENCE_RELEASE_PENDING' -or
+        [string]$closure.decision -ne 'EVIDENCE_ONLY_ACCEPTED_RISK_RELEASE' -or
+        [string]$closure.decisionReference -ne 'opaque:d05:session-decision:2026-08-10' -or
+        [string]$closure.decisionSha256 -ne 'D9262FE6E2A4FF7131303C5E01B8FBCA65427BCB05920783BC0B1ECD0C118DD7' -or
+        [string]$closure.businessClassification -ne 'ACCEPTED_UNVERIFIED_BUSINESS_RISK' -or
+        [string]$closure.adminGovernanceAcceptanceReference -ne 'opaque:d05:admin-role-governance-acceptance:2026-08-10' -or
+        $closure.adminGovernanceAcceptanceIsRuntimeActorOrSignature -ne $false -or
+        [int]$closure.businessSqlStatements -ne 0 -or [int]$closure.databaseConnections -ne 0 -or
+        $closure.runtimeBooted -ne $false -or [int]$closure.mutationStatements -ne 0 -or
+        $closure.sourceFactsReconciled -ne $false) {
+        throw 'D-05 closure decision or zero-execution contract is invalid.'
+    }
+    $superseded = $run.supersededBusinessMutationContract
+    if ([string]$superseded.status -ne 'SUPERSEDED_D05_NOT_APPLICABLE' -or
+        $superseded.batchCoordinatorOrProductionSchemaExpansionAllowed -ne $false) {
+        throw 'D-05 old business mutation architecture is not superseded.'
+    }
+    foreach ($field in @('businessSql','businessRehearsalDatabase','apply','rollback','reapply','basePromotion')) {
+        if ([string]$superseded.$field -ne 'NOT_RUN_D05') { throw "D-05 superseded execution field is active: $field" }
+    }
+
+    $contracts = @(
+        [pscustomobject]@{ PackageField='movements'; CountField='movements'; Family='movement'; IdField='sourceEntityId'; Count=2461; Outcome='NO_CORRECTION' },
+        [pscustomobject]@{ PackageField='menuWeeks'; CountField='menuWeeks'; Family='menu-week'; IdField='sourceEntityId'; Count=84; Outcome='NO_CORRECTION' },
+        [pscustomobject]@{ PackageField='unitReviews'; CountField='unitReviews'; Family='unit'; IdField='sourceEntityId'; Count=44; Outcome='RETAIN_DISTINCT' },
+        [pscustomobject]@{ PackageField='quotations'; CountField='quotationSubjects'; Family='quotation'; IdField='sourceEntityId'; Count=756; Outcome='NO_PRICE_CREATED' },
+        [pscustomobject]@{ PackageField='boms'; CountField='bomSubjects'; Family='bom'; IdField='sourceEntityId'; Count=194; Outcome='NO_BOM_CREATED' },
+        [pscustomobject]@{ PackageField='duplicateGroups'; CountField='duplicateGroups'; Family='duplicate-group'; IdField='groupId'; Count=16; Outcome='KEEP_DISTINCT' }
+    )
+    $rows = New-Object System.Collections.Generic.List[object]
+    foreach ($contract in $contracts) {
+        $sourceRows = @($package.($contract.PackageField) | Sort-Object { [string]$_.$($contract.IdField) })
+        if ($sourceRows.Count -ne $contract.Count -or
+            [int]$run.priorPackageEvidence.counts.($contract.CountField) -ne $contract.Count -or
+            [int]$closure.familyCounts.($contract.CountField) -ne $contract.Count) {
+            throw "D-05 family count mismatch: $($contract.Family)"
+        }
+        $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
+        $previous = $null
+        foreach ($sourceRow in $sourceRows) {
+            $stableId = [string]$sourceRow.($contract.IdField)
+            $fingerprint = [string]$sourceRow.currentFingerprint
+            if ([string]::IsNullOrWhiteSpace($stableId) -or $fingerprint -notmatch '^[A-F0-9]{64}$' -or
+                -not $seen.Add($stableId)) {
+                throw "D-05 invalid or duplicate subject in $($contract.Family)."
+            }
+            if ($null -ne $previous -and [StringComparer]::Ordinal.Compare($previous, $stableId) -ge 0) {
+                throw "D-05 family ordering is not ordinal: $($contract.Family)."
+            }
+            $previous = $stableId
+            $rows.Add([ordered]@{
+                family = $contract.Family
+                stableId = $stableId
+                sourceFingerprint = $fingerprint
+                packageSha256 = $script:ExpectedPackageSha256
+                businessClassification = 'ACCEPTED_UNVERIFIED_BUSINESS_RISK'
+                unavailableFactMarker = 'SOURCE_FACTS_UNAVAILABLE_UNDER_D05'
+                outcome = $contract.Outcome
+                adminGovernanceAcceptanceReference = 'opaque:d05:admin-role-governance-acceptance:2026-08-10'
+            })
+        }
+    }
+    if ($rows.Count -ne 3555 -or [int]$closure.subjectCount -ne 3555) {
+        throw 'D-05 release must contain exactly 3,555 subjects.'
+    }
+
+    $release = [ordered]@{
+        schemaVersion = 1
+        verifierVersion = $script:VerifierVersion
+        runId = $RunId
+        target = $Target
+        status = 'PASS'
+        decision = 'EVIDENCE_ONLY_ACCEPTED_RISK_RELEASE'
+        decisionReference = 'opaque:d05:session-decision:2026-08-10'
+        decisionSha256 = 'D9262FE6E2A4FF7131303C5E01B8FBCA65427BCB05920783BC0B1ECD0C118DD7'
+        packageSha256 = $script:ExpectedPackageSha256
+        authorizationPolicySha256 = [string]$rolePolicy.authorizationPolicySha256
+        allowedRoleFamilies = @($rolePolicy.allowedRoleFamilies)
+        rolePermissionMatrix = @($rolePolicy.rolePermissionMatrix)
+        adminGovernanceAcceptanceReference = 'opaque:d05:admin-role-governance-acceptance:2026-08-10'
+        businessClassification = 'ACCEPTED_UNVERIFIED_BUSINESS_RISK'
+        subjectCount = 3555
+        familyCounts = $closure.familyCounts
+        fixedOutcomes = $closure.fixedOutcomes
+        sourceFactsReconciled = $false
+        businessSqlStatements = 0
+        databaseConnections = 0
+        runtimeBooted = $false
+        mutationStatements = 0
+        rows = $rows.ToArray()
+    }
+    Write-Manifest $release
+    $releaseHash = Get-Sha256File $Output
+    $releaseBytes = (Get-Item -LiteralPath $Output).Length
+    $sidecarPath = if ([IO.Path]::IsPathRooted("$Output.sha256")) { "$Output.sha256" } else { Join-Path (Get-Location) "$Output.sha256" }
+    [System.IO.File]::WriteAllText(
+        $sidecarPath,
+        (([ordered]@{ sha256=$releaseHash; bytes=$releaseBytes; subjectCount=3555 } | ConvertTo-Json -Compress) + "`n"),
+        (New-Object System.Text.UTF8Encoding($false)))
+
+    $run.status = 'LOCAL_ARCHIVE_PENDING'
+    $run.currentTask = 4
+    $run.currentTaskName = 'Provision DPAPI key and create exact encrypted local archive'
+    $run.completedTasks = 3
+    $run.activeBusinessClosure.status = 'PASS'
+    $run.activeBusinessClosure.releaseArtifactStatus = 'PASS'
+    $run.activeBusinessClosure | Add-Member -NotePropertyName releasePath -NotePropertyValue $Output -Force
+    $run.activeBusinessClosure | Add-Member -NotePropertyName releaseSha256 -NotePropertyValue $releaseHash -Force
+    $run.activeBusinessClosure | Add-Member -NotePropertyName releaseBytes -NotePropertyValue $releaseBytes -Force
+    $task3 = [ordered]@{
+        status='PASS'; completedAtUtc=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        releasePath=$Output; releaseSha256=$releaseHash; releaseBytes=$releaseBytes; subjectCount=3555
+        businessSqlStatements=0; databaseConnections=0; runtimeBooted=$false; mutationStatements=0
+    }
+    $run.revisedTaskCompletions | Add-Member -NotePropertyName task3 -NotePropertyValue $task3 -Force
+    $run.resumeGuardrails.completedTasksPreserved = 3
+    $run.resumeGuardrails.nextTask = 4
+    $run.resumeGuardrails.d05EvidenceReleaseMustRun = $false
+    $resolvedManifest = if ([IO.Path]::IsPathRooted($Manifest)) { $Manifest } else { Join-Path (Get-Location) $Manifest }
+    [System.IO.File]::WriteAllText(
+        $resolvedManifest, ($run | ConvertTo-Json -Depth 30),
+        (New-Object System.Text.UTF8Encoding($false)))
     return 0
 }
 
@@ -672,7 +855,7 @@ function Invoke-Phase42AggregateVerification {
     if ($StopAfter -eq 'package-export' -and [string]::IsNullOrWhiteSpace($Target)) {
         $Target = 'ipcmanagement'
     }
-    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'approval-check') -and
+    if ($Only -in @('authority-check', 'business-authority-check', 'd03-rebind-check', 'd04-role-rebind-check', 'd05-evidence-release', 'approval-check') -and
         -not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $manifestHeader = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]::IsNullOrWhiteSpace($Target)) { $Target = [string]$manifestHeader.target }
@@ -718,6 +901,7 @@ function Invoke-Phase42AggregateVerification {
     if ($Only -eq 'business-authority-check') { return Invoke-BusinessAuthorityCheck }
     if ($Only -eq 'd03-rebind-check') { return Invoke-D03RebindCheck }
     if ($Only -eq 'd04-role-rebind-check') { return Invoke-D04RoleRebindCheck }
+    if ($Only -eq 'd05-evidence-release') { return Invoke-D05EvidenceRelease }
     if ([string]::IsNullOrWhiteSpace($MigrationHead)) { throw 'An explicit -MigrationHead is required.' }
     if (-not [string]::IsNullOrWhiteSpace($StopAfter) -and $script:Plan05StopModes -notcontains $StopAfter -and
         @($spec.gates.id) -notcontains $StopAfter) {

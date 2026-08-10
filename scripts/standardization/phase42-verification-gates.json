@@ -127,7 +127,7 @@
       "command": "validate-artifact dcr-01-movement-closure.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["d04-role-permission-receipts", "d04-business-classifications", "admin-risk-acceptance", "no-inference-outcomes", "dcr-01-movement-closure"]
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-01-movement-closure"]
     },
     {
       "order": 10,
@@ -138,7 +138,7 @@
       "command": "validate-artifact dcr-02-menu-closure.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["d04-role-permission-receipts", "d04-business-classifications", "admin-risk-acceptance", "no-inference-outcomes", "dcr-02-menu-closure"]
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-02-menu-closure"]
     },
     {
       "order": 11,
@@ -149,7 +149,7 @@
       "command": "validate-artifact dcr-03-unit-closure.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["d04-role-permission-receipts", "d04-business-classifications", "admin-risk-acceptance", "no-inference-outcomes", "dcr-03-unit-closure"]
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-03-unit-closure"]
     },
     {
       "order": 12,
@@ -160,7 +160,7 @@
       "command": "validate-artifact dcr-04-quotation-closure.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["d04-role-permission-receipts", "d04-business-classifications", "admin-risk-acceptance", "no-inference-outcomes", "dcr-04-quotation-closure"]
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-04-quotation-closure"]
     },
     {
       "order": 13,
@@ -171,7 +171,7 @@
       "command": "validate-artifact dcr-05-bom-closure.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["d04-role-permission-receipts", "d04-business-classifications", "admin-risk-acceptance", "no-inference-outcomes", "dcr-05-bom-closure"]
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-05-bom-closure"]
     },
     {
       "order": 14,
@@ -182,7 +182,7 @@
       "command": "validate-artifact dcr-06-duplicate-closure.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["d04-role-permission-receipts", "d04-business-classifications", "admin-risk-acceptance", "no-inference-outcomes", "dcr-06-duplicate-closure"]
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-06-duplicate-closure"]
     },
     {
       "order": 15,

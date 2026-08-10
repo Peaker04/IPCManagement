@@ -113,8 +113,8 @@ public class Phase42AggregateVerificationTests
 
         inputs.Should().Contain(["runId", "target"]);
         artifacts.Should().Contain([
-            "d04-role-permission-receipts", "d04-business-classifications",
-            "admin-risk-acceptance", "no-inference-outcomes", "accepted-local-only-risk",
+            "d05-evidence-only-release", "accepted-unverified-business-risk",
+            "fixed-no-correction-outcomes", "zero-business-execution", "accepted-local-only-risk",
             "encrypted-local-archive", "approved-local-archive-only",
             "restore-teardown", "plaintext-teardown", "seven-table-retention",
             "destructive-path-dormancy",
@@ -488,10 +488,12 @@ public class Phase42AggregateVerificationTests
     public void D05_evidence_release_should_emit_exact_accepted_risk_rows_without_business_execution_claims()
     {
         var root = FindRepositoryRoot();
-        var manifest = Path.Combine(
+        var sourceManifest = Path.Combine(
             root, ".artifacts", "shipyard-live", "phase-04.2-execution", "manifest.json");
         var temp = Path.Combine(Path.GetTempPath(), $"phase42-d05-{Guid.NewGuid():N}");
         Directory.CreateDirectory(temp);
+        var manifest = Path.Combine(temp, "manifest.json");
+        File.Copy(sourceManifest, manifest);
         var output = Path.Combine(temp, "business-release.json");
         try
         {
