@@ -24,6 +24,17 @@ export type SourcePathVariant = {
 
 export type SourcePathLeak = SourcePathVariant & { asset: string }
 
+type SourcePathMatcherNode = {
+  transitions: Map<string, number>
+  failure: number
+  outputs: string[]
+}
+
+type CompiledSourcePathMatcher = {
+  nodes: SourcePathMatcherNode[]
+  variants: readonly SourcePathVariant[]
+}
+
 const frontendRoot = path.resolve(import.meta.dirname, '..')
 const repositoryRoot = path.resolve(frontendRoot, '..')
 
@@ -48,14 +59,55 @@ export const buildManifestPathVariants = (
   }))
 })
 
+const compileSourcePathMatcher = (variants: readonly SourcePathVariant[]): CompiledSourcePathMatcher => {
+  const nodes: SourcePathMatcherNode[] = [{ transitions: new Map(), failure: 0, outputs: [] }]
+  for (const value of new Set(variants.map((variant) => variant.value))) {
+    let state = 0
+    for (const character of value) {
+      const existing = nodes[state].transitions.get(character)
+      if (existing !== undefined) {
+        state = existing
+        continue
+      }
+      const nextState = nodes.push({ transitions: new Map(), failure: 0, outputs: [] }) - 1
+      nodes[state].transitions.set(character, nextState)
+      state = nextState
+    }
+    nodes[state].outputs.push(value)
+  }
+
+  const queue = [...nodes[0].transitions.values()]
+  for (let index = 0; index < queue.length; index += 1) {
+    const state = queue[index]
+    for (const [character, target] of nodes[state].transitions) {
+      queue.push(target)
+      let fallback = nodes[state].failure
+      while (fallback !== 0 && !nodes[fallback].transitions.has(character)) fallback = nodes[fallback].failure
+      nodes[target].failure = nodes[fallback].transitions.get(character) ?? 0
+      nodes[target].outputs.push(...nodes[nodes[target].failure].outputs)
+    }
+  }
+  return { nodes, variants }
+}
+
+const scanTextWithMatcher = (text: string, asset: string, matcher: CompiledSourcePathMatcher): SourcePathLeak[] => {
+  const matchedValues = new Set<string>()
+  let state = 0
+  for (const character of text) {
+    while (state !== 0 && !matcher.nodes[state].transitions.has(character)) state = matcher.nodes[state].failure
+    state = matcher.nodes[state].transitions.get(character) ?? 0
+    for (const value of matcher.nodes[state].outputs) matchedValues.add(value)
+  }
+  return matcher.variants
+    .filter((variant) => matchedValues.has(variant.value))
+    .map((variant) => ({ ...variant, asset }))
+}
+
 export const scanTextForSourcePathLeaks = (
   text: string,
   asset: string,
   variants: readonly SourcePathVariant[] = buildManifestPathVariants(),
-): SourcePathLeak[] => {
-  const matchedValues = new Set([...new Set(variants.map((variant) => variant.value))].filter((value) => text.includes(value)))
-  return variants.filter((variant) => matchedValues.has(variant.value)).map((variant) => ({ ...variant, asset }))
-}
+): SourcePathLeak[] => scanTextWithMatcher(text, asset, compileSourcePathMatcher(variants))
 
 const textAsset = (file: string) => file.endsWith('.map') || ['.js', '.css', '.html', '.json', '.txt'].includes(path.extname(file).toLowerCase())
 
@@ -69,10 +121,11 @@ export const scanDistTextAssets = (distRoot = path.join(frontendRoot, 'dist'), m
   const assets = walk(distRoot).filter(textAsset).sort((left, right) => left.localeCompare(right))
   if (assets.length === 0) throw new Error(`No emitted text assets found under ${distRoot}`)
   const variants = buildManifestPathVariants(manifest)
-  const leaks = assets.flatMap((file) => scanTextForSourcePathLeaks(
+  const matcher = compileSourcePathMatcher(variants)
+  const leaks = assets.flatMap((file) => scanTextWithMatcher(
     fs.readFileSync(file, 'utf8'),
     path.relative(repositoryRoot, file).replaceAll('\\', '/'),
-    variants,
+    matcher,
   ))
   return { assets: assets.map((file) => path.relative(repositoryRoot, file).replaceAll('\\', '/')), leaks }
 }
@@ -105,6 +158,17 @@ if (process.env.VITEST) {
       ownershipKey: buildUiSourceOwnershipKey(uiSourceOwnershipManifest.find((entry) => entry.sourceFile === 'src/features/auth/pages/LoginPage.tsx')!),
       asset: `synthetic-${asset}`,
     })
+  })
+
+  it('preserves variant order and distinct ownership rows for overlapping and duplicate matcher values', () => {
+    const variants: SourcePathVariant[] = [
+      { ownershipKey: 'owner-a', sourceFile: 'src/example.ts', kind: 'repository-relative', value: 'frontend/src/example.ts' },
+      { ownershipKey: 'owner-a', sourceFile: 'src/example.ts', kind: 'frontend-relative', value: 'src/example.ts' },
+      { ownershipKey: 'owner-b', sourceFile: 'src/example.ts', kind: 'frontend-relative', value: 'src/example.ts' },
+    ]
+    expect(scanTextForSourcePathLeaks('prefix frontend/src/example.ts suffix', 'synthetic-overlap', variants)).toEqual(
+      variants.map((variant) => ({ ...variant, asset: 'synthetic-overlap' })),
+    )
   })
 
   it('rejects a missing build instead of silently skipping bundle coverage', () => {
