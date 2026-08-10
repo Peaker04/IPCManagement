@@ -83,22 +83,24 @@ public sealed class BusinessEvidenceExportCommandTests
     {
         var movement = Enumerable.Range(1, 2461)
             .Select(index => new BusinessEvidenceSubject($"{index:x32}", Fingerprint(index),
-                new Dictionary<string, string?>()))
+                new Dictionary<string, string?>(), ["LEDGER"], ["WAREHOUSE_SOURCE_OWNER"]))
             .ToArray();
         var physical = BusinessEvidenceExportCommand.RequiredMenuReferenceSurfaces
             .ToDictionary(surface => surface, _ => (IReadOnlyList<string>)[]);
         var menus = Enumerable.Range(1, 84)
-            .Select(index => new MenuEvidenceSubject($"{index:x32}", Fingerprint(index), physical))
+            .Select(index => new MenuEvidenceSubject($"{index:x32}", Fingerprint(index), physical,
+                ["SOURCE_WORKBOOK", "DOWNSTREAM_TRAVERSAL"], ["COORDINATION_SOURCE_OWNER"]))
             .ToArray();
         var units = Enumerable.Range(1, 44)
             .Select(index => new BusinessEvidenceSubject($"{index:x32}", Fingerprint(index),
-                new Dictionary<string, string?>()))
+                new Dictionary<string, string?>(), ["AUTHORITATIVE_UNIT_SOURCE"], ["CATALOG_SOURCE_OWNER"]))
             .ToArray();
         var maps = BusinessEvidenceExportCommand.RequiredDuplicateConsumerSurfaces
             .ToDictionary(surface => surface, _ => (IReadOnlyList<StableConsumerReference>)[]);
         var duplicates = Enumerable.Range(1, 16)
             .Select(index => new DuplicateEvidenceGroup(Fingerprint(index), Fingerprint(index),
-                [$"{index:x32}", $"{index + 100:x32}"], maps, true, true))
+                [$"{index:x32}", $"{index + 100:x32}"], maps, true, true,
+                ["FULL_REFERENCE_MAP"], ["CATALOG_SOURCE_OWNER"]))
             .ToArray();
 
         return new BusinessEvidenceExportSnapshot(

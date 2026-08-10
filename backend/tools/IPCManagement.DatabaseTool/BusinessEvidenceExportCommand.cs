@@ -10,26 +10,37 @@ namespace IPCManagement.DatabaseTool;
 public sealed record BusinessEvidenceSubject(
     string SourceEntityId,
     string CurrentFingerprint,
-    IReadOnlyDictionary<string, string?> Facts);
+    IReadOnlyDictionary<string, string?> Facts,
+    IReadOnlyList<string> RequiredSourceReferenceTypes,
+    IReadOnlyList<string> RequiredAuthoritySlots);
 
 public sealed record MenuEvidenceSubject(
     string SourceEntityId,
     string CurrentFingerprint,
-    IReadOnlyDictionary<string, IReadOnlyList<string>> PhysicalReferences);
+    IReadOnlyDictionary<string, IReadOnlyList<string>> PhysicalReferences,
+    IReadOnlyList<string> RequiredSourceReferenceTypes,
+    IReadOnlyList<string> RequiredAuthoritySlots);
 
-public sealed record StableEvidenceRow(string RowId, string CurrentFingerprint);
+public sealed record StableEvidenceRow(
+    string RowId,
+    string CurrentFingerprint,
+    IReadOnlyDictionary<string, string?> Facts);
 
 public sealed record QuotationEvidenceSubject(
     string SourceEntityId,
     string CurrentFingerprint,
     IReadOnlyList<StableEvidenceRow> CurrentRows,
-    bool RequiresResolution);
+    bool RequiresResolution,
+    IReadOnlyList<string> RequiredSourceReferenceTypes,
+    IReadOnlyList<string> RequiredAuthoritySlots);
 
 public sealed record BomEvidenceSubject(
     string SourceEntityId,
     string CurrentFingerprint,
     IReadOnlyList<StableEvidenceRow> CurrentRows,
-    bool RequiresResolution);
+    bool RequiresResolution,
+    IReadOnlyList<string> RequiredSourceReferenceTypes,
+    IReadOnlyList<string> RequiredAuthoritySlots);
 
 public sealed record StableConsumerReference(string RowId, string IngredientId);
 
@@ -39,7 +50,9 @@ public sealed record DuplicateEvidenceGroup(
     IReadOnlyList<string> MemberIds,
     IReadOnlyDictionary<string, IReadOnlyList<StableConsumerReference>> ConsumerReferences,
     bool SourceScanClosed,
-    bool RuntimeScanClosed);
+    bool RuntimeScanClosed,
+    IReadOnlyList<string> RequiredSourceReferenceTypes,
+    IReadOnlyList<string> RequiredAuthoritySlots);
 
 public sealed record BusinessEvidenceExportSnapshot(
     string Database,
@@ -107,6 +120,8 @@ public static class BusinessEvidenceExportCommand
         foreach (var menu in snapshot.MenuWeeks)
         {
             ValidateStableIdAndFingerprint("menu-week", menu.SourceEntityId, menu.CurrentFingerprint, issues);
+            ValidateReferenceSlots("menu-week", menu.SourceEntityId, menu.RequiredSourceReferenceTypes,
+                menu.RequiredAuthoritySlots, issues);
             foreach (var surface in RequiredMenuReferenceSurfaces)
                 if (!menu.PhysicalReferences.ContainsKey(surface))
                     issues.Add($"menu-week {menu.SourceEntityId} is missing full physical traversal surface {surface}.");
@@ -114,10 +129,18 @@ public static class BusinessEvidenceExportCommand
 
         ValidateUniqueStableIds("quotation", snapshot.Quotations.Select(row => row.SourceEntityId), issues);
         foreach (var row in snapshot.Quotations)
+        {
             ValidateStableIdAndFingerprint("quotation", row.SourceEntityId, row.CurrentFingerprint, issues);
+            ValidateReferenceSlots("quotation", row.SourceEntityId, row.RequiredSourceReferenceTypes,
+                row.RequiredAuthoritySlots, issues);
+        }
         ValidateUniqueStableIds("BOM", snapshot.Boms.Select(row => row.SourceEntityId), issues);
         foreach (var row in snapshot.Boms)
+        {
             ValidateStableIdAndFingerprint("BOM", row.SourceEntityId, row.CurrentFingerprint, issues);
+            ValidateReferenceSlots("BOM", row.SourceEntityId, row.RequiredSourceReferenceTypes,
+                row.RequiredAuthoritySlots, issues);
+        }
 
         var groupIds = snapshot.DuplicateGroups.Select(group => group.GroupId).ToArray();
         if (groupIds.Distinct(StringComparer.Ordinal).Count() != groupIds.Length)
@@ -134,6 +157,8 @@ public static class BusinessEvidenceExportCommand
                     issues.Add($"duplicate group {group.GroupId} is missing consumer surface {surface}.");
             if (!group.SourceScanClosed || !group.RuntimeScanClosed)
                 issues.Add($"duplicate group {group.GroupId} source/runtime closure is incomplete.");
+            ValidateReferenceSlots("duplicate group", group.GroupId, group.RequiredSourceReferenceTypes,
+                group.RequiredAuthoritySlots, issues);
         }
 
         if (snapshot.MutationStatements != 0)
@@ -200,13 +225,16 @@ public static class BusinessEvidenceExportCommand
             FROM {Quote(database)}.stockmovements
             WHERE ABS(afterQty - (beforeQty + quantityIn - quantityOut)) > 0.000010
             ORDER BY movementId;
-            """, ["warehouseId", "ingredientId", "unitId", "referenceType", "referenceId"]);
+            """, ["warehouseId", "ingredientId", "unitId", "referenceType", "referenceId"],
+            ["LEDGER", "RECEIPT", "STOCK_SNAPSHOT"],
+            ["WAREHOUSE_SOURCE_OWNER", "FINANCE_SOURCE_OWNER"]);
 
         var menuSeeds = await ReadMenuSeedsAsync(connection, database);
         var menus = new List<MenuEvidenceSubject>(menuSeeds.Count);
         foreach (var seed in menuSeeds)
             menus.Add(new MenuEvidenceSubject(seed.Id, seed.Fingerprint,
-                await ReadMenuPhysicalReferencesAsync(connection, database, seed)));
+                await ReadMenuPhysicalReferencesAsync(connection, database, seed),
+                ["SOURCE_WORKBOOK", "DOWNSTREAM_TRAVERSAL"], ["COORDINATION_SOURCE_OWNER"]));
 
         var units = await ReadBusinessSubjectsAsync(connection,
             $"""
@@ -222,7 +250,8 @@ public static class BusinessEvidenceExportCommand
             JOIN {Quote(database)}.units sourceUnit ON sourceUnit.unitId=review.sourceUnitId
             JOIN {Quote(database)}.units catalogUnit ON catalogUnit.unitId=review.catalogUnitId
             ORDER BY review.reviewId;
-            """, ["ingredientId", "sourceUnitId", "catalogUnitId", "status", "proposedFactor"]);
+            """, ["ingredientId", "sourceUnitId", "catalogUnitId", "status", "proposedFactor"],
+            ["AUTHORITATIVE_UNIT_SOURCE"], ["CATALOG_SOURCE_OWNER", "WAREHOUSE_SOURCE_OWNER"]);
 
         var quotations = await ReadQuotationSubjectsAsync(connection, database);
         var boms = await ReadBomSubjectsAsync(connection, database);
@@ -234,7 +263,9 @@ public static class BusinessEvidenceExportCommand
     private static async Task<List<BusinessEvidenceSubject>> ReadBusinessSubjectsAsync(
         MySqlConnection connection,
         string sql,
-        IReadOnlyList<string> factColumns)
+        IReadOnlyList<string> factColumns,
+        IReadOnlyList<string> sourceReferenceTypes,
+        IReadOnlyList<string> authoritySlots)
     {
         await using var command = new MySqlCommand(sql, connection);
         await using var reader = await command.ExecuteReaderAsync();
@@ -244,7 +275,7 @@ public static class BusinessEvidenceExportCommand
             var facts = factColumns.ToDictionary(column => column,
                 column => reader.IsDBNull(reader.GetOrdinal(column)) ? null : Convert.ToString(reader[column]));
             result.Add(new BusinessEvidenceSubject(reader.GetString("sourceId"),
-                reader.GetString("fingerprint").ToUpperInvariant(), facts));
+                reader.GetString("fingerprint").ToUpperInvariant(), facts, sourceReferenceTypes, authoritySlots));
         }
         return result;
     }
@@ -361,13 +392,18 @@ public static class BusinessEvidenceExportCommand
             $"""
             SELECT HEX(i.ingredientId) subjectId, HEX(i.unitId) unitId,
                    CASE WHEN q.quotationId IS NULL THEN NULL ELSE HEX(q.quotationId) END rowId,
-                   CASE WHEN q.quotationId IS NULL THEN NULL ELSE SHA2(CONCAT_WS('|',HEX(q.quotationId),HEX(q.supplierId),HEX(q.ingredientId),q.unitPrice,q.effectiveFrom,COALESCE(q.effectiveTo,''),q.isActive),256) END rowFingerprint
+                   CASE WHEN q.quotationId IS NULL THEN NULL ELSE SHA2(CONCAT_WS('|',HEX(q.quotationId),HEX(q.supplierId),HEX(q.ingredientId),q.unitPrice,q.effectiveFrom,COALESCE(q.effectiveTo,''),q.isActive),256) END rowFingerprint,
+                   CASE WHEN q.quotationId IS NULL THEN NULL ELSE HEX(q.supplierId) END supplierId,
+                   CASE WHEN q.quotationId IS NULL THEN NULL ELSE CAST(q.unitPrice AS CHAR) END unitPrice,
+                   CASE WHEN q.quotationId IS NULL THEN NULL ELSE CAST(q.effectiveFrom AS CHAR) END effectiveFrom,
+                   CASE WHEN q.quotationId IS NULL THEN NULL ELSE COALESCE(CAST(q.effectiveTo AS CHAR),'') END effectiveTo
               FROM {Quote(database)}.ingredients i
               LEFT JOIN {Quote(database)}.supplierquotations q ON q.ingredientId=i.ingredientId AND q.isActive=1
                AND q.effectiveFrom<=CURRENT_DATE AND (q.effectiveTo IS NULL OR q.effectiveTo>=CURRENT_DATE)
              WHERE i.isActive=1 ORDER BY i.ingredientId,q.quotationId;
             """, connection);
-        return await ReadCoverageSubjectsAsync(command, quotation: true);
+        return await ReadCoverageSubjectsAsync(command,
+            ["supplierId", "unitPrice", "effectiveFrom", "effectiveTo"]);
     }
 
     private static async Task<IReadOnlyList<BomEvidenceSubject>> ReadBomSubjectsAsync(
@@ -377,40 +413,51 @@ public static class BusinessEvidenceExportCommand
             $"""
             SELECT HEX(d.dishId) subjectId, '' unitId,
                    CASE WHEN b.bomId IS NULL THEN NULL ELSE HEX(b.bomId) END rowId,
-                   CASE WHEN b.bomId IS NULL THEN NULL ELSE SHA2(CONCAT_WS('|',HEX(b.bomId),HEX(b.dishId),HEX(b.ingredientId),HEX(b.unitId),COALESCE(HEX(b.customerId),''),b.priceTierAmount,b.effectiveFrom,COALESCE(b.effectiveTo,''),b.bomStatus),256) END rowFingerprint
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE SHA2(CONCAT_WS('|',HEX(b.bomId),HEX(b.dishId),HEX(b.ingredientId),HEX(b.unitId),COALESCE(HEX(b.customerId),''),b.priceTierAmount,b.effectiveFrom,COALESCE(b.effectiveTo,''),b.bomStatus),256) END rowFingerprint,
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE HEX(b.ingredientId) END ingredientId,
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE HEX(b.unitId) END unitId,
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE COALESCE(HEX(b.customerId),'') END customerId,
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE CAST(b.priceTierAmount AS CHAR) END priceTierAmount,
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE CAST(b.effectiveFrom AS CHAR) END effectiveFrom,
+                   CASE WHEN b.bomId IS NULL THEN NULL ELSE COALESCE(CAST(b.effectiveTo AS CHAR),'') END effectiveTo
               FROM {Quote(database)}.dishes d
               LEFT JOIN {Quote(database)}.dishbom b ON b.dishId=d.dishId AND b.bomStatus='PUBLISHED'
                AND b.effectiveFrom<=CURRENT_DATE AND (b.effectiveTo IS NULL OR b.effectiveTo>=CURRENT_DATE)
              WHERE d.isActive=1 ORDER BY d.dishId,b.bomId;
             """, connection);
-        var rows = await ReadCoverageRowsAsync(command);
+        var rows = await ReadCoverageRowsAsync(command,
+            ["ingredientId", "unitId", "customerId", "priceTierAmount", "effectiveFrom", "effectiveTo"]);
         return rows.GroupBy(row => row.SubjectId, StringComparer.Ordinal).Select(group =>
         {
             var current = group.Where(row => row.Row is not null).Select(row => row.Row!).ToArray();
-            return new BomEvidenceSubject(group.Key, HashCanonical(group.Key, current), current, current.Length == 0);
+            return new BomEvidenceSubject(group.Key, HashCanonical(group.Key, current), current, current.Length == 0,
+                ["PUBLISHED_BOM", "BOM_EXEMPTION"], ["CATALOG_SOURCE_OWNER", "COORDINATION_SOURCE_OWNER"]);
         }).ToArray();
     }
 
     private static async Task<IReadOnlyList<QuotationEvidenceSubject>> ReadCoverageSubjectsAsync(
-        MySqlCommand command, bool quotation)
+        MySqlCommand command, IReadOnlyList<string> factColumns)
     {
-        _ = quotation;
-        var rows = await ReadCoverageRowsAsync(command);
+        var rows = await ReadCoverageRowsAsync(command, factColumns);
         return rows.GroupBy(row => row.SubjectId, StringComparer.Ordinal).Select(group =>
         {
             var current = group.Where(row => row.Row is not null).Select(row => row.Row!).ToArray();
-            return new QuotationEvidenceSubject(group.Key, HashCanonical(group.Key, current), current, current.Length == 0);
+            return new QuotationEvidenceSubject(group.Key, HashCanonical(group.Key, current), current, current.Length == 0,
+                ["SUPPLIER_QUOTATION", "TIME_BOUND_EXCEPTION"], ["PURCHASING_SOURCE_OWNER"]);
         }).ToArray();
     }
 
-    private static async Task<List<CoverageRow>> ReadCoverageRowsAsync(MySqlCommand command)
+    private static async Task<List<CoverageRow>> ReadCoverageRowsAsync(
+        MySqlCommand command, IReadOnlyList<string> factColumns)
     {
         await using var reader = await command.ExecuteReaderAsync();
         var rows = new List<CoverageRow>();
         while (await reader.ReadAsync())
             rows.Add(new CoverageRow(reader.GetString("subjectId"), reader.IsDBNull(reader.GetOrdinal("rowId"))
                 ? null
-                : new StableEvidenceRow(reader.GetString("rowId"), reader.GetString("rowFingerprint").ToUpperInvariant())));
+                : new StableEvidenceRow(reader.GetString("rowId"), reader.GetString("rowFingerprint").ToUpperInvariant(),
+                    factColumns.ToDictionary(column => column,
+                        column => reader.IsDBNull(reader.GetOrdinal(column)) ? null : Convert.ToString(reader[column])))));
         return rows;
     }
 
@@ -452,7 +499,9 @@ public static class BusinessEvidenceExportCommand
             var fingerprint = HashText(string.Join("\n", maps.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .SelectMany(pair => pair.Value.Select(row => $"{pair.Key}|{row.RowId}|{row.IngredientId}"))));
             result.Add(new DuplicateEvidenceGroup(groupId, fingerprint, orderedMembers, maps,
-                SourceScanClosed: true, RuntimeScanClosed: true));
+                SourceScanClosed: true, RuntimeScanClosed: true,
+                ["FULL_REFERENCE_MAP"],
+                ["CATALOG_SOURCE_OWNER", "WAREHOUSE_IMPACT_OWNER", "PURCHASING_IMPACT_OWNER"]));
         }
         return result.OrderBy(group => group.GroupId, StringComparer.Ordinal).ToArray();
     }
@@ -500,7 +549,24 @@ public static class BusinessEvidenceExportCommand
     {
         ValidateUniqueStableIds(family, rows.Select(row => row.SourceEntityId), issues);
         foreach (var row in rows)
+        {
             ValidateStableIdAndFingerprint(family, row.SourceEntityId, row.CurrentFingerprint, issues);
+            ValidateReferenceSlots(family, row.SourceEntityId, row.RequiredSourceReferenceTypes,
+                row.RequiredAuthoritySlots, issues);
+        }
+    }
+
+    private static void ValidateReferenceSlots(
+        string family,
+        string id,
+        IReadOnlyList<string> sourceReferenceTypes,
+        IReadOnlyList<string> authoritySlots,
+        ICollection<string> issues)
+    {
+        if (sourceReferenceTypes.Count == 0 || sourceReferenceTypes.Any(string.IsNullOrWhiteSpace))
+            issues.Add($"{family} {id} has no source-document reference slots.");
+        if (authoritySlots.Count == 0 || authoritySlots.Any(string.IsNullOrWhiteSpace))
+            issues.Add($"{family} {id} has no authority slots.");
     }
 
     private static void ValidateUniqueStableIds(string family, IEnumerable<string> ids, ICollection<string> issues)
@@ -526,7 +592,7 @@ public static class BusinessEvidenceExportCommand
     private static bool IsSha256(string value) => Regex.IsMatch(value ?? string.Empty, "^[A-Fa-f0-9]{64}$");
     private static string HashCanonical(string subjectId, IReadOnlyList<StableEvidenceRow> rows)
         => HashText(subjectId + "\n" + string.Join("\n", rows.OrderBy(row => row.RowId, StringComparer.Ordinal)
-            .Select(row => $"{row.RowId}|{row.CurrentFingerprint}")));
+            .Select(row => $"{row.RowId}|{row.CurrentFingerprint}|{string.Join(',', row.Facts.OrderBy(pair => pair.Key).Select(pair => $"{pair.Key}={pair.Value}"))}")));
     private static string HashText(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     private static string Quote(string database) => QuoteName(database);
     private static string QuoteName(string identifier) => $"`{identifier.Replace("`", "``", StringComparison.Ordinal)}`";
