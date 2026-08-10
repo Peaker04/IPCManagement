@@ -6,6 +6,9 @@ param(
     [string]$GateSpec = 'scripts/standardization/phase42-verification-gates.json',
     [string]$Output,
     [string]$RunId,
+    [string]$ArchiveRunId,
+    [string]$ArchiveReceipt,
+    [string]$ApprovalReceipt,
     [string]$Target,
     [string]$Database,
     [string]$MigrationHead,
@@ -25,6 +28,7 @@ $script:Plan05StopModes = @(
     'package-export', 'local-archive'
 )
 $script:ExpectedPackageSha256 = 'C281CB92E66939657680F0D31CA80B4A3451F5EE71A94745DBD60335DAE66EC2'
+$script:ExpectedApprovalReceiptSha256 = '158C35AAD17463DAD851CB4662A1C69B0252F8B375134446DF63CCAF4E0F90E2'
 $script:BackupTables = @(
     'backup_bomadjustments_20260717_141300',
     'backup_dishbom_20260717_141300',
@@ -144,10 +148,195 @@ function Invoke-CapturedCommand([string]$Command, [string]$ArtifactPrefix) {
 
 function Resolve-CommandTokens([string]$Command, [string]$GateArtifactPath) {
     $resolved = $Command.Replace('{runId}', $RunId).Replace('{target}', $Target)
+    $resolved = $resolved.Replace('{archiveRunId}', $ArchiveRunId)
+    $resolved = $resolved.Replace('{archiveReceipt}', $ArchiveReceipt).Replace('{approvalReceipt}', $ApprovalReceipt)
     $resolved = $resolved.Replace('{migrationHead}', $MigrationHead).Replace('{evidenceRoot}', $EvidenceRoot)
     $resolved = $resolved.Replace('{manifest}', $Manifest)
     $resolved = $resolved.Replace('{artifactPath}', $GateArtifactPath)
     return $resolved
+}
+
+function Get-RepositoryMigrationIds {
+    $migrationRoot = 'backend/src/IPCManagement.Api/Migrations'
+    if (-not (Test-Path -LiteralPath $migrationRoot -PathType Container)) {
+        throw 'Repository migrations directory is missing.'
+    }
+    $ids = New-Object System.Collections.Generic.List[string]
+    foreach ($file in Get-ChildItem -LiteralPath $migrationRoot -Filter '*.cs' -File) {
+        if ($file.Name -eq 'IpcManagementContextModelSnapshot.cs') { continue }
+        $text = Get-Content -Raw -LiteralPath $file.FullName
+        foreach ($match in [regex]::Matches($text, '\[Migration\("([^"]+)"\)\]')) {
+            $ids.Add([string]$match.Groups[1].Value)
+        }
+    }
+    return @($ids | Sort-Object -Unique)
+}
+
+function Assert-ExactMigrationIds([string[]]$Expected, [string[]]$Actual, [string]$Label) {
+    if ($Expected.Count -ne $Actual.Count -or ($Expected -join "`n") -ne ($Actual -join "`n")) {
+        throw "$Label ordered migration IDs do not match repository source."
+    }
+}
+
+function Assert-RetiredGapSourceAbsent {
+    $retiredPaths = @(
+        'backend/src/IPCManagement.Api/Features/Purchasing/Controllers/QuotationEvidenceResolutionsController.cs',
+        'backend/src/IPCManagement.Api/Features/Purchasing/Services/QuotationEvidenceResolutionService.cs',
+        'backend/src/IPCManagement.Api/Features/Catalog/Controllers/CatalogEvidenceResolutionsController.cs',
+        'backend/src/IPCManagement.Api/Features/Catalog/Services/BomEvidenceResolutionService.cs',
+        'backend/src/IPCManagement.Api/Features/Catalog/Services/DuplicateIngredientResolutionService.cs',
+        'backend/src/IPCManagement.Api/Shared/Contracts/EvidenceResolutionContracts.cs',
+        'backend/src/IPCManagement.Api/Shared/Lifecycle/EvidenceResolutionInfrastructure.cs',
+        'backend/src/IPCManagement.Api/Features/Reports/Contracts/BusinessEvidenceEnvelopeDto.cs',
+        'backend/src/IPCManagement.Api/Features/Reports/Services/BusinessEvidencePolicy.cs',
+        'backend/src/IPCManagement.Api/Features/Reports/Persistence/BusinessEvidencePackageConfiguration.cs',
+        'backend/src/IPCManagement.Api/Models/Entities/BusinessEvidencePackage.cs',
+        'backend/src/IPCManagement.Api/Models/Entities/BusinessEvidenceAttestation.cs',
+        'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.cs',
+        'backend/src/IPCManagement.Api/Migrations/20260810120000_AddBusinessEvidenceClosure.Designer.cs',
+        'backend/tools/IPCManagement.DatabaseTool/BusinessEvidenceClosureCommand.cs',
+        'backend/tools/IPCManagement.DatabaseTool/BusinessEvidenceExportCommand.cs'
+    )
+    $present = @($retiredPaths | Where-Object { Test-Path -LiteralPath $_ })
+    if ($present.Count -ne 0) { throw "Retired pre-D-05 source remains: $($present -join ', ')" }
+
+    $scanFiles = New-Object System.Collections.Generic.List[string]
+    foreach ($root in @('backend/src/IPCManagement.Api', 'backend/tools/IPCManagement.DatabaseTool')) {
+        if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+        foreach ($file in @(& rg --files $root -g '*.cs' -g '!**/bin*/**' -g '!**/obj*/**' -g '!**/.artifacts/**')) {
+            $scanFiles.Add((Resolve-Path -LiteralPath $file).Path)
+        }
+    }
+    foreach ($path in @($AdditionalScanPath)) {
+        if (Test-Path -LiteralPath $path -PathType Leaf) { $scanFiles.Add((Resolve-Path -LiteralPath $path).Path) }
+    }
+    $forbidden = '(?i)FINANCE_SOURCE_OWNER|CATALOG_SOURCE_OWNER|ActorRole\s*=\s*"(?:Catalog|Finance|Manager)"|BusinessEvidence(?:Package|Attestation|Policy|Envelope|ClosureCommand|ExportCommand)|Businessevidence(?:packages|attestations)|business-evidence-(?:close|export)'
+    $findings = @($scanFiles | Select-Object -Unique | Where-Object {
+        (Get-Content -Raw -LiteralPath $_) -match $forbidden
+    })
+    if ($findings.Count -ne 0) { throw "Retired or synthesized authority source remains: $($findings -join ', ')" }
+}
+
+function Invoke-GapSourceContract {
+    if ([string]::IsNullOrWhiteSpace($ArchiveRunId) -or $ArchiveRunId -notmatch '^[a-z0-9_]+$') {
+        throw 'A lowercase immutable -ArchiveRunId is required.'
+    }
+    if ([string]::IsNullOrWhiteSpace($ArchiveReceipt) -or -not (Test-Path -LiteralPath $ArchiveReceipt -PathType Leaf)) {
+        throw 'The immutable -ArchiveReceipt is required.'
+    }
+    if ([string]::IsNullOrWhiteSpace($ApprovalReceipt) -or -not (Test-Path -LiteralPath $ApprovalReceipt -PathType Leaf)) {
+        throw 'The immutable -ApprovalReceipt is required.'
+    }
+    if ([string]::IsNullOrWhiteSpace($Manifest)) { throw '-Manifest is required for the gap source contract.' }
+
+    $archivePath = (Resolve-Path -LiteralPath $ArchiveReceipt).Path
+    $approvalPath = (Resolve-Path -LiteralPath $ApprovalReceipt).Path
+    $approvalReceiptSha256 = Get-Sha256File $approvalPath
+    if ($approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256) {
+        throw 'The immutable approval receipt hash changed.'
+    }
+    $archive = Get-Content -Raw -LiteralPath $archivePath | ConvertFrom-Json
+    $approval = Get-Content -Raw -LiteralPath $approvalPath | ConvertFrom-Json
+    if ([string]$archive.status -ne 'PASS' -or [string]$archive.runId -ne $ArchiveRunId -or
+        [string]$approval.status -ne 'PASS' -or [string]$approval.runId -ne $ArchiveRunId -or
+        [string]$approval.approval -ne 'd03-local-archive-restore' -or
+        [string]$approval.archiveReference -ne [string]$archive.archiveReference -or
+        [string]$approval.archiveSha256 -ne [string]$archive.archiveSha256 -or
+        [long]$approval.archiveBytes -ne [long]$archive.archiveBytes -or
+        [string]$approval.innerManifestSha256 -ne [string]$archive.innerManifestSha256) {
+        throw 'Approval/archive identity is not exact.'
+    }
+    if (-not (Test-Path -LiteralPath ([string]$archive.archivePath) -PathType Leaf) -or
+        (Get-Sha256File ([string]$archive.archivePath)) -ne [string]$archive.archiveSha256 -or
+        (Get-Item -LiteralPath ([string]$archive.archivePath)).Length -ne [long]$archive.archiveBytes) {
+        throw 'Approved ciphertext identity changed.'
+    }
+    $expectedRestoreTarget = [string]$approval.restoreTarget
+    if ($expectedRestoreTarget -notmatch '^ipc_restore_phase42_[a-z0-9_]+$' -or
+        $expectedRestoreTarget -in @('ipcmanagement','ipc_lane1','ipc_lane9','ipc_e2e_template')) {
+        throw 'Approval restore target is unsafe.'
+    }
+
+    $repositoryMigrationIds = @(Get-RepositoryMigrationIds)
+    $archiveMigrationIds = @($archive.migrationIds | ForEach-Object { [string]$_ })
+    Assert-ExactMigrationIds $repositoryMigrationIds $archiveMigrationIds 'Archive'
+    if ($repositoryMigrationIds.Count -ne 63 -or
+        [string]$repositoryMigrationIds[-1] -ne '20260810030000_AddDataQualityDispositions' -or
+        [string]$archive.migrationHead -ne [string]$repositoryMigrationIds[-1]) {
+        throw 'Repository/archive migration count or head is not the approved migration-63 contract.'
+    }
+    Assert-RetiredGapSourceAbsent
+
+    $receipt = [ordered]@{
+        schemaVersion = 1
+        status = 'PASS'
+        evidenceRunId = $RunId
+        archiveRunId = $ArchiveRunId
+        target = 'ipcmanagement'
+        repositoryMigrationIds = $repositoryMigrationIds
+        repositoryMigrationCount = $repositoryMigrationIds.Count
+        repositoryMigrationHead = $repositoryMigrationIds[-1]
+        archiveMigrationIds = $archiveMigrationIds
+        archiveMigrationCount = $archiveMigrationIds.Count
+        archiveMigrationHead = [string]$archive.migrationHead
+        repositoryArchiveMigrationIdsExact = $true
+        approvalReceiptSha256 = $approvalReceiptSha256
+        approvalArchiveBindingExact = $true
+        archiveReference = [string]$archive.archiveReference
+        archiveSha256 = [string]$archive.archiveSha256
+        archiveBytes = [long]$archive.archiveBytes
+        innerManifestSha256 = [string]$archive.innerManifestSha256
+        expectedRestoreTargetSource = 'IMMUTABLE_APPROVAL_RECEIPT'
+        expectedRestoreTarget = $expectedRestoreTarget
+        retiredProductionSourceCount = 0
+        baseMutationStatements = 0
+        ipcLane1Accessed = $false
+        providerAccessed = $false
+    }
+    Write-Manifest $receipt
+
+    $manifestDirectory = Split-Path -Parent $Manifest
+    if (-not [string]::IsNullOrWhiteSpace($manifestDirectory)) {
+        New-Item -ItemType Directory -Path $manifestDirectory -Force | Out-Null
+    }
+    $gapManifest = [ordered]@{
+        schemaVersion = 3
+        plan = '04.2-05'
+        planRevision = 'GAP_CLOSURE_TASKS_9_12'
+        status = 'SOURCE_CONTRACT_PASS'
+        runId = $RunId
+        evidenceRunId = $RunId
+        archiveRunId = $ArchiveRunId
+        target = 'ipcmanagement'
+        migrationCount = $repositoryMigrationIds.Count
+        migrationHead = $repositoryMigrationIds[-1]
+        currentTask = 11
+        completedTasks = 10
+        totalTasks = 12
+        historicalTasksPreserved = 8
+        sourceContractPath = $Output
+        sourceContractSha256 = Get-Sha256File $Output
+        archiveReceiptPath = $archivePath
+        archiveReceiptSha256 = Get-Sha256File $archivePath
+        approvalReceiptPath = $approvalPath
+        approvalReceiptSha256 = $approvalReceiptSha256
+        archiveReference = [string]$archive.archiveReference
+        archiveSha256 = [string]$archive.archiveSha256
+        archiveBytes = [long]$archive.archiveBytes
+        innerManifestSha256 = [string]$archive.innerManifestSha256
+        expectedRestoreTargetSource = 'IMMUTABLE_APPROVAL_RECEIPT'
+        expectedRestoreTarget = $expectedRestoreTarget
+        businessReleasePath = '.artifacts/shipyard-live/phase-04.2-execution/db/reconciliation/business-release.json'
+        archiveManifestPath = '.artifacts/shipyard-live/phase-04.2-execution/manifest.json'
+        restoreReceiptPath = Join-Path $manifestDirectory 'db/recovery/restore-drill.json'
+        retentionReceiptPath = Join-Path $manifestDirectory 'db/cleanup/seven-table-retention.json'
+        baseMutationStatements = 0
+        ipcLane1Accessed = $false
+        providerAccessed = $false
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Manifest, ($gapManifest | ConvertTo-Json -Depth 30), $utf8NoBom)
+    return 0
 }
 
 function New-NotRunGate($Gate, [string]$SourceCommit, [string]$SpecHash, [bool]$IsContract) {
@@ -316,11 +505,108 @@ function Test-Plan05ArtifactGate($Gate, $Run) {
     }
 }
 
+function Test-GapArtifactGate($Gate, $Run) {
+    $path = if ($Gate.requirementId -in @('DCR-01','DCR-02','DCR-03','DCR-04','DCR-05','DCR-06')) {
+        [string]$Run.businessReleasePath
+    } elseif ($Gate.requirementId -eq 'DCR-07') {
+        [string]$Run.archiveReceiptPath
+    } elseif ($Gate.requirementId -eq 'DCR-08') {
+        [string]$Run.restoreReceiptPath
+    } elseif ($Gate.requirementId -eq 'DCR-09') {
+        [string]$Run.retentionReceiptPath
+    } else { $null }
+    if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = "Missing gap artifact for $($Gate.requirementId)."; ArtifactPath = $path }
+    }
+    try {
+        if ([string]$Run.planRevision -ne 'GAP_CLOSURE_TASKS_9_12' -or
+            [string]$Run.evidenceRunId -ne $RunId -or [string]$Run.archiveRunId -ne $ArchiveRunId -or
+            [int]$Run.migrationCount -ne 63 -or [string]$Run.migrationHead -ne $MigrationHead -or
+            [string]$Run.approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256) {
+            throw 'Gap manifest identity or migration contract is invalid.'
+        }
+        $source = Get-Content -Raw -LiteralPath ([string]$Run.sourceContractPath) | ConvertFrom-Json
+        if ([string]$source.status -ne 'PASS' -or [string]$source.evidenceRunId -ne $RunId -or
+            [string]$source.archiveRunId -ne $ArchiveRunId -or $source.repositoryArchiveMigrationIdsExact -ne $true -or
+            [int]$source.repositoryMigrationCount -ne 63 -or [string]$source.repositoryMigrationHead -ne $MigrationHead -or
+            [string]$source.approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256 -or
+            $source.approvalArchiveBindingExact -ne $true) {
+            throw 'Gap source contract is stale or incomplete.'
+        }
+        $repositoryIds = @($source.repositoryMigrationIds | ForEach-Object { [string]$_ })
+        $artifact = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+        if ($Gate.requirementId -in @('DCR-01','DCR-02','DCR-03','DCR-04','DCR-05','DCR-06')) {
+            if ((Get-Sha256File $path) -ne '33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482' -or
+                [string]$artifact.status -ne 'PASS' -or [string]$artifact.runId -ne $ArchiveRunId -or
+                [int]$artifact.subjectCount -ne 3555 -or $artifact.sourceFactsReconciled -ne $false -or
+                [int]$artifact.businessSqlStatements -ne 0 -or [int]$artifact.databaseConnections -ne 0 -or
+                $artifact.runtimeBooted -ne $false -or [int]$artifact.mutationStatements -ne 0 -or
+                @($artifact.rows).Count -ne 3555) {
+                throw 'Immutable D-05 release is stale or not zero-execution.'
+            }
+        }
+        elseif ($Gate.requirementId -eq 'DCR-07') {
+            Assert-D03Topology $artifact 'Gap DCR-07'
+            $archiveIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
+            Assert-ExactMigrationIds $repositoryIds $archiveIds 'Gap archive'
+            if ([string]$artifact.runId -ne $ArchiveRunId -or (Get-Sha256File $path) -ne [string]$Run.archiveReceiptSha256 -or
+                [string]$artifact.archiveSha256 -ne [string]$Run.archiveSha256 -or
+                [long]$artifact.archiveBytes -ne [long]$Run.archiveBytes -or
+                [string]$artifact.innerManifestSha256 -ne [string]$Run.innerManifestSha256) {
+                throw 'Immutable local archive identity is stale.'
+            }
+        }
+        elseif ($Gate.requirementId -eq 'DCR-08') {
+            $restoreIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
+            Assert-ExactMigrationIds $repositoryIds $restoreIds 'Gap restore'
+            $repositoryArchiveRestoreMigrationIdsExact = $true
+            if ([string]$artifact.status -ne 'PASS' -or [string]$artifact.evidenceRunId -ne $RunId -or
+                [string]$artifact.archiveRunId -ne $ArchiveRunId -or
+                [string]$artifact.approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256 -or
+                [string]$artifact.expectedRestoreTargetSource -ne 'IMMUTABLE_APPROVAL_RECEIPT' -or
+                [string]$artifact.restoreTarget -ne [string]$source.expectedRestoreTarget -or
+                $artifact.approvalArchiveBindingExact -ne $true -or $artifact.approvedArchiveOnly -ne $true -or
+                $artifact.allExactOraclesPass -ne $true -or $artifact.migrationOraclePass -ne $true -or
+                $artifact.schemaOraclePass -ne $true -or $artifact.foreignKeyOraclePass -ne $true -or
+                $artifact.triggerOraclePass -ne $true -or $artifact.rowCountOraclePass -ne $true -or
+                $artifact.rowDigestOraclePass -ne $true -or $artifact.d05ReleaseOraclePass -ne $true -or
+                $artifact.restoreDatabaseAbsent -ne $true -or $artifact.plaintextAbsent -ne $true -or
+                $artifact.existingDatabaseTouched -ne $false -or $artifact.ipcLane1Accessed -ne $false -or
+                $artifact.providerAccessed -ne $false -or [int]$artifact.businessMutationStatements -ne 0 -or
+                [int]$artifact.migrationCount -ne 63 -or [string]$artifact.migrationHead -ne $MigrationHead -or
+                -not $repositoryArchiveRestoreMigrationIdsExact) {
+                throw 'Fresh restore receipt is incomplete, unsafe or migration-stale.'
+            }
+        }
+        else {
+            Assert-D03Topology $artifact 'Gap DCR-09'
+            Assert-D03Retention $artifact 'Gap DCR-09'
+            $retentionIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
+            Assert-ExactMigrationIds $repositoryIds $retentionIds 'Gap retention'
+            if ([string]$artifact.evidenceRunId -ne $RunId -or [string]$artifact.archiveRunId -ne $ArchiveRunId -or
+                [string]$artifact.approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256 -or
+                [int]$artifact.tablesPresentBefore -ne 7 -or [int]$artifact.tablesPresentAfter -ne 7 -or
+                [int]$artifact.databaseConsumerCount -ne 0 -or [int]$artifact.productionConsumerCount -ne 0 -or
+                [int]$artifact.mutationStatements -ne 0 -or $artifact.ipcLane1Accessed -ne $false -or
+                $artifact.providerAccessed -ne $false) {
+                throw 'Fresh retention receipt is incomplete or unsafe.'
+            }
+        }
+        return [pscustomobject]@{ ExitCode = 0; StdOut = Get-Content -Raw -LiteralPath $path; StdErr = ''; ArtifactPath = $path }
+    }
+    catch {
+        return [pscustomobject]@{ ExitCode = 1; StdOut = ''; StdErr = $_.Exception.Message; ArtifactPath = $path }
+    }
+}
+
 function Test-ArtifactGate($Gate) {
     if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
         $run = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
         if ([string]$run.planRevision -eq 'D03_D04_D05_8_TASK') {
             return Test-Plan05ArtifactGate $Gate $run
+        }
+        if ([string]$run.planRevision -eq 'GAP_CLOSURE_TASKS_9_12') {
+            return Test-GapArtifactGate $Gate $run
         }
     }
     $fileName = ($Gate.command -replace '^validate-artifact\s+', '').Trim()
@@ -1211,14 +1497,21 @@ function Invoke-BusinessAuthorityCheck {
 
 function Invoke-HygieneVerification {
     $findings = New-Object System.Collections.Generic.List[string]
-    $plan05Run = if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
-        $candidate = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
-        if ([string]$candidate.planRevision -eq 'D03_D04_D05_8_TASK') { $candidate } else { $null }
+    $manifestCandidate = if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
     } else { $null }
-    $repoOwnedPaths = if ($null -ne $plan05Run) {
+    $plan05Run = if ($null -ne $manifestCandidate -and [string]$manifestCandidate.planRevision -eq 'D03_D04_D05_8_TASK') {
+        $manifestCandidate
+    } else { $null }
+    $gapRun = if ($null -ne $manifestCandidate -and [string]$manifestCandidate.planRevision -eq 'GAP_CLOSURE_TASKS_9_12') {
+        $manifestCandidate
+    } else { $null }
+    $repoOwnedPaths = if ($null -ne $plan05Run -or $null -ne $gapRun) {
         @(
             'scripts/standardization/Invoke-Phase42AggregateVerification.ps1',
             'scripts/standardization/phase42-verification-gates.json',
+            'scripts/run-frontend-unit-with-heap.mjs',
+            'package.json',
             'backend/tools/IPCManagement.Phase42ArchiveTool/Program.cs',
             'backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs',
             'backend/tests/IPCManagement.Api.Tests/AsyncActionRoutingContractTests.cs'
@@ -1252,7 +1545,7 @@ function Invoke-HygieneVerification {
     }
 
     $evidenceRoots = @($EvidenceRoot)
-    if ($null -ne $plan05Run) { $evidenceRoots += (Split-Path -Parent $Manifest) }
+    if ($null -ne $plan05Run -or $null -ne $gapRun) { $evidenceRoots += (Split-Path -Parent $Manifest) }
     $jsonFiles = @($evidenceRoots | Select-Object -Unique | Where-Object {
         Test-Path -LiteralPath $_ -PathType Container
     } | ForEach-Object {
@@ -1268,7 +1561,13 @@ function Invoke-HygieneVerification {
         }
     }
 
-    $d03Paths = if ($null -ne $plan05Run) {
+    $d03Paths = if ($null -ne $gapRun) {
+        [ordered]@{
+            dcr07 = [string]$gapRun.archiveReceiptPath
+            dcr08 = [string]$gapRun.restoreReceiptPath
+            dcr09 = [string]$gapRun.retentionReceiptPath
+        }
+    } elseif ($null -ne $plan05Run) {
         [ordered]@{
             dcr07 = [string]$plan05Run.revisedTaskCompletions.task4.receiptPath
             dcr08 = [string]$plan05Run.revisedTaskCompletions.task6.receiptPath
@@ -1292,7 +1591,7 @@ function Invoke-HygieneVerification {
             $restore = Get-Content -Raw -LiteralPath $d03Paths.dcr08 | ConvertFrom-Json
             $retention = Get-Content -Raw -LiteralPath $d03Paths.dcr09 | ConvertFrom-Json
             Assert-D03Topology $archive 'DCR-07'
-            if ($null -ne $plan05Run) {
+            if ($null -ne $plan05Run -or $null -ne $gapRun) {
                 if ([string]$restore.classification -ne 'ACCEPTED_LOCAL_ONLY_RISK' -or
                     [string]$restore.archiveSha256 -ne [string]$archive.archiveSha256) {
                     throw 'DCR-08 is not bound to the accepted local-only archive.'
@@ -1308,7 +1607,13 @@ function Invoke-HygieneVerification {
                     $findings.Add("Raw key field in active D-03 evidence: $activePath")
                 }
             }
-            $expectedRestore = "ipc_restore_phase42_$RunId"
+            $expectedRestore = if ($null -ne $gapRun) {
+                $approval = Get-Content -Raw -LiteralPath ([string]$gapRun.approvalReceiptPath) | ConvertFrom-Json
+                if ((Get-Sha256File ([string]$gapRun.approvalReceiptPath)) -ne $script:ExpectedApprovalReceiptSha256) {
+                    throw 'Gap approval receipt hash is stale.'
+                }
+                [string]$approval.restoreTarget
+            } else { "ipc_restore_phase42_$RunId" }
             if ($restore.approvedArchiveOnly -ne $true -or $restore.restoreDatabaseAbsent -ne $true -or
                 $restore.plaintextAbsent -ne $true -or $restore.existingDatabaseTouched -ne $false -or
                 [string]$restore.restoreTarget -ne $expectedRestore) {
@@ -1326,6 +1631,8 @@ function Invoke-HygieneVerification {
         schemaVersion = 1
         verifierVersion = $script:VerifierVersion
         runId = $RunId
+        evidenceRunId = if ($null -ne $gapRun) { $RunId } else { $null }
+        archiveRunId = if ($null -ne $gapRun) { $ArchiveRunId } else { $null }
         target = $Target
         migrationHead = $MigrationHead
         status = $status
@@ -1399,6 +1706,7 @@ function Invoke-Phase42AggregateVerification {
     }
 
     if ([string]::IsNullOrWhiteSpace($RunId) -or $RunId -notmatch '^[a-z0-9_]+$') { throw 'A lowercase run-owned -RunId is required.' }
+    if ($Only -eq 'gap-source-contract') { return Invoke-GapSourceContract }
     if ([string]::IsNullOrWhiteSpace($Target)) { throw 'An explicit -Target is required.' }
     if ($Target -eq 'ipc_lane1' -or $Target -notmatch '^(ipcmanagement|ipc_rehearsal_phase42_[a-z0-9_]+|ipc_restore_phase42_[a-z0-9_]+)$') {
         throw "Aggregate target is forbidden: $Target"
@@ -1488,7 +1796,7 @@ function Invoke-Phase42AggregateVerification {
         elseif (-not [string]::IsNullOrWhiteSpace($Only)) { 'PASS' }
         elseif ($requirementsPassed -eq [int]$spec.requirementsTotal) { 'PASS' }
         else { 'FAILED' }
-    Write-Manifest ([ordered]@{
+    $report = [ordered]@{
         schemaVersion = 1
         verifierVersion = $script:VerifierVersion
         contractOnly = $false
@@ -1504,7 +1812,39 @@ function Invoke-Phase42AggregateVerification {
         requirementsPassed = $requirementsPassed
         requirementsTotal = [int]$spec.requirementsTotal
         gates = [object[]]$gateResults
-    })
+    }
+    $gapRun = if (-not [string]::IsNullOrWhiteSpace($Manifest) -and (Test-Path -LiteralPath $Manifest -PathType Leaf)) {
+        $candidate = Get-Content -Raw -LiteralPath $Manifest | ConvertFrom-Json
+        if ([string]$candidate.planRevision -eq 'GAP_CLOSURE_TASKS_9_12') { $candidate } else { $null }
+    } else { $null }
+    if ($null -ne $gapRun) {
+        $source = Get-Content -Raw -LiteralPath ([string]$gapRun.sourceContractPath) | ConvertFrom-Json
+        $restore = Get-Content -Raw -LiteralPath ([string]$gapRun.restoreReceiptPath) | ConvertFrom-Json
+        $repositoryIds = @($source.repositoryMigrationIds | ForEach-Object { [string]$_ })
+        $archiveIds = @($source.archiveMigrationIds | ForEach-Object { [string]$_ })
+        $restoreIds = @($restore.migrationIds | ForEach-Object { [string]$_ })
+        $repositoryArchiveRestoreMigrationIdsExact =
+            ($repositoryIds -join "`n") -eq ($archiveIds -join "`n") -and
+            ($repositoryIds -join "`n") -eq ($restoreIds -join "`n")
+        $rootGate = @($gateResults | Where-Object { $_.gateId -eq 'ver-03-root-verify' }) | Select-Object -First 1
+        $report.evidenceRunId = $RunId
+        $report.archiveRunId = $ArchiveRunId
+        $report.expectedRestoreTargetSource = 'IMMUTABLE_APPROVAL_RECEIPT'
+        $report.expectedRestoreTarget = [string]$source.expectedRestoreTarget
+        $report.approvalReceiptSha256 = [string]$source.approvalReceiptSha256
+        $report.approvalArchiveBindingExact = [bool]$source.approvalArchiveBindingExact
+        $report.repositoryMigrationIds = $repositoryIds
+        $report.repositoryMigrationCount = $repositoryIds.Count
+        $report.repositoryMigrationHead = [string]$source.repositoryMigrationHead
+        $report.repositoryArchiveRestoreMigrationIdsExact = $repositoryArchiveRestoreMigrationIdsExact
+        $report.rootVerifyPass = $null -ne $rootGate -and [string]$rootGate.status -eq 'PASS'
+        $report.restoreDatabaseAbsent = [bool]$restore.restoreDatabaseAbsent
+        $report.plaintextAbsent = [bool]$restore.plaintextAbsent
+        $report.baseMutationStatements = 0
+        $report.ipcLane1Accessed = $false
+        $report.providerAccessed = $false
+    }
+    Write-Manifest $report
     return $(if ($overallStatus -in @('PASS', 'STOPPED')) { 0 } else { 1 })
 }
 

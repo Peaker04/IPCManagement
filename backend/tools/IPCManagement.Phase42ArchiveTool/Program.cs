@@ -13,23 +13,29 @@ if (!OperatingSystem.IsWindows())
 var options = ParseOptions(args);
 var settingsPath = Path.GetFullPath(Required(options, "settings"));
 var database = Required(options, "database");
-var runId = Required(options, "run-id");
 var releasePath = Path.GetFullPath(Required(options, "release"));
 var outputPath = Path.GetFullPath(Required(options, "output"));
 var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
 var mode = options.GetValueOrDefault("mode", "archive");
+var legacyRunId = options.GetValueOrDefault("run-id", string.Empty);
+var evidenceRunId = options.GetValueOrDefault("evidence-run-id", legacyRunId);
+var archiveRunId = options.GetValueOrDefault("archive-run-id", legacyRunId);
+var runId = mode == "archive" ? Required(options, "run-id") : evidenceRunId;
 if (database != "ipcmanagement")
     throw new InvalidOperationException("Phase 4.2 local archive source must be ipcmanagement.");
-if (!System.Text.RegularExpressions.Regex.IsMatch(runId, "^[a-z0-9_]+$"))
-    throw new InvalidOperationException("Phase 4.2 archive requires a lowercase run-owned ID.");
+if (!System.Text.RegularExpressions.Regex.IsMatch(runId, "^[a-z0-9_]+$") ||
+    !System.Text.RegularExpressions.Regex.IsMatch(archiveRunId, "^[a-z0-9_]+$"))
+    throw new InvalidOperationException("Phase 4.2 archive requires lowercase evidence and archive run IDs.");
 if (!File.Exists(settingsPath) || !File.Exists(releasePath))
     throw new FileNotFoundException("Settings or D-05 release input is missing.");
 var currentSid = WindowsIdentity.GetCurrent().User
     ?? throw new InvalidOperationException("Current Windows SID is unavailable.");
 if (mode == "restore")
-    return await RestoreApprovedArchiveAsync(options, settingsPath, database, runId, releasePath, outputPath, currentSid);
+    return await RestoreApprovedArchiveAsync(
+        options, settingsPath, database, evidenceRunId, archiveRunId, releasePath, outputPath, currentSid);
 if (mode == "retention")
-    return await ProveSevenTableRetentionAsync(options, settingsPath, database, runId, outputPath);
+    return await ProveSevenTableRetentionAsync(
+        options, settingsPath, database, evidenceRunId, archiveRunId, outputPath);
 if (mode != "archive")
     throw new InvalidOperationException("Phase 4.2 archive tool mode must be archive, restore or retention.");
 
@@ -315,20 +321,33 @@ static async Task<int> ProveSevenTableRetentionAsync(
     IReadOnlyDictionary<string, string> options,
     string settingsPath,
     string database,
-    string runId,
+    string evidenceRunId,
+    string archiveRunId,
     string outputPath)
 {
     if (database != "ipcmanagement")
         throw new InvalidOperationException("Seven-table retention proof is restricted to ipcmanagement.");
     var archiveReceiptPath = Path.GetFullPath(Required(options, "archive-receipt"));
+    var approvalReceiptPath = Path.GetFullPath(Required(options, "approval-receipt"));
     var restoreReceiptPath = Path.GetFullPath(Required(options, "restore-receipt"));
-    if (!File.Exists(archiveReceiptPath) || !File.Exists(restoreReceiptPath))
-        throw new FileNotFoundException("Archive-before or restore-drill receipt is missing.");
+    if (!File.Exists(archiveReceiptPath) || !File.Exists(approvalReceiptPath) || !File.Exists(restoreReceiptPath))
+        throw new FileNotFoundException("Archive, approval or restore-drill receipt is missing.");
+    var approvalReceiptSha256 = await Sha256FileAsync(approvalReceiptPath);
+    if (approvalReceiptSha256 != "158C35AAD17463DAD851CB4662A1C69B0252F8B375134446DF63CCAF4E0F90E2")
+        throw new InvalidOperationException("Restore approval receipt bytes changed.");
     using var archiveDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(archiveReceiptPath));
+    using var approvalDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(approvalReceiptPath));
     using var restoreDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(restoreReceiptPath));
     var archive = archiveDocument.RootElement;
+    var approval = approvalDocument.RootElement;
     var restore = restoreDocument.RootElement;
     if (archive.GetProperty("status").GetString() != "PASS" ||
+        archive.GetProperty("runId").GetString() != archiveRunId ||
+        approval.GetProperty("runId").GetString() != archiveRunId ||
+        restore.GetProperty("evidenceRunId").GetString() != evidenceRunId ||
+        restore.GetProperty("archiveRunId").GetString() != archiveRunId ||
+        restore.GetProperty("approvalReceiptSha256").GetString() != approvalReceiptSha256 ||
+        restore.GetProperty("restoreTarget").GetString() != approval.GetProperty("restoreTarget").GetString() ||
         restore.GetProperty("status").GetString() != "PASS" ||
         !restore.GetProperty("restoreDatabaseAbsent").GetBoolean() ||
         !restore.GetProperty("plaintextAbsent").GetBoolean())
@@ -411,7 +430,12 @@ static async Task<int> ProveSevenTableRetentionAsync(
     {
         schemaVersion = 1,
         status = "PASS",
-        runId,
+        runId = evidenceRunId,
+        evidenceRunId,
+        archiveRunId,
+        approvalReceiptSha256,
+        expectedRestoreTargetSource = "IMMUTABLE_APPROVAL_RECEIPT",
+        expectedRestoreTarget = approval.GetProperty("restoreTarget").GetString(),
         sourceDatabase = database,
         recoveryClassification = "ACCEPTED_LOCAL_ONLY_RISK",
         sameHost = true,
@@ -437,6 +461,9 @@ static async Task<int> ProveSevenTableRetentionAsync(
         businessMutationContract = "SUPERSEDED_D05_NOT_APPLICABLE",
         businessRehearsal = "NOT_RUN_D05",
         businessBasePromotion = "NOT_RUN_D05",
+        migrationIds = after.MigrationIds,
+        migrationHead = after.MigrationHead,
+        migrationCount = after.MigrationIds.Length,
         providerAccessed = false,
         ipcLane1Accessed = false,
         mutationStatements = 0,
@@ -455,7 +482,8 @@ static async Task<int> RestoreApprovedArchiveAsync(
     IReadOnlyDictionary<string, string> options,
     string settingsPath,
     string database,
-    string runId,
+    string evidenceRunId,
+    string archiveRunId,
     string releasePath,
     string outputPath,
     SecurityIdentifier currentSid)
@@ -463,18 +491,21 @@ static async Task<int> RestoreApprovedArchiveAsync(
     var archiveReceiptPath = Path.GetFullPath(Required(options, "archive-receipt"));
     var approvalReceiptPath = Path.GetFullPath(Required(options, "approval-receipt"));
     var restoreTarget = Required(options, "restore-target");
-    var expectedTarget = $"ipc_restore_phase42_{runId}";
-    if (restoreTarget != expectedTarget ||
-        restoreTarget is "ipcmanagement" or "ipc_lane1" or "ipc_lane9" or "ipc_e2e_template" ||
+    if (restoreTarget is "ipcmanagement" or "ipc_lane1" or "ipc_lane9" or "ipc_e2e_template" ||
         !System.Text.RegularExpressions.Regex.IsMatch(restoreTarget, "^ipc_restore_phase42_[a-z0-9_]+$"))
-        throw new InvalidOperationException("Restore target is not the canonical run-owned absent target.");
+        throw new InvalidOperationException("Restore target is not an approval-eligible absent target.");
     if (!File.Exists(archiveReceiptPath) || !File.Exists(approvalReceiptPath))
         throw new FileNotFoundException("Archive or approval receipt is missing.");
 
     using var archiveReceiptDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(archiveReceiptPath));
     using var approvalDocument = JsonDocument.Parse(await File.ReadAllBytesAsync(approvalReceiptPath));
+    var approvalReceiptSha256 = await Sha256FileAsync(approvalReceiptPath);
+    if (approvalReceiptSha256 != "158C35AAD17463DAD851CB4662A1C69B0252F8B375134446DF63CCAF4E0F90E2")
+        throw new InvalidOperationException("Restore approval receipt bytes changed.");
     var archiveReceipt = archiveReceiptDocument.RootElement;
     var approval = approvalDocument.RootElement;
+    var expectedTarget = approval.GetProperty("restoreTarget").GetString()
+        ?? throw new InvalidOperationException("Approval restore target is missing.");
     var archivePath = archiveReceipt.GetProperty("archivePath").GetString()
         ?? throw new InvalidOperationException("Archive path is missing.");
     var approvedArchiveSha256 = approval.GetProperty("archiveSha256").GetString()!;
@@ -482,7 +513,9 @@ static async Task<int> RestoreApprovedArchiveAsync(
     var approvedInnerManifestSha256 = approval.GetProperty("innerManifestSha256").GetString()!;
     if (approval.GetProperty("status").GetString() != "PASS" ||
         approval.GetProperty("approval").GetString() != "d03-local-archive-restore" ||
-        approval.GetProperty("restoreTarget").GetString() != restoreTarget ||
+        approval.GetProperty("runId").GetString() != archiveRunId ||
+        archiveReceipt.GetProperty("runId").GetString() != archiveRunId ||
+        expectedTarget != restoreTarget ||
         approval.GetProperty("governanceApprovalIsRuntimeActorOrSignature").GetBoolean() ||
         approvedArchiveSha256 != archiveReceipt.GetProperty("archiveSha256").GetString() ||
         approvedArchiveBytes != archiveReceipt.GetProperty("archiveBytes").GetInt64() ||
@@ -507,14 +540,14 @@ static async Task<int> RestoreApprovedArchiveAsync(
     var connectionBuilder = new MySqlConnectionStringBuilder(sourceConnectionString) { Database = string.Empty };
     var keyPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "IPCManagement", "Phase42", runId, "archive-key.dpapi");
+        "IPCManagement", "Phase42", archiveRunId, "archive-key.dpapi");
     if (!File.Exists(keyPath) ||
         await Sha256FileAsync(keyPath) != archiveReceipt.GetProperty("keyBlobSha256").GetString() ||
         new FileInfo(keyPath).Length != archiveReceipt.GetProperty("keyBlobBytes").GetInt64())
         throw new InvalidOperationException("DPAPI key blob is missing or stale.");
     await RestrictAclAsync(keyPath, currentSid, directory: false);
 
-    var temp = Path.Combine(Path.GetTempPath(), $"ipc-phase42-restore-{runId}-{Guid.NewGuid():N}");
+    var temp = Path.Combine(Path.GetTempPath(), $"ipc-phase42-restore-{evidenceRunId}-{Guid.NewGuid():N}");
     Directory.CreateDirectory(temp);
     await RestrictAclAsync(temp, currentSid, directory: true);
     var defaultsPath = Path.Combine(temp, "mysql-client.cnf");
@@ -616,7 +649,13 @@ static async Task<int> RestoreApprovedArchiveAsync(
     {
         schemaVersion = 1,
         status = "PASS",
-        runId,
+        runId = evidenceRunId,
+        evidenceRunId,
+        archiveRunId,
+        approvalReceiptSha256,
+        expectedRestoreTargetSource = "IMMUTABLE_APPROVAL_RECEIPT",
+        expectedRestoreTarget = expectedTarget,
+        approvalArchiveBindingExact = true,
         classification = "ACCEPTED_LOCAL_ONLY_RISK",
         approvedArchiveOnly = true,
         archiveReference = archiveReceipt.GetProperty("archiveReference").GetString(),
@@ -644,6 +683,7 @@ static async Task<int> RestoreApprovedArchiveAsync(
         businessMutationStatements = 0,
         migrationHead = actual.MigrationHead,
         migrationCount = actual.MigrationIds.Length,
+        migrationIds = actual.MigrationIds,
         tableCount = actual.TableNames.Length,
         foreignKeyCount = actual.ForeignKeyDefinitions.Length,
         triggerCount = actual.TriggerDefinitions.Length,

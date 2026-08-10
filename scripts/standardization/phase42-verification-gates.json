@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "requirementsTotal": 10,
-  "requiredExecutionInputs": ["runId", "target", "migrationHead", "evidenceRoot"],
+  "requiredExecutionInputs": ["runId", "archiveRunId", "target", "migrationHead", "evidenceRoot", "archiveReceipt", "approvalReceipt"],
   "requiredEvidenceFields": [
     "gateId",
     "requirementId",
@@ -58,7 +58,7 @@
       "stage": "W0",
       "requirementId": null,
       "kind": "command",
-      "command": "powershell -NoProfile -Command $env:NODE_OPTIONS='--max-old-space-size=1024';npm run test:unit -w frontend -- --maxWorkers=1",
+      "command": "npm run test:fe:unit",
       "versionCommand": "npm --version",
       "targetMode": "none",
       "requiredArtifacts": []
@@ -204,7 +204,7 @@
       "command": "validate-artifact dcr-08-approved-local-restore.json",
       "versionCommand": "phase42-verifier --version",
       "targetMode": "explicit",
-      "requiredArtifacts": ["approved-local-archive-only", "restore-teardown", "plaintext-teardown"]
+      "requiredArtifacts": ["approved-local-archive-only", "ordered-migration-ids", "restore-teardown", "plaintext-teardown"]
     },
     {
       "order": 17,
@@ -223,7 +223,7 @@
       "stage": "VER",
       "requirementId": "VER-03",
       "kind": "command",
-      "command": "powershell -NoProfile -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 -HygieneOnly -RunId {runId} -Target {target} -MigrationHead {migrationHead} -Manifest \"{manifest}\" -EvidenceRoot {evidenceRoot} -Output {artifactPath}",
+      "command": "powershell -NoProfile -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 -HygieneOnly -RunId {runId} -ArchiveRunId {archiveRunId} -ArchiveReceipt \"{archiveReceipt}\" -ApprovalReceipt \"{approvalReceipt}\" -Target {target} -MigrationHead {migrationHead} -Manifest \"{manifest}\" -EvidenceRoot {evidenceRoot} -Output {artifactPath}",
       "versionCommand": "powershell -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
       "targetMode": "explicit",
       "requiredArtifacts": ["secret-scan", "raw-key-scan", "d03-topology-scan", "destructive-dormancy-scan", "teardown-reconciliation"]
