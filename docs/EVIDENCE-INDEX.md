@@ -87,6 +87,16 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-reports-e2e.json` | `5DE99A6D8A8A74AADF3EFB98C11B0C4D71F35D317DE8C081B6F35E900A1B17F2` | Reports current-source sau hardening: page projection HTTP 200, snapshot/legacy cost fields render. |
 | `.artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-db-evidence.json` | `124F93C74B10A052259FF2358796C1C8AA35C3F39C16C8149D967A406D05B576` | DB evidence fixture hardening trên `ipc_e2e_template`: closed snapshot, actual reason và waiver audit. |
 
+### Gap closure Tasks 9–12 — chờ independent re-verification
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/phase-04.2-gap-closure-05/manifest.json` | `82881CF220E86C076414D96C1AD147916D22BA92C83FADC2B2C75DE5F362EDC9` | Manifest tách `evidenceRunId=phase_04_2_gap_closure_05` khỏi immutable `archiveRunId=phase_04_2_execution`, giữ approval-derived restore target. |
+| `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/preflight/source-contract.json` | `2532B8096A8922093C6644F2BBBA10402ECAFDB90784EFB7D33EE81EAAAD8B77` | Source-contract PASS: retired surface absent, repository/archive cùng exact 63 migration và approval/archive binding nguyên vẹn. |
+| `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/recovery/restore-drill.json` | `27799965A81FB8B73FBCEADFFC5DCDAE13ED221BAED95ED1E0B5664932CD10C0` | Fresh exact-ciphertext restore receipt với ordered migration IDs; approval-bound target và plaintext đều absent sau teardown. |
+| `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/cleanup/seven-table-retention.json` | `C80C175AF09EDD6AE22039937471E45C2ED9E1B6E69AA140F9C08D0EFB2C5419` | Fresh seven-table retention PASS, zero consumer/mutation và không truy cập `ipc_lane1`/provider. |
+| `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report.json` | `4042FF2322B19593C94F917F4A16A29815D7658A67EFCE59D6E7344CB2646EB7` | Gap aggregate PASS 10/10 trên source `2ff903cc`; implementation/evidence sẵn sàng cho independent GSD re-verification, chưa phải verifier verdict. |
+
 ## Historical
 
 | Artifact | SHA-256 | Mục đích |
