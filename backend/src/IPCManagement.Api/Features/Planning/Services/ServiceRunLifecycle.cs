@@ -52,7 +52,8 @@ public sealed record ServiceRunLifecycleInput(
     bool HasServiceConfirmation,
     bool IsServiceConfirmationWaived,
     bool IsClosed,
-    bool HasUnresolvedServingVariance = false);
+    bool HasUnresolvedServingVariance = false,
+    bool HasApprovedVarianceWaiver = false);
 
 public sealed record ServiceRunLifecycleEvaluation(
     string Status,
@@ -90,7 +91,7 @@ public static class ServiceRunLifecycle
         if (input.HasUnreceivedIssue) blockers.Add(ServiceRunBlocker.UnreceivedIssue);
         if (input.HasOpenSupplemental) blockers.Add(ServiceRunBlocker.OpenSupplemental);
         if (!input.HasRecordedActualServings) blockers.Add(ServiceRunBlocker.ActualServingsNotRecorded);
-        if (input.HasUnresolvedVariance) blockers.Add(ServiceRunBlocker.UnresolvedVariance);
+        if (input.HasUnresolvedVariance && !input.HasApprovedVarianceWaiver) blockers.Add(ServiceRunBlocker.UnresolvedVariance);
         if (input.HasUnresolvedServingVariance) blockers.Add(ServiceRunBlocker.UnresolvedServingVariance);
         if (input.HasServiceConfirmation && input.IsServiceConfirmationWaived) blockers.Add(ServiceRunBlocker.ConfirmationOutcomeConflict);
         if (!input.HasServiceConfirmation && !input.IsServiceConfirmationWaived)
@@ -104,7 +105,7 @@ public static class ServiceRunLifecycle
         if (!input.HasGeneratedMaterialDemand || input.HasOpenSupply || input.HasUnreceivedIssue || input.HasOpenSupplemental)
             return ServiceRunStatus.MaterialsInProgress;
         if (!input.HasRecordedActualServings) return ServiceRunStatus.ReadyToProduce;
-        if (input.HasUnresolvedVariance || input.HasUnresolvedServingVariance || blockers.Contains(ServiceRunBlocker.ConfirmationOutcomeConflict)) return ServiceRunStatus.ReconciliationRequired;
+        if ((input.HasUnresolvedVariance && !input.HasApprovedVarianceWaiver) || input.HasUnresolvedServingVariance || blockers.Contains(ServiceRunBlocker.ConfirmationOutcomeConflict)) return ServiceRunStatus.ReconciliationRequired;
         if (blockers.Contains(ServiceRunBlocker.ServiceConfirmationRequired)) return ServiceRunStatus.InService;
         return ServiceRunStatus.ReadyToClose;
     }
