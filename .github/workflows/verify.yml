@@ -309,3 +309,6 @@ jobs:
 
       - name: Build frontend
         run: npm run build:fe
+
+      - name: Check frontend route budgets
+        run: npm run check:route-budgets -w frontend
