@@ -7,6 +7,8 @@ import {
   resetTablePreferences,
   tablePreferenceOwnerRegistry,
   writeTablePreferences,
+  type TableDensity,
+  type TablePreferenceColumn,
   type TablePreferenceConfig,
 } from './tablePreferences';
 
@@ -135,11 +137,17 @@ describe('TableViewport', () => {
 
   it('protects locked reorder boundaries and restores default preferences', async () => {
     const user = userEvent.setup();
-    render(
+    const renderedColumns = ({ columns, density }: { columns: TablePreferenceColumn[]; density: TableDensity }) => (
+      <div data-columns={columns.map((column) => column.id).join(',')} data-rendered-density={density}>
+        {columns.map((column) => <span key={column.id}>{column.label}</span>)}
+      </div>
+    );
+    const firstRender = render(
       <TableViewport ariaLabel="Bảng sắp xếp" preferences={{ accountId: 'account-a', config: preferenceConfig }}>
-        {({ columns, density }) => <div data-columns={columns.map((column) => column.id).join(',')} data-rendered-density={density} />}
+        {renderedColumns}
       </TableViewport>,
     );
+    const region = screen.getByRole('region', { name: 'Bảng sắp xếp' });
 
     await user.click(screen.getByRole('button', { name: 'Tùy chỉnh bảng' }));
     const upStatus = screen.getByRole('button', { name: 'Đưa Trạng thái lên' });
@@ -154,9 +162,23 @@ describe('TableViewport', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Chi phí' }));
     await user.click(screen.getByRole('radio', { name: 'Thoáng' }));
+    expect(within(region).queryByText('Chi phí')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('ipc.table-preferences.v1:account-a:unit-table')).toContain('"hiddenColumnIds":["cost"]');
+
+    firstRender.unmount();
+    render(
+      <TableViewport ariaLabel="Bảng sắp xếp đã tải lại" preferences={{ accountId: 'account-a', config: preferenceConfig }}>
+        {renderedColumns}
+      </TableViewport>,
+    );
+    const reloadedRegion = screen.getByRole('region', { name: 'Bảng sắp xếp đã tải lại' });
+    expect(within(reloadedRegion).queryByText('Chi phí')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tùy chỉnh bảng' }));
     await user.click(screen.getByRole('button', { name: 'Khôi phục mặc định' }));
-    expect(screen.getByText((_, element) => element?.getAttribute('data-columns') === 'identity,status,cost')).toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.getAttribute('data-rendered-density') === 'standard')).toBeInTheDocument();
+    expect(within(reloadedRegion).getByText('Chi phí')).toBeInTheDocument();
+    expect(within(reloadedRegion).getByText((_, element) => element?.getAttribute('data-columns') === 'identity,status,cost')).toBeInTheDocument();
+    expect(within(reloadedRegion).getByText((_, element) => element?.getAttribute('data-rendered-density') === 'standard')).toBeInTheDocument();
     expect(window.localStorage.getItem('ipc.table-preferences.v1:account-a:unit-table')).toBeNull();
     expect(screen.getByRole('status')).toHaveTextContent('Đã khôi phục tùy chỉnh bảng mặc định');
   });
