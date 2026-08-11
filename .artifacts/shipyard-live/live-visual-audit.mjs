@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from '../../node_modules/@playwright/test/index.mjs';
+import { summarizeTrace } from './trace-attribution.mjs';
 
 const baseUrl = process.env.IPC_VISUAL_BASE_URL ?? 'http://127.0.0.1:3001';
 const apiUrl = process.env.IPC_VISUAL_API_URL ?? 'http://127.0.0.1:8001';
@@ -10,6 +11,7 @@ const database = process.env.IPC_VISUAL_DATABASE ?? 'ipc_lane1';
 const auditProfile = process.env.IPC_VISUAL_AUDIT_PROFILE ?? 'standard';
 const assertPerformance = process.env.IPC_VISUAL_ASSERT_PERFORMANCE === 'true';
 const attributionEnabled = process.env.IPC_VISUAL_ATTRIBUTION === 'true';
+const geometryEnabled = process.env.IPC_VISUAL_GEOMETRY === 'true';
 const dashboardUiRulesProfile = auditProfile === 'dashboard-ui-rules';
 if (database === 'ipc_lane1') throw new Error('Protected ipc_lane1 is prohibited for this visual audit.');
 const password = process.env.K6_PASSWORD;
@@ -233,7 +235,7 @@ await page.addInitScript((diagnosticEnabled) => {
     new MutationObserver(() => scheduleFrame('mutation-frame')).observe(document, { childList: true, subtree: true });
     scheduleFrame('initial-request-animation-frame');
   }
-}, attributionEnabled);
+}, geometryEnabled);
 
 const settle = async () => {
   await page.waitForLoadState('domcontentloaded');
@@ -259,38 +261,6 @@ const recordAction = async (name, action) => {
       window.__ipcPhase25Perf.actions[index].endTime = performance.now();
     }, actionIndex);
   }
-};
-
-const traceEventOwner = (event) => {
-  const data = event.args?.data ?? event.args?.beginData ?? {};
-  const stackFrame = Array.isArray(data.stackTrace) ? data.stackTrace[0] : null;
-  return {
-    name: event.name,
-    duration: Number((event.dur / 1_000).toFixed(3)),
-    functionName: data.functionName ?? data.function ?? stackFrame?.functionName ?? null,
-    url: data.url ?? data.scriptName ?? stackFrame?.url ?? null,
-  };
-};
-
-const summarizeTrace = (traceEvents, route, viewport) => {
-  const completeEvents = traceEvents.filter((event) => event.ph === 'X' && typeof event.ts === 'number' && typeof event.dur === 'number');
-  const longTasks = completeEvents
-    .filter((event) => event.name === 'RunTask' && event.dur > 50_000)
-    .map((task) => {
-      const taskEnd = task.ts + task.dur;
-      const nested = completeEvents
-        .filter((event) => event.pid === task.pid && event.tid === task.tid && event.name !== 'RunTask'
-          && event.ts >= task.ts && event.ts + event.dur <= taskEnd)
-        .sort((left, right) => right.dur - left.dur);
-      return { ...traceEventOwner(task), owner: nested[0] ? traceEventOwner(nested[0]) : null };
-    });
-  return {
-    route: route.path,
-    viewport: viewport.name,
-    status: 'captured',
-    eventCount: traceEvents.length,
-    longTasks,
-  };
 };
 
 const captureNavigationTrace = async ({ route, viewport, navigate }) => {

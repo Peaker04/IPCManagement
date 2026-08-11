@@ -230,6 +230,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Lý do loại |
 |---|---|---|
+| `.artifacts/shipyard-live/phase02-warehouse-admin-attribution-recursive-20260811/manifest.json` | `74ACFDB85BE8560C42E01AEFBD9B17E0D74FB81D7029A5438E2181B04AA77FA5` | Read-only 1920×1080 Warehouse/Admin diagnostic after bounded recursive CDP attribution parser. It recorded four long `RunTask` entries but no CDP script stack (`scriptOwner: null`); no repeated source was attributable, so it does not authorize a production change. Geometry/rAF sampling was disabled. |
 | `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-login-feedback-1440x900.png` | `F76A62709604CAE02E81CEA73BE747756FFAD842C2D9E7906C0FA40E5DC2500C` | Chrome headed screenshot xác nhận UI sau `9d58beb` hiển thị lỗi credential chính xác; không chứng minh lifecycle Manager. |
 | `.artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.json` | `5DD7189E1C844A1275616417338002E746E9913F9056ED6C3FB8AE4F1BB1C144` | Attempt locator timeout lúc 04:07; run final cùng thư mục lúc 04:10 mới authoritative. |
 | `.artifacts/shipyard-live/badge-transition-e2e-20260804/phase6-headed-workbook-e2e-error.json` | `067750603E8621E9F2C1447FDE028F08FCA215537B7104976F9A67507A284FF4` | Attempt setup thiếu stage workbook theo output directory mới; không gửi mutation và không dùng làm kết quả. Run JSON cùng thư mục sau bổ sung stage/hash fixture mới là evidence hợp lệ. |
