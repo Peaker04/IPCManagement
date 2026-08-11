@@ -5,6 +5,7 @@ import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 type AuditIssue = {
+  rule: string;
   route: string;
   viewport: string;
   selector: string;
@@ -26,15 +27,23 @@ const protectedRoutes = [
   { path: ROUTES.ADMIN_DATA, name: 'admin-data' },
 ] as const;
 
-const viewports = [
-  { name: 'desktop', width: 1365, height: 900 },
-  { name: 'mobile-390', width: 390, height: 844 },
+const measurementViewports = [
+  { name: '1920x1080', width: 1920, height: 1080 },
+  { name: '1440x900', width: 1440, height: 900 },
+  { name: '1366x768', width: 1366, height: 768 },
+  { name: '1365x900', width: 1365, height: 900 },
+  { name: '1280x900', width: 1280, height: 900 },
 ] as const;
 
 function writeAuditReport(name: string, issues: AuditIssue[]) {
   const reportPath = resolve(process.cwd(), 'test-results', `${name}.json`);
   mkdirSync(dirname(reportPath), { recursive: true });
-  writeFileSync(reportPath, JSON.stringify({ issueCount: issues.length, issues }, null, 2));
+  writeFileSync(reportPath, JSON.stringify({
+    schemaVersion: 1,
+    verdict: issues.length === 0 ? 'PASS' : 'FAIL',
+    issueCount: issues.length,
+    issues,
+  }, null, 2));
 }
 
 async function fulfillJson(route: Parameters<Parameters<Page['route']>[1]>[0], data: unknown) {
@@ -192,6 +201,19 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
       return;
     }
 
+    if (pathname === '/api/supplemental-material-requests' || pathname === '/api/inventory-returns') {
+      await fulfillJson(route, {
+        items: [],
+        totalCount: 0,
+        pageNumber: 1,
+        pageSize: 100,
+        totalPages: 0,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
     await fulfillJson(route, []);
   });
 }
@@ -281,9 +303,10 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
         const className = Array.from(element.classList).slice(0, 3).join('.');
         return `${element.tagName.toLowerCase()}${id}${className ? `.${className}` : ''}`;
       };
-      const addIssue = (element: HTMLElement, reason: string) => {
+      const addIssue = (element: HTMLElement, rule: string, reason: string) => {
         const rect = element.getBoundingClientRect();
         issues.push({
+          rule,
           route: evaluatedRouteName,
           viewport: evaluatedViewportName,
           selector: selectorFor(element),
@@ -297,11 +320,12 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
       const scrollWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
       if (scrollWidth > window.innerWidth + 2) {
         issues.push({
+          rule: 'C1',
           route: evaluatedRouteName,
           viewport: evaluatedViewportName,
           selector: 'document',
           text: '',
-          reason: `body horizontal overflow: ${scrollWidth}px > ${window.innerWidth}px`,
+          reason: 'PAGE_H_SCROLL',
           width: scrollWidth,
           height: window.innerHeight,
         });
@@ -327,13 +351,13 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
         const isTableAction = Boolean(element.closest('td'));
 
         if (style.overflowWrap === 'anywhere' || style.wordBreak === 'break-all') {
-          addIssue(element, 'control uses unsafe arbitrary word breaking');
+          addIssue(element, 'C4', 'UNSAFE_WORD_BREAK');
         } else if (isTableAction && (verticalLetters || clippedHorizontally || clippedVertically || rect.width < 64)) {
-          addIssue(element, 'table action control wraps or is too narrow');
+          addIssue(element, 'C4', 'TABLE_ACTION_UNREADABLE');
         } else if (clippedHorizontally || clippedVertically) {
-          addIssue(element, 'control label is clipped');
+          addIssue(element, 'C4', 'CONTROL_CLIPPED');
         } else if (verticalLetters && rect.width < 80) {
-          addIssue(element, 'control label wraps into vertical fragments');
+          addIssue(element, 'C4', 'CONTROL_VERTICAL_WRAP');
         }
       });
 
@@ -347,7 +371,7 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
           .join(' ')
           .trim();
         if (!label) {
-          addIssue(dialog, 'visible dialog has no accessible name');
+          addIssue(dialog, 'A1', 'DIALOG_MISSING_NAME');
         }
       });
 
@@ -360,14 +384,19 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
 async function expectNoAuditIssues(testName: string, issues: AuditIssue[]) {
   writeAuditReport(`ui-audit-${testName}`, issues);
   await test.info().attach('ui-audit-report', {
-    body: JSON.stringify({ issueCount: issues.length, issues }, null, 2),
+    body: JSON.stringify({
+      schemaVersion: 1,
+      verdict: issues.length === 0 ? 'PASS' : 'FAIL',
+      issueCount: issues.length,
+      issues,
+    }, null, 2),
     contentType: 'application/json',
   });
   expect(issues).toEqual([]);
 }
 
-test.describe('ui audit', () => {
-  for (const viewport of viewports) {
+test.describe('UI measurement audit', () => {
+  for (const viewport of measurementViewports) {
     test.describe(viewport.name, () => {
       test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
@@ -430,6 +459,7 @@ test.describe('shared tabs Material and Fiori contract', () => {
             const addFinding = (element: HTMLElement, reason: string) => {
               const rect = element.getBoundingClientRect();
               findings.push({
+                rule: 'C2',
                 route: context.route,
                 viewport: context.viewport,
                 selector: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}`,

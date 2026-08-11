@@ -146,7 +146,7 @@ describe('MaterialDemandSection — lỗi API không được hoá trang thành 
   it('hiện trạng thái tải đầu tiên trước khi có dữ liệu authoritative', () => {
     renderSection({ phase: 'loading' })
 
-    expect(screen.getByRole('status')).toHaveTextContent('Đang tải nhu cầu nguyên liệu')
+    expect(screen.getByText('Đang tải nhu cầu nguyên liệu...')).toHaveAttribute('role', 'status')
     expect(screen.queryByText(/Chưa tính nhu cầu nguyên liệu/)).toBeNull()
   })
 
@@ -193,7 +193,7 @@ describe('MaterialDemandSection — xác nhận tính lại nhu cầu đã duy�
     fireEvent.click(screen.getByRole('button', { name: 'Tính lại nhu cầu' }))
 
     expect(generate).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: 'Xác nhận tính lại nhu cầu' })).toHaveTextContent(
+    expect(screen.getByRole('dialog', { name: 'Tính lại nhu cầu đã duyệt?' })).toHaveTextContent(
       'Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?',
     )
   })

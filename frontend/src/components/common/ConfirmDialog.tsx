@@ -13,7 +13,7 @@ interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ConfirmDialog({ open, title, ariaLabel, description, confirmLabel, busy = false, busyLabel = 'Đang xử lý...', onConfirm, onOpenChange }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, description, confirmLabel, busy = false, busyLabel = 'Đang xử lý...', onConfirm, onOpenChange }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -22,7 +22,7 @@ export function ConfirmDialog({ open, title, ariaLabel, description, confirmLabe
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">
-          <DialogClose aria-label={ariaLabel ?? undefined} disabled={busy}>Hủy</DialogClose>
+          <DialogClose disabled={busy}>Hủy</DialogClose>
           <Button type="button" variant="destructive" onClick={onConfirm} disabled={busy}>{busy ? busyLabel : confirmLabel}</Button>
         </DialogFooter>
       </DialogContent>

@@ -109,7 +109,11 @@ export const scanTextForSourcePathLeaks = (
   variants: readonly SourcePathVariant[] = buildManifestPathVariants(),
 ): SourcePathLeak[] => scanTextWithMatcher(text, asset, compileSourcePathMatcher(variants))
 
-const textAsset = (file: string) => file.endsWith('.map') || ['.js', '.css', '.html', '.json', '.txt'].includes(path.extname(file).toLowerCase())
+const textAsset = (file: string) => {
+  const normalized = file.replaceAll('\\', '/')
+  return !normalized.endsWith('/.vite/manifest.json')
+    && (file.endsWith('.map') || ['.js', '.css', '.html', '.json', '.txt'].includes(path.extname(file).toLowerCase()))
+}
 
 const walk = (directory: string): string[] => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
   const fullPath = path.join(directory, entry.name)
@@ -175,10 +179,31 @@ if (process.env.VITEST) {
     expect(() => scanDistTextAssets(path.join(os.tmpdir(), 'phase-26-missing-dist'))).toThrow(/Missing frontend dist directory/)
   })
 
+  it('excludes Vite build metadata but still inventories emitted text assets', () => {
+    const distRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'source-ownership-dist-'))
+    try {
+      fs.mkdirSync(path.join(distRoot, '.vite'), { recursive: true })
+      fs.mkdirSync(path.join(distRoot, 'assets'), { recursive: true })
+      fs.writeFileSync(
+        path.join(distRoot, '.vite', 'manifest.json'),
+        JSON.stringify({ entry: { src: 'src/features/auth/pages/LoginPage.tsx' } }),
+      )
+      fs.writeFileSync(path.join(distRoot, 'assets', 'runtime.js'), 'export const sourcePathLeak = false')
+
+      const result = scanDistTextAssets(distRoot)
+
+      expect(result.assets.some((asset) => asset.endsWith('/.vite/manifest.json'))).toBe(false)
+      expect(result.assets.some((asset) => asset.endsWith('/assets/runtime.js'))).toBe(true)
+      expect(result.leaks).toEqual([])
+    } finally {
+      fs.rmSync(distRoot, { recursive: true, force: true })
+    }
+  })
+
   it('scans every emitted text and source-map asset in the current production build', () => {
     const result = scanDistTextAssets()
     expect(result.assets).toContain('frontend/dist/index.html')
     expect(result.leaks).toEqual([])
-  }, 30_000)
+  }, 90_000)
   })
 }

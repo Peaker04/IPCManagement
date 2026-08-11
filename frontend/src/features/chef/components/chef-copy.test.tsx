@@ -103,7 +103,7 @@ describe('Chef operational copy', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Ký nhận Bầu' }));
 
     expect(onMaterialSignoff).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog', { name: 'Xác nhận đã nhận nguyên liệu' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Xác nhận đã nhận nguyên liệu?' })).toBeInTheDocument();
     expect(screen.getByText('ISS-SUP-001')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Đã kiểm đếm và nhận' }));
     expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true);

@@ -81,7 +81,7 @@ describe('PurchaseSummarySection query feedback', () => {
 
     render(<PurchaseSummarySection workflow={workflow} />)
 
-    expect(screen.getByRole('status')).toHaveTextContent('Đang cập nhật tổng hợp tuần')
+    expect(screen.getByText('Đang cập nhật tổng hợp tuần')).toHaveAttribute('role', 'status')
     expect(screen.getByText('Gạo')).toBeInTheDocument()
   })
 })

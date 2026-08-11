@@ -384,6 +384,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
 
   classified('global', 'src/features/projects/pages/WeeklyMenuPage.tsx', 9, 'e7e44f077ee7ac61610b3d38a87ec5b335520674ddd6a425e1617a574953d007', 'declared-domain-query-state', 'Explicit persisted customer/week selection, synchronized with the page query state.'),
   classified('global', 'src/features/projects/weekly-menu/model/formatters.ts', 2, '812b0f7a3b4ddaf0150abdeb15c19161ee89c168acc83b38bb975695fe785fa8', 'declared-domain-query-state', 'Validated persisted week selection with stale-value cleanup.'),
+  classified('global', 'src/components/common/tablePreferences.ts', 3, '3cc2d1c1522c5917547d4b99c20b2c49d6000a04b6bd0e68b8fca962ba690e46', 'justified-non-visibility-infrastructure', 'Validated account/table-scoped presentation preferences persist only column identity, visibility, and density; they do not determine business lifecycle or authorization.'),
   classified('global', 'src/lib/auth/authStorage.ts', 15, 'eecdbc6b9746bb1520543ac571c8e245effb475320afaaf54a85db842335da55', 'justified-non-visibility-infrastructure', 'Central auth persistence boundary; UI consumes the declared auth snapshot rather than storage directly.'),
 
   classified('local', 'src/app/layout/MainLayout.tsx', 1, 'e5163a8f161b47e46badc64da9818e225c12944b8a4f13a260cebd603565bb53', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),

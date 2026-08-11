@@ -6,6 +6,17 @@ evidence cũ; không dùng bất kỳ trạng thái hay quality-gate lịch sử
 `MEMORY.md`. Phần bên dưới được nhập nguyên vẹn một lần từ handoff cũ; từ sau mốc tách này
 chỉ được append, không viết lại số cũ.
 
+## Dashboard UI Rules Conformance closeout ngày 11/08/2026
+
+- Workstream một phase/ba wave đã đóng toàn bộ 19 GAP của `DASHBOARD-UI-RULES-AUDIT.md`; 118
+  `NEEDS_EVIDENCE` giữ nguyên backlog, không có thay đổi backend, API, database, cache, auth hay lifecycle.
+- Gate cuối: focused `43/43`, frontend serial `143 file / 804 test`, lint, dependency-cruiser, frontend/backend
+  build và route budget đều pass. Debug baseline đã đóng một lỗi ConfirmDialog accessible-name, một Vite build
+  metadata false-positive, một storage classification và các stale test selector; không nới assertion.
+- Chrome headed trên `ipc_lane9` chạy đúng năm desktop viewport cho Service Run và Admin Audit: 10 preference
+  flow hoàn chỉnh, zero console/page/request failure, escaped mutation và overflow. CLS/long task chỉ là current
+  lab sample; hash manifest authoritative nằm ở `docs/EVIDENCE-INDEX.md`. Runtime owned 3010/8010 đã teardown.
+
 ## Snapshot handoff cũ trước khi phân tầng
 
 Phần trạng thái hiện hành và checklist tiếp tục đã được cắt sang `MEMORY.md`; không lặp lại ở đây.

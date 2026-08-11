@@ -46,6 +46,27 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('button', { name: 'Đang xử lý...' })).toBeDisabled();
   });
 
+  it('keeps the visible cancel action discernible when a legacy ariaLabel is supplied', async () => {
+    const onOpenChange = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <ConfirmDialog
+        open
+        ariaLabel="Xác nhận xóa quy tắc duyệt"
+        title="Xóa quy tắc duyệt?"
+        description="Quy tắc sẽ không còn áp dụng cho chứng từ mới."
+        confirmLabel="Xóa quy tắc"
+        onConfirm={vi.fn()}
+        onOpenChange={onOpenChange}
+      />,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hủy' }));
+    expect(onOpenChange).toHaveBeenCalledWith(false, 'close-control');
+  });
+
   it('supports contextual busy copy without changing the default contract', () => {
     render(
       <ConfirmDialog

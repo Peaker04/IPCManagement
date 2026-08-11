@@ -50,10 +50,15 @@ Frontend Playwright từ `frontend/`:
 ```bash
 npm run test:smoke
 npm run test:controls
-npm run test:ui-audit
+npm run test:ui-measurements
 npm run test:performance
 npm run test:visual
 ```
+
+`test:ui-measurements` là gate UI chuẩn cho agent: fixture read-only mở các route IPCManagement với
+năm viewport desktop canon, đo DOM và ghi `frontend/test-results/ui-audit-*.json`. Dùng report JSON để
+phán quyết; screenshot (nếu một browser run có lưu) chỉ dành cho reviewer, không phải oracle PASS/FAIL.
+`test:ui-audit` chỉ còn là alias tương thích của lệnh này.
 
 Để cập nhật visual snapshots, chỉ dùng khi thay đổi giao diện đã được review:
 

@@ -8,7 +8,7 @@ if (!npmExecPath) {
 
 const child = spawn(
   process.execPath,
-  [npmExecPath, 'run', 'test:unit', '-w', 'frontend', ...process.argv.slice(2)],
+  [npmExecPath, 'run', 'test:unit', '-w', 'frontend', '--', ...process.argv.slice(2)],
   {
     stdio: 'inherit',
     env: {

@@ -195,7 +195,7 @@ describe('ApprovalRulesPage query state boundary', () => {
     const view = renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
 
-    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toBeInTheDocument();
     expect(mocks.deleteRule).not.toHaveBeenCalled();
 
     mocks.deleteState.isLoading = true;
@@ -239,7 +239,7 @@ describe('ApprovalRulesPage query state boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' });
+    const dialog = screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' });
     await waitFor(() => expect(dialog).toHaveTextContent('Chưa thể xóa quy tắc'));
     expect(dialog).toHaveTextContent('Quy tắc đang được sử dụng.');
   });

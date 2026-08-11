@@ -42,7 +42,7 @@ Các script root trong `package.json`:
 | `npm run e2e:exceptions` | Gọi exception-path E2E script được khai báo trong `package.json`; kiểm tra script đích trước khi chạy. |
 | `npm run commitlint` | Kiểm tra commit message theo Conventional Commits. |
 
-Frontend workspace có thêm các script `dev`, `build`, `lint`, `preview`, `test:unit`, `test:unit:watch`, `test:coverage`, `test:smoke`, `test:controls`, `test:ui-audit`, `test:performance`, `test:visual` và `test:visual:update`; chạy chúng từ `frontend/`.
+Frontend workspace có thêm các script `dev`, `build`, `lint`, `preview`, `test:unit`, `test:unit:watch`, `test:coverage`, `test:smoke`, `test:controls`, `test:ui-measurements`, `test:performance`, `test:visual` và `test:visual:update`; chạy chúng từ `frontend/`. `test:ui-audit` là compatibility alias của `test:ui-measurements`, không phải một gate riêng.
 
 Khi thêm network action, giữ một request owner: query dùng cùng RTK endpoint + normalized args; mutation
 không tự gọi trong `onChange` và phải có trạng thái draft/commit rõ (thường commit ở blur, Enter hoặc nút
