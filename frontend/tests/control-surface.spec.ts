@@ -528,6 +528,8 @@ test.describe('operational control surface', () => {
     await action.focus();
     await expect(action).toBeFocused();
     await expect(action).toHaveAttribute('aria-controls', 'reports-price-warning-detail');
+    await expect(action).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#reports-price-warning-detail')).toHaveCount(0);
     const actionGeometry = await action.evaluate((element) => ({
       clientWidth: element.clientWidth,
       scrollWidth: element.scrollWidth,
@@ -537,7 +539,14 @@ test.describe('operational control surface', () => {
     expect(actionGeometry.scrollWidth).toBeLessThanOrEqual(actionGeometry.clientWidth + 1);
 
     await action.click();
-    await expect(page.locator('#reports-price-warning-detail')).toContainText('Sườn heo');
+    const warningDetail = page.locator('#reports-price-warning-detail');
+    await expect(action).toHaveAttribute('aria-expanded', 'true');
+    await expect(warningDetail).toContainText('Sườn heo');
+    await expect(warningDetail).toBeFocused();
+    await action.click();
+    await expect(action).toHaveAttribute('aria-expanded', 'false');
+    await expect(warningDetail).toHaveCount(0);
+    await expect(action).toBeFocused();
     await search.fill('Sườn heo');
     await expect.poll(() => priceRequests.some((url) => url.searchParams.get('searchKeyword') === 'Sườn heo')).toBe(true);
   });

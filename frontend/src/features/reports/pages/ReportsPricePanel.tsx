@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AlertTriangle, ClipboardList, Search, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -26,6 +27,7 @@ interface ReportsPricePanelProps {
 }
 
 export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
+  const warningDetailRef = useRef<HTMLDivElement>(null);
   const {
     activePriceView,
     dishGroupPage,
@@ -73,6 +75,10 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
     ),
     tone: 'danger' as const,
   }));
+
+  useEffect(() => {
+    if (selectedWarning) warningDetailRef.current?.focus();
+  }, [selectedWarning]);
 
   return (
     <div id="reports-price-panel" role="tabpanel" aria-labelledby="reports-price-tab" className="flex flex-col gap-4">
@@ -334,8 +340,9 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                             className="whitespace-nowrap text-xs font-semibold text-[var(--ipc-danger)] underline underline-offset-2"
                             style={{ overflowWrap: 'normal' }}
                             aria-controls="reports-price-warning-detail"
+                            aria-expanded={selectedWarning?.id === item.id}
                             aria-label={`Xem đề xuất xử lý cho ${item.name}`}
-                            onClick={() => selectWarning(item.id)}
+                            onClick={() => selectWarning(selectedWarning?.id === item.id ? null : item.id)}
                           >
                             Xem đề xuất
                           </button>
@@ -361,7 +368,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
       )}
 
       {priceSubView === 'lines' && selectedWarning && (
-        <div id="reports-price-warning-detail" className="ipc-split-detail-strip ipc-report-warning-detail">
+        <div ref={warningDetailRef} id="reports-price-warning-detail" role="region" aria-label={`Đề xuất xử lý cho ${selectedWarning.name}`} tabIndex={-1} className="ipc-split-detail-strip ipc-report-warning-detail">
           <div className="ipc-split-detail-label mb-3">Tác động vận hành — {selectedWarning.name}</div>
           <div className="flex flex-wrap items-start gap-4">
             <div className="ipc-report-warning-card min-w-[240px] flex-1 rounded-md border border-[var(--ipc-danger)] bg-[var(--ipc-danger-soft)] p-3 text-sm text-[var(--ipc-danger)]">

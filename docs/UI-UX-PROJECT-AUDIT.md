@@ -1,7 +1,7 @@
 # UI/UX Project Audit
 
 Updated: 2026-08-11
-Status: Reports price-list and Approvals CLS remediations verified; Warehouse navigation performance remains `NEEDS_EVIDENCE` because no production owner is attributable
+Status: Reports disclosure and protected-route tab matrix verified; dialog and fixture-state coverage remains open, and Warehouse navigation performance remains `NEEDS_EVIDENCE` because no production owner is attributable
 
 ## Scope and evidence
 
@@ -11,7 +11,7 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 |---|---:|---|---|
 | Protected routes | 9 | 5 desktop viewports = 45 headed route probes | PARTIAL |
 | Table owners | 35 files | global-overflow/control gate + source inventory | PARTIAL |
-| Tab/view-switcher owners | 10 files | route-default record at five desktop viewports; non-default tab paths explicitly recorded | NEEDS_EVIDENCE |
+| Tab/view-switcher owners | 10 files | every initially permitted tab is activated at all five desktop viewports; a tab that remounts before its post-action state is measured is recorded with its owner as `NEEDS_EVIDENCE` | PARTIAL |
 | Dialog/modal owners | 24 files | shared dialog contract only; unopened read-only path explicitly recorded | NEEDS_EVIDENCE |
 | Loading/empty/error/permission states | route-specific | selected fixture states only; unexercised paths explicitly recorded | NEEDS_EVIDENCE |
 
@@ -30,13 +30,13 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 | UX-01 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | `ReportsPricePanel` now renders a focusable `Xem đề xuất` control with an accessible owner-specific label and `aria-controls` link to the existing warning-detail region. Five-desktop measurement records no wrapping or clipping. | The narrow cell no longer contains a wrapped instructional pseudo-action. |
 | UX-02 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | The existing labelled search control is exercised with the server-bound debounced `searchKeyword` before pagination; the warning action opens the existing detail path. | Discovery can constrain the price list before a user navigates pagination. |
 | UX-03 | Warehouse and Approvals | PARTIAL | The Approvals owner-local scrollable queue viewport keeps the document strip geometry invariant for loading, 20-record, and empty states; headed CLS is `0.000040`–`0.000113` at all five desktop viewports. Warehouse production preview still records one `53ms` navigation task at `1920×1080`; Chrome DevTools records a `123ms` demand-tab interaction (94ms processing, 26ms presentation) but no source function or component owner. | Approvals is resolved. Warehouse remains `NEEDS_EVIDENCE`; do not alter its production UI without a lowest owner. |
-| UX-04 | Whole project | GAP in assurance | Current UI measurement suite visits route defaults plus one Admin stress table, not every tab/dialog/state owner. | Existing gate proves geometry only, not complete interactive-surface coverage. |
+| UX-04 | Whole project | GAP in assurance | The measurement suite now activates every initially permitted protected-route tab at all five desktop viewports and records actual geometry/focus/error/request results. Dialog and loading/empty/error/permission fixture coverage is still incomplete; tab owners that remount during activation are explicitly `NEEDS_EVIDENCE`. | The gate now proves route-default plus tab geometry, but not complete dialog/state coverage. |
 | UX-05 | Control-surface regression coverage | NEEDS_EVIDENCE | Reports now uses the `Báo cáo vận hành` shell title and its non-empty price fixture; the Reports controls pass. Purchasing remains non-empty-state unproven; the isolated Warehouse stock control returns to the local login page before the named table region can be observed. | Reports fixture/title drift is resolved in test scope. Purchasing/Warehouse remain read-only fixture/auth evidence gaps; do not change production owners until their intended route state is proven. |
 | UX-06 | Reports › Chất lượng dữ liệu | RESOLVED | The current control-surface fixture makes `data-quality` ready with an array payload; the view-model now uses `(totalIssues ?? 0).toString()`. | The context-strip count safely falls back to zero instead of crashing on an incomplete ready payload. |
 
 ## Required next audit matrix
 
-For every tab owner: activate each permitted tab at all five desktop viewports and record DOM overflow, row/header alignment, focus, console/page/request state, and CLS/long-task sample. For each dialog owner: open only a non-mutating/read-only instance where available; otherwise classify `NEEDS_EVIDENCE`, not PASS. Exercise loading, empty, error and permission states from existing fixtures. Record one structured result per surface as PASS, GAP, NOT_APPLICABLE, or NEEDS_EVIDENCE.
+The tab portion is now executable: every initially enabled tab is activated at all five desktop viewports with a fresh locator. A tab unmounted by a parent transition is recorded as `NEEDS_EVIDENCE`, never retried through a stale locator. Next, for each dialog owner, open only a non-mutating/read-only instance where available; otherwise classify `NEEDS_EVIDENCE`, not PASS. Exercise loading, empty, error and permission states from existing fixtures. Record one structured result per surface as PASS, GAP, NOT_APPLICABLE, or NEEDS_EVIDENCE.
 
 ## Interaction evidence collected
 

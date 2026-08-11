@@ -460,6 +460,110 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
   );
 }
 
+async function collectVisibleTabRecords(
+  page: Page,
+  routeName: string,
+  viewportName: string,
+  issues: AuditIssue[],
+  signals: ReturnType<typeof observePage>,
+) {
+  const tabIds = await page.locator('[role="tab"]').evaluateAll((tabs) => tabs
+    .filter((tab): tab is HTMLElement => tab instanceof HTMLElement && tab.offsetParent !== null && !tab.hasAttribute('disabled'))
+    .map((tab) => tab.id)
+    .filter(Boolean));
+  const records: InteractionRecord[] = [];
+
+  for (const tabId of tabIds) {
+    const tab = page.locator(`[role="tab"]#${tabId}`);
+    const tabState = () => page.evaluate((id) => {
+      const element = document.getElementById(id);
+      if (!(element instanceof HTMLElement)) return { visible: false, selected: false };
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        visible: rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden',
+        selected: element.getAttribute('aria-selected') === 'true',
+      };
+    }, tabId);
+    if (!(await tabState()).visible) {
+      const geometry = await page.evaluate(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+      }));
+      records.push({
+        route: routeName,
+        owner: tabId,
+        state: 'tab-unavailable-after-route-transition',
+        viewport: viewportName,
+        outcome: 'NEEDS_EVIDENCE',
+        geometry,
+        focus: 'tab-unmounted',
+        consoleErrors: [...signals.consoleErrors],
+        pageErrors: [...signals.pageErrors],
+        nonReadRequests: [...signals.nonReadRequests],
+      });
+      continue;
+    }
+    try {
+      await tab.click({ timeout: 1_000 });
+    } catch {
+      const geometry = await page.evaluate(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+      }));
+      records.push({
+        route: routeName,
+        owner: tabId,
+        state: 'tab-unavailable-during-activation',
+        viewport: viewportName,
+        outcome: 'NEEDS_EVIDENCE',
+        geometry,
+        focus: 'tab-owner-remounted',
+        consoleErrors: [...signals.consoleErrors],
+        pageErrors: [...signals.pageErrors],
+        nonReadRequests: [...signals.nonReadRequests],
+      });
+      continue;
+    }
+    if (!(await tabState()).selected) {
+      const geometry = await page.evaluate(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+      }));
+      records.push({
+        route: routeName,
+        owner: tabId,
+        state: 'tab-owner-remounted-after-activation',
+        viewport: viewportName,
+        outcome: 'NEEDS_EVIDENCE',
+        geometry,
+        focus: 'tab-owner-remounted',
+        consoleErrors: [...signals.consoleErrors],
+        pageErrors: [...signals.pageErrors],
+        nonReadRequests: [...signals.nonReadRequests],
+      });
+      continue;
+    }
+    await stabilize(page);
+    const tabIssues = await collectLayoutIssues(page, routeName, viewportName);
+    issues.push(...tabIssues);
+    records.push(await collectInteractionRecord(page, {
+      route: routeName,
+      owner: tabId,
+      state: 'tab-active',
+      viewport: viewportName,
+    }, tabIssues, signals));
+  }
+
+  return records;
+}
+
 async function expectNoAuditIssues(testName: string, issues: AuditIssue[], interactionRecords: InteractionRecord[] = []) {
   writeAuditReport(`ui-audit-${testName}`, issues, interactionRecords);
   await test.info().attach('ui-audit-report', {
@@ -488,7 +592,8 @@ test.describe('UI measurement audit', () => {
         const interactionRecords: InteractionRecord[] = [];
         for (const route of protectedRoutes) {
           const signals = observePage(page);
-          await navigateInApp(page, route.path);
+          await page.goto(route.path);
+          await expect(page.locator('.ipc-app-shell'), `route ${route.path}`).toBeVisible();
           await stabilize(page);
           const routeIssues = await collectLayoutIssues(page, route.name, viewport.name);
           issues.push(...routeIssues);
@@ -498,7 +603,6 @@ test.describe('UI measurement audit', () => {
             state: 'ready',
             viewport: viewport.name,
           }, routeIssues, signals));
-
           if (route.name === 'reports') {
             const action = page.getByRole('button', { name: 'Xem đề xuất xử lý cho Sườn heo' });
             await expect(action).toBeVisible();
@@ -520,22 +624,9 @@ test.describe('UI measurement audit', () => {
               viewport: viewport.name,
             }, await collectLayoutIssues(page, route.name, viewport.name), signals));
           }
+          interactionRecords.push(...await collectVisibleTabRecords(page, route.name, viewport.name, issues, signals));
         }
 
-        interactionRecords.push(
-          ...['reports-tabs', 'approvals-dialog', 'fixture-loading-empty-error-permission'].map((owner) => ({
-            route: owner.startsWith('reports') ? 'reports' : owner.startsWith('approvals') ? 'approvals' : 'protected-routes',
-            owner,
-            state: 'unexercised-read-only-path',
-            viewport: viewport.name,
-            outcome: 'NEEDS_EVIDENCE' as const,
-            geometry: { width: viewport.width, height: viewport.height, scrollWidth: viewport.width, scrollHeight: viewport.height },
-            focus: 'not-exercised',
-            consoleErrors: [],
-            pageErrors: [],
-            nonReadRequests: [],
-          })),
-        );
         await expectNoAuditIssues(`${viewport.name}-protected-routes`, issues, interactionRecords);
       });
 

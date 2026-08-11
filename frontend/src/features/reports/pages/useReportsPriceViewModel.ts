@@ -66,7 +66,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
   const priceVarianceByDishGroupRows = priceVarianceByDishGroupView.phase === 'ready' ? priceVarianceByDishGroupView.data.items : [];
   const priceVarianceRows = priceVarianceView.phase === 'ready' ? priceVarianceView.data.items : [];
   const warningItems = priceVarianceRows.filter((item) => item.warning);
-  const selectedWarning = warningItems.find((item) => item.id === selectedWarningId) ?? warningItems[0];
+  const selectedWarning = warningItems.find((item) => item.id === selectedWarningId);
   const activePriceView = priceSubView === 'supplier'
     ? priceVarianceBySupplierView
     : priceSubView === 'period'

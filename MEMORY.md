@@ -63,6 +63,12 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   Warehouse remains `NEEDS_EVIDENCE`: production preview reproduces one `53ms` navigation task at `1920×1080`, while
   Chrome DevTools records a `123ms` demand-tab INP without a production component/function owner. No Warehouse UI changed.
   The owned runtime was torn down. Hash/pointer is only in `docs/EVIDENCE-INDEX.md`.
+- Wave 3 corrective execution is active in the existing Phase 2 (no new phase/wave): Reports warning detail is now
+  collapsed by default, exposes `aria-expanded`, focuses its named detail region when opened and restores trigger focus
+  when closed. The protected-route matrix now activates every initially enabled tab at all five desktop viewports;
+  the 10 measurement tests pass. A tab that remounts after activation is recorded by owner as `NEEDS_EVIDENCE`, not a
+  stale-locator timeout. Dialog plus loading/empty/error/permission fixture coverage remains the active scope; Warehouse
+  retains its reservation because state-specific geometry is not yet deterministic.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer
