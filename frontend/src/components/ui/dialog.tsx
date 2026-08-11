@@ -69,9 +69,8 @@ function getFocusableElements(dialog: HTMLElement) {
 
 export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogProps) {
   const titleId = React.useId()
-  const portalRootRef = React.useRef<HTMLDivElement | null>(null)
+  const portalId = React.useId()
   const openerRef = React.useRef<HTMLElement | null>(null)
-  const [portalRoot, setPortalRoot] = React.useState<HTMLDivElement | null>(null)
 
   const requestClose = React.useCallback((reason: DialogCloseReason) => {
     if (onCloseRequest?.(reason) === false) {
@@ -81,30 +80,24 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
   }, [onCloseRequest, onOpenChange])
 
   React.useEffect(() => {
-    if (!open || typeof document === "undefined") {
+    const portalRoot = document.getElementById(portalId)
+    if (!open || !portalRoot) {
       return undefined
     }
 
-    const root = document.createElement("div")
-    root.dataset.ipcDialogPortal = "true"
-    document.body.appendChild(root)
-    portalRootRef.current = root
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    markSiblingsInert(root)
-    setPortalRoot(root)
+    markSiblingsInert(portalRoot)
 
     return () => {
       restoreSiblingsInert()
-      root.remove()
-      portalRootRef.current = null
-      setPortalRoot(null)
       openerRef.current?.focus()
       openerRef.current = null
     }
-  }, [open])
+  }, [open, portalId])
 
   React.useEffect(() => {
-    if (!portalRoot) {
+    const portalRoot = document.getElementById(portalId)
+    if (!open || !portalRoot) {
       return undefined
     }
 
@@ -125,24 +118,26 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [portalRoot, requestClose])
+  }, [open, portalId, requestClose])
 
-  if (!open || !portalRoot) {
+  if (!open || typeof document === "undefined") {
     return null
   }
 
   return createPortal(
-    <DialogContext.Provider value={{ titleId, requestClose }}>
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px]"
-        onClick={() => requestClose("backdrop")}
-      />
-      <div className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
-        {children}
-      </div>
-    </DialogContext.Provider>,
-    portalRoot,
+    <div id={portalId} data-ipc-dialog-portal="true">
+      <DialogContext.Provider value={{ titleId, requestClose }}>
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px]"
+          onClick={() => requestClose("backdrop")}
+        />
+        <div className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+          {children}
+        </div>
+      </DialogContext.Provider>
+    </div>,
+    document.body,
   )
 }
 
