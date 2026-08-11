@@ -1,13 +1,14 @@
 import { expect, type Page, test } from '@playwright/test';
 import { ROUTES } from '../src/lib/routeConfig';
-import { phase09PurchaseOrdersPage, phase09Workbench } from './phase9-test-fixture';
+import { PHASE09_DATE, PHASE09_WEEK, stubPhase09Api } from './phase9-test-fixture';
+import { stubWorkflowReports } from './support/route-smoke/reports';
 
 const protectedRoutes = [
   { path: ROUTES.DASHBOARD, heading: 'Bàn điều hành hôm nay' },
   { path: ROUTES.WEEKLY_MENU, heading: 'KHSX và định lượng' },
   { path: ROUTES.MEAL_ORDERS, heading: 'Điều phối suất ăn' },
   { path: ROUTES.CHEF_DASHBOARD, heading: 'Bếp sản xuất' },
-  { path: ROUTES.REPORTS, heading: 'Phân tích biến động giá' },
+  { path: ROUTES.REPORTS, heading: 'Báo cáo vận hành' },
   { path: ROUTES.APPROVALS, heading: 'Duyệt vận hành' },
   { path: ROUTES.PURCHASING, heading: 'Thu mua' },
   { path: ROUTES.WAREHOUSE, heading: 'Kho nguyên liệu' },
@@ -35,6 +36,7 @@ async function stubOperationalApis(page: Page) {
       userId: '1',
       username: 'admin',
       fullName: 'Admin User',
+      roleCode: 'ADMIN',
       roleName: 'Admin',
       isAdminFullAccess: true,
       permissions: ['*'],
@@ -65,8 +67,24 @@ async function stubOperationalApis(page: Page) {
   }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
-  await page.route('**/api/purchase-workflow/workbench**', async (route) => fulfillJson(route, phase09Workbench));
-  await page.route('**/api/purchase-orders/page**', async (route) => fulfillJson(route, phase09PurchaseOrdersPage));
+  await page.route('**/api/workflow-reports/current-stock/page**', async (route) => fulfillJson(route, {
+    items: [{
+      warehouseId: 'warehouse-main',
+      warehouseName: 'Kho chính',
+      ingredientId: 'ingredient-rice',
+      ingredientName: 'Gạo tẻ',
+      unitId: 'unit-kg',
+      unitName: 'kg',
+      currentQty: 240,
+      lastUpdated: '2026-07-22T07:00:00Z',
+    }],
+    totalCount: 1,
+    pageNumber: 1,
+    pageSize: 8,
+    totalPages: 1,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/warehouses/selector**', async (route) => fulfillJson(route, [{
     warehouseId: 'warehouse-main',
     warehouseCode: 'MAIN',
@@ -311,10 +329,21 @@ async function stubApprovalRules(page: Page) {
 }
 
 async function login(page: Page) {
-  await page.goto(ROUTES.LOGIN);
-  await page.getByLabel('Tài khoản').fill('admin');
-  await page.getByLabel('Mật khẩu').fill('admin');
-  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  await page.context().clearCookies();
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('token', 'dev-login-fallback-token-admin');
+    window.localStorage.setItem('user', JSON.stringify({
+      id: 'control-surface-admin',
+      username: 'admin',
+      fullName: 'Admin User',
+      role: 'admin',
+      roleCode: 'ADMIN',
+      roleName: 'Admin',
+      isAdminFullAccess: true,
+      permissions: ['*'],
+    }));
+  });
+  await page.goto(ROUTES.DASHBOARD);
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
   await expect(page.locator('.ipc-app-shell')).toBeVisible();
 }
@@ -415,9 +444,10 @@ test.describe('operational control surface', () => {
 
   test('reports filters keep a consistent two-column mobile layout', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await stubWorkflowReports(page);
     await page.goto(ROUTES.REPORTS);
 
-    await expect(page.getByRole('heading', { name: 'Phân tích biến động giá', exact: true })).toBeVisible();
+    await expect(page.locator('.ipc-page-title')).toHaveText('Báo cáo vận hành');
     await expect(page.getByLabel('Từ ngày')).toBeVisible();
     await expect(page.getByLabel('Đến ngày')).toBeVisible();
     await expect(page.getByLabel('Ca')).toBeVisible();
@@ -432,11 +462,13 @@ test.describe('operational control surface', () => {
 
   test('reports wide tables scroll inside their viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await stubWorkflowReports(page);
     await page.goto(ROUTES.REPORTS);
 
     const tableViewport = page.locator('.ipc-report-table-shell');
     const table = tableViewport.locator('table').first();
     await expect(tableViewport).toBeVisible();
+    await expect(table.locator('tbody tr')).not.toHaveCount(0);
     await expect(table).toHaveCSS('min-width', '720px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,
@@ -484,7 +516,9 @@ test.describe('operational control surface', () => {
 
   test('purchasing actions remain reachable on mobile without overflow', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ROUTES.PURCHASING);
+    await stubPhase09Api(page);
+    await login(page);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
 
     const actionGroup = page.locator('.ipc-purchasing-actions');
     await expect(actionGroup).toBeVisible();
@@ -500,7 +534,9 @@ test.describe('operational control surface', () => {
 
   test('purchasing six-stage guide keeps labels readable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ROUTES.PURCHASING);
+    await stubPhase09Api(page);
+    await login(page);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
 
     const guide = page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' });
     await expect(guide).toBeVisible();
@@ -521,11 +557,14 @@ test.describe('operational control surface', () => {
 
   test('purchasing wide tables scroll inside their viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ROUTES.PURCHASING);
+    await stubPhase09Api(page);
+    await login(page);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
 
     const tableViewport = page.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
     const table = tableViewport.locator('table').first();
     await expect(tableViewport).toBeVisible();
+    await expect(table.locator('tbody tr')).not.toHaveCount(0);
     await expect(table).toHaveCSS('min-width', '900px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,
@@ -537,11 +576,13 @@ test.describe('operational control surface', () => {
 
   test('warehouse stock table scrolls inside its viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
     await page.goto(ROUTES.WAREHOUSE);
 
-    const tableViewport = page.locator('.ipc-warehouse-table-shell');
+    const tableViewport = page.getByRole('region', { name: 'Bảng tồn kho hiện tại trong kho' });
     const table = tableViewport.locator('table');
     await expect(tableViewport).toBeVisible();
+    await expect(table.locator('tbody tr')).not.toHaveCount(0);
     await expect(table).toHaveCSS('min-width', '720px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,

@@ -15,6 +15,21 @@ type AuditIssue = {
   height: number;
 };
 
+type InteractionOutcome = 'PASS' | 'GAP' | 'NOT_APPLICABLE' | 'NEEDS_EVIDENCE';
+
+type InteractionRecord = {
+  route: string;
+  owner: string;
+  state: string;
+  viewport: string;
+  outcome: InteractionOutcome;
+  geometry: { width: number; height: number; scrollWidth: number; scrollHeight: number };
+  focus: string;
+  consoleErrors: string[];
+  pageErrors: string[];
+  nonReadRequests: string[];
+};
+
 const protectedRoutes = [
   { path: ROUTES.DASHBOARD, name: 'dashboard' },
   { path: ROUTES.WEEKLY_MENU, name: 'weekly-menu' },
@@ -35,7 +50,7 @@ const measurementViewports = [
   { name: '1280x900', width: 1280, height: 900 },
 ] as const;
 
-function writeAuditReport(name: string, issues: AuditIssue[]) {
+function writeAuditReport(name: string, issues: AuditIssue[], interactionRecords: InteractionRecord[] = []) {
   const reportPath = resolve(process.cwd(), 'test-results', `${name}.json`);
   mkdirSync(dirname(reportPath), { recursive: true });
   writeFileSync(reportPath, JSON.stringify({
@@ -43,7 +58,43 @@ function writeAuditReport(name: string, issues: AuditIssue[]) {
     verdict: issues.length === 0 ? 'PASS' : 'FAIL',
     issueCount: issues.length,
     issues,
+    interactionRecords,
   }, null, 2));
+}
+
+function observePage(page: Page) {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const nonReadRequests: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('request', (request) => {
+    if (request.url().includes('/api/') && request.method() !== 'GET') {
+      nonReadRequests.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    }
+  });
+  return { consoleErrors, pageErrors, nonReadRequests };
+}
+
+async function collectInteractionRecord(
+  page: Page,
+  input: Pick<InteractionRecord, 'route' | 'owner' | 'state' | 'viewport'>,
+  issues: AuditIssue[],
+  signals: ReturnType<typeof observePage>,
+): Promise<InteractionRecord> {
+  const geometry = await page.evaluate(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight,
+  }));
+  const focus = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.tagName ?? 'none');
+  const outcome: InteractionOutcome = issues.length > 0 || signals.consoleErrors.length > 0 || signals.pageErrors.length > 0 || signals.nonReadRequests.length > 0
+    ? 'GAP'
+    : 'PASS';
+  return { ...input, outcome, geometry, focus, ...signals };
 }
 
 async function fulfillJson(route: Parameters<Parameters<Page['route']>[1]>[0], data: unknown) {
@@ -381,14 +432,15 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
   );
 }
 
-async function expectNoAuditIssues(testName: string, issues: AuditIssue[]) {
-  writeAuditReport(`ui-audit-${testName}`, issues);
+async function expectNoAuditIssues(testName: string, issues: AuditIssue[], interactionRecords: InteractionRecord[] = []) {
+  writeAuditReport(`ui-audit-${testName}`, issues, interactionRecords);
   await test.info().attach('ui-audit-report', {
     body: JSON.stringify({
       schemaVersion: 1,
       verdict: issues.length === 0 ? 'PASS' : 'FAIL',
       issueCount: issues.length,
       issues,
+      interactionRecords,
     }, null, 2),
     contentType: 'application/json',
   });
@@ -405,13 +457,36 @@ test.describe('UI measurement audit', () => {
         await login(page);
 
         const issues: AuditIssue[] = [];
+        const interactionRecords: InteractionRecord[] = [];
         for (const route of protectedRoutes) {
+          const signals = observePage(page);
           await navigateInApp(page, route.path);
           await stabilize(page);
-          issues.push(...await collectLayoutIssues(page, route.name, viewport.name));
+          const routeIssues = await collectLayoutIssues(page, route.name, viewport.name);
+          issues.push(...routeIssues);
+          interactionRecords.push(await collectInteractionRecord(page, {
+            route: route.name,
+            owner: 'route-default',
+            state: 'ready',
+            viewport: viewport.name,
+          }, routeIssues, signals));
         }
 
-        await expectNoAuditIssues(`${viewport.name}-protected-routes`, issues);
+        interactionRecords.push(
+          ...['reports-tabs', 'approvals-dialog', 'fixture-loading-empty-error-permission'].map((owner) => ({
+            route: owner.startsWith('reports') ? 'reports' : owner.startsWith('approvals') ? 'approvals' : 'protected-routes',
+            owner,
+            state: 'unexercised-read-only-path',
+            viewport: viewport.name,
+            outcome: 'NEEDS_EVIDENCE' as const,
+            geometry: { width: viewport.width, height: viewport.height, scrollWidth: viewport.width, scrollHeight: viewport.height },
+            focus: 'not-exercised',
+            consoleErrors: [],
+            pageErrors: [],
+            nonReadRequests: [],
+          })),
+        );
+        await expectNoAuditIssues(`${viewport.name}-protected-routes`, issues, interactionRecords);
       });
 
       test('admin data-quality stress table keeps actions readable', async ({ page }) => {
