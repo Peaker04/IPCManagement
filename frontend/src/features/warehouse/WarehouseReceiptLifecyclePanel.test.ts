@@ -35,9 +35,10 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain('Receipt và movement POSTED gốc không bị sửa.');
   });
 
-  it('reserves the lifecycle viewport while receipts are loading, ready, or empty', () => {
+  it('reserves the lifecycle viewport only while receipt data is loading', () => {
     expect(source).toContain('data-testid="receipt-lifecycle-panel"');
-    expect(source).toContain("min-h-[48rem]");
-    expect(source).toContain('aria-busy={isFetching || isFetchingReceipt}');
+    expect(source).toContain("isLifecycleBusy && 'min-h-[48rem]'");
+    expect(source).not.toContain("'mt-4 grid min-h-[48rem] content-start gap-3'");
+    expect(source).toContain('aria-busy={isLifecycleBusy}');
   });
 });

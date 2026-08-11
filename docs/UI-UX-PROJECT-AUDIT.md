@@ -39,7 +39,7 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 
 The tab portion is now executable: every initially enabled tab is activated at all five desktop viewports with a fresh locator. A tab unmounted by a parent transition is recorded as `NEEDS_EVIDENCE`, never retried through a stale locator. Next, for each dialog owner, open only a non-mutating/read-only instance where available; otherwise classify `NEEDS_EVIDENCE`, not PASS. Exercise loading, empty, error and permission states from existing fixtures. Record one structured result per surface as PASS, GAP, NOT_APPLICABLE, or NEEDS_EVIDENCE.
 
-Warehouse receipt lifecycle error is now covered at all five desktop viewports with a `503` GET fixture: its named panel remains rendered, settles with `aria-busy=false`, displays `Không tải được phiếu nhập lifecycle`, and produces no write request. This validates one error owner only; loading, empty and permission coverage stays open.
+Warehouse receipt lifecycle loading, empty and error are now covered at all five desktop viewports with read-only fixtures. The loading response holds its measured reservation; an empty `200` or error `503` settles with `aria-busy=false`, shows the explicit state, and produces no write request. The panel no longer reserves `48rem` after a read has settled. Permission coverage stays open.
 
 ## Interaction evidence collected
 

@@ -76,9 +76,9 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   viewports, 604 GET, zero console/page/request failure, escaped mutation and overflow. It retains four unattributed
   navigation long tasks (`51–56ms`) and maximum CLS `0.10177890755781512`; these are `NEEDS_EVIDENCE`, not authority
   for a Warehouse/Admin production fix. Runtime 3010/8010 was stopped.
-- Warehouse receipt lifecycle error is now fixture-proven at all five desktop viewports: a `503` GET leaves the named
-  panel rendered with `aria-busy=false`, the explicit error boundary, and zero write request. Loading, empty and
-  permission fixture coverage remains open; no Warehouse production UI was changed.
+- Warehouse receipt lifecycle loading, empty and error are fixture-proven at all five desktop viewports with zero write
+  request. Only its loading response reserves `48rem`; settled empty/error states release that blank space. Permission
+  fixture coverage remains open.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer

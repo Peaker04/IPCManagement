@@ -59,6 +59,7 @@ export function WarehouseReceiptLifecyclePanel() {
   );
   const activeReceiptId = selectedReceiptId ?? canonicalReceipts[0]?.receiptId;
   const { data: receipt, isFetching: isFetchingReceipt, isError: isReceiptError, refetch: refetchReceipt } = useGetInventoryReceiptByIdQuery(activeReceiptId!, { skip: !activeReceiptId });
+  const isLifecycleBusy = isFetching || isFetchingReceipt;
 
   const refresh = async () => {
     await Promise.all([refetch(), activeReceiptId ? refetchReceipt() : Promise.resolve()]);
@@ -182,9 +183,9 @@ export function WarehouseReceiptLifecyclePanel() {
 
   return (
     <section
-      className={cn(typography.body, 'mt-4 grid min-h-[48rem] content-start gap-3')}
+      className={cn(typography.body, 'mt-4 grid content-start gap-3', isLifecycleBusy && 'min-h-[48rem]')}
       aria-labelledby="receipt-lifecycle-title"
-      aria-busy={isFetching || isFetchingReceipt}
+      aria-busy={isLifecycleBusy}
       data-testid="receipt-lifecycle-panel"
     >
       <div>

@@ -673,6 +673,55 @@ test.describe('UI measurement audit', () => {
           }, [], signals)],
         );
       });
+
+      test('warehouse receipt lifecycle renders an explicit empty read state without a mutation', async ({ page }) => {
+        await stubAuditApi(page);
+        await page.route('**/api/inventory-receipts?**', async (route) => {
+          await fulfillJson(route, {
+            items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
+          });
+        });
+        await login(page);
+        await page.goto(ROUTES.WAREHOUSE);
+
+        const signals = observePage(page);
+        const lifecyclePanel = page.getByTestId('receipt-lifecycle-panel');
+        await expect(lifecyclePanel).toBeVisible();
+        await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'false');
+        await expect(page.getByText('Chưa có phiếu nhập lifecycle mới trong trang này.', { exact: true })).toBeVisible();
+        await expectNoAuditIssues(
+          `${viewport.name}-warehouse-receipt-empty`,
+          await collectLayoutIssues(page, 'warehouse-receipt-empty', viewport.name),
+          [await collectInteractionRecord(page, {
+            route: 'warehouse',
+            owner: 'WarehouseReceiptLifecyclePanel',
+            state: 'empty',
+            viewport: viewport.name,
+          }, [], signals)],
+        );
+      });
+
+      test('warehouse receipt lifecycle reserves its measured space only while the read is loading', async ({ page }) => {
+        await stubAuditApi(page);
+        let releaseReceiptRead: (() => void) | undefined;
+        await page.route('**/api/inventory-receipts?**', async (route) => {
+          await new Promise<void>((resolve) => { releaseReceiptRead = resolve; });
+          await fulfillJson(route, {
+            items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
+          });
+        });
+        await login(page);
+        const navigation = page.goto(ROUTES.WAREHOUSE, { waitUntil: 'domcontentloaded' });
+
+        const lifecyclePanel = page.getByTestId('receipt-lifecycle-panel');
+        await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'true');
+        const loadingHeight = await lifecyclePanel.evaluate((element) => element.getBoundingClientRect().height);
+        releaseReceiptRead?.();
+        await navigation;
+        await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'false');
+        const emptyHeight = await lifecyclePanel.evaluate((element) => element.getBoundingClientRect().height);
+        expect(emptyHeight).toBeLessThan(loadingHeight);
+      });
     });
   }
 });
