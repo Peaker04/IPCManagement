@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './dialog'
 
-const Fixture = ({ onOpenChange = vi.fn(), onCloseRequest }: { onOpenChange?: ReturnType<typeof vi.fn>; onCloseRequest?: (reason: 'escape' | 'backdrop' | 'close-control') => boolean | undefined }) => <><button>Opener</button><Dialog open onOpenChange={onOpenChange} onCloseRequest={onCloseRequest}><DialogContent><DialogHeader><DialogTitle>Thao tác có xác nhận</DialogTitle></DialogHeader><button>Tiếp tục</button><DialogFooter><DialogClose>Đóng</DialogClose></DialogFooter></DialogContent></Dialog></>
+const Fixture = ({ onOpenChange = vi.fn(), onCloseRequest }: { onOpenChange?: (open: boolean, reason?: 'escape' | 'backdrop' | 'close-control') => void; onCloseRequest?: (reason: 'escape' | 'backdrop' | 'close-control') => boolean | undefined }) => <><button>Opener</button><Dialog open onOpenChange={onOpenChange} onCloseRequest={onCloseRequest}><DialogContent><DialogHeader><DialogTitle>Thao tác có xác nhận</DialogTitle></DialogHeader><button>Tiếp tục</button><DialogFooter><DialogClose>Đóng</DialogClose></DialogFooter></DialogContent></Dialog></>
 
 function ToggleFixture() {
   const [open, setOpen] = useState(false)

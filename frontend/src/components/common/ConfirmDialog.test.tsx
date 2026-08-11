@@ -26,7 +26,7 @@ describe('ConfirmDialog', () => {
     expect(onConfirm).toHaveBeenCalledOnce();
 
     await user.click(screen.getByRole('button', { name: 'Hủy' }));
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onOpenChange).toHaveBeenCalledWith(false, 'close-control');
   });
 
   it('blocks both actions while the confirmation is busy', () => {
@@ -61,7 +61,7 @@ describe('ConfirmDialog', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toHaveAttribute('aria-labelledby');
     expect(screen.getByRole('button', { name: 'Đang xóa...' })).toBeDisabled();
   });
 });
