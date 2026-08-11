@@ -67,3 +67,19 @@ internal sealed class MenuAmendmentReconciliationCaseConfiguration : IEntityType
         entity.HasOne(item => item.MenuAmendment).WithMany().HasForeignKey(item => item.MenuAmendmentId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class MenuAmendmentReconciliationCorrectionConfiguration : IEntityTypeConfiguration<MenuAmendmentReconciliationCorrection>
+{
+    public void Configure(EntityTypeBuilder<MenuAmendmentReconciliationCorrection> entity)
+    {
+        entity.HasKey(item => item.MenuAmendmentReconciliationCorrectionId).HasName("PRIMARY");
+        entity.ToTable("menuamendmentreconciliationcorrections");
+        entity.HasIndex(item => new { item.MenuAmendmentReconciliationCaseId, item.CreatedAt }, "ixMenuAmendmentReconciliationCorrectionsCaseCreatedAt");
+        entity.Property(item => item.MenuAmendmentReconciliationCorrectionId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationCorrectionId");
+        entity.Property(item => item.MenuAmendmentReconciliationCaseId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationCaseId");
+        entity.Property(item => item.ServiceRunId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunId");
+        entity.Property(item => item.Reason).HasColumnType("text").HasColumnName("reason");
+        entity.Property(item => item.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
+        entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+    }
+}

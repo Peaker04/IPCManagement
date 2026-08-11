@@ -108,5 +108,6 @@ public interface IMenuAmendmentService
     Task<MenuAmendmentResultDto> ReviewAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentResultDto> BreakGlassExecuteAsync(string amendmentId, BreakGlassMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task CreateReconciliationCorrectionAsync(string amendmentId, CreateMenuAmendmentReconciliationCorrectionRequest request, string? actorUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default);
 }

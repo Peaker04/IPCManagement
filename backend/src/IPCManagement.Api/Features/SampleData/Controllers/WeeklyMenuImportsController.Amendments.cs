@@ -138,4 +138,12 @@ public sealed partial class WeeklyMenuImportsController
         CancellationToken cancellationToken)
         => Ok(ApiResponse<IReadOnlyList<MenuAmendmentInboxItemDto>>.SuccessResult(
             await _menuAmendmentService.GetInboxAsync(status, cancellationToken)));
+
+    [HttpPost("weekly-menu/amendments/{amendmentId}/reconciliation-corrections")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    public async Task<IActionResult> CreateReconciliationCorrectionAsync(string amendmentId, [FromBody] CreateMenuAmendmentReconciliationCorrectionRequest request, CancellationToken cancellationToken)
+    {
+        await _menuAmendmentService.CreateReconciliationCorrectionAsync(amendmentId, request, _currentUserService.GetUserId(User), cancellationToken);
+        return Ok(ApiResponse.SuccessResult("Đã ghi correction append-only; ServiceRun và close snapshot không bị mở lại."));
+    }
 }

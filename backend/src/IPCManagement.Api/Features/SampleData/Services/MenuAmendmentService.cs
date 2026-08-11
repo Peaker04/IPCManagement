@@ -10,6 +10,20 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenuAmendmentService
 {
+    public async Task CreateReconciliationCorrectionAsync(string amendmentId, CreateMenuAmendmentReconciliationCorrectionRequest request, string? actorUserId, CancellationToken cancellationToken = default)
+    {
+        var amendmentKey = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã amendment không hợp lệ.");
+        var runKey = GuidHelper.ParseGuidString(request.ServiceRunId) ?? throw new ArgumentException("Mã ServiceRun không hợp lệ.");
+        var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người điều chỉnh.");
+        if (string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Cần nêu lý do điều chỉnh đối soát.");
+        var reconciliationCase = await context.Menuamendmentreconciliationcases.SingleOrDefaultAsync(item => item.MenuAmendmentId.SequenceEqual(amendmentKey), cancellationToken) ?? throw new BusinessRuleException("Amendment không thuộc luồng đối soát vật lý.");
+        var run = await context.Serviceruns.SingleOrDefaultAsync(item => item.ServiceRunId.SequenceEqual(runKey), cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy ServiceRun.");
+        if (run.ClosedAt is null) throw new BusinessRuleException("Chỉ có thể ghi correction sau khi ServiceRun đã đóng.");
+        var correction = new MenuAmendmentReconciliationCorrection { MenuAmendmentReconciliationCorrectionId = GuidHelper.NewId(), MenuAmendmentReconciliationCaseId = reconciliationCase.MenuAmendmentReconciliationCaseId, ServiceRunId = run.ServiceRunId, Reason = request.Reason.Trim(), CreatedBy = actorId, CreatedAt = DateTime.UtcNow };
+        context.Menuamendmentreconciliationcorrections.Add(correction);
+        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = correction.CreatedAt, ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(MenuAmendmentReconciliationCorrection), EntityId = correction.MenuAmendmentReconciliationCorrectionId, FieldName = "AppendOnlyCorrection", NewValue = GuidHelper.ToGuidString(run.ServiceRunId), Reason = correction.Reason });
+        await context.SaveChangesAsync(cancellationToken);
+    }
     public async Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default)
     {
         var items = await context.Menuamendments.AsNoTracking().Include(item => item.Customer)

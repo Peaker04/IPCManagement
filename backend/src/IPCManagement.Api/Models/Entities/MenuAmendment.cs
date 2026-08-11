@@ -34,6 +34,16 @@ public sealed class MenuAmendmentReconciliationCase
     public MenuAmendment MenuAmendment { get; set; } = null!;
 }
 
+public sealed class MenuAmendmentReconciliationCorrection
+{
+    public byte[] MenuAmendmentReconciliationCorrectionId { get; set; } = null!;
+    public byte[] MenuAmendmentReconciliationCaseId { get; set; } = null!;
+    public byte[] ServiceRunId { get; set; } = null!;
+    public string Reason { get; set; } = null!;
+    public byte[] CreatedBy { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+}
+
 public sealed class MenuAmendmentLine
 {
     public byte[] MenuAmendmentLineId { get; set; } = null!;

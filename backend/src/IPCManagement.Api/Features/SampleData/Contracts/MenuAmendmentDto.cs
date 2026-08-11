@@ -43,6 +43,12 @@ public sealed class BreakGlassMenuAmendmentRequest
     public string Reason { get; set; } = string.Empty;
 }
 
+public sealed class CreateMenuAmendmentReconciliationCorrectionRequest
+{
+    public string ServiceRunId { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+}
+
 public sealed class MenuAmendmentInboxItemDto
 {
     public string MenuAmendmentId { get; set; } = string.Empty;

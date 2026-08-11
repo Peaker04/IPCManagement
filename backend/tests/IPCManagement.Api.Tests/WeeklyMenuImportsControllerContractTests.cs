@@ -87,6 +87,7 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(nameof(WeeklyMenuImportsController.BulkUpdateWeeklyMenuAsync), "PUT", "weekly-menu/bulk-update", []),
         new(nameof(WeeklyMenuImportsController.CommitWeeklyMenuImportAsync), "POST", "weekly-menu/import/commit", []),
         new(nameof(WeeklyMenuImportsController.CreateMenuAmendmentAsync), "POST", "weekly-menu/amendments", []),
+        new(nameof(WeeklyMenuImportsController.CreateReconciliationCorrectionAsync), "POST", "weekly-menu/amendments/{amendmentId}/reconciliation-corrections", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.DownloadWeeklyMenuTemplateAsync), "GET", "weekly-menu/template", []),
         new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/execute", AdminRoles),
         new(nameof(WeeklyMenuImportsController.GetCustomerImportMappingAsync), "GET", "customers/{customerId}/import-mapping", []),
