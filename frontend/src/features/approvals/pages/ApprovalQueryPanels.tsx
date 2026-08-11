@@ -36,6 +36,57 @@ interface ApprovalQueueStateProps {
   paginationLabel: string;
 }
 
+function ApprovalQueueViewport({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="h-[32rem] overflow-y-auto pr-1"
+      data-testid="approval-queue-viewport"
+    >
+      {children}
+    </div>
+  );
+}
+
+function ApprovalQueueLoadingEnvelope() {
+  return (
+    <div
+      className="ipc-approval-queue"
+      role="region"
+      aria-label="Hàng đợi duyệt vận hành"
+      aria-busy="true"
+      data-testid="approval-queue-loading"
+    >
+      <p role="status" aria-live="polite" className="text-sm font-medium text-slate-600">
+        Đang tải hàng đợi phê duyệt…
+      </p>
+      <article className="ipc-approval-record is-neutral" aria-hidden="true">
+        <div className="ipc-approval-zone-identity">
+          <span className="h-5 w-3/4 animate-pulse rounded bg-slate-200" />
+          <span className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+          <div className="ipc-approval-record-action">
+            <span className="h-10 w-28 animate-pulse rounded bg-slate-200" />
+            <span className="h-10 w-24 animate-pulse rounded bg-slate-200" />
+          </div>
+        </div>
+        <div className="ipc-approval-zone-status">
+          <span className="h-6 w-20 animate-pulse rounded bg-slate-200" />
+          <span className="h-5 w-full animate-pulse rounded bg-slate-200" />
+        </div>
+        <dl className="ipc-approval-zone-meta">
+          {[0, 1, 2].map((line) => (
+            <div key={line}>
+              <span className="h-4 w-full animate-pulse rounded bg-slate-200" />
+            </div>
+          ))}
+        </dl>
+      </article>
+      <div aria-hidden="true">
+        <PaginationBar page={1} pageSize={1} totalItems={1} onPageChange={() => undefined} />
+      </div>
+    </div>
+  );
+}
+
 export function ApprovalQueueState({
   view,
   records,
@@ -73,11 +124,15 @@ export function ApprovalQueueState({
     return <InlineAlert title="Chưa khởi tạo hàng đợi" variant="info">{view.instruction}</InlineAlert>;
   }
   if (view.phase === 'loading') {
-    return <InlineAlert title="Đang tải hàng đợi phê duyệt" variant="info">Dữ liệu đang được đồng bộ.</InlineAlert>;
+    return (
+      <ApprovalQueueViewport>
+        <ApprovalQueueLoadingEnvelope />
+      </ApprovalQueueViewport>
+    );
   }
 
   return (
-    <>
+    <ApprovalQueueViewport>
       {view.isRefreshing && (
         <InlineAlert title="Đang cập nhật hàng đợi" variant="info">
           Các chứng từ hiện tại vẫn được giữ trong khi đồng bộ bản mới.
@@ -110,7 +165,7 @@ export function ApprovalQueueState({
         onNext={onNext}
         ariaLabel={paginationLabel}
       />
-    </>
+    </ApprovalQueueViewport>
   );
 }
 

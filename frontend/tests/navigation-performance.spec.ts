@@ -308,3 +308,75 @@ test('mobile sidebar closes and renders the selected route within budget', async
   await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
   expectNavigationWithinBudget(sample, 500);
 });
+
+test('approvals keeps the document strip geometry stable while its queue loads', async ({ page }) => {
+  await openAuthenticatedDashboard(page);
+
+  let releaseInbox!: () => void;
+  let inboxResponse: 'records' | 'empty' = 'records';
+  const inboxReady = new Promise<void>((resolve) => { releaseInbox = resolve; });
+  await page.route('**/api/approvals/inbox**', async (route) => {
+    await inboxReady;
+    await fulfillJson(route, {
+      items: inboxResponse === 'empty' ? [] : Array.from({ length: 20 }, (_, index) => ({
+        id: `approval-performance-${index + 1}`,
+        targetType: 'purchase-request',
+        targetId: `purchase-performance-${index + 1}`,
+        targetCode: `PR-PERF-${String(index + 1).padStart(3, '0')}`,
+        type: 'purchase',
+        title: `Duyệt đề xuất mua PR-PERF-${String(index + 1).padStart(3, '0')}`,
+        source: `PR-PERF-${String(index + 1).padStart(3, '0')}`,
+        owner: 'Quản lý',
+        submittedBy: 'Nhân viên thu mua',
+        deadline: '27/07/2026',
+        status: 'PENDING',
+        reason: 'Chờ quản lý duyệt.',
+        nextAction: 'Duyệt đề xuất mua',
+        tone: 'warning',
+        materials: [],
+      })),
+      limit: 20,
+      hasNext: false,
+      nextCursor: null,
+    });
+  });
+
+  await page.goto(ROUTES.APPROVALS);
+  const queueLoading = page.locator('[data-testid="approval-queue-loading"]');
+  await expect(queueLoading).toBeVisible();
+
+  const readGeometry = () => page.evaluate(() => {
+    const primary = document.querySelector('#approval-queue-panel .ipc-split-primary');
+    const strip = document.querySelector('#approval-queue-panel .ipc-split-detail-strip');
+    const viewport = document.querySelector('[data-testid="approval-queue-viewport"]');
+    if (!primary || !strip || !viewport) throw new Error('Approval workbench geometry is missing.');
+    const primaryRect = primary.getBoundingClientRect();
+    const stripRect = strip.getBoundingClientRect();
+    const viewportRect = viewport.getBoundingClientRect();
+    return {
+      primaryHeight: primaryRect.height,
+      stripTop: stripRect.top,
+      stripHeight: stripRect.height,
+      viewportHeight: viewportRect.height,
+    };
+  });
+
+  const loadingGeometry = await readGeometry();
+  releaseInbox();
+  await expect(queueLoading).toHaveCount(0);
+  await expect(page.locator('#approval-queue-panel .ipc-approval-record')).toHaveCount(20);
+  const recordsGeometry = await readGeometry();
+
+  inboxResponse = 'empty';
+  await page.reload();
+  await expect(page.locator('#approval-queue-panel .ipc-approval-record')).toHaveCount(0);
+  await expect(page.getByTestId('approval-queue-viewport').getByText('Chưa có dữ liệu để hiển thị')).toBeVisible();
+  const emptyGeometry = await readGeometry();
+
+  for (const geometry of [recordsGeometry, emptyGeometry]) {
+    expect(Math.abs(loadingGeometry.primaryHeight - geometry.primaryHeight)).toBeLessThanOrEqual(1);
+    expect(Math.abs(loadingGeometry.stripTop - geometry.stripTop)).toBeLessThanOrEqual(1);
+    expect(loadingGeometry.stripHeight).toBe(geometry.stripHeight);
+    expect(loadingGeometry.viewportHeight).toBe(geometry.viewportHeight);
+  }
+});
