@@ -56,6 +56,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
 
 ## Còn mở
 
+- Project-wide UI/UX audit baseline is at `docs/UI-UX-PROJECT-AUDIT.md`: 45 headed route probes and the current
+  10/10 fixture gate do not cover every tab/modal/state. Confirmed gaps are Reports price-table action/pagination,
+  Warehouse/Approvals CLS, and missing interaction-matrix coverage; no implementation is authorized from the
+  baseline until its matrix turns findings into evidence-backed GAPs.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer
