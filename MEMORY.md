@@ -56,10 +56,12 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
 
 ## Còn mở
 
-- Project-wide UI/UX audit baseline is at `docs/UI-UX-PROJECT-AUDIT.md`: 45 headed route probes and the current
-  10/10 fixture gate do not cover every tab/modal/state. Confirmed gaps are Reports price-table action/pagination,
-  Warehouse/Approvals CLS, and missing interaction-matrix coverage; no implementation is authorized from the
-  baseline until its matrix turns findings into evidence-backed GAPs.
+- Project-wide UI/UX audit baseline is at `docs/UI-UX-PROJECT-AUDIT.md`: Wave 2 rechecked 45 headed route probes on
+  `ipc_lane9` across five desktop viewports with zero browser/API/mutation/overflow errors, but confirmed Warehouse
+  CLS `0.1983` at `1920×1080`, Approvals CLS `0.1011`–`0.1516`, and Warehouse long tasks `71ms`/`51ms` remain
+  route-level only. The control harness still returns to local login before the Warehouse current-stock table state;
+  keep its record `NEEDS_EVIDENCE`. Reports action/pagination work remains independently authorized; no Warehouse or
+  Approvals production owner is authorized until a trace attributes the signal.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer

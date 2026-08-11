@@ -19,7 +19,8 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 
 - `npm run test:ui-measurements -w frontend -- --workers=1`: 10/10 passed. Each five-desktop JSON report now contains route/owner/state/viewport records with DOM geometry, focus, console/page errors, non-read request capture, and an explicit `PASS`, `GAP`, or `NEEDS_EVIDENCE` outcome. The 45 route-default records are `PASS`; unexercised Reports tabs, Approvals dialog, and loading/empty/error/permission paths remain `NEEDS_EVIDENCE` rather than synthetic passes.
 - Headed Chrome, current source `501789a5`, `ipc_lane9`: 45 route probes, zero overflow, console/page/request error, or escaped mutation.
-- Runtime CLS exceeds the 0.1 lab threshold at Warehouse/1920 (`0.23392082403435271`) and at multiple Approvals probes (`0.101–0.152`). These are runtime findings, not screenshot judgments.
+- Wave 2 headed Chrome recheck, current source `9741e976`, `ipc_lane9`: 45 route probes across all five desktop viewports, 606 post-action GET responses, zero overflow, console/page/request error, escaped mutation, or non-success API response. The owned `3010/8010` runtime was torn down after capture; artifact pointer is in `docs/EVIDENCE-INDEX.md`.
+- The Wave 2 run keeps the runtime CLS finding: Warehouse is `0.19833560593629662` at `1920×1080`; Approvals is `0.1010878640403376`–`0.15160781061436363` at all five viewports. Warehouse also has two long tasks (`71ms` at `1440×900`, `51ms` at `1365×900`). The capture has route-level timings only, so it does not identify a lowest component or handler owner. These are runtime findings, not screenshot judgments.
 
 ## Confirmed gaps
 
@@ -27,9 +28,9 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 |---|---|---|---|---|
 | UX-01 | Reports › Biến động giá › Theo dòng nhập | GAP | `ReportsPricePanel.tsx` uses a fixed 10-column table; column 10 is 8% wide while `ipc-report-action-cell` permits `overflow-wrap:anywhere`. | A workflow instruction is rendered as cell text beneath the misleading header `Xử lý`, so it wraps into an unreadable pseudo-action. |
 | UX-02 | Reports › Biến động giá › Theo dòng nhập | GAP | Current live screen shows 6 of 17,194 records (`Trang 1/2866`); page size and jump-to-page are the only navigation. | Pagination is used as primary discovery instead of a constrained query/filter/detail workflow. |
-| UX-03 | Warehouse and Approvals | GAP | Headed manifest above reports CLS > 0.1. | Route data/layout settles after initial render; trace is required before choosing a fix. |
+| UX-03 | Warehouse and Approvals | GAP | Wave 2 headed manifest on `ipc_lane9` confirms Warehouse CLS `0.1983` at `1920×1080`, Approvals CLS `0.1011`–`0.1516`, and two Warehouse long tasks (`71ms`, `51ms`). | The trace is route-level only and cannot attribute the settling layout or long task to a lowest owner. Keep `NEEDS_EVIDENCE` for owner assignment; no production UI change is authorized. |
 | UX-04 | Whole project | GAP in assurance | Current UI measurement suite visits route defaults plus one Admin stress table, not every tab/dialog/state owner. | Existing gate proves geometry only, not complete interactive-surface coverage. |
-| UX-05 | Control-surface regression coverage | NEEDS_EVIDENCE | Reports now uses the `Báo cáo vận hành` shell title and its non-empty price fixture; the Reports controls pass. Purchasing and Warehouse fixture-backed mobile controls still do not reach their intended non-empty state under the current control harness. | Reports fixture/title drift is resolved in test scope. Purchasing/Warehouse remain evidence gaps; do not change production owners until their read-only fixture/auth route state is proven. |
+| UX-05 | Control-surface regression coverage | NEEDS_EVIDENCE | Reports now uses the `Báo cáo vận hành` shell title and its non-empty price fixture; the Reports controls pass. Purchasing remains non-empty-state unproven; the isolated Warehouse stock control returns to the local login page before the named table region can be observed. | Reports fixture/title drift is resolved in test scope. Purchasing/Warehouse remain read-only fixture/auth evidence gaps; do not change production owners until their intended route state is proven. |
 | UX-06 | Reports › Chất lượng dữ liệu | RESOLVED | The current control-surface fixture makes `data-quality` ready with an array payload; the view-model now uses `(totalIssues ?? 0).toString()`. | The context-strip count safely falls back to zero instead of crashing on an incomplete ready payload. |
 
 ## Required next audit matrix
@@ -48,7 +49,11 @@ For every tab owner: activate each permitted tab at all five desktop viewports a
 | Route/control heading for Reports | PASS | `MainLayout.tsx` intentionally renders `Báo cáo vận hành`; the control test now asserts that shell title. | No production change. |
 | Reports mobile filter and price-table check | PASS | `stubWorkflowReports` supplies a non-empty price-table row before geometry is read. | No production change. |
 | Purchasing table local-scroll check | NEEDS_EVIDENCE | The composed Phase 09 workbench fixture does not yet produce the intended workbench state under the control harness. | Reconcile fixture/auth route setup before changing `PurchaseServiceDateWorkbench.tsx`. |
-| Warehouse local-scroll check | NEEDS_EVIDENCE | The control now targets the `TableViewport` named region (`Bảng tồn kho hiện tại trong kho`), but its non-empty current-stock row is not observed in the current harness. | Reconcile fixture route precedence before changing `WarehousePage.tsx`. |
+| Warehouse local-scroll check | NEEDS_EVIDENCE | The control targets the `TableViewport` named region (`Bảng tồn kho hiện tại trong kho`), but the isolated run returns to the local login page before it is observed. | Reconcile the read-only auth/fixture route state before changing `WarehousePage.tsx`; do not turn this into a production component change. |
+
+## Wave 2 trace disposition
+
+The five-desktop headed capture confirms the Warehouse/Approvals performance signal but does not include layout-shift source rectangles or a JavaScript task attribution. Therefore no lowest owner is trace-proven. The performance implementation wave must remain blocked on owner-local evidence; Reports work remains independently authorized because its confirmed gaps do not rely on this unresolved attribution.
 
 ## Planning constraint
 
