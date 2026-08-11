@@ -30,6 +30,7 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 | UX-03 | Warehouse and Approvals | GAP | Headed manifest above reports CLS > 0.1. | Route data/layout settles after initial render; trace is required before choosing a fix. |
 | UX-04 | Whole project | GAP in assurance | Current UI measurement suite visits route defaults plus one Admin stress table, not every tab/dialog/state owner. | Existing gate proves geometry only, not complete interactive-surface coverage. |
 | UX-05 | Control-surface regression coverage | GAP | Targeted Playwright matrix: 4/6 failures. Reports expects obsolete heading `Phân tích biến động giá` but `MainLayout` renders `Báo cáo vận hành`; Purchasing lacks the workbench fixture needed for its table; Warehouse selector assumes the old wrapper location. | Test contracts/fixtures drifted from current UI, leaving several tab/table states without valid regression evidence. |
+| UX-06 | Reports › Chất lượng dữ liệu | GAP | Current control-surface fixture makes `data-quality` ready with an array payload; `useReportsPageModel.ts:208` calls `data.totalIssues.toString()` and crashes. | The report view assumes a required response field exists instead of rendering an explicit incomplete/error state. |
 
 ## Required next audit matrix
 
