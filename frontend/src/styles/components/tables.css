@@ -1,6 +1,10 @@
 .ipc-data-table {
   width: 100%;
   border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-table);
+  font-weight: var(--text-table--font-weight);
+  line-height: var(--text-table--line-height);
 }
 
 .ipc-table-shell .ipc-data-table {
@@ -9,9 +13,9 @@
 }
 
 .ipc-logistics-table-shell {
-  border: 1px solid #d8e2ef;
+  border: 1px solid var(--ipc-color-border-muted);
   border-radius: var(--ipc-radius-md);
-  background: #ffffff;
+  background: var(--ipc-color-surface);
 }
 
 .ipc-logistics-table {
@@ -20,22 +24,22 @@
 }
 
 .ipc-logistics-table th {
-  border-bottom: 1px solid #cbd8e8;
-  background: #eef3f8;
-  color: #33465f;
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.25;
+  border-bottom: 1px solid var(--ipc-color-border-table-header);
+  background: var(--ipc-color-surface-subtle);
+  color: var(--ipc-color-text-muted);
+  font-size: var(--text-table-header);
+  font-weight: var(--text-table-header--font-weight);
+  line-height: var(--text-table-header--line-height);
   padding: 8px 10px;
   text-align: left;
   white-space: nowrap;
 }
 
 .ipc-logistics-table td {
-  border-bottom: 1px solid #e2eaf4;
+  border-bottom: 1px solid var(--ipc-color-border-subtle);
   color: var(--ipc-slate-800);
-  font-size: 0.8125rem;
-  line-height: 1.35;
+  font-size: var(--text-table);
+  line-height: var(--text-table--line-height);
   padding: 8px 10px;
   vertical-align: middle;
 }
@@ -46,7 +50,7 @@
 
 .ipc-logistics-row.is-active td,
 .ipc-logistics-row:hover td {
-  background: #f7fbff;
+  background: var(--ipc-color-surface-accent);
 }
 
 .ipc-logistics-row.is-warning td:first-child {
@@ -301,13 +305,13 @@
 }
 
 .ipc-data-table thead tr {
-  border-bottom: 1px solid #c9d6e6;
-  background: #e7eef6;
+  border-bottom: 1px solid var(--ipc-color-border-strong);
+  background: var(--ipc-color-surface-subtle);
 }
 
 .ipc-data-table th {
-  border-bottom: 1px solid #c9d6e6;
-  color: #334761;
+  border-bottom: 1px solid var(--ipc-color-border-strong);
+  color: var(--ipc-color-text-muted);
   font-size: 0.8125rem;
   font-weight: 700;
   padding: 9px 12px;
@@ -315,8 +319,8 @@
 }
 
 .ipc-data-table td {
-  border-bottom: 1px solid #d8e2ef;
-  color: #17243a;
+  border-bottom: 1px solid var(--ipc-color-border-muted);
+  color: var(--ipc-color-text-strong);
   font-size: 0.8125rem;
   height: 48px;
   padding: 8px 12px;
@@ -325,11 +329,11 @@
 }
 
 .ipc-data-table tbody tr:nth-child(even) {
-  background: #fbfdff;
+  background: var(--ipc-color-surface);
 }
 
 .ipc-data-table tbody tr:hover {
-  background: #f0f6ff;
+  background: var(--ipc-color-surface-selected);
 }
 
 .ipc-data-table th:first-child,
@@ -346,7 +350,7 @@
 .ipc-schedule-table th,
 .ipc-schedule-table td {
   padding: 10px 8px;
-  border-right: 1px solid #cbd5e1 !important;
+  border-right: 1px solid var(--ipc-slate-300) !important;
   overflow-wrap: anywhere;
 }
 
@@ -355,12 +359,12 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #eef3f8;
+  background: var(--ipc-color-surface-subtle);
   width: 130px;
   min-width: 130px;
   max-width: 130px;
   text-align: center;
-  border-right: 2px solid #cbd5e1 !important;
+  border-right: 2px solid var(--ipc-slate-300) !important;
 }
 
 .ipc-schedule-table thead th:first-child {
@@ -379,7 +383,7 @@
 }
 
 .ipc-cost-table td:first-child {
-  color: #0f1f36;
+  color: var(--ipc-slate-900);
 }
 
 .ipc-weekly-menu-shell {
@@ -477,7 +481,7 @@
   align-items: center;
   justify-content: center;
   background:
-    linear-gradient(180deg, #ffffff 0%, #f6f8fb 52%, #edf2f7 100%);
+    linear-gradient(180deg, var(--ipc-color-surface) 0%, var(--ipc-slate-50) 52%, var(--ipc-color-surface-gradient-end) 100%);
   padding: var(--ipc-space-5);
 }
 
@@ -486,7 +490,7 @@
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--ipc-radius-md);
-  background: #ffffff;
+  background: var(--ipc-color-surface);
   box-shadow: 0 18px 44px rgb(15 23 42 / 0.12);
   padding: 32px;
 }
@@ -502,7 +506,7 @@
   height: 54px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #b8c8e8;
+  border: 1px solid var(--ipc-color-border-focus);
   border-radius: var(--ipc-radius-md);
   background: var(--ipc-primary-soft);
   color: var(--ipc-primary);
@@ -531,7 +535,7 @@
 }
 
 .ipc-auth-alert {
-  border: 1px solid #fecaca;
+  border: 1px solid var(--ipc-danger-soft);
   border-radius: var(--ipc-radius-md);
   background: var(--ipc-danger-soft);
   color: var(--ipc-danger);

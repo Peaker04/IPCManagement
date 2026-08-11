@@ -42,7 +42,6 @@ describe('dashboard UI rule contracts', () => {
   it('reports every in-scope gap with an exact requirement ID', () => {
     const found = findingIds()
     const expectedAuditGaps = [
-      'FOUND-01', 'FOUND-02', 'FOUND-03', 'FOUND-04', 'FONT-01',
       'FOUND-05', 'DIALOG-01', 'DIALOG-02', 'DIALOG-03', 'DIALOG-04',
       'TABLE-01', 'TABLE-02', 'TABLE-03', 'TABLE-04', 'STATUS-02', 'STATUS-03', 'STATUS-04',
     ]
