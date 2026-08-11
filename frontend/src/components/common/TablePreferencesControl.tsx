@@ -44,12 +44,9 @@ export function TablePreferencesControl({ config, state, onChange, onReset }: Pr
           </>}
         </div>;
       })}
-      <label className="ml-auto flex items-center gap-1 text-xs">
-        Mật độ
-        <select aria-label="Mật độ hàng" value={state.density} onChange={(event) => onChange({ ...state, density: event.target.value as TableDensity })}>
-          {(Object.keys(densityLabels) as TableDensity[]).map((density) => <option key={density} value={density}>{densityLabels[density]}</option>)}
-        </select>
-      </label>
+      <div className="ml-auto flex items-center gap-1" role="radiogroup" aria-label="Mật độ hàng">
+        {(Object.keys(densityLabels) as TableDensity[]).map((density) => <Button key={density} type="button" variant={state.density === density ? 'default' : 'outline'} size="xs" aria-pressed={state.density === density} onClick={() => onChange({ ...state, density })}>{densityLabels[density]}</Button>)}
+      </div>
       <Button type="button" variant="outline" size="xs" onClick={onReset}>Khôi phục mặc định</Button>
     </fieldset>
   );

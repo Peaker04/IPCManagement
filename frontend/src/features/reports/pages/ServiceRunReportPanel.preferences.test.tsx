@@ -1,8 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-
-const source = readFileSync(resolve(process.cwd(), 'src/features/reports/pages/ServiceRunReportPanel.tsx'), 'utf8');
+import source from './ServiceRunReportPanel.tsx?raw';
 
 describe('Service Run table preferences', () => {
   it('uses the shared account-scoped owner with stable columns and preserves report content', () => {

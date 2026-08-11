@@ -1,5 +1,5 @@
 import { History } from 'lucide-react';
-import { CursorPaginationBar, InlineAlert, PaginatedTableFrame, SectionPanel } from '@/components/common';
+import { CursorPaginationBar, InlineAlert, SectionPanel, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,6 +7,9 @@ import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 import { formatDateTime } from '@/lib/formatters';
 import { typography } from '@/lib/typography';
+import { useAppSelector } from '@/app/hooks';
+import { selectCurrentUser } from '@/features/auth';
+import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
 
 type AdminAuditPanelProps = { model: AdminDataPageModel };
 
@@ -21,7 +24,21 @@ const auditAreaLabels: Record<string, string> = {
   InventoryIssue: 'Xuất kho',
 };
 
+const adminAuditPreferenceConfig: TablePreferenceConfig = {
+  tableId: 'admin-audit',
+  columns: [
+    { id: 'timestamp', label: 'Thời gian', locked: true },
+    { id: 'actor', label: 'Người thực hiện' },
+    { id: 'area', label: 'Mảng nghiệp vụ' },
+    { id: 'field', label: 'Đối tượng/Trường ảnh hưởng' },
+    { id: 'oldValue', label: 'Giá trị cũ' },
+    { id: 'newValue', label: 'Giá trị mới' },
+    { id: 'reason', label: 'Lý do thay đổi' },
+  ],
+};
+
 export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
+  const currentUser = useAppSelector(selectCurrentUser);
   const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, isExportingAudit, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
     <>
@@ -117,38 +134,30 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
             {exportError && <div role="alert"><InlineAlert title="Chưa thể tải file CSV" variant="danger">{exportError}</InlineAlert></div>}
 
             <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
-              <PaginatedTableFrame ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">
-              <table className="ipc-data-table ipc-admin-audit-table text-xs">
+              <TableViewport ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell" preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}>
+              {({ columns }) => <table className="ipc-data-table ipc-admin-audit-table text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left">Thời gian</th>
-                    <th>Người thực hiện</th>
-                    <th>Mảng nghiệp vụ</th>
-                    <th>Đối tượng/Trường ảnh hưởng</th>
-                    <th>Giá trị cũ</th>
-                    <th>Giá trị mới</th>
-                    <th className="text-left">Lý do thay đổi</th>
+                    {columns.map((column) => <th scope="col" key={column.id} className={column.id === 'timestamp' || column.id === 'reason' ? 'text-left' : undefined}>{column.label}</th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {displayLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                      <td className={`${typography.code} text-left text-slate-500`}>
-                        {formatDateTime(log.timestamp)}
-                      </td>
-                      <td className="font-semibold text-slate-800">{log.actor}</td>
-                      <td>{log.businessArea}</td>
-                      <td className="font-medium text-blue-700">{log.fieldAffected}</td>
-                      <td className={`${typography.code} text-slate-500`}><span className="ipc-admin-audit-value">{log.oldValue}</span></td>
-                      <td className={`${typography.code} font-bold text-slate-900`}><span className="ipc-admin-audit-value">{log.newValue}</span></td>
-                      <td className="ipc-admin-audit-reason text-left text-slate-600">
-                        <span>{log.reason}</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {displayLogs.map((log) => {
+                    const cells: Record<string, React.ReactNode> = {
+                      timestamp: <span className={`${typography.code} text-left text-slate-500`}>{formatDateTime(log.timestamp)}</span>,
+                      actor: <span className="font-semibold text-slate-800">{log.actor}</span>,
+                      area: log.businessArea,
+                      field: <span className="font-medium text-blue-700">{log.fieldAffected}</span>,
+                      oldValue: <span className={`${typography.code} text-slate-500 ipc-admin-audit-value`}>{log.oldValue}</span>,
+                      newValue: <span className={`${typography.code} font-bold text-slate-900 ipc-admin-audit-value`}>{log.newValue}</span>,
+                      reason: <span className="ipc-admin-audit-reason text-left text-slate-600">{log.reason}</span>,
+                    };
+                    return <tr key={log.id} className="hover:bg-slate-50 transition-colors">{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
+                  })}
                 </tbody>
               </table>
-              </PaginatedTableFrame>
+              }
+              </TableViewport>
               <CursorPaginationBar
               page={auditCursors.length + 1}
               hasNext={auditResult.data?.hasNext ?? false}

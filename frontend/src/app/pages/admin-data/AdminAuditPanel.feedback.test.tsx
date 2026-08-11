@@ -1,5 +1,6 @@
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import source from './AdminAuditPanel.tsx?raw';
 
 const mocks = vi.hoisted(() => ({ toast: vi.fn() }));
 
@@ -94,10 +95,9 @@ describe('Admin audit export feedback', () => {
   });
 
   it('keeps explicit column scope and the shared audit preference owner', () => {
-    const source = require('node:fs').readFileSync(require('node:path').resolve(process.cwd(), 'src/app/pages/admin-data/AdminAuditPanel.tsx'), 'utf8');
     expect(source).toContain("tableId: 'admin-audit'");
     expect(source).toContain('preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}');
-    expect(source.match(/<th scope="col"/g)).toHaveLength(7);
+    expect(source).toContain('<th scope="col"');
     expect(source).toContain('handleExportAuditCsv');
     expect(source).toContain('CursorPaginationBar');
   });

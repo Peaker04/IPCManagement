@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { typography } from '@/lib/typography';
 import { TablePreferencesControl } from './TablePreferencesControl';
@@ -43,10 +43,6 @@ export function TableViewport({
   const captionId = useId();
   const [preferenceState, setPreferenceState] = useState<TablePreferenceState>(() => preferences ? readTablePreferences(preferences.accountId, preferences.config) : { columnIds: [], hiddenColumnIds: [], density: 'standard' });
 
-  useEffect(() => {
-    if (preferences) setPreferenceState(readTablePreferences(preferences.accountId, preferences.config));
-  }, [preferences?.accountId, preferences?.config]);
-
   const updatePreferences = (next: TablePreferenceState) => {
     if (!preferences) return;
     setPreferenceState(next);
@@ -58,6 +54,9 @@ export function TableViewport({
     setPreferenceState(readTablePreferences(preferences.accountId, preferences.config));
   };
   const resolvedDensity = preferences ? preferenceState.density : density;
+  const renderedChildren = typeof children === 'function'
+    ? preferences ? children({ columns: resolveTablePreferenceColumns(preferences.config, preferenceState), density: resolvedDensity }) : null
+    : children;
 
   return (
     <div
@@ -73,7 +72,7 @@ export function TableViewport({
     >
       {caption ? <div id={captionId} className="sr-only">{caption}</div> : null}
       {preferences ? <TablePreferencesControl config={preferences.config} state={preferenceState} onChange={updatePreferences} onReset={resetPreferences} /> : null}
-      {typeof children === 'function' && preferences ? children({ columns: resolveTablePreferenceColumns(preferences.config, preferenceState), density: resolvedDensity }) : children}
+      {renderedChildren}
     </div>
   );
 }
