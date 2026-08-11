@@ -129,6 +129,16 @@ const workflowStatusPresentations: Readonly<Record<string, WorkflowStatusPresent
   WARNING: { label: 'Có cảnh báo', tone: 'warning' },
 };
 
+const serviceRunStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
+  BLOCKED: { label: 'Đang bị chặn', tone: 'danger' },
+  MATERIALSINPROGRESS: { label: 'Đang hoàn tất vật tư', tone: 'warning' },
+  READYTOPRODUCE: { label: 'Sẵn sàng phục vụ', tone: 'warning' },
+  INSERVICE: { label: 'Đang phục vụ', tone: 'warning' },
+  RECONCILIATIONREQUIRED: { label: 'Cần đối soát', tone: 'danger' },
+  READYTOCLOSE: { label: 'Sẵn sàng đóng ca', tone: 'success' },
+  CLOSED: { label: 'Đã đóng ca', tone: 'success' },
+};
+
 const toneFromFallbackText = (status: string): WorkflowTone => {
   const normalized = status.toLocaleLowerCase('vi-VN');
   if (['thiếu', 'vượt', 'không đủ', 'lỗi', 'tắc', 'từ chối', 'hủy'].some((token) => normalized.includes(token))) return 'danger';
@@ -141,6 +151,13 @@ export const getWorkflowStatusPresentation = (status?: string): WorkflowStatusPr
   const value = status?.trim();
   if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
   return workflowStatusPresentations[normalizeStatusCode(value)] ?? { label: value, tone: toneFromFallbackText(value) };
+};
+
+export const getServiceRunStatusPresentation = (status?: string): WorkflowStatusPresentation => {
+  const value = status?.trim();
+  if (!value) return { label: 'Chưa cập nhật trạng thái ca phục vụ', tone: 'neutral' };
+  return serviceRunStatusPresentations[normalizeStatusCode(value)]
+    ?? { label: 'Trạng thái ca phục vụ chưa được hỗ trợ', tone: 'neutral' };
 };
 
 export const toneFromStatus = (status?: string): WorkflowTone => getWorkflowStatusPresentation(status).tone;

@@ -30,7 +30,7 @@ const findingIds = () => {
 
   if (!has('src/styles/components/tables.css', 'ipc-table-sticky-identifier')) findings.push('TABLE-01')
   if (!has('src/components/common/TableViewport.tsx', 'data-table-viewport')) findings.push('TABLE-02')
-  if (!has('src/components/common/DataTableShell.tsx', 'ipc-table-shell')) findings.push('TABLE-03')
+  if (!has('src/components/common/DataTableShell.tsx', 'data-ui-table-shell')) findings.push('TABLE-03')
   if (!has('src/components/ui/table.tsx', 'scope="col"')) findings.push('TABLE-04')
   if (!has('src/components/common/StatusBadge.tsx', 'aria-live')) findings.push('STATUS-02')
   if (!has('src/components/common/StatusBadge.tsx', 'min-w-')) findings.push('STATUS-03')

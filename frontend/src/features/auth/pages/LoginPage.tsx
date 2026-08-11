@@ -53,8 +53,8 @@ const DevLoginFallbackHint = () => {
 
   return (
     <div className="ipc-auth-footer">
-      <p className="ipc-auth-hint">Fallback dev: <b>admin/admin</b>, <b>quanly/quanly</b>, <b>dieuphoi/dieuphoi</b></p>
-      <p className="ipc-auth-hint text-xs mt-1"><b>beptruong/beptruong</b>, <b>thukho/thukho</b>, <b>thumua/thumua</b></p>
+      <p className="ipc-auth-hint">Chế độ kiểm thử cục bộ đang bật.</p>
+      <p className="ipc-auth-hint text-xs mt-1">Hãy dùng tài khoản kiểm thử được cấp cho phiên làm việc này.</p>
     </div>
   );
 };
