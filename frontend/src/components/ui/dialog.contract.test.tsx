@@ -31,12 +31,18 @@ describe('shared dialog contract', () => {
     await user.click(screen.getByRole('button', { name: 'Đóng' }))
     expect(onCloseRequest).toHaveBeenLastCalledWith('close-control')
     expect(onOpenChange).not.toHaveBeenCalled()
+    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"] [aria-hidden="true"]')!)
+    expect(onCloseRequest).toHaveBeenLastCalledWith('backdrop')
+    expect(onOpenChange).not.toHaveBeenCalled()
   })
-  it('DIALOG-02 closes a clean dialog once through every shared request path', async () => {
+  it('DIALOG-02 closes a clean dialog through Escape and backdrop', async () => {
     const onOpenChange = vi.fn()
     render(<Fixture onOpenChange={onOpenChange} />)
-    await userEvent.setup().keyboard('{Escape}')
+    const user = userEvent.setup()
+    await user.keyboard('{Escape}')
     expect(onOpenChange).toHaveBeenCalledWith(false, 'escape')
+    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"] [aria-hidden="true"]')!)
+    expect(onOpenChange).toHaveBeenLastCalledWith(false, 'backdrop')
   })
   it('DIALOG-03 keeps focus inside, inerts the background, and returns it to the opener', async () => {
     const user = userEvent.setup()
