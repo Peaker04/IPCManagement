@@ -9,6 +9,7 @@ const apiUrl = process.env.IPC_VISUAL_API_URL ?? 'http://127.0.0.1:8001';
 const database = process.env.IPC_VISUAL_DATABASE ?? 'ipc_lane1';
 const auditProfile = process.env.IPC_VISUAL_AUDIT_PROFILE ?? 'standard';
 const assertPerformance = process.env.IPC_VISUAL_ASSERT_PERFORMANCE === 'true';
+const attributionEnabled = process.env.IPC_VISUAL_ATTRIBUTION === 'true';
 const dashboardUiRulesProfile = auditProfile === 'dashboard-ui-rules';
 if (database === 'ipc_lane1') throw new Error('Protected ipc_lane1 is prohibited for this visual audit.');
 const password = process.env.K6_PASSWORD;
@@ -28,14 +29,19 @@ const browserRoot = path.join(root, 'browser');
 const performanceRoot = path.join(root, 'performance');
 const profile = path.resolve('.artifacts/browser-use-visual-audit');
 const chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const viewports = [
+const requestedViewports = new Set((process.env.IPC_VISUAL_VIEWPORTS ?? '').split(',').map((value) => value.trim()).filter(Boolean));
+const allViewports = [
   { name: '1920x1080', width: 1920, height: 1080 },
   { name: '1440x900', width: 1440, height: 900 },
   { name: '1366x768', width: 1366, height: 768 },
   { name: '1365x900', width: 1365, height: 900 },
   { name: '1280x900', width: 1280, height: 900 },
 ];
-const routes = dashboardUiRulesProfile ? [
+const viewports = requestedViewports.size > 0
+  ? allViewports.filter((viewport) => requestedViewports.has(viewport.name))
+  : allViewports;
+const requestedRoutes = new Set((process.env.IPC_VISUAL_ROUTES ?? '').split(',').map((value) => value.trim()).filter(Boolean));
+const allRoutes = dashboardUiRulesProfile ? [
   { name: 'service-run-report', path: '/reports' },
   { name: 'admin-audit', path: '/admin-data' },
 ] : [
@@ -49,6 +55,10 @@ const routes = dashboardUiRulesProfile ? [
   { name: 'reports', path: '/reports' },
   { name: 'admin-data', path: '/admin-data' },
 ];
+const routes = requestedRoutes.size > 0
+  ? allRoutes.filter((route) => requestedRoutes.has(route.name))
+  : allRoutes;
+if (viewports.length === 0 || routes.length === 0) throw new Error('IPC_VISUAL_VIEWPORTS or IPC_VISUAL_ROUTES selected no audit samples.');
 
 await Promise.all([
   fs.mkdir(screenshotsRoot, { recursive: true }),
@@ -76,6 +86,7 @@ const evidence = {
   fontResponses: [],
   reflowChecks: [],
   preferenceFlows: [],
+  attributionTraces: [],
 };
 
 const context = await chromium.launchPersistentContext(profile, {
@@ -126,7 +137,7 @@ await context.route('**/api/**', async (route) => {
   await route.continue();
 });
 
-await page.addInitScript(() => {
+await page.addInitScript((diagnosticEnabled) => {
   const selectorFor = (node) => {
     if (!(node instanceof Element)) return null;
     const id = node.id ? `#${node.id}` : '';
@@ -149,6 +160,9 @@ await page.addInitScript(() => {
     longTasks: [],
     shifts: [],
     actions: [{ name: 'document-navigation', startTime: performance.now() }],
+    geometry: diagnosticEnabled && location.pathname === '/warehouse'
+      ? { enabled: true, startedAt: performance.now(), frames: [], resizeEvents: [] }
+      : null,
   };
   try {
     new PerformanceObserver((list) => window.__ipcPhase25Perf.longTasks.push(
@@ -168,7 +182,58 @@ await page.addInitScript(() => {
   } catch {
     // Unsupported performance entry types remain an explicit empty sample.
   }
-});
+
+  if (window.__ipcPhase25Perf.geometry) {
+    const geometry = window.__ipcPhase25Perf.geometry;
+    const frameLimit = 96;
+    const sectionWithTitle = (title) => [...document.querySelectorAll('section.ipc-section-panel')]
+      .find((section) => section.querySelector('.ipc-section-title')?.textContent?.replace(/\s+/g, ' ').trim() === title) ?? null;
+    const targets = [
+      { name: 'ContextStrip', get: () => document.querySelector('.ipc-context-strip') },
+      { name: 'purchase-order-panel', get: () => sectionWithTitle('Đơn mua chờ nhập kho') },
+      { name: 'receipt-lifecycle-panel', get: () => document.getElementById('receipt-lifecycle-title')?.closest('section') ?? null },
+      { name: 'ViewSwitcher', get: () => document.querySelector('[role="tablist"][aria-label="Chọn góc nhìn kho"]') },
+    ];
+    const observed = new WeakSet();
+    const snapshot = (node) => {
+      if (!(node instanceof Element)) return null;
+      const rect = node.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    };
+    const capture = (reason, changedTarget = null) => {
+      if (geometry.frames.length >= frameLimit) return;
+      geometry.frames.push({
+        reason,
+        changedTarget,
+        time: performance.now(),
+        targets: targets.map((target) => ({ name: target.name, rect: snapshot(target.get()) })),
+      });
+    };
+    const observeTargets = () => {
+      for (const target of targets) {
+        const node = target.get();
+        if (!(node instanceof Element) || observed.has(node)) continue;
+        observed.add(node);
+        new ResizeObserver((entries) => {
+          geometry.resizeEvents.push({ target: target.name, time: performance.now(), count: entries.length });
+          scheduleFrame(`resize-observer:${target.name}`);
+        }).observe(node);
+      }
+    };
+    let rAFPending = false;
+    const scheduleFrame = (reason) => {
+      if (rAFPending) return;
+      rAFPending = true;
+      requestAnimationFrame(() => {
+        rAFPending = false;
+        observeTargets();
+        capture(reason);
+      });
+    };
+    new MutationObserver(() => scheduleFrame('mutation-frame')).observe(document, { childList: true, subtree: true });
+    scheduleFrame('initial-request-animation-frame');
+  }
+}, attributionEnabled);
 
 const settle = async () => {
   await page.waitForLoadState('domcontentloaded');
@@ -193,6 +258,80 @@ const recordAction = async (name, action) => {
     await page.evaluate((index) => {
       window.__ipcPhase25Perf.actions[index].endTime = performance.now();
     }, actionIndex);
+  }
+};
+
+const traceEventOwner = (event) => {
+  const data = event.args?.data ?? event.args?.beginData ?? {};
+  const stackFrame = Array.isArray(data.stackTrace) ? data.stackTrace[0] : null;
+  return {
+    name: event.name,
+    duration: Number((event.dur / 1_000).toFixed(3)),
+    functionName: data.functionName ?? data.function ?? stackFrame?.functionName ?? null,
+    url: data.url ?? data.scriptName ?? stackFrame?.url ?? null,
+  };
+};
+
+const summarizeTrace = (traceEvents, route, viewport) => {
+  const completeEvents = traceEvents.filter((event) => event.ph === 'X' && typeof event.ts === 'number' && typeof event.dur === 'number');
+  const longTasks = completeEvents
+    .filter((event) => event.name === 'RunTask' && event.dur > 50_000)
+    .map((task) => {
+      const taskEnd = task.ts + task.dur;
+      const nested = completeEvents
+        .filter((event) => event.pid === task.pid && event.tid === task.tid && event.name !== 'RunTask'
+          && event.ts >= task.ts && event.ts + event.dur <= taskEnd)
+        .sort((left, right) => right.dur - left.dur);
+      return { ...traceEventOwner(task), owner: nested[0] ? traceEventOwner(nested[0]) : null };
+    });
+  return {
+    route: route.path,
+    viewport: viewport.name,
+    status: 'captured',
+    eventCount: traceEvents.length,
+    longTasks,
+  };
+};
+
+const captureNavigationTrace = async ({ route, viewport, navigate }) => {
+  const needsTrace = attributionEnabled && (route.path === '/warehouse' || route.path === '/admin-data');
+  if (!needsTrace) {
+    await navigate();
+    return null;
+  }
+
+  let cdp;
+  try {
+    cdp = await context.newCDPSession(page);
+    const completed = new Promise((resolve) => cdp.on('Tracing.tracingComplete', resolve));
+    await cdp.send('Tracing.start', {
+      categories: 'devtools.timeline,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.stack,disabled-by-default-v8.cpu_profiler',
+      options: 'record-as-much-as-possible',
+      transferMode: 'ReturnAsStream',
+    });
+    try {
+      await navigate();
+    } finally {
+      await cdp.send('Tracing.end');
+    }
+    const completedTrace = await Promise.race([
+      completed,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('CDP trace did not complete within 30 seconds.')), 30_000)),
+    ]);
+    const chunks = [];
+    let eof = false;
+    while (!eof) {
+      const chunk = await cdp.send('IO.read', { handle: completedTrace.stream });
+      chunks.push(chunk.data);
+      eof = chunk.eof;
+    }
+    await cdp.send('IO.close', { handle: completedTrace.stream });
+    const trace = JSON.parse(chunks.join(''));
+    return summarizeTrace(trace.traceEvents ?? [], route, viewport);
+  } catch (error) {
+    return { route: route.path, viewport: viewport.name, status: 'unavailable', error: String(error?.message ?? error) };
+  } finally {
+    if (cdp) await cdp.detach().catch(() => {});
   }
 };
 
@@ -275,9 +414,16 @@ try {
       activeProbe = `${viewport.name}:${route.name}`;
       await resetPerformance();
       actionStartedAt = Date.now();
-      await page.goto(`${baseUrl}${route.path}`);
-      await settle();
-      await page.evaluate(() => document.fonts.ready);
+      const attribution = await captureNavigationTrace({
+        route,
+        viewport,
+        navigate: async () => {
+          await page.goto(`${baseUrl}${route.path}`);
+          await settle();
+          await page.evaluate(() => document.fonts.ready);
+        },
+      });
+      if (attribution) evidence.attributionTraces.push(attribution);
 
       if (route.name === 'admin-data') {
         const statisticsTab = page.getByRole('tab', { name: 'Thống kê', exact: true });
@@ -337,6 +483,9 @@ try {
           cls: window.__ipcPhase25Perf.shifts.reduce((sum, shift) => sum + shift.value, 0),
           shifts: [...window.__ipcPhase25Perf.shifts],
           longTasks: window.__ipcPhase25Perf.longTasks.map((task) => ({ ...task, action: actionFor(task.startTime) })),
+          geometry: window.__ipcPhase25Perf.geometry
+            ? { ...window.__ipcPhase25Perf.geometry, frames: [...window.__ipcPhase25Perf.geometry.frames], resizeEvents: [...window.__ipcPhase25Perf.geometry.resizeEvents] }
+            : null,
           actions,
           fontStatus: document.fonts.status,
           bodyFontFamily: getComputedStyle(document.body).fontFamily,
@@ -416,6 +565,7 @@ try {
     escapedMutationCount: evidence.escapedMutations.length,
     overflowCount: evidence.routes.filter((sample) => sample.horizontalOverflow).length,
     longTaskCount: evidence.routes.reduce((sum, sample) => sum + sample.longTasks.length, 0),
+    attributionTraceCount: evidence.attributionTraces.length,
     maxCls: Math.max(...evidence.routes.map((sample) => sample.cls)),
   };
   evidence.performanceThresholdFailures = evidence.routes.flatMap((sample) => {
@@ -432,7 +582,8 @@ try {
   await Promise.all([
     fs.writeFile(path.join(apiRoot, 'responses.json'), JSON.stringify(evidence.apiResponses, null, 2)),
     fs.writeFile(path.join(browserRoot, 'errors.json'), JSON.stringify({ consoleErrors: evidence.consoleErrors, pageErrors: evidence.pageErrors, requestFailures: evidence.requestFailures, escapedMutations: evidence.escapedMutations }, null, 2)),
-    fs.writeFile(path.join(performanceRoot, 'metrics.json'), JSON.stringify(evidence.routes.map(({ viewport, route, cls, shifts, longTasks, actions }) => ({ viewport, route, cls, shifts, longTasks, actions })), null, 2)),
+    fs.writeFile(path.join(performanceRoot, 'metrics.json'), JSON.stringify(evidence.routes.map(({ viewport, route, cls, shifts, longTasks, geometry, actions }) => ({ viewport, route, cls, shifts, longTasks, geometry, actions })), null, 2)),
+    fs.writeFile(path.join(performanceRoot, 'attribution.json'), JSON.stringify(evidence.attributionTraces, null, 2)),
     fs.writeFile(path.join(performanceRoot, 'threshold-failures.json'), JSON.stringify(evidence.performanceThresholdFailures, null, 2)),
     fs.writeFile(path.join(root, 'manifest.json'), JSON.stringify({ ...evidence, status: 'passed' }, null, 2)),
   ]);
