@@ -773,21 +773,31 @@ test.describe('operational control surface', () => {
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
     await page.goto(ROUTES.WEEKLY_MENU);
 
-    await page.getByRole('button', { name: 'Nhập Excel' }).click();
+    const importTrigger = page.getByRole('button', { name: 'Nhập Excel' });
+    const importViewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    await importTrigger.focus();
+    await importTrigger.click();
     const importDialog = page.getByRole('dialog', { name: 'Nhập thực đơn từ Excel' });
     await expect(importDialog).toBeVisible();
+    await expect(importDialog).toHaveAttribute('aria-modal', 'true');
     await expect(importDialog.getByLabel('Khách hàng')).toBeVisible();
     await expect(importDialog.getByLabel('Định mức BOM')).toBeVisible();
     await expect(importDialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(importViewportWidth);
     await importDialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' }).click();
     await expect(importDialog).toBeHidden();
+    await expect(importTrigger).toBeFocused();
 
-    await page.getByRole('button', { name: 'Chỉnh sửa thực đơn' }).click();
+    const editTrigger = page.getByRole('button', { name: 'Chỉnh sửa thực đơn' });
+    await editTrigger.focus();
+    await editTrigger.click();
     const editDialog = page.getByRole('dialog', { name: 'Chỉnh sửa thực đơn tuần' });
     await expect(editDialog).toBeVisible();
+    await expect(editDialog).toHaveAttribute('aria-modal', 'true');
     await expect(editDialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' })).toBeVisible();
     await editDialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' }).click();
     await expect(editDialog).toBeHidden();
+    await expect(editTrigger).toBeFocused();
   });
 
   test('meal order confirmation dialog stays top-level and keeps API errors visible', async ({ page }) => {
@@ -852,11 +862,15 @@ test.describe('operational control surface', () => {
     await stubApprovalQueue(page);
     await page.goto(ROUTES.APPROVALS);
 
-    await page.getByRole('button', { name: 'Duyệt' }).first().click();
+    const approvalTrigger = page.getByRole('button', { name: 'Duyệt' }).first();
+    await approvalTrigger.focus();
+    await approvalTrigger.click();
     const approvalDialog = page.getByRole('dialog', { name: 'Duyệt chứng từ?' });
     await expect(approvalDialog).toBeVisible();
+    await expect(approvalDialog).toHaveAttribute('aria-modal', 'true');
     await expect(approvalDialog.getByLabel('Ghi chú duyệt (tùy chọn)')).toBeVisible();
     await approvalDialog.getByRole('button', { name: 'Giữ chứng từ' }).click();
     await expect(approvalDialog).toBeHidden();
+    await expect(approvalTrigger).toBeFocused();
   });
 });

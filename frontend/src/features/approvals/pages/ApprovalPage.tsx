@@ -35,6 +35,7 @@ export default function ApprovalPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const queueFocusRef = useRef<HTMLDivElement>(null);
+  const decisionTriggerRef = useRef<HTMLElement | null>(null);
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
@@ -158,6 +159,7 @@ export default function ApprovalPage() {
   }, [requestedRecord]);
 
   const openDecisionModal = (record: ApprovalRecord, status: 'Approve' | 'Reject') => {
+    decisionTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setDecisionError(null);
     setDecisionModal({
       isOpen: true,
@@ -171,6 +173,7 @@ export default function ApprovalPage() {
     if (isDeciding) return;
     setDecisionError(null);
     setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
+    window.requestAnimationFrame(() => decisionTriggerRef.current?.focus());
   };
 
   const handleDecisionSubmit = async () => {

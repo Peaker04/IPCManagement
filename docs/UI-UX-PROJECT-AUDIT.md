@@ -40,7 +40,7 @@ The tab portion is now executable: every initially enabled tab is activated at a
 
 ## Interaction evidence collected
 
-- Dialog group: 3/3 current dialog checks passed (weekly-menu import/edit, meal-order confirmation, approval decision modal).
+- Dialog group: 3 safely closable checks now pass (weekly-menu import/edit and approval decision). Each asserts `aria-modal`, preserves document client width while open, and restores focus to its trigger on close. Meal-order confirmation remains a mutation-boundary path, so it is not promoted as a read-only dialog PASS.
 - Table/control group: 2/6 passed; Reports wide-table and Weekly Menu matrix local-scroll checks passed. Four failures are UX-05 and must be diagnosed as current fixture/state drift before any assertion is updated.
 
 ### UX-05 classification

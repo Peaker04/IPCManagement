@@ -69,6 +69,9 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   the 10 measurement tests pass. A tab that remounts after activation is recorded by owner as `NEEDS_EVIDENCE`, not a
   stale-locator timeout. Dialog plus loading/empty/error/permission fixture coverage remains the active scope; Warehouse
   retains its reservation because state-specific geometry is not yet deterministic.
+- Read-only dialog evidence now covers weekly-menu import/edit and the Approvals decision modal: each has an accessible
+  modal name, keeps document client width stable, and restores focus to the opener. Meal-order confirmation is a
+  mutation-boundary path and therefore remains `NEEDS_EVIDENCE` for the read-only matrix.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer
