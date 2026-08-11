@@ -92,4 +92,13 @@ describe('Admin audit export feedback', () => {
     expect(screen.getByText(newValue)).toHaveClass('ipc-admin-audit-value');
     expect(screen.getByText('Đối soát phiếu hoàn kho')).toBeInTheDocument();
   });
+
+  it('keeps explicit column scope and the shared audit preference owner', () => {
+    const source = require('node:fs').readFileSync(require('node:path').resolve(process.cwd(), 'src/app/pages/admin-data/AdminAuditPanel.tsx'), 'utf8');
+    expect(source).toContain("tableId: 'admin-audit'");
+    expect(source).toContain('preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}');
+    expect(source.match(/<th scope="col"/g)).toHaveLength(7);
+    expect(source).toContain('handleExportAuditCsv');
+    expect(source).toContain('CursorPaginationBar');
+  });
 });
