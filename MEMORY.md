@@ -58,11 +58,12 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
 
 - Project-wide UI/UX audit is at `docs/UI-UX-PROJECT-AUDIT.md`: Wave 3 closed Reports UX-01/UX-02 with the owner-local
   `ReportsPricePanel` detail action and the existing debounced server-bound search. Focused controls 3/3, five-desktop
-  measurements 10/10, lint and production build pass. Wave 2 retains 45 headed route probes on `ipc_lane9` with zero
-  browser/API/mutation/overflow errors, but Warehouse CLS `0.1983` at `1920×1080`, Approvals CLS `0.1011`–`0.1516`, and
-  Warehouse long tasks `71ms`/`51ms` remain route-level only. The control harness still returns to local login before the Warehouse current-stock table state;
-  keep its record `NEEDS_EVIDENCE`. Reports action/pagination work remains independently authorized; no Warehouse or
-  Approvals production owner is authorized until a trace attributes the signal.
+  measurements 10/10, lint and production build pass. Wave 2 corrective headed evidence on `ipc_lane9` adds source
+  rectangles/action intervals: Approvals confirms the queue `SplitWorkbench` `Chứng từ` strip removes from ~148px to zero.
+  Its focused delayed-query reservation regression passes, but live CLS remains `0.1011`–`0.1516`, so the `<=0.1` gate is
+  still open. Warehouse received one new attempt only (`0.2011` at 1920×1080; navigation long tasks `55/69/60/71/71ms`)
+  and remains `NEEDS_EVIDENCE`; no Warehouse UI changed. The current run has 603 GET, zero console/page/request error,
+  escaped mutation and overflow; 3010/8010 was torn down. Hash/pointer is only in `docs/EVIDENCE-INDEX.md`.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer
