@@ -28,9 +28,9 @@ const findingIds = () => {
   if (!/inert|focus.*return|return.*focus/s.test(dialog)) findings.push('DIALOG-03')
   if (!/aria-labelledby/.test(dialog)) findings.push('DIALOG-04')
 
-  if (!has('src/styles/components/tables.css', 'ipc-table-sticky-identifier')) findings.push('TABLE-01')
+  if (!has('src/styles/components/tables.css', 'font-variant-numeric: tabular-nums') || !has('src/styles/components/tables.css', '[data-cell-role="numeric"]')) findings.push('TABLE-01')
   if (!has('src/components/common/TableViewport.tsx', 'data-table-viewport')) findings.push('TABLE-02')
-  if (!has('src/components/common/DataTableShell.tsx', 'data-ui-table-shell')) findings.push('TABLE-03')
+  if (!has('src/components/common/DataTableShell.tsx', 'data-ui-table-shell') || !has('src/components/common/DataTableShell.tsx', 'tablePreference')) findings.push('TABLE-03')
   if (!has('src/components/ui/table.tsx', /scope\s*=\s*"col"/)) findings.push('TABLE-04')
   if (/<thead>[\s\S]*?<th[\s>]/.test(read('src/app/pages/admin-data/AdminAuditPanel.tsx'))) findings.push('TABLE-04:AdminAuditPanel.tsx')
   if (!has('src/components/common/StatusBadge.tsx', 'aria-live') || !has('src/components/common/StatusBadge.tsx', 'title={label}')) findings.push('STATUS-02')
@@ -43,7 +43,7 @@ describe('dashboard UI rule contracts', () => {
   it('reports every in-scope gap with an exact requirement ID', () => {
     const found = findingIds()
     const expectedAuditGaps = [
-      'TABLE-01', 'TABLE-02', 'TABLE-03', 'TABLE-04:AdminAuditPanel.tsx',
+      'TABLE-03', 'TABLE-04:AdminAuditPanel.tsx',
     ]
     expect(found).toEqual(process.env.IPC_DASHBOARD_RULES_EXPECT_GAPS === '1' ? expectedAuditGaps : [])
   })

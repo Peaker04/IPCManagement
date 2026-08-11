@@ -124,8 +124,14 @@
 
 .ipc-number-cell {
   color: var(--ipc-slate-900) !important;
+  font-variant-numeric: tabular-nums;
   font-weight: 800;
-  text-align: center;
+  text-align: right;
+}
+
+.ipc-data-table [data-cell-role="numeric"] {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .ipc-number-cell.is-danger {
@@ -292,13 +298,15 @@
   overflow-wrap: normal;
 }
 
-.ipc-table-shell .ipc-data-table thead {
+.ipc-table-shell[data-sticky-header="true"] .ipc-data-table thead,
+.ipc-table-viewport[data-sticky-header="true"] .ipc-data-table thead {
   position: sticky;
   top: 0;
   z-index: 5;
 }
 
-.ipc-table-shell .ipc-data-table thead th {
+.ipc-table-shell[data-sticky-header="true"] .ipc-data-table thead th,
+.ipc-table-viewport[data-sticky-header="true"] .ipc-data-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
@@ -339,6 +347,40 @@
 .ipc-data-table th:first-child,
 .ipc-data-table td:first-child {
   text-align: left;
+}
+
+.ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table th:first-child,
+.ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table th:first-child,
+.ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table td:first-child,
+.ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table td:first-child {
+  left: 0;
+  position: sticky;
+}
+
+.ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table th:first-child,
+.ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table th:first-child {
+  z-index: 6;
+}
+
+.ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table td:first-child,
+.ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table td:first-child {
+  background: var(--ipc-color-surface);
+  z-index: 1;
+}
+
+.ipc-table-viewport[data-density="compact"] .ipc-data-table td,
+.ipc-table-shell[data-density="compact"] .ipc-data-table td {
+  height: 40px;
+}
+
+.ipc-table-viewport[data-density="standard"] .ipc-data-table td,
+.ipc-table-shell[data-density="standard"] .ipc-data-table td {
+  height: 48px;
+}
+
+.ipc-table-viewport[data-density="comfortable"] .ipc-data-table td,
+.ipc-table-shell[data-density="comfortable"] .ipc-data-table td {
+  height: 56px;
 }
 
 .ipc-schedule-table {
