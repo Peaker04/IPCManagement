@@ -91,8 +91,8 @@ export type CustomerImportMapping = components['schemas']['CustomerImportMapping
 export type WeeklyMenuImportHistoryItem = components['schemas']['WeeklyMenuImportHistoryItemDto']
 export type RollbackWeeklyMenuImportResult = components['schemas']['RollbackWeeklyMenuImportResultDto']
 export type CreateMenuAmendmentRequest = { customerId: string; weekStartDate: string; reason: string; lines: Array<{ serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON'; dishSlot: string; newDishId: string }> }
-export type MenuAmendmentResult = { menuAmendmentId: string; status: string; requiresReconciliation: boolean; affectedDemandCount: number; affectedPurchaseRequestCount: number; hasPurchaseOrder: boolean; hasReceipt: boolean; hasIssue: boolean; appliedMenuVersionId?: string | null }
-export type MenuAmendmentInboxItem = { menuAmendmentId: string; customerId: string; customerName: string; weekStartDate: string; status: string; reason: string; createdAt: string; requiresReconciliation: boolean; hasPurchaseOrder: boolean; hasReceipt: boolean; hasIssue: boolean; affectedDemandCount: number; affectedPurchaseRequestCount: number }
+export type MenuAmendmentResult = { menuAmendmentId: string; status: string; requiresReconciliation: boolean; affectedDemandCount: number; affectedPurchaseRequestCount: number; hasPurchaseOrder: boolean; hasReceipt: boolean; hasIssue: boolean; appliedMenuVersionId?: string | null; reconciliationCaseId?: string | null; affectedDocumentIds?: readonly string[]; affectedSourceLineIds?: readonly string[] }
+export type MenuAmendmentInboxItem = { menuAmendmentId: string; customerId: string; customerName: string; weekStartDate: string; status: string; reason: string; createdAt: string; requiresReconciliation: boolean; hasPurchaseOrder: boolean; hasReceipt: boolean; hasIssue: boolean; affectedDemandCount: number; affectedPurchaseRequestCount: number; reconciliationCaseId?: string | null; affectedDocumentIds?: readonly string[]; affectedSourceLineIds?: readonly string[]; reconciliationCorrectionCount?: number; reconciliationStatus?: string }
 
 const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceTierAmount, previewToken }: WeeklyMenuImportRequest) => {
   const formData = new FormData()
@@ -395,6 +395,10 @@ export const coordinationApi = apiSlice.injectEndpoints({
     reviewMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; approved: boolean; reason?: string }>({ query: ({ id, approved, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/review`, method: 'POST', body: { approved, reason } }), invalidatesTags: ['Coordination'] }),
 executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: ['Coordination'] }),
 breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; reason: string }>({ query: ({ id, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/break-glass-execute`, method: 'POST', body: { reason } }), invalidatesTags: ['Coordination'] }),
+    createMenuAmendmentReconciliationCorrection: builder.mutation<ApiResponse<undefined>, { id: string; serviceRunId: string; reason: string }>({
+      query: ({ id, serviceRunId, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/reconciliation-corrections`, method: 'POST', body: { serviceRunId, reason } }),
+      invalidatesTags: ['Coordination', workflowCacheTags.productionPlans],
+    }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, WeeklyMenuImportHistoryQuery | void>({
       query: (params) => {
         const customerId = params?.customerId;
@@ -457,6 +461,7 @@ export const {
   useReviewMenuAmendmentMutation,
 useExecuteMenuAmendmentMutation,
 useBreakGlassExecuteMenuAmendmentMutation,
+  useCreateMenuAmendmentReconciliationCorrectionMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
   useGetProductionPlansQuery,

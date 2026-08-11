@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
-import { ActionGuard, StatusBadge } from '@/components/common'
+import { ServiceRunTrackPanel, StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -26,17 +26,9 @@ const statusLabel: Record<string, string> = {
   READY_TO_PRODUCE: 'Sẵn sàng phục vụ', IN_SERVICE: 'Đang phục vụ',
   RECONCILIATION_REQUIRED: 'Cần đối soát', READY_TO_CLOSE: 'Sẵn sàng đóng ca', CLOSED: 'Đã đóng ca',
 }
-const blockerLabel: Record<string, string> = {
-  PLAN_NOT_SIGNED_OFF: 'Kế hoạch chưa chốt', DEMAND_NOT_GENERATED: 'Chưa sinh nhu cầu vật tư',
-  BOM_INCOMPLETE: 'Thiếu BOM', OPEN_SUPPLY: 'Thiếu vật tư', UNRECEIVED_ISSUE: 'Phiếu xuất chưa được bếp nhận',
-  OPEN_SUPPLEMENTAL: 'Yêu cầu bổ sung đang mở', ACTUAL_SERVINGS_NOT_RECORDED: 'Chưa ghi suất thực tế',
-  UNRESOLVED_VARIANCE: 'Chưa xử lý chênh lệch', SERVICE_CONFIRMATION_REQUIRED: 'Chưa xác nhận giao suất',
-  UNRESOLVED_SERVING_VARIANCE: 'Chờ quyết định chênh lệch suất', CONFIRMATION_OUTCOME_CONFLICT: 'Xung đột xác nhận giao suất',
-}
 const outcomeLabel: Record<string, string> = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', WAIVED: 'Đã miễn xác nhận' }
 
 const tone = (status: string) => status === 'CLOSED' || status === 'READY_TO_CLOSE' ? 'success' as const : status === 'BLOCKED' || status === 'RECONCILIATION_REQUIRED' ? 'danger' as const : 'warning' as const
-const describeBlocker = (blocker: string) => blockerLabel[blocker] ?? blocker.replaceAll('_', ' ')
 
 export function ServiceRunSection({ plans, shiftName }: Props) {
   const [showAll, setShowAll] = useState(false)
@@ -72,8 +64,13 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
   const [waiveConfirmation, waiveConfirmationState] = useWaiveServiceRunConfirmationMutation()
   const [close, closeState] = useCloseServiceRunMutation()
   const [createAdjustment, createAdjustmentState] = useCreateServiceRunAdjustmentMutation()
-  const act = async (operation: () => Promise<ServiceRunLifecycleProjectionDto>) => {
-    try { setError(null); setLocalRun(await operation()) } catch (cause) { setError(getChefMutationErrorMessage(cause, 'Không thể cập nhật Ca phục vụ.')) }
+  const act = async (operation: () => Promise<unknown>) => {
+    try {
+      setError(null)
+      await operation()
+      setLocalRun(null)
+      await refetch()
+    } catch (cause) { setError(getChefMutationErrorMessage(cause, 'Không thể cập nhật Ca phục vụ.')) }
   }
   const isMutating = openState.isLoading || startState.isLoading || recordState.isLoading || confirmState.isLoading || resolveVarianceState.isLoading || resolveServingVarianceState.isLoading || waiveConfirmationState.isLoading || closeState.isLoading || createAdjustmentState.isLoading
 
@@ -89,7 +86,7 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
         <div><dt className="text-slate-500">Điều chỉnh hậu kiểm</dt><dd className="font-medium text-slate-800 tabular-nums">{run.adjustmentCount}</dd></div>
         <div><dt className="text-slate-500">Giao suất</dt><dd className="font-medium text-slate-800">{outcomeLabel[run.serviceConfirmationOutcome] ?? run.serviceConfirmationOutcome}</dd></div>
       </dl>
-      {run.blockers.length > 0 && <p className="mt-2 text-xs text-slate-600" role="status">Cần xử lý: {run.blockers.map(describeBlocker).join(' · ')}</p>}
+      <ServiceRunTrackPanel run={run} />
       <div className="mt-3 flex flex-wrap items-end gap-2">
         {run.canStartService && <Button size="sm" disabled={startState.isLoading} onClick={() => void act(() => start(run.serviceRunId).unwrap())}>Bắt đầu phục vụ</Button>}
         {run.canRecordActualServings && <>
@@ -98,20 +95,15 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
           <Button size="sm" disabled={recordState.isLoading || actual === ''} onClick={() => void act(() => record({ id: run.serviceRunId, body: { actualServings: Number(actual), reason: reason || null } }).unwrap())}>Ghi nhận</Button>
         </>}
         {run.canConfirmService && <Button size="sm" disabled={confirmState.isLoading} onClick={() => void act(() => confirm(run.serviceRunId).unwrap())}><CheckCircle2 className="size-4" />Xác nhận phục vụ</Button>}
-        <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
-          {run.canResolveVariance && <Button size="sm" variant="outline" disabled={resolveVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết toán chênh lệch</Button>}
-          {run.canResolveServingVariance && <Button size="sm" variant="outline" disabled={resolveServingVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveServingVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết định chênh lệch suất</Button>}
-          {run.canWaiveServiceConfirmation && <Button size="sm" variant="outline" disabled={waiveConfirmationState.isLoading || !reason.trim()} onClick={() => void act(() => waiveConfirmation({ id: run.serviceRunId, body: { reason } }).unwrap())}>Miễn xác nhận</Button>}
-          {run.canClose && <Button size="sm" disabled={closeState.isLoading} onClick={() => void act(() => close(run.serviceRunId).unwrap())}><ShieldCheck className="size-4" />Đóng ca</Button>}
-          {run.status === 'CLOSED' && <>
+        {run.canResolveVariance && <Button size="sm" variant="outline" disabled={resolveVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết toán chênh lệch</Button>}
+        {run.canResolveServingVariance && <Button size="sm" variant="outline" disabled={resolveServingVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveServingVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết định chênh lệch suất</Button>}
+        {run.canWaiveServiceConfirmation && <Button size="sm" variant="outline" disabled={waiveConfirmationState.isLoading || !reason.trim()} onClick={() => void act(() => waiveConfirmation({ id: run.serviceRunId, body: { reason } }).unwrap())}>Miễn xác nhận</Button>}
+        {run.canClose && <Button size="sm" disabled={closeState.isLoading} onClick={() => void act(() => close(run.serviceRunId).unwrap())}><ShieldCheck className="size-4" />Đóng ca</Button>}
+        {run.status === 'CLOSED' && <>
             <label className="grid gap-1 text-xs font-medium text-slate-700">Suất điều chỉnh<Input aria-label="Số suất điều chỉnh hậu kiểm" type="number" min="0" value={correctedActual} onChange={(event) => setCorrectedActual(event.target.value)} className="h-8 w-28" /></label>
             <label className="grid gap-1 text-xs font-medium text-slate-700">Lý do hậu kiểm<Input aria-label="Lý do điều chỉnh hậu kiểm" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Bắt buộc" className="h-8 w-56" /></label>
-            <Button size="sm" variant="outline" disabled={createAdjustmentState.isLoading || correctedActual === '' || !reason.trim()} onClick={() => void act(async () => {
-              await createAdjustment({ id: run.serviceRunId, body: { correctedActualServings: Number(correctedActual), reason } }).unwrap()
-              return { ...run, adjustmentCount: run.adjustmentCount + 1 }
-            })}>Ghi điều chỉnh hậu kiểm</Button>
+            <Button size="sm" variant="outline" disabled={createAdjustmentState.isLoading || correctedActual === '' || !reason.trim()} onClick={() => void act(() => createAdjustment({ id: run.serviceRunId, body: { correctedActualServings: Number(correctedActual), reason } }).unwrap())}>Ghi điều chỉnh hậu kiểm</Button>
           </>}
-        </ActionGuard>
       </div>
     </>}
     {error && <p role="alert" className="mt-2 text-xs text-red-700">{error}</p>}

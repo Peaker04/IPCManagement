@@ -6,6 +6,7 @@ import * as workflowModule from '@/api/workflowApi';
 const expectedEndpointNames = [
   'acceptReceiptQuality',
   'applyLegacyLineageDisposition',
+  'approveServiceRunVarianceWaiver',
   'cancelPurchaseOrder',
   'closeServiceRun',
   'confirmInventoryIssueReceipt',
@@ -24,6 +25,7 @@ const expectedEndpointNames = [
   'createSupplementalMaterialRequest',
   'createSupplierQuotation',
   'deactivateSupplierQuotation',
+  'declareServiceRunVariance',
   'deleteApprovalRule',
   'executeApprovalDecision',
   'fulfillSupplementalMaterialRequest',
@@ -108,6 +110,7 @@ const expectedEndpointNames = [
 const expectedHookNames = [
   'useAcceptReceiptQualityMutation',
   'useApplyLegacyLineageDispositionMutation',
+  'useApproveServiceRunVarianceWaiverMutation',
   'useCancelPurchaseOrderMutation',
   'useCloseServiceRunMutation',
   'useConfirmInventoryIssueReceiptMutation',
@@ -126,6 +129,7 @@ const expectedHookNames = [
   'useCreateSupplementalMaterialRequestMutation',
   'useCreateSupplierQuotationMutation',
   'useDeactivateSupplierQuotationMutation',
+  'useDeclareServiceRunVarianceMutation',
   'useDeleteApprovalRuleMutation',
   'useExecuteApprovalDecisionMutation',
   'useFulfillSupplementalMaterialRequestMutation',
@@ -219,6 +223,6 @@ describe('workflow API public surface', () => {
       .sort();
 
     expect(hooks).toEqual(expectedHookNames);
-    expect(hooks).toHaveLength(98);
+    expect(hooks).toHaveLength(100);
   });
 });

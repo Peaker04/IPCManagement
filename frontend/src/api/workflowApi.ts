@@ -77,6 +77,8 @@ export type {
     ServiceRunPageQuery,
     ServiceRunByPlanQuery,
   OpenServiceRunRequest,
+  DeclareServiceRunVarianceRequest,
+  ApproveServiceRunVarianceWaiverRequest,
   RecordActualServingsRequest,
     ReasonRequest,
     CreateServiceRunAdjustmentRequest,
@@ -231,6 +233,8 @@ export {
     useResolveServiceRunVarianceMutation,
   useWaiveServiceRunConfirmationMutation,
     useCloseServiceRunMutation,
+    useDeclareServiceRunVarianceMutation,
+    useApproveServiceRunVarianceWaiverMutation,
     useGetServiceRunAdjustmentsQuery,
     useCreateServiceRunAdjustmentMutation,
 } from '@/features/chef/chefApi';

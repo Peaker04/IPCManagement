@@ -1,7 +1,7 @@
 import { ClipboardList } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { EmptyState, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { useGetServiceRunPageQuery } from '@/api/workflowApi';
+import { useGetServiceRunAdjustmentsQuery, useGetServiceRunPageQuery } from '@/api/workflowApi';
 import { getServiceRunStatusPresentation } from '@/lib/workflowConfig';
 import { readStoredAuthSnapshot } from '@/lib/auth/authStorage';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
@@ -20,8 +20,20 @@ const serviceRunPreferenceConfig: TablePreferenceConfig = {
     { id: 'supplemental', label: 'Bổ sung' },
     { id: 'cost', label: 'Chi phí' },
     { id: 'servings', label: 'Suất' },
+    { id: 'correction', label: 'Correction overlay' },
   ],
 };
+
+function CorrectionOverlay({ serviceRunId, snapshotActual, isCloseSnapshot }: { serviceRunId: string; snapshotActual: number | null | undefined; isCloseSnapshot: boolean }) {
+  const { data: adjustments, isFetching, isError } = useGetServiceRunAdjustmentsQuery(serviceRunId, { skip: !isCloseSnapshot });
+  if (!isCloseSnapshot) return <span className="text-xs text-slate-500">Không có snapshot đóng ca (legacy).</span>;
+  if (isFetching) return <span className="text-xs text-slate-500" role="status">Đang tải correction overlay…</span>;
+  if (isError) return <span className="text-xs text-red-700" role="alert">Không tải được correction overlay; snapshot đóng ca vẫn được giữ riêng.</span>;
+  const latest = adjustments?.[0];
+  if (!latest) return <span className="text-xs text-slate-500">Không có correction overlay.</span>;
+  const delta = latest.correctedActualServings - (snapshotActual ?? 0);
+  return <span className="text-xs"><span className="block font-medium text-slate-800">Append-only · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
+}
 
 export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
   const [page, setPage] = useState(1);
@@ -33,7 +45,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
   return <SectionPanel title="Ca phục vụ và chứng từ nguồn" icon={<ClipboardList size={18} />} description="Trạng thái do backend tính từ KHSX, nhu cầu, phiếu xuất/trả và cấp bổ sung. Ca đã đóng dùng snapshot tại thời điểm close; legacy chưa có snapshot được ghi rõ.">
     {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Không thể kết luận tình trạng đóng ca khi projection chứng từ nguồn chưa tải được." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
       <TableViewport ariaLabel="Bảng Ca phục vụ" caption="Các chứng từ nguồn được hiển thị theo từng Ca, không gộp theo tên nguyên liệu." preferences={{ accountId: currentAccountId, config: serviceRunPreferenceConfig }}>
-        {({ columns }) => <table className="ipc-data-table ipc-status-action-table min-w-[1080px]">
+        {({ columns }) => <table className="ipc-data-table ipc-status-action-table min-w-[1240px]">
           <thead><tr>{columns.map((column) => <th scope="col" key={column.id}>{column.label}</th>)}</tr></thead>
           <tbody>
             {rows.length === 0 ? <tr><td colSpan={columns.length} className="py-8 text-center text-slate-600">Chưa có Ca phục vụ trong phạm vi đang lọc.</td></tr> : rows.map((row) => {
@@ -48,6 +60,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
                 supplemental: <span className="text-xs">{supplementalRequestCodes.join(', ') || '—'}</span>,
                 cost: <span className="text-right text-xs tabular-nums"><span className="block">Chi phí mua ước tính: {formatCurrency(estimatedPurchaseCost ?? 0)}</span><span className="mt-1 block text-slate-500">Chi phí mua thực nhận: {actualReceivedCost == null ? 'Chưa phát sinh nhập' : formatCurrency(actualReceivedCost)}</span></span>,
                 servings: <span className="ipc-numeric-cell tabular-nums">{lifecycle.actualServings ?? '—'} / {lifecycle.plannedServings}</span>,
+                correction: <CorrectionOverlay serviceRunId={lifecycle.serviceRunId} snapshotActual={lifecycle.actualServings} isCloseSnapshot={isCloseSnapshot} />,
               };
               return <tr key={lifecycle.serviceRunId}>{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
             })}

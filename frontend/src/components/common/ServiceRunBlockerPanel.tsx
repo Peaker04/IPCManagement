@@ -3,6 +3,29 @@ import { useGetServiceRunPageQuery } from '@/api/workflowApi'
 import { EmptyState } from './EmptyState'
 import { SectionPanel } from './SectionPanel'
 import { StatusBadge } from './StatusBadge'
+import type { ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
+
+const trackDefinitions = [
+  { id: 'planning', label: 'Kế hoạch', blockers: ['PLAN_NOT_SIGNED_OFF', 'DEMAND_NOT_GENERATED'], evidence: (run: ServiceRunLifecycleProjectionDto) => `${run.materialRequestLineCount} source-line nhu cầu`, nextAction: (run: ServiceRunLifecycleProjectionDto) => run.canResolveVariance ? 'Quyết toán chênh lệch theo token backend' : 'Chờ chứng từ kế hoạch' },
+  { id: 'supply', label: 'Vật tư / cấp phát', blockers: ['BOM_INCOMPLETE', 'OPEN_SUPPLY', 'UNRECEIVED_ISSUE', 'OPEN_SUPPLEMENTAL'], evidence: (run: ServiceRunLifecycleProjectionDto) => `${run.issueCount} phiếu xuất · ${run.unreceivedIssueCount} chờ nhận · ${run.openSupplementalCount} cấp bổ sung mở`, nextAction: () => 'Xử lý chứng từ nguồn được nêu bên dưới' },
+  { id: 'service', label: 'Thực hiện phục vụ', blockers: ['ACTUAL_SERVINGS_NOT_RECORDED', 'SERVICE_CONFIRMATION_REQUIRED'], evidence: (run: ServiceRunLifecycleProjectionDto) => `Suất thực tế: ${run.actualServings ?? 'chưa ghi'} · ${run.serviceConfirmationOutcome}`, nextAction: (run: ServiceRunLifecycleProjectionDto) => run.canRecordActualServings ? 'Ghi nhận suất thực tế' : run.canConfirmService ? 'Xác nhận phục vụ' : 'Chờ token hành động từ backend' },
+  { id: 'reconciliation', label: 'Đối soát', blockers: ['UNRESOLVED_VARIANCE', 'UNRESOLVED_SERVING_VARIANCE', 'CONFIRMATION_OUTCOME_CONFLICT'], evidence: (run: ServiceRunLifecycleProjectionDto) => `${run.adjustmentCount} correction/điều chỉnh append-only`, nextAction: (run: ServiceRunLifecycleProjectionDto) => run.canResolveVariance || run.canResolveServingVariance || run.canWaiveServiceConfirmation ? 'Thực hiện action token được backend cho phép' : 'Không có action tự phê duyệt' },
+] as const
+
+/** Renders the backend blocker/action tokens in four operational tracks without recomputing lifecycle state. */
+export function ServiceRunTrackPanel({ run }: { run: ServiceRunLifecycleProjectionDto }) {
+  return <dl className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Bốn track Ca phục vụ">
+    {trackDefinitions.map((track) => {
+      const blockers = run.blockers.filter((blocker) => track.blockers.includes(blocker as never))
+      const resolved = blockers.length === 0
+      return <div key={track.id} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs">
+        <div className="flex items-center justify-between gap-2"><dt className="font-medium text-slate-800">{track.label}</dt><StatusBadge variant={resolved ? 'success' : 'warning'}>{resolved ? 'Không có blocker' : 'Cần xử lý'}</StatusBadge></div>
+        <dd className="mt-1 text-slate-600">{blockers.length ? blockers.join(' · ') : track.evidence(run)}</dd>
+        <dd className="mt-1 text-slate-500">Tiếp theo: {track.nextAction(run)}</dd>
+      </div>
+    })}
+  </dl>
+}
 
 /** Shared projection of canonical Service Run blockers for the responsible workflow views. */
 export function ServiceRunBlockerPanel({ serviceDate, owner }: { serviceDate?: string; owner: 'Kho' | 'Thu mua' }) {

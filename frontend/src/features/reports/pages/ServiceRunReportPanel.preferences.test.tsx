@@ -10,6 +10,8 @@ describe('Service Run table preferences', () => {
     expect(source).toContain("id: 'blocker'");
     expect(source).toContain("id: 'cost'");
     expect(source).toContain("id: 'servings'");
+    expect(source).toContain("id: 'correction'");
+    expect(source).toContain('CorrectionOverlay');
     expect(source).toContain('PaginationBar');
     expect(source).toContain('getServiceRunStatusPresentation');
   });

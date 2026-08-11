@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import {
   useBreakGlassExecuteMenuAmendmentMutation,
+  useCreateMenuAmendmentReconciliationCorrectionMutation,
   useExecuteMenuAmendmentMutation,
   useGetMenuAmendmentsQuery,
   useReviewMenuAmendmentMutation,
@@ -35,17 +36,20 @@ export function MenuAmendmentInbox() {
   const [review, { isLoading: reviewing }] = useReviewMenuAmendmentMutation()
   const [execute, { isLoading: executing }] = useExecuteMenuAmendmentMutation()
   const [breakGlassExecute, { isLoading: breakGlassing }] = useBreakGlassExecuteMenuAmendmentMutation()
+  const [appendCorrection, { isLoading: appendingCorrection }] = useCreateMenuAmendmentReconciliationCorrectionMutation()
   const [correctionId, setCorrectionId] = useState<string | null>(null)
   const [correctionReason, setCorrectionReason] = useState('')
   const [breakGlassId, setBreakGlassId] = useState<string | null>(null)
   const [breakGlassReason, setBreakGlassReason] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [correctionServiceRunId, setCorrectionServiceRunId] = useState('')
   const items = data?.data ?? []
 
   const complete = async (action: () => Promise<unknown>, message: string) => {
     try {
       await action()
       setFeedback(message)
+      await refetch()
     } catch {
       setFeedback('Không thể cập nhật yêu cầu. Dữ liệu hoặc quyền thao tác có thể đã thay đổi; hãy tải lại.')
     }
@@ -60,7 +64,7 @@ export function MenuAmendmentInbox() {
       </section>
     )
   }
-  if (!isLoading && items.length === 0) return null
+  if (!isLoading && items.length === 0) return <section className="mb-4 rounded border border-slate-200 bg-slate-50 p-3" aria-label="Yêu cầu thay đổi thực đơn"><h2 className="text-sm font-semibold text-slate-800">Yêu cầu thay đổi thực đơn</h2><p className="mt-1 text-sm text-slate-600">Không có yêu cầu review hoặc đối soát trong phạm vi hiện tại.</p></section>
   return (
     <section className="mb-4 rounded border border-amber-200 bg-amber-50 p-3" aria-label="Yêu cầu thay đổi thực đơn">
       <h2 className="text-sm font-semibold text-amber-900">Yêu cầu thay đổi thực đơn</h2>
@@ -80,6 +84,7 @@ export function MenuAmendmentInbox() {
                       · demand {item.affectedDemandCount}, PR {item.affectedPurchaseRequestCount}
                     </small>
                   )}
+                  {item.requiresReconciliation && <small className="mt-1 block text-slate-600">Impact snapshot đã khóa theo chứng từ nguồn. Correction chỉ được append sau khi Ca phục vụ đóng; không tạo lại hoặc mở lại lịch sử.</small>}
                 </span>
                 <StandardManagerAction>
                   <span className="flex gap-2">
@@ -98,6 +103,7 @@ export function MenuAmendmentInbox() {
                     'Đã thực thi thay đổi và tạo version thực đơn mới.',
                   )} disabled={executing}>Thực thi</Button>}
                   {item.status === 'PENDING_REVIEW' && <Button size="sm" variant="outline" onClick={() => setBreakGlassId(item.menuAmendmentId)} disabled={breakGlassing}>Thực thi khẩn</Button>}
+                  {item.requiresReconciliation && <Button size="sm" variant="outline" onClick={() => setCorrectionId(item.menuAmendmentId)} disabled={appendingCorrection}>Ghi correction append-only</Button>}
                 </AdminExecutionAction>
               </div>
               <StandardManagerAction>
@@ -116,6 +122,18 @@ export function MenuAmendmentInbox() {
                 )}
               </StandardManagerAction>
               <AdminExecutionAction>
+                {correctionId === item.menuAmendmentId && item.requiresReconciliation && (
+                  <div className="mt-2 grid gap-2 border-t border-amber-200 pt-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
+                    <Input value={correctionServiceRunId} onChange={(event) => setCorrectionServiceRunId(event.target.value)} placeholder="Mã Ca phục vụ đã đóng" aria-label="Mã Ca phục vụ đã đóng" />
+                    <Input value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Lý do correction bắt buộc" aria-label="Lý do correction append-only" />
+                    <Button size="sm" disabled={!correctionServiceRunId.trim() || !correctionReason.trim() || appendingCorrection} onClick={() => void complete(async () => {
+                      await appendCorrection({ id: item.menuAmendmentId, serviceRunId: correctionServiceRunId, reason: correctionReason }).unwrap()
+                      setCorrectionId(null)
+                      setCorrectionServiceRunId('')
+                      setCorrectionReason('')
+                    }, 'Đã ghi correction append-only. Snapshot đóng Ca giữ nguyên và inbox đã tải lại trạng thái đối soát.')}>Ghi correction</Button>
+                  </div>
+                )}
                 {breakGlassId === item.menuAmendmentId && (
                   <div className="mt-2 flex flex-wrap gap-2 border-t border-amber-200 pt-2">
                     <Input value={breakGlassReason} onChange={(event) => setBreakGlassReason(event.target.value)} placeholder="Lý do break-glass bắt buộc" aria-label="Lý do break-glass" />

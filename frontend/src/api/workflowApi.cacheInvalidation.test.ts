@@ -109,4 +109,28 @@ describe('workflow cache invalidation fan-out', () => {
 
     releaseRefetches.forEach((release) => release());
   });
+
+  it('refetches the ServiceRun projection after a server-authorized variance declaration', async () => {
+    const requests: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+      requests.push(`${request.method} ${new URL(request.url).pathname}`);
+      return jsonResponse({
+        serviceRunId: 'run-1', planId: 'plan-1', planCode: 'KHSX-01', serviceDate: '2026-08-12', shiftName: 'MORNING', status: 'RECONCILIATION_REQUIRED',
+        blockers: ['UNRESOLVED_VARIANCE'], canStartService: false, canRecordActualServings: false, canConfirmService: false,
+        canWaiveServiceConfirmation: false, canResolveVariance: false, canResolveServingVariance: false, canClose: false, serviceConfirmationOutcome: 'PENDING',
+        plannedServings: 40, actualServings: 39, materialRequestLineCount: 2, issueCount: 1, unreceivedIssueCount: 0, openSupplementalCount: 0,
+        unreceivedReturnCount: 0, hasBomBlocker: false, adjustmentCount: 0,
+      });
+    }));
+    const store = createWorkflowApiStore();
+
+    await store.dispatch(workflowApi.endpoints.getServiceRunByPlan.initiate({ planId: 'plan-1', shiftName: 'MORNING' }));
+    requests.length = 0;
+    await store.dispatch(workflowApi.endpoints.declareServiceRunVariance.initiate({
+      id: 'run-1', body: { track: 'RECONCILIATION', sourceLineIds: ['line-1'], reason: 'Cần đối soát' },
+    }));
+
+    await vi.waitFor(() => expect(requests).toContain('GET /api/service-runs/by-plan'));
+    expect(requests).toContain('POST /api/service-runs/run-1/variance/declarations');
+  });
 });

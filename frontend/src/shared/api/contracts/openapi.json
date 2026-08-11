@@ -1451,73 +1451,47 @@
         }
       }
     },
-    "/api/coordination/customers": {
-      "get": {
+    "/api/coordination/weekly-menu/amendments": {
+      "post": {
         "tags": [
           "Coordination"
         ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CoordinationCustomerOptionDtoIReadOnlyListApiResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CoordinationCustomerOptionDtoIReadOnlyListApiResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CoordinationCustomerOptionDtoIReadOnlyListApiResponse"
-                }
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
               }
             }
           }
-        }
-      }
-    },
-    "/api/coordination/weekly-menu": {
-      "get": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "customerId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "weekStartDate",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
                 }
               }
             }
@@ -1541,6 +1515,170 @@
                 }
               }
             }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/review": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/execute": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/break-glass-execute": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/reconciliation-corrections": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentReconciliationCorrectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentReconciliationCorrectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentReconciliationCorrectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -1607,54 +1745,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/coordination/weekly-menu/template": {
-      "get": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "customerId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "weekStartDate",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
                 }
               }
             }
@@ -1884,44 +1974,6 @@
         }
       }
     },
-    "/api/coordination/weekly-menu/import-history": {
-      "get": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "customerId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/coordination/weekly-menu/import/{menuVersionId}/rollback": {
       "post": {
         "tags": [
@@ -1974,6 +2026,186 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coordination/customers": {
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoordinationCustomerOptionDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoordinationCustomerOptionDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoordinationCustomerOptionDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu": {
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/template": {
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/import-history": {
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"
                 }
               }
             }
@@ -2140,197 +2372,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/api/coordination/weekly-menu/amendments": {
-      "post": {
-        "tags": [
-          "Coordination"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/coordination/weekly-menu/amendments/{amendmentId}/review": {
-      "post": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "amendmentId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/coordination/weekly-menu/amendments/{amendmentId}/execute": {
-      "post": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "amendmentId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/coordination/weekly-menu/amendments/{amendmentId}/break-glass-execute": {
-      "post": {
-        "tags": [
-          "Coordination"
-        ],
-        "parameters": [
-          {
-            "name": "amendmentId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
           }
         }
       }
@@ -4101,6 +4142,138 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/data-quality-dispositions": {
+      "get": {
+        "tags": [
+          "DataQualityDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DataQualityDispositions"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataQualityDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataQualityDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataQualityDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/data-quality-dispositions/{id}/review": {
+      "post": {
+        "tags": [
+          "DataQualityDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDataQualityDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDataQualityDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDataQualityDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/data-quality-dispositions/{id}/apply": {
+      "post": {
+        "tags": [
+          "DataQualityDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDataQualityDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDataQualityDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDataQualityDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -6280,6 +6453,77 @@
         }
       }
     },
+    "/api/admin/lifecycle-outbox": {
+      "get": {
+        "tags": [
+          "LifecycleOutbox"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/lifecycle-outbox/{messageId}/replay": {
+      "post": {
+        "tags": [
+          "LifecycleOutbox"
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayLifecycleOutboxRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayLifecycleOutboxRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayLifecycleOutboxRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/material-demand/generate": {
       "post": {
         "tags": [
@@ -8020,6 +8264,101 @@
         }
       }
     },
+    "/api/service-runs/{id}/adjustments": {
+      "get": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/service-runs": {
       "post": {
         "tags": [
@@ -8572,6 +8911,96 @@
         }
       }
     },
+    "/api/service-runs/{id}/variance/declarations": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareServiceRunVarianceRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareServiceRunVarianceRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareServiceRunVarianceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/service-runs/{id}/variance/declarations/{declarationId}/waive": {
+      "post": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "declarationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveServiceRunVarianceWaiverRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveServiceRunVarianceWaiverRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveServiceRunVarianceWaiverRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/service-runs/{id}/close": {
       "post": {
         "tags": [
@@ -8604,101 +9033,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/service-runs/{id}/adjustments": {
-      "get": {
-        "tags": [
-          "ServiceRuns"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoIReadOnlyListApiResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "ServiceRuns"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateServiceRunAdjustmentRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceRunAdjustmentDtoApiResponse"
                 }
               }
             }
@@ -9806,6 +10140,47 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/unit-normalization-reviews/{reviewId}/decision": {
+      "post": {
+        "tags": [
+          "UnitNormalizationReviews"
+        ],
+        "parameters": [
+          {
+            "name": "reviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitNormalizationReviewDecisionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitNormalizationReviewDecisionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitNormalizationReviewDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -17313,6 +17688,35 @@
         },
         "additionalProperties": false
       },
+      "ApplyDataQualityDispositionRequest": {
+        "required": [
+          "commandId",
+          "correctionEntityId",
+          "correctionEntityType",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "correctionEntityType": {
+            "type": "string"
+          },
+          "correctionEntityId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "commandId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ApplyLegacyLineageDispositionRequest": {
         "required": [
           "commandId",
@@ -17933,6 +18337,18 @@
             "items": {
               "$ref": "#/components/schemas/ApprovalAssignmentRequest"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApproveServiceRunVarianceWaiverRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -19250,6 +19666,42 @@
         },
         "additionalProperties": false
       },
+      "CreateDataQualityDispositionRequest": {
+        "required": [
+          "commandId",
+          "evidenceJson",
+          "issueType",
+          "proposedAction",
+          "reason",
+          "sourceEntityId",
+          "sourceFingerprint"
+        ],
+        "type": "object",
+        "properties": {
+          "issueType": {
+            "type": "string"
+          },
+          "sourceEntityId": {
+            "type": "string"
+          },
+          "sourceFingerprint": {
+            "type": "string"
+          },
+          "proposedAction": {
+            "type": "string"
+          },
+          "evidenceJson": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateDishBomLineRequest": {
         "required": [
           "grossQtyPerServing",
@@ -19752,6 +20204,22 @@
             "type": "string"
           },
           "newDishId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMenuAmendmentReconciliationCorrectionRequest": {
+        "required": [
+          "reason",
+          "serviceRunId"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceRunId": {
+            "type": "string"
+          },
+          "reason": {
             "type": "string"
           }
         },
@@ -21301,6 +21769,29 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DeclareServiceRunVarianceRequest": {
+        "required": [
+          "reason",
+          "sourceLineIds",
+          "track"
+        ],
+        "type": "object",
+        "properties": {
+          "track": {
+            "type": "string"
+          },
+          "sourceLineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -25686,7 +26177,9 @@
       "MenuAmendmentResultDto": {
         "required": [
           "affectedDemandCount",
+          "affectedDocumentIds",
           "affectedPurchaseRequestCount",
+          "affectedSourceLineIds",
           "hasIssue",
           "hasPurchaseOrder",
           "hasReceipt",
@@ -25725,6 +26218,22 @@
           "appliedMenuVersionId": {
             "type": "string",
             "nullable": true
+          },
+          "reconciliationCaseId": {
+            "type": "string",
+            "nullable": true
+          },
+          "affectedDocumentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "affectedSourceLineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false
@@ -30413,6 +30922,18 @@
         },
         "additionalProperties": false
       },
+      "ReplayLifecycleOutboxRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ResolvePortionRuleRequest": {
         "required": [
           "customerId",
@@ -30509,6 +31030,31 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewDataQualityDispositionRequest": {
+        "required": [
+          "commandId",
+          "decision",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "commandId": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -33307,6 +33853,35 @@
             "items": {
               "$ref": "#/components/schemas/PurchaseOrderLine"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "UnitNormalizationReviewDecisionRequest": {
+        "required": [
+          "decision",
+          "evidenceNote",
+          "evidenceSource"
+        ],
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "evidenceSource": {
+            "type": "string"
+          },
+          "evidenceNote": {
+            "type": "string"
+          },
+          "sourceToCatalogFactor": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "recommendedUnitId": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

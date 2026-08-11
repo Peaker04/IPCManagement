@@ -305,6 +305,83 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/admin/lifecycle-outbox": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly limit?: number;
+                    readonly status?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/admin/lifecycle-outbox/{messageId}/replay": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly messageId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ReplayLifecycleOutboxRequest"];
+                    readonly "application/json": components["schemas"]["ReplayLifecycleOutboxRequest"];
+                    readonly "text/json": components["schemas"]["ReplayLifecycleOutboxRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/approval-history/{documentType}/{documentId}": {
         readonly parameters: {
             readonly query?: never;
@@ -2561,6 +2638,47 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/coordination/weekly-menu/amendments/{amendmentId}/reconciliation-corrections": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly amendmentId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["CreateMenuAmendmentReconciliationCorrectionRequest"];
+                    readonly "application/json": components["schemas"]["CreateMenuAmendmentReconciliationCorrectionRequest"];
+                    readonly "text/json": components["schemas"]["CreateMenuAmendmentReconciliationCorrectionRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/coordination/weekly-menu/amendments/{amendmentId}/review": {
         readonly parameters: {
             readonly query?: never;
@@ -3044,6 +3162,146 @@ export interface paths {
         };
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/data-quality-dispositions": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly status?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["CreateDataQualityDispositionRequest"];
+                    readonly "application/json": components["schemas"]["CreateDataQualityDispositionRequest"];
+                    readonly "text/json": components["schemas"]["CreateDataQualityDispositionRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/data-quality-dispositions/{id}/apply": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ApplyDataQualityDispositionRequest"];
+                    readonly "application/json": components["schemas"]["ApplyDataQualityDispositionRequest"];
+                    readonly "text/json": components["schemas"]["ApplyDataQualityDispositionRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/data-quality-dispositions/{id}/review": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ReviewDataQualityDispositionRequest"];
+                    readonly "application/json": components["schemas"]["ReviewDataQualityDispositionRequest"];
+                    readonly "text/json": components["schemas"]["ReviewDataQualityDispositionRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -6335,6 +6593,89 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/service-runs/{id}/variance/declarations": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["DeclareServiceRunVarianceRequest"];
+                    readonly "application/json": components["schemas"]["DeclareServiceRunVarianceRequest"];
+                    readonly "text/json": components["schemas"]["DeclareServiceRunVarianceRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/service-runs/{id}/variance/declarations/{declarationId}/waive": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly declarationId: string;
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ApproveServiceRunVarianceWaiverRequest"];
+                    readonly "application/json": components["schemas"]["ApproveServiceRunVarianceWaiverRequest"];
+                    readonly "text/json": components["schemas"]["ApproveServiceRunVarianceWaiverRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/service-runs/{id}/variance/resolve": {
         readonly parameters: {
             readonly query?: never;
@@ -7304,6 +7645,47 @@ export interface paths {
         };
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/unit-normalization-reviews/{reviewId}/decision": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly reviewId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["UnitNormalizationReviewDecisionRequest"];
+                    readonly "application/json": components["schemas"]["UnitNormalizationReviewDecisionRequest"];
+                    readonly "text/json": components["schemas"]["UnitNormalizationReviewDecisionRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -9952,6 +10334,14 @@ export interface components {
             readonly message: string;
             readonly success: boolean;
         };
+        readonly ApplyDataQualityDispositionRequest: {
+            readonly commandId: string;
+            readonly correctionEntityId: string;
+            readonly correctionEntityType: string;
+            /** Format: int64 */
+            readonly expectedVersion: number;
+            readonly reason: string;
+        };
         readonly ApplyLegacyLineageDispositionRequest: {
             readonly commandId: string;
             /** Format: int64 */
@@ -10142,6 +10532,9 @@ export interface components {
             /** Format: int32 */
             readonly shortageLineCount: number;
             readonly status: string;
+        };
+        readonly ApproveServiceRunVarianceWaiverRequest: {
+            readonly reason: string;
         };
         readonly AuditChangeReportDto: {
             readonly auditId: string;
@@ -10493,6 +10886,15 @@ export interface components {
             readonly note?: string | null;
             readonly shiftNames?: readonly string[] | null;
         };
+        readonly CreateDataQualityDispositionRequest: {
+            readonly commandId: string;
+            readonly evidenceJson: string;
+            readonly issueType: string;
+            readonly proposedAction: string;
+            readonly reason: string;
+            readonly sourceEntityId: string;
+            readonly sourceFingerprint: string;
+        };
         readonly CreateDishBomLineRequest: {
             readonly bomStatus?: string | null;
             readonly customerId?: string | null;
@@ -10622,6 +11024,10 @@ export interface components {
             /** Format: date */
             readonly serviceDate: string;
             readonly shiftName: string;
+        };
+        readonly CreateMenuAmendmentReconciliationCorrectionRequest: {
+            readonly reason: string;
+            readonly serviceRunId: string;
         };
         readonly CreateMenuAmendmentRequest: {
             readonly customerId: string;
@@ -11065,6 +11471,11 @@ export interface components {
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
+        };
+        readonly DeclareServiceRunVarianceRequest: {
+            readonly reason: string;
+            readonly sourceLineIds: readonly string[];
+            readonly track: string;
         };
         readonly Dish: {
             readonly dishboms: readonly components["schemas"]["DishBom"][];
@@ -12316,13 +12727,16 @@ export interface components {
         readonly MenuAmendmentResultDto: {
             /** Format: int32 */
             readonly affectedDemandCount: number;
+            readonly affectedDocumentIds: readonly string[];
             /** Format: int32 */
             readonly affectedPurchaseRequestCount: number;
+            readonly affectedSourceLineIds: readonly string[];
             readonly appliedMenuVersionId?: string | null;
             readonly hasIssue: boolean;
             readonly hasPurchaseOrder: boolean;
             readonly hasReceipt: boolean;
             readonly menuAmendmentId: string;
+            readonly reconciliationCaseId?: string | null;
             readonly requiresReconciliation: boolean;
             readonly status: string;
         };
@@ -13691,6 +14105,9 @@ export interface components {
         readonly RejectSupplementalMaterialRequest: {
             readonly reason: string;
         };
+        readonly ReplayLifecycleOutboxRequest: {
+            readonly reason: string;
+        };
         readonly ResolvedPortionRuleDto: {
             /** Format: double */
             readonly bomRatePercent?: number | null;
@@ -13717,6 +14134,13 @@ export interface components {
             readonly serviceDate: string;
             readonly shiftName?: string | null;
             readonly slotName?: string | null;
+        };
+        readonly ReviewDataQualityDispositionRequest: {
+            readonly commandId: string;
+            readonly decision: string;
+            /** Format: int64 */
+            readonly expectedVersion: number;
+            readonly reason: string;
         };
         readonly ReviewLegacyLineageDispositionRequest: {
             readonly approve: boolean;
@@ -14516,6 +14940,14 @@ export interface components {
             /** Format: byte */
             readonly unitId: string;
             readonly unitName: string;
+        };
+        readonly UnitNormalizationReviewDecisionRequest: {
+            readonly decision: string;
+            readonly evidenceNote: string;
+            readonly evidenceSource: string;
+            readonly recommendedUnitId?: string | null;
+            /** Format: double */
+            readonly sourceToCatalogFactor?: number | null;
         };
         readonly UpdateCustomerContractRequest: {
             readonly activeWeekDays?: readonly string[] | null;
