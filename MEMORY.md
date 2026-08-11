@@ -66,6 +66,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   `1365×900`) trên Service Run/Admin Audit, 10 preference flow, 237 post-action GET, zero console/page/request/
   escaped-mutation/overflow; runtime `3010/8010` đã teardown. Hash/pointer chỉ ở `docs/EVIDENCE-INDEX.md`; 118
   `NEEDS_EVIDENCE` vẫn là backlog, không được promote.
+- Quick corrective `260811-nut` đã giữ TABLE-03 nhưng chuyển editor cấu hình luôn hiện thành trigger
+  `Tùy chỉnh bảng` trong toolbar không scroll; popover giữ visibility/order/density/reset, khóa cột định danh,
+  có radio/copy hướng tác vụ, feedback live và focus return. Independent verifier `5/5`; focused owner suite
+  `13/13`, lint và frontend build pass. Không có backend/API/database hoặc evidence/runtime run mới.
 
 ## Database audit checkpoint 2026-08-10
 

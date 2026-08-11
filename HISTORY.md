@@ -26,6 +26,15 @@ chỉ được append, không viết lại số cũ.
   sau action, font local, zero console/page/request failure, escaped mutation và overflow. Bốn long task cùng
   CLS tối đa `0.06757797678095356` chỉ là lab sample; runtime owned `3010/8010` đã teardown.
 
+## TABLE-03 UX corrective ngày 11/08/2026
+
+- Audit hậu triển khai chấm 11/24 vì editor preference nằm thường trực trên vùng đọc bảng. Quick `260811-nut`
+  chuyển capability này vào `Tùy chỉnh bảng` trong toolbar không scroll, giữ persistence/reset và không đổi
+  owner Admin Audit/Service Run hay hành vi nghiệp vụ.
+- Commit `6d8da972` triển khai popover, radio/copy task-oriented, feedback/focus và guard cột định danh; commit
+  `5766fafe` bổ sung assertion ẩn cột tức thời, remount persistence và reset. Independent verifier `5/5`,
+  focused owner test `13/13`, lint và frontend build pass.
+
 ## Snapshot handoff cũ trước khi phân tầng
 
 Phần trạng thái hiện hành và checklist tiếp tục đã được cắt sang `MEMORY.md`; không lặp lại ở đây.
