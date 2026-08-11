@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/lib/routeConfig';
@@ -28,6 +28,17 @@ type InteractionRecord = {
   consoleErrors: string[];
   pageErrors: string[];
   nonReadRequests: string[];
+};
+
+type AuditUser = {
+  userId: string;
+  username: string;
+  fullName: string;
+  role: string;
+  roleCode: string;
+  roleName: string;
+  isAdminFullAccess: boolean;
+  permissions: string[];
 };
 
 const protectedRoutes = [
@@ -128,8 +139,21 @@ function buildDataQualityIssues(count = 8) {
   });
 }
 
-async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnType<typeof buildDataQualityIssues> }) {
+async function stubAuditApi(page: Page, options?: {
+  dataQualityIssues?: ReturnType<typeof buildDataQualityIssues>;
+  profile?: AuditUser;
+}) {
   const dataQualityIssues = options?.dataQualityIssues ?? [];
+  const profile = options?.profile ?? {
+    userId: '1',
+    username: 'admin',
+    fullName: 'Admin User',
+    role: 'admin',
+    roleCode: 'ADMIN',
+    roleName: 'Admin',
+    isAdminFullAccess: true,
+    permissions: ['*'],
+  };
 
   await page.route('**/api/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
@@ -212,6 +236,20 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
         return;
       }
 
+      if (endpoint === 'current-stock/page') {
+        await fulfillJson(route, {
+          items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+        });
+        return;
+      }
+
+      if (['price-variance/by-supplier/page', 'price-variance/by-period/page', 'price-variance/by-dish-group/page'].includes(endpoint)) {
+        await fulfillJson(route, {
+          items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+        });
+        return;
+      }
+
       await fulfillJson(route, []);
       return;
     }
@@ -226,15 +264,7 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
     }
 
     if (pathname === '/api/auth/profile') {
-      await fulfillJson(route, {
-        userId: '1',
-        username: 'admin',
-        fullName: 'Admin User',
-        roleCode: 'ADMIN',
-        roleName: 'Admin',
-        isAdminFullAccess: true,
-        permissions: ['*'],
-      });
+      await fulfillJson(route, profile);
       return;
     }
 
@@ -280,6 +310,13 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
       return;
     }
 
+    if (pathname === '/api/purchase-requests/page') {
+      await fulfillJson(route, {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      });
+      return;
+    }
+
     if (pathname === '/api/supplemental-material-requests' || pathname === '/api/inventory-returns') {
       await fulfillJson(route, {
         items: [],
@@ -297,23 +334,53 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
   });
 }
 
-async function login(page: Page) {
+async function stubApprovalAuditQueue(page: Page) {
+  await page.route('**/api/approvals/inbox**', async (route) => fulfillJson(route, {
+    items: [{
+      inboxItemId: 'approval-ui-audit',
+      targetType: 'purchase-request',
+      targetId: 'pr-ui-audit',
+      targetCode: 'PR-UI-AUDIT-01',
+      itemType: 'purchase',
+      title: 'Duyệt đơn mua nguyên liệu',
+      source: 'PR-UI-AUDIT-01',
+      ownerRole: 'Quản lý',
+      submittedBy: 'Điều phối ca sáng',
+      dueDate: '2026-07-11',
+      status: 'PENDING',
+      reason: 'Đơn mua cần phê duyệt trước khi gửi nhà cung cấp.',
+      nextAction: 'Duyệt',
+      tone: 'warning',
+      route: ROUTES.APPROVALS,
+      materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
+    }],
+    limit: 20,
+    hasNext: false,
+    nextCursor: null,
+  }));
+  await page.route('**/api/workflow-reports/workflow-documents**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/approval-history/**', async (route) => fulfillJson(route, []));
+}
+
+async function login(page: Page, user?: AuditUser) {
+  const authenticatedUser = user ?? {
+    userId: 'dev-admin',
+    username: 'admin',
+    fullName: 'Admin User',
+    role: 'admin',
+    roleCode: 'ADMIN',
+    roleName: 'Admin',
+    isAdminFullAccess: true,
+    permissions: ['*'],
+  };
   await page.context().clearCookies();
-  await page.addInitScript(() => {
+  await page.addInitScript((storedUser) => {
     window.localStorage.clear();
     window.sessionStorage.clear();
     window.sessionStorage.setItem('token', 'dev-login-fallback-token-admin');
-    window.localStorage.setItem('user', JSON.stringify({
-      id: 'dev-admin',
-      username: 'admin',
-      fullName: 'Admin User',
-      role: 'admin',
-      roleCode: 'ADMIN',
-      roleName: 'Admin',
-      isAdminFullAccess: true,
-      permissions: ['*'],
-    }));
-  });
+    window.localStorage.setItem('user', JSON.stringify({ ...storedUser, id: storedUser.userId }));
+  }, authenticatedUser);
   await page.goto(ROUTES.DASHBOARD);
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
   await expect(page.locator('.ipc-app-shell')).toBeVisible();
@@ -467,98 +534,79 @@ async function collectVisibleTabRecords(
   issues: AuditIssue[],
   signals: ReturnType<typeof observePage>,
 ) {
-  const tabIds = await page.locator('[role="tab"]').evaluateAll((tabs) => tabs
-    .filter((tab): tab is HTMLElement => tab instanceof HTMLElement && tab.offsetParent !== null && !tab.hasAttribute('disabled'))
-    .map((tab) => tab.id)
-    .filter(Boolean));
   const records: InteractionRecord[] = [];
 
-  for (const tabId of tabIds) {
-    const tab = page.locator(`[role="tab"]#${tabId}`);
-    const tabState = () => page.evaluate((id) => {
-      const element = document.getElementById(id);
-      if (!(element instanceof HTMLElement)) return { visible: false, selected: false };
-      const style = window.getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      return {
-        visible: rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden',
-        selected: element.getAttribute('aria-selected') === 'true',
-      };
-    }, tabId);
-    if (!(await tabState()).visible) {
-      const geometry = await page.evaluate(() => ({
-        width: window.innerWidth,
-        height: window.innerHeight,
-        scrollWidth: document.documentElement.scrollWidth,
-        scrollHeight: document.documentElement.scrollHeight,
-      }));
-      records.push({
-        route: routeName,
-        owner: tabId,
-        state: 'tab-unavailable-after-route-transition',
-        viewport: viewportName,
-        outcome: 'NEEDS_EVIDENCE',
-        geometry,
-        focus: 'tab-unmounted',
-        consoleErrors: [...signals.consoleErrors],
-        pageErrors: [...signals.pageErrors],
-        nonReadRequests: [...signals.nonReadRequests],
-      });
-      continue;
-    }
-    try {
-      await tab.click({ timeout: 1_000 });
-    } catch {
-      const geometry = await page.evaluate(() => ({
-        width: window.innerWidth,
-        height: window.innerHeight,
-        scrollWidth: document.documentElement.scrollWidth,
-        scrollHeight: document.documentElement.scrollHeight,
-      }));
-      records.push({
-        route: routeName,
-        owner: tabId,
-        state: 'tab-unavailable-during-activation',
-        viewport: viewportName,
-        outcome: 'NEEDS_EVIDENCE',
-        geometry,
-        focus: 'tab-owner-remounted',
-        consoleErrors: [...signals.consoleErrors],
-        pageErrors: [...signals.pageErrors],
-        nonReadRequests: [...signals.nonReadRequests],
-      });
-      continue;
-    }
-    if (!(await tabState()).selected) {
-      const geometry = await page.evaluate(() => ({
-        width: window.innerWidth,
-        height: window.innerHeight,
-        scrollWidth: document.documentElement.scrollWidth,
-        scrollHeight: document.documentElement.scrollHeight,
-      }));
-      records.push({
-        route: routeName,
-        owner: tabId,
-        state: 'tab-owner-remounted-after-activation',
-        viewport: viewportName,
-        outcome: 'NEEDS_EVIDENCE',
-        geometry,
-        focus: 'tab-owner-remounted',
-        consoleErrors: [...signals.consoleErrors],
-        pageErrors: [...signals.pageErrors],
-        nonReadRequests: [...signals.nonReadRequests],
-      });
-      continue;
-    }
-    await stabilize(page);
-    const tabIssues = await collectLayoutIssues(page, routeName, viewportName);
-    issues.push(...tabIssues);
-    records.push(await collectInteractionRecord(page, {
+  const geometry = () => page.evaluate(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight,
+  }));
+  const recordNeedsEvidence = async (owner: string, state: string, focus: string) => {
+    records.push({
       route: routeName,
-      owner: tabId,
-      state: 'tab-active',
+      owner,
+      state,
       viewport: viewportName,
-    }, tabIssues, signals));
+      outcome: 'NEEDS_EVIDENCE',
+      geometry: await geometry(),
+      focus,
+      consoleErrors: [...signals.consoleErrors],
+      pageErrors: [...signals.pageErrors],
+      nonReadRequests: [...signals.nonReadRequests],
+    });
+  };
+  const visitTablist = async (tablist: Locator): Promise<void> => {
+    const tabIds = await tablist.getByRole('tab').evaluateAll((tabs) => tabs
+      .filter((tab): tab is HTMLElement => tab instanceof HTMLElement && tab.offsetParent !== null && !tab.hasAttribute('disabled'))
+      .map((tab) => tab.id)
+      .filter(Boolean));
+
+    for (const tabId of tabIds) {
+      const tab = page.locator(`[role="tab"]#${tabId}`);
+      if (!await tab.isVisible().catch(() => false)) {
+        await recordNeedsEvidence(tabId, 'tab-unavailable-in-owning-panel', 'tab-unmounted');
+        continue;
+      }
+      const panelId = await tab.getAttribute('aria-controls', { timeout: 1_000 }).catch(() => null);
+      try {
+        await tab.click({ timeout: 1_000 });
+        await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 2_000 });
+      } catch {
+        await recordNeedsEvidence(tabId, 'tab-activation-not-settled', 'tab-owner-remounted');
+        continue;
+      }
+
+      await stabilize(page);
+      const tabIssues = await collectLayoutIssues(page, routeName, viewportName);
+      issues.push(...tabIssues);
+      records.push(await collectInteractionRecord(page, {
+        route: routeName,
+        owner: tabId,
+        state: 'tab-active',
+        viewport: viewportName,
+      }, tabIssues, signals));
+
+      if (!panelId) continue;
+      const panel = page.locator(`#${panelId}`);
+      if (!await panel.isVisible().catch(() => false)) {
+        await recordNeedsEvidence(tabId, 'tab-panel-unavailable-after-activation', 'tab-panel-unmounted');
+        continue;
+      }
+      const nestedTablists = panel.locator('[role="tablist"]');
+      for (let index = 0; index < await nestedTablists.count(); index += 1) {
+        await visitTablist(nestedTablists.nth(index));
+      }
+    }
+  };
+
+  const rootTablistLabels = await page.locator('[role="tablist"]').evaluateAll((tablists) => tablists
+    .filter((tablist) => !tablist.closest('[role="tabpanel"]'))
+    .map((tablist) => tablist.getAttribute('aria-label'))
+    .filter((label): label is string => Boolean(label)));
+  for (const label of rootTablistLabels) {
+    const tablist = page.getByRole('tablist', { name: label });
+    if (await tablist.isVisible().catch(() => false)) await visitTablist(tablist);
   }
 
   return records;
@@ -628,6 +676,103 @@ test.describe('UI measurement audit', () => {
         }
 
         await expectNoAuditIssues(`${viewport.name}-protected-routes`, issues, interactionRecords);
+      });
+
+      test('warehouse route renders the named forbidden state for a user without warehouse access', async ({ page }) => {
+        const noWarehouseAccess: AuditUser = {
+          userId: 'audit-procurement',
+          username: 'audit-procurement',
+          fullName: 'Audit Procurement User',
+          role: 'procurement',
+          roleCode: 'PROCUREMENT',
+          roleName: 'Thu mua',
+          isAdminFullAccess: false,
+          permissions: ['purchase.read'],
+        };
+        await stubAuditApi(page, { profile: noWarehouseAccess });
+        const signals = observePage(page);
+        await login(page, noWarehouseAccess);
+        await page.goto(ROUTES.WAREHOUSE);
+
+        await expect(page).toHaveURL(ROUTES.FORBIDDEN);
+        await expect(page.getByRole('heading', { name: 'Không đủ quyền truy cập' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Kho nguyên liệu' })).toHaveCount(0);
+
+        const issues = await collectLayoutIssues(page, 'warehouse-forbidden', viewport.name);
+        await expectNoAuditIssues(
+          `${viewport.name}-warehouse-forbidden`,
+          issues,
+          [await collectInteractionRecord(page, {
+            route: 'warehouse',
+            owner: 'RoleGuard',
+            state: 'forbidden-no-warehouse-read',
+            viewport: viewport.name,
+          }, issues, signals)],
+        );
+      });
+
+      test('safe dialogs remain named, modal, focus-contained, and non-mutating', async ({ page }) => {
+        await stubAuditApi(page);
+        await stubApprovalAuditQueue(page);
+        const signals = observePage(page);
+        await login(page);
+        const issues: AuditIssue[] = [];
+        const records: InteractionRecord[] = [];
+
+        await page.goto(ROUTES.WEEKLY_MENU);
+        for (const dialogCase of [
+          {
+            owner: 'WeeklyMenuImportDialog',
+            trigger: page.getByRole('button', { name: 'Nhập Excel' }),
+            dialog: page.getByRole('dialog', { name: 'Nhập thực đơn từ Excel' }),
+            close: (dialog: ReturnType<Page['getByRole']>) => dialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' }),
+          },
+          {
+            owner: 'WeeklyScheduleEditorDialog',
+            trigger: page.getByRole('button', { name: 'Chỉnh sửa thực đơn' }),
+            dialog: page.getByRole('dialog', { name: 'Chỉnh sửa thực đơn tuần' }),
+            close: (dialog: ReturnType<Page['getByRole']>) => dialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' }),
+          },
+        ]) {
+          await dialogCase.trigger.focus();
+          const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+          await dialogCase.trigger.click();
+          await expect(dialogCase.dialog).toBeVisible();
+          await expect(dialogCase.dialog).toHaveAttribute('aria-modal', 'true');
+          expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(clientWidth);
+          await page.keyboard.press('Tab');
+          await expect.poll(() => dialogCase.dialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
+          const dialogIssues = await collectLayoutIssues(page, 'weekly-menu', viewport.name);
+          issues.push(...dialogIssues);
+          records.push(await collectInteractionRecord(page, {
+            route: 'weekly-menu', owner: dialogCase.owner, state: 'safe-dialog-open', viewport: viewport.name,
+          }, dialogIssues, signals));
+          await dialogCase.close(dialogCase.dialog).click();
+          await expect(dialogCase.dialog).toBeHidden();
+          await expect(dialogCase.trigger).toBeFocused();
+        }
+
+        await page.goto(ROUTES.APPROVALS);
+        const approvalTrigger = page.getByRole('button', { name: 'Duyệt' }).first();
+        await approvalTrigger.focus();
+        const approvalClientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+        await approvalTrigger.click();
+        const approvalDialog = page.getByRole('dialog', { name: 'Duyệt chứng từ?' });
+        await expect(approvalDialog).toBeVisible();
+        await expect(approvalDialog).toHaveAttribute('aria-modal', 'true');
+        expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(approvalClientWidth);
+        await page.keyboard.press('Tab');
+        await expect.poll(() => approvalDialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
+        const approvalIssues = await collectLayoutIssues(page, 'approvals', viewport.name);
+        issues.push(...approvalIssues);
+        records.push(await collectInteractionRecord(page, {
+          route: 'approvals', owner: 'ApprovalPage', state: 'safe-dialog-open', viewport: viewport.name,
+        }, approvalIssues, signals));
+        await approvalDialog.getByRole('button', { name: 'Giữ chứng từ' }).click();
+        await expect(approvalDialog).toBeHidden();
+        await expect(approvalTrigger).toBeFocused();
+
+        await expectNoAuditIssues(`${viewport.name}-safe-dialogs`, issues, records);
       });
 
       test('admin data-quality stress table keeps actions readable', async ({ page }) => {

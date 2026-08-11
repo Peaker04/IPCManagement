@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-10
+updated: 2026-08-11
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -63,15 +63,15 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   Warehouse remains `NEEDS_EVIDENCE`: production preview reproduces one `53ms` navigation task at `1920×1080`, while
   Chrome DevTools records a `123ms` demand-tab INP without a production component/function owner. No Warehouse UI changed.
   The owned runtime was torn down. Hash/pointer is only in `docs/EVIDENCE-INDEX.md`.
-- Wave 3 corrective execution is active in the existing Phase 2 (no new phase/wave): Reports warning detail is now
-  collapsed by default, exposes `aria-expanded`, focuses its named detail region when opened and restores trigger focus
-  when closed. The protected-route matrix now activates every initially enabled tab at all five desktop viewports;
-  the 10 measurement tests pass. A tab that remounts after activation is recorded by owner as `NEEDS_EVIDENCE`, not a
-  stale-locator timeout. Dialog plus loading/empty/error/permission fixture coverage remains the active scope; Warehouse
-  retains its reservation because state-specific geometry is not yet deterministic.
-- Read-only dialog evidence now covers weekly-menu import/edit and the Approvals decision modal: each has an accessible
-  modal name, keeps document client width stable, and restores focus to the opener. Meal-order confirmation is a
-  mutation-boundary path and therefore remains `NEEDS_EVIDENCE` for the read-only matrix.
+- Wave 3 corrective execution is closed in the existing Phase 2 (no new phase/wave). The read-only matrix passes
+  `35/35` across exactly five desktop viewports after running with `NODE_OPTIONS=--max-old-space-size=4096`: every
+  permitted protected-route tab is traversed through `tab → aria-controls tabpanel → nested tablist` and verified by a
+  fresh `aria-selected=true` locator; no stale-remount disposition remains. Warehouse direct `/403` is fixture-proven
+  for a user without `warehouse.read`; its loading/empty/error lifecycle states remain zero-write. The fixture now uses
+  shape-correct page responses for every report price subview and Approval purchase-request history.
+- Read-only dialog evidence covers weekly-menu import/edit and the Approvals decision modal at all five viewports:
+  accessible name, `aria-modal`, focus containment, stable document client width, focus return and zero non-GET request.
+  Meal-order confirmation and other mutation-bound dialogs remain explicitly `NEEDS_EVIDENCE`, not false PASS.
 - Fresh headed Wave 3 runtime on `ipc_lane9` (`phase02-wave3-corrective`) has 45 route probes over the five desktop
   viewports, 604 GET, zero console/page/request failure, escaped mutation and overflow. It retains four unattributed
   navigation long tasks (`51–56ms`) and maximum CLS `0.10177890755781512`; these are `NEEDS_EVIDENCE`, not authority
@@ -82,10 +82,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   `NEEDS_EVIDENCE`; runtime 3010/8010 was stopped.
 - Warehouse receipt lifecycle loading, empty and error are fixture-proven at all five desktop viewports with zero write
   request. Only its loading response reserves `48rem`; settled empty/error states release that blank space. Permission
-  fixture coverage remains open.
+  coverage is now proven through the direct Warehouse `RoleGuard` forbidden boundary.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
-  `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
-  route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer
+  `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `NODE_OPTIONS=--max-old-space-size=4096 npm run test:ui-measurements -w frontend`
+  để đo các protected route với đúng năm desktop viewport; fixture read-only pass `35/35`. Screenshot vẫn lưu cho reviewer
   và E2E evidence, nhưng không đủ độc lập để kết luận PASS/FAIL.
 - Dashboard UI Rules Phase 1 đã re-closeout trên `f44390a7`: 19/19 GAP requirement được independent verifier
   xác minh; focused `43/43`, frontend serial `143 file / 804 test`, lint, dependency, frontend build, isolated
