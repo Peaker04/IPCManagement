@@ -205,7 +205,7 @@ export const useReportsPageModel = ({
     ...(canReadAuditChanges
       ? [{ label: uiCopy.reports.audit, value: auditQualityViews.audit.phase === 'ready' ? auditQualityModel.auditRows.length.toString() : '—', tone: 'neutral' as const }]
       : []),
-    { label: uiCopy.reports.dataQuality, value: auditQualityViews['data-quality'].phase === 'ready' ? auditQualityViews['data-quality'].data.totalIssues.toString() : '—', tone: auditQualityViews['data-quality'].phase !== 'ready' ? 'neutral' : auditQualityModel.dataQualityRows.length ? 'warning' : 'success' },
+    { label: uiCopy.reports.dataQuality, value: auditQualityViews['data-quality'].phase === 'ready' ? (auditQualityViews['data-quality'].data.totalIssues ?? 0).toString() : '—', tone: auditQualityViews['data-quality'].phase !== 'ready' ? 'neutral' : auditQualityModel.dataQualityRows.length ? 'warning' : 'success' },
   ];
 
   return {
