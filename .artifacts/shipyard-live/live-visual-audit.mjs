@@ -8,6 +8,7 @@ const baseUrl = process.env.IPC_VISUAL_BASE_URL ?? 'http://127.0.0.1:3001';
 const apiUrl = process.env.IPC_VISUAL_API_URL ?? 'http://127.0.0.1:8001';
 const database = process.env.IPC_VISUAL_DATABASE ?? 'ipc_lane1';
 const auditProfile = process.env.IPC_VISUAL_AUDIT_PROFILE ?? 'standard';
+const assertPerformance = process.env.IPC_VISUAL_ASSERT_PERFORMANCE === 'true';
 const dashboardUiRulesProfile = auditProfile === 'dashboard-ui-rules';
 if (database === 'ipc_lane1') throw new Error('Protected ipc_lane1 is prohibited for this visual audit.');
 const password = process.env.K6_PASSWORD;
@@ -126,13 +127,43 @@ await context.route('**/api/**', async (route) => {
 });
 
 await page.addInitScript(() => {
-  window.__ipcPhase25Perf = { longTasks: [], shifts: [] };
+  const selectorFor = (node) => {
+    if (!(node instanceof Element)) return null;
+    const id = node.id ? `#${node.id}` : '';
+    const className = [...node.classList].slice(0, 3).join('.');
+    return `${node.tagName.toLowerCase()}${id}${className ? `.${className}` : ''}`;
+  };
+  const describeNode = (node) => {
+    if (!(node instanceof Element)) return { selector: null, ariaLabel: null, heading: null };
+    const labelledBy = node.getAttribute('aria-labelledby');
+    const labelledByText = labelledBy
+      ? labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim()
+      : null;
+    return {
+      selector: selectorFor(node),
+      ariaLabel: node.getAttribute('aria-label') ?? labelledByText,
+      heading: node.querySelector('h1, h2, h3, [role="heading"]')?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 160) ?? null,
+    };
+  };
+  window.__ipcPhase25Perf = {
+    longTasks: [],
+    shifts: [],
+    actions: [{ name: 'document-navigation', startTime: performance.now() }],
+  };
   try {
     new PerformanceObserver((list) => window.__ipcPhase25Perf.longTasks.push(
       ...list.getEntries().map((entry) => ({ startTime: entry.startTime, duration: entry.duration })),
     )).observe({ entryTypes: ['longtask'] });
     new PerformanceObserver((list) => window.__ipcPhase25Perf.shifts.push(
-      ...list.getEntries().filter((entry) => !entry.hadRecentInput).map((entry) => entry.value),
+      ...list.getEntries().filter((entry) => !entry.hadRecentInput).map((entry) => ({
+        value: entry.value,
+        startTime: entry.startTime,
+        sources: entry.sources.map((source) => ({
+          ...describeNode(source.node),
+          previousRect: source.previousRect,
+          currentRect: source.currentRect,
+        })),
+      })),
     )).observe({ type: 'layout-shift', buffered: true });
   } catch {
     // Unsupported performance entry types remain an explicit empty sample.
@@ -150,6 +181,20 @@ const resetPerformance = async () => page.evaluate(() => {
   window.__ipcPhase25Perf.longTasks.length = 0;
   window.__ipcPhase25Perf.shifts.length = 0;
 });
+
+const recordAction = async (name, action) => {
+  const actionIndex = await page.evaluate((actionName) => {
+    window.__ipcPhase25Perf.actions.push({ name: actionName, startTime: performance.now() });
+    return window.__ipcPhase25Perf.actions.length - 1;
+  }, name);
+  try {
+    return await action();
+  } finally {
+    await page.evaluate((index) => {
+      window.__ipcPhase25Perf.actions[index].endTime = performance.now();
+    }, actionIndex);
+  }
+};
 
 const runTablePreferenceFlow = async ({ viewport, owner, tableName, hiddenColumn, reorderedColumn, preservedLabels, activate }) => {
   await activate();
@@ -238,8 +283,10 @@ try {
         const statisticsTab = page.getByRole('tab', { name: 'Thống kê', exact: true });
         if (await statisticsTab.isVisible().catch(() => false)) {
           actionStartedAt = Date.now();
-          await statisticsTab.click();
-          await settle();
+          await recordAction('admin-statistics-tab', async () => {
+            await statisticsTab.click();
+            await settle();
+          });
         }
       }
 
@@ -273,23 +320,30 @@ try {
         });
       }
 
-      const state = await page.evaluate(() => ({
-        pathname: window.location.pathname,
-        textLength: document.body.innerText.trim().length,
-        errorOverlay: Boolean(document.querySelector('.vite-error-overlay, #webpack-dev-server-client-overlay')),
-        horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-        scrollWidth: document.documentElement.scrollWidth,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        domNodes: document.getElementsByTagName('*').length,
-        rows: document.querySelectorAll('tbody tr').length,
-        cls: window.__ipcPhase25Perf.shifts.reduce((sum, value) => sum + value, 0),
-        longTasks: [...window.__ipcPhase25Perf.longTasks],
-        fontStatus: document.fonts.status,
-        bodyFontFamily: getComputedStyle(document.body).fontFamily,
-        pageTitleFontFamily: document.querySelector('.ipc-page-title') ? getComputedStyle(document.querySelector('.ipc-page-title')).fontFamily : null,
-        sectionTitleFontFamily: document.querySelector('.ipc-section-title') ? getComputedStyle(document.querySelector('.ipc-section-title')).fontFamily : null,
-      }));
+      const state = await page.evaluate(() => {
+        const observedAt = performance.now();
+        const actions = window.__ipcPhase25Perf.actions.map((action) => ({ ...action, endTime: action.endTime ?? observedAt }));
+        const actionFor = (startTime) => actions.find((action) => startTime >= action.startTime && startTime <= action.endTime)?.name ?? 'outside-recorded-action';
+        return {
+          pathname: window.location.pathname,
+          textLength: document.body.innerText.trim().length,
+          errorOverlay: Boolean(document.querySelector('.vite-error-overlay, #webpack-dev-server-client-overlay')),
+          horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+          scrollWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+          domNodes: document.getElementsByTagName('*').length,
+          rows: document.querySelectorAll('tbody tr').length,
+          cls: window.__ipcPhase25Perf.shifts.reduce((sum, shift) => sum + shift.value, 0),
+          shifts: [...window.__ipcPhase25Perf.shifts],
+          longTasks: window.__ipcPhase25Perf.longTasks.map((task) => ({ ...task, action: actionFor(task.startTime) })),
+          actions,
+          fontStatus: document.fonts.status,
+          bodyFontFamily: getComputedStyle(document.body).fontFamily,
+          pageTitleFontFamily: document.querySelector('.ipc-page-title') ? getComputedStyle(document.querySelector('.ipc-page-title')).fontFamily : null,
+          sectionTitleFontFamily: document.querySelector('.ipc-section-title') ? getComputedStyle(document.querySelector('.ipc-section-title')).fontFamily : null,
+        };
+      });
       evidence.routes.push({ viewport: viewport.name, route: route.path, ...state });
     }
 
@@ -364,12 +418,27 @@ try {
     longTaskCount: evidence.routes.reduce((sum, sample) => sum + sample.longTasks.length, 0),
     maxCls: Math.max(...evidence.routes.map((sample) => sample.cls)),
   };
+  evidence.performanceThresholdFailures = evidence.routes.flatMap((sample) => {
+    const failures = [];
+    if ((sample.route === '/warehouse' || sample.route === '/approvals') && sample.cls > 0.1) {
+      failures.push({ viewport: sample.viewport, route: sample.route, metric: 'cls', actual: sample.cls, budget: 0.1 });
+    }
+    for (const task of sample.longTasks.filter((entry) => entry.duration > 50)) {
+      failures.push({ viewport: sample.viewport, route: sample.route, metric: 'longtask', actual: task.duration, budget: 50, startTime: task.startTime, action: task.action });
+    }
+    return failures;
+  });
+  evidence.summary.performanceThresholdFailureCount = evidence.performanceThresholdFailures.length;
   await Promise.all([
     fs.writeFile(path.join(apiRoot, 'responses.json'), JSON.stringify(evidence.apiResponses, null, 2)),
     fs.writeFile(path.join(browserRoot, 'errors.json'), JSON.stringify({ consoleErrors: evidence.consoleErrors, pageErrors: evidence.pageErrors, requestFailures: evidence.requestFailures, escapedMutations: evidence.escapedMutations }, null, 2)),
-    fs.writeFile(path.join(performanceRoot, 'metrics.json'), JSON.stringify(evidence.routes.map(({ viewport, route, cls, longTasks }) => ({ viewport, route, cls, longTasks })), null, 2)),
+    fs.writeFile(path.join(performanceRoot, 'metrics.json'), JSON.stringify(evidence.routes.map(({ viewport, route, cls, shifts, longTasks, actions }) => ({ viewport, route, cls, shifts, longTasks, actions })), null, 2)),
+    fs.writeFile(path.join(performanceRoot, 'threshold-failures.json'), JSON.stringify(evidence.performanceThresholdFailures, null, 2)),
     fs.writeFile(path.join(root, 'manifest.json'), JSON.stringify({ ...evidence, status: 'passed' }, null, 2)),
   ]);
+  if (assertPerformance && evidence.performanceThresholdFailures.length > 0) {
+    throw new Error(`Performance threshold failures: ${JSON.stringify(evidence.performanceThresholdFailures)}`);
+  }
 } catch (error) {
   evidence.finishedAt = new Date().toISOString();
   evidence.fatalError = String(error?.stack ?? error);

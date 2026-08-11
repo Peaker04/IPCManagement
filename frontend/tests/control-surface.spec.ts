@@ -67,6 +67,37 @@ async function stubOperationalApis(page: Page) {
   }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/purchase-orders**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/purchase-orders/page**', async (route) => fulfillJson(route, {
+    page: {
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 8,
+      totalPages: 0,
+      hasPrev: false,
+      hasNext: false,
+    },
+    orderCountByRequest: {},
+  }));
+  await page.route('**/api/inventory-receipts**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
+  await page.route('**/api/service-runs/page**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/workflow-reports/current-stock/page**', async (route) => fulfillJson(route, {
     items: [{
       warehouseId: 'warehouse-main',
@@ -702,6 +733,32 @@ test.describe('operational control surface', () => {
     );
     expect(rowHeights.every((height) => height > 0)).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('approval document strip reserves its traced height while workflow documents settle', async ({ page }) => {
+    let releaseWorkflowDocuments!: () => void;
+    const workflowDocumentsPending = new Promise<void>((resolve) => {
+      releaseWorkflowDocuments = resolve;
+    });
+
+    await stubApprovalQueue(page);
+    await page.route('**/api/workflow-reports/workflow-documents**', async (route) => {
+      await workflowDocumentsPending;
+      await fulfillJson(route, []);
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(ROUTES.APPROVALS);
+
+    const documentStrip = page.getByRole('complementary', { name: 'Chứng từ' });
+    await expect(documentStrip).toBeVisible();
+    await expect(documentStrip.getByText('Đang tải chứng từ workflow')).toBeVisible();
+    const loadingHeight = await documentStrip.evaluate((element) => element.getBoundingClientRect().height);
+
+    releaseWorkflowDocuments();
+    await expect(documentStrip.getByText('Đang tải chứng từ workflow')).toBeHidden();
+    const settledHeight = await documentStrip.evaluate((element) => element.getBoundingClientRect().height);
+
+    expect(Math.min(loadingHeight, settledHeight)).toBeGreaterThanOrEqual(148);
   });
 
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {

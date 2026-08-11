@@ -312,6 +312,7 @@ export default function ApprovalPage() {
         <div id="approval-queue-panel" role="tabpanel" aria-labelledby="approval-queue-tab">
           <SplitWorkbench
             detailLabel="Chứng từ"
+            detailClassName="min-h-[148px]"
             detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
           >
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
