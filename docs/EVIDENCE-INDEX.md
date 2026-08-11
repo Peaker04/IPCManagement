@@ -204,6 +204,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
 | `.artifacts/shipyard-live/phase02-wave3-corrective/manifest.json` | `8119E245522E4FF889F531C458F81325FEF3CC9429C14BE278177E1AB3A484AF` | Headed current-source read-only run trên `ipc_lane9`: 45 route probes qua năm desktop viewport, 604 GET, zero console/page/request failure, escaped mutation và overflow. Bốn navigation long task `51–56ms` cùng CLS tối đa `0.10177890755781512` được giữ là performance `NEEDS_EVIDENCE`, không chứng minh owner để sửa. Runtime owned đã teardown. |
+| `.artifacts/shipyard-live/phase02-wave3-final/manifest.json` | `EB27F9B3CA2D6B325E5FF49FFB537A9B69148CF0B00D1B7CCE6A0F1EA2BA111D` | Final headed current-source run sau Warehouse state-reservation repair trên `ipc_lane9`: 45 route probes, 604 GET, zero console/page/request failure, escaped mutation và overflow. CLS tối đa `0.09845798199929733` đạt gate; 8 unattributed navigation long task `51–78ms` (Warehouse/Admin) giữ `NEEDS_EVIDENCE`. Runtime owned đã teardown. |
 
 ## Historical
 

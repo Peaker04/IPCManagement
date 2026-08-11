@@ -76,6 +76,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   viewports, 604 GET, zero console/page/request failure, escaped mutation and overflow. It retains four unattributed
   navigation long tasks (`51–56ms`) and maximum CLS `0.10177890755781512`; these are `NEEDS_EVIDENCE`, not authority
   for a Warehouse/Admin production fix. Runtime 3010/8010 was stopped.
+- Final headed Wave 3 run after the Warehouse state-reservation repair is authoritative for this source: 45 route probes,
+  604 GET, zero browser/page/request failure, escaped mutation and overflow; CLS maximum is `0.09845798199929733` and
+  meets the gate. Eight Warehouse/Admin document-navigation long tasks (`51–78ms`) remain unattributed, therefore
+  `NEEDS_EVIDENCE`; runtime 3010/8010 was stopped.
 - Warehouse receipt lifecycle loading, empty and error are fixture-proven at all five desktop viewports with zero write
   request. Only its loading response reserves `48rem`; settled empty/error states release that blank space. Permission
   fixture coverage remains open.
