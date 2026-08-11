@@ -29,6 +29,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
   const [pricePage, setPricePage] = useState(initialPage);
   const [priceSearch, setPriceSearchState] = useState('');
   const [debouncedPriceSearch, setDebouncedPriceSearch] = useState('');
+  const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
   const deferredPriceSearch = useDeferredValue(debouncedPriceSearch);
   const [priceAggregatePageSize, setPriceAggregatePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [supplierPage, setSupplierPage] = useState(initialPage);
@@ -65,7 +66,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
   const priceVarianceByDishGroupRows = priceVarianceByDishGroupView.phase === 'ready' ? priceVarianceByDishGroupView.data.items : [];
   const priceVarianceRows = priceVarianceView.phase === 'ready' ? priceVarianceView.data.items : [];
   const warningItems = priceVarianceRows.filter((item) => item.warning);
-  const selectedWarning = warningItems[0];
+  const selectedWarning = warningItems.find((item) => item.id === selectedWarningId) ?? warningItems[0];
   const activePriceView = priceSubView === 'supplier'
     ? priceVarianceBySupplierView
     : priceSubView === 'period'
@@ -108,6 +109,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
     priceVarianceResult,
     priceVarianceRows,
     selectedWarning,
+    selectWarning: setSelectedWarningId,
     setDishGroupPage,
     setPeriodPage,
     setPriceAggregatePageSize,

@@ -45,6 +45,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
     priceVarianceRows,
     resetReportPages,
     selectedWarning,
+    selectWarning,
     setDishGroupPage,
     setNumberedPage,
     setNumberedPageSize,
@@ -287,7 +288,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                   <th>Giá nhập</th>
                   <th>Thay đổi</th>
                   <th>Đánh giá</th>
-                  <th>Xử lý</th>
+                  <th>Chi tiết</th>
                 </tr>
               </thead>
               <tbody>
@@ -327,7 +328,18 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                         )}
                       </td>
                       <td className="ipc-report-action-cell">
-                        {item.warning ? 'Thu mua xử lí, duyệt nếu vẫn vượt ngưỡng' : 'Theo dõi kỳ kế'}
+                        {item.warning ? (
+                          <button
+                            type="button"
+                            className="whitespace-nowrap text-xs font-semibold text-[var(--ipc-danger)] underline underline-offset-2"
+                            style={{ overflowWrap: 'normal' }}
+                            aria-controls="reports-price-warning-detail"
+                            aria-label={`Xem đề xuất xử lý cho ${item.name}`}
+                            onClick={() => selectWarning(item.id)}
+                          >
+                            Xem đề xuất
+                          </button>
+                        ) : '—'}
                       </td>
                     </tr>
                   ))
@@ -349,7 +361,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
       )}
 
       {priceSubView === 'lines' && selectedWarning && (
-        <div className="ipc-split-detail-strip ipc-report-warning-detail">
+        <div id="reports-price-warning-detail" className="ipc-split-detail-strip ipc-report-warning-detail">
           <div className="ipc-split-detail-label mb-3">Tác động vận hành — {selectedWarning.name}</div>
           <div className="flex flex-wrap items-start gap-4">
             <div className="ipc-report-warning-card min-w-[240px] flex-1 rounded-md border border-[var(--ipc-danger)] bg-[var(--ipc-danger-soft)] p-3 text-sm text-[var(--ipc-danger)]">

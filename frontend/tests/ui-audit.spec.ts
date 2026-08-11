@@ -184,6 +184,34 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
         return;
       }
 
+      if (endpoint === 'receipt-price-variance/page') {
+        await fulfillJson(route, {
+          items: [{
+            receiptId: 'receipt-audit-1',
+            receiptCode: 'PN-20260729-01',
+            receiptDate: '2026-07-29',
+            supplierId: 'supplier-a',
+            supplierName: 'Nhà cung cấp A',
+            ingredientId: 'ing-pork-rib',
+            ingredientName: 'Sườn heo',
+            unitId: 'unit-kg',
+            unitName: 'kg',
+            quantity: 12,
+            unitPrice: 134000,
+            referencePrice: 115000,
+            variancePercent: 16.5,
+            isWarning: true,
+          }],
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 6,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        });
+        return;
+      }
+
       await fulfillJson(route, []);
       return;
     }
@@ -470,6 +498,28 @@ test.describe('UI measurement audit', () => {
             state: 'ready',
             viewport: viewport.name,
           }, routeIssues, signals));
+
+          if (route.name === 'reports') {
+            const action = page.getByRole('button', { name: 'Xem đề xuất xử lý cho Sườn heo' });
+            await expect(action).toBeVisible();
+            await action.focus();
+            await expect(action).toBeFocused();
+            const actionGeometry = await action.evaluate((element) => ({
+              clientWidth: element.clientWidth,
+              scrollWidth: element.scrollWidth,
+              whiteSpace: getComputedStyle(element).whiteSpace,
+            }));
+            expect(actionGeometry.whiteSpace).toBe('nowrap');
+            expect(actionGeometry.scrollWidth).toBeLessThanOrEqual(actionGeometry.clientWidth + 1);
+            await action.click();
+            await expect(page.locator('#reports-price-warning-detail')).toBeVisible();
+            interactionRecords.push(await collectInteractionRecord(page, {
+              route: 'reports',
+              owner: 'ReportsPricePanel',
+              state: 'price-variance-warning-detail',
+              viewport: viewport.name,
+            }, await collectLayoutIssues(page, route.name, viewport.name), signals));
+          }
         }
 
         interactionRecords.push(

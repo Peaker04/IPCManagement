@@ -478,6 +478,39 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('reports price variance supports query-first discovery and a readable warning action', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const priceRequests: URL[] = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.endsWith('/workflow-reports/receipt-price-variance/page')) {
+        priceRequests.push(url);
+      }
+    });
+    await stubWorkflowReports(page);
+    await page.goto(ROUTES.REPORTS);
+
+    const search = page.getByLabel('Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập');
+    const action = page.getByRole('button', { name: 'Xem đề xuất xử lý cho Sườn heo' });
+    await expect(search).toBeVisible();
+    await expect(action).toBeVisible();
+    await action.focus();
+    await expect(action).toBeFocused();
+    await expect(action).toHaveAttribute('aria-controls', 'reports-price-warning-detail');
+    const actionGeometry = await action.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      whiteSpace: getComputedStyle(element).whiteSpace,
+    }));
+    expect(actionGeometry.whiteSpace).toBe('nowrap');
+    expect(actionGeometry.scrollWidth).toBeLessThanOrEqual(actionGeometry.clientWidth + 1);
+
+    await action.click();
+    await expect(page.locator('#reports-price-warning-detail')).toContainText('Sườn heo');
+    await search.fill('Sườn heo');
+    await expect.poll(() => priceRequests.some((url) => url.searchParams.get('searchKeyword') === 'Sườn heo')).toBe(true);
+  });
+
   test('chef empty state does not reserve a desktop-sized gap before the shift journal', async ({ page }) => {
     await page.setViewportSize({ width: 1365, height: 900 });
     await page.goto(ROUTES.CHEF_DASHBOARD);
