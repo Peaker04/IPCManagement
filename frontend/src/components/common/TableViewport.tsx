@@ -1,9 +1,11 @@
-import { useId, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { typography } from '@/lib/typography';
+import { TablePreferencesControl } from './TablePreferencesControl';
+import { readTablePreferences, resetTablePreferences, resolveTablePreferenceColumns, writeTablePreferences, type TablePreferenceConfig, type TablePreferenceState } from './tablePreferences';
 
 interface TableViewportProps {
-  children: ReactNode;
+  children: ReactNode | ((preferences: { columns: ReturnType<typeof resolveTablePreferenceColumns>; density: TableDensity }) => ReactNode);
   ariaLabel: string;
   caption?: string;
   className?: string;
@@ -11,9 +13,11 @@ interface TableViewportProps {
   density?: TableDensity;
   stickyHeader?: boolean;
   frozenFirstIdentifier?: boolean;
+  preferences?: { accountId?: string; config: TablePreferenceConfig };
 }
 
-export type TableDensity = 'compact' | 'standard' | 'comfortable';
+export type { TableDensity } from './tablePreferences';
+import type { TableDensity } from './tablePreferences';
 
 const viewportSizeClasses = {
   default: '',
@@ -34,14 +38,32 @@ export function TableViewport({
   density = 'standard',
   stickyHeader = true,
   frozenFirstIdentifier = true,
+  preferences,
 }: TableViewportProps) {
   const captionId = useId();
+  const [preferenceState, setPreferenceState] = useState<TablePreferenceState>(() => preferences ? readTablePreferences(preferences.accountId, preferences.config) : { columnIds: [], hiddenColumnIds: [], density: 'standard' });
+
+  useEffect(() => {
+    if (preferences) setPreferenceState(readTablePreferences(preferences.accountId, preferences.config));
+  }, [preferences?.accountId, preferences?.config]);
+
+  const updatePreferences = (next: TablePreferenceState) => {
+    if (!preferences) return;
+    setPreferenceState(next);
+    writeTablePreferences(preferences.accountId, preferences.config, next);
+  };
+  const resetPreferences = () => {
+    if (!preferences) return;
+    resetTablePreferences(preferences.accountId, preferences.config);
+    setPreferenceState(readTablePreferences(preferences.accountId, preferences.config));
+  };
+  const resolvedDensity = preferences ? preferenceState.density : density;
 
   return (
     <div
       className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain', viewportSizeClasses[size], className)}
       data-table-viewport="true"
-      data-density={density}
+      data-density={resolvedDensity}
       data-sticky-header={stickyHeader}
       data-frozen-identifier={frozenFirstIdentifier}
       role="region"
@@ -50,7 +72,8 @@ export function TableViewport({
       tabIndex={0}
     >
       {caption ? <div id={captionId} className="sr-only">{caption}</div> : null}
-      {children}
+      {preferences ? <TablePreferencesControl config={preferences.config} state={preferenceState} onChange={updatePreferences} onReset={resetPreferences} /> : null}
+      {typeof children === 'function' && preferences ? children({ columns: resolveTablePreferenceColumns(preferences.config, preferenceState), density: resolvedDensity }) : children}
     </div>
   );
 }
