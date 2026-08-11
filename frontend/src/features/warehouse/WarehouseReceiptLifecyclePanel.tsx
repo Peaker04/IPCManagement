@@ -181,7 +181,12 @@ export function WarehouseReceiptLifecyclePanel() {
   };
 
   return (
-    <section className={cn(typography.body, 'mt-4 grid gap-3')} aria-labelledby="receipt-lifecycle-title">
+    <section
+      className={cn(typography.body, 'mt-4 grid min-h-[48rem] content-start gap-3')}
+      aria-labelledby="receipt-lifecycle-title"
+      aria-busy={isFetching || isFetchingReceipt}
+      data-testid="receipt-lifecycle-panel"
+    >
       <div>
         <h3 id="receipt-lifecycle-title" className={cn(typography.sectionTitle, 'text-slate-950')}>Lifecycle phiếu nhập</h3>
         <p className={cn(typography.caption, 'mt-1 text-slate-600')}>DRAFT → kiểm tra chất lượng → Quản lý duyệt → Admin POSTED. Tồn kho chỉ thay đổi ở POSTED.</p>
