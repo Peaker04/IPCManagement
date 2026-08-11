@@ -1,7 +1,7 @@
 # UI/UX Project Audit
 
 Updated: 2026-08-11
-Status: Reports price-list and Approvals CLS remediations verified; remaining non-Reports owner states need evidence
+Status: Reports price-list and Approvals CLS remediations verified; Warehouse navigation performance remains `NEEDS_EVIDENCE` because no production owner is attributable
 
 ## Scope and evidence
 
@@ -29,7 +29,7 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 |---|---|---|---|---|
 | UX-01 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | `ReportsPricePanel` now renders a focusable `Xem đề xuất` control with an accessible owner-specific label and `aria-controls` link to the existing warning-detail region. Five-desktop measurement records no wrapping or clipping. | The narrow cell no longer contains a wrapped instructional pseudo-action. |
 | UX-02 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | The existing labelled search control is exercised with the server-bound debounced `searchKeyword` before pagination; the warning action opens the existing detail path. | Discovery can constrain the price list before a user navigates pagination. |
-| UX-03 | Warehouse and Approvals | PARTIAL | The Approvals owner-local scrollable queue viewport keeps the document strip geometry invariant for loading, 20-record, and empty states; headed CLS is `0.000040`–`0.000113` at all five desktop viewports. The one Warehouse attempt records `0.2011` CLS at `1920×1080` plus `55/69/60/71/71ms` document-navigation tasks with varying sources. | Approvals is resolved. Warehouse remains `NEEDS_EVIDENCE`; do not alter its production UI without a lowest owner. |
+| UX-03 | Warehouse and Approvals | PARTIAL | The Approvals owner-local scrollable queue viewport keeps the document strip geometry invariant for loading, 20-record, and empty states; headed CLS is `0.000040`–`0.000113` at all five desktop viewports. Warehouse production preview still records one `53ms` navigation task at `1920×1080`; Chrome DevTools records a `123ms` demand-tab interaction (94ms processing, 26ms presentation) but no source function or component owner. | Approvals is resolved. Warehouse remains `NEEDS_EVIDENCE`; do not alter its production UI without a lowest owner. |
 | UX-04 | Whole project | GAP in assurance | Current UI measurement suite visits route defaults plus one Admin stress table, not every tab/dialog/state owner. | Existing gate proves geometry only, not complete interactive-surface coverage. |
 | UX-05 | Control-surface regression coverage | NEEDS_EVIDENCE | Reports now uses the `Báo cáo vận hành` shell title and its non-empty price fixture; the Reports controls pass. Purchasing remains non-empty-state unproven; the isolated Warehouse stock control returns to the local login page before the named table region can be observed. | Reports fixture/title drift is resolved in test scope. Purchasing/Warehouse remain read-only fixture/auth evidence gaps; do not change production owners until their intended route state is proven. |
 | UX-06 | Reports › Chất lượng dữ liệu | RESOLVED | The current control-surface fixture makes `data-quality` ready with an array payload; the view-model now uses `(totalIssues ?? 0).toString()`. | The context-strip count safely falls back to zero instead of crashing on an incomplete ready payload. |
@@ -54,7 +54,7 @@ For every tab owner: activate each permitted tab at all five desktop viewports a
 
 ## Wave 2 trace disposition
 
-The corrective helper records layout-shift source rectangles and action intervals. The Approvals queue now owns a bounded scrollable viewport, so loading, populated, and empty queue states retain the same primary/strip geometry; the focused delayed-query regression exercises a representative 20-record page and empty state. The final five-viewport headed run keeps every Approvals CLS sample below `0.1`; this is a DOM/performance result, not a screenshot judgment. Warehouse has one corrective attribution attempt only and remains `NEEDS_EVIDENCE`: its CLS/task sources vary and Long Task API has no component stack. Reports work remains independently authorized.
+The corrective helper records layout-shift source rectangles and action intervals. The Approvals queue now owns a bounded scrollable viewport, so loading, populated, and empty queue states retain the same primary/strip geometry; the focused delayed-query regression exercises a representative 20-record page and empty state. The final five-viewport headed run keeps every Approvals CLS sample below `0.1`; this is a DOM/performance result, not a screenshot judgment. Warehouse remains `NEEDS_EVIDENCE`: its CLS/task sources vary, the Long Task API has no component stack, and a Chrome DevTools tab-interaction profile observes `123ms` INP without a source function. The DevTools network tree identifies Vite development-module loading and parallel API responses, which are diagnostic context rather than production ownership. Reports work remains independently authorized.
 
 ## Wave 3 Reports disposition
 
