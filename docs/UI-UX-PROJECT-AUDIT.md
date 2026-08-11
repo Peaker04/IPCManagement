@@ -1,6 +1,6 @@
 # UI/UX Project Audit
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 Status: the read-only five-desktop matrix is verified for protected tabs, the Warehouse permission boundary, three safe dialogs, and Warehouse lifecycle states. Warehouse/Admin navigation performance remains `NEEDS_EVIDENCE` because no production owner is attributable.
 
 ## Scope and evidence
@@ -36,7 +36,7 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 | UX-02 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | The existing labelled search control is exercised with the server-bound debounced `searchKeyword` before pagination; the warning action opens the existing detail path. | Discovery can constrain the price list before a user navigates pagination. |
 | UX-03 | Warehouse and Approvals | PARTIAL | The Approvals owner-local scrollable queue viewport keeps the document strip geometry invariant for loading, 20-record, and empty states; headed CLS is `0.000040`–`0.000113` at all five desktop viewports. Warehouse production preview still records one `53ms` navigation task at `1920×1080`; Chrome DevTools records a `123ms` demand-tab interaction (94ms processing, 26ms presentation) but no source function or component owner. | Approvals is resolved. Warehouse remains `NEEDS_EVIDENCE`; do not alter its production UI without a lowest owner. |
 | UX-04 | Whole project | PARTIAL | The 35-case matrix passes across all five desktops: all permitted tabs, the Warehouse forbidden route, three safe dialogs, and Warehouse loading/empty/error. Mutation-bound dialogs and unrelated state fixtures are explicitly excluded rather than converted to synthetic PASS. | The remaining scope is an evidence limitation, not a proven layout/control defect. |
-| UX-05 | Control-surface regression coverage | NEEDS_EVIDENCE | Reports now uses the `Báo cáo vận hành` shell title and its non-empty price fixture; the Reports controls pass. Purchasing remains non-empty-state unproven; the isolated Warehouse stock control returns to the local login page before the named table region can be observed. | Reports fixture/title drift is resolved in test scope. Purchasing/Warehouse remain read-only fixture/auth evidence gaps; do not change production owners until their intended route state is proven. |
+| UX-05 | Control-surface regression coverage | RESOLVED | The current control-surface suite passes `25/25`. Purchasing renders its populated `Dòng nguyên liệu của ngày phục vụ đang chọn` table and Warehouse renders `Bảng tồn kho hiện tại trong kho`; both retain local scroll at the mobile viewport. | The defect was fixture drift: missing read-only inventory-return/amendment responses and an obsolete per-service-date production-plan fixture, not a production UI defect. |
 | UX-06 | Reports › Chất lượng dữ liệu | RESOLVED | The current control-surface fixture makes `data-quality` ready with an array payload; the view-model now uses `(totalIssues ?? 0).toString()`. | The context-strip count safely falls back to zero instead of crashing on an incomplete ready payload. |
 
 ## Required next audit matrix
@@ -48,7 +48,7 @@ Warehouse receipt lifecycle loading, empty and error are covered at all five des
 ## Interaction evidence collected
 
 - Dialog group: the three safely closable dialogs pass at all five desktop viewports (15 measured rows). Each asserts `aria-modal`, focus containment, preserved document client width, focus restoration, and zero non-GET request. Meal-order confirmation remains a mutation-boundary path, so it is not promoted as a read-only dialog PASS.
-- Table/control group: 2/6 passed; Reports wide-table and Weekly Menu matrix local-scroll checks passed. Four failures are UX-05 and must be diagnosed as current fixture/state drift before any assertion is updated.
+- Table/control group: all six current checks pass. Purchasing and Warehouse now receive shape-correct read-only fixtures, so their named mobile table regions are measured rather than falling through to login/proxy state.
 
 ### UX-05 classification
 
@@ -56,8 +56,8 @@ Warehouse receipt lifecycle loading, empty and error are covered at all five des
 |---|---|---|---|
 | Route/control heading for Reports | PASS | `MainLayout.tsx` intentionally renders `Báo cáo vận hành`; the control test now asserts that shell title. | No production change. |
 | Reports mobile filter and price-table check | PASS | `stubWorkflowReports` supplies a non-empty price-table row before geometry is read. | No production change. |
-| Purchasing table local-scroll check | NEEDS_EVIDENCE | The composed Phase 09 workbench fixture does not yet produce the intended workbench state under the control harness. | Reconcile fixture/auth route setup before changing `PurchaseServiceDateWorkbench.tsx`. |
-| Warehouse local-scroll check | NEEDS_EVIDENCE | The control targets the `TableViewport` named region (`Bảng tồn kho hiện tại trong kho`), but the isolated run returns to the local login page before it is observed. | Reconcile the read-only auth/fixture route state before changing `WarehousePage.tsx`; do not turn this into a production component change. |
+| Purchasing table local-scroll check | PASS | The Phase 09 fixture renders a populated `Dòng nguyên liệu của ngày phục vụ đang chọn` table; its `900px` table scrolls locally at `390px`. | No production change. |
+| Warehouse local-scroll check | PASS | The shape-correct auth/read fixtures render `Bảng tồn kho hiện tại trong kho`; its `720px` table scrolls locally at `390px`. | No production change. |
 
 ## Wave 2 trace disposition
 

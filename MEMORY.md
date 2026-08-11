@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-11
+updated: 2026-08-12
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -87,6 +87,9 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `NODE_OPTIONS=--max-old-space-size=4096 npm run test:ui-measurements -w frontend`
   để đo các protected route với đúng năm desktop viewport; fixture read-only pass `35/35`. Screenshot vẫn lưu cho reviewer
   và E2E evidence, nhưng không đủ độc lập để kết luận PASS/FAIL.
+- UX-05 control-surface đã đóng: `NODE_OPTIONS=--max-old-space-size=4096 npm run test:controls -w frontend -- --workers=1`
+  pass `25/25`. Purchasing và Warehouse đều render named populated table viewport với local horizontal scroll tại `390px`.
+  Sửa chỉ ở fixture: inventory return/amendment shape và contract `production-plans/filter` theo range, không đổi production UI.
 - Dashboard UI Rules Phase 1 đã re-closeout trên `f44390a7`: 19/19 GAP requirement được independent verifier
   xác minh; focused `43/43`, frontend serial `143 file / 804 test`, lint, dependency, frontend build, isolated
   backend build và route budget pass. Headed evidence dùng `ipc_lane9` đúng 5 viewport DOM (bao gồm chính xác

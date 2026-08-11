@@ -89,6 +89,15 @@ async function stubOperationalApis(page: Page) {
     hasPrev: false,
     hasNext: false,
   }));
+  await page.route('**/api/inventory-returns**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 100,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/service-runs/page**', async (route) => fulfillJson(route, {
     items: [],
     totalCount: 0,
@@ -158,7 +167,7 @@ async function stubOperationalApis(page: Page) {
   await page.route('**/api/coordination/meal-quantity-plans**', async (route) => fulfillJson(route, []));
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
-    await fulfillJson(route, pathname.endsWith('/import-history') ? [] : null);
+    await fulfillJson(route, pathname.endsWith('/import-history') || pathname.endsWith('/amendments') ? [] : null);
   });
 }
 
@@ -170,7 +179,7 @@ async function stubWeeklyMenuGroupedPlan(page: Page) {
 
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
-    if (pathname.endsWith('/import-history')) {
+    if (pathname.endsWith('/import-history') || pathname.endsWith('/amendments')) {
       await fulfillJson(route, []);
       return;
     }
@@ -192,30 +201,33 @@ async function stubWeeklyMenuGroupedPlan(page: Page) {
     });
   });
 
-  await page.route('**/api/production-plans/filter**', async (route) => {
-    const serviceDate = new URL(route.request().url()).searchParams.get('serviceDate');
-    const lineCount = serviceDate === '2026-07-06' ? 1 : serviceDate === '2026-07-07' ? 6 : 0;
-    if (lineCount === 0) {
-      await fulfillJson(route, []);
-      return;
-    }
-
-    await fulfillJson(route, [{
-      planId: `plan-${serviceDate}`,
-      planCode: serviceDate === '2026-07-06' ? 'KHSX-NHOM-01' : 'KHSX-NHOM-02',
-      planDate: serviceDate,
+  await page.route('**/api/production-plans/filter**', async (route) => fulfillJson(route, [
+    {
+      planId: 'plan-2026-07-06',
+      planCode: 'KHSX-NHOM-01',
+      planDate: '2026-07-06',
       customerId: 'customer-dav',
       customerCode: 'DAV',
       customerName: 'Draxlmaier',
       status: 'DRAFT',
-      lines: Array.from({ length: lineCount }, (_, index) => ({
-        planLineId: `line-${serviceDate}-${index + 1}`,
+      lines: [{ planLineId: 'line-2026-07-06-1', dishName: 'Món kiểm thử 1', shiftName: 'MORNING', totalServings: 100 }],
+    },
+    {
+      planId: 'plan-2026-07-07',
+      planCode: 'KHSX-NHOM-02',
+      planDate: '2026-07-07',
+      customerId: 'customer-dav',
+      customerCode: 'DAV',
+      customerName: 'Draxlmaier',
+      status: 'DRAFT',
+      lines: Array.from({ length: 6 }, (_, index) => ({
+        planLineId: `line-2026-07-07-${index + 1}`,
         dishName: `Món kiểm thử ${index + 1}`,
         shiftName: index % 2 === 0 ? 'MORNING' : 'AFTERNOON',
         totalServings: 100 + index,
       })),
-    }]);
-  });
+    },
+  ]));
 
   await page.route('**/api/material-demand/staleness**', async (route) => {
     await fulfillJson(route, {
