@@ -17,6 +17,15 @@ chỉ được append, không viết lại số cũ.
   flow hoàn chỉnh, zero console/page/request failure, escaped mutation và overflow. CLS/long task chỉ là current
   lab sample; hash manifest authoritative nằm ở `docs/EVIDENCE-INDEX.md`. Runtime owned 3010/8010 đã teardown.
 
+## Dashboard UI Rules re-verification ngày 11/08/2026
+
+- Independent verifier đã phát hiện evidence cũ không current-source và nhãn `1365×900` đo nhầm width `1366`,
+  cùng lỗ hổng test backdrop của DIALOG-02. Gap closure `f44390a7` thêm click backdrop thật cho veto/clean path,
+  ép device scale 1 và fail-closed khi DOM viewport không khớp kích thước yêu cầu.
+- Run headed sạch từ `f44390a7` trên `ipc_lane9` pass: năm viewport DOM chính xác, 10 preference flow, 237 GET
+  sau action, font local, zero console/page/request failure, escaped mutation và overflow. Bốn long task cùng
+  CLS tối đa `0.06757797678095356` chỉ là lab sample; runtime owned `3010/8010` đã teardown.
+
 ## Snapshot handoff cũ trước khi phân tầng
 
 Phần trạng thái hiện hành và checklist tiếp tục đã được cắt sang `MEMORY.md`; không lặp lại ở đây.

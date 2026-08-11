@@ -60,11 +60,12 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer
   và E2E evidence, nhưng không đủ độc lập để kết luận PASS/FAIL.
-- Dashboard UI Rules Phase 1 đã closeout: 19/19 GAP requirement được xác minh; focused `43/43`, frontend
-  serial `143 file / 804 test`, lint, dependency, hai build và route budget pass. Headed evidence run dùng
-  `ipc_lane9` đúng 5 viewport trên Service Run/Admin Audit, 10 preference flow, zero console/page/request/
-  escaped-mutation/overflow; runtime `3010/8010` đã teardown. Hash/pointer chỉ ở `docs/EVIDENCE-INDEX.md`;
-  118 `NEEDS_EVIDENCE` vẫn là backlog, không được promote.
+- Dashboard UI Rules Phase 1 đã re-closeout trên `f44390a7`: 19/19 GAP requirement được independent verifier
+  xác minh; focused `43/43`, frontend serial `143 file / 804 test`, lint, dependency, frontend build, isolated
+  backend build và route budget pass. Headed evidence dùng `ipc_lane9` đúng 5 viewport DOM (bao gồm chính xác
+  `1365×900`) trên Service Run/Admin Audit, 10 preference flow, 237 post-action GET, zero console/page/request/
+  escaped-mutation/overflow; runtime `3010/8010` đã teardown. Hash/pointer chỉ ở `docs/EVIDENCE-INDEX.md`; 118
+  `NEEDS_EVIDENCE` vẫn là backlog, không được promote.
 
 ## Database audit checkpoint 2026-08-10
 
