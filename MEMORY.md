@@ -72,6 +72,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
 - Read-only dialog evidence now covers weekly-menu import/edit and the Approvals decision modal: each has an accessible
   modal name, keeps document client width stable, and restores focus to the opener. Meal-order confirmation is a
   mutation-boundary path and therefore remains `NEEDS_EVIDENCE` for the read-only matrix.
+- Fresh headed Wave 3 runtime on `ipc_lane9` (`phase02-wave3-corrective`) has 45 route probes over the five desktop
+  viewports, 604 GET, zero console/page/request failure, escaped mutation and overflow. It retains four unattributed
+  navigation long tasks (`51–56ms`) and maximum CLS `0.10177890755781512`; these are `NEEDS_EVIDENCE`, not authority
+  for a Warehouse/Admin production fix. Runtime 3010/8010 was stopped.
 - UI measurement protocol đã chuyển oracle của agent từ screenshot sang DOM/test JSON tại
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `npm run test:ui-measurements -w frontend` để đo các protected
   route với đúng năm desktop viewport; fixture read-only vừa pass `10/10`. Screenshot vẫn lưu cho reviewer

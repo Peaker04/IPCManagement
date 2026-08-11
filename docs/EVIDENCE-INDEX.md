@@ -199,6 +199,12 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/typography-standardization-20260811/manifest.json` | `CE34899B19817E023353AD4C7CBC7520DD33EB1AD5389E56C7351F356FBE6488` | Chrome headed current-source trên `ipc_lane9`: 5 viewport × 9 route, 2 reflow tương đương zoom 200%, 7 screenshot, local Inter Variable Vietnamese/Latin Extended/Latin load 200, zero Google font request, overflow, console/page/request error và escaped mutation. CLS/long-task được ghi nguyên trạng trong performance evidence; không dùng run này để tuyên bố cải thiện performance. Runtime owned đã teardown. |
 | `.artifacts/shipyard-live/typography-comparison-20260811/manifest.json` | `6EB3ADD94180C0268AFEB2B0BDBD87B0BD4B5494727FF319845ABACB847B4DDF` | Chrome headed before/after cùng `ipc_lane9`: baseline `git archive` commit `6ab3e165` chưa có helper typography, 18 screenshot, 9 cặp metric, row delta tối đa 1,3px, control delta 0px, 54 focus probe zero clipping/missing indicator, local-only zero external request và production CSP `font-src 'self'` zero violation. Runtime owned đã teardown. |
 
+## Dashboard UI Rules Phase 02 Wave 3 — 11/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/phase02-wave3-corrective/manifest.json` | `8119E245522E4FF889F531C458F81325FEF3CC9429C14BE278177E1AB3A484AF` | Headed current-source read-only run trên `ipc_lane9`: 45 route probes qua năm desktop viewport, 604 GET, zero console/page/request failure, escaped mutation và overflow. Bốn navigation long task `51–56ms` cùng CLS tối đa `0.10177890755781512` được giữ là performance `NEEDS_EVIDENCE`, không chứng minh owner để sửa. Runtime owned đã teardown. |
+
 ## Historical
 
 | Artifact | SHA-256 | Mục đích |
