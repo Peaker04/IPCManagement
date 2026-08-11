@@ -29,7 +29,7 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 | UX-02 | Reports › Biến động giá › Theo dòng nhập | GAP | Current live screen shows 6 of 17,194 records (`Trang 1/2866`); page size and jump-to-page are the only navigation. | Pagination is used as primary discovery instead of a constrained query/filter/detail workflow. |
 | UX-03 | Warehouse and Approvals | GAP | Headed manifest above reports CLS > 0.1. | Route data/layout settles after initial render; trace is required before choosing a fix. |
 | UX-04 | Whole project | GAP in assurance | Current UI measurement suite visits route defaults plus one Admin stress table, not every tab/dialog/state owner. | Existing gate proves geometry only, not complete interactive-surface coverage. |
-| UX-05 | Control-surface regression coverage | GAP | Targeted Playwright matrix: 4/6 failures. Reports expects obsolete heading `Phân tích biến động giá` but renders `Báo cáo vận hành`; Purchasing/Warehouse tests cannot reach expected table fixtures. | Test contracts/fixtures drifted from current UI, leaving several tab/table states without valid regression evidence. |
+| UX-05 | Control-surface regression coverage | GAP | Targeted Playwright matrix: 4/6 failures. Reports expects obsolete heading `Phân tích biến động giá` but `MainLayout` renders `Báo cáo vận hành`; Purchasing lacks the workbench fixture needed for its table; Warehouse selector assumes the old wrapper location. | Test contracts/fixtures drifted from current UI, leaving several tab/table states without valid regression evidence. |
 
 ## Required next audit matrix
 
@@ -39,6 +39,15 @@ For every tab owner: activate each permitted tab at all five desktop viewports a
 
 - Dialog group: 3/3 current dialog checks passed (weekly-menu import/edit, meal-order confirmation, approval decision modal).
 - Table/control group: 2/6 passed; Reports wide-table and Weekly Menu matrix local-scroll checks passed. Four failures are UX-05 and must be diagnosed as current fixture/state drift before any assertion is updated.
+
+### UX-05 classification
+
+| Failed check | Classification | Evidence | Required follow-up |
+|---|---|---|---|
+| Route/control heading for Reports | Obsolete test contract | `MainLayout.tsx` intentionally renders `Báo cáo vận hành`; test/support fixture still names `Phân tích biến động giá`. | Update only the test vocabulary after a source-backed route-name decision. |
+| Reports mobile filter check | Obsolete test contract | Same stale heading blocks the test before layout is measured. | Update heading expectation, then re-run its existing geometry assertions. |
+| Purchasing table local-scroll check | Fixture missing state | Production `PurchaseServiceDateWorkbench.tsx` exposes the named table, but `stubOperationalApis` does not construct the required workbench state. | Extend the read-only fixture; do not change the production table to satisfy the test. |
+| Warehouse local-scroll check | Selector ownership drift | Current `WarehousePage.tsx` places `ipc-warehouse-table-shell` on `TableViewport`, not the old table wrapper assumed by the test. | Replace the test selector with the current named table region and preserve the scroll assertion. |
 
 ## Planning constraint
 
