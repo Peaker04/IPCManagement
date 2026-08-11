@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TableViewport } from './TableViewport';
 import {
@@ -86,5 +87,77 @@ describe('TableViewport', () => {
       'service-run-report',
     ]);
     expect(tablePreferenceOwnerRegistry.filter((owner) => owner.disposition === 'exception').every((owner) => owner.reason)).toBe(true);
+  });
+
+  it('contains preferences in a labelled toolbar and persists density from the popover', async () => {
+    const user = userEvent.setup();
+    render(
+      <TableViewport ariaLabel="Bảng có tùy chỉnh" caption="Dữ liệu thử nghiệm" preferences={{ accountId: 'account-a', config: preferenceConfig }}>
+        {({ columns }) => (
+          <table>
+            <tbody>
+              <tr>{columns.map((column) => <td key={column.id}>{column.label}</td>)}</tr>
+            </tbody>
+          </table>
+        )}
+      </TableViewport>,
+    );
+
+    const region = screen.getByRole('region', { name: 'Bảng có tùy chỉnh' });
+    const toolbar = screen.getByRole('toolbar', { name: 'Tùy chỉnh bảng' });
+    const trigger = within(toolbar).getByRole('button', { name: 'Tùy chỉnh bảng' });
+    expect(region).not.toContainElement(trigger);
+    expect(region).toContainElement(screen.getByRole('table'));
+    expect(region).toHaveClass('overflow-auto');
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+
+    await user.click(trigger);
+    expect(screen.getByRole('heading', { name: 'Cột hiển thị' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Mật độ hàng' })).toBeVisible();
+    expect(region).not.toContainElement(screen.getByRole('checkbox', { name: 'Trạng thái' }));
+    const radios = screen.getAllByRole('radio');
+    expect(radios.map((radio) => radio.getAttribute('aria-label'))).toEqual(['Gọn', 'Tiêu chuẩn', 'Thoáng']);
+
+    radios[1].focus();
+    await user.keyboard('{ArrowDown}');
+    expect(region).toHaveAttribute('data-density', 'comfortable');
+    expect(window.localStorage.getItem('ipc.table-preferences.v1:account-a:unit-table')).toContain('"density":"comfortable"');
+    expect(screen.getByRole('status')).toHaveTextContent('Đã lưu tùy chỉnh bảng');
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('heading', { name: 'Cột hiển thị' })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    await user.click(screen.getByRole('button', { name: 'Đóng tùy chỉnh bảng' }));
+    expect(trigger).toHaveFocus();
+  });
+
+  it('protects locked reorder boundaries and restores default preferences', async () => {
+    const user = userEvent.setup();
+    render(
+      <TableViewport ariaLabel="Bảng sắp xếp" preferences={{ accountId: 'account-a', config: preferenceConfig }}>
+        {({ columns, density }) => <div data-columns={columns.map((column) => column.id).join(',')} data-rendered-density={density} />}
+      </TableViewport>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Tùy chỉnh bảng' }));
+    const upStatus = screen.getByRole('button', { name: 'Đưa Trạng thái lên' });
+    const downCost = screen.getByRole('button', { name: 'Đưa Chi phí xuống' });
+    expect(screen.queryByRole('button', { name: 'Đưa Định danh lên' })).not.toBeInTheDocument();
+    expect(upStatus).toBeDisabled();
+    expect(downCost).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Đưa Trạng thái xuống' }));
+    expect(screen.getByText((_, element) => element?.getAttribute('data-columns') === 'identity,cost,status')).toBeInTheDocument();
+    expect(window.localStorage.getItem('ipc.table-preferences.v1:account-a:unit-table')).toContain('"columnIds":["identity","cost","status"]');
+
+    await user.click(screen.getByRole('checkbox', { name: 'Chi phí' }));
+    await user.click(screen.getByRole('radio', { name: 'Thoáng' }));
+    await user.click(screen.getByRole('button', { name: 'Khôi phục mặc định' }));
+    expect(screen.getByText((_, element) => element?.getAttribute('data-columns') === 'identity,status,cost')).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.getAttribute('data-rendered-density') === 'standard')).toBeInTheDocument();
+    expect(window.localStorage.getItem('ipc.table-preferences.v1:account-a:unit-table')).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('Đã khôi phục tùy chỉnh bảng mặc định');
   });
 });

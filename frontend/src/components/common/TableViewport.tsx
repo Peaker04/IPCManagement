@@ -58,7 +58,7 @@ export function TableViewport({
     ? preferences ? children({ columns: resolveTablePreferenceColumns(preferences.config, preferenceState), density: resolvedDensity }) : null
     : children;
 
-  return (
+  const viewport = (
     <div
       className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain', viewportSizeClasses[size], className)}
       data-table-viewport="true"
@@ -71,8 +71,18 @@ export function TableViewport({
       tabIndex={0}
     >
       {caption ? <div id={captionId} className="sr-only">{caption}</div> : null}
-      {preferences ? <TablePreferencesControl config={preferences.config} state={preferenceState} onChange={updatePreferences} onReset={resetPreferences} /> : null}
       {renderedChildren}
+    </div>
+  );
+
+  if (!preferences) return viewport;
+
+  return (
+    <div className="min-w-0 w-full">
+      <div role="toolbar" aria-label="Tùy chỉnh bảng" className="mb-3 flex justify-end">
+        <TablePreferencesControl config={preferences.config} state={preferenceState} onChange={updatePreferences} onReset={resetPreferences} />
+      </div>
+      {viewport}
     </div>
   );
 }
