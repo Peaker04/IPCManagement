@@ -1,6 +1,6 @@
 # UI/UX Project Audit
 
-Updated: 2026-08-11  
+Updated: 2026-08-11
 Status: baseline complete; interaction matrix pending
 
 ## Scope and evidence
