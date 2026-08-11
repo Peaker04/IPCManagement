@@ -644,6 +644,35 @@ test.describe('UI measurement audit', () => {
           await collectLayoutIssues(page, 'admin-data-quality-stress', viewport.name),
         );
       });
+
+      test('warehouse receipt lifecycle renders its read-error boundary without a mutation', async ({ page }) => {
+        await stubAuditApi(page);
+        await page.route('**/api/inventory-receipts?**', async (route) => {
+          await route.fulfill({
+            status: 503,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: false, message: 'Read-only fixture failure' }),
+          });
+        });
+        await login(page);
+        await page.goto(ROUTES.WAREHOUSE);
+
+        const signals = observePage(page);
+        const lifecyclePanel = page.getByTestId('receipt-lifecycle-panel');
+        await expect(lifecyclePanel).toBeVisible();
+        await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'false');
+        await expect(page.getByText('Không tải được phiếu nhập lifecycle', { exact: true })).toBeVisible();
+        await expectNoAuditIssues(
+          `${viewport.name}-warehouse-receipt-error`,
+          await collectLayoutIssues(page, 'warehouse-receipt-error', viewport.name),
+          [await collectInteractionRecord(page, {
+            route: 'warehouse',
+            owner: 'WarehouseReceiptLifecyclePanel',
+            state: 'error',
+            viewport: viewport.name,
+          }, [], signals)],
+        );
+      });
     });
   }
 });
