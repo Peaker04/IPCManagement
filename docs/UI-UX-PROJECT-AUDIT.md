@@ -1,7 +1,7 @@
 # UI/UX Project Audit
 
 Updated: 2026-08-11
-Status: baseline complete; route-default interaction records measured; remaining owner states need evidence
+Status: Reports price-list remediation verified; remaining non-Reports owner states need evidence
 
 ## Scope and evidence
 
@@ -21,13 +21,14 @@ The audit covers the nine protected routes, five desktop viewports, table/tab/mo
 - Headed Chrome, current source `501789a5`, `ipc_lane9`: 45 route probes, zero overflow, console/page/request error, or escaped mutation.
 - Wave 2 headed Chrome recheck, current source `9741e976`, `ipc_lane9`: 45 route probes across all five desktop viewports, 606 post-action GET responses, zero overflow, console/page/request error, escaped mutation, or non-success API response. The owned `3010/8010` runtime was torn down after capture; artifact pointer is in `docs/EVIDENCE-INDEX.md`.
 - The Wave 2 run keeps the runtime CLS finding: Warehouse is `0.19833560593629662` at `1920×1080`; Approvals is `0.1010878640403376`–`0.15160781061436363` at all five viewports. Warehouse also has two long tasks (`71ms` at `1440×900`, `51ms` at `1365×900`). The capture has route-level timings only, so it does not identify a lowest component or handler owner. These are runtime findings, not screenshot judgments.
+- Wave 3 Reports fixture verification: focused control tests 3/3 and the five-desktop measurement suite 10/10 pass. `ReportsPricePanel` records the warning-detail action at each approved desktop viewport; it is focusable, non-wrapping, and links to the existing detail region. The existing debounced `searchKeyword` query is exercised before pagination. ESLint and the production build pass. This is DOM/focus/query evidence, not a screenshot verdict.
 
 ## Confirmed gaps
 
 | ID | Scope | Verdict | Evidence | Root cause |
 |---|---|---|---|---|
-| UX-01 | Reports › Biến động giá › Theo dòng nhập | GAP | `ReportsPricePanel.tsx` uses a fixed 10-column table; column 10 is 8% wide while `ipc-report-action-cell` permits `overflow-wrap:anywhere`. | A workflow instruction is rendered as cell text beneath the misleading header `Xử lý`, so it wraps into an unreadable pseudo-action. |
-| UX-02 | Reports › Biến động giá › Theo dòng nhập | GAP | Current live screen shows 6 of 17,194 records (`Trang 1/2866`); page size and jump-to-page are the only navigation. | Pagination is used as primary discovery instead of a constrained query/filter/detail workflow. |
+| UX-01 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | `ReportsPricePanel` now renders a focusable `Xem đề xuất` control with an accessible owner-specific label and `aria-controls` link to the existing warning-detail region. Five-desktop measurement records no wrapping or clipping. | The narrow cell no longer contains a wrapped instructional pseudo-action. |
+| UX-02 | Reports › Biến động giá › Theo dòng nhập | RESOLVED | The existing labelled search control is exercised with the server-bound debounced `searchKeyword` before pagination; the warning action opens the existing detail path. | Discovery can constrain the price list before a user navigates pagination. |
 | UX-03 | Warehouse and Approvals | GAP | Wave 2 headed manifest on `ipc_lane9` confirms Warehouse CLS `0.1983` at `1920×1080`, Approvals CLS `0.1011`–`0.1516`, and two Warehouse long tasks (`71ms`, `51ms`). | The trace is route-level only and cannot attribute the settling layout or long task to a lowest owner. Keep `NEEDS_EVIDENCE` for owner assignment; no production UI change is authorized. |
 | UX-04 | Whole project | GAP in assurance | Current UI measurement suite visits route defaults plus one Admin stress table, not every tab/dialog/state owner. | Existing gate proves geometry only, not complete interactive-surface coverage. |
 | UX-05 | Control-surface regression coverage | NEEDS_EVIDENCE | Reports now uses the `Báo cáo vận hành` shell title and its non-empty price fixture; the Reports controls pass. Purchasing remains non-empty-state unproven; the isolated Warehouse stock control returns to the local login page before the named table region can be observed. | Reports fixture/title drift is resolved in test scope. Purchasing/Warehouse remain read-only fixture/auth evidence gaps; do not change production owners until their intended route state is proven. |
@@ -54,6 +55,10 @@ For every tab owner: activate each permitted tab at all five desktop viewports a
 ## Wave 2 trace disposition
 
 The five-desktop headed capture confirms the Warehouse/Approvals performance signal but does not include layout-shift source rectangles or a JavaScript task attribution. Therefore no lowest owner is trace-proven. The performance implementation wave must remain blocked on owner-local evidence; Reports work remains independently authorized because its confirmed gaps do not rely on this unresolved attribution.
+
+## Wave 3 Reports disposition
+
+UX-01 and UX-02 are closed by the owner-local `ReportsPricePanel` repair and deterministic fixture evidence. The retained Wave 2 runtime manifest remains the authoritative record for Warehouse and Approvals only; it does not authorize a production change there.
 
 ## Planning constraint
 

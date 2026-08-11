@@ -125,3 +125,6 @@ __pycache__/
 
 ## Artifact test của skill (sinh lại được, không commit)
 .codex/skills/**/scripts/tests/coverage-*.json
+
+## Playwright output (sinh lại được, không commit)
+test-results/
