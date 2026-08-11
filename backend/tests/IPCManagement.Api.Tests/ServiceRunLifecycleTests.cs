@@ -189,6 +189,19 @@ public sealed class ServiceRunLifecycleTests
     }
 
     [Fact]
+    public void Evaluate_Should_KeepADeclaredExceptionBlockedUntilAnAdminWaiverCoversItsSourceLine()
+    {
+        var result = ServiceRunLifecycle.Evaluate(new(
+            IsPlanSignedOff: true, HasGeneratedMaterialDemand: true, HasBomBlocker: false, HasOpenSupply: false, HasUnreceivedIssue: false,
+            HasOpenSupplemental: false, HasRecordedActualServings: true, HasUnresolvedVariance: true,
+            HasServiceConfirmation: true, IsServiceConfirmationWaived: false, IsClosed: false,
+            HasUnresolvedServingVariance: false, HasApprovedVarianceWaiver: true));
+
+        result.Blockers.Should().NotContain(ServiceRunBlocker.UnresolvedVariance);
+        result.CanClose.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task CreateAdjustmentAsync_Should_AppendCorrectionWithoutMutatingClosedSnapshot()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
