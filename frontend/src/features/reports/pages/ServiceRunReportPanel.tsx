@@ -3,8 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { EmptyState, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { useGetServiceRunPageQuery } from '@/api/workflowApi';
 import { getServiceRunStatusPresentation } from '@/lib/workflowConfig';
-import { useAppSelector } from '@/app/hooks';
-import { selectCurrentUser } from '@/features/auth';
+import { readStoredAuthSnapshot } from '@/lib/auth/authStorage';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
 
 type Props = { dateFrom: string; dateTo: string; shiftName: string };
@@ -26,14 +25,14 @@ const serviceRunPreferenceConfig: TablePreferenceConfig = {
 
 export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
   const [page, setPage] = useState(1);
-  const currentUser = useAppSelector(selectCurrentUser);
+  const currentAccountId = readStoredAuthSnapshot().user?.id;
   const serviceDate = dateFrom && dateFrom === dateTo ? dateFrom : undefined;
   const { data, isFetching, isError, refetch } = useGetServiceRunPageQuery({ pageNumber: page, pageSize: 20, serviceDate, shiftName: shiftName || undefined });
   const rows = data?.items ?? [];
 
   return <SectionPanel title="Ca phục vụ và chứng từ nguồn" icon={<ClipboardList size={18} />} description="Trạng thái do backend tính từ KHSX, nhu cầu, phiếu xuất/trả và cấp bổ sung. Ca đã đóng dùng snapshot tại thời điểm close; legacy chưa có snapshot được ghi rõ.">
     {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Không thể kết luận tình trạng đóng ca khi projection chứng từ nguồn chưa tải được." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
-      <TableViewport ariaLabel="Bảng Ca phục vụ" caption="Các chứng từ nguồn được hiển thị theo từng Ca, không gộp theo tên nguyên liệu." preferences={{ accountId: currentUser?.id, config: serviceRunPreferenceConfig }}>
+      <TableViewport ariaLabel="Bảng Ca phục vụ" caption="Các chứng từ nguồn được hiển thị theo từng Ca, không gộp theo tên nguyên liệu." preferences={{ accountId: currentAccountId, config: serviceRunPreferenceConfig }}>
         {({ columns }) => <table className="ipc-data-table ipc-status-action-table min-w-[1080px]">
           <thead><tr>{columns.map((column) => <th scope="col" key={column.id}>{column.label}</th>)}</tr></thead>
           <tbody>
