@@ -33,3 +33,25 @@ public sealed class ServiceRun
 
     public ProductionPlan Plan { get; set; } = null!;
 }
+
+public sealed class ServiceRunVarianceDeclaration
+{
+    public byte[] ServiceRunVarianceDeclarationId { get; set; } = null!;
+    public byte[] ServiceRunId { get; set; } = null!;
+    public string Track { get; set; } = null!;
+    public string SourceLineEvidenceJson { get; set; } = null!;
+    public string Reason { get; set; } = null!;
+    public byte[] DeclaredBy { get; set; } = null!;
+    public DateTime DeclaredAt { get; set; }
+    public ServiceRun ServiceRun { get; set; } = null!;
+}
+
+public sealed class ServiceRunVarianceWaiver
+{
+    public byte[] ServiceRunVarianceWaiverId { get; set; } = null!;
+    public byte[] ServiceRunVarianceDeclarationId { get; set; } = null!;
+    public byte[] ApprovedBy { get; set; } = null!;
+    public DateTime ApprovedAt { get; set; }
+    public string Reason { get; set; } = null!;
+    public ServiceRunVarianceDeclaration Declaration { get; set; } = null!;
+}

@@ -91,6 +91,16 @@ public sealed partial class ServiceRunsController(IServiceRunService serviceRunS
         => Ok(ApiResponse<ServiceRunLifecycleProjectionDto>.SuccessResult(
             (await serviceRunService.ResolveServingVarianceAsync(id, request, currentUserService.GetUserId(User), cancellationToken))!));
 
+    [HttpPost("{id}/variance/declarations")]
+    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
+    public async Task<IActionResult> DeclareVarianceAsync(string id, [FromBody] DeclareServiceRunVarianceRequest request, CancellationToken cancellationToken)
+        => Ok(ApiResponse<ServiceRunLifecycleProjectionDto>.SuccessResult((await serviceRunService.DeclareVarianceAsync(id, request, currentUserService.GetUserId(User), cancellationToken))!));
+
+    [HttpPost("{id}/variance/declarations/{declarationId}/waive")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    public async Task<IActionResult> ApproveVarianceWaiverAsync(string id, string declarationId, [FromBody] ApproveServiceRunVarianceWaiverRequest request, CancellationToken cancellationToken)
+        => Ok(ApiResponse<ServiceRunLifecycleProjectionDto>.SuccessResult((await serviceRunService.ApproveVarianceWaiverAsync(id, declarationId, request, currentUserService.GetUserId(User), cancellationToken))!));
+
     [HttpPost("{id}/close")]
     [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
     [Authorize(Policy = AuthorizationPolicies.CoordinationAccess)]

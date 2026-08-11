@@ -80,6 +80,18 @@ public sealed class ReasonRequest
     public string Reason { get; set; } = string.Empty;
 }
 
+public sealed class DeclareServiceRunVarianceRequest
+{
+    public string Track { get; set; } = string.Empty;
+    public IReadOnlyList<string> SourceLineIds { get; set; } = [];
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class ApproveServiceRunVarianceWaiverRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
 public sealed class CreateServiceRunAdjustmentRequest
 {
     public int CorrectedActualServings { get; set; }

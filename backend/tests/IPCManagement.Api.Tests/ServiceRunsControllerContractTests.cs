@@ -50,10 +50,14 @@ public sealed class ServiceRunsControllerContractTests
         AuthorizationPolicies.ProductionAccess
     ];
 
+    private static readonly string[] AdminPolicy = [AuthorizationPolicies.AdminAccess];
+
     private static readonly ActionContract[] ExpectedActions =
     [
         new(nameof(ServiceRunsController.CloseAsync), "POST", "{id}/close", CoordinationPolicies),
+        new(nameof(ServiceRunsController.ApproveVarianceWaiverAsync), "POST", "{id}/variance/declarations/{declarationId}/waive", AdminPolicy),
         new(nameof(ServiceRunsController.ConfirmServiceAsync), "POST", "{id}/service-confirmation", ProductionPolicy),
+        new(nameof(ServiceRunsController.DeclareVarianceAsync), "POST", "{id}/variance/declarations", ProductionPolicy),
         new(nameof(ServiceRunsController.CreateAdjustmentAsync), "POST", "{id}/adjustments", CoordinationPolicies),
         new(nameof(ServiceRunsController.GetAdjustmentsAsync), "GET", "{id}/adjustments", ProductionPolicy),
         new(nameof(ServiceRunsController.GetAsync), "GET", "{id}", ProductionPolicy),

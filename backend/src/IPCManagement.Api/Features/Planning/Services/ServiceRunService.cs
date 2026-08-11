@@ -64,6 +64,10 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
                               item.issue.MaterialRequest.PlanId.SequenceEqual(run.PlanId) && item.issue.IssueDate == plan.PlanDate && item.issue.ShiftName == run.ShiftName, cancellationToken);
         var adjustmentCount = await context.Servicerunadjustments.AsNoTracking()
             .CountAsync(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId), cancellationToken);
+        var hasApprovedVarianceWaiver = await context.Servicerunvariancedeclarations.AsNoTracking()
+            .Where(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId))
+            .Join(context.Servicerunvariancewaivers.AsNoTracking(), declaration => declaration.ServiceRunVarianceDeclarationId, waiver => waiver.ServiceRunVarianceDeclarationId, (declaration, waiver) => new { declaration, waiver })
+            .AnyAsync(item => !item.declaration.DeclaredBy.SequenceEqual(item.waiver.ApprovedBy), cancellationToken);
 
         var hasBomBlocker = await HasBomBlockerAsync(plan.PlanDate, planLines, cancellationToken);
         var requiredByItem = demandLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.TotalRequiredQty));
@@ -81,7 +85,8 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             HasUnresolvedServingVariance: run.ActualServings is not null && run.ActualServings != planLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings)) && run.ServingVarianceResolvedAt is null,
             HasServiceConfirmation: run.ServiceConfirmedAt is not null,
             IsServiceConfirmationWaived: run.ServiceConfirmationWaivedAt is not null,
-            IsClosed: run.ClosedAt is not null);
+            IsClosed: run.ClosedAt is not null,
+            HasApprovedVarianceWaiver: hasApprovedVarianceWaiver);
         var lifecycle = ServiceRunLifecycle.Evaluate(input);
         var isConfirmationPending = run.ServiceConfirmedAt is null && run.ServiceConfirmationWaivedAt is null;
         var canSetConfirmationOutcome = run.ClosedAt is null && isConfirmationPending && CanConfirmOrWaive(lifecycle.Blockers);
@@ -305,6 +310,44 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         run.ServingVarianceResolvedBy = actorId;
         run.ServingVarianceResolutionReason = reason;
         await SaveTransitionAsync(run, actorId, "ServingVarianceResolved", null, now.ToString("O"), reason, cancellationToken);
+        return await GetProjectionAsync(serviceRunId, cancellationToken);
+    }
+
+    public async Task<ServiceRunLifecycleProjectionDto?> DeclareVarianceAsync(string serviceRunId, DeclareServiceRunVarianceRequest request, string? userId, CancellationToken cancellationToken = default)
+    {
+        var actorId = ParseActor(userId);
+        var run = await LoadTrackedAsync(serviceRunId, cancellationToken);
+        if (run is null) return null;
+        EnsureOpen(run);
+        var reason = RequireReason(request.Reason, "Cần nêu lý do khai báo ngoại lệ.");
+        var track = request.Track?.Trim().ToUpperInvariant();
+        if (track is not ("PLANNING" or "MATERIAL_SUPPLY" or "SERVICE_EXECUTION" or "RECONCILIATION")) throw new ArgumentException("Track ngoại lệ không hợp lệ.");
+        var sourceLines = request.SourceLineIds.Where(id => GuidHelper.ParseGuidString(id) is not null).Distinct(StringComparer.Ordinal).ToArray();
+        if (sourceLines.Length == 0) throw new ArgumentException("Cần chỉ rõ ít nhất một source-line chứng cứ.");
+        var now = DateTime.UtcNow;
+        var declaration = new ServiceRunVarianceDeclaration { ServiceRunVarianceDeclarationId = GuidHelper.NewId(), ServiceRunId = run.ServiceRunId, Track = track, SourceLineEvidenceJson = JsonSerializer.Serialize(sourceLines), Reason = reason, DeclaredBy = actorId, DeclaredAt = now };
+        context.Servicerunvariancedeclarations.Add(declaration);
+        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = actorId, BusinessArea = "ServiceRun", EntityName = nameof(ServiceRunVarianceDeclaration), EntityId = declaration.ServiceRunVarianceDeclarationId, FieldName = "Declared", NewValue = track, Reason = reason });
+        await context.SaveChangesAsync(cancellationToken);
+        return await GetProjectionAsync(serviceRunId, cancellationToken);
+    }
+
+    public async Task<ServiceRunLifecycleProjectionDto?> ApproveVarianceWaiverAsync(string serviceRunId, string declarationId, ApproveServiceRunVarianceWaiverRequest request, string? userId, CancellationToken cancellationToken = default)
+    {
+        var actorId = ParseActor(userId);
+        var run = await LoadTrackedAsync(serviceRunId, cancellationToken);
+        if (run is null) return null;
+        EnsureOpen(run);
+        var id = GuidHelper.ParseGuidString(declarationId) ?? throw new ArgumentException("Khai báo ngoại lệ không hợp lệ.");
+        var declaration = await context.Servicerunvariancedeclarations.FirstOrDefaultAsync(item => item.ServiceRunVarianceDeclarationId.SequenceEqual(id) && item.ServiceRunId.SequenceEqual(run.ServiceRunId), cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy khai báo ngoại lệ.");
+        if (declaration.DeclaredBy.SequenceEqual(actorId)) throw new InvalidOperationException("Người khai báo không được tự phê duyệt waiver.");
+        if (await context.Servicerunvariancewaivers.AnyAsync(item => item.ServiceRunVarianceDeclarationId.SequenceEqual(id), cancellationToken)) return await GetProjectionAsync(serviceRunId, cancellationToken);
+        var reason = RequireReason(request.Reason, "Cần nêu lý do phê duyệt waiver.");
+        var now = DateTime.UtcNow;
+        var waiver = new ServiceRunVarianceWaiver { ServiceRunVarianceWaiverId = GuidHelper.NewId(), ServiceRunVarianceDeclarationId = id, ApprovedBy = actorId, ApprovedAt = now, Reason = reason };
+        context.Servicerunvariancewaivers.Add(waiver);
+        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = actorId, BusinessArea = "ServiceRun", EntityName = nameof(ServiceRunVarianceWaiver), EntityId = waiver.ServiceRunVarianceWaiverId, FieldName = "Approved", NewValue = declaration.Track, Reason = reason });
+        await context.SaveChangesAsync(cancellationToken);
         return await GetProjectionAsync(serviceRunId, cancellationToken);
     }
 
