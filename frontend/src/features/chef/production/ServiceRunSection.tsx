@@ -1,13 +1,17 @@
 import { useState } from 'react'
+import { useSelector } from 'react-redux'
 import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
 import { ServiceRunTrackPanel, StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import type { AuthState } from '@/lib/auth/authTypes'
 import {
   useCloseServiceRunMutation,
+  useApproveServiceRunVarianceWaiverMutation,
   useConfirmServiceRunMutation,
   useCreateServiceRunAdjustmentMutation,
+  useDeclareServiceRunVarianceMutation,
   useGetServiceRunByPlanQuery,
   useOpenServiceRunMutation,
   useRecordServiceRunActualServingsMutation,
@@ -29,6 +33,12 @@ const statusLabel: Record<string, string> = {
 const outcomeLabel: Record<string, string> = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', WAIVED: 'Đã miễn xác nhận' }
 
 const tone = (status: string) => status === 'CLOSED' || status === 'READY_TO_CLOSE' ? 'success' as const : status === 'BLOCKED' || status === 'RECONCILIATION_REQUIRED' ? 'danger' as const : 'warning' as const
+
+const varianceTracksForRole = (role?: string) => {
+  if (role === 'bep' || role === 'chef' || role === 'kitchen') return ['SERVICE_EXECUTION'] as const
+  if (role === 'quanly') return ['PLANNING', 'MATERIAL_SUPPLY', 'RECONCILIATION'] as const
+  return [] as const
+}
 
 export function ServiceRunSection({ plans, shiftName }: Props) {
   const [showAll, setShowAll] = useState(false)
@@ -52,7 +62,14 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
   const [actual, setActual] = useState('')
   const [correctedActual, setCorrectedActual] = useState('')
   const [reason, setReason] = useState('')
+  const [varianceTrack, setVarianceTrack] = useState('')
+  const [varianceSourceLines, setVarianceSourceLines] = useState('')
+  const [varianceReason, setVarianceReason] = useState('')
+  const [waiverDeclarationId, setWaiverDeclarationId] = useState('')
+  const [waiverReason, setWaiverReason] = useState('')
+  const [declaredByCurrentActor, setDeclaredByCurrentActor] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const user = useSelector((state: { auth: AuthState }) => state.auth.user)
   const { data: persistedRun, isFetching, isError, refetch } = useGetServiceRunByPlanQuery({ planId: plan.planId, shiftName })
   const run = localRun ?? persistedRun
   const [open, openState] = useOpenServiceRunMutation()
@@ -64,6 +81,10 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
   const [waiveConfirmation, waiveConfirmationState] = useWaiveServiceRunConfirmationMutation()
   const [close, closeState] = useCloseServiceRunMutation()
   const [createAdjustment, createAdjustmentState] = useCreateServiceRunAdjustmentMutation()
+  const [declareVariance, declareVarianceState] = useDeclareServiceRunVarianceMutation()
+  const [approveWaiver, approveWaiverState] = useApproveServiceRunVarianceWaiverMutation()
+  const declarationTracks = varianceTracksForRole(user?.role)
+  const isAdmin = user?.isAdminFullAccess || user?.role === 'admin'
   const act = async (operation: () => Promise<unknown>) => {
     try {
       setError(null)
@@ -72,7 +93,7 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
       await refetch()
     } catch (cause) { setError(getChefMutationErrorMessage(cause, 'Không thể cập nhật Ca phục vụ.')) }
   }
-  const isMutating = openState.isLoading || startState.isLoading || recordState.isLoading || confirmState.isLoading || resolveVarianceState.isLoading || resolveServingVarianceState.isLoading || waiveConfirmationState.isLoading || closeState.isLoading || createAdjustmentState.isLoading
+  const isMutating = openState.isLoading || startState.isLoading || recordState.isLoading || confirmState.isLoading || resolveVarianceState.isLoading || resolveServingVarianceState.isLoading || waiveConfirmationState.isLoading || closeState.isLoading || createAdjustmentState.isLoading || declareVarianceState.isLoading || approveWaiverState.isLoading
 
   return <article className="rounded-sm border border-slate-200 bg-white p-3" aria-busy={isMutating || isFetching}>
     <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? run.status}</StatusBadge>}</div>
@@ -87,6 +108,27 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
         <div><dt className="text-slate-500">Giao suất</dt><dd className="font-medium text-slate-800">{outcomeLabel[run.serviceConfirmationOutcome] ?? run.serviceConfirmationOutcome}</dd></div>
       </dl>
       <ServiceRunTrackPanel run={run} />
+      {run.status !== 'CLOSED' && declarationTracks.length > 0 && <fieldset className="mt-3 grid gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Khai báo ngoại lệ Ca phục vụ">
+        <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ (append-only)</legend>
+        <p className="text-amber-900">Chỉ gửi source-line và lý do cho track mà backend sẽ xác minh; khai báo không tự đóng Ca.</p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <label className="grid gap-1 font-medium text-slate-700">Track<select aria-label="Track ngoại lệ" value={varianceTrack} onChange={(event) => setVarianceTrack(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn track</option>{declarationTracks.map((track) => <option key={track} value={track}>{track}</option>)}</select></label>
+          <label className="grid gap-1 font-medium text-slate-700">Source-line<Input aria-label="Source-line chứng cứ" value={varianceSourceLines} onChange={(event) => setVarianceSourceLines(event.target.value)} placeholder="ID source-line, cách nhau dấu phẩy" /></label>
+          <label className="grid gap-1 font-medium text-slate-700">Lý do<Input aria-label="Lý do khai báo ngoại lệ" value={varianceReason} onChange={(event) => setVarianceReason(event.target.value)} placeholder="Bắt buộc" /></label>
+        </div>
+        <div><Button size="sm" variant="outline" disabled={!varianceTrack || !varianceSourceLines.trim() || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
+          await declareVariance({ id: run.serviceRunId, body: { track: varianceTrack, sourceLineIds: varianceSourceLines.split(',').map((value) => value.trim()).filter(Boolean), reason: varianceReason } }).unwrap()
+          setDeclaredByCurrentActor(true)
+          setVarianceSourceLines('')
+          setVarianceReason('')
+        })}>Gửi khai báo ngoại lệ</Button></div>
+      </fieldset>}
+      {run.status !== 'CLOSED' && isAdmin && !declaredByCurrentActor && <fieldset className="mt-3 grid gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs" aria-label="Phê duyệt waiver ngoại lệ">
+        <legend className="px-1 font-medium text-slate-800">Phê duyệt waiver Admin</legend>
+        <p className="text-slate-600">Chỉ phê duyệt khai báo của actor khác. Backend từ chối self-approval và sẽ trả projection mới sau thao tác.</p>
+        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Mã khai báo<Input aria-label="Mã khai báo ngoại lệ" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} placeholder="ID declaration chờ duyệt" /></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do waiver<Input aria-label="Lý do phê duyệt waiver" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
+        <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { reason: waiverReason } }).unwrap())}>Phê duyệt waiver</Button></div>
+      </fieldset>}
       <div className="mt-3 flex flex-wrap items-end gap-2">
         {run.canStartService && <Button size="sm" disabled={startState.isLoading} onClick={() => void act(() => start(run.serviceRunId).unwrap())}>Bắt đầu phục vụ</Button>}
         {run.canRecordActualServings && <>
