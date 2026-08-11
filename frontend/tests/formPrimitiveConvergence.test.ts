@@ -12,7 +12,7 @@ const production = readProductionSources()
 
 const checkboxExceptionLocations = [
   'src/app/pages/admin-data/AdminContractsPanel.tsx:182',
-  'src/app/pages/admin-data/AdminEmployeesPanel.tsx:107',
+  'src/app/pages/admin-data/AdminEmployeesPanel.tsx:108',
   'src/features/admin/pages/ApprovalRulesPage.tsx:417',
   'src/features/admin/pages/ApprovalRulesPage.tsx:516',
   'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:323',

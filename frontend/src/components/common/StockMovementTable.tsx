@@ -11,6 +11,7 @@ import type { StockMovement } from '@/types/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { useToast } from './useToast';
+import { typography } from '@/lib/typography';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
@@ -119,7 +120,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
           <tbody>
             {visibleMovements.map((movement) => (
               <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
-                <td className="font-mono text-[13px] font-semibold text-slate-700 text-left">
+                <td className={cn(typography.code, 'text-[13px] font-semibold text-left text-slate-700')}>
                   <div className="flex items-center gap-1.5 justify-start">
                     <span title={movement.documentNo}>
                       {shortenDocumentNo(movement.documentNo)}
@@ -144,7 +145,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                   </span>
                 </td>
                 <td className="font-medium text-slate-800">{movement.material}</td>
-                <td className="text-right font-mono font-bold text-slate-900">
+                <td className={cn(typography.code, 'text-right font-bold text-slate-900')}>
                   <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-400 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
                   {movement.beforeQty !== undefined && movement.afterQty !== undefined && (
                     <div className="text-[11px] font-normal text-slate-500">

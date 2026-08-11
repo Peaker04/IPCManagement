@@ -9,4 +9,28 @@ public interface IPurchaseReceivingService
         RecordWarehousePurchaseReceiptRequest request,
         string? userId,
         CancellationToken cancellationToken = default);
+
+    Task<WarehousePurchaseReceiptResultDto> AcceptQualityAsync(
+        string receiptId,
+        ReceiptQualityDecisionRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default);
+
+    Task<WarehousePurchaseReceiptResultDto> PostAsync(
+        string receiptId,
+        ReceiptPostRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default);
+
+    Task<WarehousePurchaseReceiptResultDto> ReworkAsync(
+        string receiptId,
+        ReceiptReworkRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default);
+
+    Task<ReceiptCorrectionResultDto> CreateCorrectionAsync(
+        string receiptId,
+        CreateReceiptCorrectionRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default);
 }

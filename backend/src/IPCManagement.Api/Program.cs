@@ -166,6 +166,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
+    options.AddPolicy(AuthorizationPolicies.InventoryReceiptReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryReceiptReadRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryApproveAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryApproveRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryIssueAccess, policy =>
@@ -185,6 +187,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseCatalogAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseCatalogRoles));
+    options.AddPolicy(AuthorizationPolicies.WarehouseSelectorAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseSelectorRoles));
     options.AddPolicy(AuthorizationPolicies.WarehousePurchaseReceive, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehousePurchaseReceiveRoles));
 });
@@ -232,6 +236,11 @@ builder.Services.AddHealthChecks()
     .AddCheck<MigrationHealthCheck>(
         "migrations",
         failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready" },
+        timeout: TimeSpan.FromSeconds(5))
+    .AddCheck<LifecycleOutboxHealthCheck>(
+        "lifecycle-outbox",
+        failureStatus: HealthStatus.Degraded,
         tags: new[] { "ready" },
         timeout: TimeSpan.FromSeconds(5));
 

@@ -258,8 +258,8 @@ public sealed class OperationalRegistryCoverageTests
             .Should().Be(AuthorizationPolicies.InventoryIssueAccess);
         validated.Add("WarehouseFulfilment");
 
-        GetControllerPolicy<WarehousePurchaseReceiptsController>()
-            .Should().Be(AuthorizationPolicies.WarehousePurchaseReceive);
+        GetActionPolicy<WarehousePurchaseReceiptsController>("RecordAsync")
+            .Should().Be(AuthorizationPolicies.CoordinationAccess);
         validated.Add("WarehousePurchaseReceipt");
 
         GetControllerPolicy<WeeklyMenuImportsController>()
@@ -298,6 +298,13 @@ public sealed class OperationalRegistryCoverageTests
 
     private static string GetControllerPolicy<T>()
         => typeof(T).GetCustomAttributes(typeof(AuthorizeAttribute), true)
+            .Cast<AuthorizeAttribute>()
+            .Single(attribute => attribute.Policy is not null)
+            .Policy!;
+
+    private static string GetActionPolicy<T>(string methodName)
+        => typeof(T).GetMethod(methodName)!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true)
             .Cast<AuthorizeAttribute>()
             .Single(attribute => attribute.Policy is not null)
             .Policy!;

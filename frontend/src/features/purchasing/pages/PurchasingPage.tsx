@@ -12,7 +12,7 @@ import {
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { SupplementalPurchasingWorkbench } from '../SupplementalPurchasingWorkbench';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
-import { ServiceRunBlockerPanel } from '@/features/service-runs/ServiceRunBlockerPanel';
+import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { PurchaseWorkflowGuide } from '../PurchaseWorkflowGuide';
 import { SupplierQuotationSection } from '../quotation/SupplierQuotationSection';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
@@ -221,7 +221,7 @@ export default function PurchasingPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : 'Quản lý báo giá nhà cung cấp'}</h1>
-            <p className="mt-2 text-[14px] leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
+            <p className="mt-2 text-body leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
           </div>
           <StatusBadge variant={isPageFailure ? 'danger' : isPagePending ? 'warning' : 'success'}>
             {isPageFailure ? 'Lỗi tải dữ liệu' : isPagePending ? 'Đang tải' : 'Đã đồng bộ'}

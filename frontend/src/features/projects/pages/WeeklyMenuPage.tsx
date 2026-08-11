@@ -3,6 +3,7 @@ import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
 import { OperationalFrame, ViewSwitcher } from '@/components/common';
+import { typography } from '@/lib/typography';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi';
@@ -491,7 +492,7 @@ const WeeklyMenuPage = () => {
         />
 
         <div
-          className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none"
+          className={`${typography.body} relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none`}
           aria-busy={isViewPending}
           aria-live="polite"
         >

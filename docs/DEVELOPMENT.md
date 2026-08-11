@@ -67,10 +67,16 @@ trước khi chạy app; không dùng seed/reset để che schema hoặc dữ li
 
 ### Đồng bộ migration local
 
-`ipcmanagement` là base schema local. Khi source có migration mới, tạo checkpoint rồi chạy
-`dotnet ef database update` trên base trước; chỉ sau khi base pass precondition/postcondition mới áp
-cùng migration chain tại chỗ lên các database test hiện có (`ipc_lane1`, `ipc_lane8`, `ipc_lane9`
-và `ipc_e2e_template`). Không clone/restore dữ liệu base vào lane chỉ để chữa schema drift.
+`ipcmanagement` là base đích cuối, không phải rehearsal lane. Mọi schema/data correction phải chạy
+trước trên database mutation được phê duyệt (hiện là `ipc_lane9`) với checkpoint, reviewed SQL,
+postflight và rollback evidence. Chỉ khi rehearsal pass mới áp **đúng cùng SQL/reconciliation script**
+lên `ipcmanagement`, sau một checkpoint riêng; không clone/restore cả lane đè lên base và không dùng
+`dotnet ef database update` trực tiếp trên base như bước thử đầu tiên.
+
+Clone bằng `IPCManagement.DatabaseTool` phải giữ nguyên table definition từ `SHOW CREATE TABLE`,
+foreign key và trigger. Verification phải fail-closed khi migration history cho biết schema object
+do migration sở hữu nhưng clone bị thiếu. `ipc_lane1` là protected/read-only: không migrate, reset,
+seed, restore hoặc import trong quy trình này.
 
 `/health/ready` trả `Unhealthy`/HTTP 503 khi còn pending migration hoặc không đọc được migration
 history. Không tiếp tục test endpoint khi readiness chưa `Healthy`; xử lý migration trước để tránh

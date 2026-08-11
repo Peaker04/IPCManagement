@@ -17,6 +17,7 @@ import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { ChefMaterial } from '../chefDashboardTypes'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { typography } from '@/lib/typography'
 
 interface MaterialChecklistProps {
   materials: ChefMaterial[]
@@ -64,7 +65,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
           Dòng nguồn đã ký: {signedCount}/{materials.length} | Đã nhận: {receivedCount}/{materials.length}
         </span>
       }
-      className="ipc-chef-checklist-panel"
+      className={cn(typography.body, 'ipc-chef-checklist-panel')}
     >
         <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Danh sách nguyên liệu cần ký nhận" className="ipc-chef-checklist-shell">
           <Table className="ipc-chef-checklist-table text-xs">
@@ -99,7 +100,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                         <TableCell className={cn("text-slate-800 font-medium", material.signed && "line-through text-slate-400")}>{material.name}</TableCell>
                         <TableCell className="text-slate-500">{material.issueCode ?? 'Theo kế hoạch'}</TableCell>
                         <TableCell className="text-slate-500 text-right">{formatUnit(material.unit)}</TableCell>
-                        <TableCell className="text-slate-800 font-semibold text-right">{formatQuantity(material.quantity)}</TableCell>
+                        <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
                         <TableCell><StatusBadge variant={material.status === 'Đã nhận' ? 'success' : 'warning'}><span className="flex items-center gap-1">{material.status === 'Đã nhận' && <Check className="w-3 h-3" />}{material.status === 'Chờ giao' ? 'Chờ ký nhận' : material.status}</span></StatusBadge></TableCell>
                       </TableRow>
                     )]
@@ -112,7 +113,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                       <TableCell><span className="block font-semibold text-slate-900">{group.name}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></TableCell>
                       <TableCell className="text-slate-500">{issueCount} phiếu xuất</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(group.unit)}</TableCell>
-                      <TableCell className="text-right font-semibold text-slate-900">{formatQuantity(group.quantity)}</TableCell>
+                      <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-900')}>{formatQuantity(group.quantity)}</TableCell>
                       <TableCell><StatusBadge variant={signedLines === group.lines.length ? 'success' : 'warning'}>{signedLines}/{group.lines.length} dòng đã ký</StatusBadge></TableCell>
                     </TableRow>
                   )
@@ -122,9 +123,9 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                     <TableRow key={material.id} className={cn('border-slate-200 bg-white', material.signed && 'opacity-70')}>
                       <TableCell className="text-center"><Checkbox aria-label={`Ký nhận ${material.name} từ ${material.issueCode ?? material.id}`} checked={material.signed} onCheckedChange={(checked) => { if (checked === true && !material.signed) setPendingMaterialId(material.id) }} className="rounded-sm border-slate-300 bg-white" disabled={material.signed} /></TableCell>
                       <TableCell className="pl-6 text-xs font-medium text-slate-700">↳ Dòng nguồn</TableCell>
-                      <TableCell className="font-mono text-xs text-slate-600">{material.issueCode ?? material.issueId ?? material.id}</TableCell>
+                      <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>{material.issueCode ?? material.issueId ?? material.id}</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(material.unit)}</TableCell>
-                      <TableCell className="text-right font-semibold text-slate-800">{formatQuantity(material.quantity)}</TableCell>
+                      <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
                       <TableCell><StatusBadge variant={material.status === 'Đã nhận' ? 'success' : 'warning'}>{material.status === 'Chờ giao' ? 'Chờ ký nhận' : material.status}</StatusBadge></TableCell>
                     </TableRow>
                   ))]

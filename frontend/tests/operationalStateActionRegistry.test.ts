@@ -117,11 +117,11 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   Reports: {
-    'frontend/src/features/reports/pages/ReportsPage.tsx:44-72': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:60-80': [
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:147-149': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:160': [
       '<ReportQueryBoundary view={activeReportView}>',
     ],
   },
@@ -331,7 +331,7 @@ const materialDemandRegistry = materialDemandScenarios.map(({ scenarioId, backen
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-111',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-112',
       'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs:61-69',
     ],

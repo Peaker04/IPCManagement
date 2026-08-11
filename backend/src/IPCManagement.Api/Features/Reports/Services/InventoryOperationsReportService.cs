@@ -158,7 +158,6 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             .Select(item => item.IssueId)
             .Distinct(ByteArrayComparer.Instance)
             .ToList();
-
         var returnLines = await _context.Inventoryreturnlines
             .AsNoTracking()
             .Include(item => item.Return)
@@ -166,28 +165,33 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             .ToListAsync();
 
         var returnTotals = returnLines
-            .Where(item => item.Return.ReturnType == "RETURN")
-            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .Where(item => item.Return.ReturnType == "RETURN" && item.SourceIssueLineId is not null)
+            .GroupBy(item => BuildUsageKey(item.SourceIssueLineId!))
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
         var wasteTotals = returnLines
-            .Where(item => item.Return.ReturnType == "WASTE")
-            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .Where(item => item.Return.ReturnType == "WASTE" && item.SourceIssueLineId is not null)
+            .GroupBy(item => BuildUsageKey(item.SourceIssueLineId!))
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        var legacyReturnCounts = returnLines
+            .Where(item => item.SourceIssueLineId is null)
+            .GroupBy(item => Convert.ToBase64String(item.Return.IssueId))
+            .ToDictionary(group => group.Key, group => group.Count());
 
         return lines
             .Select(item =>
             {
                 var returnedQty = returnTotals.GetValueOrDefault(
-                    BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId),
+                    BuildUsageKey(item.IssueLineId),
                     0);
                 var wastedQty = wasteTotals.GetValueOrDefault(
-                    BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId),
+                    BuildUsageKey(item.IssueLineId),
                     0);
                 var varianceQty = DecimalPolicy.RoundQuantity(returnedQty + wastedQty);
 
                 return new IssueVsReturnUsageReportDto
                 {
                     IssueId = GuidHelper.ToGuidString(item.IssueId),
+                    IssueLineId = GuidHelper.ToGuidString(item.IssueLineId),
                     IssueCode = item.Issue.IssueCode,
                     IssueDate = item.Issue.IssueDate,
                     ShiftName = item.Issue.ShiftName,
@@ -199,7 +203,8 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
                     ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
                     WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
                     VarianceQty = varianceQty,
-                    UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty)
+                    UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty),
+                    LegacyUnattributedReturnLineCount = legacyReturnCounts.GetValueOrDefault(Convert.ToBase64String(item.IssueId), 0)
                 };
             })
             .ToList();
@@ -226,22 +231,27 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             .Where(item => issueIds.Contains(item.Return.IssueId))
             .ToListAsync();
         var returnTotals = returnLines
-            .Where(item => item.Return.ReturnType == "RETURN")
-            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .Where(item => item.Return.ReturnType == "RETURN" && item.SourceIssueLineId is not null)
+            .GroupBy(item => BuildUsageKey(item.SourceIssueLineId!))
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
         var wasteTotals = returnLines
-            .Where(item => item.Return.ReturnType == "WASTE")
-            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .Where(item => item.Return.ReturnType == "WASTE" && item.SourceIssueLineId is not null)
+            .GroupBy(item => BuildUsageKey(item.SourceIssueLineId!))
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        var legacyReturnCounts = returnLines
+            .Where(item => item.SourceIssueLineId is null)
+            .GroupBy(item => Convert.ToBase64String(item.Return.IssueId))
+            .ToDictionary(group => group.Key, group => group.Count());
 
         var items = lines.Select(item =>
         {
-            var returnedQty = returnTotals.GetValueOrDefault(BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId), 0);
-            var wastedQty = wasteTotals.GetValueOrDefault(BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId), 0);
+            var returnedQty = returnTotals.GetValueOrDefault(BuildUsageKey(item.IssueLineId), 0);
+            var wastedQty = wasteTotals.GetValueOrDefault(BuildUsageKey(item.IssueLineId), 0);
             var varianceQty = DecimalPolicy.RoundQuantity(returnedQty + wastedQty);
             return new IssueVsReturnUsageReportDto
             {
                 IssueId = GuidHelper.ToGuidString(item.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(item.IssueLineId),
                 IssueCode = item.Issue.IssueCode,
                 IssueDate = item.Issue.IssueDate,
                 ShiftName = item.Issue.ShiftName,
@@ -253,11 +263,143 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
                 ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
                 WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
                 VarianceQty = varianceQty,
-                UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty)
+                UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty),
+                LegacyUnattributedReturnLineCount = legacyReturnCounts.GetValueOrDefault(Convert.ToBase64String(item.IssueId), 0)
             };
         }).ToList();
 
         return PagedResponseDto<IssueVsReturnUsageReportDto>.Create(items, totalCount, query.PageNumber, query.PageSize);
+    }
+
+    public async Task<IReadOnlyList<SupplyLineReconciliationDto>> GetSupplyLineReconciliationAsync(WorkflowReportQueryDto query)
+    {
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+        var limit = NormalizeLimit(query.Limit);
+        var demandLines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Include(line => line.Request)
+            .Include(line => line.Ingredient)
+            .Include(line => line.Unit)
+            .AsQueryable();
+        if (dateFrom is not null) demandLines = demandLines.Where(line => line.Request.RequestDate >= dateFrom);
+        if (dateTo is not null) demandLines = demandLines.Where(line => line.Request.RequestDate <= dateTo);
+        var lines = await demandLines
+            .OrderByDescending(line => line.Request.RequestDate)
+            .ThenBy(line => line.RequestLineId)
+            .Take(limit)
+            .ToListAsync();
+        if (lines.Count == 0) return [];
+
+        // Load once, then join by immutable IDs in memory. EF byte[] equality is
+        // provider-sensitive; converting to a stable key prevents the report
+        // layer from accidentally falling back to an ingredient/header join.
+        var purchaseLines = await _context.Purchaserequestlines.AsNoTracking().ToListAsync();
+        var orderLines = await _context.Purchaseorderlines
+            .AsNoTracking().Include(line => line.PurchaseOrder).ToListAsync();
+        var receiptLines = await _context.Inventoryreceiptlines
+            .AsNoTracking().Include(line => line.Receipt).ToListAsync();
+        var issueLines = await _context.Inventoryissuelines
+            .AsNoTracking().Include(line => line.Issue).ToListAsync();
+        var returnLines = await _context.Inventoryreturnlines
+            .AsNoTracking().Include(line => line.Return).ThenInclude(@return => @return.Issue).ToListAsync();
+        var lineageDispositions = await _context.Legacylinedispositions
+            .AsNoTracking()
+            .OrderByDescending(item => item.CreatedAt)
+            .ToListAsync();
+        var supplements = await _context.Supplementalmaterialrequests.AsNoTracking().ToListAsync();
+        var supplementalPurchaseAudits = await _context.Auditlogs
+            .AsNoTracking()
+            .Where(audit => audit.EntityName == nameof(SupplementalMaterialRequest) && audit.FieldName == "PurchaseRequestId")
+            .ToListAsync();
+        var supplementalMovements = await _context.Stockmovements
+            .AsNoTracking()
+            .Where(movement => movement.RefTable == "supplementalmaterialrequests")
+            .ToListAsync();
+
+        return lines.Select(line =>
+        {
+            var lineKey = BuildUsageKey(line.RequestLineId);
+            var sourcePurchaseLines = purchaseLines
+                .Where(item => BuildUsageKey(item.MaterialRequestLineId) == lineKey)
+                .ToList();
+            var purchaseLineKeys = sourcePurchaseLines.Select(item => BuildUsageKey(item.PurchaseRequestLineId)).ToHashSet();
+            var sourceOrderLines = orderLines.Where(item => purchaseLineKeys.Contains(BuildUsageKey(item.PurchaseRequestLineId))).ToList();
+            var sourceIssueLines = issueLines
+                .Where(item => item.MaterialRequestLineId is not null && BuildUsageKey(item.MaterialRequestLineId) == lineKey)
+                .ToList();
+            var sourceIssueLineKeys = sourceIssueLines.Select(item => BuildUsageKey(item.IssueLineId)).ToHashSet();
+            var sourceSupplements = supplements.Where(item => sourceIssueLineKeys.Contains(BuildUsageKey(item.IssueLineId))).ToList();
+            var supplementKeys = sourceSupplements.Select(item => BuildUsageKey(item.RequestId)).ToHashSet();
+            var supplementalPurchaseRequestKeys = supplementalPurchaseAudits
+                .Where(audit => audit.EntityId is not null && supplementKeys.Contains(BuildUsageKey(audit.EntityId)))
+                .Select(audit => GuidHelper.ParseGuidString(audit.NewValue))
+                .Where(id => id is not null)
+                .Select(id => BuildUsageKey(id!))
+                .ToHashSet();
+            var sourceReturns = returnLines
+                .Where(item => item.SourceIssueLineId is not null && sourceIssueLineKeys.Contains(BuildUsageKey(item.SourceIssueLineId)))
+                .ToList();
+            var legacyIssueCount = issueLines.Count(item => item.MaterialRequestLineId is null &&
+                item.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
+                item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId));
+            var legacyReturnCount = returnLines.Count(item => item.SourceIssueLineId is null &&
+                item.Return.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
+                item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId));
+            var legacyDispositionRows = issueLines
+                .Where(item => item.MaterialRequestLineId is null &&
+                    item.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
+                    item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId))
+                .Select(item => MapLegacyDispositionReport("ISSUE_LINE", item.IssueLineId, lineageDispositions))
+                .Concat(returnLines
+                    .Where(item => item.SourceIssueLineId is null &&
+                        item.Return.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
+                        item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId))
+                    .Select(item => MapLegacyDispositionReport("RETURN_LINE", item.ReturnLineId, lineageDispositions)))
+                .OrderBy(item => item.LegacyLineType)
+                .ThenBy(item => item.LegacyLineId)
+                .ToList();
+            var receiptQty = receiptLines
+                .Where(item => item.PurchaseRequestLineId is not null && purchaseLineKeys.Contains(BuildUsageKey(item.PurchaseRequestLineId)) && item.Receipt.Status == "POSTED")
+                .Sum(item => item.AcceptedQuantity ?? item.Quantity);
+            var issuedQty = sourceIssueLines.Sum(item => item.IssuedQty);
+            var acknowledgedQty = sourceIssueLines.Where(item => item.Issue.ReceivedAt is not null).Sum(item => item.IssuedQty);
+            var returnedQty = sourceReturns.Where(item => item.Return.ReturnType == "RETURN").Sum(item => item.Quantity);
+            var wastedQty = sourceReturns.Where(item => item.Return.ReturnType == "WASTE").Sum(item => item.Quantity);
+            var supplementalFulfilledQty = supplementalMovements
+                .Where(item => item.RefId is not null && supplementKeys.Contains(BuildUsageKey(item.RefId)))
+                .Sum(item => item.QuantityOut);
+            var delta = DecimalPolicy.RoundQuantity(line.TotalRequiredQty - acknowledgedQty + returnedQty);
+            var legacyCount = legacyIssueCount + legacyReturnCount;
+            return new SupplyLineReconciliationDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(line.RequestId),
+                MaterialRequestLineId = GuidHelper.ToGuidString(line.RequestLineId),
+                MaterialRequestCode = line.Request.RequestCode,
+                RequestDate = line.Request.RequestDate,
+                IngredientId = GuidHelper.ToGuidString(line.IngredientId),
+                IngredientName = line.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(line.UnitId),
+                UnitName = line.Unit.UnitName,
+                DemandQty = DecimalPolicy.RoundQuantity(line.TotalRequiredQty),
+                PurchaseRequestAllocatedQty = DecimalPolicy.RoundQuantity(sourcePurchaseLines.Sum(item => item.PurchaseQty)),
+                PurchaseOrderAllocatedQty = DecimalPolicy.RoundQuantity(sourceOrderLines.Where(item => item.PurchaseOrder.Status != "CANCELLED").Sum(item => item.OrderedQty)),
+                PostedAcceptedReceiptQty = DecimalPolicy.RoundQuantity(receiptQty),
+                IssuedQty = DecimalPolicy.RoundQuantity(issuedQty),
+                KitchenAcknowledgedQty = DecimalPolicy.RoundQuantity(acknowledgedQty),
+                ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
+                WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
+                SupplementalRequestedQty = DecimalPolicy.RoundQuantity(sourceSupplements.Sum(item => item.RequestedQty)),
+                SupplementalFulfilledQty = DecimalPolicy.RoundQuantity(supplementalFulfilledQty),
+                SupplementalPurchaseAllocatedQty = DecimalPolicy.RoundQuantity(sourcePurchaseLines
+                    .Where(item => supplementalPurchaseRequestKeys.Contains(BuildUsageKey(item.PurchaseRequestId)))
+                    .Sum(item => item.PurchaseQty)),
+                DeltaQty = delta,
+                LegacyLineageExceptionCount = legacyCount,
+                LegacyLineageDispositions = legacyDispositionRows,
+                Disposition = ResolveReconciliationDisposition(legacyCount, delta, acknowledgedQty, issuedQty, sourceSupplements, legacyDispositionRows)
+            };
+        }).ToList();
     }
 
     private IQueryable<InventoryIssueLine> QueryIssueLines(WorkflowReportQueryDto query)
@@ -330,8 +472,58 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             ReceiptStatus = item.Issue.ReceivedAt is null ? "Chờ bếp nhận" : "Bếp đã nhận"
         };
 
-    private static string BuildUsageKey(byte[] issueId, byte[] ingredientId, byte[] unitId)
-        => $"{Convert.ToBase64String(issueId)}|{Convert.ToBase64String(ingredientId)}|{Convert.ToBase64String(unitId)}";
+    private static string BuildUsageKey(byte[] issueLineId)
+        => Convert.ToBase64String(issueLineId);
+
+    private static string ResolveReconciliationDisposition(
+        int legacyExceptionCount,
+        decimal deltaQty,
+        decimal acknowledgedQty,
+        decimal issuedQty,
+        IReadOnlyCollection<SupplementalMaterialRequest> supplements,
+        IReadOnlyCollection<LegacyLineageDispositionReportDto> legacyDispositions)
+    {
+        if (legacyExceptionCount > 0)
+        {
+            if (legacyDispositions.Count < legacyExceptionCount) return "LEGACY_DISPOSITION_PARTIAL";
+            if (legacyDispositions.Any(item => item.Status == "PENDING_MANAGER_REVIEW")) return "LEGACY_DISPOSITION_PENDING_MANAGER_REVIEW";
+            if (legacyDispositions.Any(item => item.Status == "APPROVED")) return "LEGACY_DISPOSITION_APPROVED_AWAITING_APPLY";
+            if (legacyDispositions.Any(item => item.Status == "REJECTED")) return "LEGACY_DISPOSITION_REJECTED";
+            return "LEGACY_LINEAGE_RECONCILIATION_REQUIRED";
+        }
+        if (supplements.Any(item => item.Status is not "REJECTED" and not "FULFILLED")) return "SUPPLEMENTAL_OPEN";
+        if (acknowledgedQty < issuedQty) return "KITCHEN_ACK_PENDING";
+        if (deltaQty > 0) return "DEMAND_REMAINING";
+        if (deltaQty < 0) return "OVER_ISSUED_RECONCILIATION_REQUIRED";
+        return "MATCHED";
+    }
+
+    private static LegacyLineageDispositionReportDto MapLegacyDispositionReport(
+        string legacyLineType,
+        byte[] legacyLineId,
+        IReadOnlyCollection<LegacyLineageDisposition> dispositions)
+    {
+        var match = dispositions.FirstOrDefault(item =>
+            item.LegacyLineType == legacyLineType && item.LegacyLineId.SequenceEqual(legacyLineId));
+        return new LegacyLineageDispositionReportDto
+        {
+            LegacyLineType = legacyLineType,
+            LegacyLineId = GuidHelper.ToGuidString(legacyLineId),
+            DispositionId = match is null ? null : GuidHelper.ToGuidString(match.DispositionId),
+            Status = match?.Status ?? "UNDISPOSITIONED",
+            TargetLineId = match is null
+                ? null
+                : ToOptionalGuidString(legacyLineType == "ISSUE_LINE"
+                    ? match.TargetMaterialRequestLineId
+                    : match.TargetIssueLineId),
+            Reason = match?.Reason,
+            ReviewReason = match?.ReviewReason,
+            Version = match?.Version,
+        };
+    }
+
+    private static string? ToOptionalGuidString(byte[]? value)
+        => value is null ? null : GuidHelper.ToGuidString(value);
 
     private static DateOnly? ParseDateOnly(string? value)
         => DateOnly.TryParse(value, out var parsed) ? parsed : null;

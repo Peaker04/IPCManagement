@@ -141,8 +141,9 @@ const historicalControlSource = new Map<string, string>([
   ['frontend/src/features/coordination/components/action-toolbar.tsx:402-413', 'frontend/src/features/coordination/components/action-toolbar.tsx:391-401'],
   ['frontend/src/features/coordination/components/action-toolbar.tsx:415-426', 'frontend/src/features/coordination/components/action-toolbar.tsx:404-414'],
   ['frontend/src/features/coordination/components/action-toolbar.tsx:428-439', 'frontend/src/features/coordination/components/action-toolbar.tsx:417-427'],
-  ['frontend/src/features/coordination/components/order-table.tsx:344', 'frontend/src/features/coordination/components/order-table.tsx:327'],
-  ['frontend/src/features/coordination/components/order-table.tsx:372', 'frontend/src/features/coordination/components/order-table.tsx:355'],
+  ['frontend/src/features/coordination/components/order-table.tsx:345', 'frontend/src/features/coordination/components/order-table.tsx:327'],
+  ['frontend/src/features/coordination/components/order-table.tsx:373', 'frontend/src/features/coordination/components/order-table.tsx:355'],
+  ['frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129', 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128'],
 ])
 
 const assertSameStrings = (actual: readonly string[], expected: readonly string[], label: string) => {
@@ -265,7 +266,7 @@ const assertDispositionLedger = (ledger: DispositionLedger, aggregate: Aggregate
         || group.controlEvidence.selector === 'none'
         || group.controlEvidence.source !== aggregateControlSource
       ) {
-        throw new Error(`${group.id} has incomplete observed-control evidence`)
+        throw new Error(`${group.id} has incomplete observed-control evidence: projected=${projected.expectedControl.source}; aggregate=${group.controlEvidence.source}; reconciled=${aggregateControlSource}`)
       }
     } else if (
       group.controlEvidence.status !== 'ABSENT-AS-PROJECTED'

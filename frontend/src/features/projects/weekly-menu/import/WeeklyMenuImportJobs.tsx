@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
+import { typography } from '@/lib/typography'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import { formatFileSize, formatImportDate, getImportJobStatusLabel } from '../model/formatters'
 import { getImportJobStatusTone } from './importValidation'
@@ -30,11 +31,11 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
   }, [search, state.jobs])
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn(typography.body, 'flex flex-col gap-3')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-slate-900">File cần kiểm tra</h3>
-          <p className="text-sm font-medium text-slate-500">Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn.</p>
+          <h3 className={cn(typography.sectionTitle, 'text-slate-900')}>File cần kiểm tra</h3>
+          <p className={cn(typography.body, 'font-medium text-slate-500')}>Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => void actions.previewAllJobs()} disabled={status.isImporting || state.jobs.length === 0}>
@@ -73,7 +74,7 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
                   <td className="text-center whitespace-nowrap"><span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{formatBomTierLabel(job.priceTierAmount)}</span></td>
                   <td className="text-left min-w-[280px]"><div className="flex flex-col"><span className="font-semibold text-slate-800 whitespace-nowrap">{job.fileName}</span><span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span></div></td>
                   <td className="text-center whitespace-nowrap">{preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}</td>
-                  <td className="text-center whitespace-nowrap">{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
+                  <td className={cn(typography.numeric, 'text-center whitespace-nowrap')}>{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
                   <td className="text-center whitespace-nowrap"><StatusBadge variant={getImportJobStatusTone(job.status)} className="min-w-[116px] justify-center whitespace-nowrap">{getImportJobStatusLabel(job.status)}</StatusBadge></td>
                   <td className="text-right min-w-[220px]"><div className="flex flex-nowrap justify-end gap-2">
                     <Button type="button" variant="outline" size="xs" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'} className="min-w-[76px]">Kiểm tra</Button>

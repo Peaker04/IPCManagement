@@ -12,6 +12,8 @@ import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { uiCopy } from '@/lib/uiCopy';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { standardPageSizeOptions, type ReportsPageModel } from './useReportsPageModel';
+import { typography } from '@/lib/typography';
+import { cn } from '@/lib/utils';
 
 export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) => {
   const {
@@ -42,7 +44,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
         ]}
       />
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <label className="grid min-w-[280px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="report-data-quality-search">
+        <label className={cn(typography.label, 'grid min-w-[280px] flex-1 gap-1 text-slate-600')} htmlFor="report-data-quality-search">
           Tìm vấn đề dữ liệu
           <div className="relative max-w-xl">
             <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -60,7 +62,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
           </div>
         </label>
         {dataQualitySearch.trim() && (
-          <span className="pb-2 text-xs text-slate-500" aria-live="polite">
+          <span className={cn(typography.caption, 'pb-2 text-slate-500')} aria-live="polite">
             {dataQualityResult.data?.page.totalCount ?? 0} kết quả
           </span>
         )}
@@ -94,7 +96,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                 </td>
                 <td>
                   <div className="font-semibold text-slate-800">{row.slaLabel}</div>
-                  <div className="text-xs text-slate-500">Priority {row.priorityRank}</div>
+                  <div className={cn(typography.caption, 'text-slate-500')}>Priority {row.priorityRank}</div>
                 </td>
                 <td>
                   <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
@@ -105,7 +107,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                 <td>{row.category}</td>
                 <td>
                   <div className="font-medium text-slate-800">{row.entityLabel}</div>
-                  <div className="text-xs text-slate-500">{row.entityName} / {row.entityCode}</div>
+                  <div className={cn(typography.caption, 'text-slate-500')}>{row.entityName} / {row.entityCode}</div>
                 </td>
                 <td className="text-left">{row.message}</td>
                 <td className="text-left">{row.suggestedAction}</td>

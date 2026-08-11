@@ -15,6 +15,8 @@ using NSubstitute;
 using System.ComponentModel.DataAnnotations;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Approvals.Contracts;
+using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Purchasing.Controllers;
 using IPCManagement.Api.Features.Purchasing.Services;
@@ -39,19 +41,30 @@ public class WarehousePurchaseReceivingTests
     }
 
     [Fact]
-    public void Authorization_Warehouse_receipt_controller_uses_dedicated_writer_policy()
+    public void Authorization_receipt_commands_use_their_lifecycle_owner_policies()
     {
         var controllerType = typeof(IPCManagement.Api.Features.Purchasing.Controllers.WarehousePurchaseReceiptsController);
         controllerType.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .Cast<AuthorizeAttribute>()
-            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.WarehousePurchaseReceive);
+            .Should().ContainSingle(attribute => string.IsNullOrEmpty(attribute.Policy));
         controllerType.GetCustomAttributes(typeof(RouteAttribute), inherit: true)
             .Cast<RouteAttribute>()
             .Should().ContainSingle(attribute =>
                 attribute.Template == "api/warehouse/purchase-orders/{purchaseOrderId}/receipts");
         controllerType.GetMethod("RecordAsync")!.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
             .Should().ContainSingle();
+        controllerType.GetMethod("RecordAsync")!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>().Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.CoordinationAccess);
+        controllerType.GetMethod("AcceptQualityAsync")!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>().Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.WarehousePurchaseReceive);
+        controllerType.GetMethod("PostAsync")!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>().Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.AdminAccess);
+        controllerType.GetMethod("ReworkAsync")!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>().Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.CoordinationAccess);
+        controllerType.GetMethod("CreateCorrectionAsync")!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>().Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.AdminAccess);
         typeof(IPurchaseReceivingService).GetMethod("RecordAsync").Should().NotBeNull();
+        typeof(IPurchaseReceivingService).GetMethod("CreateCorrectionAsync").Should().NotBeNull();
     }
 
     [Fact]
@@ -156,7 +169,7 @@ public class WarehousePurchaseReceivingTests
     }
 
     [Fact]
-    public async Task Record_Warehouse_receipt_is_atomic_idempotent_and_updates_progress()
+    public async Task Record_creates_a_draft_idempotently_without_stock_or_purchase_progress()
     {
         await using var fixture = await ReceivingFixture.CreateAsync();
         var request = fixture.CreateRequest("receipt-key-1", 4m);
@@ -166,7 +179,10 @@ public class WarehousePurchaseReceivingTests
         var retry = await InvokeRecordAsync(service, request, fixture.UserId);
 
         retry.ReceiptId.Should().Be(first.ReceiptId);
-        first.PurchaseOrderStatus.Should().Be("PARTIALLY_RECEIVED");
+        first.ReceiptStatus.Should().Be("DRAFT");
+        first.QualityStatus.Should().Be("PENDING_INSPECTION");
+        first.ConcurrencyVersion.Should().Be(0);
+        first.PurchaseOrderStatus.Should().Be("ORDERED");
         first.EvidenceRequirements.Should().ContainSingle().Which.Should().BeEquivalentTo(
             new PurchaseReceiptEvidenceRequirementsDto
             {
@@ -179,6 +195,9 @@ public class WarehousePurchaseReceivingTests
             });
 
         fixture.Context.Inventoryreceipts.Should().ContainSingle();
+        GuidHelper.ToGuidString(fixture.Context.Inventoryreceipts.Single().PurchaseOrderId!)
+            .Should().Be(fixture.PurchaseOrderId,
+                "the lifecycle command must retain its immutable purchase-order source after reload");
         var receiptLine = fixture.Context.Inventoryreceiptlines.Should().ContainSingle().Subject;
         receiptLine.Quantity.Should().Be(4m);
         receiptLine.UnitPrice.Should().Be(110m);
@@ -188,39 +207,36 @@ public class WarehousePurchaseReceivingTests
         receiptLine.PackageQuantitySnapshot.Should().Be(10m);
         GuidHelper.ToGuidString(receiptLine.PackageBaseUnitIdSnapshot!).Should().Be(fixture.UnitId);
         receiptLine.PackagePolicyVersionSnapshot.Should().Be("package-policy/v1");
-        fixture.Context.Stockmovements.Should().ContainSingle();
-        fixture.Context.Currentstocks.Should().ContainSingle().Which.CurrentQty.Should().Be(4m);
+        fixture.Context.Stockmovements.Should().BeEmpty();
+        fixture.Context.Currentstocks.Should().BeEmpty();
         fixture.Context.Auditlogs.Should().ContainSingle();
 
         var order = await fixture.Context.Purchaseorders
             .Include(item => item.Purchaseorderlines)
             .SingleAsync();
-        order.Status.Should().Be("PARTIALLY_RECEIVED");
-        order.Purchaseorderlines.Single().ReceivedQty.Should().Be(4m);
+        order.Status.Should().Be("ORDERED");
+        order.Purchaseorderlines.Single().ReceivedQty.Should().Be(0m);
 
         var mismatchedRetry = fixture.CreateRequest("receipt-key-1", 5m);
         var mismatch = () => InvokeRecordAsync(service, mismatchedRetry, fixture.UserId);
         await mismatch.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*idempotency*");
         fixture.Context.Inventoryreceipts.Should().ContainSingle();
-        fixture.Context.Stockmovements.Should().ContainSingle();
+        fixture.Context.Stockmovements.Should().BeEmpty();
 
         var final = await InvokeRecordAsync(
             service,
             fixture.CreateRequest("receipt-key-2", 6m),
             fixture.UserId);
-        final.PurchaseOrderStatus.Should().Be("RECEIVED");
+        final.PurchaseOrderStatus.Should().Be("ORDERED");
         fixture.Context.Inventoryreceipts.Should().HaveCount(2);
-        fixture.Context.Stockmovements.Should().HaveCount(2);
-        fixture.Context.Currentstocks.Single().CurrentQty.Should().Be(10m);
+        fixture.Context.Stockmovements.Should().BeEmpty();
+        fixture.Context.Currentstocks.Should().BeEmpty();
         fixture.Context.Auditlogs.Should().HaveCount(2);
     }
 
     [Theory]
     [InlineData("AfterReceipt")]
-    [InlineData("AfterStock")]
-    [InlineData("AfterOrderProgress")]
-    [InlineData("AfterAudit")]
     public async Task Record_injected_failure_rolls_back_every_receiving_effect(string faultPoint)
     {
         await using var fixture = await ReceivingFixture.CreateAsync();
@@ -246,6 +262,301 @@ public class WarehousePurchaseReceivingTests
             .SingleAsync();
         order.Status.Should().Be("ORDERED");
         order.Purchaseorderlines.Single().ReceivedQty.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task Receipt_quality_manager_approval_and_post_create_stock_exactly_once()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var service = fixture.CreateService();
+        var warehouseInspectorId = Guid.NewGuid().ToString();
+
+        var draft = await InvokeRecordAsync(service, fixture.CreateRequest("receipt-post-1", 4m), fixture.UserId);
+        var line = fixture.Context.Inventoryreceiptlines.Should().ContainSingle().Subject;
+        var quality = await InvokeAcceptQualityAsync(service, draft.ReceiptId, new ReceiptQualityDecisionRequest
+        {
+            CommandId = "receipt-quality-1",
+            ExpectedVersion = draft.ConcurrencyVersion,
+            Lines =
+            [
+                new ReceiptQualityDecisionLineRequest
+                {
+                    ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
+                    AcceptedQuantity = 3m,
+                    RejectedQuantity = 1m,
+                    Reason = "Hao hụt khi kiểm tra lô"
+                }
+            ]
+        }, warehouseInspectorId);
+
+        quality.ReceiptStatus.Should().Be("PENDING_APPROVAL");
+        quality.QualityStatus.Should().Be("PARTIALLY_ACCEPTED");
+        GuidHelper.ToGuidString(fixture.Context.Inventoryreceipts.Single().QualityCheckedBy!)
+            .Should().Be(warehouseInspectorId);
+        fixture.Context.Stockmovements.Should().BeEmpty("quality is not a stock writer");
+
+        var managerId = Guid.NewGuid().ToString();
+        var approval = new InventoryReceiptApprovalHandler(fixture.Context);
+        var approved = await approval.HandleAsync(draft.ReceiptId, new ApprovalRequest
+        {
+            Status = ApprovalDecision.Approve,
+            Reason = "Đủ bằng chứng chất lượng"
+        }, GuidHelper.ParseGuidString(managerId)!);
+        approved!.NewStatus.Should().Be("APPROVED");
+
+        var stalePost = () => InvokePostAsync(service, draft.ReceiptId,
+            new ReceiptPostRequest { CommandId = "receipt-post-stale-version", ExpectedVersion = 1 },
+            Guid.NewGuid().ToString());
+        await stalePost.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*đã thay đổi*POSTED*");
+        fixture.Context.Stockmovements.Should().BeEmpty();
+
+        var selfPost = () => InvokePostAsync(service, draft.ReceiptId,
+            new ReceiptPostRequest { CommandId = "receipt-post-by-inspector", ExpectedVersion = 2 },
+            warehouseInspectorId);
+        await selfPost.Should().ThrowAsync<BusinessRuleException>().WithMessage("*kiểm tra*không được tự POSTED*");
+
+        var postRequest = new ReceiptPostRequest { CommandId = "receipt-post-command-1", ExpectedVersion = 2 };
+        var posted = await InvokePostAsync(service, draft.ReceiptId, postRequest, Guid.NewGuid().ToString());
+        var replay = await InvokePostAsync(service, draft.ReceiptId, postRequest, Guid.NewGuid().ToString());
+
+        posted.ReceiptStatus.Should().Be("POSTED");
+        posted.QualityStatus.Should().Be("PARTIALLY_ACCEPTED");
+        replay.ReceiptId.Should().Be(posted.ReceiptId);
+        fixture.Context.Stockmovements.Should().ContainSingle();
+        var movement = fixture.Context.Stockmovements.Single();
+        movement.RefTable.Should().Be("inventoryreceipts");
+        GuidHelper.ToGuidString(movement.RefId!).Should().Be(draft.ReceiptId);
+        fixture.Context.Currentstocks.Should().ContainSingle().Which.CurrentQty.Should().Be(3m);
+        var order = await fixture.Context.Purchaseorders.Include(item => item.Purchaseorderlines).SingleAsync();
+        order.Status.Should().Be("PARTIALLY_RECEIVED");
+        order.Purchaseorderlines.Single().ReceivedQty.Should().Be(3m);
+    }
+
+    [Fact]
+    public async Task Posted_receipt_correction_is_append_only_lineaged_idempotent_and_never_exceeds_accepted_balance()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var service = fixture.CreateService();
+        var draft = await InvokeRecordAsync(service, fixture.CreateRequest("receipt-correction", 4m), fixture.UserId);
+        var sourceLine = fixture.Context.Inventoryreceiptlines.Should().ContainSingle().Subject;
+        var inspectorId = Guid.NewGuid().ToString();
+        var managerId = Guid.NewGuid().ToString();
+        var adminId = Guid.NewGuid().ToString();
+
+        await InvokeAcceptQualityAsync(service, draft.ReceiptId, new ReceiptQualityDecisionRequest
+        {
+            CommandId = "receipt-correction-quality",
+            ExpectedVersion = draft.ConcurrencyVersion,
+            Lines = [new ReceiptQualityDecisionLineRequest
+            {
+                ReceiptLineId = GuidHelper.ToGuidString(sourceLine.ReceiptLineId),
+                AcceptedQuantity = 4m,
+                RejectedQuantity = 0m
+            }]
+        }, inspectorId);
+        var approval = new InventoryReceiptApprovalHandler(fixture.Context);
+        await approval.HandleAsync(draft.ReceiptId, new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Đủ điều kiện" }, GuidHelper.ParseGuidString(managerId)!);
+        var posted = await InvokePostAsync(service, draft.ReceiptId, new ReceiptPostRequest { CommandId = "receipt-correction-post", ExpectedVersion = 2 }, adminId);
+        posted.ReceiptStatus.Should().Be("POSTED");
+        var originalVersion = fixture.Context.Inventoryreceipts.Single().ConcurrencyVersion;
+
+        var request = new CreateReceiptCorrectionRequest
+        {
+            CommandId = "receipt-correction-command",
+            ExpectedVersion = 0,
+            Reason = "Trả lại hàng sau khi đối soát hóa đơn.",
+            Lines = [new ReceiptCorrectionLineRequest
+            {
+                ReceiptLineId = GuidHelper.ToGuidString(sourceLine.ReceiptLineId),
+                Quantity = 1.5m
+            }]
+        };
+        var correction = await InvokeCreateCorrectionAsync(service, draft.ReceiptId, request, adminId);
+        var replay = await InvokeCreateCorrectionAsync(service, draft.ReceiptId, request, Guid.NewGuid().ToString());
+
+        correction.Status.Should().Be("POSTED");
+        replay.CorrectionId.Should().Be(correction.CorrectionId);
+        fixture.Context.Inventoryreceipts.Single().Status.Should().Be("POSTED");
+        fixture.Context.Inventoryreceipts.Single().ConcurrencyVersion.Should().Be(originalVersion, "correction must not rewrite the original receipt");
+        fixture.Context.Receiptcorrections.Should().ContainSingle().Which.ReceiptId.Should().Equal(GuidHelper.ParseGuidString(draft.ReceiptId)!);
+        fixture.Context.Receiptcorrectionlines.Should().ContainSingle().Which.ReceiptLineId.Should().Equal(sourceLine.ReceiptLineId);
+        fixture.Context.Stockmovements.Should().HaveCount(2);
+        fixture.Context.Stockmovements.Should().ContainSingle(item => item.MovementType == "RECEIPT_CORRECTION" && item.QuantityOut == 1.5m && item.RefTable == "receiptcorrections");
+        fixture.Context.Currentstocks.Should().ContainSingle().Which.CurrentQty.Should().Be(2.5m);
+        fixture.Context.Lifecycletransitions.Should().ContainSingle(item => item.AggregateType == "ReceiptCorrection" && item.ToState == "POSTED");
+        fixture.Context.Auditlogs.Should().Contain(item => item.EntityName == nameof(ReceiptCorrection) && item.Reason == request.Reason);
+
+        var overBalance = () => InvokeCreateCorrectionAsync(service, draft.ReceiptId, new CreateReceiptCorrectionRequest
+        {
+            CommandId = "receipt-correction-over-balance",
+            ExpectedVersion = 0,
+            Reason = "Sai vượt balance",
+            Lines = [new ReceiptCorrectionLineRequest { ReceiptLineId = GuidHelper.ToGuidString(sourceLine.ReceiptLineId), Quantity = 2.6m }]
+        }, adminId);
+        await overBalance.Should().ThrowAsync<BusinessRuleException>().WithMessage("*vượt số lượng đã được chấp nhận*");
+        fixture.Context.Receiptcorrections.Should().ContainSingle();
+        fixture.Context.Stockmovements.Should().HaveCount(2);
+
+        var stale = () => InvokeCreateCorrectionAsync(service, draft.ReceiptId, new CreateReceiptCorrectionRequest
+        {
+            CommandId = "receipt-correction-stale",
+            ExpectedVersion = 1,
+            Reason = "Version không hợp lệ",
+            Lines = [new ReceiptCorrectionLineRequest { ReceiptLineId = GuidHelper.ToGuidString(sourceLine.ReceiptLineId), Quantity = .1m }]
+        }, adminId);
+        await stale.Should().ThrowAsync<BusinessRuleException>().WithMessage("*phiên bản ban đầu 0*");
+    }
+
+    [Fact]
+    public async Task Full_quality_rejection_is_terminal_and_never_reaches_approval_or_stock()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var service = fixture.CreateService();
+        var inspectorId = Guid.NewGuid().ToString();
+        var managerId = Guid.NewGuid().ToString();
+        var draft = await InvokeRecordAsync(service, fixture.CreateRequest("receipt-full-reject", 4m), fixture.UserId);
+        var line = fixture.Context.Inventoryreceiptlines.Should().ContainSingle().Subject;
+
+        var rejected = await InvokeAcceptQualityAsync(service, draft.ReceiptId, new ReceiptQualityDecisionRequest
+        {
+            CommandId = "receipt-quality-full-reject",
+            ExpectedVersion = draft.ConcurrencyVersion,
+            Lines =
+            [
+                new ReceiptQualityDecisionLineRequest
+                {
+                    ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
+                    AcceptedQuantity = 0m,
+                    RejectedQuantity = 4m,
+                    Reason = "Lô hàng không đạt cảm quan"
+                }
+            ]
+        }, inspectorId);
+
+        rejected.ReceiptStatus.Should().Be("REJECTED");
+        rejected.QualityStatus.Should().Be("REJECTED");
+        fixture.Context.Stockmovements.Should().BeEmpty();
+        fixture.Context.Currentstocks.Should().BeEmpty();
+        fixture.Context.Purchaseorders.Single().Status.Should().Be("ORDERED");
+        fixture.Context.Inventoryreceipts.Single().RejectionReason.Should().Contain("cảm quan");
+
+        var approval = new InventoryReceiptApprovalHandler(fixture.Context);
+        var approveRejected = () => approval.HandleAsync(draft.ReceiptId, new ApprovalRequest
+        {
+            Status = ApprovalDecision.Approve
+        }, GuidHelper.ParseGuidString(managerId)!);
+        await approveRejected.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*chờ duyệt*");
+
+        var postRejected = () => InvokePostAsync(service, draft.ReceiptId,
+            new ReceiptPostRequest { CommandId = "receipt-post-rejected", ExpectedVersion = 1 },
+            Guid.NewGuid().ToString());
+        await postRejected.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*đã duyệt*POSTED*");
+        fixture.Context.Stockmovements.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Receipt_quality_and_approval_forbid_invalid_quantities_and_self_approval()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var service = fixture.CreateService();
+        var warehouseInspectorId = Guid.NewGuid().ToString();
+        var draft = await InvokeRecordAsync(service, fixture.CreateRequest("receipt-forbidden-1", 4m), fixture.UserId);
+        var line = fixture.Context.Inventoryreceiptlines.Should().ContainSingle().Subject;
+
+        var invalidQuality = () => InvokeAcceptQualityAsync(service, draft.ReceiptId, new ReceiptQualityDecisionRequest
+        {
+            CommandId = "receipt-quality-invalid",
+            ExpectedVersion = 0,
+            Lines =
+            [
+                new ReceiptQualityDecisionLineRequest
+                {
+                    ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
+                    AcceptedQuantity = 5m,
+                    RejectedQuantity = 0m
+                }
+            ]
+        }, warehouseInspectorId);
+        await invalidQuality.Should().ThrowAsync<BusinessRuleException>();
+
+        await InvokeAcceptQualityAsync(service, draft.ReceiptId, new ReceiptQualityDecisionRequest
+        {
+            CommandId = "receipt-quality-valid",
+            ExpectedVersion = 0,
+            Lines =
+            [
+                new ReceiptQualityDecisionLineRequest
+                {
+                    ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
+                    AcceptedQuantity = 4m,
+                    RejectedQuantity = 0m
+                }
+            ]
+        }, warehouseInspectorId);
+
+        var approval = new InventoryReceiptApprovalHandler(fixture.Context);
+        var selfApproval = () => approval.HandleAsync(draft.ReceiptId, new ApprovalRequest
+        {
+            Status = ApprovalDecision.Approve
+        }, GuidHelper.ParseGuidString(fixture.UserId)!);
+        await selfApproval.Should().ThrowAsync<BusinessRuleException>().WithMessage("*không được tự duyệt*");
+        fixture.Context.Stockmovements.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Rejected_receipt_rework_returns_to_inspection_without_stock_and_is_idempotent()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var service = fixture.CreateService();
+        var draft = await InvokeRecordAsync(service, fixture.CreateRequest("receipt-rework", 4m), fixture.UserId);
+        var line = fixture.Context.Inventoryreceiptlines.Should().ContainSingle().Subject;
+
+        await InvokeAcceptQualityAsync(service, draft.ReceiptId, new ReceiptQualityDecisionRequest
+        {
+            CommandId = "receipt-rework-quality-reject",
+            ExpectedVersion = draft.ConcurrencyVersion,
+            Lines =
+            [
+                new ReceiptQualityDecisionLineRequest
+                {
+                    ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
+                    AcceptedQuantity = 0m,
+                    RejectedQuantity = 4m,
+                    Reason = "Cần kiểm tra lại chứng từ lô"
+                }
+            ]
+        }, Guid.NewGuid().ToString());
+
+        var request = new ReceiptReworkRequest
+        {
+            CommandId = "receipt-rework-command",
+            ExpectedVersion = 1,
+            Reason = "Bổ sung chứng từ và yêu cầu kiểm tra lại."
+        };
+        var reworked = await InvokeReworkAsync(service, draft.ReceiptId, request, fixture.UserId);
+
+        reworked.ReceiptStatus.Should().Be("DRAFT");
+        reworked.QualityStatus.Should().Be("PENDING_INSPECTION");
+        reworked.ConcurrencyVersion.Should().Be(2);
+        fixture.Context.Inventoryreceiptlines.Single().AcceptedQuantity.Should().BeNull();
+        fixture.Context.Inventoryreceiptlines.Single().RejectedQuantity.Should().BeNull();
+        fixture.Context.Stockmovements.Should().BeEmpty();
+        fixture.Context.Currentstocks.Should().BeEmpty();
+
+        var replay = await InvokeReworkAsync(service, draft.ReceiptId, request, Guid.NewGuid().ToString());
+        replay.ReceiptStatus.Should().Be("DRAFT");
+        replay.ConcurrencyVersion.Should().Be(2);
+
+        var stale = () => InvokeReworkAsync(service, draft.ReceiptId, new ReceiptReworkRequest
+        {
+            CommandId = "receipt-rework-stale",
+            ExpectedVersion = 1,
+            Reason = "Stale"
+        }, fixture.UserId);
+        await stale.Should().ThrowAsync<BusinessRuleException>().WithMessage("*đã thay đổi*");
     }
 
     [Fact]
@@ -364,6 +675,50 @@ public class WarehousePurchaseReceivingTests
         var task = method!.Invoke(service, [request, userId, CancellationToken.None]);
         task.Should().BeAssignableTo<Task<WarehousePurchaseReceiptResultDto>>();
         return await (Task<WarehousePurchaseReceiptResultDto>)task!;
+    }
+
+    private static async Task<WarehousePurchaseReceiptResultDto> InvokeAcceptQualityAsync(
+        object service,
+        string receiptId,
+        ReceiptQualityDecisionRequest request,
+        string userId)
+    {
+        var task = service.GetType().GetMethod("AcceptQualityAsync")!
+            .Invoke(service, [receiptId, request, userId, CancellationToken.None]);
+        return await (Task<WarehousePurchaseReceiptResultDto>)task!;
+    }
+
+    private static async Task<WarehousePurchaseReceiptResultDto> InvokePostAsync(
+        object service,
+        string receiptId,
+        ReceiptPostRequest request,
+        string userId)
+    {
+        var task = service.GetType().GetMethod("PostAsync")!
+            .Invoke(service, [receiptId, request, userId, CancellationToken.None]);
+        return await (Task<WarehousePurchaseReceiptResultDto>)task!;
+    }
+
+    private static async Task<WarehousePurchaseReceiptResultDto> InvokeReworkAsync(
+        object service,
+        string receiptId,
+        ReceiptReworkRequest request,
+        string userId)
+    {
+        var task = service.GetType().GetMethod("ReworkAsync")!
+            .Invoke(service, [receiptId, request, userId, CancellationToken.None]);
+        return await (Task<WarehousePurchaseReceiptResultDto>)task!;
+    }
+
+    private static async Task<ReceiptCorrectionResultDto> InvokeCreateCorrectionAsync(
+        object service,
+        string receiptId,
+        CreateReceiptCorrectionRequest request,
+        string userId)
+    {
+        var task = service.GetType().GetMethod("CreateCorrectionAsync")!
+            .Invoke(service, [receiptId, request, userId, CancellationToken.None]);
+        return await (Task<ReceiptCorrectionResultDto>)task!;
     }
 
     private sealed class InjectedReceivingFailureException(string point)
@@ -548,6 +903,22 @@ public class WarehousePurchaseReceivingTests
             currentStockRepository
                 .When(repository => repository.Add(Arg.Any<CurrentStock>()))
                 .Do(callInfo => Context.Currentstocks.Add(callInfo.Arg<CurrentStock>()));
+            currentStockRepository
+                .TryDecreaseAsync(Arg.Any<byte[]>(), Arg.Any<byte[]>(), Arg.Any<decimal>(), Arg.Any<DateTime>())
+                .Returns(callInfo =>
+                {
+                    var warehouseId = callInfo.ArgAt<byte[]>(0);
+                    var ingredientId = callInfo.ArgAt<byte[]>(1);
+                    var quantity = callInfo.ArgAt<decimal>(2);
+                    var updatedAt = callInfo.ArgAt<DateTime>(3);
+                    var stock = Context.Currentstocks.Local.SingleOrDefault(item =>
+                        item.WarehouseId.AsSpan().SequenceEqual(warehouseId) &&
+                        item.IngredientId.AsSpan().SequenceEqual(ingredientId));
+                    if (stock is null || stock.CurrentQty < quantity) return Task.FromResult(false);
+                    stock.CurrentQty -= quantity;
+                    stock.LastUpdated = updatedAt;
+                    return Task.FromResult(true);
+                });
 
             var ledger = new StockLedgerService(
                 currentStockRepository,

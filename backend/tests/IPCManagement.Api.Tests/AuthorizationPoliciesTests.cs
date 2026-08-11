@@ -3,6 +3,7 @@ using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Xunit;
 using IPCManagement.Api.Features.Catalog.Controllers;
+using IPCManagement.Api.Features.Inventory.Controllers;
 using IPCManagement.Api.Features.Purchasing.Controllers;
 
 namespace IPCManagement.Api.Tests;
@@ -17,6 +18,25 @@ public class AuthorizationPoliciesTests
         permissions.Should().Contain(AuthorizationPolicies.DemandGenerate);
         permissions.Should().Contain(AuthorizationPolicies.CatalogRead);
         permissions.Should().NotContain(AuthorizationPolicies.PurchaseGenerate);
+    }
+
+    [Fact]
+    public void ReceiptLifecycleReads_Should_IncludeCoordinatorWithoutGrantingInventoryWrites()
+    {
+        AuthorizationPolicies.PurchaseOrderReadRoles.Should().Contain("Coordinator");
+        AuthorizationPolicies.InventoryReceiptReadRoles.Should().Contain("Coordinator");
+        AuthorizationPolicies.WarehouseSelectorRoles.Should().Contain("Coordinator");
+        AuthorizationPolicies.InventoryRoles.Should().NotContain("Coordinator");
+
+        typeof(InventoryReceiptsController).GetMethod(nameof(InventoryReceiptsController.GetAllAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryReceiptReadAccess);
+        typeof(InventoryReceiptsController).GetMethod(nameof(InventoryReceiptsController.CreateAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryAccess);
+        typeof(WarehousesController).GetMethod(nameof(WarehousesController.GetSelectorAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.WarehouseSelectorAccess);
     }
 
     [Fact]

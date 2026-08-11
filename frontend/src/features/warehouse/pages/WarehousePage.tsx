@@ -11,11 +11,11 @@ import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import {
   useGetPurchaseOrdersPageQuery,
-  useGetSupplementalMaterialRequestsQuery,
   useGetWarehouseSelectorQuery,
   type PurchaseOrderLineDto,
 } from '@/api/workflowApi';
 import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialog';
+import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
 import { buildWarehouseIssueAllocation } from '../warehouseIssueAllocation';
 import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
@@ -26,7 +26,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { addIsoDays } from '../warehouseDateRange';
-import { ServiceRunBlockerPanel } from '@/features/service-runs/ServiceRunBlockerPanel';
+import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
+import { typography } from '@/lib/typography';
 
 const EMPTY_QUERY_ROWS: never[] = [];
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
@@ -42,7 +43,7 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 
 export default function WarehousePage() {
   const [searchParams] = useSearchParams();
-  const canReceivePurchases = useHasRole(['thukho']);
+  const canReceivePurchases = useHasRole(['dieuphoi']);
   const [selectedView, setSelectedView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
   const activeView = useDeferredValue(selectedView);
   const isViewPending = selectedView !== activeView;
@@ -78,12 +79,6 @@ export default function WarehousePage() {
     pageSize: 8,
   });
   const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery();
-  const {
-    data: supplementalRequests,
-    isError: isSupplementalRequestError,
-    isFetching: isFetchingSupplementalRequests,
-    refetch: refetchSupplementalRequests,
-  } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
   const requestedDemandDate = searchParams.get('date');
   const requestedDemandWeek = searchParams.get('week');
   const demandDateFrom = requestedDemandDate ?? requestedDemandWeek ?? undefined;
@@ -212,9 +207,6 @@ export default function WarehousePage() {
     ?? (selectedPurchaseOrderId === null
       ? purchaseOrders.find((order) => order.purchaseRequestId === requestedPurchaseRequestId)
       : undefined);
-  const linkedSupplementalRequest = supplementalRequests?.items?.find(
-    (request) => request.purchaseRequestId === selectedPurchaseOrder?.purchaseRequestId,
-  );
 
   const selectPurchaseOrder = (purchaseOrderId: string) => {
     setSelectedPurchaseOrderId(selectedPurchaseOrder?.purchaseOrderId === purchaseOrderId ? '' : purchaseOrderId);
@@ -361,16 +353,15 @@ export default function WarehousePage() {
           Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
         </QueryErrorAlert>
       )}
-      {(isWorkflowDocumentError || isSupplementalRequestError) && (
+      {isWorkflowDocumentError && (
         <QueryErrorAlert
           title="Thiếu dữ liệu tham chiếu của kho"
-          isRetrying={isFetchingWorkflowDocuments || isFetchingSupplementalRequests}
+          isRetrying={isFetchingWorkflowDocuments}
           onRetry={() => {
             if (isWorkflowDocumentError) refetchWorkflowDocuments();
-            if (isSupplementalRequestError) refetchSupplementalRequests();
           }}
         >
-          Chưa tải được danh sách chứng từ kho hoặc yêu cầu cấp bổ sung. Danh sách phiếu hiển thị chưa đầy đủ và kho gợi ý sẵn khi ghi nhận nhập kho có thể sai; hãy tải lại trước khi đối chiếu chứng từ.
+          Chưa tải được danh sách chứng từ kho. Danh sách phiếu hiển thị chưa đầy đủ; hãy tải lại trước khi đối chiếu chứng từ.
         </QueryErrorAlert>
       )}
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
@@ -481,14 +472,13 @@ export default function WarehousePage() {
           order={selectedPurchaseOrder}
           line={selectedReceiptLine}
           warehouses={receiptWarehouses}
-          preferredWarehouseId={linkedSupplementalRequest?.warehouseId}
           week={searchParams.get('week') ?? undefined}
           onOpenChange={(open) => { if (!open) setSelectedReceiptLine(undefined); }}
           onSuccess={(result) => {
             setSelectedReceiptLine(undefined);
             setWarehouseFeedback({
-              title: 'Đã ghi nhận nhập kho',
-              message: `Phiếu nhập ${result.receiptId} đã cập nhật tồn kho và tiến độ đơn mua.`,
+              title: 'Đã tạo phiếu nhập nháp',
+              message: `Phiếu nhập ${result.receiptId} đang chờ kiểm tra chất lượng và duyệt; tồn kho và tiến độ đơn mua chưa thay đổi.`,
               variant: 'info',
             });
           }}
@@ -585,6 +575,8 @@ export default function WarehousePage() {
         )}
       </SectionPanel>
 
+      <WarehouseReceiptLifecyclePanel />
+
       <ViewSwitcher
         compact
         ariaLabel="Chọn góc nhìn kho"
@@ -597,7 +589,7 @@ export default function WarehousePage() {
         onTabChange={(id) => setSelectedView(id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions')}
       />
 
-      <div className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none" aria-busy={isViewPending} aria-live="polite">
+      <div className={`${typography.body} relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none`} aria-busy={isViewPending} aria-live="polite">
       {isViewPending && (
         <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
           Đang cập nhật

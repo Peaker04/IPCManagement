@@ -510,10 +510,6 @@
     padding-left: var(--ipc-space-4);
   }
 
-  .ipc-page-title {
-    font-size: 1.05rem;
-  }
-
   .ipc-header-context {
     width: auto;
     justify-content: flex-end;

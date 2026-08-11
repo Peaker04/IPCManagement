@@ -901,6 +901,24 @@ public partial class WorkflowGenerationTests
                     actionBy BLOB NOT NULL,
                     actionAt TEXT NOT NULL
                 );
+                CREATE TABLE lifecycletransitions (
+                    transitionId BLOB PRIMARY KEY, aggregateType TEXT NOT NULL, aggregateId BLOB NOT NULL,
+                    commandId TEXT NOT NULL UNIQUE, aggregateSequence INTEGER NOT NULL, fromState TEXT NULL,
+                    toState TEXT NOT NULL, actorId BLOB NULL, expectedVersion INTEGER NOT NULL, reason TEXT NULL,
+                    correlationId TEXT NULL, causationId TEXT NULL, payloadJson TEXT NULL,
+                    schemaVersion INTEGER NOT NULL DEFAULT 1, createdAt TEXT NOT NULL
+                );
+                CREATE TABLE lifecycleoutboxmessages (
+                    outboxMessageId BLOB PRIMARY KEY, eventType TEXT NOT NULL, aggregateType TEXT NOT NULL,
+                    aggregateId BLOB NOT NULL, aggregateSequence INTEGER NOT NULL, commandId TEXT NOT NULL UNIQUE,
+                    payloadJson TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', attemptCount INTEGER NOT NULL DEFAULT 0,
+                    nextAttemptAt TEXT NULL, lockedAt TEXT NULL, processedAt TEXT NULL, lastError TEXT NULL, createdAt TEXT NOT NULL
+                );
+                CREATE TABLE lifecyclecommandreceipts (
+                    commandReceiptId BLOB PRIMARY KEY, commandId TEXT NOT NULL, aggregateType TEXT NOT NULL,
+                    aggregateId BLOB NOT NULL, responseJson TEXT NOT NULL, createdAt TEXT NOT NULL,
+                    UNIQUE(commandId, aggregateType, aggregateId)
+                );
                 CREATE TABLE inventoryreceipts (
                     receiptId BLOB PRIMARY KEY,
                     receiptCode TEXT NOT NULL,
@@ -908,8 +926,22 @@ public partial class WorkflowGenerationTests
                     warehouseId BLOB NOT NULL,
                     supplierId BLOB NOT NULL,
                     purchaseRequestId BLOB NULL,
+                    purchaseOrderId BLOB NULL,
                     createdBy BLOB NOT NULL,
-                    createdAt TEXT NOT NULL
+                    createdAt TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'DRAFT',
+                    qualityStatus TEXT NOT NULL DEFAULT 'PENDING_INSPECTION',
+                    concurrencyVersion INTEGER NOT NULL DEFAULT 0,
+                    qualityCheckedBy BLOB NULL,
+                    qualityCheckedAt TEXT NULL,
+                    managerApprovedBy BLOB NULL,
+                    managerApprovedAt TEXT NULL,
+                    managerApprovalReason TEXT NULL,
+                    postedBy BLOB NULL,
+                    postedAt TEXT NULL,
+                    rejectedBy BLOB NULL,
+                    rejectedAt TEXT NULL,
+                    rejectionReason TEXT NULL
                 );
                 CREATE TABLE inventoryreceiptlines (
                     receiptLineId BLOB PRIMARY KEY,
@@ -925,7 +957,10 @@ public partial class WorkflowGenerationTests
                     expiredDate TEXT NULL,
                     packageQuantitySnapshot TEXT NULL,
                     packageBaseUnitIdSnapshot BLOB NULL,
-                    packagePolicyVersionSnapshot TEXT NULL
+                    packagePolicyVersionSnapshot TEXT NULL,
+                    acceptedQuantity TEXT NULL,
+                    rejectedQuantity TEXT NULL,
+                    qualityReason TEXT NULL
                 );
                 CREATE TABLE inventoryissues (
                     issueId BLOB PRIMARY KEY,
@@ -948,14 +983,17 @@ public partial class WorkflowGenerationTests
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     requestedQty TEXT NOT NULL,
-                    reason TEXT NULL,
-                    status TEXT NOT NULL,
-                    requestedBy BLOB NOT NULL,
-                    requestedAt TEXT NOT NULL
+                reason TEXT NULL,
+                status TEXT NOT NULL,
+                requestedBy BLOB NOT NULL,
+                requestedAt TEXT NOT NULL,
+                openIssueLineId BLOB GENERATED ALWAYS AS (CASE WHEN status IN ('REJECTED', 'FULFILLED') THEN NULL ELSE issueLineId END) VIRTUAL
                 );
+                CREATE UNIQUE INDEX uxSupplementalMaterialRequestsOpenIssueLine ON supplementalmaterialrequests (openIssueLineId);
                 CREATE TABLE inventoryissuelines (
                     issueLineId BLOB PRIMARY KEY,
                     issueId BLOB NOT NULL,
+                    materialRequestLineId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     requestedQty TEXT NOT NULL,
@@ -980,7 +1018,26 @@ public partial class WorkflowGenerationTests
                     returnId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    sourceIssueLineId BLOB NULL,
                     quantity TEXT NOT NULL
+                );
+                CREATE TABLE legacylinedispositions (
+                    dispositionId BLOB PRIMARY KEY,
+                    legacyLineType TEXT NOT NULL,
+                    legacyLineId BLOB NOT NULL,
+                    targetMaterialRequestLineId BLOB NULL,
+                    targetIssueLineId BLOB NULL,
+                    status TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    reviewReason TEXT NULL,
+                    createdBy BLOB NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    reviewedBy BLOB NULL,
+                    reviewedAt TEXT NULL,
+                    appliedBy BLOB NULL,
+                    appliedAt TEXT NULL,
+                    version INTEGER NOT NULL DEFAULT 0,
+                    openDispositionKey INTEGER NULL
                 );
                 CREATE TABLE quantityadjustments (
                     adjustmentId BLOB PRIMARY KEY,

@@ -6,6 +6,20 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/manifest.json` | `C1A015988580CEC13B3E6C16DA46644D882E66DF74720100482C8D83657D55EF` | Phase 4 closeout authoritative trên `ipc_lane9`: resume-safe production API xử lý 189 dòng còn lại, đưa tổng disposition về 190 = 17 `APPLIED` + 173 `REJECTED`, zero pending/approved/undispositioned và zero mismatch/actor/transition/receipt violation. Backend 178/178, frontend 21/21, builds/model/hygiene pass; Chrome headed final đủ năm viewport; runtime owned đã teardown. `ipc_lane1` không được target. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/api/batch-progress.json` | `02D961AD59F61C79D0C31165107F16D59197E995B7580D4F7DA3282CCF6F3882` | Append/resume log chỉ chứa ID, candidate count, actor/action, HTTP và terminal status cho 394 API action; không chứa password/token. Candidate duy nhất được approve/apply, candidate mơ hồ được Manager reject và không mutate provenance. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/db/postflight.json` | `E7D436AC3E800C2AFD0D105087145843DD97FE6A6675476E22D172F35818D268` | Direct read-only lane9 postflight: 190 dispositions, 17 applied, 173 rejected, zero open/undispositioned/source mismatch/rejected mutation/actor/transition/receipt/ambiguity-reason/supplemental violation. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/headed-final.json` | `EC3B2B5D916079A0C30CE0FC2C10D59897D88AA62C3B8D22EBD02597676C15D5` | Google Chrome headed final reload/readback trên current worktree: năm desktop viewport, API đọc 190/17/173/0/0, zero undispositioned/open control, console/page/request/API error, overflow, long task và CLS. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/screenshots/final-1440x900.png` | `00FF434BE2AB738655359CAF079A1B2B20A7A97D24F67242768A6CFEA5A9CEEA` | Screenshot final `1440×900` của Reports usage/reconciliation và legacy disposition panel sau global disposition closeout. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/db/reviewed-current-migration.sql` | `3441BA9DA18CF3F9B40E7DBC18BED68083E607CEC8480A1426C321301DD1A6AC` | SQL sinh từ checkout hiện tại để review lại migration disposition; đã apply trước run và không apply lại. Scan zero `USE`, create/drop database, `DROP TABLE`, UPDATE và DELETE. |
+| `D:\IPCManagement-backups\phase4-legacy-lineage-closeout-20260809\ipc_lane9-before-legacy-lineage-closeout.sql` | `0263BC5BF49A8225620382A3392DAE1E7398E37766A65C3E8C95FCD2A8B846FA` | Checkpoint lane9 ngay trước batch closeout, 2,504,147 bytes; zero `USE`, create/drop database và `DROP TABLE`. Không restore vì disposition/audit là evidence append-only; rollback giữ theo runbook. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/manifest.json` | `64EF1674204FDBAE8198E2A21AF62187075C75E1E46C774460969E2D5D974E28` | Chrome headed current-worktree trên `ipc_lane9`: Admin tạo proposal `201` → Manager khác actor duyệt `200` → Admin áp dụng `200` cho một legacy return có đúng một candidate cùng chứng từ/ingredient/unit. DB postflight giữ `APPLIED` v2, source/target FK khớp, creator=applier, reviewer khác creator, 3 lifecycle transition + 3 command receipt. FE reload pass đủ 5 desktop viewport, zero console/page/request error, zero overflow, CLS max 0; shadow projection giảm exception `177→175` và selected return không còn legacy. Runtime 3010/8010 đã teardown; `ipc_lane1` không được target. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/screenshots/02-manager-approved.png` | `7D2706FE7C231CC372CE67D41E0BA66E84D572D521B1F222F6F39FA41DFB3B36` | Screenshot headed Manager của proposal RETURN_LINE ở `APPROVED` v1 sau review khác actor. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/screenshots/03-admin-applied.png` | `86AA121E462EB58FC0F71AB2503E875D8A56FC575842295C2697481F240528BD` | Screenshot headed Admin ngay sau `APPLIED` v2, trước reload shadow proof. |
+| `.artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/screenshots/04-final-1440x900.png` | `956B36A6BDF33FD16BE23B65EB46AD66E1EB23EB2C22375D5A1AD8A885EAD159` | Screenshot final `1440×900` sau reload: Reports usage/reconciliation vẫn render, disposition panel còn backlog nhưng selected return đã rời legacy exceptions. |
+| `D:\IPCManagement-backups\phase4-legacy-lineage-e2e-20260809\ipc_lane9-before-legacy-lineage-e2e.sql` | `395B5E7C0068666A36BF95118779C218ADD7408C2239113702F09ADA08F89989` | Checkpoint `ipc_lane9` ngay trước headed mutation; 2,493,990 bytes, không `USE`, `CREATE/DROP DATABASE` hoặc `DROP TABLE`. Không restore trong run; APPLIED evidence là append-only và rollback dùng feature-off/checkpoint runbook thay vì rewrite history. |
+| `.artifacts/shipyard-live/phase4-reconciliation-20260809/reconciliation-headed-readonly.json` | `6DEB15A9016D543F19CB193E412C6D62C339F0D6F918DAA18753DAE1BCD1DFD7` | Chrome headed current-worktree trên `ipc_lane9`: Reports → `Sử dụng thực tế` ở năm desktop viewport gọi `GET /api/workflow-reports/supply-line-reconciliation` đúng 5 lần đều HTTP 200; panel reconciliation đủ 11 cột source-line lifecycle (kể cả issue, kitchen ack và supplemental), không browser/page/request error, mutation ngoài login hay horizontal overflow. Có 3 long task và max CLS `0.00012181571238142476`; không phải full lifecycle mutation E2E và không disposition legacy data. |
+| `.artifacts/shipyard-live/phase4-reconciliation-20260809/1440x900-reports-usage-reconciliation.png` | `1EF069000EA7F4F1368B6B9DDB2D3B44F07888E68C6CE3CF7EDC2027800945B2` | Screenshot headed `1440×900` của Reports usage/reconciliation sau reload: bảng giữ source demand theo từng dòng cùng issue/ack/supplement và các exception `LEGACY_LINEAGE_RECONCILIATION_REQUIRED` tách riêng, không gộp theo tên nguyên liệu. |
 | `.artifacts/shipyard-live/menu-amendment-e2e-20260807/reversible-executed.json` | `85528B7936934AD6F5B61B5DBD7810FB9AD9E1630168A675516E0FFAF5093E3F` | Chrome headed reversible amendment E2E trên `ipc_e2e_template`: import/publish scope độc lập, Admin create, Manager review, Admin execute đều HTTP 200 và reload giữ `EXECUTED`; zero console/page error. |
 | `.artifacts/shipyard-live/menu-amendment-e2e-20260807/reversible-executed.png` | `DBE0E7D5F13D8115EA23F285CC1896D60E648FCE71B0856CF2DBB78937F72753` | Screenshot cuối scope E2EAMEND27C sau reload: status `Đã thực thi` và món thay thế render. |
 | `.artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-probe.json` | `5E08190DD4A017A040079DAF18D165E16DF720282D813C00791BEA38B84A2B67` | Chrome headed Manager trên `ipc_e2e_template`: login `200`, reload scope ANV tuần `2026-08-03`, hai amendment `RECONCILIATION_REQUIRED` render nhưng zero control `Duyệt`/`Thực thi`; zero console/page error và overflow. Không là normal amendment branch; performance có 1 long task `59ms`, CLS `0.0756`. |
@@ -87,6 +101,82 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-reports-e2e.json` | `5DE99A6D8A8A74AADF3EFB98C11B0C4D71F35D317DE8C081B6F35E900A1B17F2` | Reports current-source sau hardening: page projection HTTP 200, snapshot/legacy cost fields render. |
 | `.artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-db-evidence.json` | `124F93C74B10A052259FF2358796C1C8AA35C3F39C16C8149D967A406D05B576` | DB evidence fixture hardening trên `ipc_e2e_template`: closed snapshot, actual reason và waiver audit. |
 
+## Database current-state audit 2026-08-10
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `docs/research/database-current-state-audit-2026-08-10.md` | `4B2D620B350CF9F5B656B0820F57BB5672DC16EBBB96D12F27456F0D41207233` | Báo cáo hợp nhất schema, business integrity, backup/recovery, unit review và implementation update qua Phase 4.1; không chạm `ipc_lane1`. |
+| `docs/research/database-optimization-primary-sources-2026-08-10.md` | `5F33091F30EFB37577B64F1DEA3A23A3CB5B1F00AC809095CBB8FDA1D8762096` | Research 41 nguồn chính thức MySQL/EF Core/Pomelo cho constraint, index, migration và recovery. |
+| `.artifacts/shipyard-live/database-audit-20260810/summary.json` | `974FA80852929A3AEC20B5FC065D20FA775346DD68266A15D0B4A83F4A54EBE3` | Inventory schema read-only `ipc_lane9`. |
+| `.artifacts/shipyard-live/database-audit-20260810/ef-live-comparison.json` | `0038F91B94C2D65E409144872E0DE669774449C71AFC946B66361AD9F67DD48F` | So EF model với lane9: table/column/FK/index drift và orphan preflight. |
+| `.artifacts/shipyard-live/database-audit-20260810/business-integrity.tsv` | `BD281F28A53DCB3595B27861B1BBDD0BC1CF7495844F9787C04C4F91BD8CDA83` | Business-invariant baseline lane9. |
+| `.artifacts/shipyard-live/database-audit-20260810/unit-integrity.tsv` | `C971F70E3F8A133042B6F00F104CF1977EA0CDDA1E6A44ACDEBDB433BB3BA82C` | Unit conversion/base-family/orphan/BOM-demand/package-snapshot audit và 44 normalization review disposition trên lane9. |
+| `.artifacts/shipyard-live/database-audit-20260810/base/unit-integrity.tsv` | `C971F70E3F8A133042B6F00F104CF1977EA0CDDA1E6A44ACDEBDB433BB3BA82C` | Cùng unit audit trên base; output trùng lane9, xác nhận unit dataset hiện tại chưa drift giữa hai database. |
+| `.artifacts/shipyard-live/database-audit-20260810/base/summary.json` | `3B42EBC76FF0203BEE8D4388EFD9749B461B502CFEA2BA82F1C0E3632DB1534A` | Inventory schema read-only `ipcmanagement`. |
+| `.artifacts/shipyard-live/database-audit-20260810/base/ef-live-comparison.json` | `1428749857CD267DA74E928668FA6DB098FBB135877D05EDB7AE569911FC42BF` | So EF model với base legacy. |
+| `.artifacts/shipyard-live/database-audit-20260810/base/business-integrity.tsv` | `499524E0850E0944BD1E03E856CBBE2626A2B7EAD93A51C48C029A844808F5F9` | Subset 32 business invariant tương thích schema base. |
+| `.artifacts/shipyard-live/database-audit-20260810/backup-summary.json` | `AF57CEFFF3D000C0E30193E39BEAA30A2F583ECDBCB74D4A1049360A034C82EE` | Inventory 106 backup/checkpoint file, encryption/manifest/off-site/duplicate disposition. |
+
+## Database hardening và base promotion 2026-08-10
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/database-hardening-20260810/manifest.json` | `4F5594C4E4D0B45087FCE03D3162014853B22C3ECF592E2E0E6A90388E264E6F` | Manifest authoritative cho clone integrity, rollback/re-apply lane9, migration 61 và promotion `ipcmanagement`; `ipc_lane1` không bị truy cập. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/restore-lane9-schema-integrity.sql` | `DB10ED092D9336A921BA9C0964A4D53CA18C3532A4F4DE01620BBE5DDB590D38` | Reviewed forward SQL khôi phục 149 FK và 3 trigger trên `ipc_lane9`; không có data mutation/history mutation. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/rollback-lane9-schema-integrity.sql` | `62510F253C54097337F158998B0DA64EDFF4E1BA04DAB97E60C3DE1ABED6B0CA` | Reviewed rollback SQL cho đúng 149 FK và 3 trigger; đã chạy thật trên lane rehearsal. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/base-upgrade-44-to-61.sql` | `ECF31FE893EB5838BB8A99E708823ABDE02A508DE64EFD04E764FB26250DE0F0` | Exact reviewed SQL promote base từ migration 44 lên 61, gồm reconciliation receipt theo physical movement evidence. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/apply-result.json` | `29A0E31EF3F448592B518EE896F7B99A1E4416450D7CD1C4453D17BC21DD09D3` | Kết quả re-apply forward schema integrity trên `ipc_lane9`, gắn checkpoint và SQL hash. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/rollback-result.json` | `9BD527CF966F6CA7682826F41656C1ADF83CBF153571B728FF2548B9746F7EC1` | Kết quả rollback rehearsal 149 FK/3 trigger, exit code 0. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/migration61-result.json` | `479470F5F360E5113893A419FFAD0428F0D4D18640A1251A572481593412CF2D` | Apply migration 61 trên lane9 từ checkpoint riêng, khóa receipt reconciliation artifact. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/review/base-promotion-result.json` | `42543785E449E1296C40171A689A729118C60D04A5C2EFCCAFF26EDD1614874D` | Kết quả promotion `ipcmanagement` 44→61 với checkpoint và expected legacy disposition. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/migration61-postflight/summary.json` | `CB30A93BD91CF5D11B35649F594E6F133BAB7EC7E512A2BA406300DC5564487F` | Final lane9 postflight: migration 61, 164 FK, 3 schema object; read-only capture. |
+| `.artifacts/shipyard-live/database-hardening-20260810/db/base-promotion-postflight/summary.json` | `C2DB99F33943409A7573CAEEBA3E96227661313A4AA07202D24E4F1778BD5D0D` | Final base postflight: migration 61, 164 FK, 3 schema object; read-only capture. |
+| `D:\IPCManagement-backups\database-hardening-20260810\ipc_lane9-20260810-005450.zip` | `37C65E6B2085BE9EAC95BAB7656BEE9AD07FDBA98CA2E6F55B544B9FFC5DA76F` | Checkpoint ngoài repo trước schema-integrity rehearsal; path/hash được apply result xác nhận. |
+| `D:\IPCManagement-backups\database-hardening-20260810\ipc_lane9-20260810-010921.zip` | `73612A05BF7A77F9651FDD61557BFA4B4FF4C329EF8EC6AB06C605E1B91C2741` | Checkpoint ngoài repo trước migration 61 trên lane9. |
+| `D:\IPCManagement-backups\base-promotion-20260810\ipcmanagement-20260810-011337.zip` | `1AB63EC4D2879FA99858E1856ED64367652BFFFBE1831C582B6084E665B1A7BC` | Checkpoint ngoài repo trước promotion base `ipcmanagement`. |
+
+## Receipt lifecycle Phase 3
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-e2e.json` | `914A83571FD7156888913A5E7C54F5234B62C0203FA338378BE08B22ED84A1EF` | Chrome headed trên `ipc_lane9`: Điều phối tạo DRAFT → quality → Manager duyệt → Admin POSTED → reload đủ năm viewport; console/page error 0. |
+| `.artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-exceptions-e2e.json` | `F4583BFECD40716EC40F4D6C6CBB3010C49AFA073A58894B736FE0DAAAECE567` | Branch full rejection, partial/rework, duplicate và permission exception của Receipt lifecycle. |
+| `.artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-post-concurrency-e2e.json` | `5808AEF7E704ABE8A08A1AE1D62813C9DB7B087ED04FF9E87CE49E20CEF5D3ED` | Concurrent POST: một command thắng, command còn lại conflict; UI reload và five viewport proof. |
+| `.artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-correction-e2e.json` | `6B7A570248F0CED2A01A7D7AADAF97445BFA11BDED1C1EE8AA8A84859DF1FB40` | Admin post-correction/replay/stale/concurrent/forbidden; direct DB probe xác nhận ledger append-only. |
+
+## Database remediation Phase 4.1 — 2026-08-10
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/database-remediation-20260810/db/review/phase4-1-additive-schema.sql` | `F0E2E7F750479799347457E6C07F061C114C915EA7DDA18470C550542BA59E09` | Exact additive SQL cho delivery receipt và data-quality disposition; dùng cho lane9 re-apply và base promotion. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/review/phase4-1-rollback-to-61.sql` | `D28117F42B14DCE072807F5A463BF73AD8809FE275F15DA717E4FD0AFD777D51` | Reviewed technical rollback chỉ dùng khi hai bảng mới còn rỗng. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/lane9/preflight.json` | `76D1CFD1DF457F2ABC7CDE1B83EB94CCCC2BA7E651AC3AE9894E8DDAD5CD88E5` | Lane9 head 61, schema Phase 4.1 absent và bảy bảng backup được bảo vệ trước mutation. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/lane9/apply.json` | `7B535FEA71A6DB5CBC549A2443E6F1C428E2D4129382359A21585C0A7794B07E` | Apply exact reviewed SQL lên lane9. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/lane9/postflight-after-apply.json` | `CD57ACB932219E22C174FF7409623916B436483E563B3975F6123CF791FB7168` | Head 63, hai bảng rỗng, index/FK/check constraint pass trước rollback. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/lane9/rollback.json` | `C162B90B1535A950FAC0FE06D66AF4FBD4AB174309B4D76371C585C820208210` | Rollback về head 61 và xác nhận hai bảng biến mất. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/lane9/reapply.json` | `D66B202174DC9DA7BDE52D2FFABB64A8088F897473070E5F44FBA97FE16EB2CB` | Re-apply cùng SQL hash và trở lại head 63. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/lane9/outbox-relay.json` | `3FAA426A463539D14B1AC5C6F1B7BA14B4743E9C9029D422A1E6CC797DC17CA2` | Relay lane9 xử lý 432 message, 432 delivery receipt, zero pending/failed/poison và readiness Healthy. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/base/preflight.json` | `FBDD463DD76C483C48104270EE8FB124B0FF40C55F8E5D6FC004F28427D2A6A8` | Base head 61/schema absent và bảy bảng backup trước promotion. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/base/promotion.json` | `7FCBA385F9ED11D07CE77E3C9F3259FBBFB713DA302E1B72B3C95C0550FB96C3` | Exact SQL promotion lên `ipcmanagement` sau checkpoint riêng. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/base/outbox-relay.json` | `F22605630191FEC2D8733A1F5DA72D487A7B1828CE2CF36FA991FF056931F3EE` | Base relay enabled/Healthy với zero backlog; runtime owned đã teardown. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/classification/lane9-data-quality-final.json` | `C6B006D479CE708F3BD37F573869DFFF33A569C85411605D44135B98BC5F7B08` | Final read-only classification lane9: zero movement/menu mismatch. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/classification/base-data-quality-final.json` | `4B3BBA03FA9DC1D8BF8AD43944C53624DA52F6A6FC38E4481152D5B370FEBEDB` | 2.461 legacy missing-snapshot movement và 84 no-physical-plan menu-week disposition; zero mutation statement. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/recovery/recovery-preflight.json` | `04236C515EE3735D32B99ED1B34519FF2CC856B0276D8748412B75D21006EAA1` | Recovery `BLOCKED_EXTERNAL`; không tạo archive/restore DB và không drop backup table. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/final-comparison.json` | `73B0ACBCFF2EF8753EEEB0DFE63B9ED3CF70CF1CA82479AC42721F978CA5C981` | Lane9/base cùng head 63, Phase 4.1 schema identical, relay clean và đủ bảy bảng backup. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/checkpoints/lane9-before-phase4-1/ipc_lane9-20260810-024331.zip` | `058C8352D93C404CBC22C5C834C92845F082C13D0B08674CCE4F386290B0B8FA` | Checkpoint lane9 trước rehearsal. |
+| `.artifacts/shipyard-live/database-remediation-20260810/db/checkpoints/base-before-phase4-1/ipcmanagement-20260810-024643.zip` | `EEDFBCE0E092445E0BFA6185A0CB4BF2D2132FC1EDE5420D758E606988495615` | Checkpoint base trước promotion. |
+
+## Business evidence và local recovery Phase 4.2 — 10/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/phase-04.2-execution/manifest.json` | `A2E497BC62C1C79883DB7702EADCF5A4BB793E917176A8AB3F7307B1BCD2709D` | Historical manifest của Tasks 1–8; giữ nguyên để truy vết, không thay cho gap-closure evidence hiện hành. |
+| `.artifacts/shipyard-live/phase-04.2-execution/db/reconciliation/business-release.json` | `33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482` | Exact 3.555 D-05 accepted-risk row với stable ID/fingerprint và fixed no-correction outcome. |
+| `.artifacts/shipyard-live/phase-04.2-execution/db/recovery/local-archive.json` | `2F1B3D2E4C6845B7FF92EBBF25E5F4C5F738F3B395203E6767802B79D975A12C` | Historical immutable archive receipt; ciphertext/approval identity vẫn được gap run tái sử dụng nguyên byte. |
+| `.artifacts/shipyard-live/phase-04.2-execution/db/recovery/restore-drill.json` | `F1AE3FCA094D981848EF0E75392C556AB3761E124E654EC0EEE75EA3B9DB9DBF` | Historical restore receipt của Tasks 1–8; gap run mới có receipt restore riêng. |
+| `.artifacts/shipyard-live/phase-04.2-execution/db/cleanup/seven-table-retention.json` | `4D5BFE10E0765923B168342FE37A845FDDFD213DDCB0FCDB2F1516D7F7FEE305` | Historical retention receipt của Tasks 1–8; gap run mới tái kiểm tra retention. |
+| `.artifacts/shipyard-live/phase-04.2-execution/db/final/reconciliation-report.json` | `B9408ECF0071879B1F120D367AB29BE096DC6289AC01CC7BB1CE0EEF17C708D9` | Historical aggregate trước independent-verifier gaps; không còn là report hiện hành. |
+
 ### Gap closure Tasks 9–12 — chờ independent re-verification
 
 | Artifact | SHA-256 | Mục đích |
@@ -97,6 +187,13 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/cleanup/seven-table-retention.json` | `C80C175AF09EDD6AE22039937471E45C2ED9E1B6E69AA140F9C08D0EFB2C5419` | Fresh seven-table retention PASS, zero consumer/mutation và không truy cập `ipc_lane1`/provider. |
 | `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report.json` | `253C87D4513B18D55D8375B669E5D500F5B9CF3DCEF732673CE53590809E27C8` | Gap aggregate PASS 10/10 trên source `351ded13`; implementation/evidence sẵn sàng cho independent GSD re-verification, chưa phải verifier verdict. |
 | `.artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report-task13.json` | `08B22E2874BE6C3AD060097442817993C52B4105F53A9E0B1DCD854459C79301` | Task 13 aggregate PASS 20/20 và 10/10 sau khi retire selector cũ; sẵn sàng cho independent GSD re-verification, chưa phải verifier verdict. |
+
+## Typography standardization — 11/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/typography-standardization-20260811/manifest.json` | `CE34899B19817E023353AD4C7CBC7520DD33EB1AD5389E56C7351F356FBE6488` | Chrome headed current-source trên `ipc_lane9`: 5 viewport × 9 route, 2 reflow tương đương zoom 200%, 7 screenshot, local Inter Variable Vietnamese/Latin Extended/Latin load 200, zero Google font request, overflow, console/page/request error và escaped mutation. CLS/long-task được ghi nguyên trạng trong performance evidence; không dùng run này để tuyên bố cải thiện performance. Runtime owned đã teardown. |
+| `.artifacts/shipyard-live/typography-comparison-20260811/manifest.json` | `6EB3ADD94180C0268AFEB2B0BDBD87B0BD4B5494727FF319845ABACB847B4DDF` | Chrome headed before/after cùng `ipc_lane9`: baseline `git archive` commit `6ab3e165` chưa có helper typography, 18 screenshot, 9 cặp metric, row delta tối đa 1,3px, control delta 0px, 54 focus probe zero clipping/missing indicator, local-only zero external request và production CSP `font-src 'self'` zero violation. Runtime owned đã teardown. |
 
 ## Historical
 

@@ -386,6 +386,11 @@ public partial class WorkflowGenerationTests
                 MaterialRequestId = materialRequestId
             }, fixture.UserIdString);
             issueId = created!.IssueId;
+
+            await issueService.ConfirmReceiptAsync(
+                issueId,
+                new ConfirmInventoryIssueReceiptRequest(),
+                fixture.UserIdString);
         }
 
         await using (var context = fixture.CreateContext())
@@ -429,7 +434,34 @@ public partial class WorkflowGenerationTests
                 ]
             }, fixture.UserIdString);
 
-            await returnService.ConfirmReceiptAsync(retDto1!.ReturnId, new ConfirmInventoryReturnReceiptRequest(), fixture.UserIdString);
+            retDto1.Should().NotBeNull();
+            retDto2.Should().NotBeNull();
+            var confirmedReturnId = retDto1!.ReturnId;
+
+            var returnLineId = await context.Inventoryreturnlines
+                .Where(line => line.ReturnId == GuidHelper.ParseGuidString(confirmedReturnId)!)
+                .Select(line => GuidHelper.ToGuidString(line.ReturnLineId))
+                .SingleAsync();
+            var overBalanceConfirmation = () => returnService.ConfirmReceiptAsync(
+                confirmedReturnId,
+                new ConfirmInventoryReturnReceiptRequest
+                {
+                    AdjustedLines =
+                    [
+                        new ConfirmInventoryReturnLineRequest
+                        {
+                            ReturnLineId = returnLineId,
+                            NewQuantity = 181m
+                        }
+                    ]
+                },
+                fixture.UserIdString);
+            await overBalanceConfirmation.Should().ThrowAsync<BusinessRuleException>()
+                .WithMessage("*vượt quá số lượng đã xuất của dòng nguồn*");
+            (await context.Inventoryreturns.SingleAsync(item => item.ReturnId == GuidHelper.ParseGuidString(confirmedReturnId)!))
+                .ReceivedAt.Should().BeNull();
+
+            await returnService.ConfirmReceiptAsync(confirmedReturnId, new ConfirmInventoryReturnReceiptRequest(), fixture.UserIdString);
             await returnService.ConfirmReceiptAsync(retDto2!.ReturnId, new ConfirmInventoryReturnReceiptRequest(), fixture.UserIdString);
 
             var returnTypes = await context.Inventoryreturns
@@ -453,13 +485,83 @@ public partial class WorkflowGenerationTests
             varianceAudit.NewValue.Should().Be("20");
             varianceAudit.Reason.Should().Contain("Hao hụt sơ chế thực tế");
 
+            var reconciliation = await new InventoryOperationsReportService(context)
+                .GetSupplyLineReconciliationAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var reconciliationRow = reconciliation.Should().ContainSingle().Subject;
+            reconciliationRow.IssuedQty.Should().Be(200m);
+            reconciliationRow.KitchenAcknowledgedQty.Should().Be(200m);
+            reconciliationRow.ReturnedQty.Should().Be(30m);
+            reconciliationRow.WastedQty.Should().Be(20m);
+            reconciliationRow.SupplementalPurchaseAllocatedQty.Should().Be(0m);
+            reconciliationRow.DeltaQty.Should().Be(30m);
+            reconciliationRow.Disposition.Should().Be("DEMAND_REMAINING");
+            reconciliationRow.LegacyLineageExceptionCount.Should().Be(0);
+
+            // A report line must key compensations by IssueLineId, never by an
+            // issue header + ingredient + unit. This mirrors historical imports
+            // where two rows can otherwise look identical to a projection.
+            var originalIssueLine = await context.Inventoryissuelines.SingleAsync(line => line.IssueId == GuidHelper.ParseGuidString(issueId)!);
+            var secondIssueLine = new InventoryIssueLine
+            {
+                IssueLineId = GuidHelper.NewId(),
+                IssueId = originalIssueLine.IssueId,
+                IngredientId = originalIssueLine.IngredientId,
+                UnitId = originalIssueLine.UnitId,
+                MaterialRequestLineId = originalIssueLine.MaterialRequestLineId,
+                RequestedQty = 11m,
+                IssuedQty = 11m
+            };
+            var reportOnlyReturn = new InventoryReturn
+            {
+                ReturnId = GuidHelper.NewId(),
+                ReturnCode = "RET-REPORT-LINEAGE",
+                ReturnDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                ReturnType = "RETURN",
+                WarehouseId = fixture.WarehouseId,
+                IssueId = originalIssueLine.IssueId,
+                Reason = "Regression fixture for line-grain report.",
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                Inventoryreturnlines =
+                {
+                    new InventoryReturnLine
+                    {
+                        ReturnLineId = GuidHelper.NewId(),
+                        IngredientId = originalIssueLine.IngredientId,
+                        UnitId = originalIssueLine.UnitId,
+                        SourceIssueLineId = secondIssueLine.IssueLineId,
+                        Quantity = 11m
+                    },
+                    new InventoryReturnLine
+                    {
+                        ReturnLineId = GuidHelper.NewId(),
+                        IngredientId = originalIssueLine.IngredientId,
+                        UnitId = originalIssueLine.UnitId,
+                        // Legacy provenance stays visible as a disposition; it
+                        // must not be guessed onto either identical issue line.
+                        SourceIssueLineId = null,
+                        Quantity = 7m
+                    }
+                }
+            };
+            context.Inventoryissuelines.Add(secondIssueLine);
+            context.Inventoryreturns.Add(reportOnlyReturn);
+            await context.SaveChangesAsync();
+
             var usage = await new InventoryOperationsReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
-            var row = usage.Should().ContainSingle().Subject;
+            var row = usage.Single(item => item.IssueLineId == GuidHelper.ToGuidString(originalIssueLine.IssueLineId));
             row.IssuedQty.Should().Be(200m);
             row.ReturnedQty.Should().Be(30m);
             row.WastedQty.Should().Be(20m);
             row.VarianceQty.Should().Be(50m);
             row.UsedQty.Should().Be(150m);
+            row.LegacyUnattributedReturnLineCount.Should().Be(1);
+
+            var secondRow = usage.Single(item => item.IssueLineId == GuidHelper.ToGuidString(secondIssueLine.IssueLineId));
+            secondRow.ReturnedQty.Should().Be(11m);
+            secondRow.WastedQty.Should().Be(0m);
+            secondRow.LegacyUnattributedReturnLineCount.Should().Be(1);
         }
     }
 

@@ -82,6 +82,10 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
 {
     public CreateInventoryIssueLineDtoValidator()
     {
+        When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestLineId), () =>
+            RuleFor(x => x.MaterialRequestLineId)
+                .Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
+
         RuleFor(x => x.IngredientId)
             .NotEmpty().WithMessage("Nguyên liệu không được để trống.")
             .Must(BeValidGuid).WithMessage("IngredientId phải là GUID hợp lệ.");
@@ -99,7 +103,7 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
             .Must(BeValidGuid).WithMessage("UnitId phải là GUID hợp lệ.");
     }
 
-    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+    private static bool BeValidGuid(string? value) => Guid.TryParse(value, out _);
 }
 
 public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInventoryReturnRequest>

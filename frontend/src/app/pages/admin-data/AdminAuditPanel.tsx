@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 import { formatDateTime } from '@/lib/formatters';
+import { typography } from '@/lib/typography';
 
 type AdminAuditPanelProps = { model: AdminDataPageModel };
 
@@ -132,14 +133,14 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 <tbody>
                   {displayLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="font-mono text-slate-500 text-left">
+                      <td className={`${typography.code} text-left text-slate-500`}>
                         {formatDateTime(log.timestamp)}
                       </td>
                       <td className="font-semibold text-slate-800">{log.actor}</td>
                       <td>{log.businessArea}</td>
                       <td className="font-medium text-blue-700">{log.fieldAffected}</td>
-                      <td className="text-slate-500 font-mono"><span className="ipc-admin-audit-value">{log.oldValue}</span></td>
-                      <td className="font-bold text-slate-900 font-mono"><span className="ipc-admin-audit-value">{log.newValue}</span></td>
+                      <td className={`${typography.code} text-slate-500`}><span className="ipc-admin-audit-value">{log.oldValue}</span></td>
+                      <td className={`${typography.code} font-bold text-slate-900`}><span className="ipc-admin-audit-value">{log.newValue}</span></td>
                       <td className="ipc-admin-audit-reason text-left text-slate-600">
                         <span>{log.reason}</span>
                       </td>

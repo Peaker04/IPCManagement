@@ -14,7 +14,8 @@ using IPCManagement.Api.Features.Planning.Services;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
-using IPCManagement.Api.Shared.Lifecycle;
+using IPCManagement.Api.Infrastructure.LifecycleOutbox;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 
 namespace IPCManagement.Api;
 
@@ -44,12 +45,18 @@ public static class DependencyInjection
 
         // Configurations
         services.Configure<PaginationOptions>(configuration.GetSection(PaginationOptions.SectionName));
+        services.Configure<LifecycleOutboxOptions>(configuration.GetSection(LifecycleOutboxOptions.SectionName));
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>
             new EfTransactionRunner(serviceProvider.GetRequiredService<IpcManagementContext>()));
         services.AddScoped<ILifecycleTransitionRecorder, LifecycleTransitionRecorder>();
+        services.AddScoped<ILifecycleOutboxProcessor, LifecycleOutboxProcessor>();
+        services.AddScoped<ILifecycleOutboxAdminService, LifecycleOutboxAdminService>();
+        services.AddScoped<ILifecycleOutboxConsumer, LifecyclePayloadValidationConsumer>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddHostedService<LifecycleOutboxWorker>();
 
         // Security
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -92,6 +99,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();
         services.AddScoped<ISupplementalMaterialRequestService, SupplementalMaterialRequestService>();
         services.AddScoped<IInventoryReturnService, InventoryReturnService>();
+        services.AddScoped<ILegacyLineageDispositionService, LegacyLineageDispositionService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
         services.AddScoped<IServiceRunService, ServiceRunService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
@@ -134,6 +142,8 @@ public static class DependencyInjection
         services.AddScoped<IStockLedgerReportService, StockLedgerReportService>();
         services.AddScoped<IDataQualityReportService, DataQualityReportService>();
         services.AddScoped<IDataQualityCommandService, DataQualityCommandService>();
+        services.AddScoped<IDataQualityDispositionService, DataQualityDispositionService>();
+        services.AddScoped<IUnitNormalizationReviewService, UnitNormalizationReviewService>();
         services.AddScoped<IOperationalKpiReportService, OperationalKpiReportService>();
         services.AddSingleton<IWorkflowReportAggregateCache, WorkflowReportAggregateCache>();
         services.AddScoped<ISupplierService, SupplierService>();

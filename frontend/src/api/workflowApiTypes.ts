@@ -23,6 +23,35 @@ export type WorkflowReportPageQueryWire = WorkflowReportQueryWire
   & NonNullable<paths['/api/workflow-reports/ingredient-demand/page']['get']['parameters']['query']>;
 
 export type WorkflowReportQuery = LowerCamelQuery<WorkflowReportQueryWire>;
+export type SupplyLineReconciliationDto = MutableContract<components['schemas']['SupplyLineReconciliationDto']>;
+export interface LegacyLineageDispositionDto {
+  dispositionId: string;
+  legacyLineType: 'ISSUE_LINE' | 'RETURN_LINE' | string;
+  legacyLineId: string;
+  targetMaterialRequestLineId?: string | null;
+  targetIssueLineId?: string | null;
+  status: 'PENDING_MANAGER_REVIEW' | 'APPROVED' | 'REJECTED' | 'APPLIED' | string;
+  reason: string;
+  reviewReason?: string | null;
+  createdBy: string;
+  createdAt: string;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  appliedBy?: string | null;
+  appliedAt?: string | null;
+  version: number;
+}
+export interface LegacyLineageCandidateDto {
+  legacyLineType: string;
+  legacyLineId: string;
+  targetLineId: string;
+  documentCode: string;
+  ingredientId: string;
+  unitId: string;
+}
+export type CreateLegacyLineageDispositionRequest = components['schemas']['CreateLegacyLineageDispositionRequest'];
+export type ReviewLegacyLineageDispositionRequest = components['schemas']['ReviewLegacyLineageDispositionRequest'];
+export type ApplyLegacyLineageDispositionRequest = components['schemas']['ApplyLegacyLineageDispositionRequest'];
 
 export type WorkflowReportPageQuery = LowerCamelQuery<WorkflowReportPageQueryWire>;
 export type IngredientDemandAggregatePageQuery = LowerCamelQuery<NonNullable<
@@ -327,6 +356,32 @@ export type PurchaseReceiptEvidenceRequirements = MutableContract<components['sc
 export type WarehousePurchaseReceiptLineRequest = components['schemas']['WarehousePurchaseReceiptLineRequest'];
 export type WarehousePurchaseReceiptRequest = components['schemas']['RecordWarehousePurchaseReceiptRequest'];
 export type WarehousePurchaseReceiptResult = MutableContract<components['schemas']['WarehousePurchaseReceiptResultDto']>;
+export type InventoryReceipt = MutableContract<components['schemas']['InventoryReceiptDto']>;
+export type ReceiptQualityDecisionRequest = MutableContract<components['schemas']['ReceiptQualityDecisionRequest']>;
+export type ReceiptPostRequest = MutableContract<components['schemas']['ReceiptPostRequest']>;
+export type ReceiptReworkRequest = MutableContract<components['schemas']['ReceiptReworkRequest']>;
+export type CreateReceiptCorrectionRequest = MutableContract<components['schemas']['CreateReceiptCorrectionRequest']>;
+export type ReceiptCorrectionResult = MutableContract<components['schemas']['ReceiptCorrectionResultDto']>;
+export type ReceiptQualityActionArgs = {
+  purchaseOrderId: string;
+  receiptId: string;
+  data: ReceiptQualityDecisionRequest;
+};
+export type ReceiptPostActionArgs = {
+  purchaseOrderId: string;
+  receiptId: string;
+  data: ReceiptPostRequest;
+};
+export type ReceiptReworkActionArgs = {
+  purchaseOrderId: string;
+  receiptId: string;
+  data: ReceiptReworkRequest;
+};
+export type ReceiptCorrectionActionArgs = {
+  purchaseOrderId: string;
+  receiptId: string;
+  data: CreateReceiptCorrectionRequest;
+};
 
 export type RecordWarehousePurchaseReceiptRequest = {
   week?: PurchaseWorkbenchQuery['week'];

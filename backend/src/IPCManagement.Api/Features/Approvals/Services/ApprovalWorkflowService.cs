@@ -67,6 +67,12 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
             throw new UnauthorizedAccessException("Không có quyền phê duyệt chứng từ này.");
         }
 
+        if (actor is not null && normalizedTargetType == ApprovalTargetType.InventoryReceipt &&
+            !actor.FindAll(ClaimTypes.Role).Any(claim => AuthorizationPolicies.MatchesManagerRole(claim.Value)))
+        {
+            throw new UnauthorizedAccessException("Chỉ Quản lý được duyệt phiếu nhập kho sau khi kiểm tra chất lượng.");
+        }
+
         var stepResult = await RecordRequiredApprovalStepAsync(
             normalizedTargetType.Value, targetId, request, actorId, actor);
         if (stepResult is not null)

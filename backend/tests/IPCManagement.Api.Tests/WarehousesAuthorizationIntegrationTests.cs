@@ -23,7 +23,7 @@ namespace IPCManagement.Api.Tests;
 public class WarehousesAuthorizationIntegrationTests
 {
     [Fact]
-    public async Task Selector_Should_AllowPurchasingRole_AndReturnEveryWarehousePage()
+    public async Task Selector_Should_AllowPurchasingAndCoordinatorRoles_AndReturnEveryWarehousePage()
     {
         var warehouses = Enumerable.Range(1, 205)
             .Select(index => new WarehouseDto
@@ -45,6 +45,12 @@ public class WarehousesAuthorizationIntegrationTests
         payload!.Data.Should().HaveCount(205);
         payload.Data.Select(item => item.WarehouseId).Should().Contain("warehouse-205");
         await service.Received(3).GetPagedAsync(Arg.Any<PagedRequestDto>());
+
+        client.DefaultRequestHeaders.Remove(TestAuthHandler.RoleHeader);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, "Coordinator");
+        var coordinatorResponse = await client.GetAsync("/api/warehouses/selector");
+
+        coordinatorResponse.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -117,6 +123,8 @@ public class WarehousesAuthorizationIntegrationTests
         {
             options.AddPolicy(AuthorizationPolicies.WarehouseCatalogAccess, policy =>
                 policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseCatalogRoles));
+            options.AddPolicy(AuthorizationPolicies.WarehouseSelectorAccess, policy =>
+                policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseSelectorRoles));
         });
         builder.Services.AddSingleton(warehouseService);
         builder.Services.AddControllers().AddApplicationPart(typeof(WarehousesController).Assembly);

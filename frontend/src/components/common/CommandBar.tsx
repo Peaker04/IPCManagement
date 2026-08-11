@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { typography } from '@/lib/typography';
 
 interface CommandBarProps {
   children: ReactNode;
@@ -40,6 +41,7 @@ export function CommandBar({ children, actions, className, leadingClassName, act
   return (
     <div
       className={cn(
+        typography.body,
         'ipc-command-bar flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between',
         className,
       )}

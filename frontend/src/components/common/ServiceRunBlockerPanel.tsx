@@ -1,7 +1,10 @@
 import { AlertTriangle } from 'lucide-react'
-import { EmptyState, SectionPanel, StatusBadge } from '@/components/common'
 import { useGetServiceRunPageQuery } from '@/api/workflowApi'
+import { EmptyState } from './EmptyState'
+import { SectionPanel } from './SectionPanel'
+import { StatusBadge } from './StatusBadge'
 
+/** Shared projection of canonical Service Run blockers for the responsible workflow views. */
 export function ServiceRunBlockerPanel({ serviceDate, owner }: { serviceDate?: string; owner: 'Kho' | 'Thu mua' }) {
   const { data, isError, isFetching, refetch } = useGetServiceRunPageQuery({ pageNumber: 1, pageSize: 20, serviceDate })
   if (isError) return <SectionPanel title="Ca phục vụ đang bị chặn" icon={<AlertTriangle size={18} />}><EmptyState variant="error" title="Không tải được trạng thái Ca phục vụ" description={`${owner} chưa thể kết luận không còn chứng từ chặn Ca.`} onRetry={() => void refetch()} isRetrying={isFetching} /></SectionPanel>

@@ -51,7 +51,27 @@ internal static class PurchaseReceivingMapper
             PurchaseOrderId = GuidHelper.ToGuidString(order.PurchaseOrderId),
             IdempotencyKey = idempotencyKey,
             PurchaseOrderStatus = order.Status,
+            ReceiptStatus = receipt.Status,
+            QualityStatus = receipt.QualityStatus,
+            ConcurrencyVersion = receipt.ConcurrencyVersion,
             EvidenceRequirements = requirements
+        };
+
+    public static ReceiptCorrectionResultDto BuildCorrectionResult(ReceiptCorrection correction)
+        => new()
+        {
+            CorrectionId = GuidHelper.ToGuidString(correction.CorrectionId),
+            CorrectionCode = correction.CorrectionCode,
+            ReceiptId = GuidHelper.ToGuidString(correction.ReceiptId),
+            Status = correction.Status,
+            ConcurrencyVersion = correction.ConcurrencyVersion,
+            Lines = correction.Lines.Select(line => new ReceiptCorrectionLineResultDto
+            {
+                ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
+                IngredientId = GuidHelper.ToGuidString(line.IngredientId),
+                UnitId = GuidHelper.ToGuidString(line.UnitId),
+                Quantity = line.Quantity
+            }).ToArray()
         };
 
     public static byte[] BuildReceiptId(byte[] purchaseOrderId, string idempotencyKey)
@@ -60,8 +80,17 @@ internal static class PurchaseReceivingMapper
     public static byte[] BuildReceiptLineId(byte[] receiptId, byte[] purchaseOrderLineId)
         => HashId($"receipt-line|{Convert.ToHexString(receiptId)}|{GuidHelper.ToGuidString(purchaseOrderLineId)}");
 
+    public static byte[] BuildReceiptCorrectionId(byte[] receiptId, string commandId)
+        => HashId($"receipt-correction|{Convert.ToHexString(receiptId)}|{commandId}");
+
+    public static byte[] BuildReceiptCorrectionLineId(byte[] correctionId, byte[] receiptLineId)
+        => HashId($"receipt-correction-line|{Convert.ToHexString(correctionId)}|{Convert.ToHexString(receiptLineId)}");
+
     public static byte[] BuildAuditId(byte[] receiptId)
         => HashId($"receipt-audit|{Convert.ToHexString(receiptId)}");
+
+    public static byte[] BuildAuditId(byte[] receiptId, string operation)
+        => HashId($"receipt-audit|{operation}|{Convert.ToHexString(receiptId)}");
 
     public static string? NormalizeOptional(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

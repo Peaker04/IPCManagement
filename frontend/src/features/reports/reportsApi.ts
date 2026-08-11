@@ -24,6 +24,7 @@ import type {
   CurrentStockSummaryDto,
   KitchenIssueReportDto,
   IssueVsReturnUsageReportDto,
+  SupplyLineReconciliationDto,
   AuditChangeReportDto,
   DataQualityReportDto,
   DataQualityPageDto,
@@ -39,6 +40,11 @@ import type {
   DataQualityIssueRemediationRequest,
   CursorPageDto,
   DataQualityIssueRemediationResult,
+  LegacyLineageDispositionDto,
+  LegacyLineageCandidateDto,
+  CreateLegacyLineageDispositionRequest,
+  ReviewLegacyLineageDispositionRequest,
+  ApplyLegacyLineageDispositionRequest,
 } from '@/api/workflowApiTypes';
 import type {
   DemandLine,
@@ -333,6 +339,49 @@ export const reportsApi = apiSlice.injectEndpoints({
         workflowCacheTags.inventoryReturns,
       ],
     }),
+    getSupplyLineReconciliation: builder.query<SupplyLineReconciliationDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/supply-line-reconciliation',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<SupplyLineReconciliationDto[]>) => getData(response),
+      providesTags: [
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.kitchenIssues,
+        workflowCacheTags.inventoryReturns,
+        workflowCacheTags.currentStock,
+      ],
+    }),
+    getLegacyLineageDispositions: builder.query<LegacyLineageDispositionDto[], string | void>({
+      query: (status) => ({
+        url: '/legacy-lineage-dispositions',
+        params: status ? { status } : undefined,
+      }),
+      transformResponse: (response: ApiResponse<LegacyLineageDispositionDto[]>) => response.data ?? [],
+      providesTags: [workflowCacheTags.ingredientDemand, workflowCacheTags.inventoryReturns],
+    }),
+    getLegacyLineageCandidates: builder.query<LegacyLineageCandidateDto[], { legacyLineType: string; legacyLineId: string }>({
+      query: ({ legacyLineType, legacyLineId }) => ({
+        url: '/legacy-lineage-dispositions/candidates',
+        params: { legacyLineType, legacyLineId },
+      }),
+      transformResponse: (response: ApiResponse<LegacyLineageCandidateDto[]>) => response.data ?? [],
+    }),
+    createLegacyLineageDisposition: builder.mutation<LegacyLineageDispositionDto, CreateLegacyLineageDispositionRequest>({
+      query: (body) => ({ url: '/legacy-lineage-dispositions', method: 'POST', body }),
+      transformResponse: (response: ApiResponse<LegacyLineageDispositionDto>) => response.data as LegacyLineageDispositionDto,
+      invalidatesTags: [workflowCacheTags.ingredientDemand, workflowCacheTags.inventoryReturns],
+    }),
+    reviewLegacyLineageDisposition: builder.mutation<LegacyLineageDispositionDto, { dispositionId: string; body: ReviewLegacyLineageDispositionRequest }>({
+      query: ({ dispositionId, body }) => ({ url: `/legacy-lineage-dispositions/${dispositionId}/review`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<LegacyLineageDispositionDto>) => response.data as LegacyLineageDispositionDto,
+      invalidatesTags: [workflowCacheTags.ingredientDemand, workflowCacheTags.inventoryReturns],
+    }),
+    applyLegacyLineageDisposition: builder.mutation<LegacyLineageDispositionDto, { dispositionId: string; body: ApplyLegacyLineageDispositionRequest }>({
+      query: ({ dispositionId, body }) => ({ url: `/legacy-lineage-dispositions/${dispositionId}/apply`, method: 'POST', body }),
+      transformResponse: (response: ApiResponse<LegacyLineageDispositionDto>) => response.data as LegacyLineageDispositionDto,
+      invalidatesTags: [workflowCacheTags.ingredientDemand, workflowCacheTags.inventoryReturns],
+    }),
     getAuditChanges: builder.query<AuditLogRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/audit-changes',
@@ -501,6 +550,12 @@ export const {
   useGetKitchenIssuesPageQuery,
   useGetIssueVsReturnUsageQuery,
   useGetIssueVsReturnUsagePageQuery,
+  useGetSupplyLineReconciliationQuery,
+  useGetLegacyLineageDispositionsQuery,
+  useGetLegacyLineageCandidatesQuery,
+  useCreateLegacyLineageDispositionMutation,
+  useReviewLegacyLineageDispositionMutation,
+  useApplyLegacyLineageDispositionMutation,
   useGetAuditChangesQuery,
   useGetPriceVariancePageQuery,
   useGetCurrentStockPageQuery,

@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { ProductionPlan } from '@/lib/types'
 import { formatDateOnly } from '@/lib/formatters'
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
 
 interface ChefHeaderProps {
   productionPlan: ProductionPlan
@@ -15,12 +17,12 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
     .join(', ')
 
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+    <div className={cn(typography.body, 'grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4')}>
       {/* Date Card */}
       <Card className="rounded-md border-slate-200 bg-white">
         <CardContent className="pt-4">
-          <p className="text-xs text-slate-500 tracking-wider mb-1">Ngày làm việc</p>
-          <p className="text-lg font-semibold text-slate-900">{formatDateOnly(productionPlan.date)}</p>
+          <p className={cn(typography.label, 'mb-1 tracking-wider text-slate-500')}>Ngày làm việc</p>
+          <p className={cn(typography.numeric, 'text-lg font-semibold text-slate-900')}>{formatDateOnly(productionPlan.date)}</p>
         </CardContent>
       </Card>
 
@@ -50,9 +52,9 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
       {/* Total Meals Card */}
       <Card className="rounded-md border-slate-200 bg-white shadow-sm">
         <CardContent className="pt-4">
-          <p className="text-xs text-slate-500 tracking-wider mb-1">Tổng suất ăn</p>
+          <p className={cn(typography.label, 'mb-1 tracking-wider text-slate-500')}>Tổng suất ăn</p>
           <div className="flex items-baseline gap-1.5 mt-2">
-            <span className="text-4xl font-black text-amber-600 tracking-tight leading-none">
+            <span className={cn(typography.numeric, 'text-4xl font-black leading-none tracking-tight text-amber-600')}>
               {productionPlan.totalMeals}
             </span>
             <span className="text-xs font-semibold text-slate-500">phần</span>

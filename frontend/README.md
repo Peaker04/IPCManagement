@@ -111,6 +111,34 @@ frontend/src/
 
 ## Key Exports
 
+### Typography
+
+CSS tokens in `src/styles/index.css` own all raw font families and the semantic type scale.
+React callers select one of the static roles from the shared helper; semantic HTML remains
+owned by the caller and layout, color, truncation, and state classes stay outside the helper.
+Inter Variable is self-hosted from the pinned `@fontsource-variable/inter` dependency with
+Vietnamese, Latin Extended, and Latin WOFF2 subsets; `index.html` must not load Google Fonts.
+
+```tsx
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
+
+<h2 className={cn(typography.sectionTitle, 'text-slate-800')}>Nguyên liệu cần mua</h2>
+<span className={typography.numeric}>1.250 kg</span>
+```
+
+Do not construct Tailwind typography classes dynamically and do not add raw `font-family`
+stacks outside the primitive tokens. A new semantic role needs at least two callers with the
+same meaning and geometry; otherwise keep the reviewed exception local and document it in
+`tests/typographyContract.test.ts`.
+
+Button, Input, Badge, Card, table and command primitives use component-level `--text-*`
+tokens in the same CSS owner; do not add those component contracts to the seven-role public
+helper. Raw JSX `font-mono` is prohibited: identifiers and audit values use
+`typography.code`. `tests/fixtures/TypographyFixture.tsx` is the canonical fixture for
+Vietnamese copy, long document IDs, tabular numbers and focus-boundary checks. Local-only
+and `font-src 'self'` browser evidence is indexed in `docs/EVIDENCE-INDEX.md`.
+
 ### State Management
 
 ```typescript

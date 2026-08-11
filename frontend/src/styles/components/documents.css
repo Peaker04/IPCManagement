@@ -511,7 +511,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--ipc-slate-950);
-  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.35;

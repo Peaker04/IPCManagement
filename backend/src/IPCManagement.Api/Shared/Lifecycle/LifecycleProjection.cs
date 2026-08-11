@@ -1,4 +1,4 @@
-namespace IPCManagement.Api.Shared.Lifecycle;
+namespace IPCManagement.Api.Infrastructure.Lifecycle;
 
 public sealed record LifecycleEvidenceReference(
     string SourceType,

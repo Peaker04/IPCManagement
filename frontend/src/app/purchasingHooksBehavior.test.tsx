@@ -379,7 +379,7 @@ describe('purchasing hook behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chỉnh sửa' })).toHaveFocus())
-    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận nhập kho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu nháp' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Phiếu nhập đã được xử lý với dữ liệu khác.'))
 
     const firstRequest = mocks.recordWarehouseReceipt.mock.calls[0][0]
@@ -392,7 +392,7 @@ describe('purchasing hook behavior', () => {
       expiryDate: '2026-07-25',
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận nhập kho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu nháp' }))
     await waitFor(() => expect(mocks.recordWarehouseReceipt).toHaveBeenCalledTimes(2))
     expect(mocks.recordWarehouseReceipt.mock.calls[1][0].data.idempotencyKey).toBe(firstRequest.data.idempotencyKey)
 

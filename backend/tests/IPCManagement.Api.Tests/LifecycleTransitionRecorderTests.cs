@@ -1,7 +1,7 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Shared.Lifecycle;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Tests;

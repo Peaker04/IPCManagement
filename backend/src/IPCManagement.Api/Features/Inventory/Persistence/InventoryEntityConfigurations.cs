@@ -91,6 +91,8 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
 
         entity.HasIndex(e => e.IssueId, "issueId");
 
+        entity.HasIndex(e => e.MaterialRequestLineId, "ixInventoryIssueLinesMaterialRequestLine");
+
         entity.HasIndex(e => e.UnitId, "unitId")
             .HasDatabaseName("unitId2");
 
@@ -106,6 +108,10 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("issueId");
+        entity.Property(e => e.MaterialRequestLineId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("materialRequestLineId");
         entity.Property(e => e.IssuedQty)
             .HasPrecision(18, 6)
             .HasColumnName("issuedQty");
@@ -127,6 +133,11 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
             .OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("inventoryissuelines_ibfk_1");
 
+        entity.HasOne(d => d.MaterialRequestLine).WithMany(p => p.Inventoryissuelines)
+            .HasForeignKey(d => d.MaterialRequestLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryissuelines_ibfk_4");
+
         entity.HasOne(d => d.Unit).WithMany(p => p.Inventoryissuelines)
             .HasForeignKey(d => d.UnitId)
             .OnDelete(DeleteBehavior.ClientSetNull)
@@ -144,6 +155,15 @@ internal sealed class SupplementalMaterialRequestConfiguration : IEntityTypeConf
         entity.HasIndex(e => new { e.WarehouseId, e.Status, e.RequestedAt });
         entity.HasIndex(e => e.IssueId);
         entity.HasIndex(e => e.IssueLineId);
+        entity.Property<byte[]?>("OpenIssueLineId")
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnType("binary(16)")
+            .HasColumnName("openIssueLineId")
+            .HasComputedColumnSql("CASE WHEN `status` IN ('REJECTED', 'FULFILLED') THEN NULL ELSE `issueLineId` END", stored: false);
+        entity.HasIndex("OpenIssueLineId")
+            .IsUnique()
+            .HasDatabaseName("uxSupplementalMaterialRequestsOpenIssueLine");
 
         entity.Property(e => e.RequestId).HasMaxLength(16).IsFixedLength().HasColumnName("requestId");
         entity.Property(e => e.RequestCode).HasMaxLength(50).HasColumnName("requestCode");
@@ -178,12 +198,14 @@ internal sealed class InventoryReceiptConfiguration : IEntityTypeConfiguration<I
         entity.HasIndex(e => e.CreatedBy, "createdBy");
 
         entity.HasIndex(e => e.PurchaseRequestId, "purchaseRequestId");
+        entity.HasIndex(e => e.PurchaseOrderId, "ixInventoryReceiptsPurchaseOrder");
 
         entity.HasIndex(e => e.ReceiptCode, "receiptCode").IsUnique();
 
         entity.HasIndex(e => e.SupplierId, "supplierId");
 
         entity.HasIndex(e => e.WarehouseId, "warehouseId");
+        entity.HasIndex(e => new { e.Status, e.QualityStatus, e.CreatedAt }, "ixInventoryReceiptsLifecycle");
 
         entity.Property(e => e.ReceiptId)
             .HasMaxLength(16)
@@ -197,10 +219,27 @@ internal sealed class InventoryReceiptConfiguration : IEntityTypeConfiguration<I
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("createdBy");
+        entity.Property(e => e.Status).HasMaxLength(30).HasDefaultValue("DRAFT").HasColumnName("status");
+        entity.Property(e => e.QualityStatus).HasMaxLength(30).HasDefaultValue("PENDING_INSPECTION").HasColumnName("qualityStatus");
+        entity.Property(e => e.QualityCheckedBy).HasMaxLength(16).IsFixedLength().HasColumnName("qualityCheckedBy");
+        entity.Property(e => e.QualityCheckedAt).HasColumnType("datetime").HasColumnName("qualityCheckedAt");
+        entity.Property(e => e.ConcurrencyVersion).IsConcurrencyToken().HasDefaultValue(0L).HasColumnName("concurrencyVersion");
+        entity.Property(e => e.ManagerApprovedBy).HasMaxLength(16).IsFixedLength().HasColumnName("managerApprovedBy");
+        entity.Property(e => e.ManagerApprovedAt).HasColumnType("datetime").HasColumnName("managerApprovedAt");
+        entity.Property(e => e.ManagerApprovalReason).HasColumnType("text").HasColumnName("managerApprovalReason");
+        entity.Property(e => e.PostedBy).HasMaxLength(16).IsFixedLength().HasColumnName("postedBy");
+        entity.Property(e => e.PostedAt).HasColumnType("datetime").HasColumnName("postedAt");
+        entity.Property(e => e.RejectedBy).HasMaxLength(16).IsFixedLength().HasColumnName("rejectedBy");
+        entity.Property(e => e.RejectedAt).HasColumnType("datetime").HasColumnName("rejectedAt");
+        entity.Property(e => e.RejectionReason).HasColumnType("text").HasColumnName("rejectionReason");
         entity.Property(e => e.PurchaseRequestId)
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("purchaseRequestId");
+        entity.Property(e => e.PurchaseOrderId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("purchaseOrderId");
         entity.Property(e => e.ReceiptCode)
             .HasMaxLength(50)
             .HasColumnName("receiptCode");
@@ -269,6 +308,9 @@ internal sealed class InventoryReceiptLineConfiguration : IEntityTypeConfigurati
             .HasPrecision(18, 2)
             .HasComputedColumnSql("`quantity` * `unitPrice`", true)
             .HasColumnName("amount");
+        entity.Property(e => e.AcceptedQuantity).HasPrecision(18, 6).HasColumnName("acceptedQuantity");
+        entity.Property(e => e.RejectedQuantity).HasPrecision(18, 6).HasColumnName("rejectedQuantity");
+        entity.Property(e => e.QualityReason).HasMaxLength(1000).HasColumnName("qualityReason");
         entity.Property(e => e.ExpiredDate).HasColumnName("expiredDate");
         entity.Property(e => e.IngredientId)
             .HasMaxLength(16)
@@ -330,6 +372,77 @@ internal sealed class InventoryReceiptLineConfiguration : IEntityTypeConfigurati
             .HasForeignKey(d => d.PackageBaseUnitIdSnapshot)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("inventoryreceiptlines_ibfk_5");
+    }
+}
+
+internal sealed class ReceiptCorrectionConfiguration : IEntityTypeConfiguration<ReceiptCorrection>
+{
+    public void Configure(EntityTypeBuilder<ReceiptCorrection> entity)
+    {
+        entity.HasKey(item => item.CorrectionId).HasName("PRIMARY");
+        entity.ToTable("receiptcorrections", table =>
+            table.HasCheckConstraint("ckReceiptCorrectionsStatus", "`status` = 'POSTED'"));
+        entity.HasIndex(item => item.CorrectionCode, "uqReceiptCorrectionsCode").IsUnique();
+        entity.HasIndex(item => item.CommandId, "uqReceiptCorrectionsCommand").IsUnique();
+        entity.HasIndex(item => item.ReceiptId, "ixReceiptCorrectionsReceipt");
+
+        entity.Property(item => item.CorrectionId).HasMaxLength(16).IsFixedLength().HasColumnName("correctionId");
+        entity.Property(item => item.ReceiptId).HasMaxLength(16).IsFixedLength().HasColumnName("receiptId");
+        entity.Property(item => item.CorrectionCode).HasMaxLength(50).HasColumnName("correctionCode");
+        entity.Property(item => item.CommandId).HasMaxLength(100).HasColumnName("commandId");
+        entity.Property(item => item.Status).HasMaxLength(20).HasDefaultValue("POSTED").HasColumnName("status");
+        entity.Property(item => item.Reason).HasMaxLength(1000).HasColumnName("reason");
+        entity.Property(item => item.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
+        entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+        entity.Property(item => item.ConcurrencyVersion).HasDefaultValue(1L).HasColumnName("concurrencyVersion");
+
+        entity.HasOne<InventoryReceipt>().WithMany()
+            .HasForeignKey(item => item.ReceiptId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("receiptcorrections_ibfk_1");
+        entity.HasOne<User>().WithMany()
+            .HasForeignKey(item => item.CreatedBy)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("receiptcorrections_ibfk_2");
+    }
+}
+
+internal sealed class ReceiptCorrectionLineConfiguration : IEntityTypeConfiguration<ReceiptCorrectionLine>
+{
+    public void Configure(EntityTypeBuilder<ReceiptCorrectionLine> entity)
+    {
+        entity.HasKey(item => item.CorrectionLineId).HasName("PRIMARY");
+        entity.ToTable("receiptcorrectionlines", table =>
+            table.HasCheckConstraint("ckReceiptCorrectionLinesQuantity", "`quantity` > 0"));
+        entity.HasIndex(item => item.CorrectionId, "ixReceiptCorrectionLinesCorrection");
+        entity.HasIndex(item => item.ReceiptLineId, "ixReceiptCorrectionLinesReceiptLine");
+
+        entity.Property(item => item.CorrectionLineId).HasMaxLength(16).IsFixedLength().HasColumnName("correctionLineId");
+        entity.Property(item => item.CorrectionId).HasMaxLength(16).IsFixedLength().HasColumnName("correctionId");
+        entity.Property(item => item.ReceiptLineId).HasMaxLength(16).IsFixedLength().HasColumnName("receiptLineId");
+        entity.Property(item => item.IngredientId).HasMaxLength(16).IsFixedLength().HasColumnName("ingredientId");
+        entity.Property(item => item.UnitId).HasMaxLength(16).IsFixedLength().HasColumnName("unitId");
+        entity.Property(item => item.Quantity).HasPrecision(18, 6).HasColumnName("quantity");
+        entity.Property(item => item.SourceLotNumber).HasMaxLength(100).HasColumnName("sourceLotNumber");
+        entity.Property(item => item.SourceManufactureDate).HasColumnName("sourceManufactureDate");
+        entity.Property(item => item.SourceExpiredDate).HasColumnName("sourceExpiredDate");
+
+        entity.HasOne<ReceiptCorrection>().WithMany(item => item.Lines)
+            .HasForeignKey(item => item.CorrectionId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .HasConstraintName("receiptcorrectionlines_ibfk_1");
+        entity.HasOne<InventoryReceiptLine>().WithMany()
+            .HasForeignKey(item => item.ReceiptLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("receiptcorrectionlines_ibfk_2");
+        entity.HasOne<Ingredient>().WithMany()
+            .HasForeignKey(item => item.IngredientId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("receiptcorrectionlines_ibfk_3");
+        entity.HasOne<Unit>().WithMany()
+            .HasForeignKey(item => item.UnitId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("receiptcorrectionlines_ibfk_4");
     }
 }
 
@@ -428,6 +541,8 @@ internal sealed class InventoryReturnLineConfiguration : IEntityTypeConfiguratio
         entity.HasIndex(e => e.UnitId, "unitId")
             .HasDatabaseName("unitId4");
 
+        entity.HasIndex(e => e.SourceIssueLineId, "ixInventoryReturnLinesSourceIssueLine");
+
         entity.Property(e => e.ReturnLineId)
             .HasMaxLength(16)
             .IsFixedLength()
@@ -447,6 +562,10 @@ internal sealed class InventoryReturnLineConfiguration : IEntityTypeConfiguratio
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("unitId");
+        entity.Property(e => e.SourceIssueLineId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("sourceIssueLineId");
 
         entity.HasOne(d => d.Ingredient).WithMany(p => p.Inventoryreturnlines)
             .HasForeignKey(d => d.IngredientId)
@@ -462,6 +581,11 @@ internal sealed class InventoryReturnLineConfiguration : IEntityTypeConfiguratio
             .HasForeignKey(d => d.UnitId)
             .OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("inventoryreturnlines_ibfk_3");
+
+        entity.HasOne(d => d.SourceIssueLine).WithMany()
+            .HasForeignKey(d => d.SourceIssueLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryreturnlines_ibfk_4");
     }
 }
 
@@ -505,7 +629,7 @@ internal sealed class StockMovementConfiguration : IEntityTypeConfiguration<Stoc
             .HasColumnType("datetime")
             .HasColumnName("movementDate");
         entity.Property(e => e.MovementType)
-            .HasColumnType("enum('RECEIPT','ISSUE','RETURN','ADJUSTMENT')")
+            .HasColumnType("enum('RECEIPT','ISSUE','RETURN','ADJUSTMENT','RECEIPT_CORRECTION')")
             .HasColumnName("movementType");
         entity.Property(e => e.ExpiredDate).HasColumnName("expiredDate");
         entity.Property(e => e.LotNumber)

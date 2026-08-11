@@ -40,6 +40,15 @@ public static partial class DatabaseClonePolicy
         }
     }
 
+    public static void ValidateRemediationEvidenceTarget(string database)
+    {
+        if (!string.Equals(database, "ipc_lane9", StringComparison.Ordinal) &&
+            !string.Equals(database, "ipcmanagement", StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Database remediation evidence is restricted to ipc_lane9 and ipcmanagement.");
+        }
+    }
+
     [GeneratedRegex("^ipc_(?:lane[1-9]|e2e_template)$", RegexOptions.CultureInvariant)]
     private static partial Regex AllowedDatabaseName();
 

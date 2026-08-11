@@ -48,7 +48,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
             <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
               <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-customer">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-customer">
                   Khách hàng
                 </label>
                 <Select
@@ -89,7 +89,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   </Button>
                 </div>
 
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-code">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-code">
                   Mã khách hàng
                 </label>
                 <Input
@@ -100,7 +100,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   placeholder={isCreatingContract ? 'VD: DAV' : selectedContract?.customerCode ?? 'Mã khách hàng'}
                 />
 
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-name">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-name">
                   Tên khách hàng
                 </label>
                 <Input
@@ -110,7 +110,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   placeholder={selectedContract?.customerName ?? 'Tên khách hàng'}
                 />
 
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-note">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-note">
                   Ghi chú contract
                 </label>
                 <Textarea
@@ -122,7 +122,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 />
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-effective-from">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-effective-from">
                     Hiệu lực từ
                     <Input
                       id="admin-contract-effective-from"
@@ -131,7 +131,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                       onChange={(event) => setContractForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))}
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-effective-to">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-effective-to">
                     Hiệu lực đến
                     <Input
                       id="admin-contract-effective-to"
@@ -143,7 +143,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-week-days">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-week-days">
                     Ngày làm việc
                     <Input
                       id="admin-contract-week-days"
@@ -152,7 +152,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                       placeholder="t2,t3,t4,t5,t6,t7"
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-shifts">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-shifts">
                     Ca phục vụ
                     <Input
                       id="admin-contract-shifts"
@@ -164,7 +164,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-default-price">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-default-price">
                     Đơn giá mặc định / tier BOM
                     <Input
                       id="admin-contract-default-price"
@@ -235,7 +235,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
                 <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(130px,0.5fr))]">
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-schedule">
+                    <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-schedule">
                       Lịch thực đơn
                       <Select
                         value={selectedSchedule?.menuScheduleId ?? ''}
@@ -262,7 +262,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                           : `Version ${selectedSchedule?.status ?? '-'}`}
                       </span>
                     </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                    <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
                       Đơn giá / tier BOM
                       <Input
                         inputMode="decimal"
@@ -273,7 +273,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                         placeholder={selectedSchedule?.menuPrice.toString() ?? '0'}
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                    <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
                       Version
                       <Select
                         value={scheduleRuleForm.status}
@@ -292,7 +292,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                     </label>
                   </div>
 
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
                     Lý do
                     <Input
                       value={scheduleRuleForm.reason}

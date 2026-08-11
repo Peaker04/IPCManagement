@@ -203,6 +203,7 @@ public class InventoryIssueServiceTests
         result.Should().NotBeNull();
         _issueRepository.Received(1).Add(Arg.Is<InventoryIssue>(issue =>
             issue.Inventoryissuelines.Count == 1 &&
+            issue.Inventoryissuelines.Single().MaterialRequestLineId != null &&
             issue.Inventoryissuelines.Single().RequestedQty == 7 &&
             issue.Inventoryissuelines.Single().IssuedQty == 7));
         await _stockLedgerService.Received(1).RemoveStockWithCheckAsync(
@@ -273,58 +274,188 @@ public class InventoryIssueServiceTests
             Arg.Any<string>());
     }
 
-    private void SeedIssuableMaterialRequest(string materialRequestId, string ingredientId, string unitId, decimal requiredQty)
+    [Fact]
+    public async Task CreateAsync_ShouldRejectAmbiguousDemandLine_WhenManualRequestOmitsSourceId()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        var materialRequestId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        var materialRequest = SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 5m);
+        AddSameIngredientDemandLine(materialRequest, 4m);
+
+        var act = () => _service.CreateAsync(new CreateInventoryIssueRequest
+        {
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            MaterialRequestId = materialRequestId,
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    RequestedQty = 1m,
+                    IssuedQty = 1m
+                }
+            ]
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*cần chỉ rõ MaterialRequestLineId*");
+        _issueRepository.DidNotReceive().Add(Arg.Any<InventoryIssue>());
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldPersistExplicitDemandLine_WhenSameIngredientAndUnitHaveDifferentSources()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        var materialRequestId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        var materialRequest = SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 5m);
+        var selectedDemandLine = AddSameIngredientDemandLine(materialRequest, 4m);
+        InventoryIssue? capturedIssue = null;
+        _issueRepository.When(repository => repository.Add(Arg.Any<InventoryIssue>()))
+            .Do(call => capturedIssue = call.Arg<InventoryIssue>());
+
+        var result = await _service.CreateAsync(new CreateInventoryIssueRequest
+        {
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            MaterialRequestId = materialRequestId,
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    MaterialRequestLineId = GuidHelper.ToGuidString(selectedDemandLine.RequestLineId),
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    RequestedQty = 4m,
+                    IssuedQty = 4m
+                }
+            ]
+        }, userId);
+
+        result.Should().NotBeNull();
+        capturedIssue.Should().NotBeNull();
+        capturedIssue!.Inventoryissuelines.Single().MaterialRequestLineId
+            .Should().Equal(selectedDemandLine.RequestLineId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldBlockLegacyIssueWithoutSource_WhenDemandSourceIsAmbiguous()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        var materialRequestId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        var materialRequest = SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 5m);
+        AddSameIngredientDemandLine(materialRequest, 4m);
+        _issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>())
+            .Returns(
+            [
+                new InventoryIssueLine
+                {
+                    IngredientId = GuidHelper.ParseGuidString(ingredientId)!,
+                    UnitId = GuidHelper.ParseGuidString(unitId)!,
+                    IssuedQty = 1m,
+                    MaterialRequestLineId = null
+                }
+            ]);
+
+        var act = () => _service.CreateAsync(new CreateInventoryIssueRequest
+        {
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            MaterialRequestId = materialRequestId
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*cần đối soát trước khi xuất thêm*");
+        _issueRepository.DidNotReceive().Add(Arg.Any<InventoryIssue>());
+    }
+
+    private MaterialRequest SeedIssuableMaterialRequest(string materialRequestId, string ingredientId, string unitId, decimal requiredQty)
     {
         var ingredientBytes = GuidHelper.ParseGuidString(ingredientId)!;
         var unitBytes = GuidHelper.ParseGuidString(unitId)!;
-        _issueRepository.GetMaterialRequestForIssueAsync(Arg.Any<byte[]>())
-            .Returns(new MaterialRequest
-            {
-                RequestId = GuidHelper.ParseGuidString(materialRequestId)!,
-                RequestCode = "MR-TEST",
-                RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                RequestScope = "FULLDAY",
-                Status = "SENTTOWAREHOUSE",
-                CreatedBy = GuidHelper.NewId(),
-                PlanId = GuidHelper.NewId(),
-                Materialrequestlines =
-                [
-                    new MaterialRequestLine
+        var materialRequest = new MaterialRequest
+        {
+            RequestId = GuidHelper.ParseGuidString(materialRequestId)!,
+            RequestCode = "MR-TEST",
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            RequestScope = "FULLDAY",
+            Status = "SENTTOWAREHOUSE",
+            CreatedBy = GuidHelper.NewId(),
+            PlanId = GuidHelper.NewId(),
+            Materialrequestlines =
+            [
+                new MaterialRequestLine
+                {
+                    RequestLineId = GuidHelper.NewId(),
+                    RequestId = GuidHelper.ParseGuidString(materialRequestId)!,
+                    PlanLineId = GuidHelper.NewId(),
+                    IngredientId = ingredientBytes,
+                    UnitId = unitBytes,
+                    TotalServings = 1,
+                    GrossQtyPerServing = requiredQty,
+                    BomRatePercent = 100,
+                    TotalRequiredQty = requiredQty,
+                    CurrentStockQty = 0,
+                    SuggestedPurchaseQty = 0,
+                    Ingredient = new Ingredient
                     {
-                        RequestLineId = GuidHelper.NewId(),
-                        RequestId = GuidHelper.ParseGuidString(materialRequestId)!,
-                        PlanLineId = GuidHelper.NewId(),
                         IngredientId = ingredientBytes,
+                        IngredientCode = "ING",
+                        IngredientName = "Ingredient",
                         UnitId = unitBytes,
-                        TotalServings = 1,
-                        GrossQtyPerServing = requiredQty,
-                        BomRatePercent = 100,
-                        TotalRequiredQty = requiredQty,
-                        CurrentStockQty = 0,
-                        SuggestedPurchaseQty = 0,
-                        Ingredient = new Ingredient
-                        {
-                            IngredientId = ingredientBytes,
-                            IngredientCode = "ING",
-                            IngredientName = "Ingredient",
-                            UnitId = unitBytes,
-                            WarehouseId = GuidHelper.NewId(),
-                            ReferencePrice = 1000,
-                            IsFreshDaily = true,
-                            IsActive = true
-                        },
-                        Unit = new Unit
-                        {
-                            UnitId = unitBytes,
-                            UnitCode = "KG",
-                            UnitName = "kg",
-                            ConvertRateToBase = 1
-                        }
+                        WarehouseId = GuidHelper.NewId(),
+                        ReferencePrice = 1000,
+                        IsFreshDaily = true,
+                        IsActive = true
+                    },
+                    Unit = new Unit
+                    {
+                        UnitId = unitBytes,
+                        UnitCode = "KG",
+                        UnitName = "kg",
+                        ConvertRateToBase = 1
                     }
-                ]
-            });
+                }
+            ]
+        };
+        _issueRepository.GetMaterialRequestForIssueAsync(Arg.Any<byte[]>())
+            .Returns(materialRequest);
         _issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>())
             .Returns([]);
+        return materialRequest;
+    }
+
+    private static MaterialRequestLine AddSameIngredientDemandLine(MaterialRequest materialRequest, decimal requiredQty)
+    {
+        var source = materialRequest.Materialrequestlines.Single();
+        var duplicate = new MaterialRequestLine
+        {
+            RequestLineId = GuidHelper.NewId(),
+            RequestId = materialRequest.RequestId,
+            PlanLineId = GuidHelper.NewId(),
+            IngredientId = source.IngredientId,
+            UnitId = source.UnitId,
+            TotalServings = 1,
+            GrossQtyPerServing = requiredQty,
+            BomRatePercent = 100,
+            TotalRequiredQty = requiredQty,
+            CurrentStockQty = 0,
+            SuggestedPurchaseQty = 0,
+            Ingredient = source.Ingredient,
+            Unit = source.Unit
+        };
+        materialRequest.Materialrequestlines.Add(duplicate);
+        return duplicate;
     }
 
     private IpcManagementContext CreateInMemoryContext()
@@ -384,6 +515,7 @@ public class InventoryIssueServiceTests
             CREATE TABLE inventoryissuelines (
                 issueLineId BLOB PRIMARY KEY,
                 issueId BLOB,
+                materialRequestLineId BLOB NULL,
                 ingredientId BLOB,
                 unitId BLOB,
                 requestedQty REAL,
@@ -449,8 +581,10 @@ public class InventoryIssueServiceTests
                 reason TEXT,
                 status TEXT,
                 requestedBy BLOB,
-                requestedAt TEXT
+                requestedAt TEXT,
+                openIssueLineId BLOB GENERATED ALWAYS AS (CASE WHEN status IN ('REJECTED', 'FULFILLED') THEN NULL ELSE issueLineId END) VIRTUAL
             );
+            CREATE UNIQUE INDEX uxSupplementalMaterialRequestsOpenIssueLine ON supplementalmaterialrequests (openIssueLineId);
 
             CREATE TABLE stockmovements (
                 movementId BLOB PRIMARY KEY,

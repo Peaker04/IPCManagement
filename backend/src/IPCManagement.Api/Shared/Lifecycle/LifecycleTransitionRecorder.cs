@@ -3,7 +3,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace IPCManagement.Api.Shared.Lifecycle;
+namespace IPCManagement.Api.Infrastructure.Lifecycle;
 
 public sealed class LifecycleTransitionRecorder(IpcManagementContext context) : ILifecycleTransitionRecorder
 {

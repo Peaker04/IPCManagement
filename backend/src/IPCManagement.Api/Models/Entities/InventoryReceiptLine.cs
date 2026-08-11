@@ -21,6 +21,12 @@ public partial class InventoryReceiptLine
 
     public decimal? Amount { get; set; }
 
+    public decimal? AcceptedQuantity { get; set; }
+
+    public decimal? RejectedQuantity { get; set; }
+
+    public string? QualityReason { get; set; }
+
     public decimal? PackageQuantitySnapshot { get; set; }
 
     public byte[]? PackageBaseUnitIdSnapshot { get; set; }

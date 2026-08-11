@@ -90,10 +90,14 @@ public class InventoryReturnService : IInventoryReturnService
                     throw new BusinessRuleException("Phiếu trả phải thuộc cùng kho với phiếu xuất gốc.");
                 }
 
-                var accountedQuantities = await _returnRepository.GetReturnedQuantitiesByIssueAsync(issueBytes);
-                var issueQuantities = issue.Inventoryissuelines
-                    .GroupBy(line => InventoryReturnRepository.BuildLineKey(line.IngredientId, line.UnitId))
-                    .ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
+                if (issue.ReceivedAt is null)
+                {
+                    throw new BusinessRuleException(
+                        "Bếp cần xác nhận đã nhận phiếu xuất gốc trước khi tạo phiếu trả hoặc khai báo hao hụt.");
+                }
+
+                var accountedQuantities = await _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(issueBytes);
+                var sourceLineIds = new HashSet<string>(StringComparer.Ordinal);
 
                 var inventoryReturn = new InventoryReturn
                 {
@@ -115,14 +119,15 @@ public class InventoryReturnService : IInventoryReturnService
                         ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ.");
                     var unitBytes = GuidHelper.ParseGuidString(line.UnitId)
                         ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ.");
+                    var sourceLine = ResolveSourceIssueLine(issue, line.SourceIssueLineId, ingredientBytes, unitBytes);
+                    var sourceLineId = GuidHelper.ToGuidString(sourceLine.IssueLineId);
+                    if (!sourceLineIds.Add(sourceLineId))
+                    {
+                        throw new BusinessRuleException("Mỗi dòng nguồn của phiếu xuất chỉ được trả/ghi hao hụt một lần trên cùng chứng từ.");
+                    }
 
                     var quantity = DecimalPolicy.RoundQuantity(line.Quantity);
-                    ValidateReturnQuantity(
-                        issueQuantities,
-                        accountedQuantities,
-                        ingredientBytes,
-                        unitBytes,
-                        quantity);
+                    ValidateReturnQuantity(sourceLine, accountedQuantities.GetValueOrDefault(sourceLineId), quantity);
 
                     return new InventoryReturnLine
                     {
@@ -130,6 +135,7 @@ public class InventoryReturnService : IInventoryReturnService
                         ReturnId = inventoryReturn.ReturnId,
                         IngredientId = ingredientBytes,
                         UnitId = unitBytes,
+                        SourceIssueLineId = sourceLine.IssueLineId,
                         Quantity = quantity
                     };
                 }).ToList();
@@ -193,36 +199,61 @@ public class InventoryReturnService : IInventoryReturnService
                     throw new ResourceConflictException("Phiếu trả nguyên liệu này đã được xác nhận.");
                 }
 
-                var confirmedAt = DateTime.UtcNow;
-                inventoryReturn.ReceivedBy = userIdBytes;
-                inventoryReturn.ReceivedAt = confirmedAt;
-
-                var auditLogReason = $"Thủ kho xác nhận phiếu trả {inventoryReturn.ReturnCode}.";
-
+                var proposedAdjustments = new List<(InventoryReturnLine Line, decimal Quantity)>();
                 if (dto.AdjustedLines != null && dto.AdjustedLines.Any())
                 {
+                    var adjustedLineIds = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var adjustedLine in dto.AdjustedLines)
                     {
                         var lineBytes = GuidHelper.ParseFilterIdOrThrow(adjustedLine.ReturnLineId, "dòng phiếu trả");
                         var line = inventoryReturn.Inventoryreturnlines.FirstOrDefault(l => lineBytes != null && l.ReturnLineId.SequenceEqual(lineBytes));
-                        if (line != null && line.Quantity != adjustedLine.NewQuantity)
+                        if (line is null)
                         {
-                            _context.Auditlogs.Add(new AuditLog
-                            {
-                                AuditId = GuidHelper.NewId(),
-                                ChangedAt = confirmedAt,
-                                ChangedBy = userIdBytes,
-                                BusinessArea = "StorekeeperReturnReceipt",
-                                EntityName = nameof(InventoryReturnLine),
-                                EntityId = line.ReturnLineId,
-                                FieldName = "Quantity",
-                                OldValue = line.Quantity.ToString("0.######"),
-                                NewValue = adjustedLine.NewQuantity.ToString("0.######"),
-                                Reason = $"Thủ kho điều chỉnh số lượng thực nhận từ {line.Quantity} thành {adjustedLine.NewQuantity} cho phiếu trả {inventoryReturn.ReturnCode}."
-                            });
-                            line.Quantity = adjustedLine.NewQuantity;
+                            throw new BusinessRuleException("Dòng điều chỉnh không thuộc phiếu trả đang xác nhận.");
                         }
+
+                        var lineKey = Convert.ToHexString(line.ReturnLineId);
+                        if (!adjustedLineIds.Add(lineKey))
+                        {
+                            throw new BusinessRuleException("Mỗi dòng phiếu trả chỉ được điều chỉnh một lần trong một lệnh xác nhận.");
+                        }
+
+                        var adjustedQuantity = DecimalPolicy.RoundQuantity(adjustedLine.NewQuantity);
+                        if (!DecimalPolicy.GreaterThanQuantity(adjustedQuantity, 0))
+                        {
+                            throw new BusinessRuleException("Số lượng thực nhận sau điều chỉnh phải lớn hơn 0.");
+                        }
+
+                        proposedAdjustments.Add((line, adjustedQuantity));
                     }
+                }
+
+                await EnsureReturnBalanceAfterAdjustmentAsync(
+                    inventoryReturn,
+                    proposedAdjustments.ToDictionary(item => Convert.ToHexString(item.Line.ReturnLineId), item => item.Quantity),
+                    cancellationToken);
+
+                var confirmedAt = DateTime.UtcNow;
+                inventoryReturn.ReceivedBy = userIdBytes;
+                inventoryReturn.ReceivedAt = confirmedAt;
+                var auditLogReason = $"Thủ kho xác nhận phiếu trả {inventoryReturn.ReturnCode}.";
+
+                foreach (var (line, adjustedQuantity) in proposedAdjustments.Where(item => item.Line.Quantity != item.Quantity))
+                {
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = confirmedAt,
+                        ChangedBy = userIdBytes,
+                        BusinessArea = "StorekeeperReturnReceipt",
+                        EntityName = nameof(InventoryReturnLine),
+                        EntityId = line.ReturnLineId,
+                        FieldName = "Quantity",
+                        OldValue = line.Quantity.ToString("0.######"),
+                        NewValue = adjustedQuantity.ToString("0.######"),
+                        Reason = $"Thủ kho điều chỉnh số lượng thực nhận từ {line.Quantity} thành {adjustedQuantity} cho phiếu trả {inventoryReturn.ReturnCode}."
+                    });
+                    line.Quantity = adjustedQuantity;
                 }
 
                 if (dto.HasDiscrepancy)
@@ -293,26 +324,85 @@ public class InventoryReturnService : IInventoryReturnService
                     cancellationToken));
     }
 
-    private static void ValidateReturnQuantity(
-        IReadOnlyDictionary<string, decimal> issueQuantities,
-        IReadOnlyDictionary<string, decimal> accountedQuantities,
+    private static InventoryIssueLine ResolveSourceIssueLine(
+        InventoryIssue issue,
+        string? requestedSourceIssueLineId,
         byte[] ingredientId,
-        byte[] unitId,
-        decimal accountedQuantity)
+        byte[] unitId)
     {
-        var key = InventoryReturnRepository.BuildLineKey(ingredientId, unitId);
-
-        if (!issueQuantities.TryGetValue(key, out var issuedQuantity))
+        if (!string.IsNullOrWhiteSpace(requestedSourceIssueLineId))
         {
-            throw new BusinessRuleException(
-                "Nguyên liệu trả phải tồn tại trong phiếu xuất gốc và cùng đơn vị tính.");
+            var sourceLineId = GuidHelper.ParseGuidString(requestedSourceIssueLineId)
+                ?? throw new ArgumentException("SourceIssueLineId không hợp lệ.");
+            var sourceLine = issue.Inventoryissuelines.SingleOrDefault(line => line.IssueLineId.SequenceEqual(sourceLineId))
+                ?? throw new BusinessRuleException("Dòng nguồn không thuộc phiếu xuất gốc.");
+            if (!sourceLine.IngredientId.SequenceEqual(ingredientId) || !sourceLine.UnitId.SequenceEqual(unitId))
+            {
+                throw new BusinessRuleException("Nguyên liệu hoặc đơn vị của dòng trả không khớp dòng nguồn phiếu xuất.");
+            }
+            return sourceLine;
         }
 
-        var alreadyAccounted = accountedQuantities.GetValueOrDefault(key);
-        if (DecimalPolicy.GreaterThanQuantity(alreadyAccounted + accountedQuantity, issuedQuantity))
+        var matches = issue.Inventoryissuelines
+            .Where(line => line.IngredientId.SequenceEqual(ingredientId) && line.UnitId.SequenceEqual(unitId))
+            .ToList();
+        return matches.Count switch
+        {
+            1 => matches[0],
+            0 => throw new BusinessRuleException("Nguyên liệu trả phải tồn tại trong phiếu xuất gốc và cùng đơn vị tính."),
+            _ => throw new BusinessRuleException("Phiếu xuất có nhiều dòng cùng nguyên liệu/đơn vị; cần chỉ rõ SourceIssueLineId để giữ lineage.")
+        };
+    }
+
+    private static void ValidateReturnQuantity(
+        InventoryIssueLine sourceLine,
+        decimal alreadyAccounted,
+        decimal accountedQuantity)
+    {
+        if (!DecimalPolicy.GreaterThanQuantity(accountedQuantity, 0))
+        {
+            throw new BusinessRuleException("Số lượng trả/hao hụt phải lớn hơn 0.");
+        }
+
+        if (DecimalPolicy.GreaterThanQuantity(alreadyAccounted + accountedQuantity, sourceLine.IssuedQty))
         {
             throw new BusinessRuleException(
-                $"Số lượng trả/hao hụt vượt quá số lượng đã xuất. Đã xuất: {issuedQuantity}, đã ghi nhận: {alreadyAccounted}, ghi thêm: {accountedQuantity}.");
+                $"Số lượng trả/hao hụt vượt quá số lượng đã xuất. Đã xuất: {sourceLine.IssuedQty}, đã ghi nhận: {alreadyAccounted}, ghi thêm: {accountedQuantity}.");
+        }
+    }
+
+    private async Task EnsureReturnBalanceAfterAdjustmentAsync(
+        InventoryReturn inventoryReturn,
+        IReadOnlyDictionary<string, decimal> proposedAdjustments,
+        CancellationToken cancellationToken)
+    {
+        var issue = await _issueRepository.GetByIdWithLinesAsync(inventoryReturn.IssueId)
+            ?? throw new BusinessRuleException("Không tìm thấy phiếu xuất gốc để đối soát số lượng trả.");
+
+        var issuedBySourceLine = issue.Inventoryissuelines
+            .ToDictionary(line => GuidHelper.ToGuidString(line.IssueLineId), line => DecimalPolicy.RoundQuantity(line.IssuedQty));
+
+        var returnLines = await _context!.Inventoryreturnlines
+            .Include(line => line.Return)
+            .Where(line => line.Return.IssueId == inventoryReturn.IssueId)
+            .ToListAsync(cancellationToken);
+        var accountedBySourceLine = returnLines
+            .Where(line => line.SourceIssueLineId is not null)
+            .GroupBy(line => GuidHelper.ToGuidString(line.SourceIssueLineId!))
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(line => proposedAdjustments.GetValueOrDefault(
+                    Convert.ToHexString(line.ReturnLineId),
+                    line.Quantity))));
+
+        foreach (var (key, accountedQuantity) in accountedBySourceLine)
+        {
+            if (!issuedBySourceLine.TryGetValue(key, out var issuedQuantity) ||
+                DecimalPolicy.GreaterThanQuantity(accountedQuantity, issuedQuantity))
+            {
+                throw new BusinessRuleException(
+                    "Số lượng trả/hao hụt sau điều chỉnh vượt quá số lượng đã xuất của dòng nguồn.");
+            }
         }
     }
 

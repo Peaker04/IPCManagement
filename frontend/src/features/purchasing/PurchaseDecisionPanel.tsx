@@ -79,7 +79,7 @@ export function SupplierEvidenceList({
             variant="outline"
             size="sm"
             textWrap="wrap"
-            className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-3 py-2 text-left text-[14px] leading-normal transition-colors motion-reduce:transition-none ${
+            className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-3 py-2 text-left text-body leading-normal transition-colors motion-reduce:transition-none ${
               selected
                 ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-950'
                 : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
@@ -94,7 +94,7 @@ export function SupplierEvidenceList({
                 {selected ? 'Đang chọn' : 'Bằng chứng'}
               </StatusBadge>
             </span>
-            <span className="mt-1 block text-[12px] leading-[1.4] text-slate-600">
+            <span className="mt-1 block text-caption leading-[1.4] text-slate-600">
               {evidenceLabel(candidate)}. {formatCurrency(candidate.unitPrice)}/{candidate.unitName}
             </span>
           </Button>
@@ -109,8 +109,8 @@ export function PriceExceptionStatus({ serviceDate }: { serviceDate: PurchaseWor
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-2">
       <div>
-        <p className="text-[14px] font-semibold text-slate-900">Ngoại lệ giá</p>
-        <p className="text-[12px] leading-[1.4] text-slate-600">
+        <p className="text-body font-semibold text-slate-900">Ngoại lệ giá</p>
+        <p className="text-caption leading-[1.4] text-slate-600">
           {blocked
             ? `${serviceDate.blockingExceptionCount} ngoại lệ đang chặn đề xuất mua.`
             : 'Không còn ngoại lệ giá chặn ngày phục vụ này.'}
@@ -131,12 +131,12 @@ export function OrderHandoffStatus({ serviceDate, week }: { serviceDate: Purchas
   return (
     <div className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[14px] font-semibold text-slate-900">Tiến độ nhập kho chỉ đọc</p>
+        <p className="text-body font-semibold text-slate-900">Tiến độ nhập kho chỉ đọc</p>
         <StatusBadge variant={complete ? 'success' : partial ? 'warning' : 'neutral'}>
           {complete ? 'Đã nhận đủ' : partial ? 'Nhận một phần' : 'Chưa nhận'}
         </StatusBadge>
       </div>
-      <p className="mt-2 text-[14px] leading-[1.5] text-slate-700">
+      <p className="mt-2 text-body leading-[1.5] text-slate-700">
         {serviceDate.fullyReceivedLineCount}/{serviceDate.receivingLineCount} dòng đã nhận đủ trên {serviceDate.orderCount} đơn đặt hàng.
       </p>
       <Button nativeButton={false} className="mt-3 min-h-11 sm:min-h-9" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?week=${week}&purchaseRequestId=${serviceDate.purchaseRequestId ?? ''}`} />}>
@@ -276,7 +276,7 @@ export function PurchaseDecisionPanel({
   if (!serviceDate) {
     return (
       <SectionPanel title="Quyết định thu mua" icon={<ReceiptText size={18} aria-hidden="true" />}>
-        <p className="text-[14px] text-slate-600">Chọn một ngày phục vụ để xem hành động tiếp theo.</p>
+        <p className="text-body text-slate-600">Chọn một ngày phục vụ để xem hành động tiếp theo.</p>
       </SectionPanel>
     );
   }
@@ -300,7 +300,7 @@ export function PurchaseDecisionPanel({
 
         {selectedStage === 'demand' ? (
           <div className="space-y-3">
-            <label className="block text-[14px] font-semibold text-slate-900" htmlFor="approved-demand-selection">Nhu cầu nguyên liệu đã duyệt</label>
+            <label className="block text-body font-semibold text-slate-900" htmlFor="approved-demand-selection">Nhu cầu nguyên liệu đã duyệt</label>
             <Select
               value={selectedDemandId || EMPTY_DEMAND_SELECT_VALUE}
               onValueChange={(value) => setSelectedDemandId(value === EMPTY_DEMAND_SELECT_VALUE ? '' : (value ?? ''))}
@@ -321,7 +321,7 @@ export function PurchaseDecisionPanel({
               ))}
               </SelectContent>
             </Select>
-            <p id="purchase-demand-action-guidance" className="text-[12px] text-slate-600">
+            <p id="purchase-demand-action-guidance" className="text-caption text-slate-600">
               {selectedDemand
                 ? `${selectedDemand.requestCode}. ${formatDateOnly(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).`
                 : serviceDate.approvedDemands.length === 0
@@ -344,11 +344,11 @@ export function PurchaseDecisionPanel({
           <div className="space-y-4">
             {selectedLine ? (
               <div className="space-y-4">
-                <div className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-2 text-[14px]">
+                <div className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-2 text-body">
                   <p className="font-semibold text-slate-900">{selectedLine.ingredientName}</p>
-                  <p className="mt-1 text-[12px] text-slate-600">Cần mua {selectedLine.purchaseQty} {selectedLine.unitName}. Mã dòng {selectedLine.purchaseRequestLineId}.</p>
+                  <p className="mt-1 text-caption text-slate-600">Cần mua {selectedLine.purchaseQty} {selectedLine.unitName}. Mã dòng {selectedLine.purchaseRequestLineId}.</p>
                 </div>
-                {evidenceView.phase === 'loading' ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : evidenceView.phase === 'forbidden' ? (
+                {evidenceView.phase === 'loading' ? <p role="status" className="text-body text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : evidenceView.phase === 'forbidden' ? (
                   <InlineAlert title="Không có quyền xem bằng chứng nhà cung cấp" variant="danger">
                     <span role="alert">{evidenceView.message}</span>
                   </InlineAlert>
@@ -364,18 +364,18 @@ export function PurchaseDecisionPanel({
                   <InlineAlert title="Chưa chọn dòng nguyên liệu" variant="info">{evidenceView.instruction}</InlineAlert>
                 ) : (
                   <>
-                    {evidenceView.isRefreshing && <p role="status" className="text-[14px] text-slate-600">Đang cập nhật bằng chứng; danh sách hiện tại vẫn được giữ.</p>}
+                    {evidenceView.isRefreshing && <p role="status" className="text-body text-slate-600">Đang cập nhật bằng chứng; danh sách hiện tại vẫn được giữ.</p>}
                     <SupplierEvidenceList candidates={evidenceView.data.candidates} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
                   </>
                 )}
                 {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}
                 {selectedEvidence ? (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <label className="space-y-2 text-[14px] font-semibold text-slate-900">
+                    <label className="space-y-2 text-body font-semibold text-slate-900">
                       <span>Giá đề xuất</span>
                       <Input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
                     </label>
-                    <label className="space-y-2 text-[14px] font-semibold text-slate-900">
+                    <label className="space-y-2 text-body font-semibold text-slate-900">
                       <span>Ngày giao</span>
                       <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
                     </label>
@@ -389,11 +389,11 @@ export function PurchaseDecisionPanel({
                   Xác nhận nhà cung cấp
                 </Button>
               </div>
-            ) : <p className="text-[14px] text-slate-600">Chọn một dòng nguyên liệu trong bảng để xem bằng chứng.</p>}
+            ) : <p className="text-body text-slate-600">Chọn một dòng nguyên liệu trong bảng để xem bằng chứng.</p>}
 
             {canSubmitPurchaseRequest ? (
               <div className="rounded-[3px] border border-emerald-300 bg-emerald-50 px-3 py-3">
-                <p className="text-[14px] font-semibold text-emerald-950">Đã đủ nhà cung cấp, giá và ngày giao cho mọi dòng.</p>
+                <p className="text-body font-semibold text-emerald-950">Đã đủ nhà cung cấp, giá và ngày giao cho mọi dòng.</p>
                 <Button
                   className="mt-3 min-h-11 sm:min-h-9"
                   onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}
@@ -419,7 +419,7 @@ export function PurchaseDecisionPanel({
 
         {selectedStage === 'submitted' ? (
           <div className="space-y-3">
-            <p className="text-[14px] text-slate-700">Đề xuất mua: <strong>{serviceDate.purchaseRequestCode ?? 'Chưa tạo'}</strong>. Trạng thái: {serviceDate.purchaseRequestStatus ?? 'Chưa có'}.</p>
+            <p className="text-body text-slate-700">Đề xuất mua: <strong>{serviceDate.purchaseRequestCode ?? 'Chưa tạo'}</strong>. Trạng thái: {serviceDate.purchaseRequestStatus ?? 'Chưa có'}.</p>
             {serviceDate.purchaseRequestId && serviceDate.purchaseRequestStatus?.toUpperCase() === 'DRAFT' ? (
               <Button className="min-h-11 sm:min-h-9" onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}>Gửi đề xuất mua</Button>
             ) : (
@@ -434,7 +434,7 @@ export function PurchaseDecisionPanel({
               <OrderHandoffStatus serviceDate={serviceDate} week={week} />
             ) : (
               <>
-                <p className="text-[14px] text-slate-700">Chưa có đơn đặt hàng cho ngày phục vụ này.</p>
+                <p className="text-body text-slate-700">Chưa có đơn đặt hàng cho ngày phục vụ này.</p>
                 <Button className="min-h-11 sm:min-h-9" disabled={!serviceDate.purchaseRequestId || serviceDate.purchaseRequestStatus?.toUpperCase() !== 'APPROVED'} onClick={() => serviceDate.purchaseRequestId && setConfirmation({ type: 'create-orders', purchaseRequestId: serviceDate.purchaseRequestId })}>Tạo đơn đặt hàng</Button>
               </>
             )}
@@ -460,7 +460,7 @@ export function PurchaseDecisionPanel({
             <DialogDescription id="purchase-confirmation-description">{confirmationCopy.description}</DialogDescription>
           </DialogHeader>
           {confirmation?.type === 'supplier' && selectedLine && selectedEvidence ? (
-            <div className="space-y-2 rounded-[3px] border border-slate-300 bg-slate-50 p-3 text-[14px]">
+            <div className="space-y-2 rounded-[3px] border border-slate-300 bg-slate-50 p-3 text-body">
               <p><strong>Nguyên liệu:</strong> {selectedLine.ingredientName}</p>
               <p><strong>Nhà cung cấp:</strong> {selectedEvidence.supplierName}</p>
               <p><strong>Bằng chứng:</strong> {evidenceLabel(selectedEvidence)}</p>

@@ -298,7 +298,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: completionAvailability(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:113-116',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:245-258',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:246-259',
       'frontend/src/features/auth/pages/LoginPage.tsx:20-24',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs:15,34',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
@@ -318,7 +318,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:117-127',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:116-128',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:117-129',
       'backend/src/IPCManagement.Api/Program.cs:176-177',
     ],
     schedules: activeSchedules,
@@ -368,7 +368,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:121-124',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32,53-60',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:33,108-117',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:34,109-118',
       'frontend/src/routes/AppRouter.tsx:60',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:150-187',
     ],
@@ -388,7 +388,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:121-124',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32,53-60',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:107-128',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:108-129',
     ],
     schedules: activeSchedules,
     quantityPlans: completedPlans,

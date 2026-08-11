@@ -1,6 +1,6 @@
 using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Api.Shared.Lifecycle;
+namespace IPCManagement.Api.Infrastructure.Lifecycle;
 
 public interface ILifecycleTransitionRecorder
 {

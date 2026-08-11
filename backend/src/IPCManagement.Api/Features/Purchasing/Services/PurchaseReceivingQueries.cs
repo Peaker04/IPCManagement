@@ -69,6 +69,66 @@ internal sealed class PurchaseReceivingQueries(IpcManagementContext context)
         return receipts.SingleOrDefault(receipt => receipt.ReceiptId.AsSpan().SequenceEqual(receiptId));
     }
 
+    public async Task<ReceiptCorrection?> LoadReceiptCorrectionAsync(
+        byte[] correctionId,
+        CancellationToken cancellationToken)
+    {
+        var corrections = await context.Receiptcorrections
+            .Include(item => item.Lines)
+            .ToListAsync(cancellationToken);
+        return corrections.SingleOrDefault(item => item.CorrectionId.AsSpan().SequenceEqual(correctionId));
+    }
+
+    public async Task<Dictionary<string, decimal>> LoadCorrectedQuantitiesAsync(
+        byte[] receiptId,
+        CancellationToken cancellationToken)
+    {
+        var corrections = await context.Receiptcorrections
+            .Include(item => item.Lines)
+            .ToListAsync(cancellationToken);
+        return corrections
+            .Where(item => item.ReceiptId.AsSpan().SequenceEqual(receiptId))
+            .SelectMany(item => item.Lines)
+            .GroupBy(item => Convert.ToHexString(item.ReceiptLineId), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(item => item.Quantity)),
+                StringComparer.Ordinal);
+    }
+
+    public async Task<PurchaseOrder?> LoadOrderForReceiptAsync(
+        InventoryReceipt receipt,
+        CancellationToken cancellationToken)
+    {
+        if (receipt.PurchaseOrderId is not null)
+        {
+            return await LoadOrderAsync(receipt.PurchaseOrderId, cancellationToken);
+        }
+
+        var receiptRequestLineIds = receipt.Inventoryreceiptlines
+            .Where(line => line.PurchaseRequestLineId is not null)
+            .Select(line => Convert.ToHexString(line.PurchaseRequestLineId!))
+            .ToHashSet(StringComparer.Ordinal);
+        if (receiptRequestLineIds.Count == 0)
+        {
+            return null;
+        }
+
+        var matchingOrderIds = (await context.Purchaseorderlines
+                .AsNoTracking()
+                .ToListAsync(cancellationToken))
+            .Where(line => receiptRequestLineIds.Contains(Convert.ToHexString(line.PurchaseRequestLineId)))
+            .GroupBy(line => Convert.ToHexString(line.PurchaseOrderId), StringComparer.Ordinal)
+            .Where(group => receiptRequestLineIds.All(receiptLineId =>
+                group.Any(line => Convert.ToHexString(line.PurchaseRequestLineId) == receiptLineId)))
+            .Select(group => group.First().PurchaseOrderId)
+            .ToList();
+
+        return matchingOrderIds.Count == 1
+            ? await LoadOrderAsync(matchingOrderIds[0], cancellationToken)
+            : null;
+    }
+
     public async Task<bool> UnitExistsAsync(byte[] unitId, CancellationToken cancellationToken)
     {
         if (!IsInMemoryProvider())

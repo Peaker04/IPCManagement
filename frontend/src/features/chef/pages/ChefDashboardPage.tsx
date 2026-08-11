@@ -18,6 +18,8 @@ import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
 
 export default function ChefDashboardPage() {
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
@@ -92,7 +94,7 @@ export default function ChefDashboardPage() {
         </>
       )}
     >
-      <div className="ipc-operational-view">
+      <div className={cn(typography.body, 'ipc-operational-view')}>
         {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
         <ViewSwitcher
           compact
@@ -172,7 +174,7 @@ function ShiftControls({ activeDay, activeShift, onDayChange, onShiftChange }: S
   const activeDayLabel = DAYS_OF_WEEK.find((day) => day.key === activeDay)?.label ?? activeDay
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+    <div className={cn(typography.body, 'flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4')}>
       <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
       <div className="flex items-center gap-2">
         <Select value={activeDay} onValueChange={(value) => { if (value !== null) onDayChange(value) }}>

@@ -5,6 +5,7 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 
 using IPCManagement.Api.Exceptions;
 
@@ -354,22 +355,43 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId)
     {
         var receipt = await Context.Inventoryreceipts
-            .Include(item => item.PurchaseRequest)
             .FirstOrDefaultAsync(item => item.ReceiptId == targetId);
 
         if (receipt is null) return null;
 
-        var oldStatus = receipt.PurchaseRequest?.Status;
-        var newStatus = request.Status == ApprovalDecision.Approve ? "SENTTOWAREHOUSE" : "CANCELLED";
-
-        if (receipt.PurchaseRequest is not null)
+        if (receipt.Status != "PENDING_APPROVAL" || receipt.QualityStatus is not ("ACCEPTED" or "PARTIALLY_ACCEPTED"))
         {
-            receipt.PurchaseRequest.Status = newStatus;
-            receipt.PurchaseRequest.ApprovedBy = actorId;
-            receipt.PurchaseRequest.ApprovedAt = DateTime.UtcNow;
+            throw new BusinessRuleException("Chỉ phiếu nhập đã kiểm tra chất lượng và chờ duyệt mới được Quản lý quyết định.");
+        }
+        if (receipt.CreatedBy.SequenceEqual(actorId))
+        {
+            throw new BusinessRuleException("Người tạo phiếu nhập không được tự duyệt.");
         }
 
-        return await SaveHistoryAsync("inventory-receipt", targetId, request, actorId, oldStatus, newStatus);
+        var oldStatus = receipt.Status;
+        var newStatus = request.Status == ApprovalDecision.Approve ? "APPROVED" : "REJECTED";
+        receipt.Status = newStatus;
+        receipt.ConcurrencyVersion++;
+        if (request.Status == ApprovalDecision.Approve)
+        {
+            receipt.ManagerApprovedBy = actorId;
+            receipt.ManagerApprovedAt = DateTime.UtcNow;
+            receipt.ManagerApprovalReason = request.Reason;
+        }
+        else
+        {
+            receipt.RejectedBy = actorId;
+            receipt.RejectedAt = DateTime.UtcNow;
+            receipt.RejectionReason = request.Reason;
+        }
+
+        var result = await SaveHistoryAsync("inventory-receipt", targetId, request, actorId, oldStatus, newStatus);
+        new LifecycleTransitionRecorder(Context).Stage(new LifecycleTransitionRequest(
+            "Receipt", receipt.ReceiptId, result.HistoryId, checked((int)receipt.ConcurrencyVersion), oldStatus, newStatus,
+            actorId, receipt.ConcurrencyVersion - 1, request.Reason, result.HistoryId, null,
+            $"{{\"qualityStatus\":\"{receipt.QualityStatus}\"}}",
+            $"{{\"receiptId\":\"{GuidHelper.ToGuidString(receipt.ReceiptId)}\",\"status\":\"{newStatus}\"}}"));
+        return result;
     }
 }
 

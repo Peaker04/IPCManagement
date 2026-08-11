@@ -8,6 +8,7 @@ import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 import { formatDateOnly } from '@/lib/formatters';
+import { typography } from '@/lib/typography';
 
 type AdminEmployeesPanelProps = { model: AdminDataPageModel };
 
@@ -166,7 +167,7 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                         employeeRows.map((employee) => (
                           <tr key={employee.userId} className="align-top hover:bg-slate-50">
                             <td className="font-semibold text-slate-900">{employee.fullName}</td>
-                            <td className="font-mono text-slate-600">{employee.username}</td>
+                            <td className={`${typography.code} text-slate-600`}>{employee.username}</td>
                             <td>
                               <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                                 {employee.roleName}

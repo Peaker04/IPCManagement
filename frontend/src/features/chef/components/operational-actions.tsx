@@ -58,7 +58,7 @@ export function OperationalActions({
             <RotateCcw className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold text-slate-800 transition-colors duration-300 group-hover:text-blue-900 text-[14px]">
+            <h4 className="text-body font-semibold text-slate-800 transition-colors duration-300 group-hover:text-blue-900">
               Ghi nhận nguyên liệu thừa
             </h4>
             <p className="text-xs text-slate-500 leading-normal">

@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { typography } from '@/lib/typography';
 
 interface TableViewportProps {
   children: ReactNode;
@@ -24,7 +25,7 @@ export function TableViewport({ children, ariaLabel, caption, className, size = 
 
   return (
     <div
-      className={cn('ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain', viewportSizeClasses[size], className)}
+      className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain', viewportSizeClasses[size], className)}
       role="region"
       aria-label={ariaLabel}
       aria-describedby={caption ? captionId : undefined}

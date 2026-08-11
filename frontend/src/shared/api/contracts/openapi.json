@@ -2144,6 +2144,197 @@
         }
       }
     },
+    "/api/coordination/weekly-menu/amendments": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMenuAmendmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuAmendmentResultDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/review": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewMenuAmendmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/execute": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/{amendmentId}/break-glass-execute": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "amendmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/BreakGlassMenuAmendmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/coordination/orders": {
       "get": {
         "tags": [
@@ -5929,6 +6120,166 @@
         }
       }
     },
+    "/api/legacy-lineage-dispositions": {
+      "get": {
+        "tags": [
+          "LegacyLineageDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "LegacyLineageDispositions"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLegacyLineageDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLegacyLineageDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLegacyLineageDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/legacy-lineage-dispositions/candidates": {
+      "get": {
+        "tags": [
+          "LegacyLineageDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "legacyLineType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "legacyLineId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/legacy-lineage-dispositions/{id}/review": {
+      "post": {
+        "tags": [
+          "LegacyLineageDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewLegacyLineageDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewLegacyLineageDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewLegacyLineageDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/legacy-lineage-dispositions/{id}/apply": {
+      "post": {
+        "tags": [
+          "LegacyLineageDispositions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyLegacyLineageDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyLegacyLineageDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyLegacyLineageDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/material-demand/generate": {
       "post": {
         "tags": [
@@ -9577,6 +9928,270 @@
         }
       }
     },
+    "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/quality": {
+      "post": {
+        "tags": [
+          "WarehousePurchaseReceipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "purchaseOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptQualityDecisionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptQualityDecisionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptQualityDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/post": {
+      "post": {
+        "tags": [
+          "WarehousePurchaseReceipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "purchaseOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptPostRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptPostRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptPostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/rework": {
+      "post": {
+        "tags": [
+          "WarehousePurchaseReceipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "purchaseOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptReworkRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptReworkRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptReworkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/corrections": {
+      "post": {
+        "tags": [
+          "WarehousePurchaseReceipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "purchaseOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceiptCorrectionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceiptCorrectionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceiptCorrectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptCorrectionResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptCorrectionResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptCorrectionResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Warehouses": {
       "get": {
         "tags": [
@@ -12039,6 +12654,194 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workflow-reports/supply-line-reconciliation": {
+      "get": {
+        "tags": [
+          "WorkflowReports"
+        ],
+        "parameters": [
+          {
+            "name": "ServiceDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "DateFrom",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "DateTo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "WarehouseId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SupplierId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ShiftName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Format",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CursorDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CursorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "CursorOffset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortDirection",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Actor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "BusinessArea",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "EntityName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "FieldName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "GroupBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PriceTier",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "WarningOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplyLineReconciliationDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplyLineReconciliationDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplyLineReconciliationDtoIReadOnlyListApiResponse"
                 }
               }
             }
@@ -16510,6 +17313,27 @@
         },
         "additionalProperties": false
       },
+      "ApplyLegacyLineageDispositionRequest": {
+        "required": [
+          "commandId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ApprovalAssignment": {
         "required": [
           "approverRole",
@@ -17940,6 +18764,18 @@
         },
         "additionalProperties": false
       },
+      "BreakGlassMenuAmendmentRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "BulkUpdateWeeklyMenuRequest": {
         "required": [
           "customerId",
@@ -18581,6 +19417,10 @@
         ],
         "type": "object",
         "properties": {
+          "materialRequestLineId": {
+            "type": "string",
+            "nullable": true
+          },
           "ingredientId": {
             "minLength": 1,
             "type": "string"
@@ -18802,6 +19642,10 @@
         ],
         "type": "object",
         "properties": {
+          "sourceIssueLineId": {
+            "type": "string",
+            "nullable": true
+          },
           "ingredientId": {
             "minLength": 1,
             "type": "string"
@@ -18855,6 +19699,87 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CreateInventoryReturnLineRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateLegacyLineageDispositionRequest": {
+        "required": [
+          "commandId",
+          "legacyLineId",
+          "legacyLineType",
+          "reason",
+          "targetLineId"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "legacyLineType": {
+            "type": "string"
+          },
+          "legacyLineId": {
+            "type": "string"
+          },
+          "targetLineId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMenuAmendmentLineRequest": {
+        "required": [
+          "dishSlot",
+          "newDishId",
+          "serviceDate",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "dishSlot": {
+            "type": "string"
+          },
+          "newDishId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateMenuAmendmentRequest": {
+        "required": [
+          "customerId",
+          "lines",
+          "reason",
+          "weekStartDate"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "weekStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateMenuAmendmentLineRequest"
             }
           }
         },
@@ -18938,6 +19863,39 @@
           "reason": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateReceiptCorrectionRequest": {
+        "required": [
+          "commandId",
+          "expectedVersion",
+          "lines",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptCorrectionLineRequest"
+            }
           }
         },
         "additionalProperties": false
@@ -22131,6 +23089,11 @@
             "type": "string",
             "format": "byte"
           },
+          "materialRequestLineId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
           "requestedQty": {
             "type": "number",
             "format": "double"
@@ -22144,6 +23107,9 @@
           },
           "issue": {
             "$ref": "#/components/schemas/InventoryIssue"
+          },
+          "materialRequestLine": {
+            "$ref": "#/components/schemas/MaterialRequestLine"
           },
           "unit": {
             "$ref": "#/components/schemas/Unit"
@@ -22163,6 +23129,10 @@
         "properties": {
           "issueLineId": {
             "type": "string"
+          },
+          "materialRequestLineId": {
+            "type": "string",
+            "nullable": true
           },
           "ingredientId": {
             "type": "string"
@@ -22191,13 +23161,16 @@
       },
       "InventoryReceipt": {
         "required": [
+          "concurrencyVersion",
           "createdAt",
           "createdBy",
           "createdByNavigation",
           "inventoryreceiptlines",
+          "qualityStatus",
           "receiptCode",
           "receiptDate",
           "receiptId",
+          "status",
           "supplier",
           "supplierId",
           "warehouse",
@@ -22229,6 +23202,11 @@
             "format": "byte",
             "nullable": true
           },
+          "purchaseOrderId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
           "createdBy": {
             "type": "string",
             "format": "byte"
@@ -22236,6 +23214,64 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "qualityStatus": {
+            "type": "string"
+          },
+          "qualityCheckedBy": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "qualityCheckedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "managerApprovedBy": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "managerApprovedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "managerApprovalReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "postedBy": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rejectedBy": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "rejectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
           },
           "createdByNavigation": {
             "$ref": "#/components/schemas/User"
@@ -22298,12 +23334,15 @@
       },
       "InventoryReceiptDto": {
         "required": [
+          "concurrencyVersion",
           "createdAt",
           "createdBy",
           "lines",
+          "qualityStatus",
           "receiptCode",
           "receiptDate",
           "receiptId",
+          "status",
           "supplierId",
           "warehouseId"
         ],
@@ -22337,6 +23376,10 @@
             "type": "string",
             "nullable": true
           },
+          "purchaseOrderId": {
+            "type": "string",
+            "nullable": true
+          },
           "createdBy": {
             "type": "string"
           },
@@ -22347,6 +23390,31 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "qualityStatus": {
+            "type": "string"
+          },
+          "qualityCheckedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "managerApprovedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "lines": {
             "type": "array",
@@ -22495,6 +23563,20 @@
             "format": "double",
             "nullable": true
           },
+          "acceptedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "rejectedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "qualityReason": {
+            "type": "string",
+            "nullable": true
+          },
           "packageQuantitySnapshot": {
             "type": "number",
             "format": "double",
@@ -22593,6 +23675,20 @@
           "expiredDate": {
             "type": "string",
             "format": "date",
+            "nullable": true
+          },
+          "acceptedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "rejectedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "qualityReason": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -22927,6 +24023,11 @@
             "type": "string",
             "format": "byte"
           },
+          "sourceIssueLineId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
           "quantity": {
             "type": "number",
             "format": "double"
@@ -22936,6 +24037,9 @@
           },
           "return": {
             "$ref": "#/components/schemas/InventoryReturn"
+          },
+          "sourceIssueLine": {
+            "$ref": "#/components/schemas/InventoryIssueLine"
           },
           "unit": {
             "$ref": "#/components/schemas/Unit"
@@ -22954,6 +24058,10 @@
         "properties": {
           "returnLineId": {
             "type": "string"
+          },
+          "sourceIssueLineId": {
+            "type": "string",
+            "nullable": true
           },
           "ingredientId": {
             "type": "string"
@@ -22983,6 +24091,8 @@
           "issueDate",
           "issuedQty",
           "issueId",
+          "issueLineId",
+          "legacyUnattributedReturnLineCount",
           "returnedQty",
           "unitId",
           "usedQty",
@@ -22992,6 +24102,9 @@
         "type": "object",
         "properties": {
           "issueId": {
+            "type": "string"
+          },
+          "issueLineId": {
             "type": "string"
           },
           "issueCode": {
@@ -23038,6 +24151,10 @@
           "varianceQty": {
             "type": "number",
             "format": "double"
+          },
+          "legacyUnattributedReturnLineCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -23313,6 +24430,47 @@
             "$ref": "#/components/schemas/KitchenIssueReportDtoPagedResponseDto"
           },
           "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LegacyLineageDispositionReportDto": {
+        "required": [
+          "legacyLineId",
+          "legacyLineType",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "legacyLineType": {
+            "type": "string"
+          },
+          "legacyLineId": {
+            "type": "string"
+          },
+          "dispositionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "targetLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
             "nullable": true
           }
         },
@@ -24008,6 +25166,7 @@
           "grossQtyPerServing",
           "ingredient",
           "ingredientId",
+          "inventoryissuelines",
           "planLine",
           "planLineId",
           "priceTierAmount",
@@ -24109,6 +25268,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestLine"
+            }
+          },
+          "inventoryissuelines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryIssueLine"
             }
           },
           "request": {
@@ -24514,6 +25679,74 @@
             "items": {
               "$ref": "#/components/schemas/ProductionPlanLine"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MenuAmendmentResultDto": {
+        "required": [
+          "affectedDemandCount",
+          "affectedPurchaseRequestCount",
+          "hasIssue",
+          "hasPurchaseOrder",
+          "hasReceipt",
+          "menuAmendmentId",
+          "requiresReconciliation",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "menuAmendmentId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "requiresReconciliation": {
+            "type": "boolean"
+          },
+          "affectedDemandCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "affectedPurchaseRequestCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPurchaseOrder": {
+            "type": "boolean"
+          },
+          "hasReceipt": {
+            "type": "boolean"
+          },
+          "hasIssue": {
+            "type": "boolean"
+          },
+          "appliedMenuVersionId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MenuAmendmentResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MenuAmendmentResultDto"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -28662,6 +29895,127 @@
         },
         "additionalProperties": false
       },
+      "ReceiptCorrectionLineRequest": {
+        "required": [
+          "quantity",
+          "receiptLineId"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptLineId": {
+            "maxLength": 36,
+            "minLength": 1,
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptCorrectionLineResultDto": {
+        "required": [
+          "ingredientId",
+          "quantity",
+          "receiptLineId",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptCorrectionResultDto": {
+        "required": [
+          "concurrencyVersion",
+          "correctionCode",
+          "correctionId",
+          "lines",
+          "receiptId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "correctionId": {
+            "type": "string"
+          },
+          "correctionCode": {
+            "type": "string"
+          },
+          "receiptId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptCorrectionLineResultDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptCorrectionResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReceiptCorrectionResultDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptPostRequest": {
+        "required": [
+          "commandId",
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReceiptPriceVarianceReportDto": {
         "required": [
           "ingredientId",
@@ -28821,6 +30175,87 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptQualityDecisionLineRequest": {
+        "required": [
+          "acceptedQuantity",
+          "receiptLineId",
+          "rejectedQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptLineId": {
+            "maxLength": 36,
+            "minLength": 1,
+            "type": "string"
+          },
+          "acceptedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "rejectedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptQualityDecisionRequest": {
+        "required": [
+          "commandId",
+          "expectedVersion",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptQualityDecisionLineRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptReworkRequest": {
+        "required": [
+          "commandId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -29073,6 +30508,47 @@
             "$ref": "#/components/schemas/ResolvedPortionRuleDto"
           },
           "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewLegacyLineageDispositionRequest": {
+        "required": [
+          "approve",
+          "commandId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approve": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewMenuAmendmentRequest": {
+        "required": [
+          "approved"
+        ],
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -31578,6 +33054,149 @@
         },
         "additionalProperties": false
       },
+      "SupplyLineReconciliationDto": {
+        "required": [
+          "deltaQty",
+          "demandQty",
+          "disposition",
+          "ingredientId",
+          "issuedQty",
+          "kitchenAcknowledgedQty",
+          "legacyLineageDispositions",
+          "legacyLineageExceptionCount",
+          "materialRequestCode",
+          "materialRequestId",
+          "materialRequestLineId",
+          "postedAcceptedReceiptQty",
+          "purchaseOrderAllocatedQty",
+          "purchaseRequestAllocatedQty",
+          "requestDate",
+          "returnedQty",
+          "supplementalFulfilledQty",
+          "supplementalPurchaseAllocatedQty",
+          "supplementalRequestedQty",
+          "unitId",
+          "wastedQty"
+        ],
+        "type": "object",
+        "properties": {
+          "materialRequestId": {
+            "type": "string"
+          },
+          "materialRequestLineId": {
+            "type": "string"
+          },
+          "materialRequestCode": {
+            "type": "string"
+          },
+          "requestDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "demandQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "purchaseRequestAllocatedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "purchaseOrderAllocatedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "postedAcceptedReceiptQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "issuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "kitchenAcknowledgedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "returnedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "wastedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "supplementalRequestedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "supplementalFulfilledQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "supplementalPurchaseAllocatedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "deltaQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "disposition": {
+            "type": "string"
+          },
+          "legacyLineageExceptionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "legacyLineageDispositions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegacyLineageDispositionReportDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupplyLineReconciliationDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupplyLineReconciliationDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "Unit": {
         "required": [
           "convertRateToBase",
@@ -32711,11 +34330,14 @@
       },
       "WarehousePurchaseReceiptResultDto": {
         "required": [
+          "concurrencyVersion",
           "evidenceRequirements",
           "idempotencyKey",
           "purchaseOrderId",
           "purchaseOrderStatus",
-          "receiptId"
+          "qualityStatus",
+          "receiptId",
+          "receiptStatus"
         ],
         "type": "object",
         "properties": {
@@ -32730,6 +34352,16 @@
           },
           "purchaseOrderStatus": {
             "type": "string"
+          },
+          "receiptStatus": {
+            "type": "string"
+          },
+          "qualityStatus": {
+            "type": "string"
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
           },
           "evidenceRequirements": {
             "type": "array",

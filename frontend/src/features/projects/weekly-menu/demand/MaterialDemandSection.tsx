@@ -8,13 +8,13 @@ import { ActionGuard } from '@/components/common/ActionGuard'
 import { Button } from '@/components/ui/button'
 import { ROUTES } from '@/lib/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
-import type { WeeklyScheduleEditorWorkflow } from '../schedule/types'
-import type { WeeklyScheduleFeedback } from '../schedule/types'
+import type { WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../schedule/types'
+import type { DemandLine } from '@/types/workflow'
 import type { MaterialDemandWorkflow } from './useMaterialDemand'
 import { getDemandActionPresentation } from './demandModel'
+import { typography } from '@/lib/typography'
 const tableHeadClass = 'text-center'
 const tableCellClass = 'text-center'
-
 export function MaterialDemandSection({
   workflow,
   scheduleWorkflow,
@@ -32,6 +32,9 @@ export function MaterialDemandSection({
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
   const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
   const purchasingHref = `${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`
+  const renderPurchaseAction = (line: DemandLine) => line.tone === 'danger' && line.serviceDate
+    ? <Link className="ipc-button ipc-button-warning ipc-button-bounded whitespace-nowrap" to={`${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(line.serviceDate)}`}>Đề xuất mua</Link>
+    : undefined
   const activeShiftGroups = Array.from(new Set(activeRows.map((row) => row.shiftLabel))).map((shiftLabel) => {
     const rows = activeRows.filter((row) => row.shiftLabel === shiftLabel)
     return {
@@ -52,8 +55,7 @@ export function MaterialDemandSection({
     ? 'Đang lưu suất...'
     : status.isGenerating
       ? 'Đang tính nhu cầu...'
-      : status.stalenessState === 'loading'
-        ? 'Đang kiểm tra độ mới...'
+      : status.stalenessState === 'loading' ? 'Đang kiểm tra độ mới...'
         : status.stalenessState === 'error'
           ? 'Chưa xác minh được độ mới'
           : presentation.demandApprovalStatus.status === 'pending' || presentation.demandApprovalStatus.status === 'rejected' || presentation.demandApprovalStatus.status === 'cancelled' || presentation.activeStaleness?.isStale
@@ -88,7 +90,7 @@ export function MaterialDemandSection({
             {presentation.demandApprovalStatus.label}
           </StatusBadge>
           {presentation.demandApprovalStatus.documentCode && (
-            <span className="max-w-[220px] truncate font-mono text-xs font-semibold text-slate-600" title={presentation.demandApprovalStatus.documentCode}>
+            <span className={cn(typography.code, 'max-w-[220px] truncate text-xs font-semibold text-slate-600')} title={presentation.demandApprovalStatus.documentCode}>
               {presentation.demandApprovalStatus.documentCode}
             </span>
           )}
@@ -305,7 +307,7 @@ export function MaterialDemandSection({
                 {inventoryGroups.exceptionLines.length > 0 ? (
                   <div className="ipc-demand-exception-block">
                     <div><TriangleAlert size={17} aria-hidden="true" /><strong>{inventoryGroups.exceptionLines.length} nguyên liệu cần xử lý trước</strong><span>Thiếu hàng hoặc dữ liệu cần tính lại</span></div>
-                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Món ăn" />
+                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Món ăn" renderAction={renderPurchaseAction} />
                   </div>
                 ) : <InlineAlert title="Không có thiếu hụt trong ngày" variant="info">Tất cả nguyên liệu ngày đang xem đã đủ theo dữ liệu tồn khả dụng.</InlineAlert>}
                 {inventoryGroups.sufficientLines.length > 0 && (

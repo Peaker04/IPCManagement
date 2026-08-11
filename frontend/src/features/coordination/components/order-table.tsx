@@ -11,6 +11,7 @@ import { useLocalPagination } from '@/lib/useLocalPagination'
 import { ClipboardList, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { typography } from '@/lib/typography'
 
 type DishDetailDialogComponent = typeof import('./dish-detail-dialog')['DishDetailDialog']
 
@@ -303,7 +304,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
             <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--ipc-slate-50)]'}`}>
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
-                <div className="font-mono text-xs text-slate-400 mt-0.5">{order.customerCode}</div>
+                <div className={`${typography.code} mt-0.5 text-xs text-slate-400`}>{order.customerCode}</div>
               </td>
 
               <td className="border-r border-slate-200 text-slate-600">
@@ -404,7 +405,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
 
               <td className="text-center">
                 <span
-                  className={`inline-flex items-center gap-0.5 min-w-12 justify-center rounded-md border px-1.5 py-1 text-[12px] font-bold ${
+                  className={`inline-flex items-center gap-0.5 min-w-12 justify-center rounded-md border px-1.5 py-1 text-label font-bold ${
                     variance === 0
                       ? 'border-teal-200 bg-teal-50 text-teal-800'
                       : variance < 0

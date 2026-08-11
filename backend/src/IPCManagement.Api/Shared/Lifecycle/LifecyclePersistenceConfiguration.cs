@@ -2,7 +2,7 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace IPCManagement.Api.Shared.Lifecycle;
+namespace IPCManagement.Api.Infrastructure.Lifecycle;
 
 internal sealed class LifecycleTransitionConfiguration : IEntityTypeConfiguration<LifecycleTransition>
 {
@@ -74,5 +74,29 @@ internal sealed class LifecycleCommandReceiptConfiguration : IEntityTypeConfigur
         entity.Property(item => item.AggregateId).HasMaxLength(16).IsFixedLength().HasColumnName("aggregateId");
         entity.Property(item => item.ResponseJson).HasColumnType("longtext").HasColumnName("responseJson");
         entity.Property(item => item.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("createdAt");
+    }
+}
+
+internal sealed class LifecycleOutboxDeliveryConfiguration : IEntityTypeConfiguration<LifecycleOutboxDelivery>
+{
+    public void Configure(EntityTypeBuilder<LifecycleOutboxDelivery> entity)
+    {
+        entity.HasKey(item => item.DeliveryId).HasName("PRIMARY");
+        entity.ToTable("lifecycleoutboxdeliveries");
+        entity.HasIndex(
+                item => new { item.OutboxMessageId, item.ConsumerName },
+                "uqLifecycleOutboxDeliveriesMessageConsumer")
+            .IsUnique();
+
+        entity.Property(item => item.DeliveryId).HasMaxLength(16).IsFixedLength().HasColumnName("deliveryId");
+        entity.Property(item => item.OutboxMessageId).HasMaxLength(16).IsFixedLength().HasColumnName("outboxMessageId");
+        entity.Property(item => item.ConsumerName).HasMaxLength(120).HasColumnName("consumerName");
+        entity.Property(item => item.ProcessedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("processedAt");
+
+        entity.HasOne<LifecycleOutboxMessage>()
+            .WithMany()
+            .HasForeignKey(item => item.OutboxMessageId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("fkLifecycleOutboxDeliveriesMessage");
     }
 }

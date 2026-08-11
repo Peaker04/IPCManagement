@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { typography } from '@/lib/typography';
 
 interface SectionPanelProps {
   title?: ReactNode;
@@ -45,7 +46,7 @@ export function SectionPanel({
       {(title || badge) && (
         <div className={cn('ipc-section-header flex flex-wrap items-center justify-between gap-3', description ? 'mb-2' : 'mb-5')}>
           {title && (
-            <HeadingTag className={cn('ipc-section-title m-0 flex items-center gap-2 font-semibold', titleToneClasses[tone])}>
+            <HeadingTag className={cn(typography.sectionTitle, 'ipc-section-title m-0 flex items-center gap-2', titleToneClasses[tone])}>
               {icon}
               <span>{title}</span>
             </HeadingTag>

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
@@ -11,6 +12,7 @@ interface DemandSummaryProps {
   className?: string;
   sourceLabel?: string;
   showServiceDate?: boolean;
+  renderAction?: (line: DemandLine) => ReactNode;
 }
 
 const formatVariance = (value: number, unit: string) => {
@@ -47,7 +49,7 @@ const shortenNextAction = (action: string) => {
   return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;
 };
 
-export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showServiceDate = false }: DemandSummaryProps) {
+export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showServiceDate = false, renderAction }: DemandSummaryProps) {
   if (!lines.length) {
     return (
       <EmptyState
@@ -104,9 +106,11 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                     </StatusBadge>
                   </td>
                   <td className="text-center whitespace-nowrap">
-                    <span className={cn('ipc-demand-next-action', `is-${line.tone}`)} title={line.nextAction}>
-                      {shortenNextAction(line.nextAction)}
-                    </span>
+                    {renderAction?.(line) ?? (
+                      <span className={cn('ipc-demand-next-action', `is-${line.tone}`)} title={line.nextAction}>
+                        {shortenNextAction(line.nextAction)}
+                      </span>
+                    )}
                   </td>
                 </tr>
               );

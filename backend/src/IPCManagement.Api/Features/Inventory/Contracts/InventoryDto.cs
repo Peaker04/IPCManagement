@@ -15,9 +15,16 @@ public class InventoryReceiptDto
     public string   WarehouseId      { get; set; } = string.Empty;
     public string?  WarehouseName    { get; set; }
     public string?  PurchaseRequestId { get; set; }
+    public string?  PurchaseOrderId   { get; set; }
     public string   CreatedBy        { get; set; } = string.Empty;
     public string?  CreatedByName    { get; set; }
     public DateTime CreatedAt        { get; set; }
+    public string Status { get; set; } = "DRAFT";
+    public string QualityStatus { get; set; } = "PENDING_INSPECTION";
+    public DateTime? QualityCheckedAt { get; set; }
+    public long ConcurrencyVersion { get; set; }
+    public DateTime? ManagerApprovedAt { get; set; }
+    public DateTime? PostedAt { get; set; }
 
     public List<InventoryReceiptLineDto> Lines { get; set; } = new();
 }
@@ -35,6 +42,9 @@ public class InventoryReceiptLineDto
     public string?  LotNumber      { get; set; }
     public DateOnly? ManufactureDate { get; set; }
     public DateOnly? ExpiredDate   { get; set; }
+    public decimal? AcceptedQuantity { get; set; }
+    public decimal? RejectedQuantity { get; set; }
+    public string? QualityReason { get; set; }
 }
 
 // ─── Create Inventory Receipt ────────────────────────────────────────────
@@ -148,6 +158,7 @@ public class InventoryIssueFilterRequestDto : PagedRequestDto
 public class InventoryIssueLineDto
 {
     public string   IssueLineId    { get; set; } = string.Empty;
+    public string?  MaterialRequestLineId { get; set; }
     public string   IngredientId   { get; set; } = string.Empty;
     public string?  IngredientName { get; set; }
     public decimal  RequestedQty   { get; set; }
@@ -178,6 +189,8 @@ public class CreateInventoryIssueRequest
 
 public class CreateInventoryIssueLineRequest
 {
+    public string? MaterialRequestLineId { get; set; }
+
     [Required]
     public string IngredientId { get; set; } = string.Empty;
 
@@ -255,6 +268,7 @@ public class InventoryReturnDto
 public class InventoryReturnLineDto
 {
     public string ReturnLineId { get; set; } = string.Empty;
+    public string? SourceIssueLineId { get; set; }
     public string IngredientId { get; set; } = string.Empty;
     public string? IngredientName { get; set; }
     public decimal Quantity { get; set; }
@@ -287,6 +301,8 @@ public class CreateInventoryReturnRequest
 
 public class CreateInventoryReturnLineRequest
 {
+    public string? SourceIssueLineId { get; set; }
+
     [Required]
     public string IngredientId { get; set; } = string.Empty;
 

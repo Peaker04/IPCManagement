@@ -743,7 +743,11 @@ public partial class PurchaseHistoryReconciliationTests
                 CREATE TABLE inventoryreceipts (
                     receiptId BLOB PRIMARY KEY, receiptCode TEXT NOT NULL UNIQUE,
                     receiptDate TEXT NOT NULL, warehouseId BLOB NOT NULL, supplierId BLOB NOT NULL,
-                    purchaseRequestId BLOB NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL);
+                    purchaseRequestId BLOB NULL, purchaseOrderId BLOB NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'DRAFT', qualityStatus TEXT NOT NULL DEFAULT 'PENDING_INSPECTION',
+                    concurrencyVersion INTEGER NOT NULL DEFAULT 0, qualityCheckedBy BLOB NULL, qualityCheckedAt TEXT NULL, managerApprovedBy BLOB NULL,
+                    managerApprovedAt TEXT NULL, managerApprovalReason TEXT NULL, postedBy BLOB NULL,
+                    postedAt TEXT NULL, rejectedBy BLOB NULL, rejectedAt TEXT NULL, rejectionReason TEXT NULL);
                 CREATE TABLE inventoryreceiptlines (
                     receiptLineId BLOB PRIMARY KEY, receiptId BLOB NOT NULL,
                     purchaseRequestLineId BLOB NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
@@ -751,7 +755,8 @@ public partial class PurchaseHistoryReconciliationTests
                     amount NUMERIC GENERATED ALWAYS AS (quantity * unitPrice) STORED,
                     packageQuantitySnapshot NUMERIC NULL, packageBaseUnitIdSnapshot BLOB NULL,
                     packagePolicyVersionSnapshot TEXT NULL, lotNumber TEXT NULL,
-                    manufactureDate TEXT NULL, expiredDate TEXT NULL);
+                    manufactureDate TEXT NULL, expiredDate TEXT NULL, acceptedQuantity NUMERIC NULL,
+                    rejectedQuantity NUMERIC NULL, qualityReason TEXT NULL);
                 CREATE TABLE stockmovements (
                     movementId BLOB PRIMARY KEY, movementDate TEXT NOT NULL, warehouseId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, movementType TEXT NOT NULL,

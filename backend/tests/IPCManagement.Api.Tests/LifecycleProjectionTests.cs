@@ -1,5 +1,5 @@
 using FluentAssertions;
-using IPCManagement.Api.Shared.Lifecycle;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 
 namespace IPCManagement.Api.Tests;
 

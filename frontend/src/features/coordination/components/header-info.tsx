@@ -9,6 +9,7 @@ import { useAppDispatch } from '@/lib/reduxHooks'
 import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { setCurrentServiceDate, setCurrentShift } from '../coordinationSlice'
 import { useCountdown } from './hooks'
+import { typography } from '@/lib/typography'
 
 interface HeaderInfoProps {
   status: string
@@ -76,7 +77,7 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
             <CalendarClock className="size-4" aria-hidden="true" />
             <span className="text-xs font-semibold">{isPastCutoff ? 'Đã qua 08:30 ·' : 'Còn tới 08:30'}</span>
             {isPastCutoff && <strong className="text-xs">Cần chốt thủ công</strong>}
-            {!isPastCutoff && <span className="font-mono text-sm font-bold tabular-nums">{timeRemaining}</span>}
+            {!isPastCutoff && <span className={`${typography.code} text-sm font-bold tabular-nums`}>{timeRemaining}</span>}
           </div>
         )}
       </div>

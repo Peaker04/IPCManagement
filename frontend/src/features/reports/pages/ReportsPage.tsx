@@ -11,6 +11,7 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { typography } from '@/lib/typography';
 import {
   CommandBar,
   ContextStrip,
@@ -31,6 +32,7 @@ import { formatCurrency, formatDateOnly, formatDateTime, formatQuantityWithUnit 
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
+import { useGetSupplyLineReconciliationQuery } from '@/api/workflowApi';
 import {
   standardPageSizeOptions,
   useReportsPageModel,
@@ -41,20 +43,30 @@ import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import { ReportsPricePanel } from './ReportsPricePanel';
 import { ServiceRunReportPanel } from './ServiceRunReportPanel';
+import { LegacyLineageDispositionPanel } from '../LegacyLineageDispositionPanel';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const EMPTY_SHIFT_SELECT_VALUE = '__all-shifts__';
+
+const reconciliationTone = (disposition: string) => {
+  if (disposition === 'MATCHED') return 'success' as const;
+  if (disposition.includes('LEGACY') || disposition.includes('OVER_ISSUED')) return 'danger' as const;
+  if (disposition.includes('PENDING') || disposition.includes('OPEN')) return 'warning' as const;
+  return 'info' as const;
+};
 
 const ReportsPage = () => {
   const canReadPurchaseReports = useHasPermission('purchase.read');
   const canReadWarehouseReports = useHasPermission('warehouse.read');
   const canReadAuditChanges = useHasRole(['admin']);
   const model = useReportsPageModel({ canReadAuditChanges, canReadPurchaseReports, canReadWarehouseReports });
-  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dateFrom, dateTo, demandPage, demandPageSize, demandSearch, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, movementSearch, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, purchaseSearch, reportContextItems, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setDemandSearch, setKitchenPage, setMovementCursors, setMovementSearch, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setPurchaseSearch, setShiftName, setSortDirection, setStockPage, setStockPageSize, setStockSearch, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, stockSearch, usagePage, usageResult, usageRows } = model;
+  const { activeReportView, activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dateFrom, dateTo, demandPage, demandPageSize, demandSearch, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, movementSearch, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, purchaseSearch, reportContextItems, reportQuery, resetCursorPages, resetReportPagesAndUrl, setAuditCursors, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setDemandSearch, setKitchenPage, setMovementCursors, setMovementSearch, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setPurchaseSearch, setShiftName, setSortDirection, setStockPage, setStockPageSize, setStockSearch, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, stockSearch, usagePage, usageResult, usageRows } = model;
+  const reconciliationResult = useGetSupplyLineReconciliationQuery(reportQuery, { skip: activeView !== 'usage' });
+  const reconciliationRows = reconciliationResult.data ?? [];
 return (
     <OperationalFrame
-      className="ipc-reports-page"
+      className={`${typography.body} ipc-reports-page`}
       eyebrow="Dữ liệu vận hành"
       title="Phân tích và thống kê vận hành"
       command={
@@ -375,7 +387,7 @@ return (
               <tbody>
                 {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
-                    <td className="font-mono">{row.issueCode}</td>
+                    <td className={typography.code}>{row.issueCode}</td>
                     <td>{formatDateOnly(row.issueDate)}</td>
                     <td>{row.shiftName ?? 'Cả ngày'}</td>
                     <td>{row.warehouse}</td>
@@ -401,6 +413,7 @@ return (
       )}
 
       {activeView === 'usage' && (
+        <>
         <SectionPanel title="Sử dụng thực tế của bếp: đã xuất - hoàn kho" icon={<RotateCcw size={18} />}>
           <TableViewport ariaLabel="Bảng sử dụng thực tế sau hoàn kho">
             <table className="ipc-data-table min-w-[720px]">
@@ -418,7 +431,7 @@ return (
               <tbody>
                 {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
-                    <td className="font-mono">{row.issueCode}</td>
+                    <td className={typography.code}>{row.issueCode}</td>
                     <td>{formatDateOnly(row.issueDate)}</td>
                     <td>{row.shiftName ?? 'Cả ngày'}</td>
                     <td>{row.ingredient}</td>
@@ -441,6 +454,52 @@ return (
             onPageChange={(nextPage) => setNumberedPage(setUsagePage, nextPage)}
           />
         </SectionPanel>
+        <SectionPanel
+          title="Đối soát lifecycle theo dòng nhu cầu"
+          icon={<ArrowLeftRight size={18} />}
+          description="Không gộp theo tên nguyên liệu. Dòng legacy không có nguồn được giữ ở trạng thái cần đối soát."
+        >
+          <TableViewport ariaLabel="Bảng đối soát nguồn cung theo dòng nhu cầu">
+            <table className="ipc-data-table min-w-[1300px]">
+              <thead>
+                <tr>
+                  <th>Nhu cầu nguồn</th>
+                  <th>Nguyên liệu</th>
+                  <th>Cần</th>
+                  <th>PR/PO</th>
+                  <th>Nhập POSTED</th>
+                  <th>Đã xuất</th>
+                  <th>Bếp nhận</th>
+                  <th>Bổ sung<br />(YC/cấp/PR)</th>
+                  <th>Hoàn/Hao</th>
+                  <th>Delta</th>
+                  <th>Disposition</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reconciliationRows.length === 0 ? <EmptyRow colSpan={11} isError={reconciliationResult.isError} /> : reconciliationRows.map((row) => (
+                  <tr key={row.materialRequestLineId}>
+                    <td className={typography.code}>{row.materialRequestCode}</td>
+                    <td>{row.ingredientName ?? row.ingredientId}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.demandQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.purchaseRequestAllocatedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.purchaseOrderAllocatedQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.postedAcceptedReceiptQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.issuedQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.kitchenAcknowledgedQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.supplementalRequestedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalFulfilledQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalPurchaseAllocatedQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.returnedQty + row.wastedQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell font-bold">{formatQuantityWithUnit(row.deltaQty, row.unitName ?? '')}</td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${row.disposition} · ${row.legacyLineageExceptionCount}` : row.disposition}</StatusBadge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableViewport>
+        </SectionPanel>
+        {reconciliationRows.some((row) => Array.isArray(row.legacyLineageDispositions)) && (
+          <LegacyLineageDispositionPanel rows={reconciliationRows} />
+        )}
+        </>
       )}
 
       {activeView === 'audit' && (

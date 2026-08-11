@@ -12,15 +12,15 @@ public sealed class WeeklyMenuLifecyclePa2RegistrySourceTests
     [Fact]
     public void Backend_permission_and_lifecycle_sources_used_by_pa2_registry_are_still_present()
     {
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Program.cs", 165)
+        ReadWorkspaceFile("backend/src/IPCManagement.Api/Program.cs")
             .Should().Contain("options.AddPolicy(AuthorizationPolicies.CoordinationAccess, policy =>");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Program.cs", 166)
+        ReadWorkspaceFile("backend/src/IPCManagement.Api/Program.cs")
             .Should().Contain("RequireRole(AuthorizationPolicies.CoordinationRoles)");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Program.cs", 176)
+        ReadWorkspaceFile("backend/src/IPCManagement.Api/Program.cs")
             .Should().Contain("options.AddPolicy(AuthorizationPolicies.DemandGenerateAccess, policy =>");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Program.cs", 177)
+        ReadWorkspaceFile("backend/src/IPCManagement.Api/Program.cs")
             .Should().Contain("RequireRole(AuthorizationPolicies.CoordinationRoles)");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs", 42)
+        ReadWorkspaceFile("backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs")
             .Should().Contain("public static readonly string[] CoordinationRoles");
         ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs", 149)
             .Should().Contain("if (request.Complete && schedules.Any(schedule =>");
@@ -61,6 +61,13 @@ public sealed class WeeklyMenuLifecyclePa2RegistrySourceTests
         var workspaceRoot = FindWorkspaceRoot();
         var path = Path.Combine(workspaceRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
         return File.ReadAllLines(path)[lineNumber - 1];
+    }
+
+    private static string ReadWorkspaceFile(string relativePath)
+    {
+        var workspaceRoot = FindWorkspaceRoot();
+        var path = Path.Combine(workspaceRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        return File.ReadAllText(path);
     }
 
     private static string FindWorkspaceRoot()

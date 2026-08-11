@@ -26,7 +26,6 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<AuditLog> Auditlogs { get; set; }
 
-
     public virtual DbSet<ApprovalHistory> Approvalhistories { get; set; }
 
     public virtual DbSet<BomAdjustment> Bomadjustments { get; set; }
@@ -57,9 +56,15 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<InventoryReceiptLine> Inventoryreceiptlines { get; set; }
 
+    public virtual DbSet<ReceiptCorrection> Receiptcorrections { get; set; }
+
+    public virtual DbSet<ReceiptCorrectionLine> Receiptcorrectionlines { get; set; }
+
     public virtual DbSet<InventoryReturn> Inventoryreturns { get; set; }
 
     public virtual DbSet<InventoryReturnLine> Inventoryreturnlines { get; set; }
+
+    public virtual DbSet<LegacyLineageDisposition> Legacylinedispositions { get; set; }
 
     public virtual DbSet<MaterialRequest> Materialrequests { get; set; }
 
@@ -141,6 +146,8 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<LifecycleTransition> Lifecycletransitions { get; set; }
 
     public virtual DbSet<LifecycleOutboxMessage> Lifecycleoutboxmessages { get; set; }
+    public virtual DbSet<LifecycleOutboxDelivery> Lifecycleoutboxdeliveries { get; set; }
+    public virtual DbSet<DataQualityDisposition> Dataqualitydispositions { get; set; }
 
     public virtual DbSet<LifecycleCommandReceipt> Lifecyclecommandreceipts { get; set; }
 

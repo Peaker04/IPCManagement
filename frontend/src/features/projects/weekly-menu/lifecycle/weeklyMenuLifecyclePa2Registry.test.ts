@@ -161,7 +161,7 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
     operation: 'POST /api/coordination/meal-quantity-plans/quick-servings với complete=true',
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:105-116',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:231-239',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:232-240',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs:15,34',
       'backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs:149-156',
     ],
@@ -173,7 +173,7 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
     operation: 'POST /api/material-demand/generate',
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:117-128',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:100-111',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:101-112',
       'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15,31-60',
     ],
     backendPermission: 'DemandGenerateAccess → CoordinationRoles',
@@ -202,7 +202,7 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
     operation: 'Điều hướng tới /purchasing theo ngày/tuần đang chọn',
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:121-124',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:31,97-99',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:32,98-100',
     ],
     backendPermission: UNKNOWN,
     frontendPermission: 'ActionGuard purchase.read + purchase.read ở route đích',

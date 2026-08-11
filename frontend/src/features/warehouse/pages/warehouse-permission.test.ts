@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import warehousePageSource from './WarehousePage.tsx?raw';
 
 describe('WarehousePage permission contract', () => {
-  it('uses the normalized thukho role for warehouse mutations', () => {
-    expect(warehousePageSource).toContain("useHasRole(['thukho'])");
+  it('uses the normalized dieuphoi role for receipt draft creation', () => {
+    expect(warehousePageSource).toContain("useHasRole(['dieuphoi'])");
     expect(warehousePageSource).not.toContain("useHasRole(['warehouse'])");
   });
 
-  it('does not crash when supplemental request data is missing its page items', () => {
-    expect(warehousePageSource).toContain('supplementalRequests?.items?.find(');
+  it('does not request supplemental material data while creating a receipt draft', () => {
+    expect(warehousePageSource).not.toContain('useGetSupplementalMaterialRequestsQuery');
+    expect(warehousePageSource).not.toContain('preferredWarehouseId=');
   });
 
   it('waits for every issue allocation projection before allowing another stock issue', () => {

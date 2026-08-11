@@ -7,6 +7,7 @@ public static class AuthorizationPolicies
     public const string CatalogReadAccess = "CatalogReadAccess";
     public const string CoordinationAccess = "CoordinationAccess";
     public const string InventoryAccess = "InventoryAccess";
+    public const string InventoryReceiptReadAccess = "InventoryReceiptReadAccess";
     public const string InventoryApproveAccess = "InventoryApproveAccess";
     public const string InventoryIssueAccess = "InventoryIssueAccess";
     public const string ProductionAccess = "ProductionAccess";
@@ -16,6 +17,7 @@ public static class AuthorizationPolicies
     public const string PurchaseGenerateAccess = "PurchaseGenerateAccess";
     public const string WarehouseAccess = "WarehouseAccess";
     public const string WarehouseCatalogAccess = "WarehouseCatalogAccess";
+    public const string WarehouseSelectorAccess = "WarehouseSelectorAccess";
     public const string WarehousePurchaseReceive = "WarehousePurchaseReceive";
 
     public static readonly string[] AdminRoles =
@@ -81,6 +83,11 @@ public static class AuthorizationPolicies
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
+    public static readonly string[] WarehouseSelectorRoles = WarehouseCatalogRoles
+        .Concat(CoordinationRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
     public static readonly string[] WarehousePurchaseReceiveRoles =
     [
         "Admin", "ADMIN", "Quản trị",
@@ -95,6 +102,12 @@ public static class AuthorizationPolicies
 
     public static readonly string[] PurchaseOrderReadRoles = PurchaseRoles
         .Concat(WarehouseRoles)
+        .Concat(CoordinationRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] InventoryReceiptReadRoles = InventoryRoles
+        .Concat(CoordinationRoles)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
@@ -183,6 +196,7 @@ public static class AuthorizationPolicies
         CoordinationOrderAdjust,
         CoordinationOrderSignoff,
         DemandGenerate,
+        WarehouseRead,
         ReportRead
     ];
 
@@ -264,6 +278,9 @@ public static class AuthorizationPolicies
 
     public static bool IsInventoryRole(string? roleName)
         => MatchesRole(roleName, InventoryRoles);
+
+    public static bool MatchesManagerRole(string? roleName)
+        => MatchesRole(roleName, "Manager", "MANAGER", "Quản lý");
 
     public static bool IsProductionRole(string? roleName)
         => MatchesRole(roleName, ProductionRoles);

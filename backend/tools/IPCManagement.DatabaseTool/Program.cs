@@ -74,6 +74,342 @@ if (args.Length == 7 &&
     }
 }
 
+if ((args.Length == 5 || args.Length == 7) &&
+    args[0] == "data-quality-classify" &&
+    args[1] == "--settings" &&
+    args[3] == "--database" &&
+    (args.Length == 5 || args[5] == "--output"))
+{
+    var classificationSettingsPath = Path.GetFullPath(args[2]);
+    var classificationDatabase = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateRemediationEvidenceTarget(classificationDatabase);
+        await using var connection = await OpenServerConnectionAsync(classificationSettingsPath);
+        var outputPath = args.Length == 7 ? args[6] : null;
+        return await DataQualityClassificationCommand.ExecuteAsync(connection, classificationDatabase, outputPath);
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Data-quality classification failed: {exception.Message}");
+        return 1;
+    }
+}
+
+if (args.Length == 5 &&
+    args[0] == "lineage-preflight" &&
+    args[1] == "--settings" &&
+    args[3] == "--database")
+{
+    var preflightSettingsPath = Path.GetFullPath(args[2]);
+    var database = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateEvidenceTarget(database);
+        await using var connection = await OpenServerConnectionAsync(preflightSettingsPath);
+        await using var command = new MySqlCommand(
+            $"""
+            SELECT
+              (SELECT COUNT(*) FROM {Quote(database)}.{Quote("__EFMigrationsHistory")}
+               WHERE MigrationId = '20260809123338_AddInventoryReturnLineSourceIssueLine') AS returnLineageMigrationApplied,
+              (SELECT COUNT(*) FROM {Quote(database)}.{Quote("__EFMigrationsHistory")}
+               WHERE MigrationId = '20260809125931_AddInventoryIssueLineMaterialRequestSource') AS issueLineageMigrationApplied,
+              (SELECT COUNT(*) FROM {Quote(database)}.{Quote("inventoryissuelines")}) AS issueLineCount,
+              (SELECT COUNT(*) FROM {Quote(database)}.{Quote("inventoryreturnlines")}) AS returnLineCount,
+              (SELECT COUNT(*) FROM (
+                 SELECT iil.issueLineId
+                 FROM {Quote(database)}.{Quote("inventoryissuelines")} AS iil
+                 LEFT JOIN {Quote(database)}.{Quote("inventoryissues")} AS ii ON ii.issueId = iil.issueId
+                 LEFT JOIN {Quote(database)}.{Quote("materialrequestlines")} AS mrl
+                   ON mrl.requestId = ii.materialRequestId
+                  AND mrl.ingredientId = iil.ingredientId
+                  AND mrl.unitId = iil.unitId
+                 GROUP BY iil.issueLineId
+                 HAVING COUNT(mrl.requestLineId) <> 1
+               ) AS ambiguous) AS ambiguousIssueLineCount,
+              (SELECT COUNT(*) FROM (
+                 SELECT iil.issueLineId
+                 FROM {Quote(database)}.{Quote("inventoryissuelines")} AS iil
+                 LEFT JOIN {Quote(database)}.{Quote("inventoryissues")} AS ii ON ii.issueId = iil.issueId
+                 LEFT JOIN {Quote(database)}.{Quote("materialrequestlines")} AS mrl
+                   ON mrl.requestId = ii.materialRequestId
+                  AND mrl.ingredientId = iil.ingredientId
+                  AND mrl.unitId = iil.unitId
+                 GROUP BY iil.issueLineId
+                 HAVING COUNT(mrl.requestLineId) = 0
+               ) AS missing) AS missingDemandSourceCount,
+              (SELECT COUNT(*) FROM (
+                 SELECT iil.issueLineId
+                 FROM {Quote(database)}.{Quote("inventoryissuelines")} AS iil
+                 JOIN {Quote(database)}.{Quote("inventoryissues")} AS ii ON ii.issueId = iil.issueId
+                 JOIN {Quote(database)}.{Quote("materialrequestlines")} AS mrl
+                   ON mrl.requestId = ii.materialRequestId
+                  AND mrl.ingredientId = iil.ingredientId
+                  AND mrl.unitId = iil.unitId
+                 GROUP BY iil.issueLineId
+                 HAVING COUNT(mrl.requestLineId) > 1
+               ) AS duplicate) AS duplicateDemandSourceCount;
+            """,
+            connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            throw new InvalidOperationException("Lineage preflight returned no row.");
+        }
+
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Database = database,
+            ReturnLineageMigrationApplied = reader.GetInt64("returnLineageMigrationApplied"),
+            IssueLineageMigrationApplied = reader.GetInt64("issueLineageMigrationApplied"),
+            IssueLineCount = reader.GetInt64("issueLineCount"),
+            ReturnLineCount = reader.GetInt64("returnLineCount"),
+            AmbiguousIssueLineCount = reader.GetInt64("ambiguousIssueLineCount"),
+            MissingDemandSourceCount = reader.GetInt64("missingDemandSourceCount"),
+            DuplicateDemandSourceCount = reader.GetInt64("duplicateDemandSourceCount"),
+        }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Lineage preflight failed: {exception.Message}");
+        return 1;
+    }
+}
+
+if (args.Length == 5 &&
+    args[0] == "lineage-preflight-details" &&
+    args[1] == "--settings" &&
+    args[3] == "--database")
+{
+    var preflightSettingsPath = Path.GetFullPath(args[2]);
+    var database = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateEvidenceTarget(database);
+        await using var connection = await OpenServerConnectionAsync(preflightSettingsPath);
+        await using var command = new MySqlCommand(
+            $"""
+            SELECT HEX(iil.issueLineId) AS issueLineId,
+                   ii.issueCode,
+                   ii.issueDate,
+                   ii.shiftName,
+                   HEX(iil.ingredientId) AS ingredientId,
+                   HEX(iil.unitId) AS unitId,
+                   iil.issuedQty,
+                   COUNT(mrl.requestLineId) AS matchingDemandLineCount
+            FROM {Quote(database)}.{Quote("inventoryissuelines")} AS iil
+            LEFT JOIN {Quote(database)}.{Quote("inventoryissues")} AS ii ON ii.issueId = iil.issueId
+            LEFT JOIN {Quote(database)}.{Quote("materialrequestlines")} AS mrl
+              ON mrl.requestId = ii.materialRequestId
+             AND mrl.ingredientId = iil.ingredientId
+             AND mrl.unitId = iil.unitId
+            GROUP BY iil.issueLineId, ii.issueCode, ii.issueDate, ii.shiftName, iil.ingredientId, iil.unitId, iil.issuedQty
+            HAVING COUNT(mrl.requestLineId) <> 1
+            ORDER BY ii.issueDate, ii.issueCode, issueLineId;
+            """,
+            connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        var rows = new List<object>();
+        while (await reader.ReadAsync())
+        {
+            rows.Add(new
+            {
+                IssueLineId = reader.GetString("issueLineId"),
+                IssueCode = reader.IsDBNull(reader.GetOrdinal("issueCode")) ? null : reader.GetString("issueCode"),
+                IssueDate = reader.IsDBNull(reader.GetOrdinal("issueDate")) ? null : reader.GetDateTime("issueDate").ToString("yyyy-MM-dd"),
+                ShiftName = reader.IsDBNull(reader.GetOrdinal("shiftName")) ? null : reader.GetString("shiftName"),
+                IngredientId = reader.GetString("ingredientId"),
+                UnitId = reader.GetString("unitId"),
+                IssuedQty = reader.GetDecimal("issuedQty"),
+                MatchingDemandLineCount = reader.GetInt64("matchingDemandLineCount"),
+            });
+        }
+        Console.WriteLine(JsonSerializer.Serialize(new { Database = database, Rows = rows }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Lineage preflight details failed: {exception.Message}");
+        return 1;
+    }
+}
+
+if (args.Length == 5 &&
+    args[0] == "supplemental-open-preflight" &&
+    args[1] == "--settings" &&
+    args[3] == "--database")
+{
+    var preflightSettingsPath = Path.GetFullPath(args[2]);
+    var database = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateEvidenceTarget(database);
+        await using var connection = await OpenServerConnectionAsync(preflightSettingsPath);
+        await using var command = new MySqlCommand(
+            $"""
+            SELECT
+              (SELECT COUNT(*) FROM {Quote(database)}.{Quote("__EFMigrationsHistory")}
+               WHERE MigrationId = '20260809141103_AddOpenSupplementalRequestUniqueFence') AS openFenceMigrationApplied,
+              (SELECT COUNT(*) FROM information_schema.columns
+               WHERE table_schema = @database AND table_name = 'supplementalmaterialrequests'
+                 AND column_name = 'openIssueLineId' AND generation_expression <> '') AS generatedOpenIssueLineColumnCount,
+              (SELECT COUNT(*) FROM information_schema.statistics
+               WHERE table_schema = @database AND table_name = 'supplementalmaterialrequests'
+                 AND index_name = 'uxSupplementalMaterialRequestsOpenIssueLine' AND non_unique = 0) AS openIssueLineUniqueIndexCount,
+              (SELECT COUNT(*)
+               FROM {Quote(database)}.{Quote("supplementalmaterialrequests")}
+               WHERE status NOT IN ('REJECTED', 'FULFILLED')) AS activeRequestCount,
+              (SELECT COUNT(*)
+               FROM (
+                 SELECT issueLineId
+                 FROM {Quote(database)}.{Quote("supplementalmaterialrequests")}
+                 WHERE status NOT IN ('REJECTED', 'FULFILLED')
+                 GROUP BY issueLineId
+                 HAVING COUNT(*) > 1
+               ) AS duplicateOpenIssueLines) AS duplicateOpenIssueLineCount;
+
+            SELECT HEX(issueLineId) AS issueLineId,
+                   COUNT(*) AS requestCount,
+                   GROUP_CONCAT(requestCode ORDER BY requestedAt SEPARATOR ',') AS requestCodes,
+                   GROUP_CONCAT(status ORDER BY requestedAt SEPARATOR ',') AS statuses
+            FROM {Quote(database)}.{Quote("supplementalmaterialrequests")}
+            WHERE status NOT IN ('REJECTED', 'FULFILLED')
+            GROUP BY issueLineId
+            HAVING COUNT(*) > 1
+            ORDER BY requestCount DESC, issueLineId;
+            """,
+            connection);
+        command.Parameters.AddWithValue("@database", database);
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            throw new InvalidOperationException("Supplemental preflight returned no summary row.");
+        }
+
+        var openFenceMigrationApplied = reader.GetInt64("openFenceMigrationApplied");
+        var generatedOpenIssueLineColumnCount = reader.GetInt64("generatedOpenIssueLineColumnCount");
+        var openIssueLineUniqueIndexCount = reader.GetInt64("openIssueLineUniqueIndexCount");
+        var activeRequestCount = reader.GetInt64("activeRequestCount");
+        var duplicateOpenIssueLineCount = reader.GetInt64("duplicateOpenIssueLineCount");
+        var rows = new List<object>();
+        if (await reader.NextResultAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                rows.Add(new
+                {
+                    IssueLineId = reader.GetString("issueLineId"),
+                    RequestCount = reader.GetInt64("requestCount"),
+                    RequestCodes = reader.GetString("requestCodes").Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    Statuses = reader.GetString("statuses").Split(',', StringSplitOptions.RemoveEmptyEntries),
+                });
+            }
+        }
+
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Database = database,
+            OpenFenceMigrationApplied = openFenceMigrationApplied,
+            GeneratedOpenIssueLineColumnCount = generatedOpenIssueLineColumnCount,
+            OpenIssueLineUniqueIndexCount = openIssueLineUniqueIndexCount,
+            ActiveRequestCount = activeRequestCount,
+            DuplicateOpenIssueLineCount = duplicateOpenIssueLineCount,
+            DuplicateGroups = rows,
+        }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Supplemental open preflight failed: {exception.Message}");
+        return 1;
+    }
+}
+
+if (args.Length == 5 &&
+    args[0] == "supplemental-open-concurrency-probe" &&
+    args[1] == "--settings" &&
+    args[3] == "--database")
+{
+    var probeSettingsPath = Path.GetFullPath(args[2]);
+    var database = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateEvidenceTarget(database);
+        if (database != "ipc_lane9")
+        {
+            throw new ArgumentException("Supplemental concurrency probe is restricted to ipc_lane9.");
+        }
+
+        await using var firstConnection = await OpenServerConnectionAsync(probeSettingsPath);
+        await using var secondConnection = await OpenServerConnectionAsync(probeSettingsPath);
+        await firstConnection.ChangeDatabaseAsync(database);
+        await secondConnection.ChangeDatabaseAsync(database);
+
+        var source = await ReadSupplementalConcurrencyProbeSourceAsync(firstConnection);
+        if (source is null)
+        {
+            throw new InvalidOperationException("No issue line without an active supplemental request is available for the rollback-only probe.");
+        }
+
+        var firstRequestCode = $"CONC-{Guid.NewGuid():N}";
+        var secondRequestCode = $"CONC-{Guid.NewGuid():N}";
+        var outcome = "UNSET";
+
+        await using var firstTransaction = await firstConnection.BeginTransactionAsync();
+        MySqlTransaction? secondTransaction = null;
+        try
+        {
+            await InsertSupplementalConcurrencyProbeAsync(firstConnection, firstTransaction, source, firstRequestCode);
+            await ExecuteAsync(secondConnection, "SET SESSION innodb_lock_wait_timeout = 2;");
+            secondTransaction = await secondConnection.BeginTransactionAsync();
+
+            try
+            {
+                await InsertSupplementalConcurrencyProbeAsync(secondConnection, secondTransaction, source, secondRequestCode);
+                outcome = "UNEXPECTED_SECOND_INSERT_SUCCEEDED";
+            }
+            catch (MySqlException exception) when (exception.Number == 1205)
+            {
+                outcome = "LOCK_WAIT_TIMEOUT";
+            }
+        }
+        finally
+        {
+            if (secondTransaction is not null)
+            {
+                await secondTransaction.RollbackAsync();
+            }
+
+            await firstTransaction.RollbackAsync();
+        }
+
+        var residualRows = await ReadSupplementalProbeResidualRowsAsync(
+            firstConnection,
+            firstRequestCode,
+            secondRequestCode);
+        if (outcome != "LOCK_WAIT_TIMEOUT" || residualRows != 0)
+        {
+            throw new InvalidOperationException(
+                $"Rollback-only supplemental concurrency probe failed: outcome={outcome}, residualRows={residualRows}.");
+        }
+
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Database = database,
+            Outcome = outcome,
+            ResidualRows = residualRows,
+            PersistedBusinessMutation = false,
+        }));
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"Supplemental open concurrency probe failed: {exception.Message}");
+        return 1;
+    }
+}
+
 if (args.Length == 7 &&
     args[0] == "weekly-menu-evidence" &&
     args[1] == "--settings" &&
@@ -475,6 +811,7 @@ try
     {
         throw new InvalidOperationException($"Source database {sourceDatabase} has no base tables.");
     }
+    await VerifyRequiredSchemaObjectsAsync(connection, sourceDatabase);
 
     var stagingDatabase = $"{targetDatabase}_clone_{Environment.ProcessId}";
     try
@@ -507,6 +844,13 @@ static async Task CloneDatabaseAsync(
     IReadOnlyList<string> tables)
 {
     var (characterSet, collation) = await ReadDatabaseCollationAsync(connection, sourceDatabase);
+    var triggers = await ReadTriggersAsync(connection, sourceDatabase);
+    var unsupportedSchemaObjects = await ReadUnsupportedSchemaObjectsAsync(connection, sourceDatabase);
+    if (unsupportedSchemaObjects.Count > 0)
+    {
+        throw new InvalidOperationException(
+            $"Clone does not support schema objects: {string.Join(", ", unsupportedSchemaObjects)}.");
+    }
     await ExecuteAsync(
         connection,
         $"DROP DATABASE IF EXISTS {Quote(targetDatabase)}; " +
@@ -526,11 +870,18 @@ static async Task CloneDatabaseAsync(
             var sourceTable = $"{Quote(sourceDatabase)}.{Quote(table)}";
             var targetTable = $"{Quote(targetDatabase)}.{Quote(table)}";
             var columnList = string.Join(", ", columns.Select(Quote));
+            var createTableSql = await ReadCreateTableSqlAsync(connection, sourceDatabase, table);
+            var qualifiedCreateTableSql = QualifyCreateTableSql(createTableSql, targetDatabase, table);
             await ExecuteAsync(
                 connection,
-                $"CREATE TABLE {targetTable} LIKE {sourceTable}; " +
+                $"{qualifiedCreateTableSql}; " +
                 $"INSERT INTO {targetTable} ({columnList}) SELECT {columnList} FROM {sourceTable};",
                 commandTimeout: 300);
+        }
+
+        foreach (var trigger in triggers)
+        {
+            await ExecuteAsync(connection, BuildCreateTriggerSql(targetDatabase, trigger));
         }
     }
     finally
@@ -560,6 +911,151 @@ static async Task VerifyCloneAsync(
             throw new InvalidOperationException(
                 $"Row count mismatch for {table}: source={sourceCount}, target={targetCount}.");
         }
+
+        var sourceDefinition = NormalizeCreateTableSql(
+            await ReadCreateTableSqlAsync(connection, sourceDatabase, table));
+        var targetDefinition = NormalizeCreateTableSql(
+            await ReadCreateTableSqlAsync(connection, targetDatabase, table));
+        if (!string.Equals(sourceDefinition, targetDefinition, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Table definition mismatch for {table}.");
+        }
+    }
+
+    var sourceTriggers = await ReadTriggersAsync(connection, sourceDatabase);
+    var targetTriggers = await ReadTriggersAsync(connection, targetDatabase);
+    if (!sourceTriggers.SequenceEqual(targetTriggers))
+    {
+        throw new InvalidOperationException("Target trigger inventory does not match the source database.");
+    }
+
+    await VerifyRequiredSchemaObjectsAsync(connection, targetDatabase);
+}
+
+static async Task<string> ReadCreateTableSqlAsync(
+    MySqlConnection connection,
+    string database,
+    string table)
+{
+    await using var command = new MySqlCommand(
+        $"SHOW CREATE TABLE {Quote(database)}.{Quote(table)};",
+        connection);
+    await using var reader = await command.ExecuteReaderAsync();
+    if (!await reader.ReadAsync())
+    {
+        throw new InvalidOperationException($"SHOW CREATE TABLE returned no row for {database}.{table}.");
+    }
+
+    return reader.GetString(1);
+}
+
+static string QualifyCreateTableSql(string createTableSql, string targetDatabase, string table)
+{
+    var prefix = $"CREATE TABLE {Quote(table)}";
+    if (!createTableSql.StartsWith(prefix, StringComparison.Ordinal))
+    {
+        throw new InvalidOperationException($"Unexpected SHOW CREATE TABLE output for {table}.");
+    }
+
+    return $"CREATE TABLE {Quote(targetDatabase)}.{Quote(table)}{createTableSql[prefix.Length..]}";
+}
+
+static string NormalizeCreateTableSql(string createTableSql)
+    => System.Text.RegularExpressions.Regex.Replace(
+            createTableSql.Replace("\r\n", "\n", StringComparison.Ordinal),
+            @"\sAUTO_INCREMENT=\d+",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant)
+        .Trim();
+
+static async Task<IReadOnlyList<DatabaseTrigger>> ReadTriggersAsync(
+    MySqlConnection connection,
+    string database)
+{
+    const string sql = """
+        SELECT trigger_name, event_manipulation, event_object_table, action_timing, action_statement
+        FROM information_schema.triggers
+        WHERE trigger_schema = @database
+        ORDER BY trigger_name;
+        """;
+    await using var command = new MySqlCommand(sql, connection);
+    command.Parameters.AddWithValue("@database", database);
+    await using var reader = await command.ExecuteReaderAsync();
+    var triggers = new List<DatabaseTrigger>();
+    while (await reader.ReadAsync())
+    {
+        triggers.Add(new DatabaseTrigger(
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.GetString(3),
+            reader.GetString(4)));
+    }
+
+    return triggers;
+}
+
+static string BuildCreateTriggerSql(string targetDatabase, DatabaseTrigger trigger)
+    => $"CREATE TRIGGER {Quote(targetDatabase)}.{Quote(trigger.Name)} " +
+       $"{trigger.ActionTiming} {trigger.EventManipulation} " +
+       $"ON {Quote(targetDatabase)}.{Quote(trigger.EventObjectTable)} " +
+       $"FOR EACH ROW {trigger.ActionStatement};";
+
+static async Task<IReadOnlyList<string>> ReadUnsupportedSchemaObjectsAsync(
+    MySqlConnection connection,
+    string database)
+{
+    const string sql = """
+        SELECT object_type, object_name
+        FROM (
+            SELECT 'VIEW' object_type, table_name object_name
+            FROM information_schema.views WHERE table_schema = @database
+            UNION ALL
+            SELECT routine_type object_type, routine_name object_name
+            FROM information_schema.routines WHERE routine_schema = @database
+            UNION ALL
+            SELECT 'EVENT' object_type, event_name object_name
+            FROM information_schema.events WHERE event_schema = @database
+        ) objects
+        ORDER BY object_type, object_name;
+        """;
+    await using var command = new MySqlCommand(sql, connection);
+    command.Parameters.AddWithValue("@database", database);
+    await using var reader = await command.ExecuteReaderAsync();
+    var objects = new List<string>();
+    while (await reader.ReadAsync())
+    {
+        objects.Add($"{reader.GetString(0)}:{reader.GetString(1)}");
+    }
+
+    return objects;
+}
+
+static async Task VerifyRequiredSchemaObjectsAsync(MySqlConnection connection, string database)
+{
+    var migrationApplied = await ReadScalarAsync(
+        connection,
+        $"SELECT COUNT(*) FROM {Quote(database)}.{Quote("__EFMigrationsHistory")} " +
+        "WHERE MigrationId = '20260803210000_AddCustomerWeekMenuTier';");
+    if (migrationApplied == 0)
+    {
+        return;
+    }
+
+    var triggers = await ReadTriggersAsync(connection, database);
+    var requiredTriggers = new[]
+    {
+        "trg_customerweekmenutiers_immutable_update",
+        "trg_menuschedules_tier_insert",
+        "trg_menuschedules_tier_update",
+    };
+    var missing = requiredTriggers
+        .Where(required => triggers.All(trigger => !string.Equals(trigger.Name, required, StringComparison.Ordinal)))
+        .ToArray();
+    if (missing.Length > 0)
+    {
+        throw new InvalidOperationException(
+            $"Database {database} records the customer/week tier migration but is missing triggers: {string.Join(", ", missing)}.");
     }
 }
 
@@ -687,6 +1183,86 @@ static async Task ExecuteFixtureAsync(MySqlConnection connection, MySqlTransacti
     await command.ExecuteNonQueryAsync();
 }
 
+static async Task<SupplementalConcurrencyProbeSource?> ReadSupplementalConcurrencyProbeSourceAsync(
+    MySqlConnection connection)
+{
+    const string sql = """
+        SELECT issueDocument.issueId,
+               issueLine.issueLineId,
+               issueDocument.warehouseId,
+               issueLine.ingredientId,
+               issueLine.unitId,
+               requester.userId
+        FROM inventoryissuelines AS issueLine
+        INNER JOIN inventoryissues AS issueDocument ON issueDocument.issueId = issueLine.issueId
+        CROSS JOIN users AS requester
+        WHERE requester.isActive = 1
+          AND NOT EXISTS (
+              SELECT 1
+              FROM supplementalmaterialrequests AS existing
+              WHERE existing.issueLineId = issueLine.issueLineId
+                AND existing.status NOT IN ('REJECTED', 'FULFILLED'))
+        ORDER BY issueDocument.issueDate, issueDocument.issueId, issueLine.issueLineId, requester.userId
+        LIMIT 1;
+        """;
+    await using var command = new MySqlCommand(sql, connection);
+    await using var reader = await command.ExecuteReaderAsync();
+    if (!await reader.ReadAsync())
+    {
+        return null;
+    }
+
+    return new SupplementalConcurrencyProbeSource(
+        reader.GetFieldValue<byte[]>(0),
+        reader.GetFieldValue<byte[]>(1),
+        reader.GetFieldValue<byte[]>(2),
+        reader.GetFieldValue<byte[]>(3),
+        reader.GetFieldValue<byte[]>(4),
+        reader.GetFieldValue<byte[]>(5));
+}
+
+static async Task InsertSupplementalConcurrencyProbeAsync(
+    MySqlConnection connection,
+    MySqlTransaction transaction,
+    SupplementalConcurrencyProbeSource source,
+    string requestCode)
+{
+    const string sql = """
+        INSERT INTO supplementalmaterialrequests
+            (requestId, requestCode, issueId, issueLineId, warehouseId, ingredientId, unitId,
+             requestedQty, reason, status, requestedBy, requestedAt)
+        VALUES
+            (@requestId, @requestCode, @issueId, @issueLineId, @warehouseId, @ingredientId, @unitId,
+             1, 'Rollback-only database concurrency probe.', 'PENDING_WAREHOUSE_REVIEW', @requestedBy, UTC_TIMESTAMP());
+        """;
+    await using var command = new MySqlCommand(sql, connection, transaction);
+    command.Parameters.AddWithValue("@requestId", Guid.NewGuid().ToByteArray());
+    command.Parameters.AddWithValue("@requestCode", requestCode);
+    command.Parameters.AddWithValue("@issueId", source.IssueId);
+    command.Parameters.AddWithValue("@issueLineId", source.IssueLineId);
+    command.Parameters.AddWithValue("@warehouseId", source.WarehouseId);
+    command.Parameters.AddWithValue("@ingredientId", source.IngredientId);
+    command.Parameters.AddWithValue("@unitId", source.UnitId);
+    command.Parameters.AddWithValue("@requestedBy", source.RequestedBy);
+    await command.ExecuteNonQueryAsync();
+}
+
+static async Task<long> ReadSupplementalProbeResidualRowsAsync(
+    MySqlConnection connection,
+    string firstRequestCode,
+    string secondRequestCode)
+{
+    const string sql = """
+        SELECT COUNT(*)
+        FROM supplementalmaterialrequests
+        WHERE requestCode IN (@firstRequestCode, @secondRequestCode);
+        """;
+    await using var command = new MySqlCommand(sql, connection);
+    command.Parameters.AddWithValue("@firstRequestCode", firstRequestCode);
+    command.Parameters.AddWithValue("@secondRequestCode", secondRequestCode);
+    return Convert.ToInt64(await command.ExecuteScalarAsync());
+}
+
 static async Task ExecuteAsync(MySqlConnection connection, string sql, int commandTimeout = 120)
 {
     await using var command = new MySqlCommand(sql, connection)
@@ -721,3 +1297,5 @@ static string Quote(string identifier) => $"`{identifier.Replace("`", "``")}`";
 
 sealed record ServiceRunFixture(byte[] PlanId, byte[] PlanLineId, byte[] RequestId, byte[] IssueId, byte[] SourcePlanLineId, string PlanCode, string RequestCode, string IssueCode);
 sealed record ServiceRunFixtureSource(byte[] SourcePlanLineId, byte[] QuantityPlanLineId, byte[] CustomerId, byte[] MenuId, byte[] DishId, byte[]? MenuVersionId, DateOnly PlanDate, DateOnly? WeekStartDate, int TotalServings, byte[] CreatedBy, string PlanStatus, string RequestStatus);
+sealed record SupplementalConcurrencyProbeSource(byte[] IssueId, byte[] IssueLineId, byte[] WarehouseId, byte[] IngredientId, byte[] UnitId, byte[] RequestedBy);
+sealed record DatabaseTrigger(string Name, string EventManipulation, string EventObjectTable, string ActionTiming, string ActionStatement);

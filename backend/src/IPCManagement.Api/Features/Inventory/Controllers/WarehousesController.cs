@@ -11,7 +11,7 @@ namespace IPCManagement.Api.Features.Inventory.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = AuthorizationPolicies.WarehouseCatalogAccess)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public class WarehousesController : ControllerBase
 {
@@ -25,6 +25,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy danh sách tất cả kho.</summary>
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.WarehouseCatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<WarehouseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
@@ -34,6 +35,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy toàn bộ kho cho các bộ chọn nghiệp vụ.</summary>
     [HttpGet("selector")]
+    [Authorize(Policy = AuthorizationPolicies.WarehouseSelectorAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WarehouseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSelectorAsync()
     {
@@ -58,6 +60,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy chi tiết kho theo ID.</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.WarehouseCatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<WarehouseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {

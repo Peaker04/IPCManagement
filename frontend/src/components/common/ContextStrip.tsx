@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, CircleDashed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StatusTone } from '@/lib/statusPresentation';
+import { typography } from '@/lib/typography';
 
 export interface ContextStripItem {
   label: ReactNode;
@@ -49,8 +50,8 @@ export function ContextStrip({ items, className }: ContextStripProps) {
             )}
           >
             <span className="ipc-context-icon" aria-hidden="true">{item.icon ?? <ToneIcon size={16} />}</span>
-            <dt className="ipc-context-label">{item.label}</dt>
-            <dd className="ipc-context-value">{item.value}</dd>
+            <dt className={cn(typography.body, 'ipc-context-label font-medium')}>{item.label}</dt>
+            <dd className={cn(typography.body, 'ipc-context-value font-bold')}>{item.value}</dd>
           </div>
         );
       })}

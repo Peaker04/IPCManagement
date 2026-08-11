@@ -18,9 +18,18 @@ public static class InventoryMapper
         PurchaseRequestId = receipt.PurchaseRequestId is not null
             ? GuidHelper.ToGuidString(receipt.PurchaseRequestId)
             : null,
+        PurchaseOrderId = receipt.PurchaseOrderId is not null
+            ? GuidHelper.ToGuidString(receipt.PurchaseOrderId)
+            : null,
         CreatedBy = GuidHelper.ToGuidString(receipt.CreatedBy),
         CreatedByName = receipt.CreatedByNavigation?.FullName,
         CreatedAt = receipt.CreatedAt,
+        Status = receipt.Status,
+        QualityStatus = receipt.QualityStatus,
+        QualityCheckedAt = receipt.QualityCheckedAt,
+        ConcurrencyVersion = receipt.ConcurrencyVersion,
+        ManagerApprovedAt = receipt.ManagerApprovedAt,
+        PostedAt = receipt.PostedAt,
         Lines = includeLines
             ? receipt.Inventoryreceiptlines.Select(MapReceiptLine).ToList()
             : new List<InventoryReceiptLineDto>()
@@ -36,6 +45,9 @@ public static class InventoryMapper
         UnitName = line.Unit?.UnitName,
         UnitPrice = DecimalPolicy.RoundMoney(line.UnitPrice),
         Amount = DecimalPolicy.RoundMoney(line.Amount ?? 0),
+        AcceptedQuantity = line.AcceptedQuantity is null ? null : DecimalPolicy.RoundQuantity(line.AcceptedQuantity.Value),
+        RejectedQuantity = line.RejectedQuantity is null ? null : DecimalPolicy.RoundQuantity(line.RejectedQuantity.Value),
+        QualityReason = line.QualityReason,
         LotNumber = line.LotNumber,
         ManufactureDate = line.ManufactureDate,
         ExpiredDate = line.ExpiredDate
@@ -64,6 +76,7 @@ public static class InventoryMapper
     public static InventoryIssueLineDto MapIssueLine(InventoryIssueLine line) => new()
     {
         IssueLineId = GuidHelper.ToGuidString(line.IssueLineId),
+        MaterialRequestLineId = line.MaterialRequestLineId is null ? null : GuidHelper.ToGuidString(line.MaterialRequestLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
         IngredientName = line.Ingredient?.IngredientName,
         RequestedQty = DecimalPolicy.RoundQuantity(line.RequestedQty),
@@ -101,6 +114,7 @@ public static class InventoryMapper
     public static InventoryReturnLineDto MapReturnLine(InventoryReturnLine line) => new()
     {
         ReturnLineId = GuidHelper.ToGuidString(line.ReturnLineId),
+        SourceIssueLineId = line.SourceIssueLineId is null ? null : GuidHelper.ToGuidString(line.SourceIssueLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
         IngredientName = line.Ingredient?.IngredientName,
         Quantity = DecimalPolicy.RoundQuantity(line.Quantity),

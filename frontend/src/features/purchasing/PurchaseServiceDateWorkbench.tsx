@@ -80,7 +80,7 @@ export function PurchaseServiceDateWorkbench({
               variant="outline"
               size="sm"
               textWrap="wrap"
-              className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-3 py-2 text-left text-[14px] leading-normal transition-colors motion-reduce:transition-none ${
+              className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-3 py-2 text-left text-body leading-normal transition-colors motion-reduce:transition-none ${
                 active
                   ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-950'
                   : 'border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100'
@@ -93,7 +93,7 @@ export function PurchaseServiceDateWorkbench({
                 <span>{formatDateOnly(serviceDate.serviceDate)}</span>
                 <StatusBadge variant={active ? 'warning' : 'neutral'}>{demandStatusLabel(serviceDate)}</StatusBadge>
               </span>
-              <span className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] leading-[1.4] text-slate-600">
+              <span className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-caption leading-[1.4] text-slate-600">
                 <span>Thiếu: {serviceDate.shortageLineCount} dòng</span>
                 <span>NCC: {serviceDate.supplierReadyLineCount}/{supplierLineCount}</span>
                 <span>Ngoại lệ: {serviceDate.blockingExceptionCount}</span>

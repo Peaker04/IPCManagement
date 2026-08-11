@@ -1,6 +1,8 @@
 import { ClipboardList } from 'lucide-react'
 import { DocumentRail, EmptyState, SectionPanel, StockMovementTable } from '@/components/common'
 import type { StockMovement, WorkflowDocument } from '@/types/workflow'
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
 
 type Props = {
   movements: StockMovement[]
@@ -12,7 +14,7 @@ type Props = {
 
 export function ChefDocumentsSection({ movements, documents, isError = false, isRetrying, onRetry }: Props) {
   return (
-    <SectionPanel title="Kế hoạch, bàn giao và phiếu trả" icon={<ClipboardList size={18} />} className="ipc-chef-documents-panel">
+    <SectionPanel title="Kế hoạch, bàn giao và phiếu trả" icon={<ClipboardList size={18} />} className={cn(typography.body, 'ipc-chef-documents-panel')}>
       <div className="flex flex-col gap-3">
         {isError && onRetry ? (
           <EmptyState

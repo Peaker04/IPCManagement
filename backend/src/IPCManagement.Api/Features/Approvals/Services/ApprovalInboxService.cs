@@ -30,6 +30,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private const string PurchasePriceExceptionTargetType = "purchase-price-exception";
     private const string MaterialDemandTargetType = "material-demand";
     private const string InventoryIssueTargetType = "inventory-issue";
+    private const string InventoryReceiptTargetType = "inventory-receipt";
     private const string OrderAdjustmentTargetType = "order-adjustment";
     private const int DefaultPageSize = 20;
     private const int MaxPageSize = 50;
@@ -132,6 +133,12 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             permissions.Contains(AuthorizationPolicies.InventoryIssueApprove))
         {
             inbox.AddRange(await BuildInventoryIssueItemsAsync(limit, cursor, cancellationToken));
+        }
+
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, InventoryReceiptTargetType) &&
+            permissions.Contains(AuthorizationPolicies.InventoryReceiptApprove))
+        {
+            inbox.AddRange(await BuildInventoryReceiptItemsAsync(limit, cursor, cancellationToken));
         }
 
         if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, OrderAdjustmentTargetType) &&
@@ -381,6 +388,68 @@ public sealed class ApprovalInboxService : IApprovalInboxService
 
         await _slaEnricher.PopulateAsync(PurchasePriceExceptionTargetType, slaTargets, cancellationToken);
         return result;
+    }
+
+    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildInventoryReceiptItemsAsync(
+        int limit,
+        ApprovalInboxCursor? cursor,
+        CancellationToken cancellationToken)
+    {
+        var receiptQuery = _context.Inventoryreceipts
+            .AsNoTracking()
+            .Include(item => item.CreatedByNavigation)
+            .Include(item => item.Supplier)
+            .Include(item => item.Inventoryreceiptlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(item => item.Inventoryreceiptlines)
+                .ThenInclude(line => line.Unit)
+            .Where(item => item.Status == "PENDING_APPROVAL" &&
+                (item.QualityStatus == "ACCEPTED" || item.QualityStatus == "PARTIALLY_ACCEPTED"));
+        if (cursor is not null)
+        {
+            receiptQuery = receiptQuery.Where(item =>
+                item.ReceiptDate > cursor.DueDate ||
+                (item.ReceiptDate == cursor.DueDate && item.ReceiptCode.CompareTo(cursor.TargetCode) > 0));
+        }
+
+        var receipts = await receiptQuery.OrderBy(item => item.ReceiptDate).ThenBy(item => item.ReceiptCode)
+            .Take(limit).ToListAsync(cancellationToken);
+        return receipts.Select(receipt =>
+        {
+            var targetId = GuidHelper.ToGuidString(receipt.ReceiptId);
+            var lines = receipt.Inventoryreceiptlines.ToList();
+            return new ApprovalInboxItemDto
+            {
+                InboxItemId = $"{InventoryReceiptTargetType}-{targetId}",
+                TargetType = InventoryReceiptTargetType,
+                TargetId = targetId,
+                TargetCode = receipt.ReceiptCode,
+                ItemType = "receipt",
+                Title = "Duyệt phiếu nhập kho",
+                Source = receipt.Supplier.SupplierName,
+                OwnerRole = "Quản lý",
+                SubmittedBy = receipt.CreatedByNavigation.FullName,
+                DueDate = receipt.ReceiptDate,
+                Status = receipt.Status,
+                Reason = receipt.QualityStatus == "PARTIALLY_ACCEPTED"
+                    ? "Phiếu nhập có dòng chấp nhận một phần, cần Quản lý duyệt trước khi POSTED."
+                    : "Phiếu nhập đã kiểm tra chất lượng, chờ Quản lý duyệt trước khi POSTED.",
+                NextAction = "Duyệt phiếu nhập",
+                Tone = "warning",
+                Route = $"/approvals?targetType={InventoryReceiptTargetType}&targetId={targetId}",
+                LineCount = lines.Count,
+                TotalQuantity = DecimalPolicy.RoundQuantity(lines.Sum(line => line.AcceptedQuantity ?? 0m)),
+                TotalValue = DecimalPolicy.RoundMoney(lines.Sum(line => (line.AcceptedQuantity ?? 0m) * line.UnitPrice)),
+                SubmittedAt = receipt.CreatedAt,
+                SupplierName = receipt.Supplier.SupplierName,
+                Materials = lines.Select(line => new ApprovalInboxMaterialDto
+                {
+                    Name = line.Ingredient.IngredientName,
+                    Quantity = line.AcceptedQuantity ?? 0m,
+                    Unit = line.Unit.UnitName
+                }).OrderBy(item => item.Name).ToList()
+            };
+        }).ToList();
     }
 
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildInventoryIssueItemsAsync(

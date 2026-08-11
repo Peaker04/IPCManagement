@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { typography } from '@/lib/typography';
 import { QueryErrorAlert } from './QueryErrorAlert';
 
 interface EmptyStateBaseProps {
@@ -50,8 +51,8 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <p className="text-sm font-semibold text-slate-600">{title}</p>
-      {description && <p className="mt-1.5 max-w-[36ch] text-xs leading-relaxed text-slate-400">{description}</p>}
+      <p className={cn(typography.body, 'font-semibold text-slate-600')}>{title}</p>
+      {description && <p className={cn(typography.caption, 'mt-1.5 max-w-[36ch] leading-relaxed text-slate-400')}>{description}</p>}
       {action && <div className="mt-3">{action}</div>}
     </div>
   );

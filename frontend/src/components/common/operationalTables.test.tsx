@@ -108,6 +108,28 @@ describe('DemandSummary', () => {
     rerender(<DemandSummary lines={demandLines} />);
     expect(screen.getByRole('columnheader', { name: 'Nguồn' })).toBeInTheDocument();
   });
+
+  it('renders a supplied action only for shortage rows', async () => {
+    const user = userEvent.setup();
+    const openPurchase = vi.fn();
+    const lines = [
+      demandLines[0],
+      { ...demandLines[1], id: 'sufficient-line', available: 12, tone: 'success' as const, nextAction: 'Tạo phiếu xuất kho' },
+    ];
+
+    render(
+      <DemandSummary
+        lines={lines}
+        renderAction={(line) => line.tone === 'danger'
+          ? <button type="button" onClick={() => openPurchase(line.serviceDate)}>Đề xuất mua</button>
+          : undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Đề xuất mua' }));
+    expect(openPurchase).toHaveBeenCalledWith(undefined);
+    expect(screen.getByText('Xuất kho')).toBeInTheDocument();
+  });
 });
 
 describe('RoleInbox', () => {

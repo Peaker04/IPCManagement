@@ -353,13 +353,13 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
           <div className="ipc-split-detail-label mb-3">Tác động vận hành — {selectedWarning.name}</div>
           <div className="flex flex-wrap items-start gap-4">
             <div className="ipc-report-warning-card min-w-[240px] flex-1 rounded-md border border-[var(--ipc-danger)] bg-[var(--ipc-danger-soft)] p-3 text-sm text-[var(--ipc-danger)]">
-              <div className="font-bold text-[14px]">Vượt ngưỡng {formatPercent(selectedWarning.change)}</div>
+              <div className="text-body font-bold">Vượt ngưỡng {formatPercent(selectedWarning.change)}</div>
               <div className="mt-1 leading-5">
                 Giá tăng từ {formatCurrency(selectedWarning.pricePrev)} lên {formatCurrency(selectedWarning.priceCurrent)}/{formatUnit(selectedWarning.unit)}.
               </div>
             </div>
             <div className="ipc-report-warning-card rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 min-w-[240px] flex-1">
-              <div className="font-bold text-slate-900 text-[14px]">Hành động đề xuất</div>
+              <div className="text-body font-bold text-slate-900">Hành động đề xuất</div>
               <p className="mt-1 leading-5 text-slate-500">
                 Thu mua kiểm tra nhà cung cấp thay thế, sau đó gửi quản lí duyệt nếu giá vẫn vượt ngưỡng.
               </p>

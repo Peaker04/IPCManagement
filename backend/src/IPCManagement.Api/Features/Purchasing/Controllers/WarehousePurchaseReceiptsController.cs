@@ -12,7 +12,7 @@ namespace IPCManagement.Api.Features.Purchasing.Controllers;
 
 [ApiController]
 [Route("api/warehouse/purchase-orders/{purchaseOrderId}/receipts")]
-[Authorize(Policy = AuthorizationPolicies.WarehousePurchaseReceive)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public sealed class WarehousePurchaseReceiptsController : ControllerBase
 {
@@ -28,6 +28,7 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.CoordinationAccess)]
     [ProducesResponseType(typeof(ApiResponse<WarehousePurchaseReceiptResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -49,6 +50,126 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
             return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(
                 result,
                 "Ghi nhận nhập kho từ đơn mua hàng thành công."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse.FailResult(exception.Message));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(ApiResponse.FailResult(exception.Message));
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(ApiResponse.FailResult(exception.Message));
+        }
+    }
+
+    [HttpPost("{receiptId}/quality")]
+    [Authorize(Policy = AuthorizationPolicies.WarehousePurchaseReceive)]
+    [ProducesResponseType(typeof(ApiResponse<WarehousePurchaseReceiptResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AcceptQualityAsync(
+        string receiptId,
+        [FromBody] ReceiptQualityDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseReceivingService.AcceptQualityAsync(receiptId, request, _currentUserService.GetUserId(User), cancellationToken);
+            return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(result, "Đã ghi nhận kết quả kiểm tra chất lượng."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse.FailResult(exception.Message));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(ApiResponse.FailResult(exception.Message));
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(ApiResponse.FailResult(exception.Message));
+        }
+    }
+
+    [HttpPost("{receiptId}/post")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [ProducesResponseType(typeof(ApiResponse<WarehousePurchaseReceiptResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PostAsync(
+        string receiptId,
+        [FromBody] ReceiptPostRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseReceivingService.PostAsync(receiptId, request, _currentUserService.GetUserId(User), cancellationToken);
+            return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(result, "Đã POSTED phiếu nhập kho và ghi nhận tồn kho."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse.FailResult(exception.Message));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(ApiResponse.FailResult(exception.Message));
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(ApiResponse.FailResult(exception.Message));
+        }
+    }
+
+    [HttpPost("{receiptId}/rework")]
+    [Authorize(Policy = AuthorizationPolicies.CoordinationAccess)]
+    [ProducesResponseType(typeof(ApiResponse<WarehousePurchaseReceiptResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReworkAsync(
+        string receiptId,
+        [FromBody] ReceiptReworkRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseReceivingService.ReworkAsync(
+                receiptId,
+                request,
+                _currentUserService.GetUserId(User),
+                cancellationToken);
+            return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(
+                result,
+                "Đã trả phiếu nhập về bước kiểm tra lại."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse.FailResult(exception.Message));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(ApiResponse.FailResult(exception.Message));
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(ApiResponse.FailResult(exception.Message));
+        }
+    }
+
+    [HttpPost("{receiptId}/corrections")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [ProducesResponseType(typeof(ApiResponse<ReceiptCorrectionResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateCorrectionAsync(
+        string receiptId,
+        [FromBody] CreateReceiptCorrectionRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseReceivingService.CreateCorrectionAsync(
+                receiptId,
+                request,
+                _currentUserService.GetUserId(User),
+                cancellationToken);
+            return Ok(ApiResponse<ReceiptCorrectionResultDto>.SuccessResult(
+                result,
+                "Đã POSTED chứng từ correction của phiếu nhập."));
         }
         catch (KeyNotFoundException exception)
         {

@@ -83,6 +83,7 @@ const mocks = vi.hoisted(() => ({
   purchasePlanPage: vi.fn(),
   stockMovementPage: vi.fn(),
   serviceRunPage: vi.fn(),
+  supplyLineReconciliation: vi.fn(),
 }));
 
 vi.mock('@/api/workflowApi', () => ({
@@ -100,6 +101,7 @@ vi.mock('@/api/workflowApi', () => ({
   useGetPurchasePlanPageQuery: mocks.purchasePlanPage,
   useGetStockMovementPageQuery: mocks.stockMovementPage,
   useGetServiceRunPageQuery: mocks.serviceRunPage,
+  useGetSupplyLineReconciliationQuery: mocks.supplyLineReconciliation,
 }));
 
 import ReportsPage from './ReportsPage';
@@ -300,6 +302,47 @@ describe('ReportsPage query state boundary', () => {
     expect(screen.getByText('Chưa có dữ liệu để hiển thị')).toBeInTheDocument();
   });
 
+  it('renders source-line reconciliation without grouping legacy lineage into a demand row', async () => {
+    const user = userEvent.setup();
+    mocks.issueVsReturnPage.mockReturnValue(readyResult(emptyReadyPage));
+    mocks.supplyLineReconciliation.mockImplementation((_args: unknown, options?: { skip?: boolean }) => options?.skip
+      ? uninitializedResult()
+      : readyResult([{
+        materialRequestId: 'MR-1',
+        materialRequestLineId: 'MRL-1',
+        materialRequestCode: 'MR-TEST-001',
+        requestDate: '2026-08-09',
+        ingredientId: 'ING-1',
+        ingredientName: 'Gạo',
+        unitId: 'UNIT-1',
+        unitName: 'kg',
+        demandQty: 10,
+        purchaseRequestAllocatedQty: 10,
+        purchaseOrderAllocatedQty: 10,
+        postedAcceptedReceiptQty: 10,
+        issuedQty: 10,
+        kitchenAcknowledgedQty: 8,
+        returnedQty: 0,
+        wastedQty: 0,
+        supplementalRequestedQty: 3,
+        supplementalFulfilledQty: 2,
+        supplementalPurchaseAllocatedQty: 2.5,
+        deltaQty: 0,
+        disposition: 'LEGACY_LINEAGE_RECONCILIATION_REQUIRED',
+        legacyLineageExceptionCount: 3,
+      }]));
+    renderReportsPage('admin');
+    await user.click(screen.getByRole('tab', { name: 'Sử dụng thực tế' }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Sử dụng thực tế' })).toHaveAttribute('aria-selected', 'true'));
+
+    expect(await screen.findByText('Đối soát lifecycle theo dòng nhu cầu')).toBeInTheDocument();
+    expect(screen.getByText('MR-TEST-001')).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader', { name: 'Đã xuất' })).toHaveLength(2);
+    expect(screen.getByRole('columnheader', { name: /Bổ sung/ })).toBeInTheDocument();
+    expect(screen.getByText('3 kg / 2 kg / 2,5 kg')).toBeInTheDocument();
+    expect(screen.getByText('LEGACY_LINEAGE_RECONCILIATION_REQUIRED · 3')).toBeInTheDocument();
+  });
+
   it('bounds long audit values in a fixed-layout seven-column table', () => {
     mocks.auditChangePage.mockReturnValue(readyResult({
       items: [{
@@ -372,6 +415,9 @@ describe('ReportsPage query state boundary', () => {
 describe('ReportsPage server-side stock search', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
+    mocks.supplyLineReconciliation.mockImplementation((_args: unknown, options?: { skip?: boolean }) => options?.skip
+      ? uninitializedResult()
+      : readyResult([]));
   });
 
   it('filters the current-stock snapshot before page-number pagination', async () => {

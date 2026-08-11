@@ -1496,3 +1496,38 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Reports/Audit tách chi phí ước tính PurchaseRequestLine và chi phí thực nhận InventoryReceiptLine; thực nhận không có receipt giữ `null`, không hiển thị `0`. Projection issue/source document được scope theo plan, ngày và ca.
 - Fixture append-only trên `ipc_e2e_template` xác nhận Chrome headed `840 → 839`, lý do chênh lệch, Manager/Admin waiver có lý do, close và browser reload. DB trực tiếp xác nhận snapshot cùng audit ActualServings/Waiver/Close.
 - Final current-source gate qua Chef, Warehouse, Purchasing và Reports: API 200, console/page error 0, CLS 0, zero long task. Vite module navigation abort được lưu trong artifact như cancellation điều hướng, không phải lỗi nghiệp vụ. Không chạm `ipc_lane1`, không dùng GitNexus, không commit/push.
+
+## Hoàn tất Lifecycle standardization Phase 4 — Supply documents — 09/08/2026
+
+- Chuỗi demand → PR/PO → posted receipt → issue/kitchen acknowledgement → return/supplemental đã giữ source-line + unit và compensation append-only; không thêm writer thứ hai hay gỡ compatibility path sớm.
+- Trên `ipc_lane9`, 189 legacy row còn lại được xử lý bằng production API có command id/version/resume: 16 candidate duy nhất đi Admin create → Manager approve → Admin apply, 173 candidate mơ hồ đi Admin create → Manager reject với candidate count. Cộng proposal mẫu trước đó, final có 190 disposition = 17 `APPLIED` + 173 `REJECTED`, zero pending/approved/undispositioned.
+- DB postflight zero source-target mismatch, rejected-source mutation, actor-separation, lifecycle transition/command receipt và supplemental active/duplicate violation. 173 issue line rejected giữ nullable provenance và tiếp tục là compatibility exception hiển thị, không bị map đoán.
+- Database gate đủ preflight, model clean, reviewed SQL không destructive và không apply lại, checkpoint mới SHA-256 `0263BC5B…B846FA`, postflight và rollback evidence. Không restore và không target `ipc_lane1`.
+- Focused backend pass 178/178, frontend contract/permission 21/21, Release/production builds, model pending check và `git diff --check` pass. Chrome headed final đủ năm viewport, zero undispositioned/open control, API/browser/page/request error, overflow, CLS và long task.
+- Runtime 3010/8010 đã teardown đúng owned process. Phase 4 SUMMARY/VERIFICATION pass 5/5; workstream chuyển sang Phase 5 Service-run integration. Không dùng GitNexus, không commit/push.
+
+## Hoàn tất Lifecycle standardization Phase 4.1 — Database remediation — 10/08/2026
+
+- Thêm outbox relay có durable consumer receipt, aggregate ordering, lease/retry/backoff/poison health và Admin replay audited; lane9 xử lý 432/432 message, base zero backlog, hai runtime kiểm thử port 8010 đã teardown.
+- Thêm data-quality disposition và unit review guard; behavioral test khóa actor separation, stale version, correction fail-closed, evidence/factor/base-family. Không mạo danh Manager hoặc tạo correction cho queue thiếu nguồn.
+- Additive schema đi đủ lane9 preflight/checkpoint/apply/postflight/rollback/re-apply, sau đó promote exact SQL lên `ipcmanagement` với checkpoint riêng. Hai database cùng migration 63 và schema mới identical; không chạm `ipc_lane1`.
+- Classification giữ nguyên 2.461 movement snapshot thiếu với quyết định không tạo ledger adjustment và 84 menu-week row zero physical-plan chờ schedule owner. 44 unit review, quotation/BOM/duplicate ingredient là `BLOCKED_BUSINESS`.
+- Encrypted immutable off-site restore vẫn `BLOCKED_EXTERNAL`; bảy bảng `backup_*` được giữ nguyên. Không reset/seed/restore database hiện hữu.
+- Gate cuối pass Application 49/49, API 797 + 1 intentional skip, frontend 137 file/769 test, solution/frontend build, lint, dependency graph, EF model, secret scan và diff hygiene. Không dùng GitNexus, không commit/push.
+
+## Hoàn tất Lifecycle standardization Phase 4.2 — Business evidence và local recovery — 10/08/2026
+
+- D-05 đóng exact 3.555 subject bằng evidence-only `ACCEPTED_UNVERIFIED_BUSINESS_RISK`: 2.461 movement `NO_CORRECTION`, 84 menu-week `NO_CORRECTION`, 44 unit `RETAIN_DISTINCT`, 756 quotation `NO_PRICE_CREATED`, 194 BOM `NO_BOM_CREATED`, 16 duplicate group `KEEP_DISTINCT`. Không claim source fact đã reconcile.
+- DCR-01..06 có zero business SQL/database/runtime mutation, zero actor signature/independent-review claim và zero rehearsal/base promotion. D-04 chỉ giữ current six-role policy matrix và opaque Admin governance reference.
+- D-03 tạo encrypted local archive cùng host/NVMe bằng Windows CurrentUser DPAPI + AES/HMAC; vẫn khai `ACCEPTED_LOCAL_ONLY_RISK`, không off-site, WORM hay independent security domain.
+- Exact archive đã được duyệt và restore vào database run-owned được chứng minh absent. Migration/schema/FK/trigger/row count/row digest/D-05 release oracle pass; restore target và plaintext đều absent sau teardown. Không chạm database hiện hữu hoặc `ipc_lane1`.
+- Cả bảy bảng `backup_*` giữ nguyên definition/count/digest, zero database/production consumer và zero destructive execution; mọi cleanup/rehearsal/approval/promotion path giữ dormant.
+- Final aggregate pass 20/20 gate và DCR-01..09 + VER-03 10/10. Root gate pass Application 49/49, API 934 + 1 intentional skip, frontend 137 file/770 test, UI completeness 87/87, lint, dependency 0 violation / 395 module / 1.428 dependency, hai build, EF model và diff hygiene.
+- Strict architecture baseline không bị nới; mười owner finding được remediate sau explicit authorization. Source-path leakage scan được đổi sang matcher một lượt, giảm từ khoảng 56,3 giây xuống 1,31–1,59 giây mà không tăng timeout hoặc bỏ asset.
+- Không dùng GitNexus, không provider/scheduler access, không reset/seed và không business/destructive database mutation.
+
+## Addendum closeout Lifecycle standardization Phase 4.2 — 11/08/2026
+
+- Mục closeout ngày 10/08 ở trên được giữ nguyên như lịch sử trước re-verification. Task 13 sau đó đã retire ba selector aggregate legacy trước mọi manifest/default/command/write, xóa Finance/Catalog PASS path và bổ sung runner self-scan; active D-03/D-04/D-05/gap modes không đổi.
+- Independent `04.2-VERIFICATION.md` hiện pass 7/7, zero gap/override/regression; focused Phase42 64/64, aggregate 20/20 gate và DCR-01..09 + VER-03 10/10. Restore/retention receipt cũ được đọc lại bằng hash, không rerun restore/retention và không chạm database/runtime/provider/`ipc_lane1`.
+- Phase 4.2 khép lại đúng 5 plan/3 wave, không Plan 06/Wave 4. Phase 5 Service-run integration đã unblocked và sẵn sàng discuss/plan review; addendum này không execute Phase 5.

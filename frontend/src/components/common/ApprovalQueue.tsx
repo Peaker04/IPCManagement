@@ -8,6 +8,7 @@ import { StatusBadge } from './StatusBadge';
 import { formatCurrency, formatPercent, formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/types/workflow';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { typography } from '@/lib/typography';
 
 interface ApprovalQueueProps {
   records: ApprovalRecord[];
@@ -51,8 +52,8 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
   }
 
   return (
-    <div className={cn('ipc-approval-queue', className)} role="region" aria-label="Hàng đợi duyệt vận hành">
-      {title && <h4>{title}</h4>}
+    <div className={cn(typography.body, 'ipc-approval-queue', className)} role="region" aria-label="Hàng đợi duyệt vận hành">
+      {title && <h4 className={typography.sectionTitle}>{title}</h4>}
       {pageRecords.map((record) => {
         const targetLabel = getTargetLabel(record.targetType);
         const isMaterialDemand = record.targetType === 'material-demand';
@@ -74,7 +75,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
           <div className="ipc-approval-zone-identity">
             <strong>{record.title}</strong>
             <p>{record.source}</p>
-            {targetLabel && <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">{targetLabel}</span>}
+            {targetLabel && <span className={cn(typography.label, 'uppercase tracking-wide text-slate-600')}>{targetLabel}</span>}
             <div
               className="ipc-approval-record-action"
               aria-label={`${actionForRecord ? 'Thao tác' : 'Hướng xử lý'} cho ${record.title}`}
@@ -133,7 +134,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
                 <>
                   <div><dt className="text-xs font-medium text-slate-500">Ngày phục vụ</dt><dd className="font-semibold text-slate-800">{record.serviceDate ?? 'Chưa có'}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Phạm vi</dt><dd className="font-semibold text-slate-800">{record.scope === 'FULLDAY' ? 'Cả ngày (FULLDAY)' : record.scope ?? 'Chưa có'}</dd></div>
-                  <div><dt className="text-xs font-medium text-slate-500">Chứng từ nguồn</dt><dd className="font-mono text-xs font-semibold text-slate-800">{record.sourceDocumentCode ?? 'Chưa có'}</dd></div>
+                  <div><dt className="text-xs font-medium text-slate-500">Chứng từ nguồn</dt><dd className={cn(typography.code, 'text-xs font-semibold text-slate-800')}>{record.sourceDocumentCode ?? 'Chưa có'}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Thiếu hụt</dt><dd className="font-semibold text-slate-800">{record.lineCount ?? record.materials.length} dòng thiếu</dd></div>
                 </>
               )}
@@ -141,11 +142,11 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
                 <>
                   <div><dt className="text-xs font-medium text-slate-500">Nhà cung cấp</dt><dd className="font-semibold text-slate-800">{record.supplierName ?? 'Chưa có'}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Nguyên liệu</dt><dd className="font-semibold text-slate-800">{record.materials[0]?.name ?? 'Chưa có'}</dd></div>
-                  <div><dt className="text-xs font-medium text-slate-500">Giá tham chiếu</dt><dd className="tabular-nums font-semibold text-slate-800">{record.referencePrice == null ? 'Chưa có' : formatCurrency(record.referencePrice)}</dd></div>
-                  <div><dt className="text-xs font-medium text-slate-500">Giá đề xuất</dt><dd className="tabular-nums font-semibold text-slate-800">{record.proposedPrice == null ? 'Chưa có' : formatCurrency(record.proposedPrice)}</dd></div>
-                  <div><dt className="text-xs font-medium text-slate-500">Chênh lệch do server tính</dt><dd className="tabular-nums font-semibold text-red-700">{record.variancePercent == null ? 'Chưa có' : `${record.variancePercent > 0 ? '+' : ''}${formatPercent(record.variancePercent, 2)}`}</dd></div>
+                  <div><dt className="text-xs font-medium text-slate-500">Giá tham chiếu</dt><dd className={cn(typography.numeric, 'font-semibold text-slate-800')}>{record.referencePrice == null ? 'Chưa có' : formatCurrency(record.referencePrice)}</dd></div>
+                  <div><dt className="text-xs font-medium text-slate-500">Giá đề xuất</dt><dd className={cn(typography.numeric, 'font-semibold text-slate-800')}>{record.proposedPrice == null ? 'Chưa có' : formatCurrency(record.proposedPrice)}</dd></div>
+                  <div><dt className="text-xs font-medium text-slate-500">Chênh lệch do server tính</dt><dd className={cn(typography.numeric, 'font-semibold text-red-700')}>{record.variancePercent == null ? 'Chưa có' : `${record.variancePercent > 0 ? '+' : ''}${formatPercent(record.variancePercent, 2)}`}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Bằng chứng</dt><dd className="font-semibold text-slate-800">{getEvidenceLabel(record.evidenceType)}{record.evidenceDate ? `, ngày ${record.evidenceDate}` : ''}</dd></div>
-                  <div><dt className="text-xs font-medium text-slate-500">Đề xuất mua</dt><dd className="font-mono text-xs font-semibold text-slate-800">{record.source}</dd></div>
+                  <div><dt className="text-xs font-medium text-slate-500">Đề xuất mua</dt><dd className={cn(typography.code, 'text-xs font-semibold text-slate-800')}>{record.source}</dd></div>
                   <div><dt className="text-xs font-medium text-slate-500">Phiên bản</dt><dd className="font-semibold text-slate-800">{record.proposalVersion == null ? 'Chưa có' : `Phiên bản ${record.proposalVersion}`}</dd></div>
                 </>
               )}

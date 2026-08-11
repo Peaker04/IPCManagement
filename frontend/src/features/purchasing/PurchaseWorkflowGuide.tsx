@@ -43,7 +43,7 @@ export function PurchaseWorkflowGuide({
                 size="sm"
                 textWrap="wrap"
                 className={cn(
-                  'h-full min-h-11 w-full flex-col items-stretch justify-start gap-1.5 rounded-[3px] px-3 py-2 text-left text-[14px] font-semibold leading-[1.35] transition-colors motion-reduce:transition-none sm:min-h-[7.5rem]',
+                  'h-full min-h-11 w-full flex-col items-stretch justify-start gap-1.5 rounded-[3px] px-3 py-2 text-left text-body font-semibold leading-[1.35] transition-colors motion-reduce:transition-none sm:min-h-[7.5rem]',
                   isSelected
                     ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-900'
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
@@ -63,12 +63,12 @@ export function PurchaseWorkflowGuide({
                 </span>
                 <span className="min-w-0 w-full flex-1">
                   <span data-stage-label className="block text-[13px] leading-[1.35]">{stage.label}</span>
-                  <span className="mt-1 block text-[12px] font-normal leading-[1.4] text-slate-600">
+                  <span className="mt-1 block text-caption font-normal leading-[1.4] text-slate-600">
                     {isComplete ? 'Hoàn tất' : isCurrent ? 'Đang xử lý' : 'Chưa mở'}
                     {count > 0 ? `, ${count} ngày` : ''}
                   </span>
                   {isBlocked ? (
-                    <span id={`purchasing-stage-${stage.id}-reason`} className="mt-1 block text-[12px] font-normal leading-[1.4]">
+                    <span id={`purchasing-stage-${stage.id}-reason`} className="mt-1 block text-caption font-normal leading-[1.4]">
                       {stage.blockedReason}
                     </span>
                   ) : null}

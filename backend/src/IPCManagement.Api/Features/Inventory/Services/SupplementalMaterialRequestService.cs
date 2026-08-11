@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 using IPCManagement.Api.Exceptions;
+using System.Collections.Concurrent;
+using System.Data;
 
 namespace IPCManagement.Api.Features.Inventory.Services;
 
@@ -19,7 +21,9 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private const string RejectedStatus = "REJECTED";
     private const string MovementRefTable = "supplementalmaterialrequests";
     private const string PurchaseRequestAuditField = "PurchaseRequestId";
+    private const string OpenIssueLineUniqueIndex = "uxSupplementalMaterialRequestsOpenIssueLine";
     internal const string FulfillmentIssueAuditField = "FulfillmentIssueId";
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> InMemoryIssueLineLocks = new(StringComparer.Ordinal);
 
     private readonly IpcManagementContext _context;
     private readonly IUnitOfWork _unitOfWork;
@@ -121,45 +125,90 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             throw new ArgumentException("Số lượng yêu cầu bổ sung phải lớn hơn 0.");
         }
 
-        var source = await _context.Inventoryissuelines.FindAsync(issueLineId)
-            ?? throw new BusinessRuleException("Không tìm thấy dòng nguyên liệu trên phiếu xuất.");
-        if (!source.IssueId.SequenceEqual(issueId))
+        SemaphoreSlim? inMemoryLock = null;
+        if (IsInMemory())
         {
-            throw new BusinessRuleException("Dòng nguyên liệu không thuộc phiếu xuất đã chọn.");
+            inMemoryLock = InMemoryIssueLineLocks.GetOrAdd(
+                Convert.ToHexString(issueLineId),
+                static _ => new SemaphoreSlim(1, 1));
+            await inMemoryLock.WaitAsync();
         }
 
-        await _context.Entry(source).Reference(line => line.Issue).LoadAsync();
-        await _context.Entry(source).Reference(line => line.Ingredient).LoadAsync();
-        await _context.Entry(source).Reference(line => line.Unit).LoadAsync();
-
-        if (source.Issue.ReceivedAt is null)
+        try
         {
-            throw new BusinessRuleException("Bếp cần xác nhận đã nhận phiếu xuất trước khi yêu cầu bổ sung.");
+            return await _transactionRunner.ExecuteAsync(
+                async _ =>
+                {
+                    var source = await LoadSourceIssueLineForCreateAsync(issueLineId);
+                    if (!source.IssueId.SequenceEqual(issueId))
+                    {
+                        throw new BusinessRuleException("Dòng nguyên liệu không thuộc phiếu xuất đã chọn.");
+                    }
+                    if (source.MaterialRequestLineId is null)
+                    {
+                        throw new BusinessRuleException(
+                            "Dòng xuất gốc chưa có lineage nhu cầu; cần đối soát trước khi tạo yêu cầu bổ sung.");
+                    }
+                    if (source.Issue.ReceivedAt is null)
+                    {
+                        throw new BusinessRuleException("Bếp cần xác nhận đã nhận phiếu xuất trước khi yêu cầu bổ sung.");
+                    }
+
+                    EnsureWarehouseScope(source.Issue.WarehouseId, scopedWarehouseId);
+
+                    // One issue line owns one active deficit. Returning the existing
+                    // exception is deliberate idempotency; merging quantities would
+                    // silently change an already-routed purchasing obligation.
+                    var existing = await FindOpenByIssueLineAsync(issueLineId);
+                    if (existing is not null)
+                    {
+                        return await MapAsync(existing, source);
+                    }
+
+                    var entity = new SupplementalMaterialRequest
+                    {
+                        RequestId = GuidHelper.NewId(),
+                        RequestCode = $"SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
+                        IssueId = source.IssueId,
+                        IssueLineId = source.IssueLineId,
+                        WarehouseId = source.Issue.WarehouseId,
+                        IngredientId = source.IngredientId,
+                        UnitId = source.UnitId,
+                        RequestedQty = DecimalPolicy.RoundQuantity(request.RequestedQty),
+                        Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                        Status = PendingStatus,
+                        RequestedBy = actorId,
+                        RequestedAt = DateTime.UtcNow,
+                    };
+
+                    _context.Supplementalmaterialrequests.Add(entity);
+                    AddAudit(entity, actorId, "Create", null, PendingStatus, "Bếp gửi yêu cầu cấp nguyên liệu bổ sung tới kho.");
+                    await _context.SaveChangesAsync();
+                    return await MapAsync(entity, source);
+                },
+                async _ => await FindOpenByIssueLineAsync(issueLineId) is not null,
+                IsolationLevel.Serializable);
         }
-
-        EnsureWarehouseScope(source.Issue.WarehouseId, scopedWarehouseId);
-
-        var entity = new SupplementalMaterialRequest
+        catch (DbUpdateException exception) when (IsOpenIssueLineUniqueViolation(exception))
         {
-            RequestId = GuidHelper.NewId(),
-            RequestCode = $"SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
-            IssueId = source.IssueId,
-            IssueLineId = source.IssueLineId,
-            WarehouseId = source.Issue.WarehouseId,
-            IngredientId = source.IngredientId,
-            UnitId = source.UnitId,
-            RequestedQty = DecimalPolicy.RoundQuantity(request.RequestedQty),
-            Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
-            Status = PendingStatus,
-            RequestedBy = actorId,
-            RequestedAt = DateTime.UtcNow,
-        };
+            // The generated unique column is the cross-process concurrency fence.
+            // A concurrent winner is the idempotent result for this source line.
+            if (!IsInMemory())
+            {
+                _context.ChangeTracker.Clear();
+            }
+            var existing = await FindOpenByIssueLineAsync(issueLineId);
+            if (existing is not null)
+            {
+                return await MapAsync(existing);
+            }
 
-        _context.Supplementalmaterialrequests.Add(entity);
-        AddAudit(entity, actorId, "Create", null, PendingStatus, "Bếp gửi yêu cầu cấp nguyên liệu bổ sung tới kho.");
-        await _context.SaveChangesAsync();
-
-        return await MapAsync(entity, source);
+            throw;
+        }
+        finally
+        {
+            inMemoryLock?.Release();
+        }
     }
 
     public async Task<SupplementalMaterialRequestDto> FulfillAsync(
@@ -214,6 +263,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     UnitId = entity.UnitId,
                     RequestedQty = requestedQuantity,
                     IssuedQty = requestedQuantity,
+                    MaterialRequestLineId = source.MaterialRequestLineId
                 });
                 _context.Inventoryissues.Add(issue);
 
@@ -279,6 +329,11 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     throw new BusinessRuleException($"Yêu cầu đã được chuyển sang thu mua bằng {current.PurchaseRequestCode}.");
                 }
 
+                if (source.MaterialRequestLineId is null)
+                {
+                    throw new BusinessRuleException("Dòng xuất gốc chưa có liên kết nhu cầu; không thể chuyển thiếu hụt sang thu mua một cách chính xác.");
+                }
+
                 var materialLineQuery = _context.Materialrequestlines
                     .Include(line => line.Ingredient)
                     .Include(line => line.Unit);
@@ -288,11 +343,8 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                         StringComparison.Ordinal)
                     ? _context.ChangeTracker.Entries<MaterialRequestLine>()
                         .Select(entry => entry.Entity)
-                        .FirstOrDefault()
-                    : await materialLineQuery.FirstOrDefaultAsync(line =>
-                        line.RequestId == source.Issue.MaterialRequestId &&
-                        line.IngredientId == entity.IngredientId &&
-                        line.UnitId == entity.UnitId);
+                        .FirstOrDefault(line => line.RequestLineId.SequenceEqual(source.MaterialRequestLineId))
+                    : await materialLineQuery.FirstOrDefaultAsync(line => line.RequestLineId == source.MaterialRequestLineId);
                 if (materialLine is null)
                 {
                     throw new BusinessRuleException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
@@ -388,7 +440,8 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             .AsNoTracking()
             .Include(line => line.Issue)
             .Include(line => line.Ingredient)
-            .Include(line => line.Unit);
+            .Include(line => line.Unit)
+            .Include(line => line.MaterialRequestLine);
         if (!string.Equals(_context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal))
         {
             return await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
@@ -396,21 +449,66 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         var tracked = _context.ChangeTracker.Entries<InventoryIssueLine>()
             .Select(entry => entry.Entity)
-            .FirstOrDefault(line =>
-                line.IssueLineId.SequenceEqual(entity.IssueLineId) ||
-                (line.IssueId.SequenceEqual(entity.IssueId) &&
-                    line.IngredientId.SequenceEqual(entity.IngredientId) &&
-                    line.UnitId.SequenceEqual(entity.UnitId)));
+            .FirstOrDefault(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
         if (tracked is not null)
         {
             return tracked;
         }
 
-        return (await query.ToListAsync()).First(line =>
-            line.IssueLineId.SequenceEqual(entity.IssueLineId) ||
-            (line.IssueId.SequenceEqual(entity.IssueId) &&
-                line.IngredientId.SequenceEqual(entity.IngredientId) &&
-                line.UnitId.SequenceEqual(entity.UnitId)));
+        return (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
+    }
+
+    private async Task<InventoryIssueLine> LoadSourceIssueLineForCreateAsync(byte[] issueLineId)
+    {
+        InventoryIssueLine? source;
+        if (IsInMemory())
+        {
+            source = await _context.Inventoryissuelines.FindAsync(issueLineId);
+        }
+        else
+        {
+            source = await _context.Inventoryissuelines
+                .Include(line => line.Issue)
+                .Include(line => line.Ingredient)
+                .Include(line => line.Unit)
+                .FirstOrDefaultAsync(line => line.IssueLineId == issueLineId);
+        }
+
+        if (source is null)
+        {
+            throw new BusinessRuleException("Không tìm thấy dòng nguyên liệu trên phiếu xuất.");
+        }
+        if (source.Issue is null)
+        {
+            await _context.Entry(source).Reference(line => line.Issue).LoadAsync();
+        }
+        if (source.Ingredient is null)
+        {
+            await _context.Entry(source).Reference(line => line.Ingredient).LoadAsync();
+        }
+        if (source.Unit is null)
+        {
+            await _context.Entry(source).Reference(line => line.Unit).LoadAsync();
+        }
+        return source;
+    }
+
+    private async Task<SupplementalMaterialRequest?> FindOpenByIssueLineAsync(byte[] issueLineId)
+    {
+        var candidates = IsInMemory()
+            ? (await _context.Supplementalmaterialrequests.ToListAsync())
+                .Where(item => item.IssueLineId.SequenceEqual(issueLineId))
+                .OrderByDescending(item => item.RequestedAt)
+                .ToList()
+            : await _context.Supplementalmaterialrequests
+                .Where(item => item.IssueLineId == issueLineId)
+                .OrderByDescending(item => item.RequestedAt)
+                .ToListAsync();
+        return candidates.FirstOrDefault(item =>
+        {
+            var status = NormalizeStatus(item.Status);
+            return status is not RejectedStatus and not FulfilledStatus;
+        });
     }
 
     private async Task<SupplementalMaterialRequest> LoadTrackedAsync(string id)
@@ -482,5 +580,18 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             _context.Database.ProviderName,
             "Microsoft.EntityFrameworkCore.InMemory",
             StringComparison.Ordinal);
+
+    private static bool IsOpenIssueLineUniqueViolation(DbUpdateException exception)
+    {
+        for (var inner = exception.InnerException; inner is not null; inner = inner.InnerException)
+        {
+            if (inner.Message.Contains(OpenIssueLineUniqueIndex, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 }

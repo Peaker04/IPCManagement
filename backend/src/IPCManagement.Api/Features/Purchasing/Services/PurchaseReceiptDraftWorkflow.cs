@@ -3,9 +3,9 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,8 +13,8 @@ namespace IPCManagement.Api.Features.Purchasing.Services;
 
 internal sealed class PurchaseReceiptDraftWorkflow(
     IpcManagementContext context,
-    IStockLedgerService stockLedgerService,
     IEfTransactionRunner transactionRunner,
+    ILifecycleTransitionRecorder lifecycleRecorder,
     PurchaseReceivingQueries queries,
     PurchaseReceivingValidator validator,
     Func<string, CancellationToken, Task>? faultInjector)
@@ -126,7 +126,6 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                     }
 
                     var validatedLines = await validator.ValidateActualReceiptAsync(order, requirements, request, token);
-                    var now = DateTime.UtcNow;
                     var receipt = new InventoryReceipt
                     {
                         ReceiptId = receiptId,
@@ -135,8 +134,12 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                         SupplierId = order.SupplierId,
                         WarehouseId = warehouseId,
                         PurchaseRequestId = order.PurchaseRequestId,
+                        PurchaseOrderId = order.PurchaseOrderId,
                         CreatedBy = actorId,
-                        CreatedAt = now
+                        CreatedAt = DateTime.UtcNow,
+                        Status = "DRAFT",
+                        QualityStatus = "PENDING_INSPECTION",
+                        ConcurrencyVersion = 0
                     };
 
                     foreach (var validated in validatedLines)
@@ -168,51 +171,11 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                     mutationStarted = true;
                     await InjectFaultAsync("AfterReceipt", token);
 
-                    foreach (var line in receipt.Inventoryreceiptlines)
-                    {
-                        await stockLedgerService.AddStockAsync(
-                            warehouseId,
-                            line.IngredientId,
-                            line.UnitId,
-                            line.Quantity,
-                            "RECEIPT",
-                            "purchaseorders",
-                            order.PurchaseOrderId,
-                            actorId,
-                            "Nhập kho từ đơn mua hàng",
-                            $"Phiếu nhập {receipt.ReceiptCode} từ {order.PurchaseOrderCode}",
-                            line.LotNumber,
-                            line.ManufactureDate,
-                            line.ExpiredDate);
-                    }
-
-                    await InjectFaultAsync("AfterStock", token);
-
-                    var oldStatus = order.Status;
-                    foreach (var validated in validatedLines)
-                    {
-                        validated.OrderLine.ReceivedQty = DecimalPolicy.RoundQuantity(
-                            validated.OrderLine.ReceivedQty + validated.Input.ActualQuantity);
-                    }
-
-                    order.Status = PurchaseReceivingMapper.ComputeOrderStatus(order.Purchaseorderlines);
-                    order.UpdatedAt = now;
-                    await InjectFaultAsync("AfterOrderProgress", token);
-
-                    context.Auditlogs.Add(new AuditLog
-                    {
-                        AuditId = PurchaseReceivingMapper.BuildAuditId(receiptId),
-                        ChangedAt = now,
-                        ChangedBy = actorId,
-                        BusinessArea = "Receipt",
-                        EntityName = nameof(PurchaseOrder),
-                        EntityId = order.PurchaseOrderId,
-                        FieldName = nameof(PurchaseOrder.Status),
-                        OldValue = oldStatus,
-                        NewValue = order.Status,
-                        Reason = $"Kho ghi nhận phiếu {receipt.ReceiptCode} cho {order.PurchaseOrderCode}."
-                    });
-                    await InjectFaultAsync("AfterAudit", token);
+                    lifecycleRecorder.Stage(new LifecycleTransitionRequest(
+                        "Receipt", receipt.ReceiptId, normalizedKey, 0, null, "DRAFT", actorId, 0,
+                        "Tạo phiếu nhập nháp chờ kiểm tra chất lượng.", normalizedKey, null,
+                        $"{{\"receiptCode\":\"{receipt.ReceiptCode}\",\"purchaseOrderId\":\"{GuidHelper.ToGuidString(order.PurchaseOrderId)}\"}}",
+                        $"{{\"receiptId\":\"{GuidHelper.ToGuidString(receipt.ReceiptId)}\",\"status\":\"DRAFT\"}}"));
 
                     await context.SaveChangesAsync(token);
                     return PurchaseReceivingMapper.BuildResult(receipt, order, normalizedKey, requirements);

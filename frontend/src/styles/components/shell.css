@@ -275,10 +275,11 @@
 .ipc-page-title {
   margin: 0;
   color: var(--ipc-slate-900);
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: var(--text-page-title);
+  font-weight: var(--text-page-title--font-weight);
   letter-spacing: 0;
-  line-height: 1.25;
+  line-height: var(--text-page-title--line-height);
   overflow-wrap: anywhere;
 }
 
@@ -464,7 +465,6 @@
 .ipc-status-badge-label {
   display: block;
   min-width: 0;
-  line-height: 1.25;
   overflow-wrap: normal;
 }
 

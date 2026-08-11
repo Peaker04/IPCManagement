@@ -18,6 +18,12 @@ import type {
   ConfirmInventoryReturnReceiptRequest,
   WarehousePurchaseReceiptResult,
   RecordWarehousePurchaseReceiptRequest,
+  InventoryReceipt,
+  ReceiptQualityActionArgs,
+  ReceiptPostActionArgs,
+  ReceiptReworkActionArgs,
+  ReceiptCorrectionActionArgs,
+  ReceiptCorrectionResult,
   SupplementalMaterialRequestResult,
   FulfillSupplementalMaterialRequest,
   RejectSupplementalMaterialRequest,
@@ -63,6 +69,67 @@ export const warehouseApi = apiSlice.injectEndpoints({
         ...(week
           ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
           : []),
+      ],
+    }),
+    getInventoryReceipts: builder.query<PageNumberPage<InventoryReceipt>, { pageNumber?: number; pageSize?: number } | void>({
+      query: (query) => ({
+        url: '/inventory-receipts',
+        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 20 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<InventoryReceipt>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: [workflowCacheTags.documents],
+    }),
+    getInventoryReceiptById: builder.query<InventoryReceipt | undefined, string>({
+      query: (receiptId) => `/inventory-receipts/${receiptId}`,
+      transformResponse: (response: ApiResponse<InventoryReceipt>) => response.data,
+      providesTags: [workflowCacheTags.documents],
+    }),
+    acceptReceiptQuality: builder.mutation<WarehousePurchaseReceiptResult, ReceiptQualityActionArgs>({
+      query: ({ purchaseOrderId, receiptId, data }) => ({
+        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/quality`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
+      invalidatesTags: [
+        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.approvalInbox,
+      ],
+    }),
+    postWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptPostActionArgs>({
+      query: ({ purchaseOrderId, receiptId, data }) => ({
+        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/post`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
+      invalidatesTags: [
+        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock, workflowCacheTags.operationalKpis,
+      ],
+    }),
+    reworkWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptReworkActionArgs>({
+      query: ({ purchaseOrderId, receiptId, data }) => ({
+        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/rework`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
+      invalidatesTags: [
+        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.approvalInbox,
+      ],
+    }),
+    createReceiptCorrection: builder.mutation<ReceiptCorrectionResult, ReceiptCorrectionActionArgs>({
+      query: ({ purchaseOrderId, receiptId, data }) => ({
+        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/corrections`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<ReceiptCorrectionResult>) => getData(response),
+      invalidatesTags: [
+        workflowCacheTags.documents, workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock, workflowCacheTags.operationalKpis,
       ],
     }),
     createInventoryReceiptFromPurchase: builder.mutation<ApiResponse<InventoryReceiptCreatedResult>, CreateInventoryReceiptFromPurchaseRequest>({
@@ -221,6 +288,12 @@ export const {
   useGetWarehousesQuery,
   useGetWarehouseSelectorQuery,
   useRecordWarehousePurchaseReceiptMutation,
+  useGetInventoryReceiptsQuery,
+  useGetInventoryReceiptByIdQuery,
+  useAcceptReceiptQualityMutation,
+  usePostWarehousePurchaseReceiptMutation,
+  useReworkWarehousePurchaseReceiptMutation,
+  useCreateReceiptCorrectionMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,
   useCreateSupplementalMaterialRequestMutation,

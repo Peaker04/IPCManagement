@@ -190,17 +190,11 @@
 .ipc-context-label {
   color: currentColor;
   opacity: 0.85;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.5;
 }
 
 .ipc-context-value {
   margin: 0;
-  font-weight: 700;
   color: currentColor;
-  font-size: 0.875rem;
-  line-height: 1.5;
 }
 
 @media (max-width: 767px) {

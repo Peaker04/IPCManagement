@@ -179,7 +179,7 @@ export function WarehousePurchaseReceiptDialog({
         aria-describedby="purchase-receipt-description"
       >
         <DialogHeader>
-          <DialogTitle id="purchase-receipt-title">Ghi nhận nhập kho từ đơn mua</DialogTitle>
+          <DialogTitle id="purchase-receipt-title">Tạo phiếu nhập nháp từ đơn mua</DialogTitle>
           <DialogDescription id="purchase-receipt-description">
             {order.purchaseOrderCode} · {order.supplierName} · {line.ingredientName}
           </DialogDescription>
@@ -203,7 +203,7 @@ export function WarehousePurchaseReceiptDialog({
           <div className="grid gap-3 rounded-sm border border-slate-200 bg-slate-50 p-4 text-sm">
             <div className="flex items-center gap-2 font-semibold text-slate-900">
               <CheckCircle2 className="size-4 text-teal-700" />
-              Kiểm tra trước khi ghi nhận
+              Kiểm tra trước khi tạo phiếu nháp
             </div>
             <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[11rem_1fr]">
               <dt className="text-slate-500">Kho nhận</dt>
@@ -319,7 +319,7 @@ export function WarehousePurchaseReceiptDialog({
             <>
               <Button ref={backButtonRef} type="button" variant="outline" autoFocus disabled={isLoading} onClick={() => setIsConfirming(false)}>Quay lại chỉnh sửa</Button>
               <Button type="button" disabled={isLoading || Boolean(line.blockerReason)} onClick={() => void submitReceipt()}>
-                {isLoading ? 'Đang lưu...' : 'Ghi nhận nhập kho'}
+                {isLoading ? 'Đang lưu...' : 'Tạo phiếu nháp'}
               </Button>
             </>
           ) : (

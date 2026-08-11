@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-08
+updated: 2026-08-10
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -8,7 +8,7 @@ runtime_ports:
   mysql: 3306
   audit_frontend: 3010
   audit_api: 8010
-db_lane: ipc_e2e_template
+db_lane: ipc_lane9
 credentials_via: K6_PASSWORD
 workbook:
   path: 'C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx'
@@ -18,8 +18,8 @@ workbook:
 # Memory hiện hành
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
-lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Runtime audit đang chạy trên `3010/8010`, kết nối
-`ipc_e2e_template`; `/health/ready` trả `Healthy` cho database và migrations lúc `2026-08-07`.
+lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed mới nhất dùng `3010/8010` với
+`ipc_lane9`, health/ready pass rồi đã teardown; hiện không có runtime audit trên hai port này.
 
 ## Memory ngắn cho phiên tiếp theo
 
@@ -56,18 +56,61 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Runtime audit 
 
 ## Còn mở
 
+## Database audit checkpoint 2026-08-10
+
+- Database hardening/promotion đã hoàn tất trên `ipc_lane9` và base `ipcmanagement`; không truy cập
+  `ipc_lane1`. Báo cáo canonical và implementation update ở
+  `docs/research/database-current-state-audit-2026-08-10.md`; hash/evidence pointer chỉ ở
+  `docs/EVIDENCE-INDEX.md`.
+- Kỳ đã chốt `ipcmanagement` là base đích cuối: mọi thay đổi phải pass trên lane khác rồi
+  promote bằng cùng reviewed SQL/reconciliation script; không clone/restore đè lane lên base.
+- Clone tool nay dùng `SHOW CREATE TABLE`, preserve trigger, compare table definition/trigger inventory và
+  fail-closed khi migration-owned object thiếu. Lane9 và base đều ở 61 migration, 164 FK, 3 trigger.
+  Base có 4.321 receipt legacy POSTED theo physical movement evidence và 83 receipt không movement giữ DRAFT;
+  zero unexpected receipt/unit/schema violation. API base live/ready Healthy; backend `776 pass + 1 skip`;
+  closeout recheck có zero pending model change, targeted database/receipt/lineage `36/36`, checkpoint hash,
+  secret scan và `git diff --check` đều pass.
+- Phase 4.1 đã vận hành outbox: lane9 xử lý 432 message thành 432 durable delivery receipt, zero
+  pending/processing/failed/poison; base có zero backlog và relay readiness Healthy. Off-site encrypted
+  restore chain vẫn `BLOCKED_EXTERNAL`. Unit normalization/catalog/legacy data-quality cần source owner,
+  không auto-merge/backfill.
+
+## Shipyard canonical workflow
+
+- Quy trình chuẩn: `preflight → boot → health → database-sync → test → browser → evidence → teardown → archive`; contract ở `docs/SHIPYARD-OPERATIONS.md`, manifest ở `shipyard/shipyard.manifest.json`.
+- Evidence mới chỉ ghi vào `.artifacts/shipyard-live/<run-id>/` với một `manifest.json`/run và các nhánh `screenshots/`, `api/`, `browser/`, `performance/`, `db/`. Các thư mục legacy `browser-use-*`, `e2e*`, debug và log cũ không dùng làm output mới.
+- `IPCManagement/shipyard/` là profile tracked; `D:/Kì 7/PRN222 Doanh Nghiệp/shipyard/` là harness Git độc lập; `shipyard-lanes/lane1` là clone bảo vệ. Cleanup repo không copy, sửa hoặc xoá các thư mục ngoài này.
+- Lane canonical: `ipc_lane1` chỉ read-only; mutation chỉ `ipc_lane9`; `ipc_e2e_template` chỉ dữ liệu E2E kiểm soát. Audit hiện hành dùng `3010/8010` khi chọn template/mutation profile; không hardcode ngoài manifest/environment.
+- DB change chỉ hoàn tất sau preflight → reviewed SQL → apply đúng lane → postflight lineage/constraint/health → rollback evidence → evidence index/state closeout. Không migration/reset/seed/restore/import trên `ipc_lane1`.
+- Cleanup đang dry-run; phân loại và blocker ở `docs/SHIPYARD-CLEANUP-INVENTORY.md`. Chưa xóa artifact, lane, harness hoặc evidence chưa reconcile.
+- GSD health hiện còn baseline warning/error (root `PROJECT.md`, phase mapping và stale/orphan worktree); coi là hygiene backlog riêng, không tự repair trong run này.
+- External path classification: `C:\ipc-workspace` và `D:\IPCManagementCurrent` là junction tới checkout hiện tại; `D:\IPC-browser-use-profile`/`D:\IPC-browser-use-visible` là Chrome profile cũ; `D:\IPCManagement-build` là compiled snapshot; `D:\IPCManagement-backups` và `C:\IPCManagement-offsite-rehearsal` là recovery evidence. Chi tiết và retention gate ở `docs/SHIPYARD-CLEANUP-INVENTORY.md`.
+- Cleanup execution 2026-08-09: profile Chrome cũ và build snapshot đã archive ở `D:\IPCManagement-archive\20260809\legacy`; ba recovery archive lỗi đã quarantine, archive authoritative và SQL backups được giữ. Hai junction không bị xóa do runtime policy chặn thao tác link; execution record ở `docs/SHIPYARD-CLEANUP-EXECUTION-2026-08-09.md`.
+
+## Lifecycle standardization checkpoint
+
+- Phase 3 Receipt đã hoàn tất trên branch `feature/menu-amendment-reconciliation`: `DRAFT → quality inspection → Manager approval → Admin POSTED`; stock chỉ sinh ở `POSTED`, correction hậu nhập append-only đã có source-line/unit lineage. Focused API `96/96`, frontend `10/10` và headed E2E five viewport trên `ipc_lane9` pass; hashes ở `docs/EVIDENCE-INDEX.md`.
+- Phase 4 Supply documents đã hoàn tất ngày 2026-08-09. Chuỗi `demand → PR/PO → posted receipt → issue → kitchen acknowledgement → return/supplemental` giữ source-line + unit; shortage/partial/return-over-balance/supplemental-overlap/concurrent mutation và shadow reconciliation đã có regression/evidence.
+- `ipc_lane9` hiện có 190 terminal legacy dispositions: 17 `APPLIED` từ candidate duy nhất, 173 `REJECTED` do 2–6 candidate mơ hồ; pending/approved/undispositioned đều 0. Còn 173 issue line nullable provenance có chủ đích và đều là compatibility exception đã disposition, không phải backlog chưa review; return nullable còn 0.
+- DB postflight zero source-target mismatch, rejected-source mutation, actor separation, transition/receipt count và supplemental active/duplicate. Focused backend `178/178`, frontend `21/21`, model/build/hygiene cùng Chrome headed năm viewport pass; runtime 3010/8010 đã teardown. Checkpoint/hashes authoritative ở `docs/EVIDENCE-INDEX.md`; không restore và không chạm `ipc_lane1`.
+
 ## Governance checkpoint · tiếp tục ở chat mới
 
-- Checkpoint chưa hoàn tất: menu amendment đã enforce luồng chuẩn `Điều phối tạo → Manager review → Admin thực thi`, chặn tự review/tự execute và có break-glass Admin bắt buộc reason + audit. Migration `20260808160000_EnforceMenuAmendmentSeparation` đang chờ apply vào lane được kiểm tra trước.
+- Menu amendment enforce luồng chuẩn `Điều phối tạo → Manager review → Admin thực thi`, chặn tự
+  review/tự execute và có break-glass Admin bắt buộc reason + audit. Migration separation nay đã
+  nằm trong head 61 trên lane9 và base.
 - Approval rule có >=2 required assignment nay được backend xử lý theo sequence cho demand/PR; một actor không thể hoàn thành hai bước, và inbox giữ chứng từ sau bước trung gian. Chưa có immutable snapshot/invalidation round chung.
-- Receipt chưa được chuyển: hiện creation ghi ledger ngay. Việc kế tiếp là refactor `DRAFT → dual approval → POSTED` với movement chỉ sinh ở POSTED, sau đó route PO/issue/adjustment/stocktake/service-run và UI inbox chung.
-- Checkpoint gates: backend build pass; targeted MenuAmendment `5/5`, MaterialDemand/PriceException approval `46/46`, workflow+approval regression `182/182`; frontend amendment test + production build pass; migration model check và `git diff --check` pass. Chưa chạy migration thật hay browser/E2E mới, không khởi động/reset/import lane.
-
-- `OPEN-04` · owner `Ops/Backup` · đóng khi dump + binlog được mã hóa lên object storage immutable, có SSD luân phiên off-premises và restore drill chỉ từ off-site pass toàn bộ gate runbook.
+- Receipt canonical `DRAFT → quality → Manager approved → Admin POSTED`; movement chỉ sinh ở POSTED.
+  Legacy base đã được reconcile bằng migration evidence-led, không tạo Manager approval giả.
+- Current database gate: lane9 rollback/re-apply và base promotion qua migration 63; relay Healthy;
+  model pending zero, Application `49/49`, API `797 pass + 1 intentional skip`, frontend `137 file / 769 test`,
+  hai build/lint/dependency/secret scan/`git diff --check` pass.
+- Phase 4.2 đã closeout: independent verifier pass `7/7`, focused Phase42 `64/64`, aggregate `20/20`
+  gate và `10/10` requirement; Tasks 1–13 giữ lịch sử 5 plan/3 wave. Phase 5 đã unblocked và
+  chỉ sẵn sàng discuss/plan, chưa execute. Chi tiết ở Phase 4.2 `VERIFICATION.md`; hash chỉ ở evidence index.
 
 ## Cần Kỳ quyết
 
-- `DEC-02` · Chọn/cấp tài khoản object storage R2 hoặc B2 và hai SSD luân phiên; codebase không tự tạo subscription/credential.
 - `DEC-04` · Chốt Manager có được vào UI catalog-write hay không; backend `CatalogAccess` cho phép nhưng FE Admin Data hiện yêu cầu wildcard admin.
 - `DEC-05` · Chốt có đưa `inventory.receipt.approve` vào approval inbox hay tiếp tục để API-only.
 

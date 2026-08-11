@@ -41,6 +41,91 @@ public sealed class SupplementalMaterialRequestServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldReturnTheSingleOpenExceptionForTheSameIssueLine()
+    {
+        await using var context = CreateContext();
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var request = new CreateSupplementalMaterialRequest
+        {
+            IssueId = GuidHelper.ToGuidString(seed.IssueId),
+            IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+            RequestedQty = 2.5m,
+            Reason = "Thiếu suất đột xuất",
+        };
+
+        var first = await service.CreateAsync(
+            request,
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+        var replayOrOverlap = await service.CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                IssueId = request.IssueId,
+                IssueLineId = request.IssueLineId,
+                RequestedQty = 4m,
+                Reason = "Một yêu cầu chồng lấn không được phép tạo exception mới",
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        replayOrOverlap.RequestId.Should().Be(first.RequestId);
+        replayOrOverlap.RequestedQty.Should().Be(2.5m);
+        (await context.Supplementalmaterialrequests.CountAsync()).Should().Be(1);
+        (await context.Auditlogs.CountAsync(item => item.EntityName == nameof(SupplementalMaterialRequest) && item.FieldName == "Create"))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldReturnExistingOpenRequest_WhenDatabaseUniqueFenceRejectsConcurrentInsert()
+    {
+        await using var context = CreateContext();
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        var existing = new SupplementalMaterialRequest
+        {
+            RequestId = GuidHelper.NewId(),
+            RequestCode = "SUP-EXISTING",
+            IssueId = seed.IssueId,
+            IssueLineId = seed.IssueLineId,
+            WarehouseId = seed.WarehouseId,
+            IngredientId = seed.IngredientId,
+            UnitId = seed.UnitId,
+            RequestedQty = 2m,
+            Status = "PENDING_WAREHOUSE_REVIEW",
+            RequestedBy = seed.UserId,
+            RequestedAt = DateTime.UtcNow,
+        };
+        context.Supplementalmaterialrequests.Add(existing);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context, transactionRunner: new DuplicateOpenIssueLineTransactionRunner()).CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                IssueId = GuidHelper.ToGuidString(seed.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+                RequestedQty = 3m,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        result.RequestId.Should().Be(GuidHelper.ToGuidString(existing.RequestId));
+        (await context.Supplementalmaterialrequests.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Model_ShouldDeclareGeneratedUniqueOpenIssueLineFence()
+    {
+        await using var context = CreateContext();
+        var entityType = context.Model.FindEntityType(typeof(SupplementalMaterialRequest))!;
+
+        entityType.FindProperty("OpenIssueLineId")!.GetComputedColumnSql()
+            .Should().Contain("status");
+        entityType.GetIndexes().Should().ContainSingle(index =>
+            index.IsUnique && index.Properties.Select(property => property.Name).SequenceEqual(new[] { "OpenIssueLineId" }));
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldRejectIssueThatKitchenHasNotReceived()
     {
         await using var context = CreateContext();
@@ -59,6 +144,29 @@ public sealed class SupplementalMaterialRequestServiceTests
 
         await action.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*xác nhận đã nhận*");
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectLegacyIssueLineWithoutDemandProvenance()
+    {
+        await using var context = CreateContext();
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        await context.SaveChangesAsync();
+        context.Inventoryissuelines.Single().MaterialRequestLineId = null;
+        await context.SaveChangesAsync();
+
+        var action = () => CreateService(context).CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                IssueId = GuidHelper.ToGuidString(seed.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+                RequestedQty = 1m,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        await action.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*cần đối soát trước khi tạo yêu cầu bổ sung*");
     }
 
     [Fact]
@@ -168,6 +276,8 @@ public sealed class SupplementalMaterialRequestServiceTests
         stock.CurrentQty.Should().Be(2.5m);
         var supplementalIssue = await context.Inventoryissues.SingleAsync(item => item.IssueCode.StartsWith("ISS-SUP-"));
         supplementalIssue.IssueDate.Should().Be(sourceIssueDate);
+        supplementalIssue.Inventoryissuelines.Single().MaterialRequestLineId
+            .Should().Equal(context.Inventoryissuelines.Single(item => item.IssueLineId == seed.IssueLineId).MaterialRequestLineId);
     }
 
     [Fact]
@@ -176,22 +286,6 @@ public sealed class SupplementalMaterialRequestServiceTests
         await using var context = CreateContext();
         var sourceIssueDate = new DateOnly(2024, 1, 15);
         var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow, issueDate: sourceIssueDate);
-        context.Materialrequestlines.Add(new MaterialRequestLine
-        {
-            RequestLineId = GuidHelper.NewId(),
-            RequestId = seed.MaterialRequestId,
-            PlanLineId = GuidHelper.NewId(),
-            IngredientId = seed.IngredientId,
-            UnitId = seed.UnitId,
-            TotalServings = 1,
-            GrossQtyPerServing = 1,
-            BomRatePercent = 100,
-            AppliedPortionRuleSource = "TEST",
-            AppliedPortionRatePercent = 100,
-            TotalRequiredQty = 10,
-            CurrentStockQty = 0,
-            SuggestedPurchaseQty = 0,
-        });
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var created = await service.CreateAsync(
@@ -214,6 +308,8 @@ public sealed class SupplementalMaterialRequestServiceTests
         var purchaseLine = await context.Purchaserequestlines.SingleAsync();
         purchaseLine.PurchaseQty.Should().Be(3);
         purchaseLine.IngredientId.Should().Equal(seed.IngredientId);
+        purchaseLine.MaterialRequestLineId.Should().Equal(
+            context.Inventoryissuelines.Single(item => item.IssueLineId == seed.IssueLineId).MaterialRequestLineId);
         var purchaseRequest = await context.Purchaserequests.SingleAsync();
         purchaseRequest.PurchaseForDate.Should().Be(sourceIssueDate);
     }
@@ -228,7 +324,8 @@ public sealed class SupplementalMaterialRequestServiceTests
 
     private static SupplementalMaterialRequestService CreateService(
         IpcManagementContext context,
-        IStockLedgerService? stockLedgerService = null)
+        IStockLedgerService? stockLedgerService = null,
+        IEfTransactionRunner? transactionRunner = null)
     {
         var unitOfWork = Substitute.For<IUnitOfWork>();
         unitOfWork.SaveChangesAsync().Returns(_ => context.SaveChangesAsync());
@@ -236,7 +333,29 @@ public sealed class SupplementalMaterialRequestServiceTests
             context,
             unitOfWork,
             stockLedgerService ?? Substitute.For<IStockLedgerService>(),
-            new EfTransactionRunner(context));
+            transactionRunner ?? new EfTransactionRunner(context));
+    }
+
+    private sealed class DuplicateOpenIssueLineTransactionRunner : IEfTransactionRunner
+    {
+        public Task ExecuteAsync(
+            Func<CancellationToken, Task> operation,
+            Func<CancellationToken, Task<bool>> verifySucceeded,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted,
+            CancellationToken cancellationToken = default)
+            => throw DuplicateKeyException();
+
+        public Task<TResult> ExecuteAsync<TResult>(
+            Func<CancellationToken, Task<TResult>> operation,
+            Func<CancellationToken, Task<bool>> verifySucceeded,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted,
+            CancellationToken cancellationToken = default)
+            => throw DuplicateKeyException();
+
+        private static DbUpdateException DuplicateKeyException()
+            => new(
+                "Concurrent insert failed.",
+                new InvalidOperationException("Duplicate entry for key 'uxSupplementalMaterialRequestsOpenIssueLine'"));
     }
 
     private static (byte[] IssueId, byte[] IssueLineId, byte[] WarehouseId, byte[] UserId, byte[] IngredientId, byte[] UnitId, byte[] MaterialRequestId) SeedReceivedIssueLine(
@@ -255,6 +374,24 @@ public sealed class SupplementalMaterialRequestServiceTests
         var materialRequestId = GuidHelper.NewId();
         var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = ingredientCode, IngredientName = ingredientName, UnitId = unitId, WarehouseId = warehouseId, IsActive = true };
         var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", ConvertRateToBase = 1 };
+        var materialRequestLine = new MaterialRequestLine
+        {
+            RequestLineId = GuidHelper.NewId(),
+            RequestId = materialRequestId,
+            PlanLineId = GuidHelper.NewId(),
+            IngredientId = ingredientId,
+            UnitId = unitId,
+            TotalServings = 1,
+            GrossQtyPerServing = 10,
+            BomRatePercent = 100,
+            AppliedPortionRuleSource = "TEST",
+            AppliedPortionRatePercent = 100,
+            TotalRequiredQty = 10,
+            CurrentStockQty = 0,
+            SuggestedPurchaseQty = 0,
+            Ingredient = ingredient,
+            Unit = unit,
+        };
         var issue = new InventoryIssue
         {
             IssueId = issueId,
@@ -273,6 +410,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             IssueId = issueId,
             IngredientId = ingredientId,
             UnitId = unitId,
+            MaterialRequestLineId = materialRequestLine.RequestLineId,
             RequestedQty = 10,
             IssuedQty = 10,
             Issue = issue,
@@ -280,7 +418,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             Unit = unit,
         };
         issue.Inventoryissuelines.Add(line);
-        context.AddRange(unit, ingredient, issue, line);
+        context.AddRange(unit, ingredient, materialRequestLine, issue, line);
         return (issueId, issueLineId, warehouseId, userId, ingredientId, unitId, materialRequestId);
     }
 }

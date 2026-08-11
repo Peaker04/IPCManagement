@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { typography } from '@/lib/typography';
 
 interface InlineAlertProps {
   title: ReactNode;
@@ -37,8 +38,8 @@ export function InlineAlert({ title, icon, action, children, variant = 'warning'
       <div className="flex min-w-0 items-center gap-3.5">
         {displayIcon && <div className="flex shrink-0 items-center justify-center opacity-80">{displayIcon}</div>}
         <div>
-          <h4 className={cn('m-0 mb-1 text-[15px] font-semibold', titleClasses[variant])}>{title}</h4>
-          <div className="text-[13px] leading-5">{children}</div>
+          <h4 className={cn(typography.sectionTitle, 'm-0 mb-1', titleClasses[variant])}>{title}</h4>
+          <div className={typography.body}>{children}</div>
         </div>
       </div>
       {action}

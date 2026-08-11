@@ -118,7 +118,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'spinbutton',
         /^Suất dự kiến của /,
-        'frontend/src/features/coordination/components/order-table.tsx:344',
+        'frontend/src/features/coordination/components/order-table.tsx:345',
       ),
       source: coordinationSource(
         'update-forecast',
@@ -180,7 +180,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'spinbutton',
         /^Suất thực tế của /,
-        'frontend/src/features/coordination/components/order-table.tsx:372',
+        'frontend/src/features/coordination/components/order-table.tsx:373',
       ),
       source: coordinationSource(
         'request-adjustment',
@@ -247,14 +247,14 @@ const materialRows: PcProjectedRegistryRow[] = [
     : {
         role: operation === 'approval' || operation === 'purchasing' ? 'link' : 'button',
         name: name as string,
-        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128',
+        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129',
         route: weeklyMenuRoute,
         tab: 'Nhu cầu',
       },
   source: [
     'frontend/tests/operationalStateActionRegistry.test.ts:315-356',
     'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128',
+    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129',
     'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
   ],
   disposition: operation === 'none' ? 'Terminal state intentionally has no business action.' : 'Actor set resolved from route and ActionGuard evidence.',

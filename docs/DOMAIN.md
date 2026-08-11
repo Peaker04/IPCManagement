@@ -53,6 +53,7 @@ Action chỉ xuất hiện khi role có permission và object ở đúng state. 
 | **Source-line** | ID dòng chứng từ gốc mà action nghiệp vụ tác động. Tên nguyên liệu chỉ là nhãn hiển thị, không thay thế source-line ID. |
 | **Movement** | Bút toán bất biến ghi một lần thay đổi tồn kho, có loại, số lượng, tham chiếu nguồn và người thao tác. |
 | **Supplemental** | Vòng cấp bổ sung khi Bếp thiếu so với phiếu đã nhận; có thể được Kho cấp tiếp hoặc chuyển Thu mua. |
+| **Legacy lineage disposition** | Work object đối soát một dòng chứng từ lịch sử chưa có source-line: Admin đề xuất mapping có lý do, Manager khác danh tính duyệt, rồi Admin mới áp dụng provenance đã duyệt. Không được suy đoán theo tên nguyên liệu hoặc header. |
 | **Signoff** | Xác nhận có danh tính và audit rằng người nhận đã kiểm đếm/kết thúc trách nhiệm ở một transition. |
 | **Protected fingerprint** | Dấu vân checksum/identity của artifact hoặc dữ liệu cần bảo toàn; thay đổi phải bị gate phát hiện. |
 | **Sanitizer** | Luồng dọn dữ liệu có allowlist, precondition, audit và rollback; không đồng nghĩa seed/reset. |

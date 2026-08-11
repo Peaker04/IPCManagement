@@ -136,8 +136,22 @@ public class InventoryReceiptServiceTests
                 warehouseId BLOB,
                 supplierId BLOB,
                 purchaseRequestId BLOB,
+                purchaseOrderId BLOB,
                 createdBy BLOB,
-                createdAt TEXT
+                createdAt TEXT,
+                status TEXT NOT NULL DEFAULT 'DRAFT',
+                qualityStatus TEXT NOT NULL DEFAULT 'PENDING_INSPECTION',
+                concurrencyVersion INTEGER NOT NULL DEFAULT 0,
+                qualityCheckedBy BLOB,
+                qualityCheckedAt TEXT,
+                managerApprovedBy BLOB,
+                managerApprovedAt TEXT,
+                managerApprovalReason TEXT,
+                postedBy BLOB,
+                postedAt TEXT,
+                rejectedBy BLOB,
+                rejectedAt TEXT,
+                rejectionReason TEXT
             );
 
             CREATE TABLE inventoryreceiptlines (
@@ -154,7 +168,10 @@ public class InventoryReceiptServiceTests
                 expiredDate TEXT,
                 packageQuantitySnapshot REAL,
                 packageBaseUnitIdSnapshot BLOB,
-                packagePolicyVersionSnapshot TEXT
+                packagePolicyVersionSnapshot TEXT,
+                acceptedQuantity REAL,
+                rejectedQuantity REAL,
+                qualityReason TEXT
             );
 
             CREATE TABLE auditlogs (
