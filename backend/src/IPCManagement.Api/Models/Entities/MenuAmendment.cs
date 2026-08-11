@@ -24,6 +24,16 @@ public sealed class MenuAmendment
     public ICollection<MenuAmendmentLine> Lines { get; set; } = new List<MenuAmendmentLine>();
 }
 
+public sealed class MenuAmendmentReconciliationCase
+{
+    public byte[] MenuAmendmentReconciliationCaseId { get; set; } = null!;
+    public byte[] MenuAmendmentId { get; set; } = null!;
+    public string ImpactSnapshotJson { get; set; } = null!;
+    public string Status { get; set; } = "OPEN";
+    public DateTime CreatedAt { get; set; }
+    public MenuAmendment MenuAmendment { get; set; } = null!;
+}
+
 public sealed class MenuAmendmentLine
 {
     public byte[] MenuAmendmentLineId { get; set; } = null!;

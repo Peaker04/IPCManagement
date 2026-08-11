@@ -209,9 +209,17 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         var requestIds = materialRequests.Select(item => item.RequestId).ToList();
         var hasIssue = requestIds.Count > 0 && await context.Inventoryissues.AnyAsync(item => requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
         var requiresReconciliation = hasPurchaseOrder || hasReceipt || hasIssue;
-        var result = new MenuAmendmentResultDto { Status = requiresReconciliation ? "RECONCILIATION_REQUIRED" : "PENDING_REVIEW", RequiresReconciliation = requiresReconciliation, AffectedDemandCount = materialRequests.Count, AffectedPurchaseRequestCount = purchaseRequestIds.Count, HasPurchaseOrder = hasPurchaseOrder, HasReceipt = hasReceipt, HasIssue = hasIssue };
+        var documentIds = materialRequests.Select(item => GuidHelper.ToGuidString(item.RequestId)).Concat(purchaseRequestIds.Select(GuidHelper.ToGuidString)).ToArray();
+        var sourceLineIds = await context.Materialrequestlines.Where(item => requestIds.Any(id => id.SequenceEqual(item.RequestId))).Select(item => item.RequestLineId).ToListAsync(cancellationToken);
+        var result = new MenuAmendmentResultDto { Status = requiresReconciliation ? "RECONCILIATION_REQUIRED" : "PENDING_REVIEW", RequiresReconciliation = requiresReconciliation, AffectedDemandCount = materialRequests.Count, AffectedPurchaseRequestCount = purchaseRequestIds.Count, HasPurchaseOrder = hasPurchaseOrder, HasReceipt = hasReceipt, HasIssue = hasIssue, AffectedDocumentIds = documentIds, AffectedSourceLineIds = sourceLineIds.Select(GuidHelper.ToGuidString).ToArray() };
         var amendment = new MenuAmendment { MenuAmendmentId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = request.WeekStartDate, BaseMenuVersionId = baseVersionId, Status = result.Status, Reason = request.Reason.Trim(), ImpactSnapshotJson = JsonSerializer.Serialize(result), CreatedBy = actorId, CreatedAt = DateTime.UtcNow, Lines = mappedLines };
         context.Menuamendments.Add(amendment);
+        if (requiresReconciliation)
+        {
+            var reconciliationCase = new MenuAmendmentReconciliationCase { MenuAmendmentReconciliationCaseId = GuidHelper.NewId(), MenuAmendmentId = amendment.MenuAmendmentId, ImpactSnapshotJson = amendment.ImpactSnapshotJson, CreatedAt = amendment.CreatedAt };
+            context.Menuamendmentreconciliationcases.Add(reconciliationCase);
+            result.ReconciliationCaseId = GuidHelper.ToGuidString(reconciliationCase.MenuAmendmentReconciliationCaseId);
+        }
         context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = amendment.CreatedAt, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MenuAmendment), EntityId = amendment.MenuAmendmentId, FieldName = "Status", NewValue = amendment.Status, Reason = amendment.Reason });
         await context.SaveChangesAsync(cancellationToken);
         result.MenuAmendmentId = GuidHelper.ToGuidString(amendment.MenuAmendmentId);

@@ -27,6 +27,9 @@ public sealed class MenuAmendmentResultDto
     public bool HasReceipt { get; set; }
     public bool HasIssue { get; set; }
     public string? AppliedMenuVersionId { get; set; }
+    public string? ReconciliationCaseId { get; set; }
+    public IReadOnlyList<string> AffectedDocumentIds { get; set; } = [];
+    public IReadOnlyList<string> AffectedSourceLineIds { get; set; } = [];
 }
 
 public sealed class ReviewMenuAmendmentRequest

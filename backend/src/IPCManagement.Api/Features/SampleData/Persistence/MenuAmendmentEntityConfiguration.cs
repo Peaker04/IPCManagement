@@ -51,3 +51,19 @@ internal sealed class MenuAmendmentLineConfiguration : IEntityTypeConfiguration<
         entity.HasOne(item => item.NewDish).WithMany().HasForeignKey(item => item.NewDishId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class MenuAmendmentReconciliationCaseConfiguration : IEntityTypeConfiguration<MenuAmendmentReconciliationCase>
+{
+    public void Configure(EntityTypeBuilder<MenuAmendmentReconciliationCase> entity)
+    {
+        entity.HasKey(item => item.MenuAmendmentReconciliationCaseId).HasName("PRIMARY");
+        entity.ToTable("menuamendmentreconciliationcases");
+        entity.HasIndex(item => item.MenuAmendmentId, "uqMenuAmendmentReconciliationCase").IsUnique();
+        entity.Property(item => item.MenuAmendmentReconciliationCaseId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationCaseId");
+        entity.Property(item => item.MenuAmendmentId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentId");
+        entity.Property(item => item.ImpactSnapshotJson).HasColumnType("longtext").HasColumnName("impactSnapshotJson");
+        entity.Property(item => item.Status).HasMaxLength(32).HasColumnName("status");
+        entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+        entity.HasOne(item => item.MenuAmendment).WithMany().HasForeignKey(item => item.MenuAmendmentId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
