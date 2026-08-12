@@ -121,7 +121,6 @@ export default function ChefDashboardPage() {
             <ChefProductionSection
               lines={production.dailyPlanLines}
               isSending={production.isSendingDailyPlan}
-              isLocked={production.isLocked}
               isLoading={production.status.isDailyPlanLoading}
               isError={production.status.isDailyPlanError}
               totalPlans={production.dailyPlan?.totalPlans ?? 0}

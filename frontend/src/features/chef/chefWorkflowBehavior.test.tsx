@@ -257,22 +257,22 @@ describe('chef workflow service-date behavior', () => {
     expect(result.current.productionPlan.totalMeals).toBe(840)
   })
 
-  it('disables plan receipt with a visible reason while the shift is not locked', () => {
+  it('allows plan receipt from the server daily-plan state after a page reload', () => {
+    const onReceivePlan = vi.fn()
     render(
       <ChefProductionSection
         lines={[]}
         isSending={false}
-        isLocked={false}
         isLoading={false}
         isError={false}
         totalPlans={1}
         sentPlans={0}
-        onReceivePlan={vi.fn()}
+        onReceivePlan={onReceivePlan}
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'Nhận kế hoạch' })).toBeDisabled()
-    expect(screen.getByText('Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nhận kế hoạch' })).toBeEnabled()
+    expect(screen.queryByText('Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.')).not.toBeInTheDocument()
   })
 
   it('replaces the plan receipt action with completion status after all plans are sent', () => {
@@ -280,7 +280,6 @@ describe('chef workflow service-date behavior', () => {
       <ChefProductionSection
         lines={[]}
         isSending={false}
-        isLocked
         isLoading={false}
         isError={false}
         totalPlans={1}

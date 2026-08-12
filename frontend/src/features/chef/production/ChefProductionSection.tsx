@@ -8,7 +8,6 @@ import type { DailyPlanLine } from './chefProductionModel'
 type Props = {
   lines: DailyPlanLine[]
   isSending: boolean
-  isLocked: boolean
   isLoading: boolean
   isError: boolean
   totalPlans: number
@@ -27,7 +26,6 @@ const formatBomScope = (scope?: string | null) => scope ? bomScopeLabels[scope.t
 export function ChefProductionSection({
   lines,
   isSending,
-  isLocked,
   isLoading,
   isError,
   totalPlans,
@@ -35,14 +33,12 @@ export function ChefProductionSection({
   onReceivePlan,
 }: Props) {
   const isComplete = totalPlans > 0 && sentPlans >= totalPlans
-  const canReceivePlan = isLocked && !isLoading && !isError && totalPlans > 0 && !isComplete
+  const canReceivePlan = !isLoading && !isError && totalPlans > 0 && !isComplete
   const blockedReason = isLoading
     ? 'Đang kiểm tra kế hoạch sản xuất.'
     : isError
       ? 'Chưa tải được kế hoạch sản xuất. Thử lại trước khi xác nhận.'
-      : !isLocked
-        ? 'Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.'
-        : totalPlans === 0
+    : totalPlans === 0
           ? 'Chưa có kế hoạch sản xuất cho ngày/ca này.'
           : undefined
 
