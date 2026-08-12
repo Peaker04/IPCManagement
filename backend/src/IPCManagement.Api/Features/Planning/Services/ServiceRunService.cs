@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -19,7 +20,7 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             .FirstOrDefaultAsync(item => item.PlanId.SequenceEqual(planId), cancellationToken)
             ?? throw new ArgumentException("Không tìm thấy kế hoạch sản xuất.");
         if (plan.SentToKitchenAt is null)
-            throw new InvalidOperationException("Kế hoạch sản xuất chưa gửi Bếp nên chưa thể mở Ca phục vụ.");
+            throw new BusinessRuleException("Kế hoạch sản xuất chưa gửi Bếp nên chưa thể mở Ca phục vụ.");
         if (!plan.Productionplanlines.Any(line => line.ShiftName == shiftName)) throw new ArgumentException("Kế hoạch sản xuất không có ca phục vụ đã chọn.");
 
         var run = await context.Serviceruns.FirstOrDefaultAsync(item => item.PlanId.SequenceEqual(planId) && item.ShiftName == shiftName, cancellationToken);

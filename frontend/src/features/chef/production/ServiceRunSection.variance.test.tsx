@@ -11,6 +11,8 @@ const run = {
 
 const mocks = vi.hoisted(() => ({
   user: { role: 'quanly', isAdminFullAccess: false },
+  persistedRun: null as unknown,
+  open: vi.fn(),
   declare: vi.fn(),
   approve: vi.fn(),
   refetch: vi.fn(),
@@ -20,8 +22,8 @@ vi.mock('react-redux', () => ({ useSelector: (selector: (state: unknown) => unkn
 vi.mock('../chefApi', () => {
   const idle = () => [vi.fn(), { isLoading: false }]
   return {
-    useGetServiceRunByPlanQuery: () => ({ data: run, isFetching: false, isError: false, refetch: mocks.refetch }),
-    useOpenServiceRunMutation: idle, useStartServiceRunMutation: idle, useRecordServiceRunActualServingsMutation: idle,
+    useGetServiceRunByPlanQuery: () => ({ data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }),
+    useOpenServiceRunMutation: () => [mocks.open, { isLoading: false }], useStartServiceRunMutation: idle, useRecordServiceRunActualServingsMutation: idle,
     useConfirmServiceRunMutation: idle, useResolveServiceRunVarianceMutation: idle, useResolveServiceRunServingVarianceMutation: idle,
     useWaiveServiceRunConfirmationMutation: idle, useCloseServiceRunMutation: idle, useCreateServiceRunAdjustmentMutation: idle,
     useDeclareServiceRunVarianceMutation: () => [mocks.declare, { isLoading: false }],
@@ -37,6 +39,8 @@ const resolved = () => ({ unwrap: () => Promise.resolve(run) })
 describe('ServiceRun variance controls', () => {
   beforeEach(() => {
     mocks.user = { role: 'quanly', isAdminFullAccess: false }
+    mocks.persistedRun = run
+    mocks.open.mockReset().mockReturnValue(resolved())
     mocks.declare.mockReset().mockReturnValue(resolved())
     mocks.approve.mockReset().mockReturnValue(resolved())
     mocks.refetch.mockReset().mockResolvedValue({ data: run })
@@ -73,5 +77,14 @@ describe('ServiceRun variance controls', () => {
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledWith({
       id: 'run-1', declarationId: 'declaration-1', body: { reason: 'Admin waiver hợp lệ' },
     }))
+  })
+
+  it('explains that an unsent plan cannot open a service run and does not expose the action', () => {
+    mocks.persistedRun = null
+    render(<ServiceRunSection plans={[{ planId: 'plan-2', planCode: 'KHSX-CHUA-GUI', sentToKitchenAt: null, lines: [{ shiftName: 'MORNING' }] }] as never[]} shiftName="MORNING" />)
+
+    expect(screen.getByText('Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mở Ca phục vụ' })).not.toBeInTheDocument()
+    expect(mocks.open).not.toHaveBeenCalled()
   })
 })

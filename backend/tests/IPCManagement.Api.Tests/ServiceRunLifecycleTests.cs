@@ -1,5 +1,6 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Planning.Services;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Helpers;
@@ -117,7 +118,7 @@ public sealed class ServiceRunLifecycleTests
         await using var verificationContext = new IpcManagementContext(options);
         var service = new ServiceRunService(verificationContext);
         var action = () => service.OpenAsync(new OpenServiceRunRequest { PlanId = GuidHelper.ToGuidString(planId), ShiftName = "MORNING" }, GuidHelper.ToGuidString(actorId));
-        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("*chưa gửi Bếp*");
+        await action.Should().ThrowAsync<BusinessRuleException>().WithMessage("*chưa gửi Bếp*");
     }
 
     [Fact]
