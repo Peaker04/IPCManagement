@@ -13,9 +13,15 @@ if ($sqlPaths.Count -ne 2) { throw 'The Phase 05 contract requires ordered Servi
 foreach ($path in @($Runbook, $Runner) + $sqlPaths) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing contract file: $path" }
 }
+$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\..')).Path
+$serviceRunMigration = Join-Path $repositoryRoot 'backend\src\IPCManagement.Api\Migrations\20260812170357_AddMultiCustomerServiceRunKernel.cs'
+if (-not (Test-Path -LiteralPath $serviceRunMigration -PathType Leaf)) {
+    throw "Missing ServiceRun migration source: $serviceRunMigration"
+}
 
 $runbookText = Get-Content -LiteralPath $Runbook -Raw
 $runnerText = Get-Content -LiteralPath $Runner -Raw
+$serviceRunMigrationText = Get-Content -LiteralPath $serviceRunMigration -Raw
 $sqlArtifacts = $sqlPaths | ForEach-Object {
     [pscustomobject]@{
         Path = $_
@@ -40,19 +46,28 @@ foreach ($sqlArtifact in $sqlArtifacts) {
 }
 
 $serviceRunSql = $sqlArtifacts[0].Text
-if ($serviceRunSql -match '(?im)DROP\s+INDEX\s+IF\s+EXISTS\s+`uqServiceRunsPlanShift`') {
-    throw 'ServiceRun reviewed SQL must not use MySQL-invalid DROP INDEX IF EXISTS syntax.'
+if ($serviceRunSql -match '(?im)DROP\s+INDEX\s+(IF\s+EXISTS\s+)?`?uqServiceRunsPlanShift`?') {
+    throw 'ServiceRun reviewed SQL must preserve uqServiceRunsPlanShift because an existing foreign key depends on it.'
 }
 foreach ($required in @(
-    'FROM `information_schema`.`statistics`',
-    'WHERE `table_schema` = DATABASE()',
-    'AND `index_name` = ''uqServiceRunsPlanShift''',
-    '''ALTER TABLE `serviceruns` DROP INDEX `uqServiceRunsPlanShift`''',
-    'PREPARE phase05_drop_legacy_plan_shift_index',
-    'DEALLOCATE PREPARE phase05_drop_legacy_plan_shift_index'
+    'Keep the legacy plan/shift unique key: an existing foreign key depends on it.',
+    'CREATE UNIQUE INDEX IF NOT EXISTS `uqServiceRunsCustomerDateShiftTier`',
+    'ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`);'
 )) {
     if ($serviceRunSql -notmatch [regex]::Escape($required)) {
-        throw "ServiceRun reviewed SQL is missing MySQL-safe legacy-index guard: $required"
+        throw "ServiceRun reviewed SQL is missing additive scoped-identity contract: $required"
+    }
+}
+if ($serviceRunMigrationText -match 'DropIndex\(\s*name:\s*"uqServiceRunsPlanShift"') {
+    throw 'ServiceRun EF migration must preserve uqServiceRunsPlanShift because an existing foreign key depends on it.'
+}
+foreach ($required in @(
+    'name: "uqServiceRunsCustomerDateShiftTier"',
+    'columns: new[] { "customerId", "serviceDate", "shiftName", "priceTierAmount" }',
+    'unique: true'
+)) {
+    if ($serviceRunMigrationText -notmatch [regex]::Escape($required)) {
+        throw "ServiceRun EF migration is missing additive scoped-identity contract: $required"
     }
 }
 if ($runbookText.IndexOf('20260812170357_AddMultiCustomerServiceRunKernel', [StringComparison]::Ordinal) -gt

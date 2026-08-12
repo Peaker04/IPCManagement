@@ -2,22 +2,8 @@
 -- This file is reviewed connection-free in Wave 1. Its only permitted live target is ipc_lane7.
 -- It never resets, seeds, imports, restores, deletes documents, movements, audits, or outbox records.
 
--- MySQL 9.5 does not accept a conditional index drop inside a combined ALTER TABLE.
--- Keep the reviewed artifact idempotent by preparing the valid drop only when metadata proves the legacy index exists.
-SET @phase05_drop_legacy_plan_shift_index = (
-    SELECT IF(
-        COUNT(*) > 0,
-        'ALTER TABLE `serviceruns` DROP INDEX `uqServiceRunsPlanShift`',
-        'SELECT 1'
-    )
-    FROM `information_schema`.`statistics`
-    WHERE `table_schema` = DATABASE()
-      AND `table_name` = 'serviceruns'
-      AND `index_name` = 'uqServiceRunsPlanShift'
-);
-PREPARE phase05_drop_legacy_plan_shift_index FROM @phase05_drop_legacy_plan_shift_index;
-EXECUTE phase05_drop_legacy_plan_shift_index;
-DEALLOCATE PREPARE phase05_drop_legacy_plan_shift_index;
+-- Keep the legacy plan/shift unique key: an existing foreign key depends on it.
+-- The scoped key below is additive and never weakens legacy referential integrity.
 
 ALTER TABLE `serviceruns`
     ADD COLUMN IF NOT EXISTS `concurrencyVersion` BIGINT NOT NULL DEFAULT 0,
@@ -52,7 +38,6 @@ CREATE TABLE IF NOT EXISTS `servicerunsourcelines` (
     KEY `ixServiceRunSourceLinesMaterialRequestLine` (`materialRequestLineId`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS `ixServiceRunsPlanId` ON `serviceruns` (`planId`);
 CREATE UNIQUE INDEX IF NOT EXISTS `uqServiceRunsCustomerDateShiftTier`
     ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`);
 ALTER TABLE `serviceruns`

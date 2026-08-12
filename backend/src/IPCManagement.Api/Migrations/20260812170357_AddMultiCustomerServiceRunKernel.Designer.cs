@@ -4505,6 +4505,9 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasIndex(new[] { "Status", "UpdatedAt" }, "ixServiceRunsStatusUpdatedAt");
 
+                    b.HasIndex(new[] { "PlanId", "ShiftName" }, "uqServiceRunsPlanShift")
+                        .IsUnique();
+
                     b.HasIndex(new[] { "CustomerId", "ServiceDate", "ShiftName", "PriceTierAmount" }, "uqServiceRunsCustomerDateShiftTier")
                         .IsUnique();
 

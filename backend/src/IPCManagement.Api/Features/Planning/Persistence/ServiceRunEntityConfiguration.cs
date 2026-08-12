@@ -14,6 +14,9 @@ internal sealed class ServiceRunConfiguration : IEntityTypeConfiguration<Service
             table.HasCheckConstraint("ckServiceRunsConfirmationOutcome", "`serviceConfirmedAt` IS NULL OR `serviceConfirmationWaivedAt` IS NULL");
             table.HasCheckConstraint("ckServiceRunsConfirmationPolicy", "`serviceConfirmationPolicy` IN ('REQUIRED', 'WAIVABLE')");
         });
+        // Existing foreign keys still reference this alternate key. Keep it while the
+        // scoped identity is introduced so legacy rows and referential integrity remain intact.
+        entity.HasIndex(item => new { item.PlanId, item.ShiftName }, "uqServiceRunsPlanShift").IsUnique();
         entity.HasIndex(item => new { item.CustomerId, item.ServiceDate, item.ShiftName, item.PriceTierAmount }, "uqServiceRunsCustomerDateShiftTier").IsUnique();
         entity.HasIndex(item => new { item.Status, item.UpdatedAt }, "ixServiceRunsStatusUpdatedAt");
 

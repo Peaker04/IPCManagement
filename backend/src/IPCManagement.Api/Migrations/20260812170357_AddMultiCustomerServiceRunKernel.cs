@@ -11,10 +11,6 @@ namespace IPCManagement.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "uqServiceRunsPlanShift",
-                table: "serviceruns");
-
             migrationBuilder.AddColumn<long>(
                 name: "concurrencyVersion",
                 table: "serviceruns",
@@ -93,11 +89,6 @@ namespace IPCManagement.Api.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_serviceruns_planId",
-                table: "serviceruns",
-                column: "planId");
 
             migrationBuilder.CreateIndex(
                 name: "uqServiceRunsCustomerDateShiftTier",
@@ -194,10 +185,6 @@ namespace IPCManagement.Api.Migrations
                 name: "servicerunsourcelines");
 
             migrationBuilder.DropIndex(
-                name: "IX_serviceruns_planId",
-                table: "serviceruns");
-
-            migrationBuilder.DropIndex(
                 name: "uqServiceRunsCustomerDateShiftTier",
                 table: "serviceruns");
 
@@ -217,11 +204,6 @@ namespace IPCManagement.Api.Migrations
                 name: "serviceDate",
                 table: "serviceruns");
 
-            migrationBuilder.CreateIndex(
-                name: "uqServiceRunsPlanShift",
-                table: "serviceruns",
-                columns: new[] { "planId", "shiftName" },
-                unique: true);
         }
     }
 }

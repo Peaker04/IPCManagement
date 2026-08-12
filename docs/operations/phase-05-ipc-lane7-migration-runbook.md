@@ -11,7 +11,7 @@ Reviewed artifacts:
 - EF migration: `20260812170357_AddMultiCustomerServiceRunKernel`
 - EF migration source: `backend/src/IPCManagement.Api/Migrations/20260812170357_AddMultiCustomerServiceRunKernel.cs`
 - Reviewed SQL: `tools/db/phase05/phase05-service-run-ipc-lane7-reviewed.sql`
-- Reviewed SQL SHA-256: `C990CB78A230A46750C9FAF144F54074C07300914837887DE16A745512980505`
+- Reviewed SQL SHA-256: `F662F3660BD00137E080E14587FF68A70F6BE076566B6028F9EE710BBE77CD64`
 - Runner: `tools/db/phase05/Invoke-Phase05Lane7Migration.ps1`
 
 Plan 05-05 adds a second ordered, reviewed artifact after the ServiceRun kernel:
@@ -27,8 +27,9 @@ not infer values for legacy orders. A legacy order without the complete four-fie
 remains immutable until the existing backend decision queue resolves it; documents,
 movements, audit rows and outbox history are preserved.
 
-The SQL is additive. It retains close snapshots, documents, stock movements, audit rows and
-outbox history. It backfills only a single-valued `customer × tier` source scope; legacy rows
+The SQL is additive. It retains `uqServiceRunsPlanShift` because an existing foreign key depends
+on that legacy key, and adds `uqServiceRunsCustomerDateShiftTier` for the customer-scoped identity.
+It also retains close snapshots, documents, stock movements, audit rows and outbox history. It backfills only a single-valued `customer × tier` source scope; legacy rows
 with zero or multiple candidates remain unscoped and receive one decision item.
 
 ## Required receipts

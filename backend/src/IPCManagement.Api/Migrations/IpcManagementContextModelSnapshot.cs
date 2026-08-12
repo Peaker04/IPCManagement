@@ -4589,8 +4589,6 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasIndex("OpenedBy");
 
-                    b.HasIndex("PlanId");
-
                     b.HasIndex("ServiceConfirmationWaivedBy");
 
                     b.HasIndex("ServiceConfirmedBy");
@@ -4604,6 +4602,9 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex(new[] { "Status", "UpdatedAt" }, "ixServiceRunsStatusUpdatedAt");
 
                     b.HasIndex(new[] { "CustomerId", "ServiceDate", "ShiftName", "PriceTierAmount" }, "uqServiceRunsCustomerDateShiftTier")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PlanId", "ShiftName" }, "uqServiceRunsPlanShift")
                         .IsUnique();
 
                     b.ToTable("serviceruns", null, t =>
