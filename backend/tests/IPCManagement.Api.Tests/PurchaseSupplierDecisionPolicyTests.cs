@@ -39,14 +39,17 @@ public class PurchaseSupplierDecisionPolicyTests
     {
         var deliveryDate = new DateOnly(2026, 7, 29);
         var first = PurchaseSupplierDecisionPolicy.BuildFingerprint(
-            [1], [2], "EFFECTIVE_QUOTATION", [3], 100m, 110m, deliveryDate);
+            [1], [2], "EFFECTIVE_QUOTATION", [3], 100m, 110m, deliveryDate, [4], "NET 30");
         var same = PurchaseSupplierDecisionPolicy.BuildFingerprint(
-            [1], [2], "EFFECTIVE_QUOTATION", [3], 100.001m, 110.001m, deliveryDate);
+            [1], [2], "EFFECTIVE_QUOTATION", [3], 100.001m, 110.001m, deliveryDate, [4], "NET 30");
         var changed = PurchaseSupplierDecisionPolicy.BuildFingerprint(
-            [1], [2], "EFFECTIVE_QUOTATION", [3], 100m, 111m, deliveryDate);
+            [1], [2], "EFFECTIVE_QUOTATION", [3], 100m, 111m, deliveryDate, [4], "NET 30");
+        var changedTerms = PurchaseSupplierDecisionPolicy.BuildFingerprint(
+            [1], [2], "EFFECTIVE_QUOTATION", [3], 100m, 110m, deliveryDate, [4], "PREPAID");
 
         first.Should().Be(same);
         changed.Should().NotBe(first);
+        changedTerms.Should().NotBe(first);
     }
 
     [Theory]

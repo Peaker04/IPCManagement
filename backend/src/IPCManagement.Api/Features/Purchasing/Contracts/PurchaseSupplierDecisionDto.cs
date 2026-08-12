@@ -38,6 +38,8 @@ public class ConfirmPurchaseLineSupplierRequest
     public string SupplierId { get; set; } = string.Empty;
     public decimal ProposedUnitPrice { get; set; }
     public string ProposedDeliveryDate { get; set; } = string.Empty;
+    public string ReceivingWarehouseId { get; set; } = string.Empty;
+    public string PurchasingTerms { get; set; } = string.Empty;
     public int ExpectedDecisionVersion { get; set; }
     public string? Note { get; set; }
 }
@@ -52,6 +54,8 @@ public class PurchaseLineSupplierDecisionDto
     public decimal EvidenceReferencePrice { get; set; }
     public decimal ProposedUnitPrice { get; set; }
     public string ProposedDeliveryDate { get; set; } = string.Empty;
+    public string ReceivingWarehouseId { get; set; } = string.Empty;
+    public string PurchasingTerms { get; set; } = string.Empty;
     public string ConfirmedBy { get; set; } = string.Empty;
     public string ConfirmedAt { get; set; } = string.Empty;
     public string DecisionFingerprint { get; set; } = string.Empty;

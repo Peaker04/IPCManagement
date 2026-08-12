@@ -489,6 +489,52 @@ public partial class SupplierDecisionWorkflowTests
     }
 
     [Fact]
+    public async Task PurchaseOrder_creation_groups_only_matching_supplier_delivery_warehouse_and_terms_without_changing_allocations()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedApprovedPurchaseRequestForOrders(context);
+        var first = fixture.Decisions[0];
+        var second = fixture.Decisions[1];
+        var warehouseId = GuidHelper.NewId();
+
+        second.SupplierId = first.SupplierId;
+        second.PurchaseRequestLine.SupplierId = first.SupplierId;
+        first.ReceivingWarehouseId = warehouseId;
+        second.ReceivingWarehouseId = warehouseId;
+        first.PurchasingTerms = "NET 30";
+        second.PurchasingTerms = "NET 30";
+        await context.SaveChangesAsync();
+
+        var sharedOrders = await CreatePurchaseOrderService(context).CreateFromApprovedRequestAsync(
+            GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId),
+            UserId);
+
+        sharedOrders.Should().ContainSingle();
+        var sharedOrder = sharedOrders.Single();
+        sharedOrder.Lines.Select(line => (line.PurchaseRequestLineId, line.OrderedQty, line.UnitPrice))
+            .Should().BeEquivalentTo(fixture.Request.Purchaserequestlines.Select(line =>
+                (GuidHelper.ToGuidString(line.PurchaseRequestLineId), line.PurchaseQty, line.EstimatedUnitPrice)));
+
+        await using var mismatchContext = CreateContext();
+        var mismatchFixture = SeedApprovedPurchaseRequestForOrders(mismatchContext);
+        var mismatchFirst = mismatchFixture.Decisions[0];
+        var mismatchSecond = mismatchFixture.Decisions[1];
+        mismatchSecond.SupplierId = mismatchFirst.SupplierId;
+        mismatchSecond.PurchaseRequestLine.SupplierId = mismatchFirst.SupplierId;
+        mismatchFirst.ReceivingWarehouseId = warehouseId;
+        mismatchSecond.ReceivingWarehouseId = warehouseId;
+        mismatchFirst.PurchasingTerms = "NET 30";
+        mismatchSecond.PurchasingTerms = "PREPAID";
+        await mismatchContext.SaveChangesAsync();
+
+        var separateOrders = await CreatePurchaseOrderService(mismatchContext).CreateFromApprovedRequestAsync(
+            GuidHelper.ToGuidString(mismatchFixture.Request.PurchaseRequestId),
+            UserId);
+
+        separateOrders.Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task PurchaseOrder_creation_rejects_pending_current_exception()
     {
         await using var context = CreateContext();
@@ -579,6 +625,8 @@ public partial class SupplierDecisionWorkflowTests
             EvidenceReferencePrice = current.EvidenceReferencePrice,
             ProposedUnitPrice = current.ProposedUnitPrice,
             ProposedDeliveryDate = current.ProposedDeliveryDate,
+            ReceivingWarehouseId = current.ReceivingWarehouseId,
+            PurchasingTerms = current.PurchasingTerms,
             ConfirmedBy = UserIdBytes,
             ConfirmedAt = DateTime.UtcNow.AddMinutes(1),
             DecisionFingerprint = new string('C', 64),

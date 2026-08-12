@@ -239,6 +239,16 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
             throw new ArgumentException("Đơn giá đề xuất phải lớn hơn 0.");
         }
 
+        var receivingWarehouseId = string.IsNullOrWhiteSpace(request.ReceivingWarehouseId)
+            ? null
+            : GuidHelper.ParseGuidString(request.ReceivingWarehouseId);
+        if (!string.IsNullOrWhiteSpace(request.ReceivingWarehouseId) && receivingWarehouseId is null)
+        {
+            throw new ArgumentException("Kho nhận hàng không hợp lệ.");
+        }
+
+        var purchasingTerms = string.IsNullOrWhiteSpace(request.PurchasingTerms) ? null : request.PurchasingTerms.Trim();
+
         if (!DateOnly.TryParseExact(
                 request.ProposedDeliveryDate,
                 "yyyy-MM-dd",
@@ -324,7 +334,9 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                     GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
                     evidenceCandidate.UnitPrice,
                     proposedUnitPrice,
-                    proposedDeliveryDate);
+                    proposedDeliveryDate,
+                    receivingWarehouseId,
+                    purchasingTerms);
                 if (currentDecision is not null &&
                     string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
                 {
@@ -367,6 +379,8 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                     ProposedUnitPrice = proposedUnitPrice,
 
                     ProposedDeliveryDate = proposedDeliveryDate,
+                    ReceivingWarehouseId = receivingWarehouseId,
+                    PurchasingTerms = purchasingTerms,
                     ConfirmedBy = actorId,
                     ConfirmedAt = DateTime.UtcNow,
                     DecisionFingerprint = fingerprint,

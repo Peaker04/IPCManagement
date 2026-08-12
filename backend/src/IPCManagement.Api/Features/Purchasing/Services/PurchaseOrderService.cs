@@ -110,22 +110,28 @@ public class PurchaseOrderService : IPurchaseOrderService
 
                 var now = DateTime.UtcNow;
                 var orderDate = DateOnly.FromDateTime(now);
-                foreach (var supplierGroup in expectedLines.GroupBy(item => Convert.ToHexString(item.Decision.SupplierId)))
+                foreach (var compatibilityGroup in expectedLines.GroupBy(
+                             item => CreateCompatibilityKey(item.Decision)))
                 {
-                    var supplierId = supplierGroup.First().Decision.SupplierId;
+                    var compatibility = compatibilityGroup.Key;
+                    var firstDecision = compatibilityGroup.First().Decision;
+                    var supplierId = firstDecision.SupplierId;
                     var order = new PurchaseOrder
                     {
                         PurchaseOrderId = GuidHelper.NewId(),
-                        PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, supplierId),
+                        PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, compatibility),
                         PurchaseRequestId = purchaseRequestId,
                         SupplierId = supplierId,
+                        ProposedDeliveryDate = compatibility.ProposedDeliveryDate,
+                        ReceivingWarehouseId = firstDecision.ReceivingWarehouseId,
+                        PurchasingTerms = compatibility.PurchasingTerms,
                         OrderDate = orderDate,
                         Status = StatusOrdered,
                         CreatedBy = userId,
                         CreatedAt = now,
                         UpdatedAt = now
                     };
-                    foreach (var expected in supplierGroup)
+                    foreach (var expected in compatibilityGroup)
                     {
                         order.Purchaseorderlines.Add(new PurchaseOrderLine
                         {
@@ -469,7 +475,9 @@ public class PurchaseOrderService : IPurchaseOrderService
             if (line.SupplierId is null ||
                 !line.SupplierId.AsSpan().SequenceEqual(decision.SupplierId) ||
                 DecimalPolicy.RoundMoney(line.EstimatedUnitPrice) != DecimalPolicy.RoundMoney(decision.ProposedUnitPrice) ||
-                line.ExpectedDeliveryDate != decision.ProposedDeliveryDate)
+                line.ExpectedDeliveryDate != decision.ProposedDeliveryDate ||
+                decision.ReceivingWarehouseId is null ||
+                string.IsNullOrWhiteSpace(decision.PurchasingTerms))
             {
                 throw new DbUpdateConcurrencyException("Dòng mua không còn khớp với quyết định nhà cung cấp hiện hành.");
             }
@@ -503,8 +511,8 @@ public class PurchaseOrderService : IPurchaseOrderService
         Exception? innerException = null)
     {
         var expectedSupplierCount = expectedLines
-            .Select(expected => Convert.ToHexString(expected.Decision.SupplierId))
-            .Distinct(StringComparer.Ordinal)
+            .Select(expected => CreateCompatibilityKey(expected.Decision))
+            .Distinct()
             .Count();
         var establishedLines = orders.SelectMany(order => order.Purchaseorderlines).ToList();
         var matches = orders.Count == expectedSupplierCount &&
@@ -516,6 +524,10 @@ public class PurchaseOrderService : IPurchaseOrderService
                     expected.Decision.DecisionFingerprint);
                 return orders.Any(order =>
                     order.SupplierId.AsSpan().SequenceEqual(expected.Decision.SupplierId) &&
+                    order.ProposedDeliveryDate == expected.Decision.ProposedDeliveryDate &&
+                    order.ReceivingWarehouseId is not null &&
+                    order.ReceivingWarehouseId.AsSpan().SequenceEqual(expected.Decision.ReceivingWarehouseId!) &&
+                    string.Equals(order.PurchasingTerms, expected.Decision.PurchasingTerms, StringComparison.Ordinal) &&
                     order.CreatedAt >= expected.Decision.ConfirmedAt &&
                     order.Purchaseorderlines.Any(line =>
                         line.PurchaseOrderLineId.AsSpan().SequenceEqual(expectedLineId) &&
@@ -557,6 +569,12 @@ public class PurchaseOrderService : IPurchaseOrderService
         PurchaseRequestLine Line,
         PurchaseLineSupplierDecision Decision);
 
+    private sealed record PurchaseOrderCompatibilityKey(
+        string SupplierId,
+        DateOnly ProposedDeliveryDate,
+        string ReceivingWarehouseId,
+        string PurchasingTerms);
+
     private sealed record PurchaseRequestOrderSource(
         PurchaseRequest Request,
         IReadOnlyCollection<PurchaseRequestLine> Lines);
@@ -572,8 +590,21 @@ public class PurchaseOrderService : IPurchaseOrderService
         return lineList.Any(line => line.ReceivedQty > 0) ? StatusPartiallyReceived : StatusOrdered;
     }
 
-    private static string BuildPurchaseOrderCode(string purchaseRequestCode, byte[] supplierId)
-        => $"PO-{purchaseRequestCode}-{GuidHelper.ToGuidString(supplierId)[..8]}";
+    private static PurchaseOrderCompatibilityKey CreateCompatibilityKey(PurchaseLineSupplierDecision decision)
+        => new(
+            Convert.ToHexString(decision.SupplierId),
+            decision.ProposedDeliveryDate,
+            Convert.ToHexString(decision.ReceivingWarehouseId!),
+            decision.PurchasingTerms!);
+
+    private static string BuildPurchaseOrderCode(string purchaseRequestCode, PurchaseOrderCompatibilityKey compatibility)
+    {
+        var compatibilityHash = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(
+                $"{compatibility.ProposedDeliveryDate:yyyy-MM-dd}|{compatibility.ReceivingWarehouseId}|{compatibility.PurchasingTerms}")))
+            [..8];
+        return $"PO-{purchaseRequestCode}-{compatibility.SupplierId[..8]}-{compatibilityHash}";
+    }
 
     private async Task<IReadOnlyDictionary<string, ActiveReceiptSummary>> LoadActiveReceiptSummariesAsync(
         CancellationToken cancellationToken)

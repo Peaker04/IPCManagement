@@ -52,6 +52,7 @@ public partial class SupplierDecisionWorkflowTests
         var unit = SeedUnit(context, $"KG-{Guid.NewGuid():N}", "kg", "KG", 1m);
         var supplierA = SeedSupplier(context, $"SUP-PO-A-{Guid.NewGuid():N}", "Supplier PO A");
         var supplierB = SeedSupplier(context, $"SUP-PO-B-{Guid.NewGuid():N}", "Supplier PO B");
+        var receivingWarehouseId = GuidHelper.NewId();
         var request = new PurchaseRequest
         {
             PurchaseRequestId = GuidHelper.NewId(),
@@ -108,6 +109,8 @@ public partial class SupplierDecisionWorkflowTests
                 EvidenceReferencePrice = 100m,
                 ProposedUnitPrice = proposedPrice,
                 ProposedDeliveryDate = request.PurchaseForDate,
+                ReceivingWarehouseId = receivingWarehouseId,
+                PurchasingTerms = "NET 30",
                 ConfirmedBy = UserIdBytes,
                 ConfirmedAt = DateTime.UtcNow,
                 DecisionFingerprint = new string(fingerprintSeed, 64),

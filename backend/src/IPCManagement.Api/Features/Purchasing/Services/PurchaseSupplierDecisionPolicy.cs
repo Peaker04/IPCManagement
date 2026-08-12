@@ -61,7 +61,9 @@ internal static class PurchaseSupplierDecisionPolicy
         byte[] evidenceId,
         decimal evidenceReferencePrice,
         decimal proposedUnitPrice,
-        DateOnly proposedDeliveryDate)
+        DateOnly proposedDeliveryDate,
+        byte[]? receivingWarehouseId,
+        string? purchasingTerms)
     {
         var payload = string.Join(
             '|',
@@ -71,7 +73,9 @@ internal static class PurchaseSupplierDecisionPolicy
             BuildKey(evidenceId),
             DecimalPolicy.RoundMoney(evidenceReferencePrice).ToString("0.00", CultureInfo.InvariantCulture),
             DecimalPolicy.RoundMoney(proposedUnitPrice).ToString("0.00", CultureInfo.InvariantCulture),
-            proposedDeliveryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            proposedDeliveryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            receivingWarehouseId is null ? string.Empty : BuildKey(receivingWarehouseId),
+            purchasingTerms ?? string.Empty);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
     }
 
