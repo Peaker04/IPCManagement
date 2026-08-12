@@ -2,6 +2,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -34,22 +35,61 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             ?? throw new ArgumentException("Không tìm thấy kế hoạch sản xuất.");
         if (plan.SentToKitchenAt is null)
             throw new BusinessRuleException("Kế hoạch sản xuất chưa gửi Bếp nên chưa thể mở Ca phục vụ.");
-        if (!plan.Productionplanlines.Any(line => line.ShiftName == shiftName)) throw new ArgumentException("Kế hoạch sản xuất không có ca phục vụ đã chọn.");
+        var requestedCustomerId = GuidHelper.ParseGuidString(request.CustomerId)
+            ?? throw new ArgumentException("Phải chọn khách hàng cho Ca phục vụ.");
+        if (!plan.Productionplanlines.Any(line => line.ShiftName == shiftName && line.CustomerId.SequenceEqual(requestedCustomerId)))
+            throw new ArgumentException("Kế hoạch sản xuất không có ca phục vụ của khách hàng đã chọn.");
 
-        var run = await context.Serviceruns.FirstOrDefaultAsync(item => item.PlanId.SequenceEqual(planId) && item.ShiftName == shiftName, cancellationToken);
+        var scopedPlanLineKeys = plan.Productionplanlines
+            .Where(line => line.ShiftName == shiftName && line.CustomerId.SequenceEqual(requestedCustomerId))
+            .Select(line => Convert.ToBase64String(line.PlanLineId))
+            .ToList();
+        var sourceLines = await context.Materialrequestlines
+            .Where(item => scopedPlanLineKeys.Contains(Convert.ToBase64String(item.PlanLineId)))
+            .ToListAsync(cancellationToken);
+        var tiers = sourceLines.Select(item => item.PriceTierAmount).Distinct().ToList();
+        var priceTier = request.PriceTierAmount ?? (tiers.Count == 1 ? tiers[0] : throw await CreateScopeDecisionAsync(plan, requestedCustomerId, shiftName, null, "Không thể suy ra duy nhất tier giá từ source-line.", cancellationToken));
+        var scopedSourceLines = sourceLines.Where(item => item.PriceTierAmount == priceTier).ToList();
+        if (scopedSourceLines.Count == 0)
+            throw await CreateScopeDecisionAsync(plan, requestedCustomerId, shiftName, priceTier, "Không có source-line material khớp customer/date/shift/tier.", cancellationToken);
+
+        var run = await context.Serviceruns.FirstOrDefaultAsync(item =>
+            item.CustomerId.SequenceEqual(requestedCustomerId) && item.ServiceDate == plan.PlanDate && item.ShiftName == shiftName && item.PriceTierAmount == priceTier,
+            cancellationToken);
         if (run is null)
         {
             var now = DateTime.UtcNow;
-            run = new ServiceRun { ServiceRunId = GuidHelper.NewId(), PlanId = planId, ShiftName = shiftName, OpenedBy = actorId, CreatedAt = now, UpdatedAt = now };
-            context.Serviceruns.Add(run);
-            context.Auditlogs.Add(new AuditLog
+            run = new ServiceRun
             {
-                AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = actorId, BusinessArea = "ServiceRun", EntityName = nameof(ServiceRun), EntityId = run.ServiceRunId,
-                FieldName = "Open", NewValue = $"{plan.PlanCode}|{shiftName}", Reason = "Mở hồ sơ thực thi Ca phục vụ từ kế hoạch sản xuất."
-            });
+                ServiceRunId = GuidHelper.NewId(), PlanId = planId, CustomerId = requestedCustomerId, ServiceDate = plan.PlanDate,
+                ShiftName = shiftName, PriceTierAmount = priceTier, OpenedBy = actorId, CreatedAt = now, UpdatedAt = now,
+            };
+            context.Serviceruns.Add(run);
+            context.Servicerunsourcelines.AddRange(scopedSourceLines.Select(line => new ServiceRunSourceLine
+            {
+                ServiceRunSourceLineId = GuidHelper.NewId(), ServiceRunId = run.ServiceRunId, MaterialRequestLineId = line.RequestLineId, RecordedAt = now,
+            }));
+            StageLifecycle(run, actorId, "Open", null, ServiceRunStatus.Planned, "Mở hồ sơ thực thi Ca phục vụ từ source-line canonical.");
             await context.SaveChangesAsync(cancellationToken);
         }
         return await GetProjectionAsync(GuidHelper.ToGuidString(run.ServiceRunId), cancellationToken);
+    }
+
+    private async Task<BusinessRuleException> CreateScopeDecisionAsync(ProductionPlan plan, byte[] customerId, string shiftName, decimal? priceTierAmount, string reason, CancellationToken cancellationToken)
+    {
+        var existing = await context.Servicerundecisionitems.FirstOrDefaultAsync(item =>
+            item.PlanId.SequenceEqual(plan.PlanId) && item.CustomerId != null && item.CustomerId.SequenceEqual(customerId) && item.ShiftName == shiftName &&
+            item.PriceTierAmount == priceTierAmount && item.Reason == reason, cancellationToken);
+        if (existing is null)
+        {
+            context.Servicerundecisionitems.Add(new ServiceRunDecisionItem
+            {
+                ServiceRunDecisionItemId = GuidHelper.NewId(), PlanId = plan.PlanId, CustomerId = customerId, ServiceDate = plan.PlanDate,
+                ShiftName = shiftName, PriceTierAmount = priceTierAmount, Reason = reason, CreatedAt = DateTime.UtcNow,
+            });
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        return new BusinessRuleException(reason);
     }
 
     public async Task<ServiceRunLifecycleProjectionDto?> GetProjectionAsync(string serviceRunId, CancellationToken cancellationToken = default)
@@ -441,12 +481,20 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
     private async Task SaveTransitionAsync(ServiceRun run, byte[] actorId, string fieldName, string? oldValue, string? newValue, string reason, CancellationToken cancellationToken)
     {
         run.UpdatedAt = DateTime.UtcNow;
-        context.Auditlogs.Add(new AuditLog
-        {
-            AuditId = GuidHelper.NewId(), ChangedAt = run.UpdatedAt, ChangedBy = actorId, BusinessArea = "ServiceRun", EntityName = nameof(ServiceRun), EntityId = run.ServiceRunId,
-            FieldName = fieldName, OldValue = oldValue, NewValue = newValue, Reason = reason,
-        });
+        StageLifecycle(run, actorId, fieldName, oldValue, newValue ?? fieldName, reason);
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private void StageLifecycle(ServiceRun run, byte[] actorId, string commandName, string? fromState, string toState, string reason)
+    {
+        var sequence = checked((int)run.ConcurrencyVersion + 1);
+        new LifecycleTransitionRecorder(context).Stage(new LifecycleTransitionRequest(
+            nameof(ServiceRun), run.ServiceRunId, $"service-run:{Convert.ToBase64String(run.ServiceRunId)}:{sequence}:{commandName}", sequence,
+            fromState, toState, actorId, run.ConcurrencyVersion, reason,
+            $"service-run:{Convert.ToBase64String(run.ServiceRunId)}", null,
+            JsonSerializer.Serialize(new { commandName, run.CustomerId, run.ServiceDate, run.ShiftName, run.PriceTierAmount }),
+            JsonSerializer.Serialize(new { run.ServiceRunId, toState })));
+        run.ConcurrencyVersion++;
     }
 
     private static void EnsureOpen(ServiceRun run)

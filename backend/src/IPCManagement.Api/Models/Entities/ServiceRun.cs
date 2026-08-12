@@ -4,7 +4,11 @@ public sealed class ServiceRun
 {
     public byte[] ServiceRunId { get; set; } = null!;
     public byte[] PlanId { get; set; } = null!;
+    public byte[] CustomerId { get; set; } = null!;
+    public DateOnly ServiceDate { get; set; }
     public string ShiftName { get; set; } = null!;
+    public decimal PriceTierAmount { get; set; }
+    public long ConcurrencyVersion { get; set; }
     public string Status { get; set; } = "PLANNED";
     public int? ActualServings { get; set; }
     public string? ActualServingsReason { get; set; }
@@ -32,6 +36,29 @@ public sealed class ServiceRun
     public DateTime UpdatedAt { get; set; }
 
     public ProductionPlan Plan { get; set; } = null!;
+    public ICollection<ServiceRunSourceLine> SourceLines { get; set; } = new List<ServiceRunSourceLine>();
+}
+
+public sealed class ServiceRunSourceLine
+{
+    public byte[] ServiceRunSourceLineId { get; set; } = null!;
+    public byte[] ServiceRunId { get; set; } = null!;
+    public byte[] MaterialRequestLineId { get; set; } = null!;
+    public DateTime RecordedAt { get; set; }
+    public ServiceRun ServiceRun { get; set; } = null!;
+    public MaterialRequestLine MaterialRequestLine { get; set; } = null!;
+}
+
+public sealed class ServiceRunDecisionItem
+{
+    public byte[] ServiceRunDecisionItemId { get; set; } = null!;
+    public byte[] PlanId { get; set; } = null!;
+    public byte[]? CustomerId { get; set; }
+    public DateOnly ServiceDate { get; set; }
+    public string ShiftName { get; set; } = null!;
+    public decimal? PriceTierAmount { get; set; }
+    public string Reason { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class ServiceRunVarianceDeclaration

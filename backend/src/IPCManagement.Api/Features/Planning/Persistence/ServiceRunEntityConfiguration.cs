@@ -14,12 +14,16 @@ internal sealed class ServiceRunConfiguration : IEntityTypeConfiguration<Service
             table.HasCheckConstraint("ckServiceRunsConfirmationOutcome", "`serviceConfirmedAt` IS NULL OR `serviceConfirmationWaivedAt` IS NULL");
             table.HasCheckConstraint("ckServiceRunsConfirmationPolicy", "`serviceConfirmationPolicy` IN ('REQUIRED', 'WAIVABLE')");
         });
-        entity.HasIndex(item => new { item.PlanId, item.ShiftName }, "uqServiceRunsPlanShift").IsUnique();
+        entity.HasIndex(item => new { item.CustomerId, item.ServiceDate, item.ShiftName, item.PriceTierAmount }, "uqServiceRunsCustomerDateShiftTier").IsUnique();
         entity.HasIndex(item => new { item.Status, item.UpdatedAt }, "ixServiceRunsStatusUpdatedAt");
 
         entity.Property(item => item.ServiceRunId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunId");
         entity.Property(item => item.PlanId).HasMaxLength(16).IsFixedLength().HasColumnName("planId");
+        entity.Property(item => item.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
+        entity.Property(item => item.ServiceDate).HasColumnName("serviceDate");
         entity.Property(item => item.ShiftName).HasColumnType("enum('MORNING','AFTERNOON')").HasColumnName("shiftName");
+        entity.Property(item => item.PriceTierAmount).HasPrecision(18, 2).HasColumnName("priceTierAmount");
+        entity.Property(item => item.ConcurrencyVersion).IsConcurrencyToken().HasDefaultValue(0L).HasColumnName("concurrencyVersion");
         entity.Property(item => item.Status).HasMaxLength(40).HasDefaultValue("PLANNED").HasColumnName("status");
         entity.Property(item => item.ActualServings).HasColumnName("actualServings");
         entity.Property(item => item.ActualServingsReason).HasColumnType("text").HasColumnName("actualServingsReason");
@@ -48,6 +52,8 @@ internal sealed class ServiceRunConfiguration : IEntityTypeConfiguration<Service
 
         entity.HasOne(item => item.Plan).WithMany().HasForeignKey(item => item.PlanId)
             .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fkServiceRunsPlan");
+        entity.HasOne<Customer>().WithMany().HasForeignKey(item => item.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fkServiceRunsCustomer");
         entity.HasOne<User>().WithMany().HasForeignKey(item => item.OpenedBy)
             .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fkServiceRunsOpenedBy");
         entity.HasOne<User>().WithMany().HasForeignKey(item => item.ActualServingsRecordedBy)
@@ -64,5 +70,39 @@ internal sealed class ServiceRunConfiguration : IEntityTypeConfiguration<Service
             .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fkServiceRunsVarianceResolvedBy");
         entity.HasOne<User>().WithMany().HasForeignKey(item => item.StartedBy)
             .OnDelete(DeleteBehavior.Restrict).HasConstraintName("fkServiceRunsStartedBy");
+    }
+}
+
+internal sealed class ServiceRunSourceLineConfiguration : IEntityTypeConfiguration<ServiceRunSourceLine>
+{
+    public void Configure(EntityTypeBuilder<ServiceRunSourceLine> entity)
+    {
+        entity.HasKey(item => item.ServiceRunSourceLineId).HasName("PRIMARY");
+        entity.ToTable("servicerunsourcelines");
+        entity.HasIndex(item => new { item.ServiceRunId, item.MaterialRequestLineId }, "uqServiceRunSourceLinesRunLine").IsUnique();
+        entity.Property(item => item.ServiceRunSourceLineId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunSourceLineId");
+        entity.Property(item => item.ServiceRunId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunId");
+        entity.Property(item => item.MaterialRequestLineId).HasMaxLength(16).IsFixedLength().HasColumnName("materialRequestLineId");
+        entity.Property(item => item.RecordedAt).HasColumnType("datetime").HasColumnName("recordedAt");
+        entity.HasOne(item => item.ServiceRun).WithMany(item => item.SourceLines).HasForeignKey(item => item.ServiceRunId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne(item => item.MaterialRequestLine).WithMany().HasForeignKey(item => item.MaterialRequestLineId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ServiceRunDecisionItemConfiguration : IEntityTypeConfiguration<ServiceRunDecisionItem>
+{
+    public void Configure(EntityTypeBuilder<ServiceRunDecisionItem> entity)
+    {
+        entity.HasKey(item => item.ServiceRunDecisionItemId).HasName("PRIMARY");
+        entity.ToTable("servicerundecisionitems");
+        entity.HasIndex(item => new { item.PlanId, item.ShiftName, item.Reason }, "ixServiceRunDecisionItemsPlanShiftReason");
+        entity.Property(item => item.ServiceRunDecisionItemId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunDecisionItemId");
+        entity.Property(item => item.PlanId).HasMaxLength(16).IsFixedLength().HasColumnName("planId");
+        entity.Property(item => item.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
+        entity.Property(item => item.ServiceDate).HasColumnName("serviceDate");
+        entity.Property(item => item.ShiftName).HasMaxLength(20).HasColumnName("shiftName");
+        entity.Property(item => item.PriceTierAmount).HasPrecision(18, 2).HasColumnName("priceTierAmount");
+        entity.Property(item => item.Reason).HasColumnType("text").HasColumnName("reason");
+        entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
     }
 }

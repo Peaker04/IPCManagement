@@ -95,6 +95,8 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<ProductionPlanLine> Productionplanlines { get; set; }
 
     public virtual DbSet<ServiceRun> Serviceruns { get; set; }
+    public virtual DbSet<ServiceRunSourceLine> Servicerunsourcelines { get; set; }
+    public virtual DbSet<ServiceRunDecisionItem> Servicerundecisionitems { get; set; }
     public virtual DbSet<ServiceRunAdjustment> Servicerunadjustments { get; set; }
     public virtual DbSet<ServiceRunVarianceDeclaration> Servicerunvariancedeclarations { get; set; }
     public virtual DbSet<ServiceRunVarianceWaiver> Servicerunvariancewaivers { get; set; }

@@ -13,7 +13,7 @@ namespace IPCManagement.Api.Tests;
 public sealed class ServiceRunLifecycleTests
 {
     [Fact]
-    public void ServiceRun_Should_UseOneExecutionScopePerPlanAndShift()
+    public void ServiceRun_Should_UseOneExecutionScopePerCustomerDateShiftAndTier()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
             .UseInMemoryDatabase($"service-run-model-{Guid.NewGuid():N}")
@@ -23,9 +23,20 @@ public sealed class ServiceRunLifecycleTests
         var entityType = context.Model.FindEntityType(typeof(ServiceRun));
         entityType.Should().NotBeNull();
         entityType!.FindProperty(nameof(ServiceRun.CloseSnapshotJson)).Should().NotBeNull();
+        entityType.FindProperty(nameof(ServiceRun.CustomerId)).Should().NotBeNull();
+        entityType.FindProperty(nameof(ServiceRun.ServiceDate)).Should().NotBeNull();
+        entityType.FindProperty(nameof(ServiceRun.PriceTierAmount)).Should().NotBeNull();
         entityType.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(ServiceRun.PlanId), nameof(ServiceRun.ShiftName) }));
+                .SequenceEqual(new[]
+                {
+                    nameof(ServiceRun.CustomerId),
+                    nameof(ServiceRun.ServiceDate),
+                    nameof(ServiceRun.ShiftName),
+                    nameof(ServiceRun.PriceTierAmount),
+                }));
+
+        context.Model.FindEntityType(typeof(ServiceRunSourceLine)).Should().NotBeNull();
     }
 
     [Fact]
@@ -36,6 +47,7 @@ public sealed class ServiceRunLifecycleTests
             .Options;
         var actorId = GuidHelper.NewId();
         var planId = GuidHelper.NewId();
+        var customerId = GuidHelper.NewId();
         var quantityPlanId = GuidHelper.NewId();
         var quantityPlanLineId = GuidHelper.NewId();
         var scheduleId = GuidHelper.NewId();
@@ -48,7 +60,7 @@ public sealed class ServiceRunLifecycleTests
             };
             var schedule = new MenuSchedule
             {
-                MenuScheduleId = scheduleId, CustomerId = GuidHelper.NewId(), MenuId = GuidHelper.NewId(), ServiceDate = new DateOnly(2026, 8, 5),
+                MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = GuidHelper.NewId(), ServiceDate = new DateOnly(2026, 8, 5),
                 WeekStartDate = new DateOnly(2026, 8, 3), ShiftName = "MORNING", MenuPrice = 25000m, BomRatePercent = 100m, Status = "ACTIVE",
             };
             var quantityPlanLine = new MealQuantityPlanLine
@@ -58,17 +70,30 @@ public sealed class ServiceRunLifecycleTests
                 QuantityPlan = quantityPlan, MenuSchedule = schedule,
             };
             context.AddRange(quantityPlan, schedule, quantityPlanLine);
+            var productionPlanLine = new ProductionPlanLine
+            {
+                PlanLineId = GuidHelper.NewId(), PlanId = planId, QuantityPlanLineId = quantityPlanLineId,
+                CustomerId = schedule.CustomerId, MenuId = schedule.MenuId, DishId = GuidHelper.NewId(), ShiftName = "MORNING", TotalServings = 120,
+                QuantityPlanLine = quantityPlanLine,
+            };
             context.Productionplans.Add(new ProductionPlan
             {
                 PlanId = planId, PlanCode = "KHSX-SERVICE-RUN", PlanDate = new DateOnly(2026, 8, 5), Status = "CREATED",
                 CreatedBy = actorId, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, SentToKitchenAt = DateTime.UtcNow, SentToKitchenBy = actorId,
-                Productionplanlines =
+                Productionplanlines = [productionPlanLine],
+            });
+            context.Materialrequests.Add(new MaterialRequest
+            {
+                RequestId = GuidHelper.NewId(), PlanId = planId, RequestCode = "YC-SERVICE-RUN", RequestDate = new DateOnly(2026, 8, 5),
+                RequestScope = "SERVICE_RUN", Status = "PENDING", CreatedBy = actorId,
+                Materialrequestlines =
                 [
-                    new ProductionPlanLine
+                    new MaterialRequestLine
                     {
-                        PlanLineId = GuidHelper.NewId(), PlanId = planId, QuantityPlanLineId = quantityPlanLineId,
-                        CustomerId = schedule.CustomerId, MenuId = schedule.MenuId, DishId = GuidHelper.NewId(), ShiftName = "MORNING", TotalServings = 120,
-                        QuantityPlanLine = quantityPlanLine,
+                        RequestLineId = GuidHelper.NewId(), PlanLineId = productionPlanLine.PlanLineId,
+                        IngredientId = GuidHelper.NewId(), UnitId = GuidHelper.NewId(), PriceTierAmount = 25000m,
+                        TotalServings = 120, GrossQtyPerServing = 1m, BomRatePercent = 100m, TotalRequiredQty = 120m,
+                        PlanLine = productionPlanLine,
                     },
                 ],
             });
@@ -77,14 +102,17 @@ public sealed class ServiceRunLifecycleTests
 
         await using var verificationContext = new IpcManagementContext(options);
         var service = new ServiceRunService(verificationContext);
-        var first = await service.OpenAsync(new OpenServiceRunRequest { PlanId = GuidHelper.ToGuidString(planId), ShiftName = "MORNING" }, GuidHelper.ToGuidString(actorId));
-        var second = await service.OpenAsync(new OpenServiceRunRequest { PlanId = GuidHelper.ToGuidString(planId), ShiftName = "MORNING" }, GuidHelper.ToGuidString(actorId));
+        var first = await service.OpenAsync(new OpenServiceRunRequest { PlanId = GuidHelper.ToGuidString(planId), ShiftName = "MORNING", CustomerId = GuidHelper.ToGuidString(customerId), PriceTierAmount = 25000m }, GuidHelper.ToGuidString(actorId));
+        var second = await service.OpenAsync(new OpenServiceRunRequest { PlanId = GuidHelper.ToGuidString(planId), ShiftName = "MORNING", CustomerId = GuidHelper.ToGuidString(customerId), PriceTierAmount = 25000m }, GuidHelper.ToGuidString(actorId));
 
         first.Should().NotBeNull();
         first!.Blockers.Should().Contain(ServiceRunBlocker.DemandNotGenerated);
         second!.ServiceRunId.Should().Be(first.ServiceRunId);
         verificationContext.Serviceruns.Should().ContainSingle();
-        verificationContext.Auditlogs.Should().ContainSingle(item => item.EntityName == nameof(ServiceRun) && item.FieldName == "Open");
+        verificationContext.Servicerunsourcelines.Should().ContainSingle();
+        verificationContext.Lifecycletransitions.Should().ContainSingle(item => item.AggregateType == nameof(ServiceRun) && item.ToState == ServiceRunStatus.Planned);
+        verificationContext.Lifecyclecommandreceipts.Should().ContainSingle();
+        verificationContext.Lifecycleoutboxmessages.Should().ContainSingle();
     }
 
     [Fact]
@@ -240,7 +268,8 @@ public sealed class ServiceRunLifecycleTests
         {
             context.Serviceruns.Add(new ServiceRun
             {
-                ServiceRunId = runId, PlanId = GuidHelper.NewId(), ShiftName = "MORNING", Status = ServiceRunStatus.Closed,
+                ServiceRunId = runId, PlanId = GuidHelper.NewId(), CustomerId = GuidHelper.NewId(), ServiceDate = new DateOnly(2026, 8, 5),
+                ShiftName = "MORNING", PriceTierAmount = 25000m, Status = ServiceRunStatus.Closed,
                 ActualServings = 120, ClosedAt = DateTime.UtcNow, CloseSnapshotJson = snapshot,
                 OpenedBy = actorId, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
             });

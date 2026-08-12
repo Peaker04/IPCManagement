@@ -6,6 +6,8 @@ public sealed class OpenServiceRunRequest
 {
     public string PlanId { get; set; } = string.Empty;
     public string ShiftName { get; set; } = string.Empty;
+    public string? CustomerId { get; set; }
+    public decimal? PriceTierAmount { get; set; }
 }
 
 public sealed class ServiceRunLifecycleProjectionDto
