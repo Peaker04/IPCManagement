@@ -330,28 +330,20 @@ public class InventoryReturnService : IInventoryReturnService
         byte[] ingredientId,
         byte[] unitId)
     {
-        if (!string.IsNullOrWhiteSpace(requestedSourceIssueLineId))
+        if (string.IsNullOrWhiteSpace(requestedSourceIssueLineId))
         {
-            var sourceLineId = GuidHelper.ParseGuidString(requestedSourceIssueLineId)
-                ?? throw new ArgumentException("SourceIssueLineId không hợp lệ.");
-            var sourceLine = issue.Inventoryissuelines.SingleOrDefault(line => line.IssueLineId.SequenceEqual(sourceLineId))
-                ?? throw new BusinessRuleException("Dòng nguồn không thuộc phiếu xuất gốc.");
-            if (!sourceLine.IngredientId.SequenceEqual(ingredientId) || !sourceLine.UnitId.SequenceEqual(unitId))
-            {
-                throw new BusinessRuleException("Nguyên liệu hoặc đơn vị của dòng trả không khớp dòng nguồn phiếu xuất.");
-            }
-            return sourceLine;
+            throw new BusinessRuleException("Mỗi dòng trả hoặc hao hụt phải chỉ rõ SourceIssueLineId để giữ lineage.");
         }
 
-        var matches = issue.Inventoryissuelines
-            .Where(line => line.IngredientId.SequenceEqual(ingredientId) && line.UnitId.SequenceEqual(unitId))
-            .ToList();
-        return matches.Count switch
+        var sourceLineId = GuidHelper.ParseGuidString(requestedSourceIssueLineId)
+            ?? throw new ArgumentException("SourceIssueLineId không hợp lệ.");
+        var sourceLine = issue.Inventoryissuelines.SingleOrDefault(line => line.IssueLineId.SequenceEqual(sourceLineId))
+            ?? throw new BusinessRuleException("Dòng nguồn không thuộc phiếu xuất gốc.");
+        if (!sourceLine.IngredientId.SequenceEqual(ingredientId) || !sourceLine.UnitId.SequenceEqual(unitId))
         {
-            1 => matches[0],
-            0 => throw new BusinessRuleException("Nguyên liệu trả phải tồn tại trong phiếu xuất gốc và cùng đơn vị tính."),
-            _ => throw new BusinessRuleException("Phiếu xuất có nhiều dòng cùng nguyên liệu/đơn vị; cần chỉ rõ SourceIssueLineId để giữ lineage.")
-        };
+            throw new BusinessRuleException("Nguyên liệu hoặc đơn vị của dòng trả không khớp dòng nguồn phiếu xuất.");
+        }
+        return sourceLine;
     }
 
     private static void ValidateReturnQuantity(
