@@ -130,6 +130,7 @@ const workflowStatusPresentations: Readonly<Record<string, WorkflowStatusPresent
 };
 
 const serviceRunStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
+  PLANNED: { label: 'Đã mở ca', tone: 'neutral' },
   BLOCKED: { label: 'Đang bị chặn', tone: 'danger' },
   MATERIALSINPROGRESS: { label: 'Đang hoàn tất vật tư', tone: 'warning' },
   READYTOPRODUCE: { label: 'Sẵn sàng phục vụ', tone: 'warning' },
@@ -137,6 +138,27 @@ const serviceRunStatusPresentations: Readonly<Record<string, WorkflowStatusPrese
   RECONCILIATIONREQUIRED: { label: 'Cần đối soát', tone: 'danger' },
   READYTOCLOSE: { label: 'Sẵn sàng đóng ca', tone: 'success' },
   CLOSED: { label: 'Đã đóng ca', tone: 'success' },
+};
+
+const serviceRunBlockerPresentations: Readonly<Record<string, string>> = {
+  PLANNOTSIGNEDOFF: 'Kế hoạch chưa được xác nhận',
+  DEMANDNOTGENERATED: 'Chưa có nhu cầu nguyên liệu',
+  BOMINCOMPLETE: 'Món ăn chưa đủ định lượng',
+  OPENSUPPLY: 'Còn chứng từ cấp phát chưa hoàn tất',
+  UNRECEIVEDISSUE: 'Bếp chưa xác nhận nhận nguyên liệu',
+  OPENSUPPLEMENTAL: 'Còn yêu cầu bổ sung chưa hoàn tất',
+  ACTUALSERVINGSNOTRECORDED: 'Chưa ghi nhận số suất thực tế',
+  SERVICECONFIRMATIONREQUIRED: 'Cần xác nhận hoàn tất phục vụ',
+  UNRESOLVEDVARIANCE: 'Chênh lệch vật tư chưa được quyết toán',
+  UNRESOLVEDSERVINGVARIANCE: 'Chênh lệch số suất chưa được quyết định',
+  CONFIRMATIONOUTCOMECONFLICT: 'Kết quả xác nhận phục vụ cần đối soát',
+};
+
+const serviceRunVarianceTrackPresentations: Readonly<Record<string, string>> = {
+  PLANNING: 'Kế hoạch',
+  MATERIALSUPPLY: 'Vật tư và cấp phát',
+  SERVICEEXECUTION: 'Thực hiện phục vụ',
+  RECONCILIATION: 'Đối soát',
 };
 
 const toneFromFallbackText = (status: string): WorkflowTone => {
@@ -158,6 +180,24 @@ export const getServiceRunStatusPresentation = (status?: string): WorkflowStatus
   if (!value) return { label: 'Chưa cập nhật trạng thái ca phục vụ', tone: 'neutral' };
   return serviceRunStatusPresentations[normalizeStatusCode(value)]
     ?? { label: 'Trạng thái ca phục vụ chưa được hỗ trợ', tone: 'neutral' };
+};
+
+export const formatServiceRunBlocker = (blocker?: string) => {
+  const value = blocker?.trim();
+  if (!value) return 'Chưa có điều kiện chặn';
+  return serviceRunBlockerPresentations[normalizeStatusCode(value)] ?? 'Có điều kiện cần xử lý';
+};
+
+export const formatServiceRunVarianceTrack = (track?: string) => {
+  const value = track?.trim();
+  if (!value) return 'Chưa chọn phạm vi';
+  return serviceRunVarianceTrackPresentations[normalizeStatusCode(value)] ?? 'Phạm vi ngoại lệ';
+};
+
+export const formatServiceRunConfirmationOutcome = (outcome?: string) => {
+  const value = outcome?.trim();
+  if (!value) return 'Chưa xác nhận';
+  return ({ PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', WAIVED: 'Đã miễn xác nhận' } as const)[normalizeStatusCode(value) as 'PENDING' | 'CONFIRMED' | 'WAIVED'] ?? 'Chưa xác nhận';
 };
 
 export const toneFromStatus = (status?: string): WorkflowTone => getWorkflowStatusPresentation(status).tone;

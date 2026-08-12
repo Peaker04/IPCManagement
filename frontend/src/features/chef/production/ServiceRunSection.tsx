@@ -21,6 +21,7 @@ import {
   useWaiveServiceRunConfirmationMutation,
 } from '../chefApi'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
+import { formatServiceRunVarianceTrack } from '@/lib/workflowConfig'
 
 type Props = { plans: ProductionPlan[]; shiftName: string }
 
@@ -110,10 +111,10 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
       <ServiceRunTrackPanel run={run} />
       {run.status !== 'CLOSED' && declarationTracks.length > 0 && <fieldset className="mt-3 grid gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Khai báo ngoại lệ Ca phục vụ">
         <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ (append-only)</legend>
-        <p className="text-amber-900">Chỉ gửi source-line và lý do cho track mà backend sẽ xác minh; khai báo không tự đóng Ca.</p>
+        <p className="text-amber-900">Chỉ gửi dòng chứng từ liên quan và lý do cho phạm vi sẽ được hệ thống xác minh; khai báo không tự đóng Ca.</p>
         <div className="grid gap-2 sm:grid-cols-3">
-          <label className="grid gap-1 font-medium text-slate-700">Track<select aria-label="Track ngoại lệ" value={varianceTrack} onChange={(event) => setVarianceTrack(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn track</option>{declarationTracks.map((track) => <option key={track} value={track}>{track}</option>)}</select></label>
-          <label className="grid gap-1 font-medium text-slate-700">Source-line<Input aria-label="Source-line chứng cứ" value={varianceSourceLines} onChange={(event) => setVarianceSourceLines(event.target.value)} placeholder="ID source-line, cách nhau dấu phẩy" /></label>
+          <label className="grid gap-1 font-medium text-slate-700">Phạm vi ngoại lệ<select aria-label="Phạm vi ngoại lệ" value={varianceTrack} onChange={(event) => setVarianceTrack(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn phạm vi</option>{declarationTracks.map((track) => <option key={track} value={track}>{formatServiceRunVarianceTrack(track)}</option>)}</select></label>
+          <label className="grid gap-1 font-medium text-slate-700">Dòng chứng từ liên quan<Input aria-label="Dòng chứng từ liên quan" value={varianceSourceLines} onChange={(event) => setVarianceSourceLines(event.target.value)} placeholder="Nhập mã dòng từ chứng từ, cách nhau dấu phẩy" /></label>
           <label className="grid gap-1 font-medium text-slate-700">Lý do<Input aria-label="Lý do khai báo ngoại lệ" value={varianceReason} onChange={(event) => setVarianceReason(event.target.value)} placeholder="Bắt buộc" /></label>
         </div>
         <div><Button size="sm" variant="outline" disabled={!varianceTrack || !varianceSourceLines.trim() || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
@@ -124,9 +125,9 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
         })}>Gửi khai báo ngoại lệ</Button></div>
       </fieldset>}
       {run.status !== 'CLOSED' && isAdmin && !declaredByCurrentActor && <fieldset className="mt-3 grid gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs" aria-label="Phê duyệt waiver ngoại lệ">
-        <legend className="px-1 font-medium text-slate-800">Phê duyệt waiver Admin</legend>
-        <p className="text-slate-600">Chỉ phê duyệt khai báo của actor khác. Backend từ chối self-approval và sẽ trả projection mới sau thao tác.</p>
-        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Mã khai báo<Input aria-label="Mã khai báo ngoại lệ" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} placeholder="ID declaration chờ duyệt" /></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do waiver<Input aria-label="Lý do phê duyệt waiver" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
+        <legend className="px-1 font-medium text-slate-800">Phê duyệt miễn xác nhận</legend>
+        <p className="text-slate-600">Chỉ phê duyệt khai báo của người khác. Hệ thống từ chối tự phê duyệt và tải lại kết quả sau thao tác.</p>
+        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Mã tham chiếu khai báo<Input aria-label="Mã tham chiếu khai báo" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} placeholder="Mã từ khai báo đang chờ duyệt" /></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do miễn xác nhận<Input aria-label="Lý do phê duyệt miễn xác nhận" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
         <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { reason: waiverReason } }).unwrap())}>Phê duyệt waiver</Button></div>
       </fieldset>}
       <div className="mt-3 flex flex-wrap items-end gap-2">

@@ -42,14 +42,14 @@ describe('ServiceRun variance controls', () => {
     mocks.refetch.mockReset().mockResolvedValue({ data: run })
   })
 
-  it('requires Manager track, source-line and reason before wiring a declaration then refetching', async () => {
+  it('requires Manager scope, document references and reason before wiring a declaration then refetching', async () => {
     render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
     expect(screen.getByRole('group', { name: 'Khai báo ngoại lệ Ca phục vụ' })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Phê duyệt waiver ngoại lệ' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' })).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Track ngoại lệ'), { target: { value: 'RECONCILIATION' } })
-    fireEvent.change(screen.getByLabelText('Source-line chứng cứ'), { target: { value: 'source-1, source-2' } })
+    fireEvent.change(screen.getByLabelText('Phạm vi ngoại lệ'), { target: { value: 'RECONCILIATION' } })
+    fireEvent.change(screen.getByLabelText('Dòng chứng từ liên quan'), { target: { value: 'source-1, source-2' } })
     fireEvent.change(screen.getByLabelText('Lý do khai báo ngoại lệ'), { target: { value: 'Chênh lệch đã đối soát' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' }))
 
@@ -66,8 +66,8 @@ describe('ServiceRun variance controls', () => {
     expect(screen.getByRole('group', { name: 'Phê duyệt waiver ngoại lệ' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Phê duyệt waiver' })).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Mã khai báo ngoại lệ'), { target: { value: 'declaration-1' } })
-    fireEvent.change(screen.getByLabelText('Lý do phê duyệt waiver'), { target: { value: 'Admin waiver hợp lệ' } })
+    fireEvent.change(screen.getByLabelText('Mã tham chiếu khai báo'), { target: { value: 'declaration-1' } })
+    fireEvent.change(screen.getByLabelText('Lý do phê duyệt miễn xác nhận'), { target: { value: 'Admin waiver hợp lệ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Phê duyệt waiver' }))
 
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledWith({

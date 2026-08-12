@@ -2,7 +2,7 @@ import { ClipboardList } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { EmptyState, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { useGetServiceRunAdjustmentsQuery, useGetServiceRunPageQuery } from '@/api/workflowApi';
-import { getServiceRunStatusPresentation } from '@/lib/workflowConfig';
+import { formatServiceRunBlocker, getServiceRunStatusPresentation } from '@/lib/workflowConfig';
 import { readStoredAuthSnapshot } from '@/lib/auth/authStorage';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
 
@@ -14,23 +14,23 @@ const serviceRunPreferenceConfig: TablePreferenceConfig = {
   columns: [
     { id: 'plan', label: 'KHSX / ca', locked: true },
     { id: 'status', label: 'Trạng thái' },
-    { id: 'blocker', label: 'Blocker' },
+    { id: 'blocker', label: 'Điều kiện chặn' },
     { id: 'demand', label: 'Nhu cầu' },
     { id: 'issue', label: 'Xuất / trả' },
     { id: 'supplemental', label: 'Bổ sung' },
     { id: 'cost', label: 'Chi phí' },
     { id: 'servings', label: 'Suất' },
-    { id: 'correction', label: 'Correction overlay' },
+    { id: 'correction', label: 'Điều chỉnh hậu kiểm' },
   ],
 };
 
 function CorrectionOverlay({ serviceRunId, snapshotActual, isCloseSnapshot }: { serviceRunId: string; snapshotActual: number | null | undefined; isCloseSnapshot: boolean }) {
   const { data: adjustments, isFetching, isError } = useGetServiceRunAdjustmentsQuery(serviceRunId, { skip: !isCloseSnapshot });
   if (!isCloseSnapshot) return <span className="text-xs text-slate-500">Không có snapshot đóng ca (legacy).</span>;
-  if (isFetching) return <span className="text-xs text-slate-500" role="status">Đang tải correction overlay…</span>;
-  if (isError) return <span className="text-xs text-red-700" role="alert">Không tải được correction overlay; snapshot đóng ca vẫn được giữ riêng.</span>;
+  if (isFetching) return <span className="text-xs text-slate-500" role="status">Đang tải điều chỉnh hậu kiểm…</span>;
+  if (isError) return <span className="text-xs text-red-700" role="alert">Không tải được điều chỉnh hậu kiểm; snapshot đóng ca vẫn được giữ riêng.</span>;
   const latest = adjustments?.[0];
-  if (!latest) return <span className="text-xs text-slate-500">Không có correction overlay.</span>;
+  if (!latest) return <span className="text-xs text-slate-500">Không có điều chỉnh hậu kiểm.</span>;
   const delta = latest.correctedActualServings - (snapshotActual ?? 0);
   return <span className="text-xs"><span className="block font-medium text-slate-800">Append-only · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
 }
@@ -54,9 +54,9 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
               const cells: Record<string, ReactNode> = {
                 plan: <><div className="font-medium text-slate-800">{lifecycle.planCode}</div><div className="text-xs text-slate-500">{lifecycle.shiftName === 'MORNING' ? 'Ca sáng' : 'Ca chiều'}{lifecycle.status === 'CLOSED' ? (isCloseSnapshot ? ' · Snapshot đóng ca' : ' · Legacy: dữ liệu live') : ''}</div></>,
                 status: <StatusBadge variant={statusPresentation.tone}>{statusPresentation.label}</StatusBadge>,
-                blocker: <span className="max-w-64 text-xs">{lifecycle.blockers.length ? lifecycle.blockers.join(' · ') : '—'}</span>,
-                demand: <span className="text-xs">{materialRequestCodes.join(', ') || '—'}<span className="mt-1 block text-slate-500">{materialRequestLineIds.length} source-line</span></span>,
-                issue: <span className="text-xs">{[...issueCodes, ...returnCodes].join(', ') || '—'}<span className="mt-1 block text-slate-500">{issueLineIds.length} source-line</span></span>,
+                blocker: <span className="max-w-64 text-xs">{lifecycle.blockers.length ? lifecycle.blockers.map(formatServiceRunBlocker).join(' · ') : '—'}</span>,
+                demand: <span className="text-xs">{materialRequestCodes.join(', ') || '—'}<span className="mt-1 block text-slate-500">{materialRequestLineIds.length} dòng nhu cầu</span></span>,
+                issue: <span className="text-xs">{[...issueCodes, ...returnCodes].join(', ') || '—'}<span className="mt-1 block text-slate-500">{issueLineIds.length} dòng chứng từ</span></span>,
                 supplemental: <span className="text-xs">{supplementalRequestCodes.join(', ') || '—'}</span>,
                 cost: <span className="text-right text-xs tabular-nums"><span className="block">Chi phí mua ước tính: {formatCurrency(estimatedPurchaseCost ?? 0)}</span><span className="mt-1 block text-slate-500">Chi phí mua thực nhận: {actualReceivedCost == null ? 'Chưa phát sinh nhập' : formatCurrency(actualReceivedCost)}</span></span>,
                 servings: <span className="ipc-numeric-cell tabular-nums">{lifecycle.actualServings ?? '—'} / {lifecycle.plannedServings}</span>,
