@@ -51,12 +51,19 @@ if ($serviceRunSql -match '(?im)DROP\s+INDEX\s+(IF\s+EXISTS\s+)?`?uqServiceRunsP
 }
 foreach ($required in @(
     'Keep the legacy plan/shift unique key: an existing foreign key depends on it.',
-    'CREATE UNIQUE INDEX IF NOT EXISTS `uqServiceRunsCustomerDateShiftTier`',
-    'ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`);'
+    'MySQL 9.5 does not support IF NOT EXISTS on ADD COLUMN or CREATE INDEX.',
+    '`information_schema`.`columns`',
+    '`information_schema`.`statistics`',
+    '`information_schema`.`table_constraints`',
+    'CREATE UNIQUE INDEX `uqServiceRunsCustomerDateShiftTier` ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`)',
+    'ADD CONSTRAINT `fkServiceRunsCustomer` FOREIGN KEY (`customerId`)'
 )) {
     if ($serviceRunSql -notmatch [regex]::Escape($required)) {
         throw "ServiceRun reviewed SQL is missing additive scoped-identity contract: $required"
     }
+}
+if ($serviceRunSql -match '(?im)\bADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\b|\bCREATE\s+(?:UNIQUE\s+)?INDEX\s+IF\s+NOT\s+EXISTS\b|\bADD\s+CONSTRAINT\s+IF\s+NOT\s+EXISTS\b') {
+    throw 'ServiceRun reviewed SQL must guard MySQL 9.5-incompatible conditional DDL through information_schema and prepared statements.'
 }
 if ($serviceRunMigrationText -match 'DropIndex\(\s*name:\s*"uqServiceRunsPlanShift"') {
     throw 'ServiceRun EF migration must preserve uqServiceRunsPlanShift because an existing foreign key depends on it.'

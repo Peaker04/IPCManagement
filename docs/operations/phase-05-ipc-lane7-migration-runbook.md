@@ -11,7 +11,7 @@ Reviewed artifacts:
 - EF migration: `20260812170357_AddMultiCustomerServiceRunKernel`
 - EF migration source: `backend/src/IPCManagement.Api/Migrations/20260812170357_AddMultiCustomerServiceRunKernel.cs`
 - Reviewed SQL: `tools/db/phase05/phase05-service-run-ipc-lane7-reviewed.sql`
-- Reviewed SQL SHA-256: `F662F3660BD00137E080E14587FF68A70F6BE076566B6028F9EE710BBE77CD64`
+- Reviewed SQL SHA-256: `1180DA66DFB7842B943825815F89480C588EF0280182AA2365583303F6E28ACD`
 - Runner: `tools/db/phase05/Invoke-Phase05Lane7Migration.ps1`
 
 Plan 05-05 adds a second ordered, reviewed artifact after the ServiceRun kernel:
@@ -31,6 +31,11 @@ The SQL is additive. It retains `uqServiceRunsPlanShift` because an existing for
 on that legacy key, and adds `uqServiceRunsCustomerDateShiftTier` for the customer-scoped identity.
 It also retains close snapshots, documents, stock movements, audit rows and outbox history. It backfills only a single-valued `customer × tier` source scope; legacy rows
 with zero or multiple candidates remain unscoped and receive one decision item.
+
+The reviewed ServiceRun SQL is compatible with MySQL 9.5: it does not use conditional
+`ADD COLUMN`, `CREATE INDEX`, or `ADD CONSTRAINT` syntax. Each additive column, index, and
+foreign key is guarded by `information_schema` metadata and an individual prepared DDL
+statement, so a retry preserves forward-only, no-drop semantics.
 
 ## Required receipts
 
