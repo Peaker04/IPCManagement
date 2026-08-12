@@ -228,6 +228,8 @@ public partial class WorkflowGenerationTests
                 EvidenceReferencePrice = line.EstimatedUnitPrice,
                 ProposedUnitPrice = line.EstimatedUnitPrice,
                 ProposedDeliveryDate = line.ExpectedDeliveryDate!.Value,
+                ReceivingWarehouseId = fixture.WarehouseId,
+                PurchasingTerms = "NET 30",
                 ConfirmedBy = fixture.UserId,
                 ConfirmedAt = DateTime.UtcNow,
                 DecisionFingerprint = new string(fingerprintSeed, 64),

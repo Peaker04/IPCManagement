@@ -488,6 +488,10 @@ public partial class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var returnService = CreateInventoryReturnService(context);
+            var sourceIssueLineId = GuidHelper.ToGuidString(await context.Inventoryissuelines
+                .Where(line => line.IssueId == GuidHelper.ParseGuidString(issueId)!)
+                .Select(line => line.IssueLineId)
+                .SingleAsync());
             var retDto1 = await returnService.CreateAsync(new CreateInventoryReturnRequest
             {
                 ReturnDate = new DateOnly(2026, 6, 15),
@@ -500,6 +504,7 @@ public partial class WorkflowGenerationTests
                 [
                     new CreateInventoryReturnLineRequest
                     {
+                        SourceIssueLineId = sourceIssueLineId,
                         IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
                         UnitId = GuidHelper.ToGuidString(fixture.UnitId),
                         Quantity = 30m
@@ -519,6 +524,7 @@ public partial class WorkflowGenerationTests
                 [
                     new CreateInventoryReturnLineRequest
                     {
+                        SourceIssueLineId = sourceIssueLineId,
                         IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
                         UnitId = GuidHelper.ToGuidString(fixture.UnitId),
                         Quantity = 20m
