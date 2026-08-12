@@ -14,6 +14,19 @@ Reviewed artifacts:
 - Reviewed SQL SHA-256: `F9E3A845164D547709FA0A7D2314D1C9F9A6D37146C3196318B8897771A7AE13`
 - Runner: `tools/db/phase05/Invoke-Phase05Lane7Migration.ps1`
 
+Plan 05-05 adds a second ordered, reviewed artifact after the ServiceRun kernel:
+
+- EF migration: `20260812172709_AddPurchaseOrderCompatibilityScope`
+- EF migration source: `backend/src/IPCManagement.Api/Migrations/20260812172709_AddPurchaseOrderCompatibilityScope.cs`
+- Reviewed purchasing SQL: `tools/db/phase05/phase05-purchasing-ipc-lane7-reviewed.sql`
+- Reviewed purchasing SQL SHA-256: `9ABB242D380703A58F85DDC769B2EBC6E7BF99FFF9D2C00FE68F5DD95C135E62`
+
+The purchasing script adds explicit `receivingWarehouseId`, `purchasingTerms`, and PO
+`proposedDeliveryDate` compatibility fields plus the two compatibility indexes. It does
+not infer values for legacy orders. A legacy order without the complete four-field key
+remains immutable until the existing backend decision queue resolves it; documents,
+movements, audit rows and outbox history are preserved.
+
 The SQL is additive. It retains close snapshots, documents, stock movements, audit rows and
 outbox history. It backfills only a single-valued `customer × tier` source scope; legacy rows
 with zero or multiple candidates remain unscoped and receive one decision item.
@@ -30,6 +43,14 @@ or restore setup.
 | APPLY | runner command, target, ordered migration heads, actual SQL hash, start/end timestamp and exit result |
 | POST-FLIGHT | EF history head, source-line/decision-item counts, schema/index/FK inventory and immutable document/movement/audit/outbox preservation evidence |
 | ROLLBACK | forward-recovery disposition, checkpoint pointer/hash and confirmation that no destructive Down runs after lifecycle evidence exists |
+
+For the purchasing addition, POST-FLIGHT must separately record existence of
+`purchaselinesupplierdecisions.receivingWarehouseId`,
+`purchaselinesupplierdecisions.purchasingTerms`, `purchaseorders.proposedDeliveryDate`,
+`purchaseorders.receivingWarehouseId`, `purchaseorders.purchasingTerms`,
+`ixPurchaseLineSupplierDecisionsCompatibility` and `ixPurchaseOrdersCompatibility`. ROLLBACK is forward-recovery only after any
+durable lifecycle evidence exists: preserve both reviewed SQL receipts and resolve legacy
+compatibility through the existing decision queue; do not execute destructive Down SQL.
 
 ## Inspect-first use
 
