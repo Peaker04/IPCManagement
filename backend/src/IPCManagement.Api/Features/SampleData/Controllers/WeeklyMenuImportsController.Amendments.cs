@@ -139,11 +139,36 @@ public sealed partial class WeeklyMenuImportsController
         => Ok(ApiResponse<IReadOnlyList<MenuAmendmentInboxItemDto>>.SuccessResult(
             await _menuAmendmentService.GetInboxAsync(status, cancellationToken)));
 
-    [HttpPost("weekly-menu/amendments/{amendmentId}/reconciliation-corrections")]
+    [HttpPost("weekly-menu/amendments/decisions/{decisionItemId}/commands")]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
-    public async Task<IActionResult> CreateReconciliationCorrectionAsync(string amendmentId, [FromBody] CreateMenuAmendmentReconciliationCorrectionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ExecuteMenuAmendmentDecisionAsync(string decisionItemId, [FromBody] MenuAmendmentDecisionCommandRequest request, CancellationToken cancellationToken)
     {
-        await _menuAmendmentService.CreateReconciliationCorrectionAsync(amendmentId, request, _currentUserService.GetUserId(User), cancellationToken);
-        return Ok(ApiResponse.SuccessResult("Đã ghi correction append-only; ServiceRun và close snapshot không bị mở lại."));
+        try
+        {
+            var result = await _menuAmendmentService.ExecuteDecisionAsync(decisionItemId, request, _currentUserService.GetUserId(User), cancellationToken);
+            return Ok(ApiResponse<MenuAmendmentDecisionItemDto>.SuccessResult(result, "Đã ghi correction append-only; ServiceRun và close snapshot không bị mở lại."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+        catch (BusinessRuleException ex)
+        {
+            return Conflict(ApiResponse<MenuAmendmentDecisionItemDto>.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
+
+    [HttpGet("weekly-menu/amendments/decisions")]
+    public async Task<IActionResult> GetMenuAmendmentDecisionPageAsync(
+        [FromQuery] string? customerId,
+        [FromQuery] bool allCustomers,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+        => Ok(ApiResponse<MenuAmendmentDecisionPageDto>.SuccessResult(
+            await _menuAmendmentService.GetDecisionPageAsync(customerId, allCustomers, page, pageSize, cancellationToken)));
 }

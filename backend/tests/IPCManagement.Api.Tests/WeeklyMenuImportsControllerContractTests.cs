@@ -1,6 +1,7 @@
 using System.Reflection;
 using FluentAssertions;
 using IPCManagement.Api.Features.SampleData.Controllers;
+using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -66,6 +67,17 @@ public sealed class WeeklyMenuImportsControllerContractTests
             .MaxRequestBodySize.Should().Be(XlsxSecurityLimits.MaxUploadBytes);
     }
 
+    [Fact]
+    public void AmendmentDecisionContract_Should_NotAcceptManualServiceRunIds()
+    {
+        typeof(CreateMenuAmendmentReconciliationCorrectionRequest).GetProperties().Select(property => property.Name).Should().NotContain("ServiceRunId");
+
+        typeof(MenuAmendmentDecisionCommandRequest)
+            .GetProperties()
+            .Select(property => property.Name)
+            .Should().Contain(["DecisionItemId", "Action", "CommandId", "ExpectedVersion", "Reason"]);
+    }
+
     private static readonly AuthorizationContract[] AdminPolicy =
     [
         new(AuthorizationPolicies.AdminAccess, null)
@@ -87,11 +99,12 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(nameof(WeeklyMenuImportsController.BulkUpdateWeeklyMenuAsync), "PUT", "weekly-menu/bulk-update", []),
         new(nameof(WeeklyMenuImportsController.CommitWeeklyMenuImportAsync), "POST", "weekly-menu/import/commit", []),
         new(nameof(WeeklyMenuImportsController.CreateMenuAmendmentAsync), "POST", "weekly-menu/amendments", []),
-        new(nameof(WeeklyMenuImportsController.CreateReconciliationCorrectionAsync), "POST", "weekly-menu/amendments/{amendmentId}/reconciliation-corrections", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.DownloadWeeklyMenuTemplateAsync), "GET", "weekly-menu/template", []),
         new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/execute", AdminRoles),
+        new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentDecisionAsync), "POST", "weekly-menu/amendments/decisions/{decisionItemId}/commands", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.GetCustomerImportMappingAsync), "GET", "customers/{customerId}/import-mapping", []),
         new(nameof(WeeklyMenuImportsController.GetCustomersAsync), "GET", "customers", []),
+        new(nameof(WeeklyMenuImportsController.GetMenuAmendmentDecisionPageAsync), "GET", "weekly-menu/amendments/decisions", []),
         new(nameof(WeeklyMenuImportsController.GetMenuAmendmentsAsync), "GET", "weekly-menu/amendments", []),
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuAsync), "GET", "weekly-menu", []),
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuImportHistoryAsync), "GET", "weekly-menu/import-history", []),

@@ -3,6 +3,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,19 +11,87 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenuAmendmentService
 {
-    public async Task CreateReconciliationCorrectionAsync(string amendmentId, CreateMenuAmendmentReconciliationCorrectionRequest request, string? actorUserId, CancellationToken cancellationToken = default)
+    public async Task<MenuAmendmentDecisionItemDto> ExecuteDecisionAsync(string decisionItemId, MenuAmendmentDecisionCommandRequest request, string? actorUserId, CancellationToken cancellationToken = default)
     {
-        var amendmentKey = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã amendment không hợp lệ.");
-        var runKey = GuidHelper.ParseGuidString(request.ServiceRunId) ?? throw new ArgumentException("Mã ServiceRun không hợp lệ.");
-        var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người điều chỉnh.");
+        var decisionKey = GuidHelper.ParseGuidString(decisionItemId) ?? throw new ArgumentException("Mã quyết định không hợp lệ.");
+        if (!string.Equals(decisionItemId, request.DecisionItemId, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Quyết định trên đường dẫn không khớp với nội dung lệnh.");
+        if (!string.Equals(request.Action, "APPEND_CORRECTION", StringComparison.Ordinal))
+            throw new BusinessRuleException("Thao tác quyết định không còn được phép.");
+        if (string.IsNullOrWhiteSpace(request.CommandId)) throw new ArgumentException("Cần mã lệnh để chống ghi trùng.");
         if (string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Cần nêu lý do điều chỉnh đối soát.");
-        var reconciliationCase = await context.Menuamendmentreconciliationcases.SingleOrDefaultAsync(item => item.MenuAmendmentId.SequenceEqual(amendmentKey), cancellationToken) ?? throw new BusinessRuleException("Amendment không thuộc luồng đối soát vật lý.");
-        var run = await context.Serviceruns.SingleOrDefaultAsync(item => item.ServiceRunId.SequenceEqual(runKey), cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy ServiceRun.");
-        if (run.ClosedAt is null) throw new BusinessRuleException("Chỉ có thể ghi correction sau khi ServiceRun đã đóng.");
+        var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người điều chỉnh.");
+        var decision = await context.Servicerundecisionitems.SingleOrDefaultAsync(item => item.ServiceRunDecisionItemId.SequenceEqual(decisionKey), cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy quyết định hiện hành.");
+        var reconciliationCase = (await context.Menuamendmentreconciliationcases
+                .Include(item => item.MenuAmendment)
+                .Where(item => item.MenuAmendment.CustomerId.SequenceEqual(decision.CustomerId!))
+                .ToListAsync(cancellationToken))
+            .SingleOrDefault(item => ReadImpact(item.ImpactSnapshotJson).DecisionScopes
+                .Any(scope => string.Equals(scope.DecisionItemId, decisionItemId, StringComparison.OrdinalIgnoreCase)))
+            ?? throw new KeyNotFoundException("Không tìm thấy hồ sơ đối soát của quyết định.");
+        var impact = ReadImpact(reconciliationCase.ImpactSnapshotJson);
+        var scope = impact.DecisionScopes.SingleOrDefault(item => string.Equals(item.DecisionItemId, decisionItemId, StringComparison.OrdinalIgnoreCase))
+            ?? throw new BusinessRuleException("Hồ sơ đối soát thiếu phạm vi source-line chính xác.");
+        if (decision.CustomerId is null || !decision.CustomerId.SequenceEqual(reconciliationCase.MenuAmendment.CustomerId) ||
+            decision.ServiceDate != scope.ServiceDate || !string.Equals(decision.ShiftName, scope.ShiftName, StringComparison.OrdinalIgnoreCase) || decision.PriceTierAmount != scope.PriceTierAmount)
+            throw new BusinessRuleException("Quyết định không còn thuộc đúng phạm vi đối soát.");
+        var currentVersion = reconciliationCase.Status == "RESOLVED" ? 1L : 0L;
+        var recorder = new LifecycleTransitionRecorder(context);
+        var existing = await recorder.FindExistingCommandAsync(request.CommandId, nameof(MenuAmendmentReconciliationCase), reconciliationCase.MenuAmendmentReconciliationCaseId, cancellationToken);
+        if (existing is not null)
+            return ToDecisionDto(decision, reconciliationCase.MenuAmendment, scope, reconciliationCase.Status, currentVersion);
+        if (currentVersion != request.ExpectedVersion)
+            throw new BusinessRuleException("Dữ liệu quyết định đã thay đổi; hãy dùng trạng thái hiện hành rồi thử lại.");
+        if (reconciliationCase.Status != "OPEN")
+            throw new BusinessRuleException("Quyết định không còn cho phép ghi correction.");
+
+        var sourceLineKeys = scope.SourceLineIds.Select(GuidHelper.ParseGuidString).Where(id => id is not null).Select(id => id!).ToList();
+        if (sourceLineKeys.Count != scope.SourceLineIds.Count)
+            throw new BusinessRuleException("Bằng chứng source-line không hợp lệ.");
+        var matchedRuns = await context.Serviceruns
+            .Where(run => run.CustomerId != null && run.CustomerId.SequenceEqual(reconciliationCase.MenuAmendment.CustomerId) && run.ServiceDate == scope.ServiceDate && run.ShiftName == scope.ShiftName && run.PriceTierAmount == scope.PriceTierAmount && run.ClosedAt != null)
+            .Where(run => run.SourceLines.Count(source => sourceLineKeys.Any(key => key.SequenceEqual(source.MaterialRequestLineId))) == sourceLineKeys.Count)
+            .ToListAsync(cancellationToken);
+        if (matchedRuns.Count != 1)
+            throw new BusinessRuleException(matchedRuns.Count == 0
+                ? "Chưa tìm được Ca phục vụ đã đóng khớp toàn bộ source-line; quyết định vẫn bị chặn."
+                : "Có nhiều Ca phục vụ khớp source-line; cần quyết định lineage trước khi correction.");
+
+        var run = matchedRuns.Single();
         var correction = new MenuAmendmentReconciliationCorrection { MenuAmendmentReconciliationCorrectionId = GuidHelper.NewId(), MenuAmendmentReconciliationCaseId = reconciliationCase.MenuAmendmentReconciliationCaseId, ServiceRunId = run.ServiceRunId, Reason = request.Reason.Trim(), CreatedBy = actorId, CreatedAt = DateTime.UtcNow };
         context.Menuamendmentreconciliationcorrections.Add(correction);
-        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = correction.CreatedAt, ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(MenuAmendmentReconciliationCorrection), EntityId = correction.MenuAmendmentReconciliationCorrectionId, FieldName = "AppendOnlyCorrection", NewValue = GuidHelper.ToGuidString(run.ServiceRunId), Reason = correction.Reason });
+        reconciliationCase.Status = "RESOLVED";
+        recorder.Stage(new LifecycleTransitionRequest(nameof(MenuAmendmentReconciliationCase), reconciliationCase.MenuAmendmentReconciliationCaseId,
+            request.CommandId, 1, "OPEN", "RESOLVED", actorId, request.ExpectedVersion, correction.Reason,
+            request.CorrelationId, request.CausationId, JsonSerializer.Serialize(new { decisionItemId, correction.ServiceRunId, scope.SourceLineIds }),
+            JsonSerializer.Serialize(new { decisionItemId, status = "RESOLVED", version = 1 })));
         await context.SaveChangesAsync(cancellationToken);
+        return ToDecisionDto(decision, reconciliationCase.MenuAmendment, scope, reconciliationCase.Status, 1);
+    }
+
+    public async Task<MenuAmendmentDecisionPageDto> GetDecisionPageAsync(string? customerId, bool allCustomers, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (page < 1 || pageSize < 1 || pageSize > 100) throw new ArgumentOutOfRangeException(nameof(pageSize), "Phân trang quyết định không hợp lệ.");
+        var selectedCustomerId = allCustomers ? null : GuidHelper.ParseGuidString(customerId) ?? throw new ArgumentException("Cần chọn khách hàng hoặc dùng All customers.");
+        var casesQuery = context.Menuamendmentreconciliationcases.AsNoTracking().Include(item => item.MenuAmendment).ThenInclude(item => item.Customer).AsQueryable();
+        if (selectedCustomerId is not null)
+            casesQuery = casesQuery.Where(item => item.MenuAmendment.CustomerId.SequenceEqual(selectedCustomerId));
+        var cases = await casesQuery.OrderBy(item => item.Status == "OPEN" ? 0 : 1).ThenBy(item => item.CreatedAt).ToListAsync(cancellationToken);
+        var rows = new List<MenuAmendmentDecisionItemDto>();
+        foreach (var reconciliationCase in cases)
+        {
+            var impact = ReadImpact(reconciliationCase.ImpactSnapshotJson);
+            foreach (var scope in impact.DecisionScopes)
+            {
+                var decisionKey = GuidHelper.ParseGuidString(scope.DecisionItemId);
+                if (decisionKey is null) continue;
+                var decision = await context.Servicerundecisionitems.AsNoTracking().SingleOrDefaultAsync(item => item.ServiceRunDecisionItemId.SequenceEqual(decisionKey), cancellationToken);
+                if (decision is not null)
+                    rows.Add(ToDecisionDto(decision, reconciliationCase.MenuAmendment, scope, reconciliationCase.Status, reconciliationCase.Status == "RESOLVED" ? 1 : 0));
+            }
+        }
+        return new MenuAmendmentDecisionPageDto { Items = rows.Skip((page - 1) * pageSize).Take(pageSize).ToList(), Page = page, PageSize = pageSize, TotalCount = rows.Count };
     }
     public async Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default)
     {
@@ -42,6 +111,34 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
             };
         }).ToList();
     }
+
+    private static MenuAmendmentResultDto ReadImpact(string snapshot)
+        => JsonSerializer.Deserialize<MenuAmendmentResultDto>(snapshot) ?? new MenuAmendmentResultDto();
+
+    private static MenuAmendmentDecisionItemDto ToDecisionDto(
+        ServiceRunDecisionItem decision,
+        MenuAmendment amendment,
+        MenuAmendmentDecisionScopeDto scope,
+        string caseStatus,
+        long version)
+        => new()
+        {
+            DecisionItemId = GuidHelper.ToGuidString(decision.ServiceRunDecisionItemId),
+            MenuAmendmentId = GuidHelper.ToGuidString(amendment.MenuAmendmentId),
+            CustomerId = scope.CustomerId,
+            CustomerName = scope.CustomerName,
+            ServiceDate = scope.ServiceDate,
+            ShiftName = scope.ShiftName,
+            PriceTierAmount = scope.PriceTierAmount,
+            DocumentIds = scope.DocumentIds,
+            SourceLineIds = scope.SourceLineIds,
+            Reason = decision.Reason,
+            AccountableRole = "Quản trị",
+            DueAt = decision.CreatedAt.AddDays(1),
+            Status = caseStatus,
+            Version = version,
+            AllowedActions = caseStatus == "OPEN" ? ["APPEND_CORRECTION"] : [],
+        };
 
     public Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default)
         => ExecuteCoreAsync(amendmentId, actorUserId, null, cancellationToken);
@@ -224,8 +321,23 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         var hasIssue = requestIds.Count > 0 && await context.Inventoryissues.AnyAsync(item => requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
         var requiresReconciliation = hasPurchaseOrder || hasReceipt || hasIssue;
         var documentIds = materialRequests.Select(item => GuidHelper.ToGuidString(item.RequestId)).Concat(purchaseRequestIds.Select(GuidHelper.ToGuidString)).ToArray();
-        var sourceLineIds = await context.Materialrequestlines.Where(item => requestIds.Any(id => id.SequenceEqual(item.RequestId))).Select(item => item.RequestLineId).ToListAsync(cancellationToken);
-        var result = new MenuAmendmentResultDto { Status = requiresReconciliation ? "RECONCILIATION_REQUIRED" : "PENDING_REVIEW", RequiresReconciliation = requiresReconciliation, AffectedDemandCount = materialRequests.Count, AffectedPurchaseRequestCount = purchaseRequestIds.Count, HasPurchaseOrder = hasPurchaseOrder, HasReceipt = hasReceipt, HasIssue = hasIssue, AffectedDocumentIds = documentIds, AffectedSourceLineIds = sourceLineIds.Select(GuidHelper.ToGuidString).ToArray() };
+        var sourceLines = await context.Materialrequestlines
+            .Include(item => item.PlanLine).ThenInclude(item => item.Customer)
+            .Where(item => requestIds.Any(id => id.SequenceEqual(item.RequestId)))
+            .ToListAsync(cancellationToken);
+        var scopes = sourceLines
+            .GroupBy(item => new { item.PlanLine.CustomerId, item.PlanLine.ShiftName, item.PriceTierAmount })
+            .Select(group => new MenuAmendmentDecisionScopeDto
+            {
+                CustomerId = GuidHelper.ToGuidString(group.Key.CustomerId),
+                CustomerName = group.First().PlanLine.Customer.CustomerName,
+                ServiceDate = group.First().Request.RequestDate,
+                ShiftName = group.Key.ShiftName,
+                PriceTierAmount = group.Key.PriceTierAmount,
+                DocumentIds = documentIds,
+                SourceLineIds = group.Select(item => GuidHelper.ToGuidString(item.RequestLineId)).ToArray(),
+            }).ToList();
+        var result = new MenuAmendmentResultDto { Status = requiresReconciliation ? "RECONCILIATION_REQUIRED" : "PENDING_REVIEW", RequiresReconciliation = requiresReconciliation, AffectedDemandCount = materialRequests.Count, AffectedPurchaseRequestCount = purchaseRequestIds.Count, HasPurchaseOrder = hasPurchaseOrder, HasReceipt = hasReceipt, HasIssue = hasIssue, AffectedDocumentIds = documentIds, AffectedSourceLineIds = sourceLines.Select(item => GuidHelper.ToGuidString(item.RequestLineId)).ToArray(), DecisionScopes = scopes };
         var amendment = new MenuAmendment { MenuAmendmentId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = request.WeekStartDate, BaseMenuVersionId = baseVersionId, Status = result.Status, Reason = request.Reason.Trim(), ImpactSnapshotJson = JsonSerializer.Serialize(result), CreatedBy = actorId, CreatedAt = DateTime.UtcNow, Lines = mappedLines };
         context.Menuamendments.Add(amendment);
         if (requiresReconciliation)
@@ -233,6 +345,21 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
             var reconciliationCase = new MenuAmendmentReconciliationCase { MenuAmendmentReconciliationCaseId = GuidHelper.NewId(), MenuAmendmentId = amendment.MenuAmendmentId, ImpactSnapshotJson = amendment.ImpactSnapshotJson, CreatedAt = amendment.CreatedAt };
             context.Menuamendmentreconciliationcases.Add(reconciliationCase);
             result.ReconciliationCaseId = GuidHelper.ToGuidString(reconciliationCase.MenuAmendmentReconciliationCaseId);
+            foreach (var scope in scopes)
+            {
+                var planId = sourceLines.First(item => item.RequestLineId.SequenceEqual(GuidHelper.ParseGuidString(scope.SourceLineIds[0])!)).Request.PlanId;
+                var decision = new ServiceRunDecisionItem
+                {
+                    ServiceRunDecisionItemId = GuidHelper.NewId(), PlanId = planId,
+                    CustomerId = GuidHelper.ParseGuidString(scope.CustomerId), ServiceDate = scope.ServiceDate,
+                    ShiftName = scope.ShiftName, PriceTierAmount = scope.PriceTierAmount,
+                    Reason = amendment.Reason, CreatedAt = amendment.CreatedAt,
+                };
+                scope.DecisionItemId = GuidHelper.ToGuidString(decision.ServiceRunDecisionItemId);
+                context.Servicerundecisionitems.Add(decision);
+            }
+            amendment.ImpactSnapshotJson = JsonSerializer.Serialize(result);
+            reconciliationCase.ImpactSnapshotJson = amendment.ImpactSnapshotJson;
         }
         context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = amendment.CreatedAt, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MenuAmendment), EntityId = amendment.MenuAmendmentId, FieldName = "Status", NewValue = amendment.Status, Reason = amendment.Reason });
         await context.SaveChangesAsync(cancellationToken);
