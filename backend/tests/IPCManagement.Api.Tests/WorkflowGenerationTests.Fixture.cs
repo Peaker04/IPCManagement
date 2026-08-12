@@ -1027,6 +1027,18 @@ public partial class WorkflowGenerationTests
                     sourceIssueLineId BLOB NULL,
                     quantity TEXT NOT NULL
                 );
+                CREATE TABLE inventoryallocationdispositions (
+                    allocationDispositionId BLOB PRIMARY KEY,
+                    sourceIssueLineId BLOB NOT NULL,
+                    destinationIssueLineId BLOB NOT NULL,
+                    quantity TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    createdBy BLOB NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    version INTEGER NOT NULL DEFAULT 0,
+                    correlationId TEXT NULL,
+                    causationId TEXT NULL
+                );
                 CREATE TABLE legacylinedispositions (
                     dispositionId BLOB PRIMARY KEY,
                     legacyLineType TEXT NOT NULL,

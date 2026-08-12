@@ -345,3 +345,72 @@ public class InventoryReturnFilterRequestDto : PagedRequestDto
     public DateOnly? ReturnDate { get; set; }
     public bool? IsReceived { get; set; }
 }
+
+public sealed class InventoryReturnAllocationBalanceDto
+{
+    public string SourceIssueLineId { get; set; } = string.Empty;
+    public string MaterialRequestLineId { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public DateOnly ServiceDate { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public decimal PriceTierAmount { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public decimal IssuedQuantity { get; set; }
+    public decimal KitchenAcknowledgedQuantity { get; set; }
+    public decimal ReturnedQuantity { get; set; }
+    public decimal WastedQuantity { get; set; }
+    public decimal DisposedQuantity { get; set; }
+    public decimal IncomingDispositionQuantity { get; set; }
+    public decimal ExcessQuantity { get; set; }
+    public long Version { get; set; }
+    public string? DecisionId { get; set; }
+    public string? DecisionReason { get; set; }
+    public IReadOnlyList<string> AllowedActions { get; set; } = [];
+}
+
+public sealed class InventoryReturnAllocationBalanceQuery
+{
+    public string? CustomerId { get; set; }
+    public DateOnly? ServiceDate { get; set; }
+    public string? ShiftName { get; set; }
+    public decimal? PriceTierAmount { get; set; }
+}
+
+public sealed class CreateInventoryAllocationDispositionRequest
+{
+    [Required]
+    public string DecisionId { get; set; } = string.Empty;
+    [Required]
+    public string SourceIssueLineId { get; set; } = string.Empty;
+    [Required]
+    public string DestinationSourceLineId { get; set; } = string.Empty;
+    [Range(0.000001, double.MaxValue)]
+    public decimal Quantity { get; set; }
+    [Required, MaxLength(1000)]
+    public string Reason { get; set; } = string.Empty;
+    [Required, MaxLength(128)]
+    public string CommandId { get; set; } = string.Empty;
+    [Range(0, long.MaxValue)]
+    public long ExpectedVersion { get; set; }
+    [MaxLength(128)]
+    public string? CorrelationId { get; set; }
+    [MaxLength(128)]
+    public string? CausationId { get; set; }
+}
+
+public sealed class InventoryAllocationDispositionDto
+{
+    public string AllocationDispositionId { get; set; } = string.Empty;
+    public string SourceIssueLineId { get; set; } = string.Empty;
+    public string DestinationSourceLineId { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string CreatedBy { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public long Version { get; set; }
+    public string? CorrelationId { get; set; }
+    public string? CausationId { get; set; }
+}

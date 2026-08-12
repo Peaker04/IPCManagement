@@ -4,6 +4,30 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace IPCManagement.Api.Features.Inventory.Persistence;
 
+internal sealed class InventoryAllocationDispositionConfiguration : IEntityTypeConfiguration<InventoryAllocationDisposition>
+{
+    public void Configure(EntityTypeBuilder<InventoryAllocationDisposition> entity)
+    {
+        entity.HasKey(item => item.AllocationDispositionId).HasName("PRIMARY");
+        entity.ToTable("inventoryallocationdispositions");
+        entity.HasIndex(item => item.SourceIssueLineId, "ixInventoryAllocationDispositionsSource");
+        entity.HasIndex(item => item.DestinationIssueLineId, "ixInventoryAllocationDispositionsDestination");
+        entity.Property(item => item.AllocationDispositionId).HasMaxLength(16).IsFixedLength().HasColumnName("allocationDispositionId");
+        entity.Property(item => item.SourceIssueLineId).HasMaxLength(16).IsFixedLength().HasColumnName("sourceIssueLineId");
+        entity.Property(item => item.DestinationIssueLineId).HasMaxLength(16).IsFixedLength().HasColumnName("destinationIssueLineId");
+        entity.Property(item => item.Quantity).HasPrecision(18, 6).HasColumnName("quantity");
+        entity.Property(item => item.Reason).HasMaxLength(1000).HasColumnName("reason");
+        entity.Property(item => item.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
+        entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+        entity.Property(item => item.Version).IsConcurrencyToken().HasDefaultValue(0L).HasColumnName("version");
+        entity.Property(item => item.CorrelationId).HasMaxLength(128).HasColumnName("correlationId");
+        entity.Property(item => item.CausationId).HasMaxLength(128).HasColumnName("causationId");
+        entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(item => item.SourceIssueLineId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(item => item.DestinationIssueLineId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne<User>().WithMany().HasForeignKey(item => item.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<InventoryIssue>
 {
     public void Configure(EntityTypeBuilder<InventoryIssue> entity)

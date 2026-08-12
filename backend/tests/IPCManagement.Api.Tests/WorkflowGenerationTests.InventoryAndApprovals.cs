@@ -33,6 +33,98 @@ namespace IPCManagement.Api.Tests;
 public partial class WorkflowGenerationTests
 {
     [Fact]
+    public async Task AllocationBalance_Should_PreserveExactSourceLine_And_DefaultDenyDisposition()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using (var context = fixture.CreateContext())
+        {
+            var planLineId = GuidHelper.NewId();
+            var requestId = GuidHelper.NewId();
+            var requestLineId = GuidHelper.NewId();
+            var issueId = GuidHelper.NewId();
+            var sourceIssueLineId = GuidHelper.NewId();
+            context.Roles.Add(new Role { RoleId = GuidHelper.NewId(), RoleCode = "ADMIN", RoleName = "Admin" });
+            var adminRoleId = context.Roles.Local.Single().RoleId;
+            context.Users.Add(new User
+            {
+                UserId = fixture.UserId, Username = "allocation-admin", FullName = "Allocation Admin", PasswordHash = "hash",
+                RoleId = adminRoleId, IsActive = true, CreatedAt = DateTime.UtcNow
+            });
+            context.Productionplans.Add(new ProductionPlan
+            {
+                PlanId = fixture.ProductionPlanId, PlanCode = "PLAN-ALLOCATION", PlanDate = new DateOnly(2026, 6, 15),
+                Status = "SENTTOWAREHOUSE", CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            });
+            context.Productionplanlines.Add(new ProductionPlanLine
+            {
+                PlanLineId = planLineId, PlanId = fixture.ProductionPlanId, QuantityPlanLineId = GuidHelper.NewId(),
+                CustomerId = fixture.CustomerId, MenuId = GuidHelper.NewId(), DishId = GuidHelper.NewId(), ShiftName = "MORNING", TotalServings = 1
+            });
+            context.Materialrequests.Add(new MaterialRequest
+            {
+                RequestId = requestId, RequestCode = "MR-ALLOCATION", PlanId = fixture.ProductionPlanId,
+                RequestDate = new DateOnly(2026, 6, 15), RequestScope = "MORNING", Status = "SENTTOWAREHOUSE", CreatedBy = fixture.UserId
+            });
+            context.Materialrequestlines.Add(new MaterialRequestLine
+            {
+                RequestLineId = requestLineId, RequestId = requestId, PlanLineId = planLineId, IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId, PriceTierAmount = 25000m, BomScope = "global", TotalServings = 1,
+                GrossQtyPerServing = 1m, BomRatePercent = 100m, AppliedPortionRatePercent = 100m,
+                TotalRequiredQty = 10m, CurrentStockQty = 0m, SuggestedPurchaseQty = 10m
+            });
+            context.Inventoryissues.Add(new InventoryIssue
+            {
+                IssueId = issueId, IssueCode = "ISS-ALLOCATION", IssueDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING",
+                WarehouseId = fixture.WarehouseId, MaterialRequestId = requestId, IssuedBy = fixture.UserId,
+                ReceivedBy = fixture.UserId, ReceivedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
+            });
+            context.Inventoryissuelines.Add(new InventoryIssueLine
+            {
+                IssueLineId = sourceIssueLineId, IssueId = issueId, MaterialRequestLineId = requestLineId,
+                IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, RequestedQty = 10m, IssuedQty = 10m
+            });
+            foreach (var (type, quantity) in new[] { ("RETURN", 2m), ("WASTE", 1m) })
+            {
+                var returnId = GuidHelper.NewId();
+                context.Inventoryreturns.Add(new InventoryReturn
+                {
+                    ReturnId = returnId, ReturnCode = $"{type}-ALLOCATION", ReturnDate = new DateOnly(2026, 6, 15), ReturnType = type,
+                    WarehouseId = fixture.WarehouseId, IssueId = issueId, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow
+                });
+                context.Inventoryreturnlines.Add(new InventoryReturnLine
+                {
+                    ReturnLineId = GuidHelper.NewId(), ReturnId = returnId, SourceIssueLineId = sourceIssueLineId,
+                    IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, Quantity = quantity
+                });
+            }
+            await context.SaveChangesAsync();
+            (await context.Inventoryissuelines.CountAsync()).Should().Be(1);
+            (await context.Materialrequestlines.CountAsync()).Should().Be(1);
+            (await context.Productionplanlines.CountAsync()).Should().Be(1);
+            (await context.Productionplans.CountAsync()).Should().Be(1);
+            var service = CreateInventoryReturnService(context);
+            var balance = (await service.GetAllocationBalancesAsync(new InventoryReturnAllocationBalanceQuery(), fixture.UserIdString)).Single();
+            balance.SourceIssueLineId.Should().Be(GuidHelper.ToGuidString(sourceIssueLineId));
+            balance.MaterialRequestLineId.Should().NotBeNullOrWhiteSpace();
+            balance.CustomerId.Should().Be(fixture.CustomerIdString);
+            balance.ReturnedQuantity.Should().Be(2m);
+            balance.WastedQuantity.Should().Be(1m);
+            balance.ExcessQuantity.Should().Be(balance.IssuedQuantity - 3m);
+            balance.AllowedActions.Should().ContainSingle().Which.Should().Be("CROSS_CUSTOMER_DISPOSITION");
+
+            var before = await context.Inventoryallocationdispositions.CountAsync();
+            var unauthorized = () => service.CreateAllocationDispositionAsync(new CreateInventoryAllocationDispositionRequest
+            {
+                DecisionId = balance.DecisionId ?? "return-allocation:missing", SourceIssueLineId = GuidHelper.ToGuidString(sourceIssueLineId),
+                DestinationSourceLineId = GuidHelper.ToGuidString(sourceIssueLineId), Quantity = 1m, Reason = "must not transfer", CommandId = "allocation-default-deny",
+                ExpectedVersion = balance.Version
+            }, null);
+            await unauthorized.Should().ThrowAsync<UnauthorizedAccessException>();
+            (await context.Inventoryallocationdispositions.CountAsync()).Should().Be(before);
+        }
+    }
+
+    [Fact]
     public async Task CreateInventoryReceiptFromPurchase_Should_CreateReceipt_IncreaseStock_AndMarkPurchaseReceived()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

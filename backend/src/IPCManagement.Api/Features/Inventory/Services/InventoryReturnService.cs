@@ -8,6 +8,10 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Security;
+using System.Data;
+using System.Text.Json;
 
 namespace IPCManagement.Api.Features.Inventory.Services;
 
@@ -346,6 +350,113 @@ public class InventoryReturnService : IInventoryReturnService
         return sourceLine;
     }
 
+    public async Task<IReadOnlyList<InventoryReturnAllocationBalanceDto>> GetAllocationBalancesAsync(
+        InventoryReturnAllocationBalanceQuery query,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureAllocationContext();
+        var sourceLines = await LoadScopedSourceLinesAsync(query, cancellationToken);
+        var actorIsAdmin = await IsAdminAsync(userId, cancellationToken);
+        var sourceIds = sourceLines.Select(item => item.Line.IssueLineId).ToList();
+        var returnedAndWasted = await _context!.Inventoryreturnlines.AsNoTracking()
+            .Include(item => item.Return)
+            .Where(item => item.SourceIssueLineId != null && sourceIds.Contains(item.SourceIssueLineId))
+            .GroupBy(item => new { item.SourceIssueLineId, item.Return.ReturnType })
+            .Select(group => new { group.Key.SourceIssueLineId, group.Key.ReturnType, Quantity = group.Sum(item => item.Quantity) })
+            .ToListAsync(cancellationToken);
+        var dispositions = await _context.Inventoryallocationdispositions.AsNoTracking()
+            .Where(item => sourceIds.Contains(item.SourceIssueLineId) || sourceIds.Contains(item.DestinationIssueLineId))
+            .ToListAsync(cancellationToken);
+
+        return sourceLines.Select(source =>
+        {
+            var sourceId = GuidHelper.ToGuidString(source.Line.IssueLineId);
+            var returned = returnedAndWasted.Where(item => item.SourceIssueLineId!.SequenceEqual(source.Line.IssueLineId) && item.ReturnType == ReturnTypeReturn).Sum(item => item.Quantity);
+            var wasted = returnedAndWasted.Where(item => item.SourceIssueLineId!.SequenceEqual(source.Line.IssueLineId) && item.ReturnType == ReturnTypeWaste).Sum(item => item.Quantity);
+            var outgoing = dispositions.Where(item => item.SourceIssueLineId.SequenceEqual(source.Line.IssueLineId)).Sum(item => item.Quantity);
+            var incoming = dispositions.Where(item => item.DestinationIssueLineId.SequenceEqual(source.Line.IssueLineId)).Sum(item => item.Quantity);
+            var issued = DecimalPolicy.RoundQuantity(source.Line.IssuedQty);
+            var excess = DecimalPolicy.RoundQuantity(issued - returned - wasted - outgoing);
+            var hasValidLineage = source.Line.MaterialRequestLineId is not null;
+            return new InventoryReturnAllocationBalanceDto
+            {
+                SourceIssueLineId = sourceId,
+                MaterialRequestLineId = GuidHelper.ToGuidString(source.Material.RequestLineId),
+                CustomerId = GuidHelper.ToGuidString(source.PlanLine.CustomerId),
+                ServiceDate = source.Plan.PlanDate,
+                ShiftName = source.PlanLine.ShiftName,
+                PriceTierAmount = source.Material.PriceTierAmount,
+                IngredientId = GuidHelper.ToGuidString(source.Line.IngredientId),
+                IngredientName = source.Line.Ingredient?.IngredientName,
+                UnitId = GuidHelper.ToGuidString(source.Line.UnitId),
+                UnitName = source.Line.Unit?.UnitName,
+                IssuedQuantity = issued,
+                KitchenAcknowledgedQuantity = source.Issue.ReceivedAt is null ? 0 : issued,
+                ReturnedQuantity = DecimalPolicy.RoundQuantity(returned),
+                WastedQuantity = DecimalPolicy.RoundQuantity(wasted),
+                DisposedQuantity = DecimalPolicy.RoundQuantity(outgoing),
+                IncomingDispositionQuantity = DecimalPolicy.RoundQuantity(incoming),
+                ExcessQuantity = excess,
+                Version = dispositions.Count(item => item.SourceIssueLineId.SequenceEqual(source.Line.IssueLineId)),
+                DecisionId = hasValidLineage && DecimalPolicy.GreaterThanQuantity(excess, 0) ? BuildDecisionId(sourceId) : null,
+                DecisionReason = hasValidLineage ? null : "Thiếu lineage source-line; cần quyết định.",
+                AllowedActions = hasValidLineage && actorIsAdmin && DecimalPolicy.GreaterThanQuantity(excess, 0)
+                    ? ["CROSS_CUSTOMER_DISPOSITION"]
+                    : [],
+            };
+        }).ToList();
+    }
+
+    public async Task<InventoryAllocationDispositionDto> CreateAllocationDispositionAsync(
+        CreateInventoryAllocationDispositionRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureAllocationContext();
+        var actorId = GuidHelper.ParseGuidString(userId) ?? throw new UnauthorizedAccessException("Không xác định được người thực hiện disposition.");
+        if (!await IsAdminAsync(userId, cancellationToken)) throw new UnauthorizedAccessException("Chỉ Admin được điều phối excess giữa khách hàng.");
+        var sourceId = ParseRequiredId(request.SourceIssueLineId, "SourceIssueLineId không hợp lệ.");
+        var destinationId = ParseRequiredId(request.DestinationSourceLineId, "DestinationSourceLineId không hợp lệ.");
+        if (sourceId.SequenceEqual(destinationId)) throw new BusinessRuleException("Dòng nguồn và dòng đích phải khác nhau.");
+        var commandId = RequireText(request.CommandId, "CommandId không được để trống.", 128);
+        var reason = RequireText(request.Reason, "Cần ghi lý do disposition excess.", 1000);
+        if (request.DecisionId != BuildDecisionId(GuidHelper.ToGuidString(sourceId))) throw new BusinessRuleException("Decision token không khớp dòng nguồn.");
+        var aggregateType = "InventoryAllocationDisposition";
+        var recorder = new LifecycleTransitionRecorder(_context!);
+        var replay = await recorder.FindExistingCommandAsync(commandId, aggregateType, sourceId, cancellationToken);
+        if (replay is not null) return DeserializeDisposition(replay.ResponseJson);
+
+        return await _transactionRunner.ExecuteAsync(async token =>
+        {
+            var source = await LoadSourceLineAsync(sourceId, token);
+            var destination = await LoadSourceLineAsync(destinationId, token);
+            EnsureCompatibleCrossCustomerScope(source, destination);
+            var balances = await GetAllocationBalancesAsync(new InventoryReturnAllocationBalanceQuery(), userId, token);
+            var sourceBalance = balances.SingleOrDefault(item => item.SourceIssueLineId == GuidHelper.ToGuidString(sourceId))
+                ?? throw new BusinessRuleException("Không thể đọc balance dòng nguồn.");
+            if (sourceBalance.DecisionId != request.DecisionId) throw new BusinessRuleException("Disposition không còn được phép; hãy tải lại trạng thái.");
+            if (request.ExpectedVersion != sourceBalance.Version) throw new DbUpdateConcurrencyException("Balance source-line đã thay đổi; hãy tải lại trạng thái.");
+            var quantity = DecimalPolicy.RoundQuantity(request.Quantity);
+            if (!DecimalPolicy.GreaterThanQuantity(quantity, 0) || DecimalPolicy.GreaterThanQuantity(quantity, sourceBalance.ExcessQuantity))
+                throw new BusinessRuleException("Số lượng disposition phải nằm trong excess hiện tại của đúng dòng nguồn.");
+            var disposition = new InventoryAllocationDisposition
+            {
+                AllocationDispositionId = GuidHelper.NewId(), SourceIssueLineId = sourceId, DestinationIssueLineId = destinationId,
+                Quantity = quantity, Reason = reason, CreatedBy = actorId, CreatedAt = DateTime.UtcNow, Version = 0,
+                CorrelationId = request.CorrelationId?.Trim(), CausationId = request.CausationId?.Trim(),
+            };
+            _context!.Inventoryallocationdispositions.Add(disposition);
+            var result = MapDisposition(disposition);
+            recorder.Stage(new LifecycleTransitionRequest(aggregateType, sourceId, commandId, 1, null, "APPLIED", actorId,
+                request.ExpectedVersion, reason, disposition.CorrelationId, disposition.CausationId,
+                JsonSerializer.Serialize(result), JsonSerializer.Serialize(result)));
+            await _context.SaveChangesAsync(token);
+            return result;
+        }, async token => await recorder.FindExistingCommandAsync(commandId, aggregateType, sourceId, token) is not null,
+        IsolationLevel.Serializable, cancellationToken);
+    }
+
     private static void ValidateReturnQuantity(
         InventoryIssueLine sourceLine,
         decimal alreadyAccounted,
@@ -397,6 +508,88 @@ public class InventoryReturnService : IInventoryReturnService
             }
         }
     }
+
+    private async Task<List<SourceLineScope>> LoadScopedSourceLinesAsync(
+        InventoryReturnAllocationBalanceQuery query,
+        CancellationToken cancellationToken)
+    {
+        var items = await (
+            from line in _context!.Inventoryissuelines.AsNoTracking()
+            join issue in _context.Inventoryissues.AsNoTracking() on line.IssueId equals issue.IssueId
+            join material in _context.Materialrequestlines.AsNoTracking() on line.MaterialRequestLineId equals material.RequestLineId
+            join planLine in _context.Productionplanlines.AsNoTracking() on material.PlanLineId equals planLine.PlanLineId
+            join plan in _context.Productionplans.AsNoTracking() on planLine.PlanId equals plan.PlanId
+            where line.MaterialRequestLineId != null
+                && (query.CustomerId == null || planLine.CustomerId.SequenceEqual(ParseRequiredId(query.CustomerId, "CustomerId không hợp lệ.")))
+                && (query.ServiceDate == null || plan.PlanDate == query.ServiceDate)
+                && (query.ShiftName == null || planLine.ShiftName == query.ShiftName)
+                && (query.PriceTierAmount == null || material.PriceTierAmount == query.PriceTierAmount)
+            select new SourceLineScope(line, issue, material, planLine, plan)).ToListAsync(cancellationToken);
+        return items;
+    }
+
+    private async Task<SourceLineScope> LoadSourceLineAsync(byte[] sourceIssueLineId, CancellationToken cancellationToken)
+    {
+        var result = await LoadScopedSourceLinesAsync(new InventoryReturnAllocationBalanceQuery(), cancellationToken);
+        return result.SingleOrDefault(item => item.Line.IssueLineId.SequenceEqual(sourceIssueLineId))
+            ?? throw new BusinessRuleException("Dòng nguồn thiếu hoặc không có lineage material/customer/date/shift/tier.");
+    }
+
+    private async Task<bool> IsAdminAsync(string? userId, CancellationToken cancellationToken)
+    {
+        var actorId = GuidHelper.ParseGuidString(userId);
+        if (actorId is null || _context is null) return false;
+        var roleName = await (
+            from user in _context.Users.AsNoTracking()
+            join role in _context.Roles.AsNoTracking() on user.RoleId equals role.RoleId
+            where user.UserId.SequenceEqual(actorId)
+            select role.RoleName).SingleOrDefaultAsync(cancellationToken);
+        return AuthorizationPolicies.IsAdminRole(roleName);
+    }
+
+    private static void EnsureCompatibleCrossCustomerScope(SourceLineScope source, SourceLineScope destination)
+    {
+        if (source.PlanLine.CustomerId.SequenceEqual(destination.PlanLine.CustomerId))
+            throw new BusinessRuleException("Disposition cross-customer phải chọn dòng đích của khách hàng khác.");
+        if (!source.Line.IngredientId.SequenceEqual(destination.Line.IngredientId) || !source.Line.UnitId.SequenceEqual(destination.Line.UnitId))
+            throw new BusinessRuleException("Dòng nguồn và dòng đích phải khớp exact ingredient và unit; tên nguyên liệu không đủ.");
+        if (source.Issue.ReceivedAt is null || destination.Issue.ReceivedAt is null)
+            throw new BusinessRuleException("Cả hai dòng nguồn phải được Bếp xác nhận trước disposition.");
+    }
+
+    private static InventoryAllocationDispositionDto MapDisposition(InventoryAllocationDisposition item) => new()
+    {
+        AllocationDispositionId = GuidHelper.ToGuidString(item.AllocationDispositionId),
+        SourceIssueLineId = GuidHelper.ToGuidString(item.SourceIssueLineId),
+        DestinationSourceLineId = GuidHelper.ToGuidString(item.DestinationIssueLineId),
+        Quantity = item.Quantity,
+        Reason = item.Reason,
+        CreatedBy = GuidHelper.ToGuidString(item.CreatedBy),
+        CreatedAt = item.CreatedAt,
+        Version = item.Version,
+        CorrelationId = item.CorrelationId,
+        CausationId = item.CausationId,
+    };
+
+    private static InventoryAllocationDispositionDto DeserializeDisposition(string responseJson)
+        => JsonSerializer.Deserialize<InventoryAllocationDispositionDto>(responseJson)
+            ?? throw new InvalidOperationException("Không thể đọc lại kết quả allocation disposition.");
+
+    private static string BuildDecisionId(string sourceIssueLineId) => $"return-allocation:{sourceIssueLineId}";
+    private static byte[] ParseRequiredId(string? value, string message) => GuidHelper.ParseGuidString(value) ?? throw new ArgumentException(message);
+    private static string RequireText(string? value, string message, int maximumLength)
+        => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maximumLength ? value.Trim() : throw new ArgumentException(message);
+    private void EnsureAllocationContext()
+    {
+        if (_context is null) throw new InvalidOperationException("Allocation disposition requires the inventory data context.");
+    }
+
+    private sealed record SourceLineScope(
+        InventoryIssueLine Line,
+        InventoryIssue Issue,
+        MaterialRequestLine Material,
+        ProductionPlanLine PlanLine,
+        ProductionPlan Plan);
 
     private static string NormalizeReturnType(string? returnType)
     {

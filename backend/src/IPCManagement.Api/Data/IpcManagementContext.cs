@@ -66,6 +66,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<InventoryReturnLine> Inventoryreturnlines { get; set; }
 
+    public virtual DbSet<InventoryAllocationDisposition> Inventoryallocationdispositions { get; set; }
+
     public virtual DbSet<LegacyLineageDisposition> Legacylinedispositions { get; set; }
 
     public virtual DbSet<MaterialRequest> Materialrequests { get; set; }
