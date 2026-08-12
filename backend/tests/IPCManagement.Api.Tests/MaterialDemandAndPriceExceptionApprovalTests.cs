@@ -808,6 +808,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
                     evidenceReferencePrice TEXT NOT NULL,
                     proposedUnitPrice TEXT NOT NULL,
                     proposedDeliveryDate TEXT NOT NULL,
+                    receivingWarehouseId BLOB NULL,
+                    purchasingTerms TEXT NULL,
                     confirmedBy BLOB NOT NULL,
                     confirmedAt TEXT NOT NULL,
                     decisionFingerprint TEXT NOT NULL,
