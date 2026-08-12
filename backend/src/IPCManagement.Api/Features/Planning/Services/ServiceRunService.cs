@@ -150,10 +150,21 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var status = run.StartedAt is not null && lifecycle.Status == ServiceRunStatus.ReadyToProduce
             ? ServiceRunStatus.InService
             : lifecycle.Status;
+        var latestCorrection = await context.Servicerunadjustments.AsNoTracking()
+            .Where(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId))
+            .OrderByDescending(item => item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
         return new ServiceRunLifecycleProjectionDto
         {
             ServiceRunId = GuidHelper.ToGuidString(run.ServiceRunId), PlanId = GuidHelper.ToGuidString(plan.PlanId), PlanCode = plan.PlanCode, ServiceDate = plan.PlanDate,
-            ShiftName = run.ShiftName, Status = status, Blockers = lifecycle.Blockers,
+            CustomerId = run.CustomerId is null ? string.Empty : GuidHelper.ToGuidString(run.CustomerId),
+            CustomerLabel = run.CustomerId is null ? "Phạm vi chưa xác định" : GuidHelper.ToGuidString(run.CustomerId),
+            ShiftName = run.ShiftName, PriceTierAmount = run.PriceTierAmount ?? 0m, CurrentVersion = run.ConcurrencyVersion, Status = status, Blockers = lifecycle.Blockers,
+            Tracks = BuildTracks(lifecycle.Blockers, status), AllowedActions = BuildAllowedActions(run, lifecycle, canSetConfirmationOutcome),
+            CloseSnapshot = new ServiceRunCloseSnapshotViewDto { IsImmutable = run.ClosedAt is not null, ClosedAt = run.ClosedAt, ActualServings = run.ActualServings },
+            CorrectionOverlay = latestCorrection is null
+                ? new ServiceRunCorrectionOverlayDto()
+                : new ServiceRunCorrectionOverlayDto { State = "PENDING", CorrectedActualServings = latestCorrection.CorrectedActualServings, ActualServingsDelta = latestCorrection.CorrectedActualServings - (run.ActualServings ?? 0), Reason = latestCorrection.Reason },
             CanStartService = lifecycle.CanStartService && run.StartedAt is null,
             CanRecordActualServings = run.ClosedAt is null && (run.StartedAt is not null || lifecycle.CanStartService),
             CanConfirmService = canSetConfirmationOutcome,
@@ -178,11 +189,29 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         return run is null ? null : await GetProjectionAsync(GuidHelper.ToGuidString(run.ServiceRunId), cancellationToken);
     }
 
+    public async Task<ServiceRunLifecycleProjectionDto?> GetByScopeAsync(ServiceRunScopeQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query.AllCustomers) throw new ArgumentException("Phạm vi All customers chỉ dùng cho danh sách chỉ đọc.");
+        var customerId = GuidHelper.ParseGuidString(query.CustomerId) ?? throw new ArgumentException("Phải chọn khách hàng cho Ca phục vụ.");
+        if (query.ServiceDate is null || query.PriceTierAmount is null) throw new ArgumentException("Phải chọn ngày phục vụ và tier giá.");
+        var shiftName = NormalizeShift(query.ShiftName);
+        var run = await context.Serviceruns.AsNoTracking().SingleOrDefaultAsync(item =>
+            item.CustomerId != null && item.CustomerId.SequenceEqual(customerId) && item.ServiceDate == query.ServiceDate &&
+            item.ShiftName == shiftName && item.PriceTierAmount == query.PriceTierAmount, cancellationToken);
+        return run is null ? null : await GetProjectionAsync(GuidHelper.ToGuidString(run.ServiceRunId), cancellationToken);
+    }
+
     public async Task<PagedResponseDto<ServiceRunOperationalRowDto>> GetPageAsync(ServiceRunPageQuery query, CancellationToken cancellationToken = default)
     {
         var runs = context.Serviceruns.AsNoTracking().Include(item => item.Plan).AsQueryable();
+        if (!query.AllCustomers && !string.IsNullOrWhiteSpace(query.CustomerId))
+        {
+            var customerId = GuidHelper.ParseGuidString(query.CustomerId) ?? throw new ArgumentException("Khách hàng không hợp lệ.");
+            runs = runs.Where(item => item.CustomerId != null && item.CustomerId.SequenceEqual(customerId));
+        }
         if (query.ServiceDate is not null) runs = runs.Where(item => item.Plan.PlanDate == query.ServiceDate);
         if (!string.IsNullOrWhiteSpace(query.ShiftName)) runs = runs.Where(item => item.ShiftName == NormalizeShift(query.ShiftName));
+        if (query.PriceTierAmount is not null) runs = runs.Where(item => item.PriceTierAmount == query.PriceTierAmount);
         var hasStatusFilter = !string.IsNullOrWhiteSpace(query.Status);
         var orderedRuns = runs.OrderByDescending(item => item.UpdatedAt).ThenBy(item => item.ServiceRunId);
         var totalCount = hasStatusFilter ? 0 : await orderedRuns.CountAsync(cancellationToken);
@@ -513,6 +542,36 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
     private static string? NormalizeOptionalReason(string? reason) => string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     private static bool CanConfirmOrWaive(IReadOnlyList<string> blockers)
         => blockers.Count == 1 && blockers[0] == ServiceRunBlocker.ServiceConfirmationRequired;
+
+    private static IReadOnlyList<ServiceRunTrackDto> BuildTracks(IReadOnlyList<string> blockers, string status)
+    {
+        var tracks = ServiceRunTrackDto.CreateEmptyTracks().Select(track => new ServiceRunTrackDto
+        {
+            TrackId = track.TrackId, DisplayLabel = track.DisplayLabel, ResponsibleRole = track.ResponsibleRole,
+            Status = status, Blockers = blockers.Where(blocker => TrackForBlocker(blocker) == track.TrackId)
+                .Select(blocker => new ServiceRunBlockerEvidenceDto { BlockerCode = blocker, DisplayLabel = blocker }).ToList(),
+        }).ToList();
+        return tracks;
+    }
+
+    private static IReadOnlyList<ServiceRunAllowedActionDto> BuildAllowedActions(ServiceRun run, ServiceRunLifecycleEvaluation lifecycle, bool canSetConfirmationOutcome)
+    {
+        var actions = new List<ServiceRunAllowedActionDto>();
+        if (lifecycle.CanStartService && run.StartedAt is null) actions.Add(new() { ActionId = "START", DisplayLabel = "Bắt đầu phục vụ" });
+        if (run.ClosedAt is null && (run.StartedAt is not null || lifecycle.CanStartService)) actions.Add(new() { ActionId = "RECORD_ACTUAL", DisplayLabel = "Ghi nhận suất thực tế" });
+        if (canSetConfirmationOutcome) actions.Add(new() { ActionId = "CONFIRM", DisplayLabel = "Xác nhận phục vụ" });
+        if (canSetConfirmationOutcome && run.ServiceConfirmationPolicy == ServiceConfirmationPolicy.Waivable) actions.Add(new() { ActionId = "WAIVE_CONFIRMATION", DisplayLabel = "Miễn xác nhận" });
+        if (lifecycle.CanClose) actions.Add(new() { ActionId = "CLOSE", DisplayLabel = "Đóng ca" });
+        return actions;
+    }
+
+    private static string TrackForBlocker(string blocker) => blocker switch
+    {
+        ServiceRunBlocker.PlanNotSignedOff or ServiceRunBlocker.DemandNotGenerated or ServiceRunBlocker.BomIncomplete => "PLANNING",
+        ServiceRunBlocker.OpenSupply or ServiceRunBlocker.UnreceivedIssue or ServiceRunBlocker.OpenSupplemental => "MATERIAL_SUPPLY",
+        ServiceRunBlocker.ActualServingsNotRecorded or ServiceRunBlocker.ServiceConfirmationRequired or ServiceRunBlocker.ConfirmationOutcomeConflict => "SERVICE_EXECUTION",
+        _ => "RECONCILIATION",
+    };
 
     private static bool TryReadCloseSnapshot(string? json, out ServiceRunOperationalRowDto row)
     {

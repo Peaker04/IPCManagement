@@ -40,6 +40,20 @@ public sealed class ServiceRunLifecycleTests
     }
 
     [Fact]
+    public void ScopedProjection_Should_ExposeRequiredScopeFourTracksAndServerOwnedActions()
+    {
+        var projection = new ServiceRunLifecycleProjectionDto();
+
+        projection.CustomerId.Should().NotBeNull();
+        projection.PriceTierAmount.Should().NotBeNull();
+        projection.CurrentVersion.Should().BeGreaterThanOrEqualTo(0);
+        projection.Tracks.Should().HaveCount(4);
+        projection.AllowedActions.Should().NotBeNull();
+        projection.CloseSnapshot.Should().NotBeNull();
+        projection.CorrectionOverlay.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task OpenAsync_Should_BeIdempotent_AndProjectSourceBlockers()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
