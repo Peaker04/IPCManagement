@@ -39,6 +39,13 @@ public sealed partial class ServiceRunsController(IServiceRunService serviceRunS
         => Ok(ApiResponse<ServiceRunLifecycleProjectionDto?>.SuccessResult(
             await serviceRunService.GetByPlanAsync(query, cancellationToken)));
 
+    [HttpGet("scope")]
+    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
+    [ProducesResponseType(typeof(ApiResponse<ServiceRunLifecycleProjectionDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByScopeAsync([FromQuery] ServiceRunScopeQuery query, CancellationToken cancellationToken)
+        => Ok(ApiResponse<ServiceRunLifecycleProjectionDto?>.SuccessResult(
+            await serviceRunService.GetByScopeAsync(query, cancellationToken)));
+
     [HttpGet("page")]
     [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ServiceRunOperationalRowDto>>), StatusCodes.Status200OK)]

@@ -6,6 +6,7 @@ namespace IPCManagement.Api.Features.Planning.Services;
 public interface IServiceRunService
 {
     Task<ServiceRunLifecycleProjectionDto?> GetProjectionAsync(string serviceRunId, CancellationToken cancellationToken = default);
+    Task<ServiceRunLifecycleProjectionDto?> GetByScopeAsync(ServiceRunScopeQuery query, CancellationToken cancellationToken = default);
     Task<ServiceRunLifecycleProjectionDto?> GetByPlanAsync(ServiceRunByPlanQuery query, CancellationToken cancellationToken = default);
     Task<PagedResponseDto<ServiceRunOperationalRowDto>> GetPageAsync(ServiceRunPageQuery query, CancellationToken cancellationToken = default);
     Task<ServiceRunLifecycleProjectionDto?> OpenAsync(OpenServiceRunRequest request, string? userId, CancellationToken cancellationToken = default);

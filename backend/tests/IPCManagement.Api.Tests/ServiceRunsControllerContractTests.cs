@@ -62,6 +62,7 @@ public sealed class ServiceRunsControllerContractTests
         new(nameof(ServiceRunsController.GetAdjustmentsAsync), "GET", "{id}/adjustments", ProductionPolicy),
         new(nameof(ServiceRunsController.GetAsync), "GET", "{id}", ProductionPolicy),
         new(nameof(ServiceRunsController.GetByPlanAsync), "GET", "by-plan", ProductionPolicy),
+        new(nameof(ServiceRunsController.GetByScopeAsync), "GET", "scope", ProductionPolicy),
         new(nameof(ServiceRunsController.GetPageAsync), "GET", "page", [AuthorizationPolicies.PurchaseOrderReadAccess]),
         new(nameof(ServiceRunsController.OpenAsync), "POST", string.Empty, ProductionPolicy),
         new(nameof(ServiceRunsController.RecordActualServingsAsync), "POST", "{id}/actual-servings", ProductionPolicy),

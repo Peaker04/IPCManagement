@@ -8,7 +8,6 @@ import type {
   WorkflowReportQuery,
   ServiceRunLifecycleProjectionDto,
   ServiceRunByPlanQuery,
-  OpenServiceRunRequest,
   DeclareServiceRunVarianceRequest,
   ApproveServiceRunVarianceWaiverRequest,
   RecordActualServingsRequest,
@@ -20,6 +19,7 @@ import type {
 } from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
+import type { ScopedOpenServiceRunRequest, ServiceRunScope } from './serviceRunScopeTypes';
 
 const emptyDailyProductionPlan = (): DailyProductionPlan => ({
   serviceDate: '',
@@ -92,13 +92,18 @@ export const chefApi = apiSlice.injectEndpoints({
         workflowCacheTags.kitchenIssues,
       ],
     }),
-    openServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, OpenServiceRunRequest>({
+    openServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, ScopedOpenServiceRunRequest>({
       query: (body) => ({ url: '/service-runs', method: 'POST', body }),
       invalidatesTags: [workflowCacheTags.productionPlans],
       transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
     }),
     getServiceRunByPlan: builder.query<ServiceRunLifecycleProjectionDto | null, ServiceRunByPlanQuery>({
       query: (params) => ({ url: '/service-runs/by-plan', params }),
+      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto | null>) => response.data ?? null,
+      providesTags: [workflowCacheTags.productionPlans],
+    }),
+    getServiceRunByScope: builder.query<ServiceRunLifecycleProjectionDto | null, ServiceRunScope>({
+      query: (params) => ({ url: '/service-runs/scope', params }),
       transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto | null>) => response.data ?? null,
       providesTags: [workflowCacheTags.productionPlans],
     }),
@@ -171,6 +176,7 @@ export const {
   useSendDailyProductionPlanToKitchenMutation,
   useOpenServiceRunMutation,
   useGetServiceRunByPlanQuery,
+  useGetServiceRunByScopeQuery,
   useGetServiceRunPageQuery,
   useStartServiceRunMutation,
   useRecordServiceRunActualServingsMutation,

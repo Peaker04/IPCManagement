@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
-import { ServiceRunTrackPanel, StatusBadge } from '@/components/common'
+import { StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { AuthState } from '@/lib/auth/authTypes'
@@ -13,6 +13,7 @@ import {
   useCreateServiceRunAdjustmentMutation,
   useDeclareServiceRunVarianceMutation,
   useGetServiceRunByPlanQuery,
+  useGetServiceRunByScopeQuery,
   useOpenServiceRunMutation,
   useRecordServiceRunActualServingsMutation,
   useResolveServiceRunVarianceMutation,
@@ -22,8 +23,10 @@ import {
 } from '../chefApi'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { formatServiceRunVarianceTrack } from '@/lib/workflowConfig'
+import type { ServiceRunScope } from '../serviceRunScopeTypes'
+import { describeServiceRunScope, isExactServiceRunScope } from '../serviceRunScopeTypes'
 
-type Props = { plans: ProductionPlan[]; shiftName: string }
+type Props = { plans: ProductionPlan[]; shiftName: string; scope?: ServiceRunScope }
 
 const INITIAL_VISIBLE_RUNS = 4
 const statusLabel: Record<string, string> = {
@@ -41,7 +44,7 @@ const varianceTracksForRole = (role?: string) => {
   return [] as const
 }
 
-export function ServiceRunSection({ plans, shiftName }: Props) {
+export function ServiceRunSection({ plans, shiftName, scope }: Props) {
   const [showAll, setShowAll] = useState(false)
   const scopedPlans = plans.filter((plan) => plan.lines.some((line) => line.shiftName === shiftName))
   const visiblePlans = showAll ? scopedPlans : scopedPlans.slice(0, INITIAL_VISIBLE_RUNS)
@@ -50,7 +53,8 @@ export function ServiceRunSection({ plans, shiftName }: Props) {
     <div className="mb-1 flex items-center gap-2"><Play className="size-4 text-slate-700" /><h2 className="text-sm font-semibold text-slate-800">Ca phục vụ thực tế</h2></div>
     <p className="mb-3 text-xs text-slate-600">Theo dõi riêng kế hoạch, vật tư, phục vụ và đối soát. Bếp đã nhận vật tư chưa có nghĩa là ca đã đóng.</p>
     {scopedPlans.length === 0 ? <p className="text-sm text-slate-600">Chưa có KHSX để mở Ca phục vụ.</p> : <div className="space-y-3">
-      {visiblePlans.map((plan) => <ServiceRunCard key={plan.planId} plan={plan} shiftName={shiftName} />)}
+      {scope?.allCustomers && <p className="rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900" role="status">{describeServiceRunScope(scope)}. Chọn một dòng phạm vi chính xác trước khi thao tác.</p>}
+      {visiblePlans.map((plan) => <ServiceRunCard key={plan.planId} plan={plan} shiftName={shiftName} scope={scope} />)}
       {scopedPlans.length > INITIAL_VISIBLE_RUNS && <Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>
         {showAll ? 'Thu gọn danh sách' : `Hiển thị ${scopedPlans.length - INITIAL_VISIBLE_RUNS} kế hoạch khác`}
       </Button>}
@@ -58,7 +62,7 @@ export function ServiceRunSection({ plans, shiftName }: Props) {
   </section>
 }
 
-function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: string }) {
+function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shiftName: string; scope?: ServiceRunScope }) {
   const [localRun, setLocalRun] = useState<ServiceRunLifecycleProjectionDto | null>(null)
   const [actual, setActual] = useState('')
   const [correctedActual, setCorrectedActual] = useState('')
@@ -72,7 +76,10 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
   const [error, setError] = useState<string | null>(null)
   const user = useSelector((state: { auth: AuthState }) => state.auth.user)
   const { data: persistedRun, isFetching, isError, refetch } = useGetServiceRunByPlanQuery({ planId: plan.planId, shiftName })
-  const run = localRun ?? persistedRun
+  const scopedRun = useGetServiceRunByScopeQuery(scope!, { skip: !scope || !isExactServiceRunScope(scope) })
+  const activeQuery = scope && isExactServiceRunScope(scope) ? scopedRun : { data: persistedRun, isFetching, isError, refetch }
+  const run = localRun ?? activeQuery.data
+  const scopedTracks = (run as (ServiceRunLifecycleProjectionDto & { tracks?: Array<{ trackId: string; displayLabel: string; blockers: Array<{ displayLabel: string }>; responsibleRole: string }> }) | null)?.tracks ?? []
   const [open, openState] = useOpenServiceRunMutation()
   const [start, startState] = useStartServiceRunMutation()
   const [record, recordState] = useRecordServiceRunActualServingsMutation()
@@ -91,15 +98,15 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
       setError(null)
       await operation()
       setLocalRun(null)
-      await refetch()
+      await activeQuery.refetch()
     } catch (cause) { setError(getChefMutationErrorMessage(cause, 'Không thể cập nhật Ca phục vụ.')) }
   }
   const isMutating = openState.isLoading || startState.isLoading || recordState.isLoading || confirmState.isLoading || resolveVarianceState.isLoading || resolveServingVarianceState.isLoading || waiveConfirmationState.isLoading || closeState.isLoading || createAdjustmentState.isLoading || declareVarianceState.isLoading || approveWaiverState.isLoading
 
-  return <article className="rounded-sm border border-slate-200 bg-white p-3" aria-busy={isMutating || isFetching}>
+  return <article className="rounded-sm border border-slate-200 bg-white p-3" aria-busy={isMutating || activeQuery.isFetching}>
     <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? run.status}</StatusBadge>}</div>
-    {isFetching && !run && <p className="mt-2 text-xs text-slate-500" role="status">Đang tải trạng thái Ca phục vụ…</p>}
-    {isError && !localRun ? <div className="mt-3 flex flex-wrap items-center gap-2" role="alert"><p className="text-xs text-red-700">Không tải được trạng thái Ca phục vụ. Hãy tải lại trước khi mở ca.</p><Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>Tải lại</Button></div> : !run && !isFetching ? plan.sentToKitchenAt ? <Button size="sm" className="mt-3" disabled={openState.isLoading} onClick={() => void act(() => open({ planId: plan.planId, shiftName }).unwrap())}>Mở Ca phục vụ</Button> : <p className="mt-3 text-xs text-amber-800" role="status">Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.</p> : run && <>
+    {activeQuery.isFetching && !run && <p className="mt-2 text-xs text-slate-500" role="status">Đang tải trạng thái Ca phục vụ…</p>}
+    {activeQuery.isError && !localRun ? <div className="mt-3 flex flex-wrap items-center gap-2" role="alert"><p className="text-xs text-red-700">Không tải được trạng thái Ca phục vụ. Hãy tải lại trước khi mở ca.</p><Button type="button" size="sm" variant="outline" onClick={() => void activeQuery.refetch()}>Tải lại</Button></div> : !run && !activeQuery.isFetching ? scope?.allCustomers ? <p className="mt-3 text-xs text-slate-600">Tổng hợp không có thao tác. Mở một phạm vi khách hàng cụ thể để tiếp tục.</p> : !plan.sentToKitchenAt ? <p className="mt-3 text-xs text-amber-800" role="status">Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.</p> : scope && isExactServiceRunScope(scope) ? <Button size="sm" className="mt-3" disabled={openState.isLoading} onClick={() => void act(() => open({ planId: plan.planId, shiftName, customerId: scope.customerId, priceTierAmount: scope.priceTierAmount }).unwrap())}>Mở Ca phục vụ</Button> : <p className="mt-3 text-xs text-amber-800" role="status">Chọn khách hàng và tier giá chính xác trước khi mở Ca phục vụ.</p> : run && <>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-4">
         <div><dt className="text-slate-500">Kế hoạch</dt><dd className="font-medium text-slate-800 tabular-nums">{run.plannedServings} suất</dd></div>
         <div><dt className="text-slate-500">Thực tế</dt><dd className="font-medium text-slate-800 tabular-nums">{run.actualServings ?? '—'} suất</dd></div>
@@ -108,7 +115,9 @@ function ServiceRunCard({ plan, shiftName }: { plan: ProductionPlan; shiftName: 
         <div><dt className="text-slate-500">Điều chỉnh hậu kiểm</dt><dd className="font-medium text-slate-800 tabular-nums">{run.adjustmentCount}</dd></div>
         <div><dt className="text-slate-500">Giao suất</dt><dd className="font-medium text-slate-800">{outcomeLabel[run.serviceConfirmationOutcome] ?? run.serviceConfirmationOutcome}</dd></div>
       </dl>
-      <ServiceRunTrackPanel run={run} />
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Bốn track Ca phục vụ">
+        {scopedTracks.map((track) => <div key={track.trackId} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs"><dt className="font-medium text-slate-800">{track.displayLabel} <span className="text-slate-500">· {track.trackId}</span></dt><dd className="mt-1 text-slate-600">{track.blockers.length ? track.blockers.map((blocker) => blocker.displayLabel).join(' · ') : 'Không có blocker'}</dd><dd className="mt-1 text-slate-500">Phụ trách: {track.responsibleRole}</dd></div>)}
+      </dl>
       {run.status !== 'CLOSED' && declarationTracks.length > 0 && <fieldset className="mt-3 grid gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Khai báo ngoại lệ Ca phục vụ">
         <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ (append-only)</legend>
         <p className="text-amber-900">Chỉ gửi dòng chứng từ liên quan và lý do cho phạm vi sẽ được hệ thống xác minh; khai báo không tự đóng Ca.</p>

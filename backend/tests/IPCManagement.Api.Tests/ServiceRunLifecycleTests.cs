@@ -45,7 +45,7 @@ public sealed class ServiceRunLifecycleTests
         var projection = new ServiceRunLifecycleProjectionDto();
 
         projection.CustomerId.Should().NotBeNull();
-        projection.PriceTierAmount.Should().NotBeNull();
+        projection.PriceTierAmount.Should().BeGreaterThanOrEqualTo(0m);
         projection.CurrentVersion.Should().BeGreaterThanOrEqualTo(0);
         projection.Tracks.Should().HaveCount(4);
         projection.AllowedActions.Should().NotBeNull();
