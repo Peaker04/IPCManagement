@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   route: vi.fn(),
   reject: vi.fn(),
   confirmReturn: vi.fn(),
+  createAllocationDisposition: vi.fn(),
   recordReceipt: vi.fn(),
   refetchSupplemental: vi.fn(),
   refetchReturns: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   supplementalQuery: vi.fn(),
   returnsQuery: vi.fn(),
   returnDetailQuery: vi.fn(),
+  allocationQuery: vi.fn(),
 }));
 
 const supplemental = {
@@ -57,6 +59,13 @@ const inventoryReturn = {
   lines: [{ returnLineId: 'return-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', quantity: 2, unitId: 'unit-1', unitName: 'kg' }],
 };
 
+const allocationRow = {
+  sourceIssueLineId: 'source-line-a', materialRequestLineId: 'material-line-a', customerId: 'customer-a', serviceDate: '2026-07-20', shiftName: 'MORNING', priceTierAmount: 25000,
+  ingredientId: 'ingredient-1', ingredientName: 'Gạo', unitId: 'unit-1', unitName: 'kg', issuedQuantity: 5, kitchenAcknowledgedQuantity: 5,
+  returnedQuantity: 1, wastedQuantity: 1, disposedQuantity: 0, incomingDispositionQuantity: 0, excessQuantity: 3, version: 0,
+  decisionId: 'return-allocation:source-line-a', allowedActions: ['CROSS_CUSTOMER_DISPOSITION'],
+};
+
 vi.mock('@/api/workflowApi', () => ({
   useGetSupplementalMaterialRequestsQuery: mocks.supplementalQuery,
   useGetInventoryReturnsQuery: mocks.returnsQuery,
@@ -65,6 +74,8 @@ vi.mock('@/api/workflowApi', () => ({
   useRouteSupplementalMaterialRequestToPurchasingMutation: () => [mocks.route, { isLoading: false }],
   useRejectSupplementalMaterialRequestMutation: () => [mocks.reject, { isLoading: false }],
   useConfirmInventoryReturnReceiptMutation: () => [mocks.confirmReturn, { isLoading: false }],
+  useGetReturnAllocationBalancesQuery: mocks.allocationQuery,
+  useCreateReturnAllocationDispositionMutation: () => [mocks.createAllocationDisposition, { isLoading: false }],
   useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordReceipt, { isLoading: false }],
 }));
 
@@ -120,10 +131,12 @@ describe('WarehouseExceptionsWorkbench', () => {
     mocks.returnDetailQuery.mockImplementation((id: string) => id
       ? readyQuery(inventoryReturn, mocks.refetchReturnDetail)
       : uninitializedQuery());
+    mocks.allocationQuery.mockReturnValue(readyQuery([allocationRow, { ...allocationRow, sourceIssueLineId: 'source-line-b', customerId: 'customer-b', excessQuantity: 0, decisionId: undefined, allowedActions: [] }]));
     mocks.fulfill.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, fulfilledQty: 3, remainingQty: 2 } }) });
     mocks.route.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, purchaseRequestCode: 'PR-SUP-001' } }) });
     mocks.reject.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, status: 'REJECTED' } }) });
     mocks.confirmReturn.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) });
+    mocks.createAllocationDisposition.mockReturnValue({ unwrap: () => Promise.resolve({ allocationDispositionId: 'allocation-1' }) });
     mocks.recordReceipt.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) });
   });
 
@@ -182,6 +195,22 @@ describe('WarehouseExceptionsWorkbench', () => {
       discrepancyNote: 'Chỉ nhận 1.5 kg còn sử dụng được',
       adjustedLines: [{ returnLineId: 'return-line-1', newQuantity: 1.5 }],
     }));
+  });
+
+  it('renders exact allocation scope and submits only a backend-authorized disposition', async () => {
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByText('customer-a')).toBeInTheDocument();
+    expect(screen.getByText('source-line-a')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Disposition có audit' }));
+    fireEvent.change(screen.getByLabelText('Source line đích'), { target: { value: 'source-line-b' } });
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Điều phối dư đã được phê duyệt' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi disposition' }));
+
+    await waitFor(() => expect(mocks.createAllocationDisposition).toHaveBeenCalledWith(expect.objectContaining({
+      decisionId: 'return-allocation:source-line-a', sourceIssueLineId: 'source-line-a', destinationSourceLineId: 'source-line-b', quantity: 3,
+      reason: 'Điều phối dư đã được phê duyệt', expectedVersion: 0,
+    })));
   });
 
   it('blocks false supplemental empty content and retries its failed owner', () => {

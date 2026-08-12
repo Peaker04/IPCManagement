@@ -23,6 +23,8 @@ import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 import {
   useConfirmInventoryReturnReceiptMutation,
+  useCreateReturnAllocationDispositionMutation,
+  useGetReturnAllocationBalancesQuery,
   useFulfillSupplementalMaterialRequestMutation,
   useGetInventoryReturnByIdQuery,
   useGetInventoryReturnsQuery,
@@ -31,6 +33,7 @@ import {
   useRouteSupplementalMaterialRequestToPurchasingMutation,
   type SupplementalMaterialRequestResult,
 } from '@/api/workflowApi';
+import type { ReturnAllocationBalance } from './returnAllocationTypes';
 
 type Feedback = { title: string; message: string; variant: 'info' | 'warning' | 'danger' };
 type FieldFeedback = Pick<Feedback, 'title' | 'message'>;
@@ -66,14 +69,21 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
   const [discrepancyValidation, setDiscrepancyValidation] = useState<FieldFeedback>();
   const [adjustedQuantityErrors, setAdjustedQuantityErrors] = useState<Record<string, FieldFeedback>>({});
   const [returnError, setReturnError] = useState<FieldFeedback>();
+  const [allocationError, setAllocationError] = useState<FieldFeedback>();
+  const [selectedAllocation, setSelectedAllocation] = useState<ReturnAllocationBalance>();
+  const [destinationSourceLineId, setDestinationSourceLineId] = useState('');
+  const [allocationQuantity, setAllocationQuantity] = useState('');
+  const [allocationReason, setAllocationReason] = useState('');
 
   const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: 8, searchKeyword: deferredSupplementalSearch || undefined });
   const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: 8, isReceived: false, searchKeyword: deferredReturnSearch || undefined });
   const returnDetailQuery = useGetInventoryReturnByIdQuery(selectedReturnId, { skip: !selectedReturnId });
+  const allocationQuery = useGetReturnAllocationBalancesQuery();
   const [fulfill, fulfillState] = useFulfillSupplementalMaterialRequestMutation();
   const [routeToPurchasing, routeState] = useRouteSupplementalMaterialRequestToPurchasingMutation();
   const [reject, rejectState] = useRejectSupplementalMaterialRequestMutation();
   const [confirmReturn, confirmReturnState] = useConfirmInventoryReturnReceiptMutation();
+  const [createAllocationDisposition, allocationDispositionState] = useCreateReturnAllocationDispositionMutation();
 
   const supplementalView = toLabeledQueryView(supplementalQuery, 'yêu cầu cấp bổ sung');
   const returnsView = toLabeledQueryView(returnsQuery, 'phiếu trả');
@@ -85,6 +95,8 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
   const supplementalItems = supplementalData?.items ?? [];
   const returnItems = returnsData?.items ?? [];
   const selectedReturn = returnDetailView.phase === 'ready' ? returnDetailView.data : undefined;
+  const allocationView = toLabeledQueryView(allocationQuery, 'balance source-line');
+  const allocationRows: ReturnAllocationBalance[] = allocationView.phase === 'ready' ? allocationView.data : [];
 
   const returnQuantity = useMemo(
     () => selectedReturn?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0,
@@ -201,6 +213,34 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
     }
   };
 
+  const openDisposition = (row: ReturnAllocationBalance) => {
+    setSelectedAllocation(row);
+    setAllocationError(undefined);
+    setDestinationSourceLineId('');
+    setAllocationQuantity(String(row.excessQuantity));
+    setAllocationReason('');
+  };
+
+  const submitDisposition = async () => {
+    if (!selectedAllocation?.decisionId) return;
+    const quantity = Number(allocationQuantity);
+    if (!destinationSourceLineId || !allocationReason.trim() || !Number.isFinite(quantity) || quantity <= 0 || quantity > selectedAllocation.excessQuantity) {
+      setAllocationError({ title: 'Disposition chưa hợp lệ', message: 'Chọn đúng source-line đích, lý do và số lượng không vượt excess của dòng nguồn.' });
+      return;
+    }
+    try {
+      await createAllocationDisposition({
+        decisionId: selectedAllocation.decisionId, sourceIssueLineId: selectedAllocation.sourceIssueLineId,
+        destinationSourceLineId, quantity, reason: allocationReason.trim(), expectedVersion: selectedAllocation.version,
+        commandId: crypto.randomUUID(), correlationId: selectedAllocation.decisionId,
+      }).unwrap();
+      setSelectedAllocation(undefined);
+      setFeedback({ title: 'Đã ghi disposition có audit', message: 'Máy chủ đã ghi delta append-only; balance nguồn và đích đang được tải lại.', variant: 'info' });
+    } catch (error) {
+      setAllocationError({ title: 'Chưa ghi được disposition', message: mutationError(error, 'Trạng thái đã thay đổi; tải lại balance trước khi thử lại.') });
+    }
+  };
+
   return (
     <div className="grid gap-4">
       {!canManage && (
@@ -255,6 +295,19 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
         </QueryViewBoundary>
       </SectionPanel>
 
+      <SectionPanel title="Balance RETURN / WASTE / EXCESS theo source line" icon={<Undo2 size={18} aria-hidden="true" />} description="Mỗi hàng giữ nguyên khách hàng, ngày, ca, tier và source-line. Không có chuyển phân bổ mặc định.">
+        <QueryViewBoundary queries={[{ label: 'balance source-line', view: allocationView }]} refreshLabel="Đang cập nhật balance source-line">
+          <TableViewport ariaLabel="Balance return waste excess theo source line" caption="Disposition liên khách chỉ xuất hiện khi backend trả action token.">
+            <table className="ipc-data-table min-w-[1120px]">
+              <thead><tr><th>Khách hàng / ngày / ca / tier</th><th>Nguyên liệu / source line</th><th>Xuất</th><th>Trả</th><th>Hao hụt</th><th>EXCESS</th><th>Decision</th><th>Thao tác</th></tr></thead>
+              <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Không có balance source-line trong phạm vi hiện tại.</td></tr> : allocationRows.map((row) => (
+                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{row.customerId}</span><span className="text-xs text-slate-600">{row.serviceDate} · {row.shiftName} · {row.priceTierAmount}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || row.ingredientId}</span><span className="text-xs text-slate-600">{row.sourceIssueLineId}</span></td><td>{formatQuantityWithUnit(row.issuedQuantity, row.unitName ?? '')}</td><td>{formatQuantityWithUnit(row.returnedQuantity, row.unitName ?? '')}</td><td>{formatQuantityWithUnit(row.wastedQuantity, row.unitName ?? '')}</td><td>{formatQuantityWithUnit(row.excessQuantity, row.unitName ?? '')}</td><td>{row.decisionReason || row.decisionId || 'Không cần quyết định'}</td><td>{canManage && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Disposition có audit</Button> : <span className="text-xs text-slate-500">Không có action được phép</span>}</td></tr>
+              ))}</tbody>
+            </table>
+          </TableViewport>
+        </QueryViewBoundary>
+      </SectionPanel>
+
       <SectionPanel
         title="Phiếu trả dư và hao hụt chờ kho tiếp nhận"
         icon={<Undo2 size={18} aria-hidden="true" />}
@@ -298,6 +351,14 @@ export function WarehouseExceptionsWorkbench({ canManage }: { canManage: boolean
           {selectedSupplemental && <div className="grid gap-2"><label htmlFor="supplemental-quantity" className="text-sm font-medium text-slate-900">Số lượng cấp ({selectedSupplemental.unitName})</label><Input id="supplemental-quantity" type="number" min="0.000001" max={Math.min(selectedSupplemental.remainingQty, selectedSupplemental.availableQty)} step="any" aria-invalid={Boolean(fulfillValidation) || undefined} aria-describedby={fulfillValidation ? 'supplemental-quantity-error' : undefined} value={fulfillQty} onChange={(event) => { setFulfillQty(event.target.value); setFulfillValidation(undefined); }} />{fulfillValidation && <p id="supplemental-quantity-error" className="text-xs text-red-700"><span className="font-semibold">{fulfillValidation.title}</span>{' '}{fulfillValidation.message}</p>}<p className="text-xs text-slate-600">Còn thiếu {formatQuantityWithUnit(selectedSupplemental.remainingQty, selectedSupplemental.unitName)}; tồn khả dụng {formatQuantityWithUnit(selectedSupplemental.availableQty, selectedSupplemental.unitName)}.</p></div>}
           {fulfillError && <div role="alert"><InlineAlert title={fulfillError.title} variant="danger">{fulfillError.message}</InlineAlert></div>}
           <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedSupplemental(undefined)}>Hủy</Button><Button type="button" disabled={fulfillState.isLoading} onClick={() => void submitFulfill()}>{fulfillState.isLoading ? 'Đang tạo phiếu...' : 'Xác nhận cấp'}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(selectedAllocation)} onOpenChange={(open) => { if (!open) setSelectedAllocation(undefined); }}>
+        <DialogContent aria-labelledby="allocation-disposition-title" aria-describedby="allocation-disposition-description">
+          <DialogHeader><DialogTitle id="allocation-disposition-title">Disposition EXCESS có audit</DialogTitle><DialogDescription id="allocation-disposition-description">Không sửa Issue, Return hoặc Waste gốc. Máy chủ sẽ ghi delta append-only với actor, lý do và command receipt.</DialogDescription></DialogHeader>
+          {selectedAllocation && <div className="grid gap-3"><p className="text-sm text-slate-700">Nguồn: {selectedAllocation.sourceIssueLineId} · EXCESS: {formatQuantityWithUnit(selectedAllocation.excessQuantity, selectedAllocation.unitName ?? '')}</p><label className="grid gap-1 text-sm font-medium" htmlFor="allocation-destination">Source line đích<select id="allocation-destination" className="h-9 rounded-md border border-slate-300 px-2" value={destinationSourceLineId} onChange={(event) => setDestinationSourceLineId(event.target.value)}><option value="">Chọn source line đích</option>{allocationRows.filter((row) => row.sourceIssueLineId !== selectedAllocation.sourceIssueLineId).map((row) => <option key={row.sourceIssueLineId} value={row.sourceIssueLineId}>{row.customerId} · {row.ingredientName || row.ingredientId} · {row.sourceIssueLineId}</option>)}</select></label><label className="grid gap-1 text-sm font-medium" htmlFor="allocation-quantity">Số lượng<Input id="allocation-quantity" type="number" min="0.000001" max={selectedAllocation.excessQuantity} step="any" value={allocationQuantity} onChange={(event) => setAllocationQuantity(event.target.value)} /></label><label className="grid gap-1 text-sm font-medium" htmlFor="allocation-reason">Lý do<Textarea id="allocation-reason" value={allocationReason} onChange={(event) => setAllocationReason(event.target.value)} /></label>{allocationError && <InlineAlert title={allocationError.title} variant="danger">{allocationError.message}</InlineAlert>}</div>}
+          <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedAllocation(undefined)}>Hủy</Button><Button type="button" disabled={allocationDispositionState.isLoading} onClick={() => void submitDisposition()}>Ghi disposition</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

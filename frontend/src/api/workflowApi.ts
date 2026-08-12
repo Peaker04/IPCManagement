@@ -219,6 +219,8 @@ export {
   useGetInventoryReturnsQuery,
   useGetInventoryReturnByIdQuery,
   useConfirmInventoryReturnReceiptMutation,
+  useGetReturnAllocationBalancesQuery,
+  useCreateReturnAllocationDispositionMutation,
   useConfirmInventoryIssueReceiptMutation,
 } from '@/features/warehouse/warehouseApi';
 export {

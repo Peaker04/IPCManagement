@@ -31,6 +31,7 @@ import type {
 } from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
+import type { CreateReturnAllocationDisposition, ReturnAllocationBalance, ReturnAllocationDispositionResult } from './returnAllocationTypes';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 
@@ -278,6 +279,16 @@ export const warehouseApi = apiSlice.injectEndpoints({
         workflowCacheTags.documents,
       ],
     }),
+    getReturnAllocationBalances: builder.query<ReturnAllocationBalance[], void>({
+      query: () => '/inventory-returns/allocation-balances',
+      transformResponse: (response: ApiResponse<ReturnAllocationBalance[]>) => response.data ?? [],
+      providesTags: [workflowCacheTags.inventoryReturns],
+    }),
+    createReturnAllocationDisposition: builder.mutation<ReturnAllocationDispositionResult | undefined, CreateReturnAllocationDisposition>({
+      query: (body) => ({ url: '/inventory-returns/allocation-dispositions', method: 'POST', body }),
+      transformResponse: (response: ApiResponse<ReturnAllocationDispositionResult>) => response.data,
+      invalidatesTags: [workflowCacheTags.inventoryReturns, workflowCacheTags.documents],
+    }),
     confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
       query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
         url: `/inventory-issues/${issueId}/confirm-receipt`,
@@ -318,5 +329,7 @@ export const {
   useGetInventoryReturnsQuery,
   useGetInventoryReturnByIdQuery,
   useConfirmInventoryReturnReceiptMutation,
+  useGetReturnAllocationBalancesQuery,
+  useCreateReturnAllocationDispositionMutation,
   useConfirmInventoryIssueReceiptMutation,
 } = warehouseApi;
