@@ -38,6 +38,23 @@ foreach ($sqlArtifact in $sqlArtifacts) {
         throw "Runbook is missing reviewed SQL SHA-256: $($sqlArtifact.Path)"
     }
 }
+
+$serviceRunSql = $sqlArtifacts[0].Text
+if ($serviceRunSql -match '(?im)DROP\s+INDEX\s+IF\s+EXISTS\s+`uqServiceRunsPlanShift`') {
+    throw 'ServiceRun reviewed SQL must not use MySQL-invalid DROP INDEX IF EXISTS syntax.'
+}
+foreach ($required in @(
+    'FROM `information_schema`.`statistics`',
+    'WHERE `table_schema` = DATABASE()',
+    'AND `index_name` = ''uqServiceRunsPlanShift''',
+    '''ALTER TABLE `serviceruns` DROP INDEX `uqServiceRunsPlanShift`''',
+    'PREPARE phase05_drop_legacy_plan_shift_index',
+    'DEALLOCATE PREPARE phase05_drop_legacy_plan_shift_index'
+)) {
+    if ($serviceRunSql -notmatch [regex]::Escape($required)) {
+        throw "ServiceRun reviewed SQL is missing MySQL-safe legacy-index guard: $required"
+    }
+}
 if ($runbookText.IndexOf('20260812170357_AddMultiCustomerServiceRunKernel', [StringComparison]::Ordinal) -gt
     $runbookText.IndexOf('20260812172709_AddPurchaseOrderCompatibilityScope', [StringComparison]::Ordinal)) {
     throw 'Runbook migration order must place ServiceRun before purchasing compatibility.'

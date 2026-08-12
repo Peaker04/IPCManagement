@@ -11,7 +11,7 @@ Reviewed artifacts:
 - EF migration: `20260812170357_AddMultiCustomerServiceRunKernel`
 - EF migration source: `backend/src/IPCManagement.Api/Migrations/20260812170357_AddMultiCustomerServiceRunKernel.cs`
 - Reviewed SQL: `tools/db/phase05/phase05-service-run-ipc-lane7-reviewed.sql`
-- Reviewed SQL SHA-256: `F9E3A845164D547709FA0A7D2314D1C9F9A6D37146C3196318B8897771A7AE13`
+- Reviewed SQL SHA-256: `C990CB78A230A46750C9FAF144F54074C07300914837887DE16A745512980505`
 - Runner: `tools/db/phase05/Invoke-Phase05Lane7Migration.ps1`
 
 Plan 05-05 adds a second ordered, reviewed artifact after the ServiceRun kernel:
