@@ -48,5 +48,11 @@ foreach ($required in @('receivingWarehouseId', 'purchasingTerms', 'proposedDeli
 foreach ($required in @("`$allowedDatabase = 'ipc_lane7'", 'if ($Database -cne $allowedDatabase)', 'if (-not $Apply)', 'ApprovedSqlSha256', 'CheckpointReceipt')) {
     if ($runnerText -notmatch [regex]::Escape($required)) { throw "Runner is missing guard: $required" }
 }
+foreach ($required in @('[string[]]$Sql', '[string[]]$ApprovedSqlSha256', 'exactly two ordered reviewed SQL artifacts', 'targetLaneConnectionAttempts', 'protectedLaneConnectionAttempts = 0')) {
+    if ($runnerText -notmatch [regex]::Escape($required)) { throw "Runner is missing ordered migration contract: $required" }
+}
+if ($runnerText -match 'protectedLaneConnectionAttempts\s*=\s*1') {
+    throw 'Runner must not record an ipc_lane7 connection as a protected-lane connection attempt.'
+}
 
 Write-Host "PASS connection-free Phase 05 lane7 migration contract; SQL SHA-256 $($sqlArtifacts.Hash -join ', ')"
