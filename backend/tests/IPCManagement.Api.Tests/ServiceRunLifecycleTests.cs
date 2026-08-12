@@ -122,6 +122,31 @@ public sealed class ServiceRunLifecycleTests
     }
 
     [Fact]
+    public void SelectRelevantIssueLines_Should_IncludeFullDayIssueByMaterialRequestLineInsteadOfHeaderShift()
+    {
+        var morningRequestLineId = GuidHelper.NewId();
+        var afternoonRequestLineId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        var fullDayIssue = new InventoryIssue
+        {
+            ShiftName = null,
+            Inventoryissuelines =
+            [
+                new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredientId, UnitId = unitId, MaterialRequestLineId = morningRequestLineId, IssuedQty = 10m },
+                new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredientId, UnitId = unitId, MaterialRequestLineId = afternoonRequestLineId, IssuedQty = 10m },
+            ],
+        };
+
+        var relevant = ServiceRunService.SelectRelevantIssueLines(
+            [fullDayIssue],
+            [new MaterialRequestLine { RequestLineId = morningRequestLineId, IngredientId = ingredientId, UnitId = unitId }],
+            "MORNING");
+
+        relevant.Should().ContainSingle().Which.MaterialRequestLineId.Should().Equal(morningRequestLineId);
+    }
+
+    [Fact]
     public void Evaluate_Should_KeepSupplyExceptionsOpenBeforeProduction()
     {
         var result = ServiceRunLifecycle.Evaluate(new(

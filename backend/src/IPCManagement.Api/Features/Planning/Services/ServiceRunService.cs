@@ -11,6 +11,19 @@ namespace IPCManagement.Api.Features.Planning.Services;
 
 public sealed class ServiceRunService(IpcManagementContext context) : IServiceRunService
 {
+    internal static IReadOnlyList<InventoryIssueLine> SelectRelevantIssueLines(
+        IEnumerable<InventoryIssue> issues,
+        IEnumerable<MaterialRequestLine> demandLines,
+        string shiftName)
+    {
+        var demandLineIds = demandLines.Select(line => Convert.ToBase64String(line.RequestLineId)).ToHashSet();
+        return issues.SelectMany(issue => issue.Inventoryissuelines.Where(line =>
+            line.MaterialRequestLineId is null
+                ? issue.ShiftName == shiftName
+                : demandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId))))
+            .ToList();
+    }
+
     public async Task<ServiceRunLifecycleProjectionDto?> OpenAsync(OpenServiceRunRequest request, string? userId, CancellationToken cancellationToken = default)
     {
         var planId = GuidHelper.ParseGuidString(request.PlanId) ?? throw new ArgumentException("Kế hoạch sản xuất không hợp lệ.");
@@ -55,7 +68,7 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var demandLines = await context.Materialrequestlines.AsNoTracking().Include(line => line.Request).Include(line => line.PlanLine)
             .Where(line => line.Request.PlanId.SequenceEqual(run.PlanId) && line.PlanLine.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
         var issues = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines).Include(issue => issue.Inventoryreturns)
-            .Where(issue => issue.MaterialRequest.PlanId.SequenceEqual(run.PlanId) && issue.IssueDate == plan.PlanDate && issue.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
+            .Where(issue => issue.MaterialRequest.PlanId.SequenceEqual(run.PlanId) && issue.IssueDate == plan.PlanDate).ToListAsync(cancellationToken);
         var openSupplementalCount = await context.Supplementalmaterialrequests.AsNoTracking()
             .Join(context.Inventoryissues.AsNoTracking(), request => request.IssueId, issue => issue.IssueId, (request, issue) => new { request, issue })
             .CountAsync(item => item.issue.MaterialRequest.PlanId.SequenceEqual(run.PlanId) && item.issue.IssueDate == plan.PlanDate && item.issue.ShiftName == run.ShiftName && item.request.Status != "FULFILLED" && item.request.Status != "REJECTED", cancellationToken);
@@ -70,15 +83,17 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             .Join(context.Servicerunvariancewaivers.AsNoTracking(), declaration => declaration.ServiceRunVarianceDeclarationId, waiver => waiver.ServiceRunVarianceDeclarationId, (declaration, waiver) => new { declaration, waiver })
             .AnyAsync(item => !item.declaration.DeclaredBy.SequenceEqual(item.waiver.ApprovedBy), cancellationToken);
 
+        var relevantIssueLines = SelectRelevantIssueLines(issues, demandLines, run.ShiftName);
+        var relevantIssues = issues.Where(issue => issue.Inventoryissuelines.Any(line => relevantIssueLines.Contains(line))).ToList();
         var hasBomBlocker = await HasBomBlockerAsync(plan.PlanDate, planLines, cancellationToken);
         var requiredByItem = demandLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.TotalRequiredQty));
-        var issuedByItem = issues.SelectMany(issue => issue.Inventoryissuelines).GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
+        var issuedByItem = relevantIssueLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
         var input = new ServiceRunLifecycleInput(
             IsPlanSignedOff: planLines.Count > 0 && planLines.All(line => line.QuantityPlanLine.QuantityPlan.Status == "COMPLETED"),
             HasGeneratedMaterialDemand: demandLines.Count > 0,
             HasBomBlocker: hasBomBlocker,
             HasOpenSupply: requiredByItem.Any(item => issuedByItem.GetValueOrDefault(item.Key) < item.Value),
-            HasUnreceivedIssue: issues.Any(issue => issue.ReceivedAt is null),
+            HasUnreceivedIssue: relevantIssues.Any(issue => issue.ReceivedAt is null),
             HasOpenSupplemental: openSupplementalCount > 0,
             HasRecordedActualServings: run.ActualServingsRecordedAt is not null,
             HasUnresolvedVariance: issues.SelectMany(issue => issue.Inventoryreturns).Any(item => item.ReceivedAt is null) ||
@@ -108,7 +123,7 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             CanClose = lifecycle.CanClose,
             ServiceConfirmationOutcome = run.ServiceConfirmedAt is not null ? ServiceConfirmationOutcome.Confirmed : run.ServiceConfirmationWaivedAt is not null ? ServiceConfirmationOutcome.Waived : ServiceConfirmationOutcome.Pending,
             PlannedServings = planLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings)), ActualServings = run.ActualServings,
-            MaterialRequestLineCount = demandLines.Count, IssueCount = issues.Count, UnreceivedIssueCount = issues.Count(issue => issue.ReceivedAt is null),
+            MaterialRequestLineCount = demandLines.Count, IssueCount = relevantIssues.Count, UnreceivedIssueCount = relevantIssues.Count(issue => issue.ReceivedAt is null),
             OpenSupplementalCount = openSupplementalCount, UnreceivedReturnCount = issues.SelectMany(issue => issue.Inventoryreturns).Count(item => item.ReceivedAt is null), HasBomBlocker = hasBomBlocker,
             AdjustmentCount = adjustmentCount,
         };
