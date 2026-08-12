@@ -11,7 +11,7 @@ Reviewed artifacts:
 - EF migration: `20260812170357_AddMultiCustomerServiceRunKernel`
 - EF migration source: `backend/src/IPCManagement.Api/Migrations/20260812170357_AddMultiCustomerServiceRunKernel.cs`
 - Reviewed SQL: `tools/db/phase05/phase05-service-run-ipc-lane7-reviewed.sql`
-- Reviewed SQL SHA-256: `55D4DC0367ABA108635E35EE446E51FC4D4F06B3FC8B22417C4344FDA2107F32`
+- Reviewed SQL SHA-256: `F9E3A845164D547709FA0A7D2314D1C9F9A6D37146C3196318B8897771A7AE13`
 - Runner: `tools/db/phase05/Invoke-Phase05Lane7Migration.ps1`
 
 The SQL is additive. It retains close snapshots, documents, stock movements, audit rows and

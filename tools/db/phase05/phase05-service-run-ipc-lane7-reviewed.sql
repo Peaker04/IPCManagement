@@ -39,6 +39,9 @@ CREATE TABLE IF NOT EXISTS `servicerunsourcelines` (
 CREATE INDEX IF NOT EXISTS `ixServiceRunsPlanId` ON `serviceruns` (`planId`);
 CREATE UNIQUE INDEX IF NOT EXISTS `uqServiceRunsCustomerDateShiftTier`
     ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`);
+ALTER TABLE `serviceruns`
+    ADD CONSTRAINT `fkServiceRunsCustomer` FOREIGN KEY (`customerId`)
+    REFERENCES `customers` (`customerId`) ON DELETE RESTRICT;
 
 UPDATE `serviceruns` AS run
 INNER JOIN `productionplans` AS plan ON plan.`planId` = run.`planId`
