@@ -23,6 +23,7 @@ vi.mock('../chefApi', () => {
   const idle = () => [vi.fn(), { isLoading: false }]
   return {
     useGetServiceRunByPlanQuery: () => ({ data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }),
+    useGetServiceRunByScopeQuery: () => ({ data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }),
     useOpenServiceRunMutation: () => [mocks.open, { isLoading: false }], useStartServiceRunMutation: idle, useRecordServiceRunActualServingsMutation: idle,
     useConfirmServiceRunMutation: idle, useResolveServiceRunVarianceMutation: idle, useResolveServiceRunServingVarianceMutation: idle,
     useWaiveServiceRunConfirmationMutation: idle, useCloseServiceRunMutation: idle, useCreateServiceRunAdjustmentMutation: idle,
@@ -34,6 +35,7 @@ vi.mock('../chefApi', () => {
 import { ServiceRunSection } from './ServiceRunSection'
 
 const plans = [{ planId: 'plan-1', planCode: 'KHSX-01', lines: [{ shiftName: 'MORNING' }] }]
+const exactScope = { customerId: 'customer-1', serviceDate: '2026-08-12', shiftName: 'MORNING', priceTierAmount: 25000 }
 const resolved = () => ({ unwrap: () => Promise.resolve(run) })
 
 describe('ServiceRun variance controls', () => {
@@ -81,9 +83,18 @@ describe('ServiceRun variance controls', () => {
 
   it('explains that an unsent plan cannot open a service run and does not expose the action', () => {
     mocks.persistedRun = null
-    render(<ServiceRunSection plans={[{ planId: 'plan-2', planCode: 'KHSX-CHUA-GUI', sentToKitchenAt: null, lines: [{ shiftName: 'MORNING' }] }] as never[]} shiftName="MORNING" />)
+    render(<ServiceRunSection plans={[{ planId: 'plan-2', planCode: 'KHSX-CHUA-GUI', sentToKitchenAt: null, lines: [{ shiftName: 'MORNING' }] }] as never[]} shiftName="MORNING" scope={exactScope} />)
 
     expect(screen.getByText('Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mở Ca phục vụ' })).not.toBeInTheDocument()
+    expect(mocks.open).not.toHaveBeenCalled()
+  })
+
+  it('fails closed without an exact customer and price-tier scope', () => {
+    mocks.persistedRun = null
+    render(<ServiceRunSection plans={[{ planId: 'plan-2', planCode: 'KHSX-DA-GUI', sentToKitchenAt: '2026-08-12T01:00:00Z', lines: [{ shiftName: 'MORNING' }] }] as never[]} shiftName="MORNING" />)
+
+    expect(screen.getByText('Chọn khách hàng và tier giá chính xác trước khi mở Ca phục vụ.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Mở Ca phục vụ' })).not.toBeInTheDocument()
     expect(mocks.open).not.toHaveBeenCalled()
   })
