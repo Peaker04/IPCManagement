@@ -2,6 +2,7 @@ import { apiSlice } from './apiSlice'
 import { workflowCacheTags } from './workflowCacheTags'
 import type { components, paths } from '@/shared/api/contracts/schema'
 import type { ApiResponse } from '@/types/api'
+import type { MenuAmendmentDecisionCommand, MenuAmendmentDecisionItem, MenuAmendmentDecisionPage } from '@/features/projects/weekly-menu/schedule/menuAmendmentDecisionTypes'
 import type {
   CoordinationScopeActionRequest,
   CoordinationScopeActionResult,
@@ -395,8 +396,12 @@ export const coordinationApi = apiSlice.injectEndpoints({
     reviewMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; approved: boolean; reason?: string }>({ query: ({ id, approved, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/review`, method: 'POST', body: { approved, reason } }), invalidatesTags: ['Coordination'] }),
 executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: ['Coordination'] }),
 breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; reason: string }>({ query: ({ id, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/break-glass-execute`, method: 'POST', body: { reason } }), invalidatesTags: ['Coordination'] }),
-    createMenuAmendmentReconciliationCorrection: builder.mutation<ApiResponse<undefined>, { id: string; serviceRunId: string; reason: string }>({
-      query: ({ id, serviceRunId, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/reconciliation-corrections`, method: 'POST', body: { serviceRunId, reason } }),
+    getMenuAmendmentDecisionPage: builder.query<ApiResponse<MenuAmendmentDecisionPage>, { customerId?: string; allCustomers: boolean; page: number; pageSize: number }>({
+      query: (params) => ({ url: '/coordination/weekly-menu/amendments/decisions', params }),
+      providesTags: ['Coordination'],
+    }),
+    executeMenuAmendmentDecision: builder.mutation<ApiResponse<MenuAmendmentDecisionItem>, MenuAmendmentDecisionCommand>({
+      query: ({ decisionItemId, ...body }) => ({ url: `/coordination/weekly-menu/amendments/decisions/${decisionItemId}/commands`, method: 'POST', body }),
       invalidatesTags: ['Coordination', workflowCacheTags.productionPlans],
     }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, WeeklyMenuImportHistoryQuery | void>({
@@ -461,7 +466,8 @@ export const {
   useReviewMenuAmendmentMutation,
 useExecuteMenuAmendmentMutation,
 useBreakGlassExecuteMenuAmendmentMutation,
-  useCreateMenuAmendmentReconciliationCorrectionMutation,
+  useGetMenuAmendmentDecisionPageQuery,
+  useExecuteMenuAmendmentDecisionMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
   useGetProductionPlansQuery,
