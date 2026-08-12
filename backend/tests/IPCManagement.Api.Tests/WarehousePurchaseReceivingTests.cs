@@ -224,15 +224,68 @@ public class WarehousePurchaseReceivingTests
         fixture.Context.Inventoryreceipts.Should().ContainSingle();
         fixture.Context.Stockmovements.Should().BeEmpty();
 
-        var final = await InvokeRecordAsync(
+        var duplicateDraft = () => InvokeRecordAsync(
             service,
             fixture.CreateRequest("receipt-key-2", 6m),
             fixture.UserId);
-        final.PurchaseOrderStatus.Should().Be("ORDERED");
-        fixture.Context.Inventoryreceipts.Should().HaveCount(2);
+        await duplicateDraft.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*đang chờ xử lý*");
+        fixture.Context.Inventoryreceipts.Should().ContainSingle();
+        fixture.Context.Purchasereceiptactivelines.Should().ContainSingle(item =>
+            item.ReceiptId.SequenceEqual(GuidHelper.ParseGuidString(first.ReceiptId)!));
         fixture.Context.Stockmovements.Should().BeEmpty();
         fixture.Context.Currentstocks.Should().BeEmpty();
-        fixture.Context.Auditlogs.Should().HaveCount(2);
+        fixture.Context.Auditlogs.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Record_rejects_an_unknown_warehouse_before_creating_receipt_effects()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var request = fixture.CreateRequest("receipt-unknown-warehouse", 4m);
+        request.WarehouseId = Guid.NewGuid().ToString();
+
+        var action = () => InvokeRecordAsync(fixture.CreateService(), request, fixture.UserId);
+
+        await action.Should().ThrowAsync<KeyNotFoundException>()
+            .WithMessage("Kho nhập hàng không tồn tại.");
+        fixture.Context.Inventoryreceipts.Should().BeEmpty();
+        fixture.Context.Inventoryreceiptlines.Should().BeEmpty();
+        fixture.Context.Purchasereceiptactivelines.Should().BeEmpty();
+        fixture.Context.Auditlogs.Should().BeEmpty();
+        fixture.Context.Lifecycletransitions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Void_releases_the_active_source_line_with_lifecycle_and_audit_evidence()
+    {
+        await using var fixture = await ReceivingFixture.CreateAsync();
+        var service = fixture.CreateService();
+        var draft = await InvokeRecordAsync(service, fixture.CreateRequest("receipt-void-1", 4m), fixture.UserId);
+
+        var voided = await InvokeVoidAsync(service, draft.ReceiptId, new ReceiptVoidRequest
+        {
+            CommandId = "receipt-void-command-1",
+            ExpectedVersion = draft.ConcurrencyVersion,
+            Reason = "Remediation: duplicate draft created by interrupted receipt runner."
+        }, Guid.NewGuid().ToString());
+
+        voided.ReceiptStatus.Should().Be("VOIDED");
+        voided.QualityStatus.Should().Be("VOIDED");
+        fixture.Context.Purchasereceiptactivelines.Should().BeEmpty();
+        fixture.Context.Stockmovements.Should().BeEmpty();
+        fixture.Context.Currentstocks.Should().BeEmpty();
+        fixture.Context.Auditlogs.Should().Contain(item => item.NewValue == "VOIDED");
+        fixture.Context.Lifecycletransitions.Should().Contain(item => item.ToState == "VOIDED");
+
+        var replacement = await InvokeRecordAsync(
+            service,
+            fixture.CreateRequest("receipt-void-2", 6m),
+            fixture.UserId);
+        replacement.ReceiptStatus.Should().Be("DRAFT");
+        fixture.Context.Inventoryreceipts.Should().HaveCount(2);
+        fixture.Context.Purchasereceiptactivelines.Should().ContainSingle(item =>
+            item.ReceiptId.SequenceEqual(GuidHelper.ParseGuidString(replacement.ReceiptId)!));
     }
 
     [Theory]
@@ -706,6 +759,17 @@ public class WarehousePurchaseReceivingTests
         string userId)
     {
         var task = service.GetType().GetMethod("ReworkAsync")!
+            .Invoke(service, [receiptId, request, userId, CancellationToken.None]);
+        return await (Task<WarehousePurchaseReceiptResultDto>)task!;
+    }
+
+    private static async Task<WarehousePurchaseReceiptResultDto> InvokeVoidAsync(
+        object service,
+        string receiptId,
+        ReceiptVoidRequest request,
+        string userId)
+    {
+        var task = service.GetType().GetMethod("VoidAsync")!
             .Invoke(service, [receiptId, request, userId, CancellationToken.None]);
         return await (Task<WarehousePurchaseReceiptResultDto>)task!;
     }

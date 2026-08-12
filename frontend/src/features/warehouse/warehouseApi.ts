@@ -22,6 +22,7 @@ import type {
   ReceiptQualityActionArgs,
   ReceiptPostActionArgs,
   ReceiptReworkActionArgs,
+  ReceiptVoidActionArgs,
   ReceiptCorrectionActionArgs,
   ReceiptCorrectionResult,
   SupplementalMaterialRequestResult,
@@ -112,6 +113,17 @@ export const warehouseApi = apiSlice.injectEndpoints({
     reworkWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptReworkActionArgs>({
       query: ({ purchaseOrderId, receiptId, data }) => ({
         url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/rework`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
+      invalidatesTags: [
+        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.approvalInbox,
+      ],
+    }),
+    voidWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptVoidActionArgs>({
+      query: ({ purchaseOrderId, receiptId, data }) => ({
+        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/void`,
         method: 'POST',
         body: data,
       }),
@@ -293,6 +305,7 @@ export const {
   useAcceptReceiptQualityMutation,
   usePostWarehousePurchaseReceiptMutation,
   useReworkWarehousePurchaseReceiptMutation,
+  useVoidWarehousePurchaseReceiptMutation,
   useCreateReceiptCorrectionMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,

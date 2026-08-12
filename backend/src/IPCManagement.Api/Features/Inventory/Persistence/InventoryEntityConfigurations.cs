@@ -295,6 +295,8 @@ internal sealed class InventoryReceiptLineConfiguration : IEntityTypeConfigurati
 
         entity.HasIndex(e => e.PurchaseRequestLineId, "purchaseRequestLineId");
 
+        entity.HasIndex(e => e.PurchaseOrderLineId, "ixInventoryReceiptLinesPurchaseOrderLine");
+
         entity.HasIndex(e => e.ReceiptId, "receiptId");
 
         entity.HasIndex(e => e.UnitId, "unitId")
@@ -337,6 +339,10 @@ internal sealed class InventoryReceiptLineConfiguration : IEntityTypeConfigurati
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("purchaseRequestLineId");
+        entity.Property(e => e.PurchaseOrderLineId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("purchaseOrderLineId");
         entity.Property(e => e.ReceiptId)
             .HasMaxLength(16)
             .IsFixedLength()
@@ -362,6 +368,11 @@ internal sealed class InventoryReceiptLineConfiguration : IEntityTypeConfigurati
         entity.HasOne(d => d.PurchaseRequestLine).WithMany(p => p.Inventoryreceiptlines)
             .HasForeignKey(d => d.PurchaseRequestLineId)
             .HasConstraintName("inventoryreceiptlines_ibfk_4");
+
+        entity.HasOne<PurchaseOrderLine>().WithMany()
+            .HasForeignKey(d => d.PurchaseOrderLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryreceiptlines_ibfk_6");
 
         entity.HasOne(d => d.Unit).WithMany(p => p.Inventoryreceiptlines)
             .HasForeignKey(d => d.UnitId)
@@ -404,6 +415,37 @@ internal sealed class ReceiptCorrectionConfiguration : IEntityTypeConfiguration<
             .HasForeignKey(item => item.CreatedBy)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("receiptcorrections_ibfk_2");
+    }
+}
+
+internal sealed class PurchaseReceiptActiveLineConfiguration : IEntityTypeConfiguration<PurchaseReceiptActiveLine>
+{
+    public void Configure(EntityTypeBuilder<PurchaseReceiptActiveLine> entity)
+    {
+        entity.HasKey(item => item.PurchaseOrderLineId).HasName("PRIMARY");
+        entity.ToTable("purchasereceiptactivelines");
+        entity.HasIndex(item => item.ReceiptId, "ixPurchaseReceiptActiveLinesReceipt");
+
+        entity.Property(item => item.PurchaseOrderLineId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("purchaseOrderLineId");
+        entity.Property(item => item.ReceiptId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("receiptId");
+        entity.Property(item => item.CreatedAt)
+            .HasColumnType("datetime")
+            .HasColumnName("createdAt");
+
+        entity.HasOne<PurchaseOrderLine>().WithMany()
+            .HasForeignKey(item => item.PurchaseOrderLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("purchasereceiptactivelines_ibfk_1");
+        entity.HasOne<InventoryReceipt>().WithMany()
+            .HasForeignKey(item => item.ReceiptId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("purchasereceiptactivelines_ibfk_2");
     }
 }
 

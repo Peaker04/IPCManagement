@@ -947,6 +947,7 @@ public partial class WorkflowGenerationTests
                     receiptLineId BLOB PRIMARY KEY,
                     receiptId BLOB NOT NULL,
                     purchaseRequestLineId BLOB NULL,
+                    purchaseOrderLineId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     quantity TEXT NOT NULL,
@@ -961,6 +962,11 @@ public partial class WorkflowGenerationTests
                     acceptedQuantity TEXT NULL,
                     rejectedQuantity TEXT NULL,
                     qualityReason TEXT NULL
+                );
+                CREATE TABLE purchasereceiptactivelines (
+                    purchaseOrderLineId BLOB PRIMARY KEY,
+                    receiptId BLOB NOT NULL,
+                    createdAt TEXT NOT NULL
                 );
                 CREATE TABLE inventoryissues (
                     issueId BLOB PRIMARY KEY,

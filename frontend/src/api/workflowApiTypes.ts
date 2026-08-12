@@ -362,6 +362,7 @@ export type InventoryReceipt = MutableContract<components['schemas']['InventoryR
 export type ReceiptQualityDecisionRequest = MutableContract<components['schemas']['ReceiptQualityDecisionRequest']>;
 export type ReceiptPostRequest = MutableContract<components['schemas']['ReceiptPostRequest']>;
 export type ReceiptReworkRequest = MutableContract<components['schemas']['ReceiptReworkRequest']>;
+export type ReceiptVoidRequest = MutableContract<components['schemas']['ReceiptVoidRequest']>;
 export type CreateReceiptCorrectionRequest = MutableContract<components['schemas']['CreateReceiptCorrectionRequest']>;
 export type ReceiptCorrectionResult = MutableContract<components['schemas']['ReceiptCorrectionResultDto']>;
 export type ReceiptQualityActionArgs = {
@@ -378,6 +379,11 @@ export type ReceiptReworkActionArgs = {
   purchaseOrderId: string;
   receiptId: string;
   data: ReceiptReworkRequest;
+};
+export type ReceiptVoidActionArgs = {
+  purchaseOrderId: string;
+  receiptId: string;
+  data: ReceiptVoidRequest;
 };
 export type ReceiptCorrectionActionArgs = {
   purchaseOrderId: string;

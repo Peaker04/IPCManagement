@@ -88,6 +88,10 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                 {
                     var order = await queries.LoadOrderAsync(purchaseOrderId, token)
                         ?? throw new KeyNotFoundException("Không tìm thấy đơn mua hàng.");
+                    if (!await queries.WarehouseExistsAsync(warehouseId, token))
+                    {
+                        throw new KeyNotFoundException("Kho nhập hàng không tồn tại.");
+                    }
                     var requirements = PurchaseReceivingMapper.BuildEvidenceRequirements(order);
                     var existingReceipt = await queries.LoadReceiptAsync(receiptId, token);
                     if (existingReceipt is not null)
@@ -126,6 +130,18 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                     }
 
                     var validatedLines = await validator.ValidateActualReceiptAsync(order, requirements, request, token);
+                    foreach (var validated in validatedLines)
+                    {
+                        var activeReceipt = await queries.LoadActiveReceiptForOrderLineAsync(
+                            validated.OrderLine.PurchaseOrderLineId,
+                            token);
+                        if (activeReceipt is not null)
+                        {
+                            throw new BusinessRuleException(
+                                $"Dòng đơn mua này đang chờ xử lý trong phiếu {activeReceipt.ReceiptCode}. Không được tạo phiếu nhập trùng.");
+                        }
+                    }
+
                     var receipt = new InventoryReceipt
                     {
                         ReceiptId = receiptId,
@@ -151,6 +167,7 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                             ReceiptLineId = PurchaseReceivingMapper.BuildReceiptLineId(receiptId, orderLine.PurchaseOrderLineId),
                             ReceiptId = receiptId,
                             PurchaseRequestLineId = orderLine.PurchaseRequestLineId,
+                            PurchaseOrderLineId = orderLine.PurchaseOrderLineId,
                             IngredientId = orderLine.IngredientId,
                             UnitId = orderLine.UnitId,
                             Quantity = DecimalPolicy.RoundQuantity(input.ActualQuantity),
@@ -168,6 +185,12 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                     }
 
                     context.Inventoryreceipts.Add(receipt);
+                    context.Purchasereceiptactivelines.AddRange(validatedLines.Select(validated => new PurchaseReceiptActiveLine
+                    {
+                        PurchaseOrderLineId = validated.OrderLine.PurchaseOrderLineId,
+                        ReceiptId = receiptId,
+                        CreatedAt = receipt.CreatedAt
+                    }));
                     mutationStarted = true;
                     await InjectFaultAsync("AfterReceipt", token);
 
@@ -194,6 +217,23 @@ internal sealed class PurchaseReceiptDraftWorkflow(
                 },
                 IsolationLevel.Serializable,
                 cancellationToken);
+        }
+        catch (DbUpdateException) when (context.Database.IsRelational())
+        {
+            context.ChangeTracker.Clear();
+            foreach (var sourceLineId in request.Lines
+                         .Select(line => GuidHelper.ParseGuidString(line.PurchaseOrderLineId))
+                         .Where(line => line is not null))
+            {
+                var activeReceipt = await queries.LoadActiveReceiptForOrderLineAsync(sourceLineId!, cancellationToken);
+                if (activeReceipt is not null)
+                {
+                    throw new BusinessRuleException(
+                        $"Dòng đơn mua này đang chờ xử lý trong phiếu {activeReceipt.ReceiptCode}. Không được tạo phiếu nhập trùng.");
+                }
+            }
+
+            throw;
         }
         catch
         {

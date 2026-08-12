@@ -69,6 +69,43 @@ internal sealed class PurchaseReceivingQueries(IpcManagementContext context)
         return receipts.SingleOrDefault(receipt => receipt.ReceiptId.AsSpan().SequenceEqual(receiptId));
     }
 
+    public async Task<InventoryReceipt?> LoadActiveReceiptForOrderLineAsync(
+        byte[] purchaseOrderLineId,
+        CancellationToken cancellationToken)
+    {
+        var activeLines = await context.Purchasereceiptactivelines
+            .ToListAsync(cancellationToken);
+        var activeLine = activeLines.SingleOrDefault(line =>
+            line.PurchaseOrderLineId.AsSpan().SequenceEqual(purchaseOrderLineId));
+        if (activeLine is not null)
+        {
+            return await LoadReceiptAsync(activeLine.ReceiptId, cancellationToken);
+        }
+
+        // The fallback protects legacy rows which predate the fence. It stays
+        // read-only and is deliberately retained until every legacy active
+        // receipt has been reconciled through lifecycle commands.
+        var activeStatuses = new[] { "DRAFT", "PENDING_APPROVAL", "APPROVED" };
+        var receiptLines = await context.Inventoryreceiptlines
+            .Include(line => line.Receipt)
+            .ToListAsync(cancellationToken);
+        return receiptLines
+            .Where(line => line.PurchaseOrderLineId is not null &&
+                line.PurchaseOrderLineId.AsSpan().SequenceEqual(purchaseOrderLineId) &&
+                activeStatuses.Contains(line.Receipt.Status, StringComparer.Ordinal))
+            .OrderBy(line => line.Receipt.CreatedAt)
+            .Select(line => line.Receipt)
+            .FirstOrDefault();
+    }
+
+    public async Task ReleaseActiveLinesAsync(byte[] receiptId, CancellationToken cancellationToken)
+    {
+        var locks = await context.Purchasereceiptactivelines
+            .ToListAsync(cancellationToken);
+        var matching = locks.Where(item => item.ReceiptId.AsSpan().SequenceEqual(receiptId)).ToList();
+        context.Purchasereceiptactivelines.RemoveRange(matching);
+    }
+
     public async Task<ReceiptCorrection?> LoadReceiptCorrectionAsync(
         byte[] correctionId,
         CancellationToken cancellationToken)
@@ -138,5 +175,18 @@ internal sealed class PurchaseReceivingQueries(IpcManagementContext context)
 
         return (await context.Units.AsNoTracking().ToListAsync(cancellationToken))
             .Any(unit => unit.UnitId.AsSpan().SequenceEqual(unitId));
+    }
+
+    public async Task<bool> WarehouseExistsAsync(byte[] warehouseId, CancellationToken cancellationToken)
+    {
+        if (!IsInMemoryProvider())
+        {
+            return await context.Warehouses.AnyAsync(
+                warehouse => warehouse.WarehouseId == warehouseId,
+                cancellationToken);
+        }
+
+        return (await context.Warehouses.AsNoTracking().ToListAsync(cancellationToken))
+            .Any(warehouse => warehouse.WarehouseId.AsSpan().SequenceEqual(warehouseId));
     }
 }

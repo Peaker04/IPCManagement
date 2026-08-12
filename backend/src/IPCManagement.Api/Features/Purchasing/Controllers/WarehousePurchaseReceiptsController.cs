@@ -152,6 +152,39 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
         }
     }
 
+    [HttpPost("{receiptId}/void")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [ProducesResponseType(typeof(ApiResponse<WarehousePurchaseReceiptResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> VoidAsync(
+        string receiptId,
+        [FromBody] ReceiptVoidRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseReceivingService.VoidAsync(
+                receiptId,
+                request,
+                _currentUserService.GetUserId(User),
+                cancellationToken);
+            return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(
+                result,
+                "Đã hủy phiếu nhập có audit; tồn kho chưa thay đổi."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse.FailResult(exception.Message));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(ApiResponse.FailResult(exception.Message));
+        }
+        catch (BusinessRuleException exception)
+        {
+            return Conflict(ApiResponse.FailResult(exception.Message));
+        }
+    }
+
     [HttpPost("{receiptId}/corrections")]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     [ProducesResponseType(typeof(ApiResponse<ReceiptCorrectionResultDto>), StatusCodes.Status200OK)]

@@ -201,6 +201,29 @@ public sealed class ReceiptReworkRequest : IValidatableObject
     }
 }
 
+public sealed class ReceiptVoidRequest : IValidatableObject
+{
+    [Required, MaxLength(100)]
+    public string CommandId { get; set; } = string.Empty;
+
+    public long ExpectedVersion { get; set; }
+
+    [Required, MaxLength(1000)]
+    public string Reason { get; set; } = string.Empty;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (ExpectedVersion < 0)
+        {
+            yield return new ValidationResult("Phiên bản chứng từ không hợp lệ.", [nameof(ExpectedVersion)]);
+        }
+        if (string.IsNullOrWhiteSpace(Reason))
+        {
+            yield return new ValidationResult("Lý do hủy phiếu không được để trống.", [nameof(Reason)]);
+        }
+    }
+}
+
 public sealed class CreateReceiptCorrectionRequest : IValidatableObject
 {
     [Required, MaxLength(100)]

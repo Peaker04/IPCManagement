@@ -7954,6 +7954,52 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/void": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly purchaseOrderId: string;
+                    readonly receiptId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ReceiptVoidRequest"];
+                    readonly "application/json": components["schemas"]["ReceiptVoidRequest"];
+                    readonly "text/json": components["schemas"]["ReceiptVoidRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["WarehousePurchaseReceiptResultDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["WarehousePurchaseReceiptResultDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["WarehousePurchaseReceiptResultDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/Warehouses": {
         readonly parameters: {
             readonly query?: never;
@@ -12112,6 +12158,8 @@ export interface components {
             readonly packagePolicyVersionSnapshot?: string | null;
             /** Format: double */
             readonly packageQuantitySnapshot?: number | null;
+            /** Format: byte */
+            readonly purchaseOrderLineId?: string | null;
             readonly purchaseRequestLine?: components["schemas"]["PurchaseRequestLine"];
             /** Format: byte */
             readonly purchaseRequestLineId?: string | null;
@@ -13615,6 +13663,9 @@ export interface components {
             readonly unitPrice: number;
         };
         readonly PurchaseOrderLineDto: {
+            readonly activeReceiptCode?: string | null;
+            readonly activeReceiptId?: string | null;
+            readonly activeReceiptStatus?: string | null;
             readonly blockerReason?: string | null;
             readonly expiryDateRequired: boolean;
             readonly ingredientId: string;
@@ -14059,6 +14110,12 @@ export interface components {
             readonly lines: readonly components["schemas"]["ReceiptQualityDecisionLineRequest"][];
         };
         readonly ReceiptReworkRequest: {
+            readonly commandId: string;
+            /** Format: int64 */
+            readonly expectedVersion: number;
+            readonly reason: string;
+        };
+        readonly ReceiptVoidRequest: {
             readonly commandId: string;
             /** Format: int64 */
             readonly expectedVersion: number;

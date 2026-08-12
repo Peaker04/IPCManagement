@@ -191,7 +191,8 @@ public class PurchaseOrderService : IPurchaseOrderService
             .OrderByDescending(po => po.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return orders.Select(MapToDto).ToList();
+        var activeReceipts = await LoadActiveReceiptSummariesAsync(cancellationToken);
+        return orders.Select(order => MapToDto(order, activeReceipts)).ToList();
     }
 
     public async Task<PurchaseOrderPageDto> GetPageAsync(PurchaseOrderPageQueryDto query, CancellationToken cancellationToken = default)
@@ -211,10 +212,11 @@ public class PurchaseOrderService : IPurchaseOrderService
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
+        var activeReceipts = await LoadActiveReceiptSummariesAsync(cancellationToken);
 
         return new PurchaseOrderPageDto
         {
-            Page = PagedResponseDto<PurchaseOrderDto>.Create(orders.Select(MapToDto).ToList(), totalCount, pageNumber, pageSize),
+            Page = PagedResponseDto<PurchaseOrderDto>.Create(orders.Select(order => MapToDto(order, activeReceipts)).ToList(), totalCount, pageNumber, pageSize),
             OrderCountByRequest = counts,
         };
     }
@@ -228,7 +230,12 @@ public class PurchaseOrderService : IPurchaseOrderService
         }
 
         var order = await LoadOrderAsync(purchaseOrderIdBytes, cancellationToken);
-        return order is null ? null : MapToDto(order);
+        if (order is null)
+        {
+            return null;
+        }
+
+        return MapToDto(order, await LoadActiveReceiptSummariesAsync(cancellationToken));
     }
 
     public async Task<PurchaseOrderDto> CancelAsync(string purchaseOrderId, CancellationToken cancellationToken = default)
@@ -568,7 +575,34 @@ public class PurchaseOrderService : IPurchaseOrderService
     private static string BuildPurchaseOrderCode(string purchaseRequestCode, byte[] supplierId)
         => $"PO-{purchaseRequestCode}-{GuidHelper.ToGuidString(supplierId)[..8]}";
 
-    private static PurchaseOrderDto MapToDto(PurchaseOrder order) => new()
+    private async Task<IReadOnlyDictionary<string, ActiveReceiptSummary>> LoadActiveReceiptSummariesAsync(
+        CancellationToken cancellationToken)
+    {
+        var activeStatuses = new[] { "DRAFT", "PENDING_APPROVAL", "APPROVED" };
+        var activeLines = await _context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(line => line.Receipt)
+            .Where(line => line.PurchaseOrderLineId != null && activeStatuses.Contains(line.Receipt.Status))
+            .ToListAsync(cancellationToken);
+        return activeLines
+            .GroupBy(line => GuidHelper.ToGuidString(line.PurchaseOrderLineId!), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => new ActiveReceiptSummary(
+                    GuidHelper.ToGuidString(group.First().Receipt.ReceiptId),
+                    group.First().Receipt.ReceiptCode,
+                    group.First().Receipt.Status),
+                StringComparer.OrdinalIgnoreCase);
+    }
+
+    private sealed record ActiveReceiptSummary(string ReceiptId, string ReceiptCode, string Status);
+
+    private static PurchaseOrderDto MapToDto(PurchaseOrder order)
+        => MapToDto(order, new Dictionary<string, ActiveReceiptSummary>(StringComparer.OrdinalIgnoreCase));
+
+    private static PurchaseOrderDto MapToDto(
+        PurchaseOrder order,
+        IReadOnlyDictionary<string, ActiveReceiptSummary> activeReceipts) => new()
     {
         PurchaseOrderId = GuidHelper.ToGuidString(order.PurchaseOrderId),
         PurchaseOrderCode = order.PurchaseOrderCode,
@@ -580,8 +614,11 @@ public class PurchaseOrderService : IPurchaseOrderService
         Status = order.Status,
         Lines = order.Purchaseorderlines
             .OrderBy(line => line.Ingredient.IngredientName)
-            .Select(line => new PurchaseOrderLineDto
+            .Select(line =>
             {
+                activeReceipts.TryGetValue(GuidHelper.ToGuidString(line.PurchaseOrderLineId), out var activeReceipt);
+                return new PurchaseOrderLineDto
+                {
                 PurchaseOrderLineId = GuidHelper.ToGuidString(line.PurchaseOrderLineId),
                 PurchaseRequestLineId = GuidHelper.ToGuidString(line.PurchaseRequestLineId),
                 IngredientId = GuidHelper.ToGuidString(line.IngredientId),
@@ -596,7 +633,11 @@ public class PurchaseOrderService : IPurchaseOrderService
                 ExpiryDateRequired = line.Ingredient.IsFreshDaily,
                 BlockerReason = line.Ingredient.IsActive == true
                     ? null
-                    : $"Nguyên liệu {line.Ingredient.IngredientName} đã ngừng hoạt động."
+                    : $"Nguyên liệu {line.Ingredient.IngredientName} đã ngừng hoạt động.",
+                ActiveReceiptId = activeReceipt?.ReceiptId,
+                ActiveReceiptCode = activeReceipt?.ReceiptCode,
+                ActiveReceiptStatus = activeReceipt?.Status
+                };
             })
             .ToList()
     };

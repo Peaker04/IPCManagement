@@ -28,6 +28,12 @@ public interface IPurchaseReceivingService
         string? userId,
         CancellationToken cancellationToken = default);
 
+    Task<WarehousePurchaseReceiptResultDto> VoidAsync(
+        string receiptId,
+        ReceiptVoidRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default);
+
     Task<ReceiptCorrectionResultDto> CreateCorrectionAsync(
         string receiptId,
         CreateReceiptCorrectionRequest request,

@@ -10501,6 +10501,72 @@
         }
       }
     },
+    "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/void": {
+      "post": {
+        "tags": [
+          "WarehousePurchaseReceipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "purchaseOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptVoidRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptVoidRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptVoidRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/corrections": {
       "post": {
         "tags": [
@@ -24033,6 +24099,11 @@
             "format": "byte",
             "nullable": true
           },
+          "purchaseOrderLineId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
           "ingredientId": {
             "type": "string",
             "format": "byte"
@@ -29273,6 +29344,18 @@
           "blockerReason": {
             "type": "string",
             "nullable": true
+          },
+          "activeReceiptId": {
+            "type": "string",
+            "nullable": true
+          },
+          "activeReceiptCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "activeReceiptStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -30745,6 +30828,31 @@
         "additionalProperties": false
       },
       "ReceiptReworkRequest": {
+        "required": [
+          "commandId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptVoidRequest": {
         "required": [
           "commandId",
           "expectedVersion",

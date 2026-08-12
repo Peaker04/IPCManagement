@@ -383,6 +383,10 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
             receipt.RejectedBy = actorId;
             receipt.RejectedAt = DateTime.UtcNow;
             receipt.RejectionReason = request.Reason;
+            var activeLines = await Context.Purchasereceiptactivelines
+                .Where(item => item.ReceiptId == receipt.ReceiptId)
+                .ToListAsync();
+            Context.Purchasereceiptactivelines.RemoveRange(activeLines);
         }
 
         var result = await SaveHistoryAsync("inventory-receipt", targetId, request, actorId, oldStatus, newStatus);

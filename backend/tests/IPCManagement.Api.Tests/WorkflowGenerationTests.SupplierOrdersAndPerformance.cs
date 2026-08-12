@@ -304,7 +304,7 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task RecordReceipt_Should_CreateDrafts_WithoutMutatingPurchaseProgress()
+    public async Task RecordReceipt_Should_RejectSecondActiveDraftForTheSameSourceLine()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await using var context = fixture.CreateContext();
@@ -326,15 +326,15 @@ public partial class WorkflowGenerationTests
         (await context.Purchaseorderlines.AsNoTracking().SingleAsync(line => line.PurchaseOrderLineId == GuidHelper.ParseGuidString(lineId)))
             .ReceivedQty.Should().Be(0);
 
-        var secondDraft = await receivingService.RecordAsync(
+        var duplicateDraft = () => receivingService.RecordAsync(
             CreatePurchaseReceiptRequest(fixture, orderForSupplierA.PurchaseOrderId, lineId, 6m, "workflow-final"),
             fixture.UserIdString);
-        secondDraft.ReceiptStatus.Should().Be("DRAFT");
-        secondDraft.PurchaseOrderStatus.Should().Be("ORDERED");
+        await duplicateDraft.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*đang chờ xử lý*");
         (await context.Purchaseorderlines.AsNoTracking().SingleAsync(line => line.PurchaseOrderLineId == GuidHelper.ParseGuidString(lineId)))
             .ReceivedQty.Should().Be(0);
 
-        (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(2);
+        (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(1);
         (await context.Stockmovements.AsNoTracking().CountAsync(item => item.MovementType == "RECEIPT")).Should().Be(0);
         (await context.Currentstocks.AsNoTracking().CountAsync(item => item.IngredientId == fixture.IngredientId)).Should().Be(0);
     }

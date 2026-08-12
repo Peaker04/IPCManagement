@@ -15,7 +15,7 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain("useHasRole(['dieuphoi'])");
     expect(source).toContain("receipt.status === 'PENDING_APPROVAL'");
     expect(source).toContain('Chỉ Thủ kho được kiểm tra chất lượng.');
-    expect(source).toContain('Chỉ Admin được POSTED sau khi Quản lý duyệt.');
+    expect(source).toContain('Chỉ Quản trị viên được ghi sổ kho sau khi Quản lý duyệt.');
   });
 
   it('requires every rejected quantity to carry a reason and sends the optimistic version', () => {
@@ -32,7 +32,8 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain("commandId('receipt-correction')");
     expect(source).toContain('expectedVersion: 0');
     expect(source).toContain('Lý do correction không được để trống.');
-    expect(source).toContain('Receipt và movement POSTED gốc không bị sửa.');
+    expect(source).toContain('không sửa phiếu nhập hoặc bút toán gốc');
+    expect(source).toContain('Ghi sổ chứng từ điều chỉnh');
   });
 
   it('reserves the lifecycle viewport only while receipt data is loading', () => {

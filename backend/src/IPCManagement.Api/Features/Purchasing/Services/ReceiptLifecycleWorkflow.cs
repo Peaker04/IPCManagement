@@ -97,6 +97,10 @@ internal sealed class ReceiptLifecycleWorkflow(
                     ? rejectedAny ? "PARTIALLY_ACCEPTED" : "ACCEPTED"
                     : "REJECTED";
                 receipt.Status = acceptedAny ? "PENDING_APPROVAL" : "REJECTED";
+                if (!acceptedAny)
+                {
+                    await queries.ReleaseActiveLinesAsync(receipt.ReceiptId, token);
+                }
                 receipt.QualityCheckedBy = actorId;
                 receipt.QualityCheckedAt = DateTime.UtcNow;
                 receipt.RejectedBy = acceptedAny ? null : actorId;
@@ -214,6 +218,7 @@ internal sealed class ReceiptLifecycleWorkflow(
                 receipt.PostedBy = actorId;
                 receipt.PostedAt = now;
                 receipt.ConcurrencyVersion++;
+                await queries.ReleaseActiveLinesAsync(receipt.ReceiptId, token);
                 lifecycleRecorder.Stage(new LifecycleTransitionRequest(
                     "Receipt", receipt.ReceiptId, commandId, checked((int)receipt.ConcurrencyVersion),
                     fromState, "POSTED", actorId, request.ExpectedVersion,
@@ -309,6 +314,24 @@ internal sealed class ReceiptLifecycleWorkflow(
                     line.RejectedQuantity = null;
                     line.QualityReason = null;
                 }
+                foreach (var line in receipt.Inventoryreceiptlines)
+                {
+                    if (line.PurchaseOrderLineId is null)
+                    {
+                        throw new BusinessRuleException("Dòng phiếu nhập thiếu source-line đơn mua để xử lý lại.");
+                    }
+                    var activeReceipt = await queries.LoadActiveReceiptForOrderLineAsync(line.PurchaseOrderLineId, token);
+                    if (activeReceipt is not null && !activeReceipt.ReceiptId.SequenceEqual(receipt.ReceiptId))
+                    {
+                        throw new BusinessRuleException($"Dòng đơn mua đang chờ xử lý trong phiếu {activeReceipt.ReceiptCode}.");
+                    }
+                    context.Purchasereceiptactivelines.Add(new PurchaseReceiptActiveLine
+                    {
+                        PurchaseOrderLineId = line.PurchaseOrderLineId,
+                        ReceiptId = receipt.ReceiptId,
+                        CreatedAt = now
+                    });
+                }
                 receipt.ConcurrencyVersion++;
 
                 lifecycleRecorder.Stage(new LifecycleTransitionRequest(
@@ -326,6 +349,75 @@ internal sealed class ReceiptLifecycleWorkflow(
                     EntityId = receipt.ReceiptId,
                     FieldName = nameof(InventoryReceipt.Status),
                     OldValue = fromState,
+                    NewValue = receipt.Status,
+                    Reason = reason
+                });
+                await context.SaveChangesAsync(token);
+                return BuildResult(receipt, order, commandId);
+            },
+            token => context.Lifecyclecommandreceipts.AnyAsync(item => item.CommandId == commandId, token),
+            IsolationLevel.Serializable,
+            cancellationToken);
+    }
+
+    public async Task<WarehousePurchaseReceiptResultDto> VoidAsync(
+        string receiptId,
+        ReceiptVoidRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        PurchaseReceivingValidator.ValidateDataAnnotations(request);
+        var receiptIdBytes = GuidHelper.ParseGuidString(receiptId)
+            ?? throw new ArgumentException("Phiếu nhập không hợp lệ.");
+        var actorId = GuidHelper.ParseGuidString(userId)
+            ?? throw new ArgumentException("Không xác định được người hủy phiếu nhập.");
+        var commandId = request.CommandId.Trim();
+        var reason = request.Reason.Trim();
+
+        return await transactionRunner.ExecuteAsync(
+            async token =>
+            {
+                var receipt = await queries.LoadReceiptAsync(receiptIdBytes, token)
+                    ?? throw new KeyNotFoundException("Không tìm thấy phiếu nhập kho.");
+                var order = await queries.LoadOrderForReceiptAsync(receipt, token)
+                    ?? throw new BusinessRuleException("Không xác định được đơn mua nguồn của phiếu nhập.");
+                var existing = await lifecycleRecorder.FindExistingCommandAsync(commandId, "Receipt", receiptIdBytes, token);
+                if (existing is not null)
+                {
+                    return BuildResult(receipt, order, commandId);
+                }
+                if (receipt.Status is not ("DRAFT" or "PENDING_APPROVAL" or "APPROVED"))
+                {
+                    throw new BusinessRuleException("Chỉ phiếu nhập đang hoạt động trước POSTED mới được hủy có audit.");
+                }
+                if (receipt.ConcurrencyVersion != request.ExpectedVersion)
+                {
+                    throw new BusinessRuleException("Phiếu nhập đã thay đổi; hãy tải lại trước khi hủy.");
+                }
+
+                var oldStatus = receipt.Status;
+                receipt.Status = "VOIDED";
+                receipt.QualityStatus = "VOIDED";
+                receipt.RejectedBy = actorId;
+                receipt.RejectedAt = DateTime.UtcNow;
+                receipt.RejectionReason = reason;
+                receipt.ConcurrencyVersion++;
+                await queries.ReleaseActiveLinesAsync(receipt.ReceiptId, token);
+                lifecycleRecorder.Stage(new LifecycleTransitionRequest(
+                    "Receipt", receipt.ReceiptId, commandId, checked((int)receipt.ConcurrencyVersion),
+                    oldStatus, receipt.Status, actorId, request.ExpectedVersion, reason, commandId, null,
+                    $"{{\"qualityStatus\":\"{receipt.QualityStatus}\"}}",
+                    $"{{\"receiptId\":\"{GuidHelper.ToGuidString(receipt.ReceiptId)}\",\"status\":\"{receipt.Status}\"}}"));
+                context.Auditlogs.Add(new AuditLog
+                {
+                    AuditId = PurchaseReceivingMapper.BuildAuditId(receipt.ReceiptId, "void"),
+                    ChangedAt = receipt.RejectedAt.Value,
+                    ChangedBy = actorId,
+                    BusinessArea = "Receipt",
+                    EntityName = nameof(InventoryReceipt),
+                    EntityId = receipt.ReceiptId,
+                    FieldName = nameof(InventoryReceipt.Status),
+                    OldValue = oldStatus,
                     NewValue = receipt.Status,
                     Reason = reason
                 });

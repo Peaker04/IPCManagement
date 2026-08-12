@@ -31,4 +31,12 @@ describe('PurchaseOrderLineGroups', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Ghi nhận dòng này' })[1]);
     expect(onReceive).toHaveBeenCalledWith(expect.objectContaining({ purchaseOrderLineId: 'line-2' }));
   });
+
+  it('marks a source line with an active receipt as unavailable for another draft', () => {
+    const onReceive = vi.fn();
+    render(<PurchaseOrderLineGroups lines={[{ ...line('line-1', 10, 0), activeReceiptId: 'receipt-1', activeReceiptCode: 'RCP-001', activeReceiptStatus: 'DRAFT' }]} canReceive onReceive={onReceive} />);
+
+    expect(screen.getByRole('button', { name: 'Đang chờ xử lý ở RCP-001 (Bản nháp)' })).toBeDisabled();
+    expect(screen.getByText('1 dòng đã có phiếu chờ xử lý')).toBeInTheDocument();
+  });
 });

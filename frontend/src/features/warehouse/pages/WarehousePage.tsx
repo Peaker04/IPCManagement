@@ -48,7 +48,8 @@ export default function WarehousePage() {
   const activeView = useDeferredValue(selectedView);
   const isViewPending = selectedView !== activeView;
   const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
-  const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<string | null>(searchParams.get('purchaseOrderId'));
+  const selectedPurchaseOrderId = searchParams.get('purchaseOrderId');
+  const isPurchaseOrderDetailsOpen = selectedPurchaseOrderId !== null;
   const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [currentStockSearch, setCurrentStockSearch] = useState('');
@@ -203,14 +204,17 @@ export default function WarehousePage() {
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
   const purchaseOrders = purchaseOrderPageResponse?.page.items ?? [];
   const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
-  const selectedPurchaseOrder = purchaseOrders.find((order) => order.purchaseOrderId === selectedPurchaseOrderId)
+  const selectedPurchaseOrder = isPurchaseOrderDetailsOpen
+    ? purchaseOrders.find((order) => order.purchaseOrderId === selectedPurchaseOrderId)
     ?? (selectedPurchaseOrderId === null
       ? purchaseOrders.find((order) => order.purchaseRequestId === requestedPurchaseRequestId)
-      : undefined);
-
-  const selectPurchaseOrder = (purchaseOrderId: string) => {
-    setSelectedPurchaseOrderId(selectedPurchaseOrder?.purchaseOrderId === purchaseOrderId ? '' : purchaseOrderId);
-    setSelectedReceiptLine(undefined);
+      : undefined)
+    : undefined;
+  const purchaseOrderDetailsHref = (purchaseOrderId: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (purchaseOrderId) next.set('purchaseOrderId', purchaseOrderId);
+    else next.delete('purchaseOrderId');
+    return `${ROUTES.WAREHOUSE}?${next.toString()}`;
   };
 
   const openIssueDialog = () => {
@@ -474,11 +478,12 @@ export default function WarehousePage() {
           warehouses={receiptWarehouses}
           week={searchParams.get('week') ?? undefined}
           onOpenChange={(open) => { if (!open) setSelectedReceiptLine(undefined); }}
-          onSuccess={(result) => {
+          onSuccess={() => {
             setSelectedReceiptLine(undefined);
+            void refetchPurchaseOrders();
             setWarehouseFeedback({
               title: 'Đã tạo phiếu nhập nháp',
-              message: `Phiếu nhập ${result.receiptId} đang chờ kiểm tra chất lượng và duyệt; tồn kho và tiến độ đơn mua chưa thay đổi.`,
+              message: 'Phiếu nhập đang chờ kiểm tra chất lượng và Quản lý duyệt; tồn kho và tiến độ đơn mua chưa thay đổi.',
               variant: 'info',
             });
           }}
@@ -529,7 +534,7 @@ export default function WarehousePage() {
                 <tr><td colSpan={6} className="h-[320px] text-center text-slate-600">Chưa có đơn mua để theo dõi nhập kho.</td></tr>
               ) : purchaseOrders.map((order) => {
                 const completedLines = order.lines.filter((line) => line.receivedQty >= line.orderedQty).length;
-                const isSelected = selectedPurchaseOrder?.purchaseOrderId === order.purchaseOrderId;
+                const isSelected = isPurchaseOrderDetailsOpen && selectedPurchaseOrderId === order.purchaseOrderId;
                 return (
                   <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
                     <td className="font-semibold text-slate-900">{order.purchaseOrderCode}</td>
@@ -538,9 +543,13 @@ export default function WarehousePage() {
                     <td>{formatWorkflowStatus(order.status)}</td>
                     <td>{completedLines}/{order.lines.length} dòng đã đủ</td>
                     <td>
-                      <Button type="button" variant="outline" size="sm" aria-expanded={isSelected} onClick={() => selectPurchaseOrder(order.purchaseOrderId)}>
+                      <Link
+                        className="ipc-button ipc-button-ghost"
+                        aria-expanded={isSelected}
+                        to={purchaseOrderDetailsHref(isSelected ? null : order.purchaseOrderId)}
+                      >
                         {isSelected ? 'Đóng chi tiết' : 'Xem dòng nhận'}
-                      </Button>
+                      </Link>
                     </td>
                   </tr>
                 );
@@ -554,7 +563,6 @@ export default function WarehousePage() {
           totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
           onPageChange={(page) => {
             setPurchaseOrderPageNumber(page);
-            setSelectedPurchaseOrderId('');
             setSelectedReceiptLine(undefined);
           }}
         />

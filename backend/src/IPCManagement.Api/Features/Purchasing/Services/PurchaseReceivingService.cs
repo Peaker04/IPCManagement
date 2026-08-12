@@ -72,6 +72,13 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         CancellationToken cancellationToken = default)
         => _lifecycleWorkflow.ReworkAsync(receiptId, request, userId, cancellationToken);
 
+    public Task<WarehousePurchaseReceiptResultDto> VoidAsync(
+        string receiptId,
+        ReceiptVoidRequest request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+        => _lifecycleWorkflow.VoidAsync(receiptId, request, userId, cancellationToken);
+
     public Task<ReceiptCorrectionResultDto> CreateCorrectionAsync(
         string receiptId,
         CreateReceiptCorrectionRequest request,

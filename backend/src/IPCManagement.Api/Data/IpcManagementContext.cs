@@ -56,6 +56,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<InventoryReceiptLine> Inventoryreceiptlines { get; set; }
 
+    public virtual DbSet<PurchaseReceiptActiveLine> Purchasereceiptactivelines { get; set; }
+
     public virtual DbSet<ReceiptCorrection> Receiptcorrections { get; set; }
 
     public virtual DbSet<ReceiptCorrectionLine> Receiptcorrectionlines { get; set; }

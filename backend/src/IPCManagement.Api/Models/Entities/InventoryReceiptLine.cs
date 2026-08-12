@@ -11,6 +11,10 @@ public partial class InventoryReceiptLine
 
     public byte[]? PurchaseRequestLineId { get; set; }
 
+    // Immutable purchase-order source. PurchaseRequestLineId is retained for
+    // legacy/reporting lineage but is not enough to protect a receiving line.
+    public byte[]? PurchaseOrderLineId { get; set; }
+
     public byte[] IngredientId { get; set; } = null!;
 
     public byte[] UnitId { get; set; } = null!;

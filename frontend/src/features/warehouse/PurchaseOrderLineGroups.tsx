@@ -4,6 +4,7 @@ import type { PurchaseOrderLineDto } from '@/api/workflowApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatters';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 type PurchaseOrderLineGroup = {
   key: string;
@@ -33,6 +34,10 @@ const requirementsFor = (line: PurchaseOrderLineDto) => [
   line.expiryDateRequired ? 'hạn sử dụng' : null,
 ].filter(Boolean) as string[];
 
+const activeReceiptLabel = (line: PurchaseOrderLineDto) => line.activeReceiptCode
+  ? `Đang chờ xử lý ở ${line.activeReceiptCode}${line.activeReceiptStatus ? ` (${formatWorkflowStatus(line.activeReceiptStatus)})` : ''}`
+  : undefined;
+
 export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { lines: PurchaseOrderLineDto[]; canReceive: boolean; onReceive: (line: PurchaseOrderLineDto) => void }) {
   const [search, setSearch] = useState('');
   const [expandedGroupKey, setExpandedGroupKey] = useState<string>();
@@ -57,19 +62,20 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
             const prices = group.lines.map((line) => line.unitPrice);
             const requirements = Array.from(new Set(group.lines.flatMap(requirementsFor)));
             const blockerCount = group.lines.filter((line) => line.blockerReason).length;
+            const activeReceiptCount = group.lines.filter((line) => line.activeReceiptId).length;
             const summary = (
               <tr key={group.key}>
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
                 <td>{group.receivedQty}/{group.orderedQty} {group.unitName}<span className="block text-xs text-slate-500">Còn {remaining} {group.unitName}</span></td>
                 <td>{Math.min(...prices) === Math.max(...prices) ? formatCurrency(prices[0]) : `${formatCurrency(Math.min(...prices))}–${formatCurrency(Math.max(...prices))}`}</td>
-                <td>{requirements.join(', ') || 'Không có yêu cầu bổ sung'}{blockerCount > 0 && <span className="block text-xs text-red-700">{blockerCount} dòng đang bị chặn</span>}</td>
-                <td>{group.lines.length === 1 ? (canReceive && <Button type="button" size="sm" disabled={remaining <= 0 || Boolean(group.lines[0].blockerReason)} onClick={() => onReceive(group.lines[0])}>{remaining <= 0 ? 'Đã nhận đủ' : 'Ghi nhận nhập kho'}</Button>) : <Button type="button" variant="outline" size="sm" aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? undefined : group.key)}>{expanded ? 'Đóng nguồn' : `Xem ${group.lines.length} nguồn`}</Button>}</td>
+                <td>{requirements.join(', ') || 'Không có yêu cầu bổ sung'}{blockerCount > 0 && <span className="block text-xs text-red-700">{blockerCount} dòng đang bị chặn</span>}{activeReceiptCount > 0 && <span className="block text-xs text-amber-800">{activeReceiptCount} dòng đã có phiếu chờ xử lý</span>}</td>
+                <td>{group.lines.length === 1 ? (canReceive && <Button type="button" size="sm" disabled={remaining <= 0 || Boolean(group.lines[0].blockerReason) || Boolean(group.lines[0].activeReceiptId)} onClick={() => onReceive(group.lines[0])}>{remaining <= 0 ? 'Đã nhận đủ' : activeReceiptLabel(group.lines[0]) ?? 'Ghi nhận nhập kho'}</Button>) : <Button type="button" variant="outline" size="sm" aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? undefined : group.key)}>{expanded ? 'Đóng nguồn' : `Xem ${group.lines.length} nguồn`}</Button>}</td>
               </tr>
             );
             if (!expanded || group.lines.length === 1) return [summary];
             return [summary, <tr key={`${group.key}-sources`}><td colSpan={5} className="bg-slate-50 p-3"><ul className="grid gap-2" aria-label={`Các dòng đơn mua nguồn của ${group.ingredientName}`}>{group.lines.map((line) => {
               const lineRemaining = Math.max(line.orderedQty - line.receivedQty, 0);
-              return <li key={line.purchaseOrderLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"><span className="text-xs text-slate-600"><strong className="text-slate-900">{line.receivedQty}/{line.orderedQty} {line.unitName}</strong> · {formatCurrency(line.unitPrice)}<span className="block break-all">{line.purchaseOrderLineId}</span>{line.blockerReason && <span className="block text-red-700">{line.blockerReason}</span>}</span>{canReceive && <Button type="button" size="sm" disabled={lineRemaining <= 0 || Boolean(line.blockerReason)} onClick={() => onReceive(line)}>{lineRemaining <= 0 ? 'Đã nhận đủ' : 'Ghi nhận dòng này'}</Button>}</li>;
+              return <li key={line.purchaseOrderLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"><span className="text-xs text-slate-600"><strong className="text-slate-900">{line.receivedQty}/{line.orderedQty} {line.unitName}</strong> · {formatCurrency(line.unitPrice)}<span className="block break-all">{line.purchaseOrderLineId}</span>{line.blockerReason && <span className="block text-red-700">{line.blockerReason}</span>}{activeReceiptLabel(line) && <span className="block text-amber-800">{activeReceiptLabel(line)}</span>}</span>{canReceive && <Button type="button" size="sm" disabled={lineRemaining <= 0 || Boolean(line.blockerReason) || Boolean(line.activeReceiptId)} onClick={() => onReceive(line)}>{lineRemaining <= 0 ? 'Đã nhận đủ' : activeReceiptLabel(line) ?? 'Ghi nhận dòng này'}</Button>}</li>;
             })}</ul></td></tr>];
           })}
         </tbody>

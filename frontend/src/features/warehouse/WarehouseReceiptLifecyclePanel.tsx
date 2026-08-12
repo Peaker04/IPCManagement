@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardCheck, LoaderCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, LoaderCircle, ShieldAlert } from 'lucide-react';
 import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { InlineAlert, QueryErrorAlert, TableViewport } from '@/components/common';
 import { formatQuantityWithUnit } from '@/lib/formatters';
+import { formatReceiptLifecycleStatus } from '@/lib/workflowConfig';
 import { typography } from '@/lib/typography';
 import { cn } from '@/lib/utils';
 import {
@@ -15,6 +16,7 @@ import {
   usePostWarehousePurchaseReceiptMutation,
   useCreateReceiptCorrectionMutation,
   useReworkWarehousePurchaseReceiptMutation,
+  useVoidWarehousePurchaseReceiptMutation,
 } from './warehouseApi';
 
 type QualityDraft = Record<string, { acceptedQuantity: string; reason: string }>;
@@ -30,19 +32,22 @@ const messageFromError = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const statusLabel = (status: string, qualityStatus: string) => `${status} · ${qualityStatus}`;
+const statusLabel = (status: string, qualityStatus: string) => formatReceiptLifecycleStatus(status, qualityStatus);
 
 export function WarehouseReceiptLifecyclePanel() {
   const canInspectQuality = useHasRole(['thukho']);
   const canPost = useHasRole(['admin']);
   const canRework = useHasRole(['dieuphoi']);
   const canCorrect = canPost;
+  const canVoid = canPost;
   const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ pageNumber: 1, pageSize: 20 });
   const [selectedReceiptId, setSelectedReceiptId] = useState<string>();
   const [qualityOpen, setQualityOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
   const [reworkOpen, setReworkOpen] = useState(false);
   const [reworkReason, setReworkReason] = useState('');
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionReason, setCorrectionReason] = useState('');
   const [correctionDraft, setCorrectionDraft] = useState<CorrectionDraft>({});
@@ -51,6 +56,7 @@ export function WarehouseReceiptLifecyclePanel() {
   const [acceptQuality, { isLoading: isSubmittingQuality }] = useAcceptReceiptQualityMutation();
   const [postReceipt, { isLoading: isPosting }] = usePostWarehousePurchaseReceiptMutation();
   const [reworkReceipt, { isLoading: isReworking }] = useReworkWarehousePurchaseReceiptMutation();
+  const [voidReceipt, { isLoading: isVoiding }] = useVoidWarehousePurchaseReceiptMutation();
   const [createCorrection, { isLoading: isCorrecting }] = useCreateReceiptCorrectionMutation();
 
   const canonicalReceipts = useMemo(
@@ -68,6 +74,7 @@ export function WarehouseReceiptLifecyclePanel() {
   const showQualityControl = Boolean(receipt && receipt.status === 'DRAFT' && receipt.qualityStatus === 'PENDING_INSPECTION' && canInspectQuality);
   const showPostControl = Boolean(receipt && receipt.status === 'APPROVED' && (receipt.qualityStatus === 'ACCEPTED' || receipt.qualityStatus === 'PARTIALLY_ACCEPTED') && canPost);
   const showReworkControl = Boolean(receipt && receipt.status === 'REJECTED' && canRework);
+  const showVoidControl = Boolean(receipt && ['DRAFT', 'PENDING_APPROVAL', 'APPROVED'].includes(receipt.status) && canVoid);
   const showCorrectionControl = Boolean(receipt && receipt.status === 'POSTED' && canCorrect);
   const selectionReason = !receipt
     ? 'Chọn phiếu nhập để xem trạng thái.'
@@ -78,9 +85,9 @@ export function WarehouseReceiptLifecyclePanel() {
         : receipt.status === 'PENDING_APPROVAL'
           ? 'Đã kiểm tra; đang chờ Quản lý duyệt trong Hộp thư phê duyệt.'
           : receipt.status === 'APPROVED'
-            ? canPost ? 'Sẵn sàng POSTED bởi Admin.' : 'Chỉ Admin được POSTED sau khi Quản lý duyệt.'
+            ? canPost ? 'Sẵn sàng để Quản trị viên ghi sổ kho.' : 'Chỉ Quản trị viên được ghi sổ kho sau khi Quản lý duyệt.'
             : receipt.status === 'POSTED'
-              ? canCorrect ? 'Đã POSTED; chỉ Admin có thể tạo correction append-only có source-line lineage.' : 'Đã POSTED; không mở lại writer cũ.'
+              ? canCorrect ? 'Đã ghi sổ kho; chỉ Quản trị viên có thể tạo chứng từ điều chỉnh theo đúng dòng nguồn.' : 'Đã ghi sổ kho; không mở lại chứng từ gốc.'
               : receipt.status === 'REJECTED'
                 ? canRework ? 'Phiếu bị từ chối; Điều phối có thể yêu cầu kiểm tra lại.' : 'Phiếu bị từ chối; chỉ Điều phối tạo phiếu mới được yêu cầu xử lý lại.'
               : 'Phiếu đã ở trạng thái kết thúc hoặc cần xử lý lại.';
@@ -126,10 +133,10 @@ export function WarehouseReceiptLifecyclePanel() {
         data: { commandId: commandId('receipt-post'), expectedVersion: receipt.concurrencyVersion },
       }).unwrap();
       setPostOpen(false);
-      setFeedback('Đã POSTED phiếu nhập. Sổ kho và tiến độ đơn mua đã được cập nhật đúng một lần.');
+      setFeedback('Đã ghi sổ kho cho phiếu nhập. Tồn kho và tiến độ đơn mua đã được cập nhật đúng một lần.');
       await refresh();
     } catch (error) {
-      setFeedback(messageFromError(error, 'Không thể POSTED phiếu nhập. Hãy tải lại trước khi thử lại.'));
+      setFeedback(messageFromError(error, 'Không thể ghi sổ kho cho phiếu nhập. Hãy tải lại trước khi thử lại.'));
     }
   };
 
@@ -150,6 +157,26 @@ export function WarehouseReceiptLifecyclePanel() {
       await refresh();
     } catch (error) {
       setFeedback(messageFromError(error, 'Không thể xử lý lại phiếu nhập. Dữ liệu chưa được thay đổi.'));
+    }
+  };
+
+  const submitVoid = async () => {
+    if (!receipt?.purchaseOrderId || !voidReason.trim()) {
+      setFeedback('Lý do hủy có audit không được để trống.');
+      return;
+    }
+    try {
+      await voidReceipt({
+        purchaseOrderId: receipt.purchaseOrderId,
+        receiptId: receipt.receiptId,
+        data: { commandId: commandId('receipt-void'), expectedVersion: receipt.concurrencyVersion, reason: voidReason.trim() },
+      }).unwrap();
+      setVoidOpen(false);
+      setVoidReason('');
+      setFeedback('Đã hủy phiếu trước POSTED có audit. Không có movement hoặc thay đổi tồn kho.');
+      await refresh();
+    } catch (error) {
+      setFeedback(messageFromError(error, 'Không thể hủy phiếu nhập. Dữ liệu chưa được thay đổi.'));
     }
   };
 
@@ -190,7 +217,7 @@ export function WarehouseReceiptLifecyclePanel() {
     >
       <div>
         <h3 id="receipt-lifecycle-title" className={cn(typography.sectionTitle, 'text-slate-950')}>Lifecycle phiếu nhập</h3>
-        <p className={cn(typography.caption, 'mt-1 text-slate-600')}>DRAFT → kiểm tra chất lượng → Quản lý duyệt → Admin POSTED. Tồn kho chỉ thay đổi ở POSTED.</p>
+        <p className={cn(typography.caption, 'mt-1 text-slate-600')}>Tạo phiếu → kiểm tra chất lượng → Quản lý duyệt → Quản trị viên ghi sổ kho. Tồn kho chỉ thay đổi khi ghi sổ kho.</p>
       </div>
       {isError ? (
         <QueryErrorAlert title="Không tải được phiếu nhập lifecycle" onRetry={() => void refetch()}>
@@ -219,11 +246,12 @@ export function WarehouseReceiptLifecyclePanel() {
       {receipt && !isReceiptError && (
         <div className="grid gap-3 rounded-sm border border-slate-300 bg-slate-50 p-3" data-testid="receipt-lifecycle-detail">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div><p className="font-semibold text-slate-950">{receipt.receiptCode}</p><p className="text-xs text-slate-600">{statusLabel(receipt.status, receipt.qualityStatus)} · version {receipt.concurrencyVersion}</p></div>
+            <div><p className="font-semibold text-slate-950">{receipt.receiptCode}</p><p className="text-xs text-slate-600">{statusLabel(receipt.status, receipt.qualityStatus)}</p></div>
             <div className="flex flex-wrap gap-2">
               {showQualityControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setQualityOpen(true); }}><ClipboardCheck size={16} />Kiểm tra chất lượng</Button>}
-              {showPostControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setPostOpen(true); }}><CheckCircle2 size={16} />POSTED phiếu nhập</Button>}
+              {showPostControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setPostOpen(true); }}><CheckCircle2 size={16} />Ghi sổ kho</Button>}
               {showReworkControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setReworkReason(''); setReworkOpen(true); }}>Xử lý lại phiếu nhập</Button>}
+              {showVoidControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setVoidReason(''); setVoidOpen(true); }}><ShieldAlert size={16} />Hủy có audit</Button>}
               {showCorrectionControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setCorrectionReason(''); setCorrectionDraft({}); setCorrectionOpen(true); }}>Tạo correction hậu nhập</Button>}
             </div>
           </div>
@@ -254,26 +282,33 @@ export function WarehouseReceiptLifecyclePanel() {
       </Dialog>
 
       <Dialog open={postOpen} onOpenChange={setPostOpen}>
-        <DialogContent aria-describedby="receipt-post-description"><DialogHeader><DialogTitle>POSTED phiếu nhập?</DialogTitle><DialogDescription id="receipt-post-description">Thao tác này sinh movement và cập nhật tiến độ đơn mua. Hệ thống dùng version và command ID để chặn stale/duplicate POST.</DialogDescription></DialogHeader><DialogFooter><Button type="button" variant="outline" disabled={isPosting} onClick={() => setPostOpen(false)}>Hủy</Button><Button type="button" disabled={isPosting} onClick={() => void submitPost()}>{isPosting && <LoaderCircle className="animate-spin" />}Xác nhận POSTED</Button></DialogFooter></DialogContent>
+        <DialogContent aria-describedby="receipt-post-description"><DialogHeader><DialogTitle>Ghi sổ kho cho phiếu nhập?</DialogTitle><DialogDescription id="receipt-post-description">Thao tác này tạo bút toán tồn kho và cập nhật tiến độ đơn mua. Hệ thống kiểm tra phiên bản chứng từ để chặn thao tác trùng hoặc dữ liệu cũ.</DialogDescription></DialogHeader><DialogFooter><Button type="button" variant="outline" disabled={isPosting} onClick={() => setPostOpen(false)}>Hủy</Button><Button type="button" disabled={isPosting} onClick={() => void submitPost()}>{isPosting && <LoaderCircle className="animate-spin" />}Xác nhận ghi sổ kho</Button></DialogFooter></DialogContent>
       </Dialog>
       <Dialog open={reworkOpen} onOpenChange={setReworkOpen}>
         <DialogContent aria-describedby="receipt-rework-description">
-          <DialogHeader><DialogTitle>Xử lý lại phiếu nhập?</DialogTitle><DialogDescription id="receipt-rework-description">Phiếu sẽ quay về DRAFT/PENDING_INSPECTION để Thủ kho kiểm tra lại. Tồn kho không thay đổi.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Xử lý lại phiếu nhập?</DialogTitle><DialogDescription id="receipt-rework-description">Phiếu sẽ quay về bước chờ kiểm tra chất lượng. Tồn kho không thay đổi.</DialogDescription></DialogHeader>
           <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do xử lý lại<Input aria-label="Lý do xử lý lại" value={reworkReason} onChange={(event) => setReworkReason(event.target.value)} placeholder="Nêu lý do và bằng chứng cần kiểm tra lại" /></label>
           <DialogFooter><Button type="button" variant="outline" disabled={isReworking} onClick={() => setReworkOpen(false)}>Hủy</Button><Button type="button" disabled={isReworking || !reworkReason.trim()} onClick={() => void submitRework()}>{isReworking && <LoaderCircle className="animate-spin" />}Xác nhận xử lý lại</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
+        <DialogContent aria-describedby="receipt-void-description">
+          <DialogHeader><DialogTitle>Hủy phiếu nhập trước khi ghi sổ kho?</DialogTitle><DialogDescription id="receipt-void-description">Chỉ dùng khi đối soát xác định phiếu tạo nhầm hoặc trùng. Hệ thống lưu phiếu, lý do, người xử lý và lịch sử; không xóa dữ liệu và không thay đổi tồn kho.</DialogDescription></DialogHeader>
+          <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do đối soát <Input aria-label="Lý do hủy có audit" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} placeholder="Mã scope, bằng chứng và lý do hủy" /></label>
+          <DialogFooter><Button type="button" variant="outline" disabled={isVoiding} onClick={() => setVoidOpen(false)}>Quay lại</Button><Button type="button" variant="destructive" disabled={isVoiding || !voidReason.trim()} onClick={() => void submitVoid()}>{isVoiding && <LoaderCircle className="animate-spin" />}Xác nhận hủy có audit</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={correctionOpen} onOpenChange={setCorrectionOpen}>
         <DialogContent className="max-w-2xl" aria-describedby="receipt-correction-description">
-          <DialogHeader><DialogTitle>Tạo correction hậu POSTED</DialogTitle><DialogDescription id="receipt-correction-description">Correction là chứng từ append-only. Nó tạo bút toán xuất bù trừ theo source line; Receipt và movement POSTED gốc không bị sửa.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Tạo chứng từ điều chỉnh sau khi ghi sổ</DialogTitle><DialogDescription id="receipt-correction-description">Đây là chứng từ bổ sung, không sửa phiếu nhập hoặc bút toán gốc. Hệ thống tạo bút toán bù trừ theo đúng dòng nguồn.</DialogDescription></DialogHeader>
           <div className="grid gap-3">
             {receipt?.lines.map((line) => {
               const maxQuantity = line.acceptedQuantity ?? 0;
-              return <label key={line.receiptLineId} className="grid gap-1 rounded-sm border border-slate-200 p-3 text-sm font-semibold text-slate-700 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center"><span>{line.ingredientName ?? line.ingredientId}<span className="mt-1 block text-xs font-normal text-slate-600">Tối đa theo dòng đã chấp nhận: {formatQuantityWithUnit(maxQuantity, line.unitName ?? '')}. Hệ thống kiểm tra lại balance và tồn kho khi POSTED.</span></span><Input aria-label={`Số lượng correction ${line.ingredientName ?? line.receiptLineId}`} type="number" min="0" max={maxQuantity} step="0.001" value={correctionDraft[line.receiptLineId] ?? ''} onChange={(event) => setCorrectionDraft((current) => ({ ...current, [line.receiptLineId]: event.target.value }))} disabled={maxQuantity <= 0} /></label>;
+              return <label key={line.receiptLineId} className="grid gap-1 rounded-sm border border-slate-200 p-3 text-sm font-semibold text-slate-700 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center"><span>{line.ingredientName ?? 'Nguyên liệu chưa có tên'}<span className="mt-1 block text-xs font-normal text-slate-600">Tối đa theo số lượng đã chấp nhận: {formatQuantityWithUnit(maxQuantity, line.unitName ?? '')}. Hệ thống kiểm tra lại số lượng và tồn kho khi ghi sổ.</span></span><Input aria-label={`Số lượng điều chỉnh ${line.ingredientName ?? 'nguyên liệu'}`} type="number" min="0" max={maxQuantity} step="0.001" value={correctionDraft[line.receiptLineId] ?? ''} onChange={(event) => setCorrectionDraft((current) => ({ ...current, [line.receiptLineId]: event.target.value }))} disabled={maxQuantity <= 0} /></label>;
             })}
-            <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do correction<Input aria-label="Lý do correction" value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Nêu chứng từ/bằng chứng đối soát và lý do bù trừ" /></label>
+            <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do điều chỉnh<Input aria-label="Lý do điều chỉnh" value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Nêu chứng từ, bằng chứng đối soát và lý do bù trừ" /></label>
           </div>
-          <DialogFooter><Button type="button" variant="outline" disabled={isCorrecting} onClick={() => setCorrectionOpen(false)}>Hủy</Button><Button type="button" disabled={isCorrecting || !correctionReason.trim()} onClick={() => void submitCorrection()}>{isCorrecting && <LoaderCircle className="animate-spin" />}POSTED correction</Button></DialogFooter>
+          <DialogFooter><Button type="button" variant="outline" disabled={isCorrecting} onClick={() => setCorrectionOpen(false)}>Hủy</Button><Button type="button" disabled={isCorrecting || !correctionReason.trim()} onClick={() => void submitCorrection()}>{isCorrecting && <LoaderCircle className="animate-spin" />}Ghi sổ chứng từ điều chỉnh</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
