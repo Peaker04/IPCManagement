@@ -54,7 +54,7 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             throw await CreateScopeDecisionAsync(plan, requestedCustomerId, shiftName, priceTier, "Không có source-line material khớp customer/date/shift/tier.", cancellationToken);
 
         var run = await context.Serviceruns.FirstOrDefaultAsync(item =>
-            item.CustomerId.SequenceEqual(requestedCustomerId) && item.ServiceDate == plan.PlanDate && item.ShiftName == shiftName && item.PriceTierAmount == priceTier,
+            item.CustomerId != null && item.CustomerId.SequenceEqual(requestedCustomerId) && item.ServiceDate == plan.PlanDate && item.ShiftName == shiftName && item.PriceTierAmount == priceTier,
             cancellationToken);
         if (run is null)
         {

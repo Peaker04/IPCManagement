@@ -4,10 +4,10 @@ public sealed class ServiceRun
 {
     public byte[] ServiceRunId { get; set; } = null!;
     public byte[] PlanId { get; set; } = null!;
-    public byte[] CustomerId { get; set; } = null!;
-    public DateOnly ServiceDate { get; set; }
+    public byte[]? CustomerId { get; set; }
+    public DateOnly? ServiceDate { get; set; }
     public string ShiftName { get; set; } = null!;
-    public decimal PriceTierAmount { get; set; }
+    public decimal? PriceTierAmount { get; set; }
     public long ConcurrencyVersion { get; set; }
     public string Status { get; set; } = "PLANNED";
     public int? ActualServings { get; set; }
