@@ -18,6 +18,7 @@ describe('ApprovalPage history copy', () => {
     ['purchase-price-exception', 'Reject', 'Từ chối ngoại lệ giá?', 'Giữ ngoại lệ giá', 'Từ chối ngoại lệ'],
     ['material-demand', 'Approve', 'Duyệt nhu cầu nguyên liệu?', 'Giữ nhu cầu', 'Duyệt nhu cầu'],
     ['purchase-price-exception', 'Approve', 'Duyệt ngoại lệ giá?', 'Giữ ngoại lệ giá', 'Duyệt ngoại lệ'],
+    ['purchase-request', 'Approve', 'Duyệt đề xuất mua?', 'Giữ đề xuất mua', 'Duyệt chứng từ'],
   ] as const)('uses contextual, safe confirmation copy for %s %s', (targetType, decision, title, safeLabel, submitLabel) => {
     expect(getApprovalDecisionCopy(targetType, decision)).toMatchObject({ title, safeLabel, submitLabel });
   });

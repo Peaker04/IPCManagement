@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getDocuments: vi.fn(),
   getPurchaseRequests: vi.fn(),
   getHistory: vi.fn(),
+  executeDecision: vi.fn(),
 }));
 
 vi.mock('@/api/workflowApi', () => ({
@@ -15,7 +16,7 @@ vi.mock('@/api/workflowApi', () => ({
   useGetWorkflowDocumentsQuery: mocks.getDocuments,
   useGetPurchaseRequestsPageQuery: mocks.getPurchaseRequests,
   useGetApprovalHistoryQuery: mocks.getHistory,
-  useExecuteApprovalDecisionMutation: () => [vi.fn(), { isLoading: false }],
+  useExecuteApprovalDecisionMutation: () => [mocks.executeDecision, { isLoading: false }],
 }));
 
 import ApprovalPage from './ApprovalPage';
@@ -128,6 +129,7 @@ const openHistory = () => {
 describe('ApprovalPage query state boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.executeDecision.mockReturnValue({ unwrap: vi.fn() });
     mocks.getApprovals.mockReturnValue(readyQuery(approvalPage()));
     mocks.getDocuments.mockReturnValue(readyQuery([]));
     mocks.getPurchaseRequests.mockReturnValue(readyQuery(purchaseRequestPage));
@@ -163,6 +165,35 @@ describe('ApprovalPage query state boundary', () => {
 
     expect(screen.getByText('Duyệt đề xuất mua PR-001')).toBeInTheDocument();
     expect(screen.getByText('Đang cập nhật hàng đợi')).toBeInTheDocument();
+  });
+
+  it('opens the purchase-request approval dialog from that row and mutates only after confirmation', async () => {
+    mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([{
+      ...approvalRecord,
+      targetCode: 'PR-20260810-FULLDAY',
+      title: 'Duyệt đề xuất mua PR-20260810-FULLDAY',
+      source: 'PR-20260810-FULLDAY',
+    }])));
+
+    renderPage();
+
+    const row = screen.getByText('Duyệt đề xuất mua PR-20260810-FULLDAY').closest('article');
+    if (!row) throw new Error('Expected the PR approval row to be rendered.');
+    fireEvent.click(within(row).getByRole('button', { name: 'Duyệt chứng từ' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Duyệt đề xuất mua?' });
+    expect(dialog).toBeInTheDocument();
+    expect(mocks.executeDecision).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Duyệt chứng từ' }));
+
+    await waitFor(() => expect(mocks.executeDecision).toHaveBeenCalledWith({
+      targetType: 'purchase-request',
+      targetId: 'purchase-1',
+      status: 'Approve',
+      reason: null,
+      week: undefined,
+    }));
   });
 
   it('sends deep-link week target and server search filters to the inbox query', async () => {
