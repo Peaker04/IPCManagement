@@ -22,27 +22,16 @@ export const buildWarehouseIssueAllocation = (
   stockRows: CurrentStockRow[],
   issuedLines: KitchenIssueRow[],
 ): WarehouseIssueAllocation => {
-  const demandByItem = new Map<string, CreateInventoryIssueLineRequest>();
-  for (const line of demandLines) {
-    if (
-      line.materialRequestId !== materialRequestId
-      || !line.ingredientId
-      || !line.unitId
-      || line.required <= QUANTITY_EPSILON
-    ) {
-      continue;
-    }
+  const demandLinesForRequest = demandLines.filter((line) => (
+    line.materialRequestId === materialRequestId
+    && line.ingredientId
+    && line.unitId
+    && line.required > QUANTITY_EPSILON
+  ));
 
-    const key = lineKey(line.ingredientId, line.unitId);
-    const existing = demandByItem.get(key);
-    demandByItem.set(key, {
-      ingredientId: line.ingredientId,
-      unitId: line.unitId,
-      requestedQty: (existing?.requestedQty ?? 0) + line.required,
-      issuedQty: (existing?.issuedQty ?? 0) + line.required,
-    });
-  }
-
+  // Keep the source-line grain until the command boundary. A material request can
+  // legitimately repeat one ingredient/unit across several source lines; the API
+  // must receive the exact line ID so it can enforce provenance and remaining qty.
   const issuedByItem = new Map<string, number>();
   for (const line of issuedLines) {
     if (line.materialRequestId !== materialRequestId) continue;
@@ -61,8 +50,12 @@ export const buildWarehouseIssueAllocation = (
   let remainingLineCount = 0;
   let fullyCoveredLineCount = 0;
 
-  for (const [key, demand] of demandByItem) {
-    const remaining = Math.max(demand.requestedQty - (issuedByItem.get(key) ?? 0), 0);
+  for (const line of demandLinesForRequest) {
+    const key = lineKey(line.ingredientId!, line.unitId!);
+    const previouslyIssued = issuedByItem.get(key) ?? 0;
+    const alreadyAppliedToEarlierSource = Math.min(previouslyIssued, line.required);
+    issuedByItem.set(key, Math.max(previouslyIssued - alreadyAppliedToEarlierSource, 0));
+    const remaining = Math.max(line.required - alreadyAppliedToEarlierSource, 0);
     if (remaining <= QUANTITY_EPSILON) continue;
 
     remainingLineCount += 1;
@@ -71,9 +64,11 @@ export const buildWarehouseIssueAllocation = (
     if (allocated <= QUANTITY_EPSILON) continue;
 
     if (available + QUANTITY_EPSILON >= remaining) fullyCoveredLineCount += 1;
+    stockByItem.set(key, Math.max(available - allocated, 0));
     lines.push({
-      ingredientId: demand.ingredientId,
-      unitId: demand.unitId,
+      materialRequestLineId: line.id,
+      ingredientId: line.ingredientId!,
+      unitId: line.unitId!,
       requestedQty: allocated,
       issuedQty: allocated,
     });
