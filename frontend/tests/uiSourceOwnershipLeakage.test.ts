@@ -115,14 +115,36 @@ const textAsset = (file: string) => {
     && (file.endsWith('.map') || ['.js', '.css', '.html', '.json', '.txt'].includes(path.extname(file).toLowerCase()))
 }
 
-const walk = (directory: string): string[] => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-  const fullPath = path.join(directory, entry.name)
-  return entry.isDirectory() ? walk(fullPath) : [fullPath]
-})
+type ViteManifestEntry = {
+  file?: string
+  css?: string[]
+  assets?: string[]
+}
+
+const currentBuildAssets = (distRoot: string) => {
+  const manifestPath = path.join(distRoot, '.vite', 'manifest.json')
+  if (!fs.existsSync(manifestPath)) throw new Error(`Missing Vite build manifest: ${manifestPath}`)
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, ViteManifestEntry>
+  const relativeAssets = new Set(['index.html'])
+  Object.values(manifest).forEach((entry) => {
+    if (entry.file) relativeAssets.add(entry.file)
+    entry.css?.forEach((file) => relativeAssets.add(file))
+    entry.assets?.forEach((file) => relativeAssets.add(file))
+  })
+  for (const relativeAsset of [...relativeAssets]) {
+    const assetPath = path.join(distRoot, relativeAsset)
+    if (!fs.existsSync(assetPath) || !textAsset(assetPath)) continue
+    const text = fs.readFileSync(assetPath, 'utf8')
+    for (const match of text.matchAll(/sourceMappingURL=([^\s*]+)/g)) {
+      relativeAssets.add(path.relative(distRoot, path.resolve(path.dirname(assetPath), match[1])).replaceAll('\\', '/'))
+    }
+  }
+  return [...relativeAssets].map((file) => path.join(distRoot, file)).filter((file) => fs.existsSync(file) && textAsset(file))
+}
 
 export const scanDistTextAssets = (distRoot = path.join(frontendRoot, 'dist'), manifest: readonly UiSourceOwnershipManifestEntry[] = runtimeManifest) => {
   if (!fs.existsSync(distRoot) || !fs.statSync(distRoot).isDirectory()) throw new Error(`Missing frontend dist directory: ${distRoot}`)
-  const assets = walk(distRoot).filter(textAsset).sort((left, right) => left.localeCompare(right))
+  const assets = currentBuildAssets(distRoot).sort((left, right) => left.localeCompare(right))
   if (assets.length === 0) throw new Error(`No emitted text assets found under ${distRoot}`)
   const variants = buildManifestPathVariants(manifest)
   const matcher = compileSourcePathMatcher(variants)
@@ -186,7 +208,7 @@ if (process.env.VITEST) {
       fs.mkdirSync(path.join(distRoot, 'assets'), { recursive: true })
       fs.writeFileSync(
         path.join(distRoot, '.vite', 'manifest.json'),
-        JSON.stringify({ entry: { src: 'src/features/auth/pages/LoginPage.tsx' } }),
+        JSON.stringify({ entry: { file: 'assets/runtime.js' } }),
       )
       fs.writeFileSync(path.join(distRoot, 'assets', 'runtime.js'), 'export const sourcePathLeak = false')
 
@@ -195,6 +217,25 @@ if (process.env.VITEST) {
       expect(result.assets.some((asset) => asset.endsWith('/.vite/manifest.json'))).toBe(false)
       expect(result.assets.some((asset) => asset.endsWith('/assets/runtime.js'))).toBe(true)
       expect(result.leaks).toEqual([])
+    } finally {
+      fs.rmSync(distRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('ignores orphan maps but scans a source map referenced by the current manifest asset', () => {
+    const distRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'source-ownership-map-'))
+    try {
+      fs.mkdirSync(path.join(distRoot, '.vite'), { recursive: true })
+      fs.mkdirSync(path.join(distRoot, 'assets'), { recursive: true })
+      fs.writeFileSync(path.join(distRoot, '.vite', 'manifest.json'), JSON.stringify({ entry: { file: 'assets/runtime.js' } }))
+      fs.writeFileSync(path.join(distRoot, 'index.html'), '<script src="/assets/runtime.js"></script>')
+      fs.writeFileSync(path.join(distRoot, 'assets', 'orphan.js.map'), JSON.stringify({ sources: ['frontend/src/features/auth/pages/LoginPage.tsx'] }))
+      fs.writeFileSync(path.join(distRoot, 'assets', 'runtime.js'), 'export const ready = true')
+      expect(scanDistTextAssets(distRoot).leaks).toEqual([])
+
+      fs.writeFileSync(path.join(distRoot, 'assets', 'runtime.js'), 'export const ready = true\n//# sourceMappingURL=runtime.js.map')
+      fs.writeFileSync(path.join(distRoot, 'assets', 'runtime.js.map'), JSON.stringify({ sources: ['frontend/src/features/auth/pages/LoginPage.tsx'] }))
+      expect(scanDistTextAssets(distRoot).leaks).not.toEqual([])
     } finally {
       fs.rmSync(distRoot, { recursive: true, force: true })
     }

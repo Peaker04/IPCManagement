@@ -4,6 +4,7 @@ import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
 import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { typography } from '@/lib/typography';
+import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi';
@@ -53,6 +54,7 @@ import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/Quer
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
 const WeeklyMenuPage = () => {
+  const canPublishWeeklyMenu = useHasRole([]);
   const dispatch = useAppDispatch();
   const reduxWeeklyMenu = useCoordinationStoreSelector((state) => state.coordination.weeklyMenu);
   const orders = useCoordinationStoreSelector((state) => state.coordination.orders);
@@ -446,7 +448,7 @@ const WeeklyMenuPage = () => {
         weekStartDate={displayedWeekStartDate}
         isCustomerLoading={isCustomerLoading}
         isImporting={importWorkflow.status.isImporting}
-        canPublish={Boolean(publishableSchedule)}
+        canPublish={canPublishWeeklyMenu && Boolean(publishableSchedule)}
         isPublishing={isPublishingMenu}
         onEdit={scheduleWorkflow.actions.openEditor}
         onImport={importWorkflow.actions.open}

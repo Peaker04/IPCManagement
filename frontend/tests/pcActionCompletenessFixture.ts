@@ -281,14 +281,14 @@ const purchasingRows: PcProjectedRegistryRow[] = purchasingOperations.map(([scen
     role: 'button',
     name: label,
     source: scenarioId === 'receiving'
-      ? 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:128-145'
-      : 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438',
+      ? 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:128-147'
+      : 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500',
     route: '/purchasing',
   },
   source: [
     'frontend/tests/operationalStateActionRegistry.test.ts:358-404',
     'frontend/src/features/purchasing/purchasingModel.ts:173-244',
-    'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438',
+    'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500',
     'backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseWorkbenchPolicy.cs:1',
   ],
   disposition: ['submitted', 'receiving'].includes(scenarioId)
@@ -406,13 +406,13 @@ export const PC_PROJECTED_REGISTRY_ROWS: readonly PcProjectedRegistryRow[] = [
     expectedControl: {
       role: 'button',
       name: 'Tạo phiếu xuất kho',
-      source: 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320',
+      source: 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350',
       route: '/warehouse',
     },
     source: [
       'frontend/tests/operationalStateActionRegistry.test.ts:460-489',
       'frontend/src/lib/actionEligibility.ts:49-69',
-      `frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320 — ${UNKNOWN}: operation remains page-local`,
+      `frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350 — ${UNKNOWN}: operation remains page-local`,
       'backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs:1',
     ],
     disposition: 'Operation, actor, entity and permissions remain unresolved; no synthetic canonical operation.',

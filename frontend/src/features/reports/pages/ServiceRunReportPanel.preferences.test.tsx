@@ -12,7 +12,7 @@ describe('Service Run table preferences', () => {
     expect(source).toContain("id: 'servings'");
     expect(source).toContain("id: 'correction'");
     expect(source).toContain('CorrectionOverlay');
-    expect(source).toContain('Bản chốt đóng ca là dữ liệu bất biến');
+    expect(source).toContain('Bản chốt đóng ca được giữ nguyên');
     expect(source).toContain('không mở lại ca');
     expect(source).toContain('PaginationBar');
     expect(source).toContain('getServiceRunStatusPresentation');

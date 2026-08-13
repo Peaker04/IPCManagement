@@ -133,7 +133,9 @@ describe('MaterialDemandSection — lỗi API không được hoá trang thành 
     expect(screen.getByText(/Chưa tính nhu cầu nguyên liệu/)).toBeInTheDocument()
     expect(screen.queryByText('Không tải được nhu cầu nguyên liệu')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull()
-    expect(screen.getByText('Không có thiếu hụt')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có ngày')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có KHSX theo ngày')).toBeInTheDocument()
+    expect(screen.queryByText('Không có thiếu hụt')).toBeNull()
   })
 
   it('hiện hướng dẫn thay vì empty state khi query chưa đủ điều kiện chạy', () => {

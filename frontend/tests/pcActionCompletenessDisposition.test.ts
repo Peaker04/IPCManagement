@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import adminContractsSource from '../src/app/pages/admin-data/AdminContractsPanel.tsx?raw'
-import appRouterSource from '../src/routes/AppRouter.tsx?raw'
+import weeklyMenuPageSource from '../src/features/projects/pages/WeeklyMenuPage.tsx?raw'
+import weeklyMenuCommandBarSource from '../src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx?raw'
 import weeklyFixtureSource from './weekly-menu-lifecycle-pa2b-fixture.ts?raw'
 import {
   assertPcMeasurementRows,
@@ -144,6 +144,8 @@ const historicalControlSource = new Map<string, string>([
   ['frontend/src/features/coordination/components/order-table.tsx:345', 'frontend/src/features/coordination/components/order-table.tsx:327'],
   ['frontend/src/features/coordination/components/order-table.tsx:373', 'frontend/src/features/coordination/components/order-table.tsx:355'],
   ['frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129', 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128'],
+  ['frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320'],
+  ['frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:56-61', 'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:236-315'],
 ])
 
 const assertSameStrings = (actual: readonly string[], expected: readonly string[], label: string) => {
@@ -388,8 +390,9 @@ describe('PC action completeness disposition ledger', () => {
   it('locks D-01 as intentional FE-stricter with source fragments', () => {
     expect(weeklyFixtureSource).toContain('manager: { backendAvailable: true, frontendAvailable: false }')
     expect(weeklyFixtureSource).toContain('coordinator: { backendAvailable: true, frontendAvailable: false }')
-    expect(adminContractsSource).toContain("handleUpdateScheduleVersion('ACTIVE')")
-    expect(appRouterSource).toContain("<RoleGuard requiredPermissions={['*']}")
+    expect(weeklyMenuPageSource).toContain('const canPublishWeeklyMenu = useHasRole([])')
+    expect(weeklyMenuPageSource).toContain('canPublish={canPublishWeeklyMenu && Boolean(publishableSchedule)}')
+    expect(weeklyMenuCommandBarSource).toContain('Xuất bản tuần')
 
     const drifted = structuredClone(validLedger)
     const d01Index = drifted.acceptedExceptions.findIndex((item) => item.id === 'D-01')

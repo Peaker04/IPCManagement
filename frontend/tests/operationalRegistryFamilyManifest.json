@@ -114,7 +114,7 @@
         "reason": "The imported chef model projects plan data; receive eligibility and action remain component-local.",
         "sources": [
           "frontend/src/features/chef/production/chefProductionModel.ts:113-125",
-          "frontend/src/features/chef/production/ChefProductionSection.tsx:37-58"
+          "frontend/src/features/chef/production/ChefProductionSection.tsx:27-50"
         ]
       },
       "backendBacked": true,
@@ -158,7 +158,7 @@
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
           "frontend/src/features/reports/pages/ReportsPage.tsx:60-80",
-          "frontend/src/features/reports/pages/ReportsPage.tsx:160"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:161"
         ]
       },
       "backendBacked": false,

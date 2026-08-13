@@ -30,7 +30,13 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         line!.FindProperty(nameof(PurchaseRequestLine.SupplierId))!.IsNullable.Should().BeTrue();
         order!.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(PurchaseOrder.PurchaseRequestId), nameof(PurchaseOrder.SupplierId) }));
+                .SequenceEqual(new[] {
+                    nameof(PurchaseOrder.PurchaseRequestId),
+                    nameof(PurchaseOrder.SupplierId),
+                    nameof(PurchaseOrder.ProposedDeliveryDate),
+                    nameof(PurchaseOrder.ReceivingWarehouseId),
+                    nameof(PurchaseOrder.PurchasingTerms)
+                }));
 
         var migration = File.ReadAllText(FindRepositoryFile(
             "backend", "src", "IPCManagement.Api", "Migrations",

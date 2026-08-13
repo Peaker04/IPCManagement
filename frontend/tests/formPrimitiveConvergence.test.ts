@@ -11,23 +11,29 @@ import {
 const production = readProductionSources()
 
 const checkboxExceptionLocations = [
-  'src/app/pages/admin-data/AdminContractsPanel.tsx:182',
+  'src/app/pages/admin-data/AdminContractsPanel.tsx:183',
   'src/app/pages/admin-data/AdminEmployeesPanel.tsx:108',
   'src/features/admin/pages/ApprovalRulesPage.tsx:417',
   'src/features/admin/pages/ApprovalRulesPage.tsx:516',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:323',
+  'src/features/chef/production/ServiceRunSection.tsx:161',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:404',
   'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:293',
 ]
 
 const fileExceptionLocations = [
   'src/app/pages/admin-data/AdminBomPanel.tsx:127',
-  'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:80',
+  'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:81',
 ]
 
 const pathExceptionLocations = [
   'src/components/common/PaginationBar.tsx:87',
   'src/components/common/PaginationBar.tsx:131',
+  'src/components/ui/input.tsx:93',
   'src/components/ui/textarea.tsx:7',
+  'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
+  'src/features/chef/production/ServiceRunSection.tsx:156',
+  'src/features/chef/production/ServiceRunSection.tsx:173',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:380',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
@@ -59,7 +65,7 @@ describe('form primitive convergence', () => {
       ...fileExceptionLocations,
       ...pathExceptionLocations,
     ])
-    expect(findingLocations(allControls).filter((location) => exceptionLocations.has(location))).toHaveLength(11)
+    expect(findingLocations(allControls).filter((location) => exceptionLocations.has(location))).toHaveLength(17)
 
     const residuals = allControls.filter((finding) =>
       !exceptionLocations.has(`${finding.path}:${finding.line}`),

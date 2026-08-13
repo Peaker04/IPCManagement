@@ -111,7 +111,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'export function buildChefProductionPlan({',
       '}: BuildChefProductionPlanOptions): ProductionPlan {',
     ],
-    'frontend/src/features/chef/production/ChefProductionSection.tsx:37-58': [
+    'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50': [
       'const canReceivePlan =',
       'onClick={() => void onReceivePlan()}',
     ],
@@ -121,7 +121,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:160': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:161': [
       '<ReportQueryBoundary view={activeReportView}>',
     ],
   },
@@ -374,7 +374,7 @@ const purchasingRegistry = purchasingStages.map((stage) => {
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/features/purchasing/purchasingModel.ts:173-244',
-      'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438',
+      'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500',
       'backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs:1',
       'backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseWorkbenchPolicy.cs:1',
     ],
@@ -442,7 +442,7 @@ const warehouseFulfilmentRegistry = [
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/lib/actionEligibility.ts:49-69',
-      `frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320 — ${UNKNOWN}: operation remains page-local`,
+      `frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350 — ${UNKNOWN}: operation remains page-local`,
       'frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx:44',
       'backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs:1',
     ],
@@ -543,14 +543,14 @@ const componentLocalDebt = [
   {
     id: 'WarehouseOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320',
+    source: 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350',
     sourceText: warehousePageSource,
     fragment: 'resolveIssueCreationAvailability',
   },
   {
     id: 'ProductionPlanOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/chef/production/ChefProductionSection.tsx:37-58',
+    source: 'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50',
     sourceText: chefProductionSectionSource,
     fragment: 'const canReceivePlan =',
   },

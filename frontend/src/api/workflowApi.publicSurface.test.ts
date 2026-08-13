@@ -21,6 +21,7 @@ const expectedEndpointNames = [
   'createPurchaseOrdersFromRequest',
   'createPurchaseRequestFromDemand',
   'createReceiptCorrection',
+  'createReturnAllocationDisposition',
   'createServiceRunAdjustment',
   'createSupplementalMaterialRequest',
   'createSupplierQuotation',
@@ -71,8 +72,10 @@ const expectedEndpointNames = [
   'getPurchaseRequests',
   'getPurchaseRequestsPage',
   'getPurchaseWorkbench',
+  'getReturnAllocationBalances',
   'getServiceRunAdjustments',
   'getServiceRunByPlan',
+  'getServiceRunByScope',
   'getServiceRunPage',
   'getStockLedgerReconciliation',
   'getStockMovementPage',
@@ -104,6 +107,7 @@ const expectedEndpointNames = [
   'updateDataQualityIssueRemediation',
   'updatePurchaseRequestLineSupplier',
   'updateSupplierQuotation',
+  'voidWarehousePurchaseReceipt',
   'waiveServiceRunConfirmation',
 ] as const;
 
@@ -125,6 +129,7 @@ const expectedHookNames = [
   'useCreatePurchaseOrdersFromRequestMutation',
   'useCreatePurchaseRequestFromDemandMutation',
   'useCreateReceiptCorrectionMutation',
+  'useCreateReturnAllocationDispositionMutation',
   'useCreateServiceRunAdjustmentMutation',
   'useCreateSupplementalMaterialRequestMutation',
   'useCreateSupplierQuotationMutation',
@@ -175,6 +180,7 @@ const expectedHookNames = [
   'useGetPurchaseRequestsPageQuery',
   'useGetPurchaseRequestsQuery',
   'useGetPurchaseWorkbenchQuery',
+  'useGetReturnAllocationBalancesQuery',
   'useGetServiceRunAdjustmentsQuery',
   'useGetServiceRunByPlanQuery',
   'useGetServiceRunPageQuery',
@@ -223,6 +229,6 @@ describe('workflow API public surface', () => {
       .sort();
 
     expect(hooks).toEqual(expectedHookNames);
-    expect(hooks).toHaveLength(100);
+    expect(hooks).toHaveLength(102);
   });
 });

@@ -76,7 +76,7 @@ const controlSourceFragment = (row: typeof PC_PROJECTED_REGISTRY_ROWS[number]) =
   }
   if (row.family === 'WeeklyMenuLifecycle') {
     if (row.scenarioId === 'empty') return 'Nhập Excel'
-    if (row.scenarioId === 'draft') return 'Publish'
+    if (row.scenarioId === 'draft') return 'Xuất bản tuần'
     if (row.scenarioId === 'active-incomplete') return 'scheduleWorkflow.actions.completeQuickServing'
     if (row.scenarioId === 'active-not-generated') return 'onClick={handleGenerate}'
     return 'Mở thu mua'

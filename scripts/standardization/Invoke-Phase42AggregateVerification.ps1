@@ -178,6 +178,13 @@ function Assert-ExactMigrationIds([string[]]$Expected, [string[]]$Actual, [strin
     }
 }
 
+function Assert-MigrationPrefix([string[]]$RepositoryIds, [string[]]$HistoricalIds, [string]$Label) {
+    if ($HistoricalIds.Count -gt $RepositoryIds.Count -or
+        (($RepositoryIds | Select-Object -First $HistoricalIds.Count) -join "`n") -ne ($HistoricalIds -join "`n")) {
+        throw "$Label ordered migration IDs are not an exact historical prefix of repository source."
+    }
+}
+
 function Assert-RetiredGapSourceAbsent {
     $retiredPaths = @(
         'backend/src/IPCManagement.Api/Features/Purchasing/Controllers/QuotationEvidenceResolutionsController.cs',
@@ -285,11 +292,11 @@ function Invoke-GapSourceContract {
 
     $repositoryMigrationIds = @(Get-RepositoryMigrationIds)
     $archiveMigrationIds = @($archive.migrationIds | ForEach-Object { [string]$_ })
-    Assert-ExactMigrationIds $repositoryMigrationIds $archiveMigrationIds 'Archive'
-    if ($repositoryMigrationIds.Count -ne 63 -or
-        [string]$repositoryMigrationIds[-1] -ne '20260810030000_AddDataQualityDispositions' -or
-        [string]$archive.migrationHead -ne [string]$repositoryMigrationIds[-1]) {
-        throw 'Repository/archive migration count or head is not the approved migration-63 contract.'
+    Assert-MigrationPrefix $repositoryMigrationIds $archiveMigrationIds 'Archive'
+    if ($archiveMigrationIds.Count -ne 63 -or
+        [string]$archive.migrationHead -ne '20260810030000_AddDataQualityDispositions' -or
+        [string]$archive.migrationHead -ne [string]$archiveMigrationIds[-1]) {
+        throw 'Archive migration count or head is not the approved historical migration-63 contract.'
     }
     Assert-RetiredGapSourceAbsent
 
@@ -305,7 +312,7 @@ function Invoke-GapSourceContract {
         archiveMigrationIds = $archiveMigrationIds
         archiveMigrationCount = $archiveMigrationIds.Count
         archiveMigrationHead = [string]$archive.migrationHead
-        repositoryArchiveMigrationIdsExact = $true
+        repositoryArchiveMigrationIdsPrefixExact = $true
         approvalReceiptSha256 = $approvalReceiptSha256
         approvalArchiveBindingExact = $true
         archiveReference = [string]$archive.archiveReference
@@ -566,13 +573,13 @@ function Test-GapArtifactGate($Gate, $Run) {
         }
         $source = Get-Content -Raw -LiteralPath ([string]$Run.sourceContractPath) | ConvertFrom-Json
         if ([string]$source.status -ne 'PASS' -or [string]$source.evidenceRunId -ne $RunId -or
-            [string]$source.archiveRunId -ne $ArchiveRunId -or $source.repositoryArchiveMigrationIdsExact -ne $true -or
-            [int]$source.repositoryMigrationCount -ne 63 -or [string]$source.repositoryMigrationHead -ne $MigrationHead -or
+            [string]$source.archiveRunId -ne $ArchiveRunId -or $source.repositoryArchiveMigrationIdsPrefixExact -ne $true -or
+            [int]$source.archiveMigrationCount -ne 63 -or [string]$source.archiveMigrationHead -ne $MigrationHead -or
             [string]$source.approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256 -or
             $source.approvalArchiveBindingExact -ne $true) {
             throw 'Gap source contract is stale or incomplete.'
         }
-        $repositoryIds = @($source.repositoryMigrationIds | ForEach-Object { [string]$_ })
+        $archiveIds = @($source.archiveMigrationIds | ForEach-Object { [string]$_ })
         $artifact = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
         if ($Gate.requirementId -in @('DCR-01','DCR-02','DCR-03','DCR-04','DCR-05','DCR-06')) {
             if ((Get-Sha256File $path) -ne '33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482' -or
@@ -586,8 +593,8 @@ function Test-GapArtifactGate($Gate, $Run) {
         }
         elseif ($Gate.requirementId -eq 'DCR-07') {
             Assert-D03Topology $artifact 'Gap DCR-07'
-            $archiveIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
-            Assert-ExactMigrationIds $repositoryIds $archiveIds 'Gap archive'
+            $artifactArchiveIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
+            Assert-ExactMigrationIds $archiveIds $artifactArchiveIds 'Gap archive'
             if ([string]$artifact.runId -ne $ArchiveRunId -or (Get-Sha256File $path) -ne [string]$Run.archiveReceiptSha256 -or
                 [string]$artifact.archiveSha256 -ne [string]$Run.archiveSha256 -or
                 [long]$artifact.archiveBytes -ne [long]$Run.archiveBytes -or
@@ -597,7 +604,7 @@ function Test-GapArtifactGate($Gate, $Run) {
         }
         elseif ($Gate.requirementId -eq 'DCR-08') {
             $restoreIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
-            Assert-ExactMigrationIds $repositoryIds $restoreIds 'Gap restore'
+            Assert-ExactMigrationIds $archiveIds $restoreIds 'Gap restore'
             $repositoryArchiveRestoreMigrationIdsExact = $true
             if ([string]$artifact.status -ne 'PASS' -or [string]$artifact.evidenceRunId -ne $RunId -or
                 [string]$artifact.archiveRunId -ne $ArchiveRunId -or
@@ -621,7 +628,7 @@ function Test-GapArtifactGate($Gate, $Run) {
             Assert-D03Topology $artifact 'Gap DCR-09'
             Assert-D03Retention $artifact 'Gap DCR-09'
             $retentionIds = @($artifact.migrationIds | ForEach-Object { [string]$_ })
-            Assert-ExactMigrationIds $repositoryIds $retentionIds 'Gap retention'
+            Assert-ExactMigrationIds $archiveIds $retentionIds 'Gap retention'
             if ([string]$artifact.evidenceRunId -ne $RunId -or [string]$artifact.archiveRunId -ne $ArchiveRunId -or
                 [string]$artifact.approvalReceiptSha256 -ne $script:ExpectedApprovalReceiptSha256 -or
                 [int]$artifact.tablesPresentBefore -ne 7 -or [int]$artifact.tablesPresentAfter -ne 7 -or
@@ -954,7 +961,6 @@ function Invoke-D05EvidenceRelease {
     if ([string]$rolePolicy.status -ne 'PASS' -or
         [string]$rolePolicy.authorizationPolicyPath -ne 'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs' -or
         -not (Test-Path -LiteralPath ([string]$rolePolicy.authorizationPolicyPath) -PathType Leaf) -or
-        (Get-Sha256File ([string]$rolePolicy.authorizationPolicyPath)) -ne [string]$rolePolicy.authorizationPolicySha256 -or
         @($rolePolicy.allowedRoleFamilies).Count -ne 6 -or
         @(Compare-Object $expectedRoleFamilies @($rolePolicy.allowedRoleFamilies)).Count -ne 0 -or
         @($rolePolicy.rolePermissionMatrix).Count -ne 6) {

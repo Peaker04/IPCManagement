@@ -25,7 +25,6 @@ const arbitrarySizeAllowlist: Readonly<Record<string, string>> = {
   'src/features/coordination/components/dish-detail-dialog.tsx': '11px dialog metadata preserves compact detail geometry',
   'src/features/coordination/components/order-table.tsx': '9px stacked quantity suffix preserves row height',
   'src/features/projects/components/ImportedLayoutMatrix.tsx': '10–12.5px spreadsheet preview mirrors imported cell density',
-  'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': '11px schedule helper preserves compact editor geometry',
   'src/features/purchasing/pages/PurchasingPage.tsx': '20px local workbench display heading has no matching shared role',
   'src/features/purchasing/PurchaseWorkflowGuide.tsx': '13px stage label preserves six-column workbench density',
   'src/features/reports/pages/ReportsPricePanel.tsx': '10px warning marker preserves chart annotation density',
@@ -34,7 +33,6 @@ const arbitrarySizeAllowlist: Readonly<Record<string, string>> = {
 const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/app/pages/admin-data/AdminAuditPanel.tsx': 'audit new value remains bold while code role owns family and metrics',
   'src/app/pages/admin-data/AdminContractsPanel.tsx': 'contract labels retain the established strong form hierarchy',
-  'src/components/common/ApprovalQueue.tsx': 'approval evidence and numeric exceptions retain emphasized decision values',
   'src/components/common/ContextStrip.tsx': 'context label/value contrast is a component-level hierarchy contract',
   'src/components/common/EmptyState.tsx': 'empty-state title remains emphasized within the body role',
   'src/components/common/StockMovementTable.tsx': 'movement identifiers and quantities retain compact table emphasis',
@@ -46,6 +44,7 @@ const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/features/coordination/components/order-table.tsx': 'compact customer identifier retains existing density',
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': 'approval document code retains compact emphasis',
   'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': 'import helper text retains existing medium emphasis',
+  'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': 'locked-slot caption keeps emphasis within the compact weekly editor',
   'src/features/purchasing/PurchaseDecisionPanel.tsx': 'decision values retain their existing emphasis',
   'src/features/purchasing/PurchaseWorkflowGuide.tsx': 'workflow stage labels retain compact emphasis',
   'src/features/reports/pages/ReportsPricePanel.tsx': 'report price annotations retain existing emphasis',

@@ -794,10 +794,13 @@ public class Phase42AggregateVerificationTests
                 .Should().Be("IMMUTABLE_APPROVAL_RECEIPT");
             receipt.GetProperty("expectedRestoreTarget").GetString()
                 .Should().Be("ipc_restore_phase42_phase_04_2_execution");
-            receipt.GetProperty("repositoryMigrationCount").GetInt32().Should().Be(63);
+            receipt.GetProperty("repositoryMigrationCount").GetInt32().Should().Be(70);
             receipt.GetProperty("repositoryMigrationHead").GetString()
+                .Should().Be("20260813171032_AddMenuAmendmentDecisionFanRemediations");
+            receipt.GetProperty("repositoryArchiveMigrationIdsPrefixExact").GetBoolean().Should().BeTrue();
+            receipt.GetProperty("archiveMigrationCount").GetInt32().Should().Be(63);
+            receipt.GetProperty("archiveMigrationHead").GetString()
                 .Should().Be("20260810030000_AddDataQualityDispositions");
-            receipt.GetProperty("repositoryArchiveMigrationIdsExact").GetBoolean().Should().BeTrue();
 
             using var manifestDocument = JsonDocument.Parse(File.ReadAllText(manifest));
             manifestDocument.RootElement.GetProperty("evidenceRunId").GetString()

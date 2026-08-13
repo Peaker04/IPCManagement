@@ -52,7 +52,7 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                             {section.dishes.length === 0 && <SelectItem value={EMPTY_DISH_VALUE}>Chưa có món trong danh mục</SelectItem>}
                           </SelectContent>
                         </Select>
-                      {locked && <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700"><Lock size={10} />Gửi duyệt thay đổi</span>}
+                      {locked && <span className="flex items-center gap-1 text-caption font-medium text-amber-700"><Lock size={10} />Gửi duyệt thay đổi</span>}
                     </div>
                   )
                 })}

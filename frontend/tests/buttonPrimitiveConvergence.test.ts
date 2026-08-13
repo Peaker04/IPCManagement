@@ -14,19 +14,21 @@ const commandBarExceptionLocations = [
   'src/app/pages/AdminDataPage.tsx:24',
   'src/app/pages/AdminDataPage.tsx:29',
   'src/features/admin/pages/ApprovalRulesPage.tsx:240',
-  'src/features/approvals/pages/ApprovalPage.tsx:250',
-  'src/features/approvals/pages/ApprovalPage.tsx:260',
+  'src/features/approvals/pages/ApprovalPage.tsx:254',
+  'src/features/approvals/pages/ApprovalPage.tsx:264',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:48',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:52',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:57',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:62',
-  'src/features/reports/pages/ReportsPage.tsx:76',
-  'src/features/warehouse/pages/WarehousePage.tsx:305',
+  'src/features/reports/pages/ReportsPage.tsx:77',
+  'src/features/warehouse/pages/WarehousePage.tsx:329',
 ]
 
 const adapterExceptionLocations = [
-  'src/app/layout/MainLayout.tsx:171',
-  'src/app/layout/MainLayout.tsx:225',
+  'src/app/layout/MainLayout.tsx:180',
+  'src/app/layout/MainLayout.tsx:234',
+  'src/app/layout/MainLayout.tsx:273',
+  'src/components/common/ApprovalQueue.tsx:75',
   'src/components/common/CursorPaginationBar.tsx:63',
   'src/components/common/CursorPaginationBar.tsx:80',
   'src/components/common/PageStepper.tsx:61',
@@ -36,6 +38,7 @@ const adapterExceptionLocations = [
   'src/components/common/PaginationBar.tsx:141',
   'src/components/common/ToastProvider.tsx:64',
   'src/components/common/ViewSwitcher.tsx:76',
+  'src/features/reports/pages/ReportsPricePanel.tsx:338',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

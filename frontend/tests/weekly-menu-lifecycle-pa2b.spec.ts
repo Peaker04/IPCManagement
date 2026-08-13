@@ -565,18 +565,14 @@ const captureScenario = async ({
 }) => {
   const apiStart = apiCalls.length
   const issueStart = browserIssues.length
-  const isAdminContractSurface = scenario.expectedControl?.surface === 'admin-contracts'
-  const targetRoute = isAdminContractSurface
-    ? `${ROUTES.ADMIN_DATA}?view=contracts&pa2b=${scenario.scenarioId}-${actor}`
-    : `${ROUTES.WEEKLY_MENU}?pa2b=${scenario.scenarioId}-${actor}`
+  const isAdminOnlyPublish = scenario.scenarioId === 'draft'
+  const targetRoute = `${ROUTES.WEEKLY_MENU}?pa2b=${scenario.scenarioId}-${actor}`
   await page.goto(targetRoute)
-  if (isAdminContractSurface && actor !== 'admin') {
-    await expect(page).toHaveURL(ROUTES.FORBIDDEN)
-  } else if (isAdminContractSurface) {
-    await expect(page.locator('#admin-contracts-panel')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled()
-  } else {
-    await expect(page.getByRole('tab', { name: 'Kế hoạch tuần', exact: true })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Kế hoạch tuần', exact: true })).toBeVisible()
+  if (isAdminOnlyPublish) {
+    const publish = page.getByRole('button', { name: 'Xuất bản tuần', exact: true })
+    if (actor === 'admin') await expect(publish).toBeEnabled()
+    else await expect(publish).toHaveCount(0)
   }
 
   const needsDemand = scenario.expectedControl?.surface === 'demand-panel'

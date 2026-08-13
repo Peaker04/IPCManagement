@@ -10,12 +10,12 @@ import {
 import { buildWeeklyMenuLifecycleModel, type WeeklyMenuLifecycleModel } from './weeklyMenuLifecycleModel'
 import materialDemandSource from '../demand/MaterialDemandSection.tsx?raw'
 
-const adminContractsSources = import.meta.glob('../../../../app/pages/admin-data/AdminContractsPanel.tsx', {
+const weeklyMenuPageSources = import.meta.glob('../../pages/WeeklyMenuPage.tsx', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>
-const adminContractsSource = Object.values(adminContractsSources)[0] ?? ''
+const weeklyMenuPageSource = Object.values(weeklyMenuPageSources)[0] ?? ''
 
 export type WeeklyMenuLifecyclePa2RegistryRow = {
   object: 'WeeklyMenuLifecycle'
@@ -149,12 +149,13 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
     operation: 'PATCH /api/coordination/menu-schedules/{id}/version với status ACTIVE',
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:101-114',
-      'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:240-304',
+      'frontend/src/features/projects/pages/WeeklyMenuPage.tsx:440-460',
+      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:56-61',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs:152-197',
     ],
     backendPermission: 'CoordinationAccess → CoordinationRoles',
-    frontendPermission: 'Admin Data route yêu cầu wildcard; control Publish chỉ có trong Contract',
+    frontendPermission: 'Weekly Menu dùng useHasRole([]); control Xuất bản tuần chỉ hiện cho Admin',
     correspondence: 'FE-CHẶT-HƠN',
   }),
   row(activeIncompleteModel, {
@@ -339,7 +340,8 @@ describe('PA-2 WeeklyMenuLifecycle registry', () => {
   })
 
   it('fails if the frontend action permission/status sources drift', () => {
-    expect(adminContractsSource).toContain("handleUpdateScheduleVersion('ACTIVE')")
+    expect(weeklyMenuPageSource).toContain('const canPublishWeeklyMenu = useHasRole([])')
+    expect(weeklyMenuPageSource).toContain('canPublish={canPublishWeeklyMenu && Boolean(publishableSchedule)}')
     expect(materialDemandSource).toContain("requiredPermissions={['demand.generate']}")
     expect(materialDemandSource).toContain("requiredPermissions={['coordination.order.lock']}")
     expect(materialDemandSource).toContain("requiredPermissions={['purchase.read']}")

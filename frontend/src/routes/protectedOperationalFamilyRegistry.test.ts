@@ -183,7 +183,7 @@ export const protectedOperationalFamilies: readonly ProtectedOperationalFamily[]
     classification: 'object-family', families: ['ProductionPlan'],
     stateSource: source('importable', 'frontend/src/features/chef/production/chefProductionModel.ts:113-319'),
     roleSource: source('literal-guarded', 'frontend/src/routes/AppRouter.tsx:57'),
-    operationSource: source('literal-guarded', 'frontend/src/features/chef/production/ChefProductionSection.tsx:37-58'),
+    operationSource: source('literal-guarded', 'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50'),
     backendEnforcementSource: source('literal-guarded', 'frontend/src/features/chef/production/useChefProductionPlan.ts:59-80'),
   },
   {
@@ -215,7 +215,7 @@ export const protectedOperationalFamilies: readonly ProtectedOperationalFamily[]
     classification: 'object-family', families: ['PurchasingWorkflow'],
     stateSource: source('importable', 'frontend/src/features/purchasing/purchasingModel.ts:18-245'),
     roleSource: source('literal-guarded', 'frontend/src/routes/AppRouter.tsx:59'),
-    operationSource: source('literal-guarded', 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149-438'),
+    operationSource: source('literal-guarded', 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500'),
     backendEnforcementSource: unknown('frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149', 'Frontend mutations do not expose endpoint policy metadata.'),
   },
   {
@@ -229,8 +229,8 @@ export const protectedOperationalFamilies: readonly ProtectedOperationalFamily[]
   {
     routeKey: 'WAREHOUSE', page: 'WarehousePage', ownerSource: 'frontend/src/features/warehouse/pages/WarehousePage.tsx',
     classification: 'object-family', families: ['WarehouseFulfilment', 'WarehousePurchaseReceipt'],
-    stateSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320'),
-    roleSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:44'),
+    stateSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350'),
+    roleSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:61-63'),
     operationSource: source('literal-guarded', 'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62-173'),
     backendEnforcementSource: unknown('frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx:44', 'Workbench mutations do not expose backend policy metadata.'),
   },

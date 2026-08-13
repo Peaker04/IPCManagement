@@ -63,7 +63,7 @@ describe('operational page performance contracts', () => {
   it('gates warehouse work-view queries and keeps panel geometry stable', () => {
     const warehouseContractSource = `${warehouseSource}\n${warehouseDemandPanelSource}`;
     expect(warehouseContractSource).toContain("{ skip: activeView !== 'demand' }");
-    expect(warehouseContractSource).toContain("useWorkflowOverview({ skip: activeView !== 'demand' })");
+    expect(warehouseContractSource).toContain('const { roleInboxItems } = useWorkflowOverview({');
     expect(warehouseContractSource).toContain('min-h-[420px]');
     expect(warehouseContractSource).toContain('duration-150 motion-reduce:transition-none');
   });

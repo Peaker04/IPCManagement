@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { RotateCcw, Scale, CheckCircle2, HelpCircle, AlertCircle } from 'lucide-react'
-import { formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
+import { formatNumber, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import type { ExcessMaterial, Ingredient } from '@/lib/types'
 
 type ExcessMaterialOption = Ingredient & {
@@ -118,7 +118,7 @@ export function ExcessMaterialDialog({
                       {material.name}
                     </span>
                     <span className="text-xs text-slate-400 ml-1.5">({formatUnit(material.unit)})</span>
-                    {material.sourceCustomerName ? <span className="block text-xs text-slate-500">{material.sourceCustomerName} · {material.sourceShiftName === 'AFTERNOON' ? 'Ca chiều' : material.sourceShiftName === 'MORNING' ? 'Ca sáng' : 'Cả ngày'}{typeof material.sourcePriceTierAmount === 'number' ? ` · ${material.sourcePriceTierAmount.toLocaleString('vi-VN')}đ` : ''}</span> : null}
+                    {material.sourceCustomerName ? <span className="block text-xs text-slate-500">{material.sourceCustomerName} · {material.sourceShiftName === 'AFTERNOON' ? 'Ca chiều' : material.sourceShiftName === 'MORNING' ? 'Ca sáng' : 'Cả ngày'}{typeof material.sourcePriceTierAmount === 'number' ? ` · ${formatNumber(material.sourcePriceTierAmount)}đ` : ''}</span> : null}
                   </SelectItem>
                 ))}
               </SelectContent>

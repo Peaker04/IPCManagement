@@ -107,7 +107,7 @@ function VietnameseDateInput({ className, value, defaultValue, onChange, min, ma
               <Button type="button" variant="ghost" size="icon-xs" aria-label="Tháng sau" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))}><ChevronRight /></Button>
             </div>
             <div className="grid grid-cols-7 gap-0.5 text-center">
-              {WEEKDAY_LABELS.map(label => <span key={label} className="py-0.5 text-[11px] font-semibold text-muted-foreground">{label}</span>)}
+              {WEEKDAY_LABELS.map(label => <span key={label} className="py-0.5 text-caption font-semibold text-muted-foreground">{label}</span>)}
               {days.map(date => {
                 const iso = toIsoDate(date)
                 const isSelected = selectedDate ? iso === toIsoDate(selectedDate) : false

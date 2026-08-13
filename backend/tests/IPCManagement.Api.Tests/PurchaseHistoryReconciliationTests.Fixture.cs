@@ -750,7 +750,8 @@ public partial class PurchaseHistoryReconciliationTests
                     postedAt TEXT NULL, rejectedBy BLOB NULL, rejectedAt TEXT NULL, rejectionReason TEXT NULL);
                 CREATE TABLE inventoryreceiptlines (
                     receiptLineId BLOB PRIMARY KEY, receiptId BLOB NOT NULL,
-                    purchaseRequestLineId BLOB NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
+                    purchaseRequestLineId BLOB NULL, purchaseOrderLineId BLOB NULL,
+                    ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
                     quantity NUMERIC NOT NULL, unitPrice NUMERIC NOT NULL,
                     amount NUMERIC GENERATED ALWAYS AS (quantity * unitPrice) STORED,
                     packageQuantitySnapshot NUMERIC NULL, packageBaseUnitIdSnapshot BLOB NULL,

@@ -188,7 +188,13 @@ describe('purchasing hook behavior', () => {
   })
 
   it('keeps supplier evidence visible and requires an explicit confirmation', async () => {
+    const user = userEvent.setup()
     const serviceDate = supplierServiceDate()
+    mocks.getWarehouses.mockReturnValue(readyQuery([{
+      warehouseId: 'warehouse-1',
+      warehouseCode: 'KHO-01',
+      warehouseName: 'Kho trung tâm',
+    }]))
     mocks.getSupplierEvidence.mockReturnValue(readyQuery({
         candidates: [{
           evidenceType: 'EffectiveQuotation',
@@ -219,10 +225,15 @@ describe('purchasing hook behavior', () => {
     expect(screen.getByText(/danh sách hiện tại vẫn được giữ/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' })).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
-    fireEvent.change(screen.getByLabelText('Ngày giao'), { target: { value: '2026-07-21' } })
-    fireEvent.change(screen.getByLabelText('Ghi chú quyết định'), { target: { value: 'Quy đổi từ đơn giá theo kg.' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' }))
+    await user.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
+    await user.click(screen.getByRole('combobox', { name: 'Kho nhận' }))
+    await user.click(await screen.findByRole('option', { name: 'Kho trung tâm' }))
+    await user.type(screen.getByLabelText('Điều khoản mua'), 'Giao tại kho.')
+    await user.clear(screen.getByLabelText('Ngày giao'))
+    await user.type(screen.getByLabelText('Ngày giao'), '21/07/2026')
+    await user.tab()
+    await user.type(screen.getByLabelText('Ghi chú quyết định'), 'Quy đổi từ đơn giá theo kg.')
+    await user.click(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' }))
 
     expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
     expect(screen.getByText('Quy đổi từ đơn giá theo kg.')).toBeInTheDocument()
@@ -373,12 +384,15 @@ describe('purchasing hook behavior', () => {
 
     await user.click(screen.getByRole('combobox', { name: 'Kho nhận *' }))
     await user.click(await screen.findByRole('option', { name: 'Kho trung tâm' }))
-    fireEvent.change(screen.getByLabelText('Ngày nhận *'), { target: { value: '2026-07-22' } })
+    await user.type(screen.getByLabelText('Ngày nhận *'), '22/07/2026')
+    await user.tab()
     fireEvent.change(screen.getByLabelText('Số lượng thực nhận *'), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText('Số lô *'), { target: { value: 'LOT-2207' } })
-    fireEvent.change(screen.getByLabelText('Ngày sản xuất *'), { target: { value: '2026-07-21' } })
-    fireEvent.change(screen.getByLabelText('Hạn sử dụng *'), { target: { value: '2026-07-25' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
+    await user.type(screen.getByLabelText('Ngày sản xuất *'), '21/07/2026')
+    await user.tab()
+    await user.type(screen.getByLabelText('Hạn sử dụng *'), '25/07/2026')
+    await user.tab()
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chỉnh sửa' })).toHaveFocus())
     fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu nháp' }))

@@ -32,9 +32,9 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'Six page datasets use labeled QueryView owners; the remaining aggregate request is a readiness probe surfaced as unknown/blocked state, never as empty menu data.',
     requiredMarkers: ['toLabeledQueryView', 'demandReadinessResult.isError', 'hasDemandIssue'],
   },
-  'src/features/projects/weekly-menu/schedule/MenuAmendmentInbox.tsx': {
-    rationale: 'The amendment inbox is an action-status notice inside the authoritative weekly-menu boundary; its query never supplies the menu, schedule, or demand table data.',
-    requiredMarkers: ['useGetMenuAmendmentsQuery', 'aria-label="Yêu cầu thay đổi thực đơn"', 'StandardManagerAction'],
+  'src/features/approvals/components/MenuAmendmentReconciliation.tsx': {
+    rationale: 'The reconciliation workbench owns customer and decision-page queries together; loading and failure states stay explicit and every correction remains bound to the selected decision row.',
+    requiredMarkers: ['useGetCoordinationCustomersQuery', 'useGetMenuAmendmentDecisionPageQuery', 'QueryErrorAlert'],
   },
   'src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx': {
     rationale: 'The receipt lifecycle panel owns only its receipt read model and presents explicit reload-safe errors; it cannot replace the warehouse purchase-order or stock-report query boundaries.',
