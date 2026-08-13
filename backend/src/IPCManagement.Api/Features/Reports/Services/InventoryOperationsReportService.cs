@@ -418,6 +418,9 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
                 .ThenInclude(item => item.ReceivedByNavigation)
             .Include(item => item.Ingredient)
             .Include(item => item.Unit)
+            .Include(item => item.MaterialRequestLine!)
+                .ThenInclude(item => item.PlanLine)
+                    .ThenInclude(item => item.Customer)
             .AsQueryable();
 
         if (warehouseId is not null)
@@ -442,7 +445,10 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
 
         if (!string.IsNullOrWhiteSpace(shiftName))
         {
-            lines = lines.Where(item => item.Issue.ShiftName == shiftName);
+            lines = lines.Where(item =>
+                item.MaterialRequestLine != null
+                    ? item.MaterialRequestLine.PlanLine.ShiftName == shiftName
+                    : item.Issue.ShiftName == shiftName);
         }
 
         return lines;
@@ -456,6 +462,9 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             IssueCode = item.Issue.IssueCode,
             IssueDate = item.Issue.IssueDate,
             ShiftName = item.Issue.ShiftName,
+            SourceCustomerName = item.MaterialRequestLine?.PlanLine.Customer.CustomerName,
+            SourceShiftName = item.MaterialRequestLine?.PlanLine.ShiftName,
+            SourcePriceTierAmount = item.MaterialRequestLine?.PriceTierAmount,
             WarehouseId = GuidHelper.ToGuidString(item.Issue.WarehouseId),
             WarehouseName = item.Issue.Warehouse.WarehouseName,
             MaterialRequestId = GuidHelper.ToGuidString(item.Issue.MaterialRequestId),

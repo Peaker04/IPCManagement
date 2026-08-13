@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { formatQuantityWithUnit } from '@/lib/formatters'
+import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters'
+import { formatShiftName } from '@/lib/workflowConfig'
 import type { Ingredient, SupplementalRequest } from '@/lib/types'
 
 interface SupplementalRequestDialogProps {
@@ -15,6 +16,14 @@ interface SupplementalRequestDialogProps {
   isSubmitting: boolean
   onSubmit: (data: SupplementalRequest) => Promise<boolean>
 }
+
+const materialLabel = (material: Ingredient) => [
+  material.name,
+  material.sourceCustomerName,
+  material.sourceShiftName ? formatShiftName(material.sourceShiftName) : undefined,
+  material.sourcePriceTierAmount ? formatCurrency(material.sourcePriceTierAmount) : undefined,
+  `đã nhận ${formatQuantityWithUnit(material.quantity, material.unit)}`,
+].filter(Boolean).join(' · ')
 
 export function SupplementalRequestDialog({
   open,
@@ -92,14 +101,14 @@ export function SupplementalRequestDialog({
               <SelectTrigger aria-labelledby="supplemental-material-label" aria-invalid={Boolean(fieldErrors.material) || undefined} aria-describedby={fieldErrors.material ? 'supplemental-material-error' : undefined}>
                 <SelectValue placeholder="Chọn từ phiếu xuất đã nhận">
                   {selectedMaterial
-                    ? `${selectedMaterial.name} · đã nhận ${formatQuantityWithUnit(selectedMaterial.quantity, selectedMaterial.unit)}`
+                    ? materialLabel(selectedMaterial)
                     : 'Chọn từ phiếu xuất đã nhận'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {materials.map((material) => (
                   <SelectItem key={material.id} value={material.id}>
-                    {material.name} · đã nhận {formatQuantityWithUnit(material.quantity, material.unit)}
+                    {materialLabel(material)}
                   </SelectItem>
                 ))}
               </SelectContent>

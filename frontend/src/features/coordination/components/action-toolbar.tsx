@@ -218,7 +218,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
       })
 
       if (!reportResponse.ok) {
-        throw new Error('Không tải được dữ liệu báo cáo từ backend.')
+        throw new Error('Không tải được dữ liệu báo cáo từ hệ thống.')
       }
 
       const report = (await reportResponse.json()) as ReportRowsResponse

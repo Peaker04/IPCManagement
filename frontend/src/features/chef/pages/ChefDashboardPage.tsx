@@ -41,8 +41,8 @@ export default function ChefDashboardPage() {
   }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
   const receipts = useKitchenReceipts(scope, setFeedback, isProductionView)
-  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback, isProductionView)
-  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback, isProductionView)
+  const production = useChefProductionPlan(scope, receipts.actionRows, receipts.signedMaterials, setFeedback, isProductionView)
+  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.actionRows, setFeedback, isProductionView)
   const journal = useChefJournal(!isProductionView)
   const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
   const receiptViewReady = receipts.queryView.phase === 'ready'
@@ -86,11 +86,6 @@ export default function ChefDashboardPage() {
             { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
           <ShiftAlert isLocked={production.isLocked} />
-          {statusMessages.length > 0 && (
-            <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
-              <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
-            </InlineAlert>
-          )}
         </>
       )}
     >
@@ -111,10 +106,11 @@ export default function ChefDashboardPage() {
         )}
         {isProductionView && (
           <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab" className="space-y-4">
-            <ChefQueryBoundary preserveFallback queries={[
+            <ChefQueryBoundary preserveFallback stabilizeInitialLoad queries={[
               { label: 'danh mục món và BOM', view: production.queryViews.catalog },
               { label: 'kế hoạch sản xuất trong ngày', view: production.queryViews.dailyPlan },
               { label: 'phiếu xuất kho bàn giao cho bếp', view: receipts.queryView },
+              { label: 'nguyên liệu có thể thao tác trong ca', view: receipts.actionQueryView },
               { label: 'phiếu trả kho của ca', view: exceptions.queryView },
             ]}>
             <ChefHeader productionPlan={production.productionPlan} />
@@ -157,6 +153,11 @@ export default function ChefDashboardPage() {
           </div>
         )}
         </div>
+        {statusMessages.length > 0 && (
+          <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
+            <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
+          </InlineAlert>
+        )}
       </div>
     </OperationalFrame>
   )

@@ -106,6 +106,7 @@ public static class InventoryMapper
         ReceivedBy = inventoryReturn.ReceivedBy is null ? null : GuidHelper.ToGuidString(inventoryReturn.ReceivedBy),
         ReceivedByName = inventoryReturn.ReceivedByNavigation?.FullName,
         ReceivedAt = inventoryReturn.ReceivedAt,
+        ConcurrencyVersion = inventoryReturn.ReceivedAt.HasValue ? 1 : 0,
         Lines = includeLines
             ? inventoryReturn.Inventoryreturnlines.Select(MapReturnLine).ToList()
             : new List<InventoryReturnLineDto>()

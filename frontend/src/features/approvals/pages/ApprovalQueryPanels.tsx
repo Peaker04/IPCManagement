@@ -1,5 +1,5 @@
-import type { ReactNode, RefObject } from 'react';
-import { Link } from 'react-router-dom';
+import type { ReactNode, RefObject } from "react";
+import { Link } from "react-router-dom";
 import {
   ApprovalQueue,
   CursorPaginationBar,
@@ -9,16 +9,16 @@ import {
   PaginationBar,
   QueryErrorAlert,
   StatusBadge,
-} from '@/components/common';
+} from "@/components/common";
 import type {
   ApprovalInboxPage,
   PageNumberPage,
   PurchaseRequestResult,
-} from '@/api/workflowApi';
-import type { QueryView } from '@/lib/queryView';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
-import type { ApprovalRecord, WorkflowDocument } from '@/types/workflow';
-import { Button } from '@/components/ui/button';
+} from "@/api/workflowApi";
+import type { QueryView } from "@/lib/queryView";
+import { formatWorkflowStatus } from "@/lib/workflowConfig";
+import type { ApprovalRecord, WorkflowDocument } from "@/types/workflow";
+import { Button } from "@/components/ui/button";
 
 interface ApprovalQueueStateProps {
   view: QueryView<ApprovalInboxPage>;
@@ -36,10 +36,20 @@ interface ApprovalQueueStateProps {
   paginationLabel: string;
 }
 
-function ApprovalQueueViewport({ children }: { children: ReactNode }) {
+function ApprovalQueueViewport({
+  children,
+  loading = false,
+}: {
+  children: ReactNode;
+  loading?: boolean;
+}) {
   return (
     <div
-      className="h-[32rem] overflow-y-auto pr-1"
+      className={
+        loading
+          ? "h-[32rem] overflow-hidden pr-1"
+          : "max-h-[32rem] overflow-y-auto pr-1"
+      }
       data-testid="approval-queue-viewport"
     >
       {children}
@@ -56,7 +66,11 @@ function ApprovalQueueLoadingEnvelope() {
       aria-busy="true"
       data-testid="approval-queue-loading"
     >
-      <p role="status" aria-live="polite" className="text-sm font-medium text-slate-600">
+      <p
+        role="status"
+        aria-live="polite"
+        className="text-sm font-medium text-slate-600"
+      >
         Đang tải hàng đợi phê duyệt…
       </p>
       <article className="ipc-approval-record is-neutral" aria-hidden="true">
@@ -81,7 +95,12 @@ function ApprovalQueueLoadingEnvelope() {
         </dl>
       </article>
       <div aria-hidden="true">
-        <PaginationBar page={1} pageSize={1} totalItems={1} onPageChange={() => undefined} />
+        <PaginationBar
+          page={1}
+          pageSize={1}
+          totalItems={1}
+          onPageChange={() => undefined}
+        />
       </div>
     </div>
   );
@@ -102,14 +121,17 @@ export function ApprovalQueueState({
   onNext,
   paginationLabel,
 }: ApprovalQueueStateProps) {
-  if (view.phase === 'forbidden') {
+  if (view.phase === "forbidden") {
     return (
-      <InlineAlert title="Không có quyền xem hàng đợi phê duyệt" variant="danger">
+      <InlineAlert
+        title="Không có quyền xem hàng đợi phê duyệt"
+        variant="danger"
+      >
         <span role="alert">{view.message}</span>
       </InlineAlert>
     );
   }
-  if (view.phase === 'error') {
+  if (view.phase === "error") {
     return (
       <QueryErrorAlert
         title="Không tải được hàng đợi phê duyệt"
@@ -120,12 +142,16 @@ export function ApprovalQueueState({
       </QueryErrorAlert>
     );
   }
-  if (view.phase === 'uninitialized') {
-    return <InlineAlert title="Chưa khởi tạo hàng đợi" variant="info">{view.instruction}</InlineAlert>;
-  }
-  if (view.phase === 'loading') {
+  if (view.phase === "uninitialized") {
     return (
-      <ApprovalQueueViewport>
+      <InlineAlert title="Chưa khởi tạo hàng đợi" variant="info">
+        {view.instruction}
+      </InlineAlert>
+    );
+  }
+  if (view.phase === "loading") {
+    return (
+      <ApprovalQueueViewport loading>
         <ApprovalQueueLoadingEnvelope />
       </ApprovalQueueViewport>
     );
@@ -139,17 +165,43 @@ export function ApprovalQueueState({
         </InlineAlert>
       )}
       {disabledReason && (
-        <InlineAlert title={records.length === 0 ? 'Không có chứng từ chờ duyệt' : 'Tạm thời chưa thể xử lý'} variant="info">
-          <span id="approval-action-guidance">{disabledReason} Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử.</span>
+        <InlineAlert
+          title={
+            records.length === 0
+              ? "Không có chứng từ chờ duyệt"
+              : "Tạm thời chưa thể xử lý"
+          }
+          variant="info"
+        >
+          <span id="approval-action-guidance">
+            {disabledReason} Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch
+            sử.
+          </span>
         </InlineAlert>
       )}
-      {decisionAnnouncement && <div role="status" aria-live="polite" className="sr-only">{decisionAnnouncement}</div>}
-      {requestedTargetType && requestedTargetId && !requestedRecord && !view.isRefreshing && (
-        <InlineAlert title="Không tìm thấy hồ sơ phê duyệt trong trang hiện tại" variant="warning">
-          Hồ sơ {requestedTargetId} có thể đã được xử lý hoặc nằm ở trang khác. Tuần, ngày phục vụ và phạm vi trong đường dẫn vẫn được giữ nguyên.
-        </InlineAlert>
+      {decisionAnnouncement && (
+        <div role="status" aria-live="polite" className="sr-only">
+          {decisionAnnouncement}
+        </div>
       )}
-      <div ref={queueFocusRef} tabIndex={-1} aria-label="Hàng đợi duyệt đã cập nhật">
+      {requestedTargetType &&
+        requestedTargetId &&
+        !requestedRecord &&
+        !view.isRefreshing && (
+          <InlineAlert
+            title="Không tìm thấy hồ sơ phê duyệt trong trang hiện tại"
+            variant="warning"
+          >
+            Hồ sơ {requestedTargetId} có thể đã được xử lý hoặc nằm ở trang
+            khác. Tuần, ngày phục vụ và phạm vi trong đường dẫn vẫn được giữ
+            nguyên.
+          </InlineAlert>
+        )}
+      <div
+        ref={queueFocusRef}
+        tabIndex={-1}
+        aria-label="Hàng đợi duyệt đã cập nhật"
+      >
         <ApprovalQueue
           records={records}
           pageSize={Math.max(records.length, 1)}
@@ -174,15 +226,21 @@ interface WorkflowDocumentsStateProps {
   documents: WorkflowDocument[];
 }
 
-export function WorkflowDocumentsState({ view, documents }: WorkflowDocumentsStateProps) {
-  if (view.phase === 'forbidden') {
+export function WorkflowDocumentsState({
+  view,
+  documents,
+}: WorkflowDocumentsStateProps) {
+  if (view.phase === "forbidden") {
     return (
-      <InlineAlert title="Không có quyền xem chứng từ workflow" variant="danger">
+      <InlineAlert
+        title="Không có quyền xem chứng từ workflow"
+        variant="danger"
+      >
         <span role="alert">{view.message}</span>
       </InlineAlert>
     );
   }
-  if (view.phase === 'error') {
+  if (view.phase === "error") {
     return (
       <QueryErrorAlert
         title="Không tải được chứng từ workflow"
@@ -193,11 +251,19 @@ export function WorkflowDocumentsState({ view, documents }: WorkflowDocumentsSta
       </QueryErrorAlert>
     );
   }
-  if (view.phase === 'loading') {
-    return <InlineAlert title="Đang tải chứng từ workflow" variant="info">Danh sách chứng từ đang được đồng bộ.</InlineAlert>;
+  if (view.phase === "loading") {
+    return (
+      <InlineAlert title="Đang tải chứng từ workflow" variant="info">
+        Danh sách chứng từ đang được đồng bộ.
+      </InlineAlert>
+    );
   }
-  if (view.phase === 'uninitialized') {
-    return <InlineAlert title="Chưa khởi tạo chứng từ workflow" variant="info">{view.instruction}</InlineAlert>;
+  if (view.phase === "uninitialized") {
+    return (
+      <InlineAlert title="Chưa khởi tạo chứng từ workflow" variant="info">
+        {view.instruction}
+      </InlineAlert>
+    );
   }
 
   return (
@@ -228,14 +294,14 @@ export function PurchaseRequestHistoryState({
   onSelect,
   onPageChange,
 }: PurchaseRequestHistoryStateProps) {
-  if (view.phase === 'forbidden') {
+  if (view.phase === "forbidden") {
     return (
       <InlineAlert title="Không có quyền xem đề xuất mua hàng" variant="danger">
         <span role="alert">{view.message}</span>
       </InlineAlert>
     );
   }
-  if (view.phase === 'error') {
+  if (view.phase === "error") {
     return (
       <QueryErrorAlert
         title="Không tải được đề xuất mua hàng"
@@ -246,11 +312,19 @@ export function PurchaseRequestHistoryState({
       </QueryErrorAlert>
     );
   }
-  if (view.phase === 'loading') {
-    return <InlineAlert title="Đang tải đề xuất mua hàng" variant="info">Danh sách đề xuất mua đang được đồng bộ.</InlineAlert>;
+  if (view.phase === "loading") {
+    return (
+      <InlineAlert title="Đang tải đề xuất mua hàng" variant="info">
+        Danh sách đề xuất mua đang được đồng bộ.
+      </InlineAlert>
+    );
   }
-  if (view.phase === 'uninitialized') {
-    return <InlineAlert title="Chưa khởi tạo đề xuất mua hàng" variant="info">{view.instruction}</InlineAlert>;
+  if (view.phase === "uninitialized") {
+    return (
+      <InlineAlert title="Chưa khởi tạo đề xuất mua hàng" variant="info">
+        {view.instruction}
+      </InlineAlert>
+    );
   }
 
   const purchaseRequests = view.data.items;
@@ -276,17 +350,34 @@ export function PurchaseRequestHistoryState({
               variant="outline"
               textWrap="wrap"
               className={`w-full items-stretch justify-start p-3 text-left transition-colors flex flex-col gap-1 ${
-                selectedId === purchaseRequest.purchaseRequestId ? 'bg-blue-50/50' : ''
+                selectedId === purchaseRequest.purchaseRequestId
+                  ? "bg-blue-50/50"
+                  : ""
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-800 text-sm">{purchaseRequest.purchaseRequestCode}</span>
-                <StatusBadge variant={purchaseRequest.status === 'APPROVED' ? 'success' : purchaseRequest.status === 'REJECTED' ? 'danger' : 'warning'}>
+                <span className="font-semibold text-slate-800 text-sm">
+                  {purchaseRequest.purchaseRequestCode}
+                </span>
+                <StatusBadge
+                  variant={
+                    purchaseRequest.status === "APPROVED"
+                      ? "success"
+                      : purchaseRequest.status === "REJECTED"
+                        ? "danger"
+                        : "warning"
+                  }
+                >
                   {formatWorkflowStatus(purchaseRequest.status)}
                 </StatusBadge>
               </div>
               <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Ngày mua: {purchaseRequest.purchaseForDate} {purchaseRequest.shiftName ? `(${purchaseRequest.shiftName})` : ''}</span>
+                <span>
+                  Ngày mua: {purchaseRequest.purchaseForDate}{" "}
+                  {purchaseRequest.shiftName
+                    ? `(${purchaseRequest.shiftName})`
+                    : ""}
+                </span>
                 <span>{purchaseRequest.lines.length} dòng</span>
               </div>
             </Button>

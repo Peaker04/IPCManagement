@@ -38,17 +38,20 @@ describe('chef production model', () => {
   })
 
   it('keeps only issues for the selected service date and shift', () => {
+    const sourceScopedAfternoon = issue('source-afternoon', null)
+    sourceScopedAfternoon.sourceShiftName = 'AFTERNOON'
     const rows = [
       issue('morning', 'MORNING'),
       issue('afternoon', 'AFTERNOON'),
       issue('full-day-null', null),
       issue('full-day-name', 'FULLDAY'),
       issue('previous-day', 'MORNING', '2026-07-18'),
+      sourceScopedAfternoon,
     ]
     expect(filterKitchenIssues(rows, '2026-07-19', 'Ca Sáng').map((row) => row.id))
       .toEqual(['morning', 'full-day-null', 'full-day-name'])
     expect(filterKitchenIssues(rows, '2026-07-19', 'Ca Chiều').map((row) => row.id))
-      .toEqual(['afternoon'])
+      .toEqual(['afternoon', 'source-afternoon'])
   })
 
   it('returns no issues when the selected date and shift have no match', () => {

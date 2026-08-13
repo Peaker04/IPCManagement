@@ -79,7 +79,7 @@ export function WarehouseReceiptLifecyclePanel() {
   const selectionReason = !receipt
     ? 'Chọn phiếu nhập để xem trạng thái.'
     : !receipt.purchaseOrderId
-      ? 'Phiếu lịch sử chưa có nguồn đơn mua bất biến; chỉ xem, không cho chạy lifecycle mới.'
+      ? 'Phiếu lịch sử chưa xác định được đơn mua gốc; chỉ có thể xem.'
       : receipt.status === 'DRAFT'
         ? canInspectQuality ? 'Chờ Thủ kho kiểm tra chất lượng.' : 'Chỉ Thủ kho được kiểm tra chất lượng.'
         : receipt.status === 'PENDING_APPROVAL'
@@ -87,7 +87,7 @@ export function WarehouseReceiptLifecyclePanel() {
           : receipt.status === 'APPROVED'
             ? canPost ? 'Sẵn sàng để Quản trị viên ghi sổ kho.' : 'Chỉ Quản trị viên được ghi sổ kho sau khi Quản lý duyệt.'
             : receipt.status === 'POSTED'
-              ? canCorrect ? 'Đã ghi sổ kho; chỉ Quản trị viên có thể tạo chứng từ điều chỉnh theo đúng dòng nguồn.' : 'Đã ghi sổ kho; không mở lại chứng từ gốc.'
+              ? canCorrect ? 'Đã ghi sổ kho; chỉ Quản trị viên có thể tạo chứng từ điều chỉnh theo đúng dòng nguyên liệu.' : 'Đã ghi sổ kho; không mở lại chứng từ gốc.'
               : receipt.status === 'REJECTED'
                 ? canRework ? 'Phiếu bị từ chối; Điều phối có thể yêu cầu kiểm tra lại.' : 'Phiếu bị từ chối; chỉ Điều phối tạo phiếu mới được yêu cầu xử lý lại.'
               : 'Phiếu đã ở trạng thái kết thúc hoặc cần xử lý lại.';
@@ -162,7 +162,7 @@ export function WarehouseReceiptLifecyclePanel() {
 
   const submitVoid = async () => {
     if (!receipt?.purchaseOrderId || !voidReason.trim()) {
-      setFeedback('Lý do hủy có audit không được để trống.');
+      setFeedback('Lý do hủy phiếu không được để trống.');
       return;
     }
     try {
@@ -173,7 +173,7 @@ export function WarehouseReceiptLifecyclePanel() {
       }).unwrap();
       setVoidOpen(false);
       setVoidReason('');
-      setFeedback('Đã hủy phiếu trước POSTED có audit. Không có movement hoặc thay đổi tồn kho.');
+      setFeedback('Đã hủy phiếu trước khi ghi sổ và lưu đầy đủ lịch sử. Không phát sinh bút toán hoặc thay đổi tồn kho.');
       await refresh();
     } catch (error) {
       setFeedback(messageFromError(error, 'Không thể hủy phiếu nhập. Dữ liệu chưa được thay đổi.'));
@@ -182,14 +182,14 @@ export function WarehouseReceiptLifecyclePanel() {
 
   const submitCorrection = async () => {
     if (!receipt?.purchaseOrderId || !correctionReason.trim()) {
-      setFeedback('Lý do correction không được để trống.');
+      setFeedback('Lý do điều chỉnh không được để trống.');
       return;
     }
     const lines = receipt.lines
       .map((line) => ({ receiptLineId: line.receiptLineId, quantity: Number(correctionDraft[line.receiptLineId] ?? 0) }))
       .filter((line) => line.quantity > 0);
     if (lines.length === 0 || lines.some((line) => !Number.isFinite(line.quantity))) {
-      setFeedback('Chọn ít nhất một dòng và nhập số lượng correction lớn hơn 0.');
+      setFeedback('Chọn ít nhất một dòng và nhập số lượng điều chỉnh lớn hơn 0.');
       return;
     }
     try {
@@ -201,10 +201,10 @@ export function WarehouseReceiptLifecyclePanel() {
       setCorrectionOpen(false);
       setCorrectionReason('');
       setCorrectionDraft({});
-      setFeedback(`Đã POSTED correction ${result.correctionCode}. Phiếu nhập và movement gốc không bị sửa.`);
+      setFeedback(`Đã ghi sổ chứng từ điều chỉnh ${result.correctionCode}. Phiếu nhập và số liệu gốc không bị sửa.`);
       await refresh();
     } catch (error) {
-      setFeedback(messageFromError(error, 'Không thể tạo correction. Tồn kho, phiếu nhập và ledger gốc chưa bị thay đổi.'));
+      setFeedback(messageFromError(error, 'Không thể tạo chứng từ điều chỉnh. Tồn kho, phiếu nhập và số liệu gốc chưa bị thay đổi.'));
     }
   };
 
@@ -216,20 +216,20 @@ export function WarehouseReceiptLifecyclePanel() {
       data-testid="receipt-lifecycle-panel"
     >
       <div>
-        <h3 id="receipt-lifecycle-title" className={cn(typography.sectionTitle, 'text-slate-950')}>Lifecycle phiếu nhập</h3>
+        <h3 id="receipt-lifecycle-title" className={cn(typography.sectionTitle, 'text-slate-950')}>Xử lý phiếu nhập</h3>
         <p className={cn(typography.caption, 'mt-1 text-slate-600')}>Tạo phiếu → kiểm tra chất lượng → Quản lý duyệt → Quản trị viên ghi sổ kho. Tồn kho chỉ thay đổi khi ghi sổ kho.</p>
       </div>
       {isError ? (
-        <QueryErrorAlert title="Không tải được phiếu nhập lifecycle" onRetry={() => void refetch()}>
+        <QueryErrorAlert title="Không tải được phiếu nhập cần xử lý" onRetry={() => void refetch()}>
           Không coi danh sách trống là không có phiếu. Hãy tải lại trước khi đưa ra kết luận hoặc thao tác.
         </QueryErrorAlert>
       ) : (
-        <TableViewport ariaLabel="Phiếu nhập theo lifecycle" caption="Chỉ hiển thị phiếu đã có nguồn đơn mua bất biến." className="max-h-[220px]">
+        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="max-h-[220px]">
           <table className="ipc-data-table min-w-[760px]">
             <thead><tr><th>Phiếu</th><th>Nhà cung cấp</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
             <tbody>
               {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Đang tải phiếu nhập…</td></tr>
-                : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập lifecycle mới trong trang này.</td></tr>
+                  : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
                   : canonicalReceipts.map((item) => <tr key={item.receiptId} className={item.receiptId === activeReceiptId ? 'bg-blue-50/60' : undefined}>
                     <td className={cn(typography.code, 'font-semibold text-slate-900')}>{item.receiptCode}</td>
                     <td>{item.supplierName ?? '—'}</td>
@@ -241,8 +241,8 @@ export function WarehouseReceiptLifecyclePanel() {
         </TableViewport>
       )}
 
-      {isReceiptError && <InlineAlert title="Không tải được chi tiết phiếu" variant="danger">Không thể đánh giá đủ source line hoặc version; mọi action đã bị chặn.</InlineAlert>}
-      {isFetchingReceipt && activeReceiptId && <InlineAlert title="Đang tải source line" variant="info">Đang lấy lại phiên bản phiếu trước khi mở action.</InlineAlert>}
+      {isReceiptError && <InlineAlert title="Không tải được chi tiết phiếu" variant="danger">Không thể xác định đủ các dòng nguyên liệu hoặc dữ liệu mới nhất; mọi thao tác đã bị chặn.</InlineAlert>}
+      {isFetchingReceipt && activeReceiptId && <InlineAlert title="Đang tải các dòng nguyên liệu" variant="info">Đang lấy dữ liệu mới nhất trước khi cho phép thao tác.</InlineAlert>}
       {receipt && !isReceiptError && (
         <div className="grid gap-3 rounded-sm border border-slate-300 bg-slate-50 p-3" data-testid="receipt-lifecycle-detail">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -251,21 +251,21 @@ export function WarehouseReceiptLifecyclePanel() {
               {showQualityControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setQualityOpen(true); }}><ClipboardCheck size={16} />Kiểm tra chất lượng</Button>}
               {showPostControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setPostOpen(true); }}><CheckCircle2 size={16} />Ghi sổ kho</Button>}
               {showReworkControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setReworkReason(''); setReworkOpen(true); }}>Xử lý lại phiếu nhập</Button>}
-              {showVoidControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setVoidReason(''); setVoidOpen(true); }}><ShieldAlert size={16} />Hủy có audit</Button>}
-              {showCorrectionControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setCorrectionReason(''); setCorrectionDraft({}); setCorrectionOpen(true); }}>Tạo correction hậu nhập</Button>}
+              {showVoidControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setVoidReason(''); setVoidOpen(true); }}><ShieldAlert size={16} />Hủy phiếu</Button>}
+              {showCorrectionControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setCorrectionReason(''); setCorrectionDraft({}); setCorrectionOpen(true); }}>Điều chỉnh sau nhập</Button>}
             </div>
           </div>
           <InlineAlert title="Điều kiện hành động" variant={showQualityControl || showPostControl ? 'info' : 'warning'}>{selectionReason}</InlineAlert>
           <ul className="grid gap-1 text-xs text-slate-700" aria-label="Dòng phiếu nhập">
-            {receipt.lines.map((line) => <li key={line.receiptLineId} className="rounded-sm border border-slate-200 bg-white px-2 py-1.5"><strong>{line.ingredientName ?? line.ingredientId}</strong> · {formatQuantityWithUnit(line.quantity, line.unitName ?? '')} {line.acceptedQuantity != null && <>· đạt {formatQuantityWithUnit(line.acceptedQuantity, line.unitName ?? '')}</>} {line.rejectedQuantity != null && <>· không đạt {formatQuantityWithUnit(line.rejectedQuantity, line.unitName ?? '')}</>} {line.qualityReason && <span className="block text-amber-800">Lý do: {line.qualityReason}</span>}</li>)}
+            {receipt.lines.map((line) => <li key={line.receiptLineId} className="rounded-sm border border-slate-200 bg-white px-2 py-1.5"><strong>{line.ingredientName ?? line.ingredientId}</strong> · {formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })} {line.acceptedQuantity != null && <>· đạt {formatQuantityWithUnit(line.acceptedQuantity, line.unitName ?? '', { maximumFractionDigits: 6 })}</>} {line.rejectedQuantity != null && <>· không đạt {formatQuantityWithUnit(line.rejectedQuantity, line.unitName ?? '', { maximumFractionDigits: 6 })}</>} {line.qualityReason && <span className="block text-amber-800">Lý do: {line.qualityReason}</span>}</li>)}
           </ul>
         </div>
       )}
-      {feedback && <InlineAlert title="Phiếu nhập lifecycle" variant="info">{feedback}</InlineAlert>}
+      {feedback && <InlineAlert title="Phiếu nhập" variant="info">{feedback}</InlineAlert>}
 
       <Dialog open={qualityOpen} onOpenChange={setQualityOpen}>
         <DialogContent className="max-w-2xl" aria-describedby="receipt-quality-description">
-          <DialogHeader><DialogTitle>Kiểm tra chất lượng phiếu nhập</DialogTitle><DialogDescription id="receipt-quality-description">Nhập số lượng đạt trên từng source line. Phần còn lại là không đạt và bắt buộc nêu lý do.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Kiểm tra chất lượng phiếu nhập</DialogTitle><DialogDescription id="receipt-quality-description">Nhập số lượng đạt cho từng dòng nguyên liệu. Phần còn lại là không đạt và bắt buộc nêu lý do.</DialogDescription></DialogHeader>
           <div className="grid gap-3">
             {receipt?.lines.map((line) => {
               const draft = qualityDraft[line.receiptLineId] ?? { acceptedQuantity: String(line.quantity), reason: '' };
@@ -294,13 +294,13 @@ export function WarehouseReceiptLifecyclePanel() {
       <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
         <DialogContent aria-describedby="receipt-void-description">
           <DialogHeader><DialogTitle>Hủy phiếu nhập trước khi ghi sổ kho?</DialogTitle><DialogDescription id="receipt-void-description">Chỉ dùng khi đối soát xác định phiếu tạo nhầm hoặc trùng. Hệ thống lưu phiếu, lý do, người xử lý và lịch sử; không xóa dữ liệu và không thay đổi tồn kho.</DialogDescription></DialogHeader>
-          <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do đối soát <Input aria-label="Lý do hủy có audit" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} placeholder="Mã scope, bằng chứng và lý do hủy" /></label>
-          <DialogFooter><Button type="button" variant="outline" disabled={isVoiding} onClick={() => setVoidOpen(false)}>Quay lại</Button><Button type="button" variant="destructive" disabled={isVoiding || !voidReason.trim()} onClick={() => void submitVoid()}>{isVoiding && <LoaderCircle className="animate-spin" />}Xác nhận hủy có audit</Button></DialogFooter>
+          <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do đối soát <Input aria-label="Lý do hủy phiếu" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} placeholder="Nêu chứng từ, bằng chứng và lý do hủy" /></label>
+          <DialogFooter><Button type="button" variant="outline" disabled={isVoiding} onClick={() => setVoidOpen(false)}>Quay lại</Button><Button type="button" variant="destructive" disabled={isVoiding || !voidReason.trim()} onClick={() => void submitVoid()}>{isVoiding && <LoaderCircle className="animate-spin" />}Xác nhận hủy phiếu</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={correctionOpen} onOpenChange={setCorrectionOpen}>
         <DialogContent className="max-w-2xl" aria-describedby="receipt-correction-description">
-          <DialogHeader><DialogTitle>Tạo chứng từ điều chỉnh sau khi ghi sổ</DialogTitle><DialogDescription id="receipt-correction-description">Đây là chứng từ bổ sung, không sửa phiếu nhập hoặc bút toán gốc. Hệ thống tạo bút toán bù trừ theo đúng dòng nguồn.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Tạo chứng từ điều chỉnh sau khi ghi sổ</DialogTitle><DialogDescription id="receipt-correction-description">Đây là chứng từ bổ sung, không sửa phiếu nhập hoặc bút toán gốc. Hệ thống tạo bút toán bù trừ theo đúng dòng nguyên liệu.</DialogDescription></DialogHeader>
           <div className="grid gap-3">
             {receipt?.lines.map((line) => {
               const maxQuantity = line.acceptedQuantity ?? 0;

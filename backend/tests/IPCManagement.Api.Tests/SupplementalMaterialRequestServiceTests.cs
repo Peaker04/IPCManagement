@@ -24,6 +24,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var result = await CreateService(context).CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-pending",
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
                 RequestedQty = 2.5m,
@@ -33,11 +34,16 @@ public sealed class SupplementalMaterialRequestServiceTests
             GuidHelper.ToGuidString(seed.WarehouseId));
 
         result.Status.Should().Be("PENDING_WAREHOUSE_REVIEW");
+        result.ConcurrencyVersion.Should().Be(1);
         result.RequestedQty.Should().Be(2.5m);
         result.IngredientName.Should().Be("Gạo");
         var saved = await context.Supplementalmaterialrequests.SingleAsync();
         saved.IssueLineId.Should().Equal(seed.IssueLineId);
         saved.Reason.Should().Be("Phát sinh thêm suất");
+        (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(1);
+        (await context.Lifecycletransitions.SingleAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest)))
+            .AggregateSequence.Should().Be(0);
+        (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(1);
     }
 
     [Fact]
@@ -49,6 +55,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var service = CreateService(context);
         var request = new CreateSupplementalMaterialRequest
         {
+            CommandId = "supplemental-create-single",
             IssueId = GuidHelper.ToGuidString(seed.IssueId),
             IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
             RequestedQty = 2.5m,
@@ -62,6 +69,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var replayOrOverlap = await service.CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-overlap",
                 IssueId = request.IssueId,
                 IssueLineId = request.IssueLineId,
                 RequestedQty = 4m,
@@ -102,6 +110,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var result = await CreateService(context, transactionRunner: new DuplicateOpenIssueLineTransactionRunner()).CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-pending",
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
                 RequestedQty = 3m,
@@ -135,6 +144,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var action = () => CreateService(context).CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-unreceived",
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
                 RequestedQty = 1,
@@ -158,6 +168,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var action = () => CreateService(context).CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-legacy",
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
                 RequestedQty = 1m,
@@ -180,6 +191,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         await service.CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-rice",
                 IssueId = GuidHelper.ToGuidString(rice.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(rice.IssueLineId),
                 RequestedQty = 1,
@@ -189,6 +201,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         await service.CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-salt",
                 IssueId = GuidHelper.ToGuidString(salt.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(salt.IssueLineId),
                 RequestedQty = 1,
@@ -256,6 +269,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var created = await service.CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-fulfill",
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
                 RequestedQty = 2.5m,
@@ -265,19 +279,46 @@ public sealed class SupplementalMaterialRequestServiceTests
 
         var result = await service.FulfillAsync(
             created.RequestId,
-            new FulfillSupplementalMaterialRequest { Quantity = 2.5m },
+            new FulfillSupplementalMaterialRequest { CommandId = "supplemental-fulfill", ExpectedVersion = created.ConcurrencyVersion, Quantity = 2.5m },
             GuidHelper.ToGuidString(seed.UserId),
             GuidHelper.ToGuidString(seed.WarehouseId));
 
+        var replay = await service.FulfillAsync(
+            created.RequestId,
+            new FulfillSupplementalMaterialRequest { CommandId = "supplemental-fulfill", ExpectedVersion = created.ConcurrencyVersion, Quantity = 2.5m },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        var stale = () => service.FulfillAsync(
+            created.RequestId,
+            new FulfillSupplementalMaterialRequest { CommandId = "supplemental-fulfill-stale", ExpectedVersion = created.ConcurrencyVersion, Quantity = 0.5m },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+        await stale.Should().ThrowAsync<DbUpdateConcurrencyException>();
+
         result.Status.Should().Be("ISSUED");
+        result.ConcurrencyVersion.Should().Be(2);
+        replay.Should().BeEquivalentTo(result);
         result.FulfilledQty.Should().Be(2.5m);
         result.RemainingQty.Should().Be(0);
         result.ActionDisabledReason.Should().Be("Kho đã cấp đủ; đang chờ bếp kiểm đếm và ký nhận.");
         stock.CurrentQty.Should().Be(2.5m);
         var supplementalIssue = await context.Inventoryissues.SingleAsync(item => item.IssueCode.StartsWith("ISS-SUP-"));
         supplementalIssue.IssueDate.Should().Be(sourceIssueDate);
+        supplementalIssue.ShiftName.Should().Be("AFTERNOON");
         supplementalIssue.Inventoryissuelines.Single().MaterialRequestLineId
             .Should().Equal(context.Inventoryissuelines.Single(item => item.IssueLineId == seed.IssueLineId).MaterialRequestLineId);
+        (await context.Inventoryissues.CountAsync(item => item.IssueCode.StartsWith("ISS-SUP-"))).Should().Be(1);
+        (await context.Stockmovements.CountAsync(item => item.RefTable == "supplementalmaterialrequests")).Should().Be(1);
+        (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(2);
+        (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(2);
+        (await context.Lifecycletransitions.AsNoTracking()
+            .Where(item => item.AggregateType == nameof(SupplementalMaterialRequest))
+            .OrderBy(item => item.AggregateSequence)
+            .Select(item => item.AggregateSequence)
+            .ToArrayAsync()).Should().Equal(0, 1);
+        (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(2);
+        (await context.Auditlogs.CountAsync(item => item.BusinessArea == "Lifecycle" && item.EntityName == nameof(SupplementalMaterialRequest))).Should().Be(2);
     }
 
     [Fact]
@@ -291,6 +332,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var created = await service.CreateAsync(
             new CreateSupplementalMaterialRequest
             {
+                CommandId = "supplemental-create-route",
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
                 RequestedQty = 3,
@@ -300,10 +342,38 @@ public sealed class SupplementalMaterialRequestServiceTests
 
         var result = await service.RouteToPurchasingAsync(
             created.RequestId,
+            new RouteSupplementalMaterialRequestToPurchasing
+            {
+                CommandId = "supplemental-route",
+                ExpectedVersion = created.ConcurrencyVersion,
+            },
             GuidHelper.ToGuidString(seed.UserId),
             GuidHelper.ToGuidString(seed.WarehouseId));
 
+        var replay = await service.RouteToPurchasingAsync(
+            created.RequestId,
+            new RouteSupplementalMaterialRequestToPurchasing
+            {
+                CommandId = "supplemental-route",
+                ExpectedVersion = created.ConcurrencyVersion,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        var stale = () => service.RouteToPurchasingAsync(
+            created.RequestId,
+            new RouteSupplementalMaterialRequestToPurchasing
+            {
+                CommandId = "supplemental-route-stale",
+                ExpectedVersion = created.ConcurrencyVersion,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+        await stale.Should().ThrowAsync<DbUpdateConcurrencyException>();
+
         result.Status.Should().Be("NEEDS_PURCHASE");
+        result.ConcurrencyVersion.Should().Be(2);
+        replay.Should().BeEquivalentTo(result);
         result.PurchaseRequestCode.Should().StartWith("PR-SUP-");
         var purchaseLine = await context.Purchaserequestlines.SingleAsync();
         purchaseLine.PurchaseQty.Should().Be(3);
@@ -312,6 +382,12 @@ public sealed class SupplementalMaterialRequestServiceTests
             context.Inventoryissuelines.Single(item => item.IssueLineId == seed.IssueLineId).MaterialRequestLineId);
         var purchaseRequest = await context.Purchaserequests.SingleAsync();
         purchaseRequest.PurchaseForDate.Should().Be(sourceIssueDate);
+        purchaseRequest.ShiftName.Should().Be("AFTERNOON");
+        (await context.Purchaserequests.CountAsync()).Should().Be(1);
+        (await context.Purchaserequestlines.CountAsync()).Should().Be(1);
+        (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(2);
+        (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(2);
+        (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == nameof(SupplementalMaterialRequest))).Should().Be(2);
     }
 
     private static IpcManagementContext CreateContext()
@@ -392,11 +468,23 @@ public sealed class SupplementalMaterialRequestServiceTests
             Ingredient = ingredient,
             Unit = unit,
         };
+        var productionPlanLine = new ProductionPlanLine
+        {
+            PlanLineId = materialRequestLine.PlanLineId,
+            PlanId = GuidHelper.NewId(),
+            QuantityPlanLineId = GuidHelper.NewId(),
+            CustomerId = GuidHelper.NewId(),
+            MenuId = GuidHelper.NewId(),
+            DishId = GuidHelper.NewId(),
+            ShiftName = "AFTERNOON",
+            TotalServings = 1,
+        };
         var issue = new InventoryIssue
         {
             IssueId = issueId,
             IssueCode = "ISS-TEST",
             IssueDate = issueDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            ShiftName = "MORNING",
             WarehouseId = warehouseId,
             MaterialRequestId = materialRequestId,
             IssuedBy = userId,
@@ -418,7 +506,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             Unit = unit,
         };
         issue.Inventoryissuelines.Add(line);
-        context.AddRange(unit, ingredient, materialRequestLine, issue, line);
+        context.AddRange(unit, ingredient, productionPlanLine, materialRequestLine, issue, line);
         return (issueId, issueLineId, warehouseId, userId, ingredientId, unitId, materialRequestId);
     }
 }

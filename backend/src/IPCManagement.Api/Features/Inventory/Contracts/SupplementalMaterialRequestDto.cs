@@ -5,6 +5,7 @@ namespace IPCManagement.Api.Features.Inventory.Contracts;
 
 public sealed class CreateSupplementalMaterialRequest
 {
+    public string CommandId { get; set; } = string.Empty;
     public string IssueId { get; set; } = string.Empty;
     public string IssueLineId { get; set; } = string.Empty;
     public decimal RequestedQty { get; set; }
@@ -37,6 +38,7 @@ public sealed class SupplementalMaterialRequestDto
     public bool CanRouteToPurchasing { get; set; }
     public bool CanReject { get; set; }
     public string? ActionDisabledReason { get; set; }
+    public long ConcurrencyVersion { get; set; }
 }
 
 public sealed class SupplementalMaterialRequestFilterDto : PagedRequestDto
@@ -47,7 +49,15 @@ public sealed class SupplementalMaterialRequestFilterDto : PagedRequestDto
 
 public sealed class FulfillSupplementalMaterialRequest
 {
+    public string CommandId { get; set; } = string.Empty;
+    public long ExpectedVersion { get; set; }
     public decimal Quantity { get; set; }
+}
+
+public sealed class RouteSupplementalMaterialRequestToPurchasing
+{
+    public string CommandId { get; set; } = string.Empty;
+    public long ExpectedVersion { get; set; }
 }
 
 public sealed class RejectSupplementalMaterialRequest

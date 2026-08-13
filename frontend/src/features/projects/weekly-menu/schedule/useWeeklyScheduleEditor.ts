@@ -26,6 +26,41 @@ type Options = {
   onQuickServingFeedback: (feedback: WeeklyScheduleFeedback) => void
 }
 
+type MenuDishChange = {
+  locked: boolean
+  serviceDate: string
+  shiftName: 'Ca Sáng' | 'Ca Chiều'
+  slotType: keyof WeeklyMenuState[string]
+  dishId: string
+}
+
+export const buildMenuDishChanges = ({
+  displayDays,
+  sections,
+  weeklyMenu,
+  draftMenu,
+  serviceDate,
+  isLocked,
+}: {
+  displayDays: WeeklyMenuScope['displayDays']
+  sections: Array<{ slotType: keyof WeeklyMenuState[string]; defaultDishId: string }>
+  weeklyMenu: WeeklyMenuState
+  draftMenu: WeeklyMenuState
+  serviceDate: (dayKey: string) => string
+  isLocked: (dayKey: string, slotType: keyof WeeklyMenuState[string]) => boolean
+}): MenuDishChange[] => displayDays.flatMap((day) => sections.flatMap((section) => {
+  const currentDishId = weeklyMenu[day.key]?.[section.slotType]?.dishId || section.defaultDishId
+  const dishId = draftMenu[day.key]?.[section.slotType]?.dishId
+  const date = serviceDate(day.key)
+  return dishId && dishId !== currentDishId && date ? [{
+    locked: isLocked(day.key, section.slotType),
+    serviceDate: date,
+    shiftName: section.slotType.startsWith('morning') ? 'Ca Sáng' as const : 'Ca Chiều' as const,
+    slotType: section.slotType,
+    dishId,
+  }] : []
+}))
+
 export function useWeeklyScheduleEditor({
   scope,
   committedRows,
@@ -45,7 +80,7 @@ export function useWeeklyScheduleEditor({
   const [upsertQuickServings, { isLoading: isSavingQuickServings }] = useUpsertQuickServingsMutation()
 
   useEffect(() => {
-    dispatch({ type: 'reset-scope' })
+    dispatch({ type: 'reset-quick-servings' })
   }, [scope.customerId, scope.weekStartDate])
 
   const activeOrders = useMemo(
@@ -118,18 +153,16 @@ export function useWeeklyScheduleEditor({
     type: 'open-editor',
     menu: cloneWeeklyMenu(weeklyMenu, scope.displayDays.map((day) => day.key)),
   }), [scope.displayDays, weeklyMenu])
+  const pendingChanges = useMemo(() => buildMenuDishChanges({
+    displayDays: scope.displayDays,
+    sections,
+    weeklyMenu,
+    draftMenu: state.draftMenu,
+    serviceDate,
+    isLocked,
+  }), [isLocked, scope.displayDays, sections, serviceDate, state.draftMenu, weeklyMenu])
   const saveEditor = useCallback(async (amendmentReason?: string) => {
-    const changes = scope.displayDays.flatMap((day) => sections.flatMap((section) => {
-      const currentDishId = weeklyMenu[day.key]?.[section.slotType]?.dishId || section.defaultDishId
-      const dishId = state.draftMenu[day.key]?.[section.slotType]?.dishId
-      const date = serviceDate(day.key)
-      return dishId && dishId !== currentDishId && date ? [{ locked: isLocked(day.key, section.slotType),
-        serviceDate: date,
-        shiftName: section.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều',
-        slotType: section.slotType,
-        dishId,
-      }] : []
-    }))
+    const changes = pendingChanges
     if (changes.length === 0) {
       dispatch({ type: 'close-editor' })
       return
@@ -156,9 +189,9 @@ export function useWeeklyScheduleEditor({
       if (directSlots.length > 0 && amendmentSlots.length === 0) onMenuFeedback({ title: 'Cập nhật thực đơn thành công', message: 'Thay đổi bản nháp đã được lưu.', variant: 'info' })
       dispatch({ type: 'close-editor' })
     } catch (error) {
-      onMenuFeedback({ title: 'Chỉnh sửa thực đơn thất bại', message: getApiErrorMessage(error, 'Không thể lưu thay đổi vào backend.'), variant: 'danger' })
+      onMenuFeedback({ title: 'Chỉnh sửa thực đơn thất bại', message: getApiErrorMessage(error, 'Không thể lưu thay đổi vào hệ thống.'), variant: 'danger' })
     }
-  }, [createMenuAmendment, isLocked, onMenuFeedback, reduxDispatch, scope.customerId, scope.displayDays, scope.weekStartDate, sections, serviceDate, state.draftMenu, updateWeeklyMenuBulk, weeklyMenu])
+  }, [createMenuAmendment, onMenuFeedback, pendingChanges, reduxDispatch, scope.customerId, scope.displayDays, scope.weekStartDate, serviceDate, updateWeeklyMenuBulk])
   const saveQuickServing = useCallback(async (row: QuickServingRow) => {
     if (!row.hasDraftChange) return
     try {
@@ -211,7 +244,9 @@ export function useWeeklyScheduleEditor({
       completeQuickServing,
     },
     presentation: {
+      pendingChangeCount: pendingChanges.length,
       sections,
+      getDishName: (dishId) => catalogDishes.find((dish) => dish.id === dishId)?.name,
       isLocked,
       getServiceDate: serviceDate,
       getSlotServingInfo,

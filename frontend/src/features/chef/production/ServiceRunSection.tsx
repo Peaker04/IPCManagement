@@ -23,6 +23,7 @@ import {
 } from '../chefApi'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { formatServiceRunVarianceTrack } from '@/lib/workflowConfig'
+import { formatCurrency, formatDateOnly } from '@/lib/formatters'
 import type { ServiceRunScope } from '../serviceRunScopeTypes'
 import { describeServiceRunScope, isExactServiceRunScope } from '../serviceRunScopeTypes'
 
@@ -54,12 +55,32 @@ export function ServiceRunSection({ plans, shiftName, scope }: Props) {
     <p className="mb-3 text-xs text-slate-600">Theo dõi riêng kế hoạch, vật tư, phục vụ và đối soát. Bếp đã nhận vật tư chưa có nghĩa là ca đã đóng.</p>
     {scopedPlans.length === 0 ? <p className="text-sm text-slate-600">Chưa có KHSX để mở Ca phục vụ.</p> : <div className="space-y-3">
       {scope?.allCustomers && <p className="rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900" role="status">{describeServiceRunScope(scope)}. Chọn một dòng phạm vi chính xác trước khi thao tác.</p>}
-      {visiblePlans.map((plan) => <ServiceRunCard key={plan.planId} plan={plan} shiftName={shiftName} scope={scope} />)}
+      {visiblePlans.map((plan) => <ServiceRunCard key={plan.planId} plan={plan} shiftName={shiftName} scope={scope ?? getPlanScope(plan, shiftName)} />)}
       {scopedPlans.length > INITIAL_VISIBLE_RUNS && <Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>
         {showAll ? 'Thu gọn danh sách' : `Hiển thị ${scopedPlans.length - INITIAL_VISIBLE_RUNS} kế hoạch khác`}
       </Button>}
     </div>}
   </section>
+}
+
+const getPlanScope = (plan: ProductionPlan, shiftName: string): ServiceRunScope | undefined => {
+  const tiers = [...new Set(plan.lines
+    .filter((line) => line.shiftName === shiftName && line.priceTierAmount != null)
+    .map((line) => line.priceTierAmount as number))]
+  if (!plan.customerId || !plan.planDate || tiers.length !== 1) return undefined
+  return {
+    customerId: plan.customerId,
+    serviceDate: plan.planDate,
+    shiftName,
+    priceTierAmount: tiers[0],
+  }
+}
+
+const getScopeLabel = (plan: ProductionPlan, scope?: ServiceRunScope) => {
+  if (!scope || !isExactServiceRunScope(scope)) return null
+  const customer = plan.customerName || plan.customerCode || 'Khách hàng chưa có tên'
+  const shift = scope.shiftName === 'MORNING' ? 'Ca sáng' : 'Ca chiều'
+  return `${customer} · ${formatDateOnly(scope.serviceDate)} · ${shift} · ${formatCurrency(scope.priceTierAmount)}`
 }
 
 function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shiftName: string; scope?: ServiceRunScope }) {
@@ -68,7 +89,7 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
   const [correctedActual, setCorrectedActual] = useState('')
   const [reason, setReason] = useState('')
   const [varianceTrack, setVarianceTrack] = useState('')
-  const [varianceSourceLines, setVarianceSourceLines] = useState('')
+  const [varianceSourceLines, setVarianceSourceLines] = useState<string[]>([])
   const [varianceReason, setVarianceReason] = useState('')
   const [waiverDeclarationId, setWaiverDeclarationId] = useState('')
   const [waiverReason, setWaiverReason] = useState('')
@@ -80,6 +101,8 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
   const activeQuery = scope && isExactServiceRunScope(scope) ? scopedRun : { data: persistedRun, isFetching, isError, refetch }
   const run = localRun ?? activeQuery.data
   const scopedTracks = (run as (ServiceRunLifecycleProjectionDto & { tracks?: Array<{ trackId: string; displayLabel: string; blockers: Array<{ displayLabel: string }>; responsibleRole: string }> }) | null)?.tracks ?? []
+  const sourceLineOptions = run?.sourceLineOptions ?? []
+  const pendingDeclarations = run?.pendingVarianceDeclarations ?? []
   const [open, openState] = useOpenServiceRunMutation()
   const [start, startState] = useStartServiceRunMutation()
   const [record, recordState] = useRecordServiceRunActualServingsMutation()
@@ -102,9 +125,10 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
     } catch (cause) { setError(getChefMutationErrorMessage(cause, 'Không thể cập nhật Ca phục vụ.')) }
   }
   const isMutating = openState.isLoading || startState.isLoading || recordState.isLoading || confirmState.isLoading || resolveVarianceState.isLoading || resolveServingVarianceState.isLoading || waiveConfirmationState.isLoading || closeState.isLoading || createAdjustmentState.isLoading || declareVarianceState.isLoading || approveWaiverState.isLoading
+  const scopeLabel = getScopeLabel(plan, scope)
 
   return <article className="rounded-sm border border-slate-200 bg-white p-3" aria-busy={isMutating || activeQuery.isFetching}>
-    <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? run.status}</StatusBadge>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-2"><div><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{scopeLabel && <p className="mt-0.5 text-xs text-slate-600">{scopeLabel}</p>}</div>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? run.status}</StatusBadge>}</div>
     {activeQuery.isFetching && !run && <p className="mt-2 text-xs text-slate-500" role="status">Đang tải trạng thái Ca phục vụ…</p>}
     {activeQuery.isError && !localRun ? <div className="mt-3 flex flex-wrap items-center gap-2" role="alert"><p className="text-xs text-red-700">Không tải được trạng thái Ca phục vụ. Hãy tải lại trước khi mở ca.</p><Button type="button" size="sm" variant="outline" onClick={() => void activeQuery.refetch()}>Tải lại</Button></div> : !run && !activeQuery.isFetching ? scope?.allCustomers ? <p className="mt-3 text-xs text-slate-600">Tổng hợp không có thao tác. Mở một phạm vi khách hàng cụ thể để tiếp tục.</p> : !plan.sentToKitchenAt ? <p className="mt-3 text-xs text-amber-800" role="status">Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.</p> : scope && isExactServiceRunScope(scope) ? <Button size="sm" className="mt-3" disabled={openState.isLoading} onClick={() => void act(() => open({ planId: plan.planId, shiftName, customerId: scope.customerId, priceTierAmount: scope.priceTierAmount }).unwrap())}>Mở Ca phục vụ</Button> : <p className="mt-3 text-xs text-amber-800" role="status">Chọn khách hàng và tier giá chính xác trước khi mở Ca phục vụ.</p> : run && <>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-4">
@@ -115,29 +139,32 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
         <div><dt className="text-slate-500">Điều chỉnh hậu kiểm</dt><dd className="font-medium text-slate-800 tabular-nums">{run.adjustmentCount}</dd></div>
         <div><dt className="text-slate-500">Giao suất</dt><dd className="font-medium text-slate-800">{outcomeLabel[run.serviceConfirmationOutcome] ?? run.serviceConfirmationOutcome}</dd></div>
       </dl>
-      <dl className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Bốn track Ca phục vụ">
-        {scopedTracks.map((track) => <div key={track.trackId} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs"><dt className="font-medium text-slate-800">{track.displayLabel} <span className="text-slate-500">· {track.trackId}</span></dt><dd className="mt-1 text-slate-600">{track.blockers.length ? track.blockers.map((blocker) => blocker.displayLabel).join(' · ') : 'Không có blocker'}</dd><dd className="mt-1 text-slate-500">Phụ trách: {track.responsibleRole}</dd></div>)}
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Các phần việc của Ca phục vụ">
+        {scopedTracks.map((track) => <div key={track.trackId} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs"><dt className="font-medium text-slate-800">{track.displayLabel}</dt><dd className="mt-1 text-slate-600">{track.blockers.length ? track.blockers.map((blocker) => blocker.displayLabel).join(' · ') : 'Không có vướng mắc'}</dd><dd className="mt-1 text-slate-500">Phụ trách: {track.responsibleRole}</dd></div>)}
       </dl>
       {run.status !== 'CLOSED' && declarationTracks.length > 0 && <fieldset className="mt-3 grid gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Khai báo ngoại lệ Ca phục vụ">
-        <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ (append-only)</legend>
-        <p className="text-amber-900">Chỉ gửi dòng chứng từ liên quan và lý do cho phạm vi sẽ được hệ thống xác minh; khai báo không tự đóng Ca.</p>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ</legend>
+        <p className="text-amber-900">Chọn nguyên liệu liên quan và nêu lý do. Khai báo không tự đóng ca.</p>
+        <div className="grid gap-2 sm:grid-cols-2">
           <label className="grid gap-1 font-medium text-slate-700">Phạm vi ngoại lệ<select aria-label="Phạm vi ngoại lệ" value={varianceTrack} onChange={(event) => setVarianceTrack(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn phạm vi</option>{declarationTracks.map((track) => <option key={track} value={track}>{formatServiceRunVarianceTrack(track)}</option>)}</select></label>
-          <label className="grid gap-1 font-medium text-slate-700">Dòng chứng từ liên quan<Input aria-label="Dòng chứng từ liên quan" value={varianceSourceLines} onChange={(event) => setVarianceSourceLines(event.target.value)} placeholder="Nhập mã dòng từ chứng từ, cách nhau dấu phẩy" /></label>
           <label className="grid gap-1 font-medium text-slate-700">Lý do<Input aria-label="Lý do khai báo ngoại lệ" value={varianceReason} onChange={(event) => setVarianceReason(event.target.value)} placeholder="Bắt buộc" /></label>
         </div>
-        <div><Button size="sm" variant="outline" disabled={!varianceTrack || !varianceSourceLines.trim() || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
-          await declareVariance({ id: run.serviceRunId, body: { track: varianceTrack, sourceLineIds: varianceSourceLines.split(',').map((value) => value.trim()).filter(Boolean), reason: varianceReason } }).unwrap()
+        <fieldset className="max-h-48 overflow-y-auto rounded border border-amber-200 bg-white p-2" aria-label="Nguyên liệu liên quan">
+          <legend className="px-1 font-medium text-slate-700">Nguyên liệu liên quan</legend>
+          {sourceLineOptions.length ? <div className="grid gap-1 sm:grid-cols-2">{sourceLineOptions.map((line) => <label key={line.sourceLineId} className="flex min-w-0 items-start gap-2 rounded px-2 py-1.5 hover:bg-amber-50"><input type="checkbox" className="mt-0.5" checked={varianceSourceLines.includes(line.sourceLineId)} onChange={(event) => setVarianceSourceLines((current) => event.target.checked ? [...current, line.sourceLineId] : current.filter((id) => id !== line.sourceLineId))} /><span className="min-w-0"><strong className="block truncate text-slate-800">{line.ingredientLabel}</strong><span className="text-slate-600">Cần {line.requiredQuantity} {line.unitLabel}</span></span></label>)}</div> : <p className="text-slate-600">Chưa có dòng nguyên liệu cho ca này.</p>}
+        </fieldset>
+        <div><Button size="sm" variant="outline" disabled={!varianceTrack || varianceSourceLines.length === 0 || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
+          await declareVariance({ id: run.serviceRunId, body: { track: varianceTrack, sourceLineIds: varianceSourceLines, reason: varianceReason } }).unwrap()
           setDeclaredByCurrentActor(true)
-          setVarianceSourceLines('')
+          setVarianceSourceLines([])
           setVarianceReason('')
         })}>Gửi khai báo ngoại lệ</Button></div>
       </fieldset>}
-      {run.status !== 'CLOSED' && isAdmin && !declaredByCurrentActor && <fieldset className="mt-3 grid gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs" aria-label="Phê duyệt waiver ngoại lệ">
+      {run.status !== 'CLOSED' && isAdmin && !declaredByCurrentActor && <fieldset className="mt-3 grid gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs" aria-label="Phê duyệt miễn xác nhận ngoại lệ">
         <legend className="px-1 font-medium text-slate-800">Phê duyệt miễn xác nhận</legend>
         <p className="text-slate-600">Chỉ phê duyệt khai báo của người khác. Hệ thống từ chối tự phê duyệt và tải lại kết quả sau thao tác.</p>
-        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Mã tham chiếu khai báo<Input aria-label="Mã tham chiếu khai báo" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} placeholder="Mã từ khai báo đang chờ duyệt" /></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do miễn xác nhận<Input aria-label="Lý do phê duyệt miễn xác nhận" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
-        <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { reason: waiverReason } }).unwrap())}>Phê duyệt waiver</Button></div>
+        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Khai báo chờ duyệt<select aria-label="Khai báo chờ duyệt" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn khai báo</option>{pendingDeclarations.map((item) => <option key={item.declarationId} value={item.declarationId}>{item.declaredByLabel} · {formatServiceRunVarianceTrack(item.trackLabel)} · {item.reason}</option>)}</select></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do miễn xác nhận<Input aria-label="Lý do phê duyệt miễn xác nhận" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
+        <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { reason: waiverReason } }).unwrap())}>Phê duyệt miễn xác nhận</Button></div>
       </fieldset>}
       <div className="mt-3 flex flex-wrap items-end gap-2">
         {run.canStartService && <Button size="sm" disabled={startState.isLoading} onClick={() => void act(() => start(run.serviceRunId).unwrap())}>Bắt đầu phục vụ</Button>}

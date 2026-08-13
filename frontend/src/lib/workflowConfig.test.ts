@@ -7,7 +7,7 @@ describe('workflowConfig', () => {
   it('maps Vietnamese operational status text to alert tones', () => {
     expect(toneFromStatus('Thiếu BOM')).toBe('danger');
     expect(toneFromStatus('Không đủ tồn kho')).toBe('danger');
-    expect(toneFromStatus('Chờ dữ liệu backend')).toBe('warning');
+    expect(toneFromStatus('Chưa đồng bộ dữ liệu')).toBe('neutral');
     expect(toneFromStatus('Đã gửi bếp')).toBe('success');
     expect(toneFromStatus('')).toBe('neutral');
   });

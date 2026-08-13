@@ -188,6 +188,8 @@ export type SupplementalRequestId = {
 };
 export type FulfillSupplementalMaterialRequest = SupplementalRequestId
   & components['schemas']['FulfillSupplementalMaterialRequest'];
+export type RouteSupplementalMaterialRequestToPurchasing = SupplementalRequestId
+  & components['schemas']['RouteSupplementalMaterialRequestToPurchasing'];
 export type RejectSupplementalMaterialRequest = SupplementalRequestId
   & components['schemas']['RejectSupplementalMaterialRequest'];
 export type InventoryIssueCreatedResult = components['schemas']['InventoryIssueCreatedDto'];
@@ -288,7 +290,7 @@ export type SendDailyProductionPlanRequest = components['schemas']['SendDailyPro
   export type ServiceRunLifecycleProjectionDto = components['schemas']['ServiceRunLifecycleProjectionDto'];
   export type ServiceRunOperationalRowDto = components['schemas']['ServiceRunOperationalRowDto'];
   export type ServiceRunPageResponseDto = components['schemas']['ServiceRunOperationalRowDtoPagedResponseDto'];
-  export type ServiceRunPageQuery = { pageNumber?: number; pageSize?: number; serviceDate?: string; shiftName?: string; status?: string };
+  export type ServiceRunPageQuery = LowerCamelQuery<NonNullable<paths['/api/service-runs/page']['get']['parameters']['query']>>;
   export type ServiceRunByPlanQuery = { planId: string; shiftName: string };
 export type OpenServiceRunRequest = components['schemas']['OpenServiceRunRequest'];
 export type DeclareServiceRunVarianceRequest = components['schemas']['DeclareServiceRunVarianceRequest'];
@@ -513,6 +515,9 @@ export interface KitchenIssueRow {
   issueCode: string;
   issueDate: string;
   shiftName?: string;
+  sourceCustomerName?: string;
+  sourceShiftName?: string;
+  sourcePriceTierAmount?: number;
   warehouseId: string;
   warehouse: string;
   materialRequestId: string;

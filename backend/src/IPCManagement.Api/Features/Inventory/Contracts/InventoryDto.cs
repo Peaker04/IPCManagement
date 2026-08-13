@@ -261,6 +261,7 @@ public class InventoryReturnDto
     public string? ReceivedBy { get; set; }
     public string? ReceivedByName { get; set; }
     public DateTime? ReceivedAt { get; set; }
+    public long ConcurrencyVersion { get; set; }
 
     public List<InventoryReturnLineDto> Lines { get; set; } = new();
 }
@@ -280,6 +281,15 @@ public class InventoryReturnLineDto
 
 public class CreateInventoryReturnRequest
 {
+    [Required, MaxLength(128)]
+    public string CommandId { get; set; } = string.Empty;
+
+    [MaxLength(128)]
+    public string? CorrelationId { get; set; }
+
+    [MaxLength(128)]
+    public string? CausationId { get; set; }
+
     [Required]
     public DateOnly ReturnDate { get; set; }
 
@@ -321,6 +331,18 @@ public class InventoryReturnCreatedDto
 
 public class ConfirmInventoryReturnReceiptRequest
 {
+    [Required, MaxLength(128)]
+    public string CommandId { get; set; } = string.Empty;
+
+    [Range(0, 1)]
+    public long ExpectedVersion { get; set; }
+
+    [MaxLength(128)]
+    public string? CorrelationId { get; set; }
+
+    [MaxLength(128)]
+    public string? CausationId { get; set; }
+
     public bool HasDiscrepancy { get; set; }
 
     [MaxLength(1000)]
@@ -351,6 +373,8 @@ public sealed class InventoryReturnAllocationBalanceDto
     public string SourceIssueLineId { get; set; } = string.Empty;
     public string MaterialRequestLineId { get; set; } = string.Empty;
     public string CustomerId { get; set; } = string.Empty;
+    public string CustomerCode { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
     public DateOnly ServiceDate { get; set; }
     public string ShiftName { get; set; } = string.Empty;
     public decimal PriceTierAmount { get; set; }

@@ -173,6 +173,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(AuthorizationPolicies.InventoryIssueAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(
             AuthorizationPolicies.InventoryRoles.Concat(AuthorizationPolicies.ProductionRoles).ToArray()));
+    options.AddPolicy(AuthorizationPolicies.SupplementalMaterialRequestReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.SupplementalMaterialRequestReadRoles));
     options.AddPolicy(AuthorizationPolicies.ProductionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ProductionRoles));
     options.AddPolicy(AuthorizationPolicies.DemandGenerateAccess, policy =>

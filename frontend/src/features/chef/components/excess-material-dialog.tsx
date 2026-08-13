@@ -24,10 +24,16 @@ import { RotateCcw, Scale, CheckCircle2, HelpCircle, AlertCircle } from 'lucide-
 import { formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import type { ExcessMaterial, Ingredient } from '@/lib/types'
 
+type ExcessMaterialOption = Ingredient & {
+  sourceCustomerName?: string
+  sourceShiftName?: string
+  sourcePriceTierAmount?: number
+}
+
 interface ExcessMaterialDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  materials: Ingredient[]
+  materials: ExcessMaterialOption[]
   onSubmit: (data: ExcessMaterial) => void
 }
 
@@ -112,6 +118,7 @@ export function ExcessMaterialDialog({
                       {material.name}
                     </span>
                     <span className="text-xs text-slate-400 ml-1.5">({formatUnit(material.unit)})</span>
+                    {material.sourceCustomerName ? <span className="block text-xs text-slate-500">{material.sourceCustomerName} · {material.sourceShiftName === 'AFTERNOON' ? 'Ca chiều' : material.sourceShiftName === 'MORNING' ? 'Ca sáng' : 'Cả ngày'}{typeof material.sourcePriceTierAmount === 'number' ? ` · ${material.sourcePriceTierAmount.toLocaleString('vi-VN')}đ` : ''}</span> : null}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -43,15 +43,6 @@ internal static class PurchaseRequestGenerationPolicy
             return false;
         }
 
-        if (existing.Purchaserequestlines.Count == 0)
-        {
-            return true;
-        }
-
-        var currentDemandLineIds = materialRequest.Materialrequestlines
-            .Select(line => Convert.ToBase64String(line.RequestLineId))
-            .ToHashSet(StringComparer.Ordinal);
-        return existing.Purchaserequestlines.All(line =>
-            currentDemandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId)));
+        return true;
     }
 }

@@ -23,6 +23,10 @@ internal static class SupplementalMaterialRequestMapper
         var remainingQty = DecimalPolicy.RoundQuantity(Math.Max(entity.RequestedQty - fulfilledQty, 0));
         var availableQty = await GetAvailableQuantityAsync(context, entity.WarehouseId, entity.IngredientId, source.Unit);
         var purchaseLink = await GetPurchaseLinkAsync(context, entity.RequestId);
+        var lastSequence = await context.Lifecycletransitions.AsNoTracking()
+            .Where(item => item.AggregateType == nameof(SupplementalMaterialRequest) && item.AggregateId == entity.RequestId)
+            .MaxAsync(item => (int?)item.AggregateSequence);
+        var concurrencyVersion = lastSequence is null ? 0 : checked(lastSequence.Value + 1L);
         var status = NormalizeStatus(entity.Status);
         var terminal = status is RejectedStatus or FulfilledStatus;
 
@@ -52,6 +56,7 @@ internal static class SupplementalMaterialRequestMapper
             CanRouteToPurchasing = !terminal && remainingQty > availableQty && purchaseLink.RequestId is null,
             CanReject = !terminal && fulfilledQty <= 0 && purchaseLink.RequestId is null,
             ActionDisabledReason = ResolveDisabledReason(status, remainingQty, availableQty, purchaseLink.RequestCode),
+            ConcurrencyVersion = concurrencyVersion,
         };
     }
 

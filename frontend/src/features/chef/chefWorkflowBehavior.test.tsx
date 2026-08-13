@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getCatalog: vi.fn(),
   getDailyPlan: vi.fn(),
   getKitchenIssues: vi.fn(),
+  getKitchenIssueActions: vi.fn(),
   getInventoryReturns: vi.fn(),
   sendDailyPlan: vi.fn(),
 }))
@@ -33,6 +34,7 @@ vi.mock('@/api/workflowApi', () => ({
   useGetInventoryReturnsQuery: mocks.getInventoryReturns,
   useGetDailyProductionPlanQuery: mocks.getDailyPlan,
   useGetKitchenIssuesPageQuery: mocks.getKitchenIssues,
+  useGetKitchenIssuesQuery: mocks.getKitchenIssueActions,
   useSendDailyProductionPlanToKitchenMutation: () => [mocks.sendDailyPlan, { isLoading: false }],
 }))
 
@@ -79,6 +81,7 @@ describe('chef workflow service-date behavior', () => {
       isLoading: false,
       isError: false,
     })
+    mocks.getKitchenIssueActions.mockReturnValue({ data: [], isLoading: false, isError: false })
     mocks.getInventoryReturns.mockReturnValue({ data: undefined, isLoading: false, isError: false })
   })
 
@@ -96,6 +99,12 @@ describe('chef workflow service-date behavior', () => {
       dateTo: '2026-07-20',
       pageNumber: 1,
       pageSize: 20,
+    }, { skip: false })
+    expect(mocks.getKitchenIssueActions).toHaveBeenCalledWith({
+      dateFrom: '2026-07-20',
+      dateTo: '2026-07-20',
+      shiftName: 'MORNING',
+      limit: 500,
     }, { skip: false })
     expect(result.current.rows).toEqual([])
 
@@ -332,6 +341,7 @@ describe('chef workflow service-date behavior', () => {
       returnDate: '2026-07-20',
       shiftName: 'MORNING',
       issueId: issueRow.issueId,
+      lines: [expect.objectContaining({ sourceIssueLineId: issueRow.id })],
     }))
   })
 })

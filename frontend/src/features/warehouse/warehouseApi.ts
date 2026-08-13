@@ -27,6 +27,7 @@ import type {
   ReceiptCorrectionResult,
   SupplementalMaterialRequestResult,
   FulfillSupplementalMaterialRequest,
+  RouteSupplementalMaterialRequestToPurchasing,
   RejectSupplementalMaterialRequest,
 } from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
@@ -198,10 +199,10 @@ export const warehouseApi = apiSlice.injectEndpoints({
       providesTags: [workflowCacheTags.supplementalRequests],
     }),
     fulfillSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, FulfillSupplementalMaterialRequest>({
-      query: ({ requestId, quantity }) => ({
+      query: ({ requestId, commandId, expectedVersion, quantity }) => ({
         url: `/supplemental-material-requests/${requestId}/fulfill`,
         method: 'POST',
-        body: { quantity },
+        body: { commandId, expectedVersion, quantity },
       }),
       invalidatesTags: [
         workflowCacheTags.supplementalRequests,
@@ -211,10 +212,11 @@ export const warehouseApi = apiSlice.injectEndpoints({
         workflowCacheTags.documents,
       ],
     }),
-    routeSupplementalMaterialRequestToPurchasing: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, string>({
-      query: (requestId) => ({
+    routeSupplementalMaterialRequestToPurchasing: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, RouteSupplementalMaterialRequestToPurchasing>({
+      query: ({ requestId, commandId, expectedVersion }) => ({
         url: `/supplemental-material-requests/${requestId}/route-to-purchasing`,
         method: 'POST',
+        body: { commandId, expectedVersion },
       }),
       invalidatesTags: [
         workflowCacheTags.supplementalRequests,

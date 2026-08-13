@@ -14,10 +14,26 @@ public class CurrentStockRepository : GenericRepository<CurrentStock>, ICurrentS
 
     public async Task<CurrentStock?> GetByWarehouseAndIngredientAsync(byte[] warehouseId, byte[] ingredientId)
     {
+        var trackedStock = _dbSet.Local.FirstOrDefault(c =>
+            c.WarehouseId.SequenceEqual(warehouseId) &&
+            c.IngredientId.SequenceEqual(ingredientId));
+        if (trackedStock is not null)
+        {
+            return trackedStock;
+        }
+
         return await _dbSet
             .Include(c => c.Ingredient)
             .Include(c => c.Unit)
             .FirstOrDefaultAsync(c => c.WarehouseId == warehouseId && c.IngredientId == ingredientId);
+    }
+
+    public override void Update(CurrentStock entity)
+    {
+        if (_context.Entry(entity).State != EntityState.Added)
+        {
+            base.Update(entity);
+        }
     }
 
     public async Task<IEnumerable<CurrentStock>> GetByWarehouseAsync(byte[] warehouseId)

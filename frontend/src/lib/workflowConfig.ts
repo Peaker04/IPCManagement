@@ -65,7 +65,7 @@ const laneBase: Array<Pick<WorkflowLane, 'id' | 'label' | 'owner' | 'stage' | 'r
 
 export const workflowLaneDefinitions: WorkflowLane[] = laneBase.map((lane) => ({
   ...lane,
-  status: 'Chờ dữ liệu backend',
+  status: 'Chưa đồng bộ dữ liệu',
   waiting: 0,
   blocked: 0,
   done: 0,
@@ -109,6 +109,7 @@ const workflowStatusPresentations: Readonly<Record<string, WorkflowStatusPresent
   PARTIALLYRECEIVED: { label: 'Đã nhận một phần', tone: 'warning' },
   PARTIALLYFULFILLED: { label: 'Đã cấp một phần', tone: 'warning' },
   PENDING: { label: 'Đang chờ xử lý', tone: 'warning' },
+  PENDINGAPPROVAL: { label: 'Chờ Quản lý duyệt', tone: 'warning' },
   PENDINGRECEIPT: { label: 'Chờ kho tiếp nhận', tone: 'warning' },
   PENDINGWAREHOUSEREVIEW: { label: 'Chờ kho xử lý', tone: 'warning' },
   NEEDSPURCHASE: { label: 'Chờ thu mua', tone: 'warning' },

@@ -1,3 +1,5 @@
+import type { components } from '@/shared/api/contracts/schema'
+
 export type MenuAmendmentDecisionItem = {
   decisionItemId: string
   menuAmendmentId: string
@@ -23,13 +25,7 @@ export type MenuAmendmentDecisionPage = {
   totalCount: number
 }
 
-export type MenuAmendmentDecisionCommand = {
-  decisionItemId: string
-  action: string
-  commandId: string
-  expectedVersion: number
-  reason: string
-}
+export type MenuAmendmentDecisionCommand = components['schemas']['MenuAmendmentDecisionCommandRequest']
 
 export const amendmentDecisionStatus = (status: string) => ({
   OPEN: { label: 'Chờ đối soát', tone: 'warning' as const },

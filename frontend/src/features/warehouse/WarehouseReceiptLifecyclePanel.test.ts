@@ -6,7 +6,7 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain('useGetInventoryReceiptsQuery');
     expect(source).toContain('useGetInventoryReceiptByIdQuery');
     expect(source).toContain("!receipt.purchaseOrderId");
-    expect(source).toContain('nguồn đơn mua bất biến');
+    expect(source).toContain('đơn mua gốc');
   });
 
   it('keeps quality, manager approval, and POST ownership visibly separate', () => {
@@ -25,15 +25,27 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain("commandId('receipt-post')");
     expect(source).toContain("commandId('receipt-rework')");
     expect(source).toContain('Lý do xử lý lại không được để trống.');
+    expect(source.match(/maximumFractionDigits: 6/g)).toHaveLength(3);
   });
 
   it('offers only Admin an append-only correction after POSTED with source-line quantities and a mandatory reason', () => {
     expect(source).toContain("receipt.status === 'POSTED' && canCorrect");
     expect(source).toContain("commandId('receipt-correction')");
     expect(source).toContain('expectedVersion: 0');
-    expect(source).toContain('Lý do correction không được để trống.');
+    expect(source).toContain('Lý do điều chỉnh không được để trống.');
     expect(source).toContain('không sửa phiếu nhập hoặc bút toán gốc');
     expect(source).toContain('Ghi sổ chứng từ điều chỉnh');
+  });
+
+  it('uses warehouse language instead of implementation vocabulary in visible copy', () => {
+    expect(source).toContain('Xử lý phiếu nhập');
+    expect(source).toContain('từng dòng nguyên liệu');
+    expect(source).toContain('Điều chỉnh sau nhập');
+    expect(source).not.toContain('Lifecycle phiếu nhập');
+    expect(source).not.toContain('từng source line');
+    expect(source).not.toContain('Hủy có audit');
+    expect(source).not.toContain('Tạo correction hậu nhập');
+    expect(source).not.toContain('source line hoặc version');
   });
 
   it('reserves the lifecycle viewport only while receipt data is loading', () => {

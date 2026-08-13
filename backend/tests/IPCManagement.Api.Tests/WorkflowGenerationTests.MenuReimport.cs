@@ -64,6 +64,23 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task MenuAmendment_Should_GroupDecisionScopesByCustomerDateShiftAndPriceTier()
+    {
+        var sources = new[]
+        {
+            new MenuAmendmentService.DecisionScopeSource("customer-1", "AMANN", new DateOnly(2026, 6, 15), "AFTERNOON", 25_000m, "line-1"),
+            new MenuAmendmentService.DecisionScopeSource("customer-1", "AMANN", new DateOnly(2026, 6, 15), "AFTERNOON", 25_000m, "line-2"),
+            new MenuAmendmentService.DecisionScopeSource("customer-1", "AMANN", new DateOnly(2026, 6, 16), "AFTERNOON", 25_000m, "line-3"),
+        };
+
+        var result = MenuAmendmentService.BuildDecisionScopes(sources, ["document-1"]);
+
+        result.Should().HaveCount(2);
+        result.Single(item => item.ServiceDate == new DateOnly(2026, 6, 15)).SourceLineIds
+            .Should().BeEquivalentTo(["line-1", "line-2"]);
+    }
+
+    [Fact]
     public async Task MenuAmendment_Should_ExecuteOnlyBeforeDemandExists()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

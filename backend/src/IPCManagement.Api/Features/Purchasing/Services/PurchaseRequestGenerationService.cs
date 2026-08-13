@@ -75,11 +75,13 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
             EnsureLine(purchaseRequest, line, existingLines);
         }
 
-        var shortageLineIds = shortageLines
+        var currentDemandLineIds = materialRequest.Materialrequestlines
             .Select(line => Convert.ToBase64String(line.RequestLineId))
             .ToHashSet(StringComparer.Ordinal);
         var staleLines = existingLines
-            .Where(line => !shortageLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId)))
+            .Where(line =>
+                currentDemandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId)) &&
+                shortageLines.All(shortage => !shortage.RequestLineId.SequenceEqual(line.MaterialRequestLineId)))
             .ToList();
         if (staleLines.Count > 0)
         {
@@ -134,13 +136,22 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
                 purchaseRequest.Purchaserequestlines);
         }
 
-        var staleCount = purchaseRequest.Purchaserequestlines.Count;
+        var currentDemandLineIds = materialRequest.Materialrequestlines
+            .Select(line => Convert.ToBase64String(line.RequestLineId))
+            .ToHashSet(StringComparer.Ordinal);
+        var staleLines = purchaseRequest.Purchaserequestlines
+            .Where(line => currentDemandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId)))
+            .ToList();
+        var staleCount = staleLines.Count;
         if (staleCount > 0)
         {
-            _context.Purchaserequestlines.RemoveRange(purchaseRequest.Purchaserequestlines);
+            _context.Purchaserequestlines.RemoveRange(staleLines);
         }
 
         purchaseRequest.Status = DraftStatus;
+        var remainingLines = purchaseRequest.Purchaserequestlines
+            .Where(line => !currentDemandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId)))
+            .ToList();
         _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
@@ -151,13 +162,13 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
             EntityId = purchaseRequest.PurchaseRequestId,
             FieldName = "GenerateFromDemand",
             OldValue = $"{staleCount} stale purchase lines",
-            NewValue = "0 shortage lines; 0 purchase lines",
+            NewValue = $"0 shortage lines; {remainingLines.Count} purchase lines",
             Reason = "Dọn đề xuất mua hàng cũ vì nhu cầu hiện tại không còn thiếu nguyên liệu."
         });
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return PurchaseWorkflowMapper.MapResult(purchaseRequest, materialRequest.RequestId, []);
+        return PurchaseWorkflowMapper.MapResult(purchaseRequest, materialRequest.RequestId, remainingLines);
     }
 
     private async Task<PurchaseRequest> EnsureRequestAsync(

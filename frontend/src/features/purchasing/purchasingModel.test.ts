@@ -350,6 +350,8 @@ describe('phase 09 purchasing API contract', () => {
         supplierId: 'supplier-1',
         proposedUnitPrice: 25_000,
         proposedDeliveryDate: '2026-07-22',
+        receivingWarehouseId: 'warehouse-1',
+        purchasingTerms: 'Giao tại kho',
         expectedDecisionVersion: 3,
         note: 'Giao trước 06:00',
       },
@@ -423,6 +425,8 @@ describe('phase 09 purchasing API contract', () => {
         supplierId: 'supplier-1',
         proposedUnitPrice: 25_000,
         proposedDeliveryDate: '2026-07-22',
+        receivingWarehouseId: 'warehouse-1',
+        purchasingTerms: 'Giao tại kho',
         expectedDecisionVersion: 0,
       },
     }));

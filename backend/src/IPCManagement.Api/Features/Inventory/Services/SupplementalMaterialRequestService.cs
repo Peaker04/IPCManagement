@@ -8,11 +8,14 @@ using IPCManagement.Api.Shared.Contracts;
 using IPCManagement.Api.Exceptions;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Text.Json;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 
 namespace IPCManagement.Api.Features.Inventory.Services;
 
 public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRequestService
 {
+    private const string AggregateType = nameof(SupplementalMaterialRequest);
     private const string PendingStatus = "PENDING_WAREHOUSE_REVIEW";
     private const string PartialStatus = "PARTIALLY_FULFILLED";
     private const string NeedsPurchaseStatus = "NEEDS_PURCHASE";
@@ -113,6 +116,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        var commandId = RequireCommandId(request.CommandId);
         var actorId = GuidHelper.ParseGuidString(actorUserId)
             ?? throw new ArgumentException("Người yêu cầu không hợp lệ.");
         var issueId = GuidHelper.ParseGuidString(request.IssueId)
@@ -136,6 +140,13 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         try
         {
+            var recorder = new LifecycleTransitionRecorder(_context);
+            var replay = await _context.Lifecyclecommandreceipts.AsNoTracking()
+                .SingleOrDefaultAsync(item => item.CommandId == commandId && item.AggregateType == AggregateType);
+            if (replay is not null)
+            {
+                return DeserializeResponse(replay.ResponseJson);
+            }
             return await _transactionRunner.ExecuteAsync(
                 async _ =>
                 {
@@ -184,9 +195,17 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     _context.Supplementalmaterialrequests.Add(entity);
                     AddAudit(entity, actorId, "Create", null, PendingStatus, "Bếp gửi yêu cầu cấp nguyên liệu bổ sung tới kho.");
                     await _context.SaveChangesAsync();
-                    return await MapAsync(entity, source);
+                    var result = await MapAsync(entity, source);
+                    result.ConcurrencyVersion = 1;
+                    var response = JsonSerializer.Serialize(result);
+                    recorder.Stage(new LifecycleTransitionRequest(
+                        AggregateType, entity.RequestId, commandId, 0, null, PendingStatus, actorId, 0,
+                        entity.Reason, commandId, null, response, response));
+                    await _context.SaveChangesAsync();
+                    return result;
                 },
-                async _ => await FindOpenByIssueLineAsync(issueLineId) is not null,
+                token => _context.Lifecyclecommandreceipts.AsNoTracking()
+                    .AnyAsync(item => item.CommandId == commandId && item.AggregateType == AggregateType, token),
                 IsolationLevel.Serializable);
         }
         catch (DbUpdateException exception) when (IsOpenIssueLineUniqueViolation(exception))
@@ -217,6 +236,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        var commandId = RequireCommandId(request.CommandId);
         var actorId = ParseActor(actorUserId);
         var requestedQuantity = DecimalPolicy.RoundQuantity(request.Quantity);
         if (requestedQuantity <= 0)
@@ -226,6 +246,13 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         var issueId = GuidHelper.NewId();
         var issueCode = $"ISS-SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+        var requestId = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
+        var recorder = new LifecycleTransitionRecorder(_context);
+        var replay = await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId);
+        if (replay is not null)
+        {
+            return DeserializeResponse(replay.ResponseJson);
+        }
         return await _transactionRunner.ExecuteAsync(
             async _ =>
             {
@@ -234,7 +261,12 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
+                var sourceShiftName = await ResolveSourceShiftNameAsync(source);
                 var current = await MapAsync(entity, source);
+                if (request.ExpectedVersion != current.ConcurrencyVersion)
+                {
+                    throw new DbUpdateConcurrencyException("Yêu cầu bổ sung đã thay đổi; hãy tải lại trạng thái.");
+                }
                 if (requestedQuantity > current.RemainingQty)
                 {
                     throw new BusinessRuleException($"Số lượng cấp vượt phần còn thiếu {current.RemainingQty} {current.UnitName}.");
@@ -249,7 +281,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     IssueId = issueId,
                     IssueCode = issueCode,
                     IssueDate = source.Issue.IssueDate,
-                    ShiftName = source.Issue.ShiftName,
+                    ShiftName = sourceShiftName,
                     WarehouseId = entity.WarehouseId,
                     MaterialRequestId = source.Issue.MaterialRequestId,
                     IssuedBy = actorId,
@@ -291,23 +323,36 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     $"Kho cấp {requestedQuantity} {source.Unit.UnitName} bằng phiếu {issue.IssueCode}.");
 
                 await _unitOfWork.SaveChangesAsync();
-                return await MapAsync(entity, source);
+                var result = await MapAsync(entity, source);
+                result.ConcurrencyVersion = checked(request.ExpectedVersion + 1);
+                var response = JsonSerializer.Serialize(result);
+                recorder.Stage(new LifecycleTransitionRequest(
+                    AggregateType, entity.RequestId, commandId, checked((int)request.ExpectedVersion), oldStatus,
+                    entity.Status, actorId, request.ExpectedVersion,
+                    $"Kho cấp {requestedQuantity} {source.Unit.UnitName} bằng phiếu {issue.IssueCode}.",
+                    commandId, null, response, response));
+                await _unitOfWork.SaveChangesAsync();
+                return result;
             },
-            cancellationToken => _context.Auditlogs
-                .AsNoTracking()
-                .AnyAsync(
-                    audit => audit.EntityName == nameof(SupplementalMaterialRequest) &&
-                             audit.FieldName == FulfillmentIssueAuditField &&
-                             audit.NewValue == GuidHelper.ToGuidString(issueId),
-                    cancellationToken));
+            async token => await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId, token) is not null,
+            IsolationLevel.Serializable);
     }
 
     public async Task<SupplementalMaterialRequestDto> RouteToPurchasingAsync(
         string id,
+        RouteSupplementalMaterialRequestToPurchasing request,
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        var commandId = RequireCommandId(request.CommandId);
         var actorId = ParseActor(actorUserId);
+        var requestId = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
+        var recorder = new LifecycleTransitionRecorder(_context);
+        var replay = await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId);
+        if (replay is not null)
+        {
+            return DeserializeResponse(replay.ResponseJson);
+        }
         var purchaseRequestId = GuidHelper.NewId();
         var purchaseRequestCode = $"PR-SUP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
         return await _transactionRunner.ExecuteAsync(
@@ -318,7 +363,12 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
+                var sourceShiftName = await ResolveSourceShiftNameAsync(source);
                 var current = await MapAsync(entity, source);
+                if (request.ExpectedVersion != current.ConcurrencyVersion)
+                {
+                    throw new DbUpdateConcurrencyException("Yêu cầu bổ sung đã thay đổi; hãy tải lại trạng thái.");
+                }
                 var purchaseQty = DecimalPolicy.RoundQuantity(current.RemainingQty - current.AvailableQty);
                 if (purchaseQty <= 0)
                 {
@@ -356,7 +406,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     PurchaseRequestCode = purchaseRequestCode,
                     RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
                     PurchaseForDate = source.Issue.IssueDate,
-                    ShiftName = source.Issue.ShiftName,
+                    ShiftName = sourceShiftName,
                     Status = "DRAFT",
                     CreatedBy = actorId,
                 };
@@ -385,15 +435,19 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     $"Kho chuyển {purchaseQty} {source.Unit.UnitName} còn thiếu sang đề xuất {purchaseRequest.PurchaseRequestCode}.");
 
                 await _unitOfWork.SaveChangesAsync();
-                return await MapAsync(entity, source);
+                var result = await MapAsync(entity, source);
+                result.ConcurrencyVersion = checked(request.ExpectedVersion + 1);
+                var response = JsonSerializer.Serialize(result);
+                recorder.Stage(new LifecycleTransitionRequest(
+                    AggregateType, entity.RequestId, commandId, checked((int)request.ExpectedVersion), oldStatus,
+                    entity.Status, actorId, request.ExpectedVersion,
+                    $"Kho chuyển {purchaseQty} {source.Unit.UnitName} còn thiếu sang đề xuất {purchaseRequest.PurchaseRequestCode}.",
+                    commandId, null, response, response));
+                await _unitOfWork.SaveChangesAsync();
+                return result;
             },
-            cancellationToken => _context.Auditlogs
-                .AsNoTracking()
-                .AnyAsync(
-                    audit => audit.EntityName == nameof(SupplementalMaterialRequest) &&
-                             audit.FieldName == PurchaseRequestAuditField &&
-                             audit.NewValue == GuidHelper.ToGuidString(purchaseRequestId),
-                    cancellationToken));
+            async token => await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId, token) is not null,
+            IsolationLevel.Serializable);
     }
 
     public async Task<SupplementalMaterialRequestDto> RejectAsync(
@@ -456,6 +510,36 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         }
 
         return (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
+    }
+
+    private async Task<string?> ResolveSourceShiftNameAsync(InventoryIssueLine source)
+    {
+        if (source.MaterialRequestLineId is null)
+        {
+            return source.Issue.ShiftName;
+        }
+
+        var materialLine = source.MaterialRequestLine ?? await _context.Materialrequestlines
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.RequestLineId == source.MaterialRequestLineId);
+        if (materialLine is null)
+        {
+            return source.Issue.ShiftName;
+        }
+
+        var trackedPlanLine = _context.ChangeTracker.Entries<ProductionPlanLine>()
+            .Select(entry => entry.Entity)
+            .FirstOrDefault(item => item.PlanLineId.SequenceEqual(materialLine.PlanLineId));
+        var sourceShift = trackedPlanLine?.ShiftName;
+        if (sourceShift is null && !IsInMemory())
+        {
+            sourceShift = await _context.Productionplanlines.AsNoTracking()
+                .Where(item => item.PlanLineId == materialLine.PlanLineId)
+                .Select(item => item.ShiftName)
+                .FirstOrDefaultAsync();
+        }
+
+        return string.IsNullOrWhiteSpace(sourceShift) ? source.Issue.ShiftName : sourceShift;
     }
 
     private async Task<InventoryIssueLine> LoadSourceIssueLineForCreateAsync(byte[] issueLineId)
@@ -569,6 +653,15 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private static byte[] ParseActor(string actorUserId)
         => GuidHelper.ParseGuidString(actorUserId)
             ?? throw new ArgumentException("Người thao tác không hợp lệ.");
+
+    private static string RequireCommandId(string? commandId)
+        => !string.IsNullOrWhiteSpace(commandId) && commandId.Trim().Length <= 100
+            ? commandId.Trim()
+            : throw new ArgumentException("Mã thao tác không hợp lệ.");
+
+    private static SupplementalMaterialRequestDto DeserializeResponse(string responseJson)
+        => JsonSerializer.Deserialize<SupplementalMaterialRequestDto>(responseJson)
+            ?? throw new InvalidOperationException("Không thể đọc lại kết quả yêu cầu bổ sung.");
 
     private static string NormalizeStatus(string? status)
         => string.Equals(status, "PENDING", StringComparison.OrdinalIgnoreCase)

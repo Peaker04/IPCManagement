@@ -7,6 +7,13 @@ const run = {
   canWaiveServiceConfirmation: false, canResolveVariance: false, canResolveServingVariance: false, canClose: false, serviceConfirmationOutcome: 'PENDING',
   plannedServings: 40, actualServings: 39, materialRequestLineCount: 2, issueCount: 1, unreceivedIssueCount: 0, openSupplementalCount: 0,
   unreceivedReturnCount: 0, hasBomBlocker: false, adjustmentCount: 0,
+  sourceLineOptions: [
+    { sourceLineId: 'source-1', ingredientLabel: 'Gạo', requiredQuantity: 12, unitLabel: 'kg' },
+    { sourceLineId: 'source-2', ingredientLabel: 'Cà rốt', requiredQuantity: 3, unitLabel: 'kg' },
+  ],
+  pendingVarianceDeclarations: [
+    { declarationId: 'declaration-1', trackLabel: 'RECONCILIATION', reason: 'Đã đối chiếu', declaredByLabel: 'Bếp trưởng', declaredAt: '2026-08-13T10:00:00Z' },
+  ],
 }
 
 const mocks = vi.hoisted(() => ({
@@ -16,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   declare: vi.fn(),
   approve: vi.fn(),
   refetch: vi.fn(),
+  scopeQueries: [] as unknown[],
 }))
 
 vi.mock('react-redux', () => ({ useSelector: (selector: (state: unknown) => unknown) => selector({ auth: { user: mocks.user } }) }))
@@ -23,7 +31,10 @@ vi.mock('../chefApi', () => {
   const idle = () => [vi.fn(), { isLoading: false }]
   return {
     useGetServiceRunByPlanQuery: () => ({ data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }),
-    useGetServiceRunByScopeQuery: () => ({ data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }),
+    useGetServiceRunByScopeQuery: (scope: unknown, options: { skip: boolean }) => {
+      if (!options.skip) mocks.scopeQueries.push(scope)
+      return { data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }
+    },
     useOpenServiceRunMutation: () => [mocks.open, { isLoading: false }], useStartServiceRunMutation: idle, useRecordServiceRunActualServingsMutation: idle,
     useConfirmServiceRunMutation: idle, useResolveServiceRunVarianceMutation: idle, useResolveServiceRunServingVarianceMutation: idle,
     useWaiveServiceRunConfirmationMutation: idle, useCloseServiceRunMutation: idle, useCreateServiceRunAdjustmentMutation: idle,
@@ -46,16 +57,19 @@ describe('ServiceRun variance controls', () => {
     mocks.declare.mockReset().mockReturnValue(resolved())
     mocks.approve.mockReset().mockReturnValue(resolved())
     mocks.refetch.mockReset().mockResolvedValue({ data: run })
+    mocks.scopeQueries = []
   })
 
-  it('requires Manager scope, document references and reason before wiring a declaration then refetching', async () => {
+  it('lets a Manager select user-labelled ingredients without typing technical source IDs', async () => {
     render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
     expect(screen.getByRole('group', { name: 'Khai báo ngoại lệ Ca phục vụ' })).toBeInTheDocument()
-    expect(screen.queryByRole('group', { name: 'Phê duyệt waiver ngoại lệ' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Phê duyệt miễn xác nhận ngoại lệ' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' })).toBeDisabled()
 
     fireEvent.change(screen.getByLabelText('Phạm vi ngoại lệ'), { target: { value: 'RECONCILIATION' } })
-    fireEvent.change(screen.getByLabelText('Dòng chứng từ liên quan'), { target: { value: 'source-1, source-2' } })
+    expect(screen.queryByLabelText('Dòng chứng từ liên quan')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: /Gạo/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Cà rốt/ }))
     fireEvent.change(screen.getByLabelText('Lý do khai báo ngoại lệ'), { target: { value: 'Chênh lệch đã đối soát' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' }))
 
@@ -65,16 +79,17 @@ describe('ServiceRun variance controls', () => {
     expect(mocks.refetch).toHaveBeenCalled()
   })
 
-  it('shows Admin only the waiver control and requires a different declaration identifier plus reason', async () => {
+  it('shows Admin a user-labelled pending declaration instead of a technical identifier field', async () => {
     mocks.user = { role: 'admin', isAdminFullAccess: true }
     render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
     expect(screen.queryByRole('group', { name: 'Khai báo ngoại lệ Ca phục vụ' })).not.toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Phê duyệt waiver ngoại lệ' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Phê duyệt waiver' })).toBeDisabled()
+    expect(screen.getByRole('group', { name: 'Phê duyệt miễn xác nhận ngoại lệ' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Phê duyệt miễn xác nhận' })).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Mã tham chiếu khai báo'), { target: { value: 'declaration-1' } })
+    expect(screen.queryByLabelText('Mã tham chiếu khai báo')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Khai báo chờ duyệt'), { target: { value: 'declaration-1' } })
     fireEvent.change(screen.getByLabelText('Lý do phê duyệt miễn xác nhận'), { target: { value: 'Admin waiver hợp lệ' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Phê duyệt waiver' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Phê duyệt miễn xác nhận' }))
 
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledWith({
       id: 'run-1', declarationId: 'declaration-1', body: { reason: 'Admin waiver hợp lệ' },
@@ -97,5 +112,35 @@ describe('ServiceRun variance controls', () => {
     expect(screen.getByText('Chọn khách hàng và tier giá chính xác trước khi mở Ca phục vụ.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Mở Ca phục vụ' })).not.toBeInTheDocument()
     expect(mocks.open).not.toHaveBeenCalled()
+  })
+
+  it('derives a separate user-labelled exact scope from each customer plan', async () => {
+    mocks.persistedRun = null
+    const customerPlans = [
+      {
+        planId: 'plan-anv', planCode: 'KHSX-ANV', planDate: '2026-08-12',
+        customerId: 'customer-anv', customerName: 'Công ty ANV', sentToKitchenAt: '2026-08-12T01:00:00Z',
+        lines: [{ shiftName: 'MORNING', priceTierAmount: 25000 }],
+      },
+      {
+        planId: 'plan-dav', planCode: 'KHSX-DAV', planDate: '2026-08-12',
+        customerId: 'customer-dav', customerName: 'Công ty DAV', sentToKitchenAt: '2026-08-12T01:00:00Z',
+        lines: [{ shiftName: 'MORNING', priceTierAmount: 25000 }],
+      },
+    ]
+
+    render(<ServiceRunSection plans={customerPlans as never[]} shiftName="MORNING" />)
+
+    expect(screen.getByText(/Công ty ANV · 12\/08\/2026 · Ca sáng · 25\.000/)).toBeInTheDocument()
+    expect(screen.getByText(/Công ty DAV · 12\/08\/2026 · Ca sáng · 25\.000/)).toBeInTheDocument()
+    expect(mocks.scopeQueries).toEqual(expect.arrayContaining([
+      { customerId: 'customer-anv', serviceDate: '2026-08-12', shiftName: 'MORNING', priceTierAmount: 25000 },
+      { customerId: 'customer-dav', serviceDate: '2026-08-12', shiftName: 'MORNING', priceTierAmount: 25000 },
+    ]))
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mở Ca phục vụ' })[0])
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledWith({
+      planId: 'plan-anv', shiftName: 'MORNING', customerId: 'customer-anv', priceTierAmount: 25000,
+    }))
   })
 })

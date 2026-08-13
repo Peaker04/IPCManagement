@@ -1,5 +1,5 @@
 import { Lock, X } from 'lucide-react'
-import { useState } from 'react'
+import { useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -8,9 +8,17 @@ import type { WeeklyScheduleEditorWorkflow } from './types'
 
 const EMPTY_DISH_VALUE = '__empty-dish__'
 
+export const resolveSelectedDishLabel = (
+  selectedDishId: string,
+  sectionDishes: Array<{ id: string; name: string }>,
+  getDishName: (dishId: string) => string | undefined,
+) => sectionDishes.find((dish) => dish.id === selectedDishId)?.name
+  ?? getDishName(selectedDishId)
+  ?? (selectedDishId === EMPTY_DISH_VALUE ? 'Chưa có món trong danh mục' : 'Món hiện tại không còn trong danh mục')
+
 export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklyScheduleEditorWorkflow }) {
   const { scope, state, status, actions, presentation } = workflow
-  const [reason, setReason] = useState('')
+  const reasonRef = useRef<HTMLTextAreaElement>(null)
   return (
     <Dialog open={state.isEditorOpen} onOpenChange={(open) => !open && actions.closeEditor()}>
       <DialogContent aria-label="Chỉnh sửa thực đơn tuần" className="ipc-weekly-dialog max-w-5xl overflow-hidden">
@@ -30,8 +38,11 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                   const locked = presentation.isLocked(day.key, section.slotType)
                   const slot = state.draftMenu[day.key]?.[section.slotType]
                   const selectedDishId = slot?.dishId || section.defaultDishId || EMPTY_DISH_VALUE
-                  const selectedDishLabel = section.dishes.find((dish) => dish.id === selectedDishId)?.name
-                    ?? (selectedDishId === EMPTY_DISH_VALUE ? 'Chưa có món trong danh mục' : 'Chọn món')
+                  const selectedDishLabel = resolveSelectedDishLabel(
+                    selectedDishId,
+                    section.dishes,
+                    presentation.getDishName,
+                  )
                   return (
                     <div key={day.key} className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-white p-2 shadow-sm">
                       <div className="flex flex-col"><span className="text-xs font-semibold text-slate-700">{day.label}</span><span className="text-xs text-slate-500">{day.date}</span></div>
@@ -40,7 +51,11 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
                           onValueChange={(value) => actions.changeDish(day.key, section.slotType, value === EMPTY_DISH_VALUE || value === null ? '' : value)}
                           disabled={section.dishes.length === 0}
                         >
-                          <SelectTrigger className="h-9 w-full p-1 text-xs"><SelectValue>{selectedDishLabel}</SelectValue></SelectTrigger>
+                          <SelectTrigger
+                            data-dish-id={slot?.dishId ?? ''}
+                            data-current-dish-id={state.weeklyMenu[day.key]?.[section.slotType]?.dishId ?? ''}
+                            className="h-9 w-full p-1 text-xs"
+                          ><SelectValue>{selectedDishLabel}</SelectValue></SelectTrigger>
                           <SelectContent>
                             {section.dishes.map((dish) => <SelectItem key={`${section.slotType}-${dish.id}`} value={dish.id}>{dish.name}</SelectItem>)}
                             {section.dishes.length === 0 && <SelectItem value={EMPTY_DISH_VALUE}>Chưa có món trong danh mục</SelectItem>}
@@ -54,11 +69,16 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
             </div>
           ))}
         </div>
-        <label className="block text-sm font-medium text-slate-700">Lý do thay đổi lịch đã khóa<Textarea value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 min-h-16" placeholder="Bắt buộc khi thay đổi ca đã khóa; Manager sẽ hậu kiểm." /></label>
+        <label className="block text-sm font-medium text-slate-700">Lý do thay đổi lịch đã khóa<Textarea ref={reasonRef} className="mt-1 min-h-16" placeholder="Bắt buộc khi thay đổi ca đã khóa; quản lý sẽ hậu kiểm." /></label>
 
         <DialogFooter className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <span className="mr-auto self-center text-sm text-slate-600">
+            {presentation.pendingChangeCount > 0
+              ? `${presentation.pendingChangeCount} thay đổi đang chờ lưu`
+              : 'Chưa có thay đổi'}
+          </span>
           <Button type="button" variant="outline" size="sm" onClick={actions.closeEditor}>Hủy</Button>
-          <Button type="button" size="sm" onClick={() => void actions.saveEditor(reason)} disabled={status.isSavingMenu}>
+          <Button type="button" size="sm" onClick={() => void actions.saveEditor(reasonRef.current?.value)} disabled={status.isSavingMenu || presentation.pendingChangeCount === 0}>
             {status.isSavingMenu ? 'Đang lưu...' : 'Lưu thay đổi'}
           </Button>
         </DialogFooter>

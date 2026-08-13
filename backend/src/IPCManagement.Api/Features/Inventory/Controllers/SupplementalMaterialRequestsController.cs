@@ -13,7 +13,7 @@ namespace IPCManagement.Api.Features.Inventory.Controllers;
 
 [ApiController]
 [Route("api/supplemental-material-requests")]
-[Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public sealed class SupplementalMaterialRequestsController : ControllerBase
 {
@@ -29,6 +29,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.SupplementalMaterialRequestReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<SupplementalMaterialRequestDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] SupplementalMaterialRequestFilterDto request)
     {
@@ -44,6 +45,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.SupplementalMaterialRequestReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
@@ -61,6 +63,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
     [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateSupplementalMaterialRequest request)
     {
@@ -102,9 +105,9 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     [HttpPost("{id}/route-to-purchasing")]
     [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> RouteToPurchasingAsync(string id)
+    public async Task<IActionResult> RouteToPurchasingAsync(string id, [FromBody] RouteSupplementalMaterialRequestToPurchasing request)
         => await ExecuteActionAsync(
-            (userId, warehouseId) => _service.RouteToPurchasingAsync(id, userId, warehouseId),
+            (userId, warehouseId) => _service.RouteToPurchasingAsync(id, request, userId, warehouseId),
             "Đã chuyển phần thiếu sang danh sách thu mua.");
 
     [HttpPost("{id}/reject")]

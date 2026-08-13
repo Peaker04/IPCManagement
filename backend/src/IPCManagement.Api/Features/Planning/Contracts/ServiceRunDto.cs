@@ -44,6 +44,25 @@ public sealed class ServiceRunLifecycleProjectionDto
     public int UnreceivedReturnCount { get; set; }
     public bool HasBomBlocker { get; set; }
     public int AdjustmentCount { get; set; }
+    public IReadOnlyList<ServiceRunSourceLineOptionDto> SourceLineOptions { get; set; } = [];
+    public IReadOnlyList<ServiceRunVarianceDeclarationOptionDto> PendingVarianceDeclarations { get; set; } = [];
+}
+
+public sealed class ServiceRunSourceLineOptionDto
+{
+    public string SourceLineId { get; set; } = string.Empty;
+    public string IngredientLabel { get; set; } = string.Empty;
+    public decimal RequiredQuantity { get; set; }
+    public string UnitLabel { get; set; } = string.Empty;
+}
+
+public sealed class ServiceRunVarianceDeclarationOptionDto
+{
+    public string DeclarationId { get; set; } = string.Empty;
+    public string TrackLabel { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public string DeclaredByLabel { get; set; } = string.Empty;
+    public DateTime DeclaredAt { get; set; }
 }
 
 public sealed class ServiceRunTrackDto

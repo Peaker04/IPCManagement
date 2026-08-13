@@ -90,8 +90,8 @@ const queryResult = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const renderPage = () => render(
-  <MemoryRouter initialEntries={['/purchasing?week=2026-07-20']}>
+const renderPage = (entry = '/purchasing?week=2026-07-20') => render(
+  <MemoryRouter initialEntries={[entry]}>
     <PurchasingPage />
   </MemoryRouter>,
 );
@@ -142,5 +142,28 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.getByText('Đang tải')).toBeInTheDocument();
     expect(screen.getByTestId('service-date-workbench')).toHaveTextContent('service dates: 1');
     expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('supplemental-workbench')).toBeNull();
+  });
+
+  it('keeps supplemental purchasing in its own URL-addressable tab', () => {
+    mocks.getWorkbench.mockReturnValue(queryResult());
+
+    renderPage('/purchasing?week=2026-07-20&view=supplemental');
+
+    expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
+    expect(screen.queryByTestId('service-date-workbench')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Mua bổ sung cho bếp' })).toBeInTheDocument();
+  });
+
+  it('opens the supplemental tab without keeping the day workbench in the page', () => {
+    mocks.getWorkbench.mockReturnValue(queryResult({ data: workbench, currentData: workbench, isSuccess: true }));
+    renderPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Mua bổ sung' }));
+
+    expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
+    expect(screen.queryByTestId('service-date-workbench')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true');
   });
 });

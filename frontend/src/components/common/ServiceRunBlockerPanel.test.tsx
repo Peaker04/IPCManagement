@@ -11,6 +11,10 @@ describe('ServiceRunTrackPanel', () => {
       canWaiveServiceConfirmation: false, canResolveVariance: true, canResolveServingVariance: false, canClose: false, serviceConfirmationOutcome: 'PENDING',
       plannedServings: 40, actualServings: 39, materialRequestLineCount: 2, issueCount: 1, unreceivedIssueCount: 0, openSupplementalCount: 1,
       unreceivedReturnCount: 0, hasBomBlocker: false, adjustmentCount: 0,
+      allowedActions: [], closeSnapshot: { actualServings: null, closedAt: null, isImmutable: false },
+      correctionOverlay: { actualServingsDelta: null, correctedActualServings: null, reason: null, state: 'NONE' },
+      currentVersion: 1, customerId: 'customer-1', customerLabel: 'ANV', priceTierAmount: 25000, tracks: [],
+      sourceLineOptions: [], pendingVarianceDeclarations: [],
     }} />)
 
     expect(screen.getByText('Kế hoạch')).toBeInTheDocument()

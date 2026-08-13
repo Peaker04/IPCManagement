@@ -24,6 +24,26 @@ describe('SupplementalRequestDialog validation contract', () => {
     expect(trigger).not.toHaveTextContent('issue-line-1')
   })
 
+  it('distinguishes same-name source lines with customer, shift and tier labels', async () => {
+    const user = userEvent.setup()
+    render(
+      <SupplementalRequestDialog
+        open
+        onOpenChange={vi.fn()}
+        materials={[
+          { id: 'anv-line', name: 'Cá hố', unit: 'kg', quantity: 5, status: 'Đã nhận', signed: true, sourceCustomerName: 'AMANN (ANV)', sourceShiftName: 'AFTERNOON', sourcePriceTierAmount: 25000 },
+          { id: 'dav-line', name: 'Cá hố', unit: 'kg', quantity: 5, status: 'Đã nhận', signed: true, sourceCustomerName: 'Draxlmaier (DAV)', sourceShiftName: 'AFTERNOON', sourcePriceTierAmount: 25000 },
+        ]}
+        isSubmitting={false}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('combobox', { name: /Nguyên liệu cần bổ sung/ }))
+    expect(await screen.findByRole('option', { name: /Cá hố · AMANN \(ANV\) · Ca chiều · 25\.000/ })).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: /Cá hố · Draxlmaier \(DAV\) · Ca chiều · 25\.000/ })).toBeInTheDocument()
+  })
+
   it('associates invalid submit feedback with both affected fields', async () => {
     const user = userEvent.setup()
     render(

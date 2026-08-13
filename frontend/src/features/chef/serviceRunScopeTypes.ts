@@ -1,10 +1,13 @@
-/** Handwritten Phase 05 scope contract until Wave 3 regenerates OpenAPI clients. */
+import type { components, paths } from '@/shared/api/contracts/schema'
+
+type GeneratedServiceRunScope = NonNullable<paths['/api/service-runs/scope']['get']['parameters']['query']>
+
 export type ServiceRunScope = {
-  customerId?: string
-  serviceDate: string
-  shiftName: string
-  priceTierAmount?: number
-  allCustomers?: boolean
+  customerId?: GeneratedServiceRunScope['CustomerId']
+  serviceDate: NonNullable<GeneratedServiceRunScope['ServiceDate']>
+  shiftName: NonNullable<GeneratedServiceRunScope['ShiftName']>
+  priceTierAmount?: GeneratedServiceRunScope['PriceTierAmount']
+  allCustomers?: GeneratedServiceRunScope['AllCustomers']
 }
 
 export type ServiceRunCommandEnvelope = {
@@ -14,9 +17,7 @@ export type ServiceRunCommandEnvelope = {
   causationId?: string
 }
 
-export type ScopedOpenServiceRunRequest = {
-  planId: string
-  shiftName: string
+export type ScopedOpenServiceRunRequest = components['schemas']['OpenServiceRunRequest'] & {
   customerId: string
   priceTierAmount: number
 }

@@ -432,8 +432,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 DueDate = receipt.ReceiptDate,
                 Status = receipt.Status,
                 Reason = receipt.QualityStatus == "PARTIALLY_ACCEPTED"
-                    ? "Phiếu nhập có dòng chấp nhận một phần, cần Quản lý duyệt trước khi POSTED."
-                    : "Phiếu nhập đã kiểm tra chất lượng, chờ Quản lý duyệt trước khi POSTED.",
+                    ? "Phiếu nhập có dòng chấp nhận một phần, cần Quản lý duyệt trước khi ghi sổ kho."
+                    : "Phiếu nhập đã kiểm tra chất lượng, chờ Quản lý duyệt trước khi ghi sổ kho.",
                 NextAction = "Duyệt phiếu nhập",
                 Tone = "warning",
                 Route = $"/approvals?targetType={InventoryReceiptTargetType}&targetId={targetId}",

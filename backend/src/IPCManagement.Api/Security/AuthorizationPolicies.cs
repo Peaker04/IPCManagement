@@ -10,6 +10,7 @@ public static class AuthorizationPolicies
     public const string InventoryReceiptReadAccess = "InventoryReceiptReadAccess";
     public const string InventoryApproveAccess = "InventoryApproveAccess";
     public const string InventoryIssueAccess = "InventoryIssueAccess";
+    public const string SupplementalMaterialRequestReadAccess = "SupplementalMaterialRequestReadAccess";
     public const string ProductionAccess = "ProductionAccess";
     public const string DemandGenerateAccess = "DemandGenerateAccess";
     public const string PurchaseAccess = "PurchaseAccess";
@@ -108,6 +109,12 @@ public static class AuthorizationPolicies
 
     public static readonly string[] InventoryReceiptReadRoles = InventoryRoles
         .Concat(CoordinationRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] SupplementalMaterialRequestReadRoles = InventoryRoles
+        .Concat(ProductionRoles)
+        .Concat(PurchaseRoles)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 

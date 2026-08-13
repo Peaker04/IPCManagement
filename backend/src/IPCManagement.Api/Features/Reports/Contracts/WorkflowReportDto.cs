@@ -229,6 +229,9 @@ public class KitchenIssueReportDto
     public string IssueCode { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
     public string? ShiftName { get; set; }
+    public string? SourceCustomerName { get; set; }
+    public string? SourceShiftName { get; set; }
+    public decimal? SourcePriceTierAmount { get; set; }
     public string WarehouseId { get; set; } = string.Empty;
     public string? WarehouseName { get; set; }
     public string MaterialRequestId { get; set; } = string.Empty;

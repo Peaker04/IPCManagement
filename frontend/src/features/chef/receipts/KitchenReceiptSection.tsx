@@ -46,13 +46,15 @@ export function KitchenReceiptSection({
             onSupplementalRequest={onSupplementalRequest}
             onExcessMaterialReturn={(data) => void onExcessMaterialReturn(data)}
             onMaterialSignoff={(materialId, signed) => void onMaterialSignoff(materialId, signed)}
-          />
-          <PaginationBar
-            className="mt-4"
-            page={receiptPage}
-            pageSize={receiptPageSize}
-            totalItems={receiptTotalCount}
-            onPageChange={onReceiptPageChange}
+            checklistPagination={(
+              <PaginationBar
+                page={receiptPage}
+                pageSize={receiptPageSize}
+                totalItems={receiptTotalCount}
+                itemLabel="dòng nguyên liệu"
+                onPageChange={onReceiptPageChange}
+              />
+            )}
           />
         </>
       )}

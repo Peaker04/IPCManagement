@@ -11,6 +11,30 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenuAmendmentService
 {
+    internal sealed record DecisionScopeSource(
+        string CustomerId,
+        string CustomerName,
+        DateOnly ServiceDate,
+        string ShiftName,
+        decimal PriceTierAmount,
+        string SourceLineId);
+
+    internal static IReadOnlyList<MenuAmendmentDecisionScopeDto> BuildDecisionScopes(
+        IEnumerable<DecisionScopeSource> sourceLines,
+        IReadOnlyList<string> documentIds)
+        => sourceLines
+            .GroupBy(item => new { item.CustomerId, item.ServiceDate, item.ShiftName, item.PriceTierAmount })
+            .Select(group => new MenuAmendmentDecisionScopeDto
+            {
+                CustomerId = group.Key.CustomerId,
+                CustomerName = group.First().CustomerName,
+                ServiceDate = group.Key.ServiceDate,
+                ShiftName = group.Key.ShiftName,
+                PriceTierAmount = group.Key.PriceTierAmount,
+                DocumentIds = documentIds,
+                SourceLineIds = group.Select(item => item.SourceLineId).ToArray(),
+            }).ToList();
+
     public async Task<MenuAmendmentDecisionItemDto> ExecuteDecisionAsync(string decisionItemId, MenuAmendmentDecisionCommandRequest request, string? actorUserId, CancellationToken cancellationToken = default)
     {
         var decisionKey = GuidHelper.ParseGuidString(decisionItemId) ?? throw new ArgumentException("Mã quyết định không hợp lệ.");
@@ -325,18 +349,13 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
             .Include(item => item.PlanLine).ThenInclude(item => item.Customer)
             .Where(item => requestIds.Any(id => id.SequenceEqual(item.RequestId)))
             .ToListAsync(cancellationToken);
-        var scopes = sourceLines
-            .GroupBy(item => new { item.PlanLine.CustomerId, item.PlanLine.ShiftName, item.PriceTierAmount })
-            .Select(group => new MenuAmendmentDecisionScopeDto
-            {
-                CustomerId = GuidHelper.ToGuidString(group.Key.CustomerId),
-                CustomerName = group.First().PlanLine.Customer.CustomerName,
-                ServiceDate = group.First().Request.RequestDate,
-                ShiftName = group.Key.ShiftName,
-                PriceTierAmount = group.Key.PriceTierAmount,
-                DocumentIds = documentIds,
-                SourceLineIds = group.Select(item => GuidHelper.ToGuidString(item.RequestLineId)).ToArray(),
-            }).ToList();
+        var scopes = BuildDecisionScopes(sourceLines.Select(item => new DecisionScopeSource(
+            GuidHelper.ToGuidString(item.PlanLine.CustomerId),
+            item.PlanLine.Customer.CustomerName,
+            item.Request.RequestDate,
+            item.PlanLine.ShiftName,
+            item.PriceTierAmount,
+            GuidHelper.ToGuidString(item.RequestLineId))), documentIds);
         var result = new MenuAmendmentResultDto { Status = requiresReconciliation ? "RECONCILIATION_REQUIRED" : "PENDING_REVIEW", RequiresReconciliation = requiresReconciliation, AffectedDemandCount = materialRequests.Count, AffectedPurchaseRequestCount = purchaseRequestIds.Count, HasPurchaseOrder = hasPurchaseOrder, HasReceipt = hasReceipt, HasIssue = hasIssue, AffectedDocumentIds = documentIds, AffectedSourceLineIds = sourceLines.Select(item => GuidHelper.ToGuidString(item.RequestLineId)).ToArray(), DecisionScopes = scopes };
         var amendment = new MenuAmendment { MenuAmendmentId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = request.WeekStartDate, BaseMenuVersionId = baseVersionId, Status = result.Status, Reason = request.Reason.Trim(), ImpactSnapshotJson = JsonSerializer.Serialize(result), CreatedBy = actorId, CreatedAt = DateTime.UtcNow, Lines = mappedLines };
         context.Menuamendments.Add(amendment);

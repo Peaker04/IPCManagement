@@ -97,36 +97,117 @@ public partial class SupplierDecisionWorkflowTests
     }
 
     [Fact]
-    public async Task ApprovedDemand_Generation_rejects_stale_demand_identity_without_mutating_existing_draft()
+    public async Task ApprovedDemand_Generation_groups_compatible_demands_and_reconciles_only_current_demand()
     {
         await using var context = CreateContext();
         var serviceDate = new DateOnly(2026, 7, 20);
-        var current = SeedDemand(context, "MANAGERAPPROVED", serviceDate, "FULLDAY", "MR-CURRENT");
+        var demandA = SeedDemand(context, "MANAGERAPPROVED", serviceDate, "FULLDAY", "MR-ANV");
+        var demandB = SeedDemand(context, "MANAGERAPPROVED", serviceDate, "FULLDAY", "MR-DAV");
         await context.SaveChangesAsync();
         var service = CreateService(context);
         await service.GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandRequest
             {
-                MaterialRequestId = GuidHelper.ToGuidString(current.RequestId)
+                MaterialRequestId = GuidHelper.ToGuidString(demandA.RequestId)
             },
             UserId);
 
-        var stale = SeedDemand(context, "MANAGERAPPROVED", serviceDate, "FULLDAY", "MR-STALE");
-        await context.SaveChangesAsync();
+        var pending = await service.GetWorkbenchWeekAsync(new PurchaseWorkbenchQueryDto
+        {
+            Week = "2026-07-20",
+            Date = "2026-07-20",
+            Stage = "demand"
+        });
+        pending.ServiceDates.Should().ContainSingle().Which.CurrentStage.Should().Be("demand");
+        pending.ServiceDates.Single().ApprovedDemandCount.Should().Be(2);
+        pending.ServiceDates.Single().ShortageLineCount.Should().Be(2);
+        pending.ServiceDates.Single().ApprovedDemands.Should().ContainSingle()
+            .Which.MaterialRequestId.Should().Be(GuidHelper.ToGuidString(demandB.RequestId));
 
-        var act = () => service.GenerateFromDemandAsync(
+        await service.GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandRequest
             {
-                MaterialRequestId = GuidHelper.ToGuidString(stale.RequestId)
+                MaterialRequestId = GuidHelper.ToGuidString(demandB.RequestId)
             },
             UserId);
 
-        await act.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*cũ*");
         (await context.Purchaserequests.CountAsync()).Should().Be(1);
-        (await context.Purchaserequestlines.CountAsync()).Should().Be(1);
+        (await context.Purchaserequestlines.CountAsync()).Should().Be(2);
+        (await context.Purchaserequestlines
+                .Select(line => line.MaterialRequestLineId)
+                .ToListAsync())
+            .Should().BeEquivalentTo(new[]
+            {
+                demandA.Materialrequestlines.Single().RequestLineId,
+                demandB.Materialrequestlines.Single().RequestLineId
+            });
+
+        demandA.Materialrequestlines.Single().SuggestedPurchaseQty = 0;
+        await context.SaveChangesAsync();
+        await service.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandRequest
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(demandA.RequestId)
+            },
+            UserId);
+
         (await context.Purchaserequestlines.SingleAsync()).MaterialRequestLineId
-            .Should().Equal(current.Materialrequestlines.Single().RequestLineId);
+            .Should().Equal(demandB.Materialrequestlines.Single().RequestLineId);
+    }
+
+    [Fact]
+    public async Task Submit_accepts_union_of_compatible_grouped_demands()
+    {
+        await using var context = CreateContext();
+        var serviceDate = new DateOnly(2026, 7, 20);
+        var demandA = SeedDemand(context, "MANAGERAPPROVED", serviceDate, "FULLDAY", "MR-ANV");
+        var demandB = SeedDemand(context, "MANAGERAPPROVED", serviceDate, "FULLDAY", "MR-DAV");
+        var supplier = SeedSupplier(context);
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        foreach (var demand in new[] { demandA, demandB })
+        {
+            await service.GenerateFromDemandAsync(new GeneratePurchaseRequestFromDemandRequest
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
+            }, UserId);
+        }
+
+        var request = await context.Purchaserequests
+            .Include(item => item.Purchaserequestlines)
+            .SingleAsync();
+        foreach (var line in request.Purchaserequestlines)
+        {
+            line.SupplierId = supplier.SupplierId;
+            line.Supplier = supplier;
+            line.EstimatedUnitPrice = 100m;
+            line.ExpectedDeliveryDate = serviceDate;
+            line.SupplierDecisions.Add(new PurchaseLineSupplierDecision
+            {
+                PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
+                PurchaseRequestLineId = line.PurchaseRequestLineId,
+                SupplierId = supplier.SupplierId,
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = serviceDate,
+                EvidenceReferencePrice = 100m,
+                ProposedUnitPrice = 100m,
+                ProposedDeliveryDate = serviceDate,
+                ConfirmedBy = UserIdBytes,
+                ConfirmedAt = DateTime.UtcNow,
+                DecisionFingerprint = Convert.ToHexString(SHA256.HashData(line.PurchaseRequestLineId)),
+                Version = 1,
+                Status = "CURRENT",
+                CurrentDecisionKey = line.PurchaseRequestLineId,
+                PurchaseRequestLine = line
+            });
+        }
+        await context.SaveChangesAsync();
+
+        var submitted = await service.SubmitAsync(GuidHelper.ToGuidString(request.PurchaseRequestId), UserId);
+
+        submitted!.Status.Should().Be("SENTTOSUPPLIER");
+        submitted.Lines.Should().HaveCount(2);
     }
 
     [Fact]

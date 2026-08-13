@@ -1642,14 +1642,14 @@
         }
       }
     },
-    "/api/coordination/weekly-menu/amendments/{amendmentId}/reconciliation-corrections": {
+    "/api/coordination/weekly-menu/amendments/decisions/{decisionItemId}/commands": {
       "post": {
         "tags": [
           "Coordination"
         ],
         "parameters": [
           {
-            "name": "amendmentId",
+            "name": "decisionItemId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1661,21 +1661,67 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateMenuAmendmentReconciliationCorrectionRequest"
+                "$ref": "#/components/schemas/MenuAmendmentDecisionCommandRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateMenuAmendmentReconciliationCorrectionRequest"
+                "$ref": "#/components/schemas/MenuAmendmentDecisionCommandRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateMenuAmendmentReconciliationCorrectionRequest"
+                "$ref": "#/components/schemas/MenuAmendmentDecisionCommandRequest"
               }
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/coordination/weekly-menu/amendments/decisions": {
+      "get": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "allCustomers",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -6235,6 +6281,115 @@
         }
       }
     },
+    "/api/inventory-returns/allocation-balances": {
+      "get": {
+        "tags": [
+          "InventoryReturns"
+        ],
+        "parameters": [
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ShiftName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PriceTierAmount",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnAllocationBalanceDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnAllocationBalanceDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnAllocationBalanceDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inventory-returns/allocation-dispositions": {
+      "post": {
+        "tags": [
+          "InventoryReturns"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryAllocationDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryAllocationDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryAllocationDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryAllocationDispositionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryAllocationDispositionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryAllocationDispositionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/inventory-returns/{id}/confirm-receipt": {
       "post": {
         "tags": [
@@ -8511,12 +8666,19 @@
         }
       }
     },
-    "/api/service-runs/page": {
+    "/api/service-runs/scope": {
       "get": {
         "tags": [
           "ServiceRuns"
         ],
         "parameters": [
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "ServiceDate",
             "in": "query",
@@ -8530,6 +8692,89 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "PriceTierAmount",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "AllCustomers",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRunLifecycleProjectionDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service-runs/page": {
+      "get": {
+        "tags": [
+          "ServiceRuns"
+        ],
+        "parameters": [
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ShiftName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PriceTierAmount",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "AllCustomers",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -9657,6 +9902,25 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteSupplementalMaterialRequestToPurchasing"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteSupplementalMaterialRequestToPurchasing"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteSupplementalMaterialRequestToPurchasing"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -19316,10 +19580,33 @@
       "ConfirmInventoryReturnReceiptRequest": {
         "required": [
           "adjustedLines",
+          "commandId",
+          "expectedVersion",
           "hasDiscrepancy"
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
           "hasDiscrepancy": {
             "type": "boolean"
           },
@@ -19344,6 +19631,8 @@
           "expectedDecisionVersion",
           "proposedDeliveryDate",
           "proposedUnitPrice",
+          "purchasingTerms",
+          "receivingWarehouseId",
           "supplierId"
         ],
         "type": "object",
@@ -19362,6 +19651,12 @@
             "format": "double"
           },
           "proposedDeliveryDate": {
+            "type": "string"
+          },
+          "receivingWarehouseId": {
+            "type": "string"
+          },
+          "purchasingTerms": {
             "type": "string"
           },
           "expectedDecisionVersion": {
@@ -19926,6 +20221,62 @@
         },
         "additionalProperties": false
       },
+      "CreateInventoryAllocationDispositionRequest": {
+        "required": [
+          "commandId",
+          "decisionId",
+          "destinationSourceLineId",
+          "expectedVersion",
+          "quantity",
+          "reason",
+          "sourceIssueLineId"
+        ],
+        "type": "object",
+        "properties": {
+          "decisionId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sourceIssueLineId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "destinationSourceLineId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "commandId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateInventoryIssueLineRequest": {
         "required": [
           "ingredientId",
@@ -20181,6 +20532,7 @@
       },
       "CreateInventoryReturnRequest": {
         "required": [
+          "commandId",
           "issueId",
           "lines",
           "returnDate",
@@ -20189,6 +20541,21 @@
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "correlationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
           "returnDate": {
             "type": "string",
             "format": "date"
@@ -20270,22 +20637,6 @@
             "type": "string"
           },
           "newDishId": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateMenuAmendmentReconciliationCorrectionRequest": {
-        "required": [
-          "reason",
-          "serviceRunId"
-        ],
-        "type": "object",
-        "properties": {
-          "serviceRunId": {
-            "type": "string"
-          },
-          "reason": {
             "type": "string"
           }
         },
@@ -20478,12 +20829,16 @@
       },
       "CreateSupplementalMaterialRequest": {
         "required": [
+          "commandId",
           "issueId",
           "issueLineId",
           "requestedQty"
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "type": "string"
+          },
           "issueId": {
             "type": "string"
           },
@@ -22570,10 +22925,19 @@
       },
       "FulfillSupplementalMaterialRequest": {
         "required": [
+          "commandId",
+          "expectedVersion",
           "quantity"
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
           "quantity": {
             "type": "number",
             "format": "double"
@@ -23326,6 +23690,79 @@
           },
           "data": {
             "$ref": "#/components/schemas/IngredientDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryAllocationDispositionDto": {
+        "required": [
+          "allocationDispositionId",
+          "createdAt",
+          "createdBy",
+          "destinationSourceLineId",
+          "quantity",
+          "reason",
+          "sourceIssueLineId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "allocationDispositionId": {
+            "type": "string"
+          },
+          "sourceIssueLineId": {
+            "type": "string"
+          },
+          "destinationSourceLineId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryAllocationDispositionDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryAllocationDispositionDto"
           },
           "errors": {
             "nullable": true
@@ -24342,6 +24779,145 @@
         },
         "additionalProperties": false
       },
+      "InventoryReturnAllocationBalanceDto": {
+        "required": [
+          "allowedActions",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "disposedQuantity",
+          "excessQuantity",
+          "incomingDispositionQuantity",
+          "ingredientId",
+          "issuedQuantity",
+          "kitchenAcknowledgedQuantity",
+          "materialRequestLineId",
+          "priceTierAmount",
+          "returnedQuantity",
+          "serviceDate",
+          "shiftName",
+          "sourceIssueLineId",
+          "unitId",
+          "version",
+          "wastedQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceIssueLineId": {
+            "type": "string"
+          },
+          "materialRequestLineId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerCode": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "kitchenAcknowledgedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "returnedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "wastedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "disposedQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "incomingDispositionQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "excessQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "decisionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "decisionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnAllocationBalanceDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryReturnAllocationBalanceDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryReturnCreatedDto": {
         "required": [
           "returnCode",
@@ -24382,6 +24958,7 @@
       },
       "InventoryReturnDto": {
         "required": [
+          "concurrencyVersion",
           "createdAt",
           "createdBy",
           "issueId",
@@ -24456,6 +25033,10 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
           },
           "lines": {
             "type": "array",
@@ -24847,6 +25428,19 @@
           },
           "shiftName": {
             "type": "string",
+            "nullable": true
+          },
+          "sourceCustomerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceShiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePriceTierAmount": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "warehouseId": {
@@ -26245,12 +26839,98 @@
         },
         "additionalProperties": false
       },
+      "MenuAmendmentDecisionCommandRequest": {
+        "required": [
+          "action",
+          "commandId",
+          "decisionItemId",
+          "expectedVersion",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "decisionItemId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MenuAmendmentDecisionScopeDto": {
+        "required": [
+          "customerId",
+          "customerName",
+          "decisionItemId",
+          "documentIds",
+          "serviceDate",
+          "shiftName",
+          "sourceLineIds"
+        ],
+        "type": "object",
+        "properties": {
+          "decisionItemId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "documentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sourceLineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "MenuAmendmentResultDto": {
         "required": [
           "affectedDemandCount",
           "affectedDocumentIds",
           "affectedPurchaseRequestCount",
           "affectedSourceLineIds",
+          "decisionScopes",
           "hasIssue",
           "hasPurchaseOrder",
           "hasReceipt",
@@ -26304,6 +26984,12 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "decisionScopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuAmendmentDecisionScopeDto"
             }
           }
         },
@@ -27007,6 +27693,15 @@
           },
           "shiftName": {
             "type": "string"
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -28857,6 +29552,15 @@
             "type": "string",
             "format": "date"
           },
+          "receivingWarehouseId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "purchasingTerms": {
+            "type": "string",
+            "nullable": true
+          },
           "confirmedBy": {
             "type": "string",
             "format": "byte"
@@ -28929,6 +29633,8 @@
           "proposedDeliveryDate",
           "proposedUnitPrice",
           "purchaseLineSupplierDecisionId",
+          "purchasingTerms",
+          "receivingWarehouseId",
           "status",
           "supplierId",
           "version"
@@ -28959,6 +29665,12 @@
             "format": "double"
           },
           "proposedDeliveryDate": {
+            "type": "string"
+          },
+          "receivingWarehouseId": {
+            "type": "string"
+          },
+          "purchasingTerms": {
             "type": "string"
           },
           "confirmedBy": {
@@ -29042,6 +29754,20 @@
           "supplierId": {
             "type": "string",
             "format": "byte"
+          },
+          "receivingWarehouseId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "purchasingTerms": {
+            "type": "string",
+            "nullable": true
+          },
+          "proposedDeliveryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
           },
           "orderDate": {
             "type": "string",
@@ -31314,6 +32040,23 @@
         },
         "additionalProperties": false
       },
+      "RouteSupplementalMaterialRequestToPurchasing": {
+        "required": [
+          "commandId",
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "SampleDataFileResultDto": {
         "required": [
           "domain",
@@ -31805,9 +32548,98 @@
         },
         "additionalProperties": false
       },
+      "ServiceRunAllowedActionDto": {
+        "required": [
+          "actionId",
+          "displayLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string"
+          },
+          "displayLabel": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunBlockerEvidenceDto": {
+        "required": [
+          "blockerCode",
+          "displayLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "blockerCode": {
+            "type": "string"
+          },
+          "displayLabel": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceLineId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunCloseSnapshotViewDto": {
+        "required": [
+          "isImmutable"
+        ],
+        "type": "object",
+        "properties": {
+          "isImmutable": {
+            "type": "boolean"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "actualServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunCorrectionOverlayDto": {
+        "required": [
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "correctedActualServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "actualServingsDelta": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ServiceRunLifecycleProjectionDto": {
         "required": [
           "adjustmentCount",
+          "allowedActions",
           "blockers",
           "canClose",
           "canConfirmService",
@@ -31816,18 +32648,27 @@
           "canResolveVariance",
           "canStartService",
           "canWaiveServiceConfirmation",
+          "closeSnapshot",
+          "correctionOverlay",
+          "currentVersion",
+          "customerId",
+          "customerLabel",
           "hasBomBlocker",
           "issueCount",
           "materialRequestLineCount",
           "openSupplementalCount",
+          "pendingVarianceDeclarations",
           "planCode",
           "planId",
           "plannedServings",
+          "priceTierAmount",
           "serviceConfirmationOutcome",
           "serviceDate",
           "serviceRunId",
           "shiftName",
+          "sourceLineOptions",
           "status",
+          "tracks",
           "unreceivedIssueCount",
           "unreceivedReturnCount"
         ],
@@ -31842,12 +32683,26 @@
           "planCode": {
             "type": "string"
           },
+          "customerId": {
+            "type": "string"
+          },
+          "customerLabel": {
+            "type": "string"
+          },
           "serviceDate": {
             "type": "string",
             "format": "date"
           },
           "shiftName": {
             "type": "string"
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentVersion": {
+            "type": "integer",
+            "format": "int64"
           },
           "status": {
             "type": "string"
@@ -31857,6 +32712,24 @@
             "items": {
               "type": "string"
             }
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunTrackDto"
+            }
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunAllowedActionDto"
+            }
+          },
+          "closeSnapshot": {
+            "$ref": "#/components/schemas/ServiceRunCloseSnapshotViewDto"
+          },
+          "correctionOverlay": {
+            "$ref": "#/components/schemas/ServiceRunCorrectionOverlayDto"
           },
           "canStartService": {
             "type": "boolean"
@@ -31917,6 +32790,18 @@
           "adjustmentCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "sourceLineOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunSourceLineOptionDto"
+            }
+          },
+          "pendingVarianceDeclarations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunVarianceDeclarationOptionDto"
+            }
           }
         },
         "additionalProperties": false
@@ -32075,6 +32960,96 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunSourceLineOptionDto": {
+        "required": [
+          "ingredientLabel",
+          "requiredQuantity",
+          "sourceLineId",
+          "unitLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceLineId": {
+            "type": "string"
+          },
+          "ingredientLabel": {
+            "type": "string"
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitLabel": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunTrackDto": {
+        "required": [
+          "blockers",
+          "displayLabel",
+          "responsibleRole",
+          "status",
+          "trackId"
+        ],
+        "type": "object",
+        "properties": {
+          "trackId": {
+            "type": "string"
+          },
+          "displayLabel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRunBlockerEvidenceDto"
+            }
+          },
+          "responsibleRole": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ServiceRunVarianceDeclarationOptionDto": {
+        "required": [
+          "declarationId",
+          "declaredAt",
+          "declaredByLabel",
+          "reason",
+          "trackLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "declarationId": {
+            "type": "string"
+          },
+          "trackLabel": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "declaredByLabel": {
+            "type": "string"
+          },
+          "declaredAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -33055,6 +34030,7 @@
           "canFulfill",
           "canReject",
           "canRouteToPurchasing",
+          "concurrencyVersion",
           "fulfilledQty",
           "ingredientId",
           "ingredientName",
@@ -33154,6 +34130,10 @@
           "actionDisabledReason": {
             "type": "string",
             "nullable": true
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false

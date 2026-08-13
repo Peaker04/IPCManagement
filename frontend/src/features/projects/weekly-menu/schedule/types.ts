@@ -68,12 +68,14 @@ export type WeeklyScheduleEditorWorkflow = {
     completeQuickServing: (row: QuickServingRow) => Promise<void>
   }
   presentation: {
+    pendingChangeCount: number
     sections: Array<{
       label: string
       slotType: keyof WeeklyMenuState[string]
       dishes: Array<{ id: string; name: string }>
       defaultDishId: string
     }>
+    getDishName: (dishId: string) => string | undefined
     isLocked: (dayKey: string, slotType: keyof WeeklyMenuState[string]) => boolean
     getServiceDate: (dayKey: string) => string
     getSlotServingInfo: (dayKey: string, slotType: keyof WeeklyMenuState[string]) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMenuVersionStatus, formatReceiptLifecycleStatus, formatShiftName, getWorkflowStatusPresentation, toneFromStatus } from '@/lib/workflowConfig'
+import { formatMenuVersionStatus, formatReceiptLifecycleStatus, formatShiftName, formatWorkflowStatus, getWorkflowStatusPresentation, toneFromStatus } from '@/lib/workflowConfig'
 
 describe('workflow status presentation', () => {
   it.each([
@@ -16,7 +16,7 @@ describe('workflow status presentation', () => {
 
   it('uses text fallback only for legacy display copy', () => {
     expect(toneFromStatus('Đã hủy')).toBe('danger')
-    expect(toneFromStatus('Chờ dữ liệu backend')).toBe('warning')
+    expect(toneFromStatus('Chưa đồng bộ dữ liệu')).toBe('neutral')
     expect(toneFromStatus('Trạng thái riêng')).toBe('neutral')
   })
 })
@@ -25,6 +25,7 @@ describe('receipt lifecycle presentation', () => {
   it('translates coupled receipt enums into one user-facing state', () => {
     expect(formatReceiptLifecycleStatus('DRAFT', 'PENDING_INSPECTION')).toBe('Chờ kiểm tra chất lượng')
     expect(formatReceiptLifecycleStatus('PENDING_APPROVAL', 'ACCEPTED')).toBe('Chờ Quản lý duyệt')
+    expect(formatWorkflowStatus('PENDING_APPROVAL')).toBe('Chờ Quản lý duyệt')
     expect(formatReceiptLifecycleStatus('APPROVED', 'ACCEPTED')).toBe('Sẵn sàng ghi sổ kho')
     expect(formatReceiptLifecycleStatus('POSTED', 'ACCEPTED')).toBe('Đã ghi sổ kho')
   })

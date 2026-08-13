@@ -69,6 +69,11 @@ public class InventoryReturnService : IInventoryReturnService
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
+        var commandId = _context is null
+            ? dto.CommandId?.Trim() ?? string.Empty
+            : RequireText(dto.CommandId, "Mã lệnh tạo phiếu không được để trống.", 128);
+        const string aggregateType = "InventoryReturn";
+        var recorder = _context is null ? null : new LifecycleTransitionRecorder(_context);
 
         var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
@@ -86,6 +91,13 @@ public class InventoryReturnService : IInventoryReturnService
         return await _transactionRunner.ExecuteAsync(
             async _ =>
             {
+                var replay = _context is null ? null : await _context.Lifecyclecommandreceipts.AsNoTracking()
+                    .SingleOrDefaultAsync(item => item.CommandId == commandId && item.AggregateType == aggregateType);
+                if (replay is not null)
+                {
+                    return JsonSerializer.Deserialize<InventoryReturnCreatedDto>(replay.ResponseJson)
+                        ?? throw new InvalidOperationException("Không thể đọc lại kết quả tạo phiếu trả.");
+                }
                 var issue = await _issueRepository.GetByIdWithLinesAsync(issueBytes)
                     ?? throw new KeyNotFoundException($"Không tìm thấy phiếu xuất kho với ID: {dto.IssueId}");
 
@@ -146,15 +158,25 @@ public class InventoryReturnService : IInventoryReturnService
 
                 _returnRepository.Add(inventoryReturn);
 
-                await _unitOfWork.SaveChangesAsync();
-
-                return new InventoryReturnCreatedDto
+                var result = new InventoryReturnCreatedDto
                 {
                     ReturnId = GuidHelper.ToGuidString(inventoryReturn.ReturnId),
                     ReturnCode = inventoryReturn.ReturnCode
                 };
+                var response = JsonSerializer.Serialize(result);
+                recorder?.Stage(new LifecycleTransitionRequest(
+                    aggregateType, inventoryReturn.ReturnId, commandId, 0, null, "PENDING_RECEIPT", userIdBytes, 0,
+                    inventoryReturn.Reason, dto.CorrelationId?.Trim(), dto.CausationId?.Trim(), response, response));
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return result;
             },
-            async _ => await _returnRepository.GetByIdWithLinesAsync(returnId) is not null);
+            async token => _context is null
+                ? await _returnRepository.GetByIdWithLinesAsync(returnId) is not null
+                : await _context.Lifecyclecommandreceipts.AsNoTracking()
+                    .AnyAsync(item => item.CommandId == commandId && item.AggregateType == aggregateType, token),
+            IsolationLevel.Serializable);
     }
 
     private void AddWasteAudit(InventoryReturn inventoryReturn, InventoryIssue issue, byte[] userIdBytes)
@@ -184,6 +206,9 @@ public class InventoryReturnService : IInventoryReturnService
         var bytes = GuidHelper.ParseGuidString(id);
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (bytes is null || userIdBytes is null || _context is null) return false;
+        var commandId = RequireText(dto.CommandId, "Mã lệnh xác nhận không được để trống.", 128);
+        const string aggregateType = "InventoryReturn";
+        var recorder = new LifecycleTransitionRecorder(_context);
 
         // Luồng này ghi vào 6 bảng (inventoryreturns, inventoryreturnlines, auditlogs, currentstock,
         // currentstocklots, stockmovements). Không có transaction thì một lỗi giữa chừng để lại
@@ -198,9 +223,16 @@ public class InventoryReturnService : IInventoryReturnService
 
                 if (inventoryReturn is null) return false;
 
+                var replay = await recorder.FindExistingCommandAsync(commandId, aggregateType, bytes, cancellationToken);
+                if (replay is not null) return true;
+
                 if (inventoryReturn.ReceivedAt.HasValue)
                 {
                     throw new ResourceConflictException("Phiếu trả nguyên liệu này đã được xác nhận.");
+                }
+                if (dto.ExpectedVersion != 0)
+                {
+                    throw new ResourceConflictException("Phiếu trả đã thay đổi; hãy tải lại trước khi xác nhận.");
                 }
 
                 var proposedAdjustments = new List<(InventoryReturnLine Line, decimal Quantity)>();
@@ -318,14 +350,34 @@ public class InventoryReturnService : IInventoryReturnService
                     }
                 }
 
+                var response = JsonSerializer.Serialize(new
+                {
+                    returnId = id,
+                    status = inventoryReturn.ReturnType == ReturnTypeWaste ? "RECORDED" : "RECEIVED",
+                    concurrencyVersion = 1
+                });
+                recorder.Stage(new LifecycleTransitionRequest(
+                    aggregateType,
+                    inventoryReturn.ReturnId,
+                    commandId,
+                    1,
+                    "PENDING_RECEIPT",
+                    inventoryReturn.ReturnType == ReturnTypeWaste ? "RECORDED" : "RECEIVED",
+                    userIdBytes,
+                    dto.ExpectedVersion,
+                    dto.HasDiscrepancy ? dto.DiscrepancyNote?.Trim() : auditLogReason,
+                    dto.CorrelationId?.Trim(),
+                    dto.CausationId?.Trim(),
+                    response,
+                    response));
+
                 await _context.SaveChangesAsync(cancellationToken);
                 return true;
             },
-            cancellationToken => _context.Inventoryreturns
-                .AsNoTracking()
-                .AnyAsync(
-                    inventoryReturn => inventoryReturn.ReturnId == bytes && inventoryReturn.ReceivedAt != null,
-                    cancellationToken));
+            cancellationToken => _context.Lifecyclecommandreceipts.AsNoTracking().AnyAsync(
+                receipt => receipt.CommandId == commandId && receipt.AggregateType == aggregateType && receipt.AggregateId.SequenceEqual(bytes),
+                cancellationToken),
+            IsolationLevel.Serializable);
     }
 
     private static InventoryIssueLine ResolveSourceIssueLine(
@@ -357,6 +409,12 @@ public class InventoryReturnService : IInventoryReturnService
     {
         EnsureAllocationContext();
         var sourceLines = await LoadScopedSourceLinesAsync(query, cancellationToken);
+        var customers = (await _context!.Customers.AsNoTracking().ToListAsync(cancellationToken))
+            .ToDictionary(item => Convert.ToHexString(item.CustomerId));
+        var ingredients = (await _context.Ingredients.AsNoTracking().ToListAsync(cancellationToken))
+            .ToDictionary(item => Convert.ToHexString(item.IngredientId));
+        var units = (await _context.Units.AsNoTracking().ToListAsync(cancellationToken))
+            .ToDictionary(item => Convert.ToHexString(item.UnitId));
         var actorIsAdmin = await IsAdminAsync(userId, cancellationToken);
         var sourceIds = sourceLines.Select(item => item.Line.IssueLineId).ToList();
         var returnedAndWasted = await _context!.Inventoryreturnlines.AsNoTracking()
@@ -371,6 +429,9 @@ public class InventoryReturnService : IInventoryReturnService
 
         return sourceLines.Select(source =>
         {
+            var customer = customers[Convert.ToHexString(source.PlanLine.CustomerId)];
+            var ingredient = ingredients[Convert.ToHexString(source.Line.IngredientId)];
+            var unit = units[Convert.ToHexString(source.Line.UnitId)];
             var sourceId = GuidHelper.ToGuidString(source.Line.IssueLineId);
             var returned = returnedAndWasted.Where(item => item.SourceIssueLineId!.SequenceEqual(source.Line.IssueLineId) && item.ReturnType == ReturnTypeReturn).Sum(item => item.Quantity);
             var wasted = returnedAndWasted.Where(item => item.SourceIssueLineId!.SequenceEqual(source.Line.IssueLineId) && item.ReturnType == ReturnTypeWaste).Sum(item => item.Quantity);
@@ -384,13 +445,15 @@ public class InventoryReturnService : IInventoryReturnService
                 SourceIssueLineId = sourceId,
                 MaterialRequestLineId = GuidHelper.ToGuidString(source.Material.RequestLineId),
                 CustomerId = GuidHelper.ToGuidString(source.PlanLine.CustomerId),
+                CustomerCode = customer.CustomerCode,
+                CustomerName = customer.CustomerName,
                 ServiceDate = source.Plan.PlanDate,
                 ShiftName = source.PlanLine.ShiftName,
                 PriceTierAmount = source.Material.PriceTierAmount,
                 IngredientId = GuidHelper.ToGuidString(source.Line.IngredientId),
-                IngredientName = source.Line.Ingredient?.IngredientName,
+                IngredientName = ingredient.IngredientName,
                 UnitId = GuidHelper.ToGuidString(source.Line.UnitId),
-                UnitName = source.Line.Unit?.UnitName,
+                UnitName = unit.UnitName,
                 IssuedQuantity = issued,
                 KitchenAcknowledgedQuantity = source.Issue.ReceivedAt is null ? 0 : issued,
                 ReturnedQuantity = DecimalPolicy.RoundQuantity(returned),
@@ -400,7 +463,7 @@ public class InventoryReturnService : IInventoryReturnService
                 ExcessQuantity = excess,
                 Version = dispositions.Count(item => item.SourceIssueLineId.SequenceEqual(source.Line.IssueLineId)),
                 DecisionId = hasValidLineage && DecimalPolicy.GreaterThanQuantity(excess, 0) ? BuildDecisionId(sourceId) : null,
-                DecisionReason = hasValidLineage ? null : "Thiếu lineage source-line; cần quyết định.",
+                DecisionReason = hasValidLineage ? null : "Chưa xác định được dòng chứng từ gốc; cần người có thẩm quyền quyết định.",
                 AllowedActions = hasValidLineage && actorIsAdmin && DecimalPolicy.GreaterThanQuantity(excess, 0)
                     ? ["CROSS_CUSTOMER_DISPOSITION"]
                     : [],

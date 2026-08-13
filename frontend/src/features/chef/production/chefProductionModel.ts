@@ -38,10 +38,10 @@ export function mapDailyPlanLines(plan?: DailyProductionPlan): DailyPlanLine[] {
 export function filterKitchenIssues(rows: KitchenIssueRow[], serviceDate: string, shift: ShiftType): KitchenIssueRow[] {
   const normalizedShift = shift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON'
   return rows.filter((row) => {
-    const rowShift = row.shiftName?.trim().toUpperCase()
+    const rowShift = (row.sourceShiftName || row.shiftName)?.trim().toUpperCase()
     const isFullDay = !rowShift || rowShift === 'FULLDAY'
     return row.issueDate.slice(0, 10) === serviceDate
-      && (rowShift === normalizedShift || row.shiftName === shift || (isFullDay && normalizedShift === 'MORNING'))
+      && (rowShift === normalizedShift || row.sourceShiftName === shift || row.shiftName === shift || (isFullDay && normalizedShift === 'MORNING'))
   })
 }
 
@@ -293,6 +293,9 @@ export function buildChefProductionPlan({
     ingredientId: row.ingredientId,
     unitId: row.unitId,
     isReceivedByKitchen: row.isReceivedByKitchen,
+    sourceCustomerName: row.sourceCustomerName,
+    sourceShiftName: row.sourceShiftName,
+    sourcePriceTierAmount: row.sourcePriceTierAmount,
   }))
 
   return {

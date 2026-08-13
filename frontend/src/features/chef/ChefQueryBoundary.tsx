@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { InlineAlert, QueryErrorAlert } from '@/components/common'
 import type { QueryView } from '@/lib/queryView'
+import { cn } from '@/lib/utils'
 
 export type ChefQueryEntry = {
   label: string
@@ -11,6 +12,7 @@ type Props = {
   queries: ChefQueryEntry[]
   children: ReactNode
   preserveFallback?: boolean
+  stabilizeInitialLoad?: boolean
 }
 
 const QueryNotice = ({ entry, showRefreshing = true }: { entry: ChefQueryEntry; showRefreshing?: boolean }) => {
@@ -49,22 +51,25 @@ const QueryNotice = ({ entry, showRefreshing = true }: { entry: ChefQueryEntry; 
   )
 }
 
-export function ChefQueryBoundary({ queries, children, preserveFallback = false }: Props) {
+export function ChefQueryBoundary({ queries, children, preserveFallback = false, stabilizeInitialLoad = false }: Props) {
   const blocking = queries.find(({ view }) => view.phase !== 'ready')
-  const visibleEntries = preserveFallback ? queries : blocking ? [blocking] : queries
+  const isInitialLoad = stabilizeInitialLoad && queries.some(({ view }) => view.phase === 'loading' || view.phase === 'uninitialized')
+  const visibleEntries = isInitialLoad && blocking ? [blocking] : preserveFallback ? queries : blocking ? [blocking] : queries
   const refreshingLabels = preserveFallback
     ? queries.filter(({ view }) => view.phase === 'ready' && view.isRefreshing).map(({ label }) => label)
     : []
 
   return (
-    <div className="relative flex flex-col gap-3">
+    <div className={cn('relative flex flex-col gap-3', isInitialLoad && 'min-h-[32rem]')} data-initial-load={isInitialLoad || undefined}>
       {refreshingLabels.length > 0 && (
         <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">
           Đang cập nhật dữ liệu ca
         </span>
       )}
-      {visibleEntries.map((entry) => <QueryNotice key={`${entry.label}-${entry.view.phase}`} entry={entry} showRefreshing={!preserveFallback} />)}
-      {(preserveFallback || !blocking) && children}
+      <div className={cn(isInitialLoad && 'absolute inset-x-0 top-0')}>
+        {visibleEntries.map((entry) => <QueryNotice key={`${entry.label}-${entry.view.phase}`} entry={entry} showRefreshing={!preserveFallback} />)}
+      </div>
+      {((preserveFallback && !isInitialLoad) || !blocking) && children}
     </div>
   )
 }

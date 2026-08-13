@@ -35,6 +35,7 @@ const supplemental = {
   reason: 'Phát sinh thêm suất',
   status: 'PENDING_WAREHOUSE_REVIEW',
   requestedAt: '2026-07-20T08:00:00Z',
+  concurrencyVersion: 1,
   canFulfill: true,
   canRouteToPurchasing: true,
   canReject: true,
@@ -56,11 +57,12 @@ const inventoryReturn = {
   createdByName: 'Bếp trưởng',
   createdAt: '2026-07-20T12:00:00Z',
   status: 'PENDING_RECEIPT',
-  lines: [{ returnLineId: 'return-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', quantity: 2, unitId: 'unit-1', unitName: 'kg' }],
+  concurrencyVersion: 0,
+  lines: [{ returnLineId: 'return-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', quantity: 2, unitId: 'unit-1', unitName: 'Kilogram' }],
 };
 
 const allocationRow = {
-  sourceIssueLineId: 'source-line-a', materialRequestLineId: 'material-line-a', customerId: 'customer-a', serviceDate: '2026-07-20', shiftName: 'MORNING', priceTierAmount: 25000,
+  sourceIssueLineId: 'source-line-a', materialRequestLineId: 'material-line-a', customerId: 'customer-a', customerCode: 'ANV', customerName: 'An Vui', serviceDate: '2026-07-20', shiftName: 'MORNING', priceTierAmount: 25000,
   ingredientId: 'ingredient-1', ingredientName: 'Gạo', unitId: 'unit-1', unitName: 'kg', issuedQuantity: 5, kitchenAcknowledgedQuantity: 5,
   returnedQuantity: 1, wastedQuantity: 1, disposedQuantity: 0, incomingDispositionQuantity: 0, excessQuantity: 3, version: 0,
   decisionId: 'return-allocation:source-line-a', allowedActions: ['CROSS_CUSTOMER_DISPOSITION'],
@@ -82,6 +84,7 @@ vi.mock('@/api/workflowApi', () => ({
 import { WarehouseExceptionsWorkbench } from './WarehouseExceptionsWorkbench';
 import { WarehousePurchaseReceiptDialog } from './WarehousePurchaseReceiptDialog';
 import warehouseSource from './WarehouseExceptionsWorkbench.tsx?raw';
+import warehouseApiSource from './warehouseApi.ts?raw';
 import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApi';
 
 const readyQuery = <T,>(data: T, refetch: () => unknown = vi.fn(), overrides: Record<string, unknown> = {}) => ({
@@ -131,7 +134,7 @@ describe('WarehouseExceptionsWorkbench', () => {
     mocks.returnDetailQuery.mockImplementation((id: string) => id
       ? readyQuery(inventoryReturn, mocks.refetchReturnDetail)
       : uninitializedQuery());
-    mocks.allocationQuery.mockReturnValue(readyQuery([allocationRow, { ...allocationRow, sourceIssueLineId: 'source-line-b', customerId: 'customer-b', excessQuantity: 0, decisionId: undefined, allowedActions: [] }]));
+    mocks.allocationQuery.mockReturnValue(readyQuery([allocationRow, { ...allocationRow, sourceIssueLineId: 'source-line-b', customerId: 'customer-b', customerCode: 'DAV', customerName: 'Dịch vụ An Vui', excessQuantity: 0, decisionId: undefined, allowedActions: [] }]));
     mocks.fulfill.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, fulfilledQty: 3, remainingQty: 2 } }) });
     mocks.route.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, purchaseRequestCode: 'PR-SUP-001' } }) });
     mocks.reject.mockReturnValue({ unwrap: () => Promise.resolve({ data: { ...supplemental, status: 'REJECTED' } }) });
@@ -175,9 +178,30 @@ describe('WarehouseExceptionsWorkbench', () => {
     expect(screen.getByLabelText('Số lượng cấp (kg)')).toHaveValue(3);
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận cấp' }));
 
-    await waitFor(() => expect(mocks.fulfill).toHaveBeenCalledWith({ requestId: 'supplemental-1', quantity: 3 }));
+    await waitFor(() => expect(mocks.fulfill).toHaveBeenCalledWith({
+      requestId: 'supplemental-1', commandId: expect.any(String), expectedVersion: 1, quantity: 3,
+    }));
     expect(await screen.findByText(/đã cấp 3 kg, còn 2 kg/)).toBeInTheDocument();
   });
+
+  it('keeps supplemental lifecycle identity in the generated request contract', () => {
+    expect(warehouseApiSource).toContain('query: ({ requestId, commandId, expectedVersion, quantity })')
+    expect(warehouseApiSource).toContain('body: { commandId, expectedVersion, quantity }')
+  })
+
+  it('keeps small partial quantities visible instead of rounding them to zero or full', () => {
+    expect(warehouseSource).toContain('formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })')
+    expect(warehouseSource).toContain('formatQuantityWithUnit(selectedSupplemental.remainingQty, selectedSupplemental.unitName, { maximumFractionDigits: 6 })')
+    expect(warehouseSource).toContain('Còn thiếu {formatQuantityWithUnit(item.remainingQty, item.unitName, { maximumFractionDigits: 6 })}')
+  })
+
+  it('routes only the remaining supplemental quantity with lifecycle identity', async () => {
+    render(<WarehouseExceptionsWorkbench canManage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Chuyển thu mua' }))
+    await waitFor(() => expect(mocks.route).toHaveBeenCalledWith({
+      requestId: 'supplemental-1', commandId: expect.any(String), expectedVersion: 1,
+    }))
+  })
 
   it('lets warehouse confirm actual return quantity and discrepancy semantics', async () => {
     render(<WarehouseExceptionsWorkbench canManage />);
@@ -189,23 +213,27 @@ describe('WarehouseExceptionsWorkbench', () => {
     fireEvent.change(screen.getByLabelText('Số thực nhận (kg)'), { target: { value: '1.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tiếp nhận' }));
 
-    await waitFor(() => expect(mocks.confirmReturn).toHaveBeenCalledWith({
+    await waitFor(() => expect(mocks.confirmReturn).toHaveBeenCalledWith(expect.objectContaining({
       returnId: 'return-1',
+      commandId: expect.any(String),
+      expectedVersion: 0,
       hasDiscrepancy: true,
       discrepancyNote: 'Chỉ nhận 1.5 kg còn sử dụng được',
       adjustedLines: [{ returnLineId: 'return-line-1', newQuantity: 1.5 }],
-    }));
+    })));
   });
 
   it('renders exact allocation scope and submits only a backend-authorized disposition', async () => {
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage canDisposition />);
 
-    expect(screen.getByText('customer-a')).toBeInTheDocument();
-    expect(screen.getByText('source-line-a')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Disposition có audit' }));
-    fireEvent.change(screen.getByLabelText('Source line đích'), { target: { value: 'source-line-b' } });
+    expect(screen.getByText('An Vui (ANV)')).toBeInTheDocument();
+    expect(screen.queryByText('customer-a')).toBeNull();
+    expect(screen.queryByText('source-line-a')).toBeNull();
+    expect(screen.queryByText('return-allocation:source-line-a')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Điều phối phần dư' }));
+    fireEvent.change(screen.getByLabelText('Chuyển sang phạm vi'), { target: { value: 'source-line-b' } });
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Điều phối dư đã được phê duyệt' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Ghi disposition' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận điều phối' }));
 
     await waitFor(() => expect(mocks.createAllocationDisposition).toHaveBeenCalledWith(expect.objectContaining({
       decisionId: 'return-allocation:source-line-a', sourceIssueLineId: 'source-line-a', destinationSourceLineId: 'source-line-b', quantity: 3,

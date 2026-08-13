@@ -50,6 +50,7 @@ export function useChefExceptions(
     }
     try {
       const response = await createSupplemental({
+        commandId: crypto.randomUUID(),
         issueId: material.issueId,
         issueLineId: material.id,
         requestedQty: data.requestedQty,
@@ -103,13 +104,14 @@ export function useChefExceptions(
       : `Bếp trả nguyên liệu thừa ${data.ingredientName} sau ca ${scope.activeShift}.`)
     try {
       const response = await createReturn({
+        commandId: crypto.randomUUID(),
         returnDate: scope.serviceDate,
         shiftName: issueRow.shiftName,
         returnType,
         warehouseId: material.warehouseId,
         issueId: material.issueId!,
         reason,
-        lines: [{ ingredientId: material.ingredientId, quantity: data.returnedQty, unitId: material.unitId }],
+        lines: [{ sourceIssueLineId: material.id, ingredientId: material.ingredientId, quantity: data.returnedQty, unitId: material.unitId }],
       }).unwrap()
       setReturns((current) => [...current, { ...data, serviceDate: scope.serviceDate, shift: scope.activeShift }])
       onFeedback({

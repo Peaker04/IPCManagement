@@ -76,13 +76,56 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   khách hàng không còn xóa week scope. Popup compact `264px`; headed request/response + DOM pass cho ANV/DAV.
   Matrix thực đơn main/modal đã loại collapsed-border + duplicate sticky owner; khi cuộn chỉ `th` sticky,
   không còn đường chia cột xuyên header. Headed scroll probe pass cả hai owner, không mutation DB.
-  Golden downstream vẫn chưa PASS:
-  Task 1–3 của `05-04-PLAN.md` còn publish, số suất, demand, PO grouping,
-  receipt/quality/post, issue, kitchen acknowledgement, independent ServiceRun close, exception matrix và năm
-  viewport. Resume point machine-readable ở `.planning/HANDOFF.json`, hướng dẫn phiên mới ở
-  `.planning/workstreams/lifecycle-standardization/phases/05-service-run-integration/.continue-here.md`.
-  Tiếp tục từ Task 1; phải qua physical headed control + exact-lane migration receipts trước Golden mutation;
-  không reset/import lại Task 0.
+  Task 0–2 của `05-04-PLAN.md` đã PASS. Resume point machine-readable ở `.planning/HANDOFF.json`,
+  hướng dẫn phiên mới ở `.planning/workstreams/lifecycle-standardization/phases/05-service-run-integration/.continue-here.md`.
+  Tiếp tục Task 3 exception matrix; không reset/import lại Task 0.
+  Task 1 đã PASS: contract parity generate deterministic và compile sau khi đồng bộ ServiceRun,
+  amendment decision, return allocation và purchasing compatibility; focused frontend 40/40, build/lint,
+  SQL contract và hygiene pass. Chrome headed run-owned đã chứng minh login request 200,
+  trusted pointer + keyboard, focus/DOM/read-request và zero workaround. Ba reviewed SQL receipt cũ
+  khớp exact hash/current source, target chỉ `ipc_lane7`, protected-lane attempt 0; Task 0 sau đó
+  xác nhận head 69 nên không apply DDL lại. Task 2 Golden manifest PASS trên exact `ipc_lane7`:
+  ANV/DAV cùng tuần có 12 demand, 6 PO giữ hai allocation, 6 receipt/584 line đã POSTED,
+  12 issue/584 line đã bếp nhận và 12 ServiceRun đóng độc lập. Bếp trưởng thực hiện
+  open/start/actual/confirm; Quản lý close. Lifecycle có 60 command receipt, transition, audit và outbox,
+  sequence 1→5. Năm viewport headed PASS với CLS `0–0.0557`, không overflow/lỗi browser; long task
+  navigation `90–101ms` được giữ trong evidence. Physical pointer/keyboard trusted, workaround false,
+  protected-lane attempt `0`. Runtime `3030/8030` được giữ cho Task 3; chỉ teardown process do run sở hữu.
+  Task 3 đang tiến hành: Service Run exception group, RETURN receipt, WASTE và EXCESS đã PASS trên cùng lineage.
+  RETURN DAV/Cá hố Ca chiều đã được `thukho` nhận thực tế `0,0008 kg`; WASTE ANV/Cà rốt
+  Ca chiều `0,0007 kg` đã do Bếp trưởng khai báo và Thủ kho xác nhận, zero stock movement.
+  UI Kho đã tách quyền `thukho` khỏi receipt draft `dieuphoi`, không còn raw UUID/decision token/copy backend;
+  dialog ngoại lệ Bếp lấy đủ material đúng source shift thay vì bị cắt theo trang checklist. Create/confirm
+  InventoryReturn nay có command receipt, transition, audit, outbox và replay idempotent. EXCESS append-only
+  giữ exact source/destination line; Admin positive và Thủ kho negative headed đều PASS. Focused regression
+  chứng minh same-command replay, invalid decision token, stale/different-command single-winner và unauthorized
+  actor không sinh thêm allocation/lifecycle fact. Tiếp theo: supplemental partial delivery isolation, sau đó
+  các exception group còn lại. Supplemental partial isolation đã pass về business/UI: ANV cấp
+  `0,0008/0,001 kg`, còn `0,0002 kg` hiển thị rõ và chỉ phần này sang PR draft; DAV zero.
+  Artifact ANV giữ trung thực sequence gap `0,2,3` do attempt trước fix; không rewrite. Fresh DAV
+  supplemental `SUP-20260813-153511-4FF3` đã PASS live sequence sạch `0,1`: yêu cầu `0,001 kg`,
+  route toàn bộ sang PR draft `PR-SUP-20260813-6F77`, ngày `2026-08-10`, ca `AFTERNOON`, exact
+  material-request lineage, hai receipt/outbox, trusted pointer/keyboard và protected-lane attempt 0.
+  Quality partial isolation từ chính PR DAV này đã PASS: Thu mua được cấp read-only
+  supplemental chain nhưng không có warehouse mutation; PR → approval → một PO → một receipt
+  `0,001 kg`, Thủ kho chốt `0,0008 kg` đạt / `0,0002 kg` không đạt. UI đã sửa làm tròn,
+  raw UUID/FULLDAY/Kilogram và backend jargon trên bề mặt supplemental/receipt; live readback hiển thị
+  đúng 6 chữ số, receipt sequence `0,1`, hai receipt/outbox. ANV supplemental vẫn `NEEDS_PURCHASE`,
+  sáu Golden PO/POSTED receipt không đổi. Tiếp theo amendment/reconciliation append-only, kitchen
+  discrepancy, ambiguous lineage, shared shortage/blocked allocation và retry matrix; không tạo lại các record trên.
+  Quick fix Thu mua sau quality: `Mua bổ sung` đã tách thành tab/URL riêng; tab mặc định
+  `Xử lý thu mua` trở lại chỉ có quy trình duyệt theo ngày. Headed physical click, URL/DOM,
+  zero overflow/error và protected-lane attempt 0 PASS.
+  Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
+  `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
+  counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài
+  bộ lọc, báo số thay đổi chờ lưu và không còn mất draft khi gõ lý do. Correction đang bị chặn:
+  create chạy bằng code cũ đã append 120 decision item do group `byte[]` theo tham chiếu và thiếu ngày;
+  correction count vẫn 0 vì resolve một item sẽ đóng toàn case sai. Production grouping đã sửa theo
+  customer string + ngày + ca + mức giá, focused backend 2/2 và frontend 7/7 pass, hai build pass.
+  Cần remediation append-only cho hồ sơ over-fan hiện hữu; không xóa/rewrite 120 item và không execute
+  correction trước remediation. Runtime BE PID 31400, exact lane7/head 69; readiness Degraded chỉ vì
+  outbox relay tắt.
 
 - Database unit investigation and whole-day E2E audit (12/08): read-only proof on
   `ipc_dev_warehouse_20260812` confirms the warehouse-clean baseline is correct: current stock, receipt, issue,

@@ -39,16 +39,46 @@ public partial class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var planLineId = GuidHelper.NewId();
+            var destinationPlanLineId = GuidHelper.NewId();
             var requestId = GuidHelper.NewId();
             var requestLineId = GuidHelper.NewId();
+            var destinationRequestLineId = GuidHelper.NewId();
             var issueId = GuidHelper.NewId();
             var sourceIssueLineId = GuidHelper.NewId();
-            context.Roles.Add(new Role { RoleId = GuidHelper.NewId(), RoleCode = "ADMIN", RoleName = "Admin" });
-            var adminRoleId = context.Roles.Local.Single().RoleId;
+            var destinationIssueLineId = GuidHelper.NewId();
+            var destinationCustomerId = GuidHelper.NewId();
+            var warehouseUserId = GuidHelper.NewId();
+            context.Customers.Add(new Customer
+            {
+                CustomerId = fixture.CustomerId, CustomerCode = "CUS", CustomerName = "Customer", IsActive = true
+            });
+            context.Customers.Add(new Customer
+            {
+                CustomerId = destinationCustomerId, CustomerCode = "CUS-2", CustomerName = "Destination Customer", IsActive = true
+            });
+            context.Units.Add(new Unit
+            {
+                UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "kg", ConvertRateToBase = 1
+            });
+            context.Ingredients.Add(new Ingredient
+            {
+                IngredientId = fixture.IngredientId, IngredientCode = "ING", IngredientName = "Ingredient",
+                UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 1, IsActive = true
+            });
+            var adminRoleId = GuidHelper.NewId();
+            var warehouseRoleId = GuidHelper.NewId();
+            context.Roles.AddRange(
+                new Role { RoleId = adminRoleId, RoleCode = "ADMIN", RoleName = "Admin" },
+                new Role { RoleId = warehouseRoleId, RoleCode = "WAREHOUSESTAFF", RoleName = "Warehouse Staff" });
             context.Users.Add(new User
             {
                 UserId = fixture.UserId, Username = "allocation-admin", FullName = "Allocation Admin", PasswordHash = "hash",
                 RoleId = adminRoleId, IsActive = true, CreatedAt = DateTime.UtcNow
+            });
+            context.Users.Add(new User
+            {
+                UserId = warehouseUserId, Username = "allocation-warehouse", FullName = "Allocation Warehouse", PasswordHash = "hash",
+                RoleId = warehouseRoleId, IsActive = true, CreatedAt = DateTime.UtcNow
             });
             context.Productionplans.Add(new ProductionPlan
             {
@@ -59,6 +89,11 @@ public partial class WorkflowGenerationTests
             {
                 PlanLineId = planLineId, PlanId = fixture.ProductionPlanId, QuantityPlanLineId = GuidHelper.NewId(),
                 CustomerId = fixture.CustomerId, MenuId = GuidHelper.NewId(), DishId = GuidHelper.NewId(), ShiftName = "MORNING", TotalServings = 1
+            });
+            context.Productionplanlines.Add(new ProductionPlanLine
+            {
+                PlanLineId = destinationPlanLineId, PlanId = fixture.ProductionPlanId, QuantityPlanLineId = GuidHelper.NewId(),
+                CustomerId = destinationCustomerId, MenuId = GuidHelper.NewId(), DishId = GuidHelper.NewId(), ShiftName = "MORNING", TotalServings = 1
             });
             context.Materialrequests.Add(new MaterialRequest
             {
@@ -72,6 +107,13 @@ public partial class WorkflowGenerationTests
                 GrossQtyPerServing = 1m, BomRatePercent = 100m, AppliedPortionRatePercent = 100m,
                 TotalRequiredQty = 10m, CurrentStockQty = 0m, SuggestedPurchaseQty = 10m
             });
+            context.Materialrequestlines.Add(new MaterialRequestLine
+            {
+                RequestLineId = destinationRequestLineId, RequestId = requestId, PlanLineId = destinationPlanLineId, IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId, PriceTierAmount = 25000m, BomScope = "global", TotalServings = 1,
+                GrossQtyPerServing = 1m, BomRatePercent = 100m, AppliedPortionRatePercent = 100m,
+                TotalRequiredQty = 10m, CurrentStockQty = 0m, SuggestedPurchaseQty = 10m
+            });
             context.Inventoryissues.Add(new InventoryIssue
             {
                 IssueId = issueId, IssueCode = "ISS-ALLOCATION", IssueDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING",
@@ -81,6 +123,11 @@ public partial class WorkflowGenerationTests
             context.Inventoryissuelines.Add(new InventoryIssueLine
             {
                 IssueLineId = sourceIssueLineId, IssueId = issueId, MaterialRequestLineId = requestLineId,
+                IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, RequestedQty = 10m, IssuedQty = 10m
+            });
+            context.Inventoryissuelines.Add(new InventoryIssueLine
+            {
+                IssueLineId = destinationIssueLineId, IssueId = issueId, MaterialRequestLineId = destinationRequestLineId,
                 IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, RequestedQty = 10m, IssuedQty = 10m
             });
             foreach (var (type, quantity) in new[] { ("RETURN", 2m), ("WASTE", 1m) })
@@ -98,29 +145,80 @@ public partial class WorkflowGenerationTests
                 });
             }
             await context.SaveChangesAsync();
-            (await context.Inventoryissuelines.CountAsync()).Should().Be(1);
-            (await context.Materialrequestlines.CountAsync()).Should().Be(1);
-            (await context.Productionplanlines.CountAsync()).Should().Be(1);
+            (await context.Inventoryissuelines.CountAsync()).Should().Be(2);
+            (await context.Materialrequestlines.CountAsync()).Should().Be(2);
+            (await context.Productionplanlines.CountAsync()).Should().Be(2);
             (await context.Productionplans.CountAsync()).Should().Be(1);
             var service = CreateInventoryReturnService(context);
-            var balance = (await service.GetAllocationBalancesAsync(new InventoryReturnAllocationBalanceQuery(), fixture.UserIdString)).Single();
+            var balance = (await service.GetAllocationBalancesAsync(new InventoryReturnAllocationBalanceQuery(), fixture.UserIdString))
+                .Single(item => item.SourceIssueLineId == GuidHelper.ToGuidString(sourceIssueLineId));
             balance.SourceIssueLineId.Should().Be(GuidHelper.ToGuidString(sourceIssueLineId));
             balance.MaterialRequestLineId.Should().NotBeNullOrWhiteSpace();
             balance.CustomerId.Should().Be(fixture.CustomerIdString);
+            balance.CustomerCode.Should().Be("CUS");
+            balance.CustomerName.Should().Be("Customer");
+            balance.IngredientName.Should().Be("Ingredient");
+            balance.UnitName.Should().Be("kg");
             balance.ReturnedQuantity.Should().Be(2m);
             balance.WastedQuantity.Should().Be(1m);
             balance.ExcessQuantity.Should().Be(balance.IssuedQuantity - 3m);
             balance.AllowedActions.Should().ContainSingle().Which.Should().Be("CROSS_CUSTOMER_DISPOSITION");
 
-            var before = await context.Inventoryallocationdispositions.CountAsync();
+            var commandId = "allocation-idempotency";
+            var request = new CreateInventoryAllocationDispositionRequest
+            {
+                DecisionId = balance.DecisionId!, SourceIssueLineId = GuidHelper.ToGuidString(sourceIssueLineId),
+                DestinationSourceLineId = GuidHelper.ToGuidString(destinationIssueLineId), Quantity = 1m,
+                Reason = "approved cross-customer allocation", CommandId = commandId, ExpectedVersion = balance.Version
+            };
+            var created = await service.CreateAllocationDispositionAsync(request, fixture.UserIdString);
+            var replayed = await service.CreateAllocationDispositionAsync(request, fixture.UserIdString);
+            replayed.AllocationDispositionId.Should().Be(created.AllocationDispositionId);
+
+            async Task AssertSingleDurableDispositionAsync()
+            {
+                (await context.Inventoryallocationdispositions.CountAsync()).Should().Be(1);
+                (await context.Inventoryallocationdispositions.SumAsync(item => item.Quantity)).Should().Be(1m);
+                (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == "InventoryAllocationDisposition")).Should().Be(1);
+                (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == "InventoryAllocationDisposition")).Should().Be(1);
+                (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == "InventoryAllocationDisposition")).Should().Be(1);
+                (await context.Auditlogs.CountAsync(item => item.EntityName == "InventoryAllocationDisposition")).Should().Be(1);
+            }
+
+            await AssertSingleDurableDispositionAsync();
+
+            var stale = () => service.CreateAllocationDispositionAsync(new CreateInventoryAllocationDispositionRequest
+            {
+                DecisionId = balance.DecisionId!, SourceIssueLineId = GuidHelper.ToGuidString(sourceIssueLineId),
+                DestinationSourceLineId = GuidHelper.ToGuidString(destinationIssueLineId), Quantity = 1m,
+                Reason = "stale competing allocation", CommandId = "allocation-stale-competitor", ExpectedVersion = balance.Version
+            }, fixture.UserIdString);
+            await stale.Should().ThrowAsync<DbUpdateConcurrencyException>();
+            await AssertSingleDurableDispositionAsync();
+
+            var invalidDecision = () => service.CreateAllocationDispositionAsync(new CreateInventoryAllocationDispositionRequest
+            {
+                DecisionId = "return-allocation:unaudited", SourceIssueLineId = GuidHelper.ToGuidString(sourceIssueLineId),
+                DestinationSourceLineId = GuidHelper.ToGuidString(destinationIssueLineId), Quantity = 1m,
+                Reason = "unaudited allocation", CommandId = "allocation-invalid-decision", ExpectedVersion = 1
+            }, fixture.UserIdString);
+            await invalidDecision.Should().ThrowAsync<BusinessRuleException>();
+            await AssertSingleDurableDispositionAsync();
+
             var unauthorized = () => service.CreateAllocationDispositionAsync(new CreateInventoryAllocationDispositionRequest
             {
-                DecisionId = balance.DecisionId ?? "return-allocation:missing", SourceIssueLineId = GuidHelper.ToGuidString(sourceIssueLineId),
-                DestinationSourceLineId = GuidHelper.ToGuidString(sourceIssueLineId), Quantity = 1m, Reason = "must not transfer", CommandId = "allocation-default-deny",
-                ExpectedVersion = balance.Version
-            }, null);
+                DecisionId = balance.DecisionId!, SourceIssueLineId = GuidHelper.ToGuidString(sourceIssueLineId),
+                DestinationSourceLineId = GuidHelper.ToGuidString(destinationIssueLineId), Quantity = 1m,
+                Reason = "warehouse must not transfer", CommandId = "allocation-default-deny", ExpectedVersion = 1
+            }, GuidHelper.ToGuidString(warehouseUserId));
             await unauthorized.Should().ThrowAsync<UnauthorizedAccessException>();
-            (await context.Inventoryallocationdispositions.CountAsync()).Should().Be(before);
+            await AssertSingleDurableDispositionAsync();
+
+            var updatedBalance = (await service.GetAllocationBalancesAsync(new InventoryReturnAllocationBalanceQuery(), fixture.UserIdString))
+                .Single(item => item.SourceIssueLineId == GuidHelper.ToGuidString(sourceIssueLineId));
+            updatedBalance.Version.Should().Be(1);
+            updatedBalance.DisposedQuantity.Should().Be(1m);
+            updatedBalance.ExcessQuantity.Should().Be(balance.ExcessQuantity - 1m);
         }
     }
 
@@ -494,6 +592,7 @@ public partial class WorkflowGenerationTests
                 .SingleAsync());
             var retDto1 = await returnService.CreateAsync(new CreateInventoryReturnRequest
             {
+                CommandId = "create-return",
                 ReturnDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
                 ReturnType = "RETURN",
@@ -514,6 +613,7 @@ public partial class WorkflowGenerationTests
 
             var retDto2 = await returnService.CreateAsync(new CreateInventoryReturnRequest
             {
+                CommandId = "create-waste",
                 ReturnDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
                 ReturnType = "WASTE",
@@ -544,6 +644,7 @@ public partial class WorkflowGenerationTests
                 confirmedReturnId,
                 new ConfirmInventoryReturnReceiptRequest
                 {
+                    CommandId = "return-over-balance",
                     AdjustedLines =
                     [
                         new ConfirmInventoryReturnLineRequest
@@ -559,8 +660,19 @@ public partial class WorkflowGenerationTests
             (await context.Inventoryreturns.SingleAsync(item => item.ReturnId == GuidHelper.ParseGuidString(confirmedReturnId)!))
                 .ReceivedAt.Should().BeNull();
 
-            await returnService.ConfirmReceiptAsync(confirmedReturnId, new ConfirmInventoryReturnReceiptRequest(), fixture.UserIdString);
-            await returnService.ConfirmReceiptAsync(retDto2!.ReturnId, new ConfirmInventoryReturnReceiptRequest(), fixture.UserIdString);
+            await returnService.ConfirmReceiptAsync(confirmedReturnId, new ConfirmInventoryReturnReceiptRequest { CommandId = "confirm-return" }, fixture.UserIdString);
+            await returnService.ConfirmReceiptAsync(confirmedReturnId, new ConfirmInventoryReturnReceiptRequest { CommandId = "confirm-return" }, fixture.UserIdString);
+            await returnService.ConfirmReceiptAsync(retDto2!.ReturnId, new ConfirmInventoryReturnReceiptRequest { CommandId = "confirm-waste" }, fixture.UserIdString);
+
+            (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == "InventoryReturn")).Should().Be(4);
+            (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == "InventoryReturn")).Should().Be(4);
+            (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == "InventoryReturn")).Should().Be(4);
+            var returnSequences = await context.Lifecycletransitions.AsNoTracking()
+                .Where(item => item.AggregateType == "InventoryReturn")
+                .GroupBy(item => item.AggregateId)
+                .Select(group => group.OrderBy(item => item.AggregateSequence).Select(item => item.AggregateSequence).ToArray())
+                .ToListAsync();
+            returnSequences.Should().AllSatisfy(sequence => sequence.Should().Equal(0, 1));
 
             var returnTypes = await context.Inventoryreturns
                 .AsNoTracking()

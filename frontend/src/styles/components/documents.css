@@ -359,6 +359,45 @@
   list-style: none;
 }
 
+.ipc-approval-zone-materials-group {
+  min-width: 0;
+}
+
+.ipc-approval-zone-materials-group.is-expanded {
+  padding-top: var(--ipc-space-2);
+  border-top: 1px solid #d6e2ef;
+}
+
+.ipc-approval-zone-materials-group.is-expanded .ipc-approval-zone-materials {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--ipc-space-5);
+}
+
+.ipc-approval-materials-toggle {
+  min-height: 32px;
+  margin-top: 2px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ipc-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ipc-approval-materials-toggle:hover {
+  color: var(--ipc-slate-900);
+}
+
+.ipc-approval-materials-toggle:focus-visible {
+  border-radius: var(--ipc-radius-sm);
+  outline: 2px solid var(--ipc-primary);
+  outline-offset: 2px;
+}
+
 .ipc-approval-zone-materials li {
   display: grid;
   min-width: 0;
@@ -404,6 +443,14 @@
   .ipc-approval-record-action > span {
     max-width: none;
     text-align: left;
+  }
+
+  .ipc-approval-zone-materials-group.is-expanded {
+    grid-column: 1 / -1;
+  }
+
+  .ipc-approval-zone-materials-group.is-expanded .ipc-approval-zone-materials {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   /* Document Card: Zone-based Grid */

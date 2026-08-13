@@ -7,6 +7,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 namespace IPCManagement.Api.Tests;
 
@@ -65,6 +66,7 @@ public sealed class ServiceRunLifecycleTests
         var quantityPlanId = GuidHelper.NewId();
         var quantityPlanLineId = GuidHelper.NewId();
         var scheduleId = GuidHelper.NewId();
+        var requestId = GuidHelper.NewId();
         await using (var context = new IpcManagementContext(options))
         {
             var quantityPlan = new MealQuantityPlan
@@ -98,13 +100,13 @@ public sealed class ServiceRunLifecycleTests
             });
             context.Materialrequests.Add(new MaterialRequest
             {
-                RequestId = GuidHelper.NewId(), PlanId = planId, RequestCode = "YC-SERVICE-RUN", RequestDate = new DateOnly(2026, 8, 5),
+                RequestId = requestId, PlanId = planId, RequestCode = "YC-SERVICE-RUN", RequestDate = new DateOnly(2026, 8, 5),
                 RequestScope = "SERVICE_RUN", Status = "PENDING", CreatedBy = actorId,
                 Materialrequestlines =
                 [
                     new MaterialRequestLine
                     {
-                        RequestLineId = GuidHelper.NewId(), PlanLineId = productionPlanLine.PlanLineId,
+                        RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = productionPlanLine.PlanLineId,
                         IngredientId = GuidHelper.NewId(), UnitId = GuidHelper.NewId(), PriceTierAmount = 25000m,
                         TotalServings = 120, GrossQtyPerServing = 1m, BomRatePercent = 100m, TotalRequiredQty = 120m,
                         PlanLine = productionPlanLine,
@@ -127,6 +129,25 @@ public sealed class ServiceRunLifecycleTests
         verificationContext.Lifecycletransitions.Should().ContainSingle(item => item.AggregateType == nameof(ServiceRun) && item.ToState == ServiceRunStatus.Planned);
         verificationContext.Lifecyclecommandreceipts.Should().ContainSingle();
         verificationContext.Lifecycleoutboxmessages.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ScopedSourceLineQuery_Should_TranslateForMySqlWithoutClientSideBase64Keys()
+    {
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseMySql(
+                "Server=localhost;Database=translation_only;User=root;Password=unused",
+                new MySqlServerVersion(new Version(8, 0, 0)))
+            .Options;
+        using var context = new IpcManagementContext(options);
+
+        var sql = ServiceRunService.SelectRequestSourceLines(
+                context.Materialrequestlines,
+                GuidHelper.NewId())
+            .ToQueryString();
+
+        sql.Should().Contain("requestId");
+        sql.Should().NotContain("Base64");
     }
 
     [Fact]

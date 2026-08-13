@@ -7,6 +7,13 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).not.toContain("useHasRole(['warehouse'])");
   });
 
+  it('uses the normalized thukho role for inventory issue creation', () => {
+    expect(warehousePageSource).toContain("const canCreateInventoryIssues = useHasRole(['thukho'])");
+    expect(warehousePageSource).toContain('canManageWarehouse: canCreateInventoryIssues');
+    expect(warehousePageSource).toContain('<WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />');
+    expect(warehousePageSource).not.toContain('<WarehouseExceptionsWorkbench canManage={canReceivePurchases}');
+  });
+
   it('does not request supplemental material data while creating a receipt draft', () => {
     expect(warehousePageSource).not.toContain('useGetSupplementalMaterialRequestsQuery');
     expect(warehousePageSource).not.toContain('preferredWarehouseId=');

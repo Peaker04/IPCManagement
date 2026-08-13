@@ -33,7 +33,7 @@ const emptyStageCounts: PurchaseWorkflowStageCounts = {
   receivingProgress: 0,
 };
 
-type PurchasingView = 'workflow' | 'quotations';
+type PurchasingView = 'workflow' | 'supplemental' | 'quotations';
 
 const shiftIsoWeek = (week: string, days: number) => {
   const date = new Date(`${week}T00:00:00Z`);
@@ -52,7 +52,10 @@ export default function PurchasingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [selectedLineId, setSelectedLineId] = useState<string>();
-  const activeView: PurchasingView = searchParams.get('view') === 'quotations' ? 'quotations' : 'workflow';
+  const requestedView = searchParams.get('view');
+  const activeView: PurchasingView = requestedView === 'quotations' || requestedView === 'supplemental'
+    ? requestedView
+    : 'workflow';
   const quotationWorkflow = useSupplierQuotations(activeView === 'quotations');
   const requestedStage = searchParams.get('stage');
   const initialRoute = resolvePurchasingRouteState(
@@ -108,8 +111,10 @@ export default function PurchasingPage() {
     || quotationWorkflow.quotationView.phase === 'ready' && quotationWorkflow.quotationView.isRefreshing;
   const isPageFailure = activeView === 'workflow'
     ? workbenchView.phase === 'error' || workbenchView.phase === 'forbidden'
-    : isQuotationFailure;
-  const isPagePending = activeView === 'workflow' ? isFetching : isQuotationPending;
+    : activeView === 'quotations' && isQuotationFailure;
+  const isPagePending = activeView === 'workflow'
+    ? isFetching
+    : activeView === 'quotations' && isQuotationPending;
 
   useEffect(() => {
     if (activeView !== 'workflow') return;
@@ -130,11 +135,15 @@ export default function PurchasingPage() {
   }, [activeView, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench, workbenchView.phase]);
 
   const changeView = (id: string) => {
-    const view: PurchasingView = id === 'purchasing-quotations' ? 'quotations' : 'workflow';
+    const view: PurchasingView = id === 'purchasing-quotations'
+      ? 'quotations'
+      : id === 'purchasing-supplemental'
+        ? 'supplemental'
+        : 'workflow';
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
-      if (view === 'quotations') next.set('view', view);
-      else next.delete('view');
+      if (view === 'workflow') next.delete('view');
+      else next.set('view', view);
       return next;
     });
   };
@@ -199,6 +208,8 @@ export default function PurchasingPage() {
               <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Tuần mua hàng: {formatWeekRange(routeState.week)}</span>
               <span className="ipc-command-meta"><CalendarDays size={16} aria-hidden="true" />Cả ngày (FULLDAY)</span>
             </>
+          ) : activeView === 'supplemental' ? (
+            <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Yêu cầu mua bổ sung từ bếp</span>
           ) : (
             <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Danh mục báo giá nhà cung cấp</span>
           )}
@@ -210,18 +221,18 @@ export default function PurchasingPage() {
           { label: 'Nhu cầu chờ duyệt', value: workbenchView.phase === 'ready' ? (activeDate && activeDate.approvedDemandCount === 0 ? 1 : 0) : '—', tone: workbenchView.phase === 'ready' && activeDate && activeDate.approvedDemandCount === 0 ? 'warning' : 'neutral' },
           { label: 'Ngoại lệ giá', value: workbenchView.phase === 'ready' ? activeDate?.blockingExceptionCount ?? 0 : '—', tone: workbenchView.phase === 'ready' && (activeDate?.blockingExceptionCount ?? 0) > 0 ? 'danger' : 'neutral' },
           { label: 'Đơn chờ nhập', value: workbenchView.phase === 'ready' ? (activeDate ? Math.max(0, activeDate.receivingLineCount - activeDate.fullyReceivedLineCount) : 0) : '—', tone: workbenchView.phase === 'ready' && activeDate && activeDate.receivingLineCount > activeDate.fullyReceivedLineCount ? 'warning' : 'neutral' },
-        ] : [
+        ] : activeView === 'quotations' ? [
           { label: 'Nguyên liệu', value: quotationWorkflow.ingredientView.phase === 'ready' ? quotationWorkflow.ingredients.length : '—', tone: 'neutral' },
           { label: 'Nhà cung cấp', value: quotationWorkflow.supplierView.phase === 'ready' ? quotationWorkflow.suppliers.length : '—', tone: 'neutral' },
           { label: 'Báo giá đang xem', value: quotationWorkflow.quotationView.phase === 'ready' ? quotationWorkflow.response?.totalCount ?? 0 : quotationWorkflow.quotationView.phase === 'uninitialized' ? 0 : '—', tone: 'info' },
-        ]} />
+        ] : []} />
       }
     >
       <div className="min-w-0 space-y-4 overflow-x-clip">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : 'Quản lý báo giá nhà cung cấp'}</h1>
-            <p className="mt-2 text-body leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
+            <h1 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : activeView === 'supplemental' ? 'Mua bổ sung cho bếp' : 'Quản lý báo giá nhà cung cấp'}</h1>
+            <p className="mt-2 text-body leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
           </div>
           <StatusBadge variant={isPageFailure ? 'danger' : isPagePending ? 'warning' : 'success'}>
             {isPageFailure ? 'Lỗi tải dữ liệu' : isPagePending ? 'Đang tải' : 'Đã đồng bộ'}
@@ -233,6 +244,7 @@ export default function PurchasingPage() {
           ariaLabel="Chọn góc nhìn thu mua"
           tabs={[
             { id: 'purchasing-workflow', label: 'Xử lý thu mua' },
+            { id: 'purchasing-supplemental', label: 'Mua bổ sung' },
             { id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' },
           ]}
           activeTab={`purchasing-${activeView}`}
@@ -261,8 +273,11 @@ export default function PurchasingPage() {
 
         {activeView === 'quotations' ? (
           <SupplierQuotationSection workflow={quotationWorkflow} />
+        ) : activeView === 'supplemental' ? (
+          <div id="purchasing-supplemental-panel" role="tabpanel" aria-labelledby="purchasing-supplemental-tab">
+            <SupplementalPurchasingWorkbench week={routeState.week} />
+          </div>
         ) : <div id="purchasing-workflow-panel" role="tabpanel" aria-labelledby="purchasing-workflow-tab" className="space-y-4">
-          <SupplementalPurchasingWorkbench week={routeState.week} />
           {workbenchView.phase === 'ready' ? (
             <>
               <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />

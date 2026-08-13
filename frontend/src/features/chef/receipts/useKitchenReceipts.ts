@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useConfirmInventoryIssueReceiptMutation, useGetKitchenIssuesPageQuery } from '@/api/workflowApi'
+import { useConfirmInventoryIssueReceiptMutation, useGetKitchenIssuesPageQuery, useGetKitchenIssuesQuery } from '@/api/workflowApi'
 import { countPendingKitchenReceipts } from '../chefReadiness'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
 import { filterKitchenIssues } from '../production/chefProductionModel'
@@ -7,6 +7,7 @@ import type { ChefFeedback, ChefShiftScope } from '../production/useChefProducti
 import { toChefView } from '../chefQueryView'
 
 const KITCHEN_RECEIPT_PAGE_SIZE = 20
+const KITCHEN_ACTION_LIMIT = 500
 
 export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void, enabled = true) {
   const scopeKey = `${scope.serviceDate}-${scope.apiShiftName}`
@@ -20,12 +21,23 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     pageSize: KITCHEN_RECEIPT_PAGE_SIZE,
   }, { skip: !enabled })
   const queryView = toChefView(query, 'phiếu xuất kho bàn giao cho bếp')
+  const actionQuery = useGetKitchenIssuesQuery({
+    dateFrom: scope.serviceDate,
+    dateTo: scope.serviceDate,
+    shiftName: scope.apiShiftName,
+    limit: KITCHEN_ACTION_LIMIT,
+  }, { skip: !enabled })
+  const actionQueryView = toChefView(actionQuery, 'nguyên liệu có thể thao tác trong ca')
   const [confirmReceipt, confirmState] = useConfirmInventoryIssueReceiptMutation()
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
   const response = queryView.phase === 'ready' ? queryView.data : undefined
   const rows = useMemo(
     () => filterKitchenIssues(response?.items ?? [], scope.serviceDate, scope.activeShift),
     [response?.items, scope.serviceDate, scope.activeShift],
+  )
+  const actionRows = useMemo(
+    () => filterKitchenIssues(actionQueryView.phase === 'ready' ? actionQueryView.data : [], scope.serviceDate, scope.activeShift),
+    [actionQueryView, scope.serviceDate, scope.activeShift],
   )
   const pendingCount = countPendingKitchenReceipts(rows)
   const hasAdditionalPages = (response?.totalPages ?? 0) > 1
@@ -73,6 +85,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
 
   return {
     rows,
+    actionRows,
     signedMaterials,
     pendingCount,
     page: response?.pageNumber ?? page,
@@ -83,6 +96,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     setPage,
     signOff,
     queryView,
+    actionQueryView,
     isConfirming: confirmState.isLoading,
   }
 }

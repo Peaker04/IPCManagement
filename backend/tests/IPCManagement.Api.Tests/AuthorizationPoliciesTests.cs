@@ -80,6 +80,30 @@ public class AuthorizationPoliciesTests
     }
 
     [Fact]
+    public void Supplemental_request_reads_include_purchasing_without_granting_warehouse_commands()
+    {
+        AuthorizationPolicies.SupplementalMaterialRequestReadRoles.Should().Contain("Purchasing");
+        AuthorizationPolicies.InventoryRoles.Should().NotContain("Purchasing");
+
+        var controller = typeof(SupplementalMaterialRequestsController);
+        controller.GetMethod(nameof(SupplementalMaterialRequestsController.GetAllAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.SupplementalMaterialRequestReadAccess);
+        controller.GetMethod(nameof(SupplementalMaterialRequestsController.CreateAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryIssueAccess);
+        controller.GetMethod(nameof(SupplementalMaterialRequestsController.FulfillAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryAccess);
+        controller.GetMethod(nameof(SupplementalMaterialRequestsController.RouteToPurchasingAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryAccess);
+        controller.GetMethod(nameof(SupplementalMaterialRequestsController.RejectAsync))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryAccess);
+    }
+
+    [Fact]
     public void ResolvePermissions_Should_TreatVietnameseAdminRoleAsFullAccess()
     {
         AuthorizationPolicies.IsAdminRole("Quản trị").Should().BeTrue();

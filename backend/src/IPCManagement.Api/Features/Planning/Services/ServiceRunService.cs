@@ -12,6 +12,11 @@ namespace IPCManagement.Api.Features.Planning.Services;
 
 public sealed class ServiceRunService(IpcManagementContext context) : IServiceRunService
 {
+    internal static IQueryable<MaterialRequestLine> SelectRequestSourceLines(
+        IQueryable<MaterialRequestLine> sourceLines,
+        byte[] requestId)
+        => sourceLines.Where(line => line.RequestId.SequenceEqual(requestId));
+
     internal static IReadOnlyList<InventoryIssueLine> SelectRelevantIssueLines(
         IEnumerable<InventoryIssue> issues,
         IEnumerable<MaterialRequestLine> demandLines,
@@ -40,13 +45,23 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         if (!plan.Productionplanlines.Any(line => line.ShiftName == shiftName && line.CustomerId.SequenceEqual(requestedCustomerId)))
             throw new ArgumentException("Kế hoạch sản xuất không có ca phục vụ của khách hàng đã chọn.");
 
-        var scopedPlanLineKeys = plan.Productionplanlines
-            .Where(line => line.ShiftName == shiftName && line.CustomerId.SequenceEqual(requestedCustomerId))
-            .Select(line => Convert.ToBase64String(line.PlanLineId))
-            .ToList();
-        var sourceLines = await context.Materialrequestlines
-            .Where(item => scopedPlanLineKeys.Contains(Convert.ToBase64String(item.PlanLineId)))
+        var requestIds = await context.Materialrequests
+            .Where(request => request.PlanId.SequenceEqual(planId))
+            .Select(request => request.RequestId)
             .ToListAsync(cancellationToken);
+        var planSourceLines = new List<MaterialRequestLine>();
+        foreach (var requestId in requestIds)
+        {
+            planSourceLines.AddRange(await SelectRequestSourceLines(context.Materialrequestlines, requestId)
+                .ToListAsync(cancellationToken));
+        }
+        var scopedPlanLineIds = plan.Productionplanlines
+            .Where(line => line.CustomerId.SequenceEqual(requestedCustomerId) && line.ShiftName == shiftName)
+            .Select(line => line.PlanLineId)
+            .ToList();
+        var sourceLines = planSourceLines
+            .Where(line => scopedPlanLineIds.Any(planLineId => planLineId.SequenceEqual(line.PlanLineId)))
+            .ToList();
         var tiers = sourceLines.Select(item => item.PriceTierAmount).Distinct().ToList();
         var priceTier = request.PriceTierAmount ?? (tiers.Count == 1 ? tiers[0] : throw await CreateScopeDecisionAsync(plan, requestedCustomerId, shiftName, null, "Không thể suy ra duy nhất tier giá từ source-line.", cancellationToken));
         var scopedSourceLines = sourceLines.Where(item => item.PriceTierAmount == priceTier).ToList();
@@ -106,6 +121,7 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             .Include(line => line.QuantityPlanLine).ThenInclude(line => line.MenuSchedule)
             .Where(line => line.PlanId.SequenceEqual(run.PlanId) && line.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
         var demandLines = await context.Materialrequestlines.AsNoTracking().Include(line => line.Request).Include(line => line.PlanLine)
+            .Include(line => line.Ingredient).Include(line => line.Unit)
             .Where(line => line.Request.PlanId.SequenceEqual(run.PlanId) && line.PlanLine.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
         var issues = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines).Include(issue => issue.Inventoryreturns)
             .Where(issue => issue.MaterialRequest.PlanId.SequenceEqual(run.PlanId) && issue.IssueDate == plan.PlanDate).ToListAsync(cancellationToken);
@@ -122,6 +138,32 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             .Where(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId))
             .Join(context.Servicerunvariancewaivers.AsNoTracking(), declaration => declaration.ServiceRunVarianceDeclarationId, waiver => waiver.ServiceRunVarianceDeclarationId, (declaration, waiver) => new { declaration, waiver })
             .AnyAsync(item => !item.declaration.DeclaredBy.SequenceEqual(item.waiver.ApprovedBy), cancellationToken);
+        var pendingDeclarations = await (
+            from declaration in context.Servicerunvariancedeclarations.AsNoTracking()
+            join actor in context.Users.AsNoTracking() on declaration.DeclaredBy equals actor.UserId
+            where declaration.ServiceRunId.SequenceEqual(run.ServiceRunId) &&
+                  !context.Servicerunvariancewaivers.Any(waiver => waiver.ServiceRunVarianceDeclarationId.SequenceEqual(declaration.ServiceRunVarianceDeclarationId))
+            orderby declaration.DeclaredAt descending
+            select new ServiceRunVarianceDeclarationOptionDto
+            {
+                DeclarationId = GuidHelper.ToGuidString(declaration.ServiceRunVarianceDeclarationId),
+                TrackLabel = declaration.Track,
+                Reason = declaration.Reason,
+                DeclaredByLabel = actor.FullName,
+                DeclaredAt = declaration.DeclaredAt,
+            }).ToListAsync(cancellationToken);
+        var scopedSourceLineOptions = demandLines
+            .Where(line => run.CustomerId is not null && line.PlanLine.CustomerId.SequenceEqual(run.CustomerId) && line.PriceTierAmount == run.PriceTierAmount)
+            .Select(line => new ServiceRunSourceLineOptionDto
+            {
+                SourceLineId = GuidHelper.ToGuidString(line.RequestLineId),
+                IngredientLabel = line.Ingredient.IngredientName,
+                RequiredQuantity = line.TotalRequiredQty,
+                UnitLabel = line.Unit.UnitName,
+            })
+            .OrderBy(line => line.IngredientLabel)
+            .ThenBy(line => line.SourceLineId)
+            .ToList();
 
         var relevantIssueLines = SelectRelevantIssueLines(issues, demandLines, run.ShiftName);
         var relevantIssues = issues.Where(issue => issue.Inventoryissuelines.Any(line => relevantIssueLines.Contains(line))).ToList();
@@ -177,6 +219,8 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             MaterialRequestLineCount = demandLines.Count, IssueCount = relevantIssues.Count, UnreceivedIssueCount = relevantIssues.Count(issue => issue.ReceivedAt is null),
             OpenSupplementalCount = openSupplementalCount, UnreceivedReturnCount = issues.SelectMany(issue => issue.Inventoryreturns).Count(item => item.ReceivedAt is null), HasBomBlocker = hasBomBlocker,
             AdjustmentCount = adjustmentCount,
+            SourceLineOptions = scopedSourceLineOptions,
+            PendingVarianceDeclarations = pendingDeclarations,
         };
     }
 
