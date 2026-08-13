@@ -104,8 +104,8 @@ public static class ServiceRunLifecycle
         if (!input.IsPlanSignedOff || input.HasBomBlocker) return ServiceRunStatus.Blocked;
         if (!input.HasGeneratedMaterialDemand || input.HasOpenSupply || input.HasUnreceivedIssue || input.HasOpenSupplemental)
             return ServiceRunStatus.MaterialsInProgress;
-        if (!input.HasRecordedActualServings) return ServiceRunStatus.ReadyToProduce;
         if ((input.HasUnresolvedVariance && !input.HasApprovedVarianceWaiver) || input.HasUnresolvedServingVariance || blockers.Contains(ServiceRunBlocker.ConfirmationOutcomeConflict)) return ServiceRunStatus.ReconciliationRequired;
+        if (!input.HasRecordedActualServings) return ServiceRunStatus.ReadyToProduce;
         if (blockers.Contains(ServiceRunBlocker.ServiceConfirmationRequired)) return ServiceRunStatus.InService;
         return ServiceRunStatus.ReadyToClose;
     }

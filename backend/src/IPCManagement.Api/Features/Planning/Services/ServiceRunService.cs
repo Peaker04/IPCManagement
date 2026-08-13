@@ -179,7 +179,7 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             HasOpenSupplemental: openSupplementalCount > 0,
             HasRecordedActualServings: run.ActualServingsRecordedAt is not null,
             HasUnresolvedVariance: issues.SelectMany(issue => issue.Inventoryreturns).Any(item => item.ReceivedAt is null) ||
-                                  (hasReceiptDiscrepancy && run.VarianceResolvedAt is null),
+                                  (hasReceiptDiscrepancy && run.VarianceResolvedAt is null) || pendingDeclarations.Count > 0,
             HasUnresolvedServingVariance: run.ActualServings is not null && run.ActualServings != planLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings)) && run.ServingVarianceResolvedAt is null,
             HasServiceConfirmation: run.ServiceConfirmedAt is not null,
             IsServiceConfirmationWaived: run.ServiceConfirmationWaivedAt is not null,
@@ -447,7 +447,12 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var actorId = ParseActor(userId);
         var run = await LoadTrackedAsync(serviceRunId, cancellationToken);
         if (run is null) return null;
+        var recorder = new LifecycleTransitionRecorder(context);
+        var commandId = RequireCommandId(request.CommandId);
+        if (await recorder.FindExistingCommandAsync(commandId, nameof(ServiceRun), run.ServiceRunId, cancellationToken) is not null)
+            return await GetProjectionAsync(serviceRunId, cancellationToken);
         EnsureOpen(run);
+        EnsureExpectedVersion(run, request.ExpectedVersion);
         var reason = RequireReason(request.Reason, "Cần nêu lý do khai báo ngoại lệ.");
         var track = request.Track?.Trim().ToUpperInvariant();
         if (track is not ("PLANNING" or "MATERIAL_SUPPLY" or "SERVICE_EXECUTION" or "RECONCILIATION")) throw new ArgumentException("Track ngoại lệ không hợp lệ.");
@@ -456,7 +461,8 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var now = DateTime.UtcNow;
         var declaration = new ServiceRunVarianceDeclaration { ServiceRunVarianceDeclarationId = GuidHelper.NewId(), ServiceRunId = run.ServiceRunId, Track = track, SourceLineEvidenceJson = JsonSerializer.Serialize(sourceLines), Reason = reason, DeclaredBy = actorId, DeclaredAt = now };
         context.Servicerunvariancedeclarations.Add(declaration);
-        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = actorId, BusinessArea = "ServiceRun", EntityName = nameof(ServiceRunVarianceDeclaration), EntityId = declaration.ServiceRunVarianceDeclarationId, FieldName = "Declared", NewValue = track, Reason = reason });
+        StageCommand(run, recorder, actorId, commandId, "VarianceDeclared", request.ExpectedVersion, reason,
+            request.CorrelationId, request.CausationId, new { declaration.ServiceRunVarianceDeclarationId, track, sourceLines });
         await context.SaveChangesAsync(cancellationToken);
         return await GetProjectionAsync(serviceRunId, cancellationToken);
     }
@@ -466,7 +472,12 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var actorId = ParseActor(userId);
         var run = await LoadTrackedAsync(serviceRunId, cancellationToken);
         if (run is null) return null;
+        var recorder = new LifecycleTransitionRecorder(context);
+        var commandId = RequireCommandId(request.CommandId);
+        if (await recorder.FindExistingCommandAsync(commandId, nameof(ServiceRun), run.ServiceRunId, cancellationToken) is not null)
+            return await GetProjectionAsync(serviceRunId, cancellationToken);
         EnsureOpen(run);
+        EnsureExpectedVersion(run, request.ExpectedVersion);
         var id = GuidHelper.ParseGuidString(declarationId) ?? throw new ArgumentException("Khai báo ngoại lệ không hợp lệ.");
         var declaration = await context.Servicerunvariancedeclarations.FirstOrDefaultAsync(item => item.ServiceRunVarianceDeclarationId.SequenceEqual(id) && item.ServiceRunId.SequenceEqual(run.ServiceRunId), cancellationToken) ?? throw new KeyNotFoundException("Không tìm thấy khai báo ngoại lệ.");
         if (declaration.DeclaredBy.SequenceEqual(actorId)) throw new InvalidOperationException("Người khai báo không được tự phê duyệt waiver.");
@@ -475,7 +486,8 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var now = DateTime.UtcNow;
         var waiver = new ServiceRunVarianceWaiver { ServiceRunVarianceWaiverId = GuidHelper.NewId(), ServiceRunVarianceDeclarationId = id, ApprovedBy = actorId, ApprovedAt = now, Reason = reason };
         context.Servicerunvariancewaivers.Add(waiver);
-        context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = actorId, BusinessArea = "ServiceRun", EntityName = nameof(ServiceRunVarianceWaiver), EntityId = waiver.ServiceRunVarianceWaiverId, FieldName = "Approved", NewValue = declaration.Track, Reason = reason });
+        StageCommand(run, recorder, actorId, commandId, "VarianceWaiverApproved", request.ExpectedVersion, reason,
+            request.CorrelationId, request.CausationId, new { waiver.ServiceRunVarianceWaiverId, declaration.ServiceRunVarianceDeclarationId, declaration.Track });
         await context.SaveChangesAsync(cancellationToken);
         return await GetProjectionAsync(serviceRunId, cancellationToken);
     }
@@ -570,6 +582,21 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         run.ConcurrencyVersion++;
     }
 
+    private static void StageCommand(ServiceRun run, LifecycleTransitionRecorder recorder, byte[] actorId,
+        string commandId, string commandName, long expectedVersion, string reason, string? correlationId,
+        string? causationId, object evidence)
+    {
+        var sequence = checked((int)run.ConcurrencyVersion + 1);
+        recorder.Stage(new LifecycleTransitionRequest(
+            nameof(ServiceRun), run.ServiceRunId, commandId, sequence,
+            run.Status, run.Status, actorId, expectedVersion, reason,
+            correlationId, causationId,
+            JsonSerializer.Serialize(new { commandName, evidence }),
+            JsonSerializer.Serialize(new { run.ServiceRunId, commandName, version = sequence })));
+        run.ConcurrencyVersion++;
+        run.UpdatedAt = DateTime.UtcNow;
+    }
+
     private static void EnsureOpen(ServiceRun run)
     {
         if (run.ClosedAt is not null) throw new InvalidOperationException("Ca đã đóng; hãy dùng luồng điều chỉnh có audit.");
@@ -582,6 +609,12 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
     }
 
     private static byte[] ParseActor(string? userId) => GuidHelper.ParseGuidString(userId) ?? throw new UnauthorizedAccessException("Không xác định được người thao tác.");
+    private static string RequireCommandId(string? commandId) => string.IsNullOrWhiteSpace(commandId) ? throw new ArgumentException("CommandId không được để trống.") : commandId.Trim();
+    private static void EnsureExpectedVersion(ServiceRun run, long expectedVersion)
+    {
+        if (run.ConcurrencyVersion != expectedVersion)
+            throw new DbUpdateConcurrencyException("Ca phục vụ đã thay đổi; hãy tải lại trạng thái hiện hành.");
+    }
     private static string RequireReason(string? reason, string message) => NormalizeOptionalReason(reason) ?? throw new ArgumentException(message);
     private static string? NormalizeOptionalReason(string? reason) => string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
     private static bool CanConfirmOrWaive(IReadOnlyList<string> blockers)

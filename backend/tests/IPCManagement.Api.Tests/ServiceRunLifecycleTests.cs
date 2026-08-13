@@ -55,7 +55,7 @@ public sealed class ServiceRunLifecycleTests
     }
 
     [Fact]
-    public async Task OpenAsync_Should_BeIdempotent_AndProjectSourceBlockers()
+    public async Task OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
             .UseInMemoryDatabase($"service-run-open-{Guid.NewGuid():N}")
@@ -67,6 +67,7 @@ public sealed class ServiceRunLifecycleTests
         var quantityPlanLineId = GuidHelper.NewId();
         var scheduleId = GuidHelper.NewId();
         var requestId = GuidHelper.NewId();
+        var requestLineId = GuidHelper.NewId();
         await using (var context = new IpcManagementContext(options))
         {
             var quantityPlan = new MealQuantityPlan
@@ -106,7 +107,7 @@ public sealed class ServiceRunLifecycleTests
                 [
                     new MaterialRequestLine
                     {
-                        RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = productionPlanLine.PlanLineId,
+                        RequestLineId = requestLineId, RequestId = requestId, PlanLineId = productionPlanLine.PlanLineId,
                         IngredientId = GuidHelper.NewId(), UnitId = GuidHelper.NewId(), PriceTierAmount = 25000m,
                         TotalServings = 120, GrossQtyPerServing = 1m, BomRatePercent = 100m, TotalRequiredQty = 120m,
                         PlanLine = productionPlanLine,
@@ -129,6 +130,42 @@ public sealed class ServiceRunLifecycleTests
         verificationContext.Lifecycletransitions.Should().ContainSingle(item => item.AggregateType == nameof(ServiceRun) && item.ToState == ServiceRunStatus.Planned);
         verificationContext.Lifecyclecommandreceipts.Should().ContainSingle();
         verificationContext.Lifecycleoutboxmessages.Should().ContainSingle();
+
+        var declarationRequest = new DeclareServiceRunVarianceRequest
+        {
+            CommandId = "service-run-variance-declare-1",
+            ExpectedVersion = first.CurrentVersion,
+            Track = "SERVICE_EXECUTION",
+            SourceLineIds = [GuidHelper.ToGuidString(requestLineId)],
+            Reason = "Bếp ghi nhận chênh lệch đúng dòng nguyên liệu nguồn.",
+        };
+        var declared = await service.DeclareVarianceAsync(first.ServiceRunId, declarationRequest, GuidHelper.ToGuidString(actorId));
+        var declarationId = GuidHelper.ToGuidString(verificationContext.Servicerunvariancedeclarations.Single().ServiceRunVarianceDeclarationId);
+        var replayedDeclaration = await service.DeclareVarianceAsync(first.ServiceRunId, declarationRequest, GuidHelper.ToGuidString(actorId));
+
+        replayedDeclaration!.CurrentVersion.Should().Be(declared!.CurrentVersion);
+        verificationContext.Servicerunvariancedeclarations.Should().ContainSingle();
+        verificationContext.Lifecycletransitions.Should().HaveCount(2);
+        verificationContext.Lifecyclecommandreceipts.Should().HaveCount(2);
+        verificationContext.Lifecycleoutboxmessages.Should().HaveCount(2);
+        verificationContext.Auditlogs.Should().HaveCount(2);
+
+        var waiverActorId = GuidHelper.NewId();
+        var waiverRequest = new ApproveServiceRunVarianceWaiverRequest
+        {
+            CommandId = "service-run-variance-waiver-1",
+            ExpectedVersion = declared.CurrentVersion,
+            Reason = "Admin khác người khai báo đã kiểm tra bằng chứng nguồn.",
+        };
+        var waived = await service.ApproveVarianceWaiverAsync(first.ServiceRunId, declarationId, waiverRequest, GuidHelper.ToGuidString(waiverActorId));
+        var replayedWaiver = await service.ApproveVarianceWaiverAsync(first.ServiceRunId, declarationId, waiverRequest, GuidHelper.ToGuidString(waiverActorId));
+
+        replayedWaiver!.CurrentVersion.Should().Be(waived!.CurrentVersion);
+        verificationContext.Servicerunvariancewaivers.Should().ContainSingle();
+        verificationContext.Lifecycletransitions.Should().HaveCount(3);
+        verificationContext.Lifecyclecommandreceipts.Should().HaveCount(3);
+        verificationContext.Lifecycleoutboxmessages.Should().HaveCount(3);
+        verificationContext.Auditlogs.Should().HaveCount(3);
     }
 
     [Fact]
@@ -248,6 +285,19 @@ public sealed class ServiceRunLifecycleTests
 
         result.Status.Should().Be(ServiceRunStatus.ReconciliationRequired);
         result.Blockers.Should().Contain(ServiceRunBlocker.UnresolvedVariance);
+    }
+
+    [Fact]
+    public void Evaluate_Should_PrioritizeADeclaredKitchenDiscrepancyBeforeProductionStarts()
+    {
+        var result = ServiceRunLifecycle.Evaluate(new(
+            IsPlanSignedOff: true, HasGeneratedMaterialDemand: true, HasBomBlocker: false, HasOpenSupply: false, HasUnreceivedIssue: false,
+            HasOpenSupplemental: false, HasRecordedActualServings: false, HasUnresolvedVariance: true,
+            HasServiceConfirmation: false, IsServiceConfirmationWaived: false, IsClosed: false));
+
+        result.Status.Should().Be(ServiceRunStatus.ReconciliationRequired);
+        result.Blockers.Should().Contain(ServiceRunBlocker.UnresolvedVariance);
+        result.CanStartService.Should().BeFalse();
     }
 
     [Fact]

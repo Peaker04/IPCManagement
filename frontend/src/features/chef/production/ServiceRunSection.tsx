@@ -40,7 +40,7 @@ const outcomeLabel: Record<string, string> = { PENDING: 'Chờ xác nhận', CON
 const tone = (status: string) => status === 'CLOSED' || status === 'READY_TO_CLOSE' ? 'success' as const : status === 'BLOCKED' || status === 'RECONCILIATION_REQUIRED' ? 'danger' as const : 'warning' as const
 
 const varianceTracksForRole = (role?: string) => {
-  if (role === 'bep' || role === 'chef' || role === 'kitchen') return ['SERVICE_EXECUTION'] as const
+  if (role === 'beptruong') return ['SERVICE_EXECUTION'] as const
   if (role === 'quanly') return ['PLANNING', 'MATERIAL_SUPPLY', 'RECONCILIATION'] as const
   return [] as const
 }
@@ -142,6 +142,13 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
       <dl className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Các phần việc của Ca phục vụ">
         {scopedTracks.map((track) => <div key={track.trackId} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs"><dt className="font-medium text-slate-800">{track.displayLabel}</dt><dd className="mt-1 text-slate-600">{track.blockers.length ? track.blockers.map((blocker) => blocker.displayLabel).join(' · ') : 'Không có vướng mắc'}</dd><dd className="mt-1 text-slate-500">Phụ trách: {track.responsibleRole}</dd></div>)}
       </dl>
+      {pendingDeclarations.length > 0 && <section className="mt-3 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Ngoại lệ đang chờ xử lý">
+        <h3 className="font-medium text-amber-900">Ngoại lệ đang chờ xử lý</h3>
+        <ul className="mt-1 space-y-1 text-amber-900">{pendingDeclarations.map((item) => <li key={item.declarationId}>
+          <strong>{item.declaredByLabel}</strong> · {formatServiceRunVarianceTrack(item.trackLabel)}: {item.reason}
+        </li>)}</ul>
+        <p className="mt-1 text-amber-800">Tiếp theo: Admin khác người khai báo kiểm tra và quyết định miễn xác nhận.</p>
+      </section>}
       {run.status !== 'CLOSED' && declarationTracks.length > 0 && <fieldset className="mt-3 grid gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Khai báo ngoại lệ Ca phục vụ">
         <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ</legend>
         <p className="text-amber-900">Chọn nguyên liệu liên quan và nêu lý do. Khai báo không tự đóng ca.</p>
@@ -154,7 +161,7 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
           {sourceLineOptions.length ? <div className="grid gap-1 sm:grid-cols-2">{sourceLineOptions.map((line) => <label key={line.sourceLineId} className="flex min-w-0 items-start gap-2 rounded px-2 py-1.5 hover:bg-amber-50"><input type="checkbox" className="mt-0.5" checked={varianceSourceLines.includes(line.sourceLineId)} onChange={(event) => setVarianceSourceLines((current) => event.target.checked ? [...current, line.sourceLineId] : current.filter((id) => id !== line.sourceLineId))} /><span className="min-w-0"><strong className="block truncate text-slate-800">{line.ingredientLabel}</strong><span className="text-slate-600">Cần {line.requiredQuantity} {line.unitLabel}</span></span></label>)}</div> : <p className="text-slate-600">Chưa có dòng nguyên liệu cho ca này.</p>}
         </fieldset>
         <div><Button size="sm" variant="outline" disabled={!varianceTrack || varianceSourceLines.length === 0 || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
-          await declareVariance({ id: run.serviceRunId, body: { track: varianceTrack, sourceLineIds: varianceSourceLines, reason: varianceReason } }).unwrap()
+          await declareVariance({ id: run.serviceRunId, body: { commandId: `service-run-variance-${crypto.randomUUID()}`, expectedVersion: run.currentVersion, track: varianceTrack, sourceLineIds: varianceSourceLines, reason: varianceReason } }).unwrap()
           setDeclaredByCurrentActor(true)
           setVarianceSourceLines([])
           setVarianceReason('')
@@ -164,7 +171,7 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
         <legend className="px-1 font-medium text-slate-800">Phê duyệt miễn xác nhận</legend>
         <p className="text-slate-600">Chỉ phê duyệt khai báo của người khác. Hệ thống từ chối tự phê duyệt và tải lại kết quả sau thao tác.</p>
         <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Khai báo chờ duyệt<select aria-label="Khai báo chờ duyệt" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn khai báo</option>{pendingDeclarations.map((item) => <option key={item.declarationId} value={item.declarationId}>{item.declaredByLabel} · {formatServiceRunVarianceTrack(item.trackLabel)} · {item.reason}</option>)}</select></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do miễn xác nhận<Input aria-label="Lý do phê duyệt miễn xác nhận" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
-        <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { reason: waiverReason } }).unwrap())}>Phê duyệt miễn xác nhận</Button></div>
+        <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { commandId: `service-run-waiver-${crypto.randomUUID()}`, expectedVersion: run.currentVersion, reason: waiverReason } }).unwrap())}>Phê duyệt miễn xác nhận</Button></div>
       </fieldset>}
       <div className="mt-3 flex flex-wrap items-end gap-2">
         {run.canStartService && <Button size="sm" disabled={startState.isLoading} onClick={() => void act(() => start(run.serviceRunId).unwrap())}>Bắt đầu phục vụ</Button>}

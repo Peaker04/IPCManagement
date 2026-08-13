@@ -18714,10 +18714,27 @@
       },
       "ApproveServiceRunVarianceWaiverRequest": {
         "required": [
+          "commandId",
+          "expectedVersion",
           "reason"
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "type": "string",
+            "nullable": true
+          },
           "reason": {
             "type": "string"
           }
@@ -22237,12 +22254,29 @@
       },
       "DeclareServiceRunVarianceRequest": {
         "required": [
+          "commandId",
+          "expectedVersion",
           "reason",
           "sourceLineIds",
           "track"
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "type": "string",
+            "nullable": true
+          },
           "track": {
             "type": "string"
           },

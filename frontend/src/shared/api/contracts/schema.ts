@@ -10796,6 +10796,11 @@ export interface components {
             readonly status: string;
         };
         readonly ApproveServiceRunVarianceWaiverRequest: {
+            readonly causationId?: string | null;
+            readonly commandId: string;
+            readonly correlationId?: string | null;
+            /** Format: int64 */
+            readonly expectedVersion: number;
             readonly reason: string;
         };
         readonly AuditChangeReportDto: {
@@ -11755,6 +11760,11 @@ export interface components {
             readonly success: boolean;
         };
         readonly DeclareServiceRunVarianceRequest: {
+            readonly causationId?: string | null;
+            readonly commandId: string;
+            readonly correlationId?: string | null;
+            /** Format: int64 */
+            readonly expectedVersion: number;
             readonly reason: string;
             readonly sourceLineIds: readonly string[];
             readonly track: string;

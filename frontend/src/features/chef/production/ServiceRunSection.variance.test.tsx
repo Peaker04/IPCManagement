@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const run = {
   serviceRunId: 'run-1', planId: 'plan-1', planCode: 'KHSX-01', serviceDate: '2026-08-12', shiftName: 'MORNING', status: 'RECONCILIATION_REQUIRED',
+  currentVersion: 4,
   blockers: ['UNRESOLVED_VARIANCE'], canStartService: false, canRecordActualServings: false, canConfirmService: false,
   canWaiveServiceConfirmation: false, canResolveVariance: false, canResolveServingVariance: false, canClose: false, serviceConfirmationOutcome: 'PENDING',
   plannedServings: 40, actualServings: 39, materialRequestLineCount: 2, issueCount: 1, unreceivedIssueCount: 0, openSupplementalCount: 0,
@@ -74,9 +75,22 @@ describe('ServiceRun variance controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' }))
 
     await waitFor(() => expect(mocks.declare).toHaveBeenCalledWith({
-      id: 'run-1', body: { track: 'RECONCILIATION', sourceLineIds: ['source-1', 'source-2'], reason: 'Chênh lệch đã đối soát' },
+      id: 'run-1', body: { commandId: expect.stringMatching(/^service-run-variance-/), expectedVersion: 4, track: 'RECONCILIATION', sourceLineIds: ['source-1', 'source-2'], reason: 'Chênh lệch đã đối soát' },
     }))
     expect(mocks.refetch).toHaveBeenCalled()
+  })
+
+  it('lets the canonical Bếp trưởng role declare only a service-execution discrepancy', () => {
+    mocks.user = { role: 'beptruong', isAdminFullAccess: false }
+    render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
+
+    const track = screen.getByLabelText('Phạm vi ngoại lệ')
+    expect(track).toHaveTextContent('Thực hiện phục vụ')
+    expect(track).not.toHaveTextContent('Kế hoạch')
+    expect(track).not.toHaveTextContent('Vật tư và cấp phát')
+    expect(track).not.toHaveTextContent('Đối soát')
+    expect(screen.getByRole('region', { name: 'Ngoại lệ đang chờ xử lý' })).toHaveTextContent('Đã đối chiếu')
+    expect(screen.getByRole('region', { name: 'Ngoại lệ đang chờ xử lý' })).not.toHaveTextContent('declaration-1')
   })
 
   it('shows Admin a user-labelled pending declaration instead of a technical identifier field', async () => {
@@ -92,7 +106,7 @@ describe('ServiceRun variance controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Phê duyệt miễn xác nhận' }))
 
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledWith({
-      id: 'run-1', declarationId: 'declaration-1', body: { reason: 'Admin waiver hợp lệ' },
+      id: 'run-1', declarationId: 'declaration-1', body: { commandId: expect.stringMatching(/^service-run-waiver-/), expectedVersion: 4, reason: 'Admin waiver hợp lệ' },
     }))
   })
 

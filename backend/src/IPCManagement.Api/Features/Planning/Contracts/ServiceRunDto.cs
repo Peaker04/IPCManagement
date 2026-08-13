@@ -170,6 +170,10 @@ public sealed class ReasonRequest
 
 public sealed class DeclareServiceRunVarianceRequest
 {
+    public string CommandId { get; set; } = string.Empty;
+    public long ExpectedVersion { get; set; }
+    public string? CorrelationId { get; set; }
+    public string? CausationId { get; set; }
     public string Track { get; set; } = string.Empty;
     public IReadOnlyList<string> SourceLineIds { get; set; } = [];
     public string Reason { get; set; } = string.Empty;
@@ -177,6 +181,10 @@ public sealed class DeclareServiceRunVarianceRequest
 
 public sealed class ApproveServiceRunVarianceWaiverRequest
 {
+    public string CommandId { get; set; } = string.Empty;
+    public long ExpectedVersion { get; set; }
+    public string? CorrelationId { get; set; }
+    public string? CausationId { get; set; }
     public string Reason { get; set; } = string.Empty;
 }
 

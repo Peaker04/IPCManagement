@@ -116,6 +116,14 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   Quick fix Thu mua sau quality: `Mua bổ sung` đã tách thành tab/URL riêng; tab mặc định
   `Xử lý thu mua` trở lại chỉ có quy trình duyệt theo ngày. Headed physical click, URL/DOM,
   zero overflow/error và protected-lane attempt 0 PASS.
+  Kitchen discrepancy isolation đã PASS trên ANV `2026-08-11 / AFTERNOON / 25k`: Bếp trưởng dùng
+  physical pointer/keyboard khai báo đúng source-line; pending declaration append-only đẩy riêng
+  ServiceRun này sang `Cần đối soát`, hiển thị lý do và bước Admin khác actor xử lý. DAV cùng phạm vi
+  vẫn có thể mở ca. Declaration command nay bắt buộc commandId/expectedVersion, replay không nhân đôi,
+  và ghi đủ một receipt/transition/audit/outbox; protected-lane attempts 0. Canonical role `beptruong`
+  đã thay alias rời rạc nên control không còn mất khi đổi từ Admin sang Bếp trưởng. Tiếp theo: ambiguous
+  lineage → shared shortage/blocked allocation → retry matrix; lane7 hiện zero nullable issue/return
+  provenance nên không được phá Golden source-line để tạo fixture.
   Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
   `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
   counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài

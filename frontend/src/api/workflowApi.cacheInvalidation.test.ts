@@ -127,7 +127,7 @@ describe('workflow cache invalidation fan-out', () => {
     await store.dispatch(workflowApi.endpoints.getServiceRunByPlan.initiate({ planId: 'plan-1', shiftName: 'MORNING' }));
     requests.length = 0;
     await store.dispatch(workflowApi.endpoints.declareServiceRunVariance.initiate({
-      id: 'run-1', body: { track: 'RECONCILIATION', sourceLineIds: ['line-1'], reason: 'Cần đối soát' },
+      id: 'run-1', body: { commandId: 'variance-command-1', expectedVersion: 4, track: 'RECONCILIATION', sourceLineIds: ['line-1'], reason: 'Cần đối soát' },
     }));
 
     await vi.waitFor(() => expect(requests).toContain('GET /api/service-runs/by-plan'));

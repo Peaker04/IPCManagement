@@ -318,6 +318,13 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/ipc_lane7-pre-remediation.sql` | `3A64EBBCC152BA7BA3EB49CEE458F9914111801EA0502962C2E075732F545ABC` | Recoverable pre-remediation checkpoint của disposable lane7 trước migration/remediation. |
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/correction/result.json` | `7C9533F2B4A48C6E84CE1F4B27C700560C0A9722D048F988C851108D9633B15A` | Remediation giữ 120 decision lịch sử, append một canonical decision rồi headed Admin correction PASS: exact decision POST 200, case RESOLVED, một linked correction/transition, Golden counts không đổi, protected-lane attempts 0. |
 
+## Phase 5 kitchen discrepancy isolation — 14/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/kitchen-discrepancy/result.json` | `3586B3AAE2C1C0766EC38BAD23BFED57D590A75DF8D04F594BC0625AD18509EC` | Current-source headed readback trên exact lane7: ANV 11/08 Ca chiều hiển thị `Cần đối soát`, lý do và bước tiếp theo; DAV cùng scope vẫn mở được. Trusted pointer/keyboard, zero mutation trong readback, declaration trước đó có đúng một receipt/transition/audit/outbox và protected-lane attempts 0. |
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/kitchen-discrepancy/kitchen-discrepancy-reload.png` | `81411A70ACD2A2AB5D045F1E623E2CEDE79C8CD89CCF2E57D084D07F0BCF428D` | Reviewer artifact sau reload; verdict lấy từ DOM/request/DB JSON ở dòng trên, không lấy từ screenshot riêng lẻ. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |
