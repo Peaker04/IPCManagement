@@ -82,11 +82,15 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
 
   return (
     <div id="reports-price-panel" role="tabpanel" aria-labelledby="reports-price-tab" className="flex flex-col gap-4">
-      {priceSubView === 'lines' && activePriceView.phase === 'ready' && (
+      {priceSubView === 'lines' && (
         <ExceptionLane
           title="Hàng đợi cảnh báo giá"
-          items={warningQueue}
-          empty="Không có nguyên liệu vượt ngưỡng trong kỳ này."
+          items={activePriceView.phase === 'ready' ? warningQueue : []}
+          empty={activePriceView.phase === 'loading'
+            ? 'Đang tải cảnh báo giá…'
+            : activePriceView.phase === 'error' || activePriceView.phase === 'forbidden'
+              ? 'Chưa thể tải hàng đợi cảnh báo giá.'
+              : 'Không có nguyên liệu vượt ngưỡng trong kỳ này.'}
           className="h-[145px] overflow-y-auto"
         />
       )}

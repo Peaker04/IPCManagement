@@ -51,6 +51,13 @@ describe('project-wide presentation surface inventory', () => {
     expect(offenders).toEqual([])
   })
 
+  it('keeps the Reports price exception work area mounted across query phases', () => {
+    const source = fs.readFileSync(path.join(sourceRoot, 'features/reports/pages/ReportsPricePanel.tsx'), 'utf8')
+    expect(source).toContain("priceSubView === 'lines' && (")
+    expect(source).not.toContain("priceSubView === 'lines' && activePriceView.phase === 'ready'")
+    expect(source).toContain("items={activePriceView.phase === 'ready' ? warningQueue : []}")
+  })
+
   it('proves the inventory detector catches unreviewed surface growth', () => {
     const baseline = discoverPresentationSurfaces()
     expect(fingerprint([...baseline, { path: 'src/NewSurface.tsx', tables: 1, dialogs: 0, switchers: 0 }]))
