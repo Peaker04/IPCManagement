@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveSelectedDishLabel } from './WeeklyScheduleEditorDialog'
+import { resolveSelectedDishLabel } from './scheduleModel'
 import { buildMenuDishChanges } from './useWeeklyScheduleEditor'
 
 describe('weekly schedule editor dish labels', () => {

@@ -13,9 +13,10 @@ const lineKey = (ingredientId: string, unitId: string) => `${ingredientId}|${uni
 export const formatIssueCandidateLabel = (candidate: {
   requestDate: string;
   actionableLineCount: number;
+  materialRequestCode: string;
   customerName?: string;
   customerCode?: string;
-}) => `${candidate.customerName || 'Khách hàng chưa xác định'}${candidate.customerCode ? ` (${candidate.customerCode})` : ''} · Ngày ${formatDateOnly(candidate.requestDate)} · ${candidate.actionableLineCount} nhóm nguyên liệu`;
+}) => `${candidate.customerName || 'Khách hàng chưa xác định'}${candidate.customerCode ? ` (${candidate.customerCode})` : ''} · Ngày ${formatDateOnly(candidate.requestDate)} · ${candidate.actionableLineCount} nhóm nguyên liệu · Chứng từ ${candidate.materialRequestCode}`;
 
 export interface WarehouseIssueAllocation {
   lines: CreateInventoryIssueLineRequest[];

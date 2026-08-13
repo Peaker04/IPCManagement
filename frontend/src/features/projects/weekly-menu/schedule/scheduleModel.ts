@@ -5,6 +5,16 @@ import { getQuickServingKey, QUICK_SERVING_SHIFTS } from '../model/scope'
 import { parseDisplayDateToIso } from '../model/formatters'
 import type { QuickServingRow, WeeklyMenuScope } from './types'
 
+export const EMPTY_DISH_VALUE = '__empty-dish__'
+
+export const resolveSelectedDishLabel = (
+  selectedDishId: string,
+  sectionDishes: Array<{ id: string; name: string }>,
+  getDishName: (dishId: string) => string | undefined,
+) => sectionDishes.find((dish) => dish.id === selectedDishId)?.name
+  ?? getDishName(selectedDishId)
+  ?? (selectedDishId === EMPTY_DISH_VALUE ? 'Chưa có món trong danh mục' : 'Món hiện tại không còn trong danh mục')
+
 export const getScheduleServiceDate = (
   rows: WeeklyMenuImportResult['rows'],
   dayKey: string,

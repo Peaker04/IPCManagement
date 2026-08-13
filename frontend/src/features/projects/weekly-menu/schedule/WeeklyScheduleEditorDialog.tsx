@@ -4,17 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { EMPTY_DISH_VALUE, resolveSelectedDishLabel } from './scheduleModel'
 import type { WeeklyScheduleEditorWorkflow } from './types'
-
-const EMPTY_DISH_VALUE = '__empty-dish__'
-
-export const resolveSelectedDishLabel = (
-  selectedDishId: string,
-  sectionDishes: Array<{ id: string; name: string }>,
-  getDishName: (dishId: string) => string | undefined,
-) => sectionDishes.find((dish) => dish.id === selectedDishId)?.name
-  ?? getDishName(selectedDishId)
-  ?? (selectedDishId === EMPTY_DISH_VALUE ? 'Chưa có món trong danh mục' : 'Món hiện tại không còn trong danh mục')
 
 export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklyScheduleEditorWorkflow }) {
   const { scope, state, status, actions, presentation } = workflow

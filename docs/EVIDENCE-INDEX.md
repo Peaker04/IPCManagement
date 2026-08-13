@@ -329,6 +329,17 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/kitchen-discrepancy/result.json` | `3586B3AAE2C1C0766EC38BAD23BFED57D590A75DF8D04F594BC0625AD18509EC` | Current-source headed readback trên exact lane7: ANV 11/08 Ca chiều hiển thị `Cần đối soát`, lý do và bước tiếp theo; DAV cùng scope vẫn mở được. Trusted pointer/keyboard, zero mutation trong readback, declaration trước đó có đúng một receipt/transition/audit/outbox và protected-lane attempts 0. |
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/kitchen-discrepancy/kitchen-discrepancy-reload.png` | `81411A70ACD2A2AB5D045F1E623E2CEDE79C8CD89CCF2E57D084D07F0BCF428D` | Reviewer artifact sau reload; verdict lấy từ DOM/request/DB JSON ở dòng trên, không lấy từ screenshot riêng lẻ. |
 
+## Phase 5 exception retry matrix — 14/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/retry-matrix/result.json` | `20AB29D5CE3C8C27E1EF52C1844D568BDA57B25E72F52EEBD9054835E32C52A8` | Authoritative headed continuation trên exact lane7: trusted pointer/keyboard; replay cùng command trả cùng issue; stale trả 409; hai command cạnh tranh chỉ một winner; A/B/C/D mỗi scope có đúng một chuỗi issue/line/movement/receipt/transition/audit/outbox, stock về 0 và protected-lane attempts 0. |
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/retry-matrix/physical-attempt.json` | `95813803C475D856EDBBF60F9939259C8FBFD3EC009DF725A236C7FE87FAFFC5` | Physical headed attempt được PASS continuation liên kết; giữ append-only các attempt vận chuyển lỗi trước đó, không dùng riêng file này làm verdict. |
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/manifest.json` | `0C0D8CC2197099533A1A5A61950996CD0325331435BFE5CEF913A421C733A8C4` | Allow-list aggregate của các exception authoritative; chấp nhận historical FAIL attempts nhưng chỉ gate các artifact PASS đã chỉ định và linkage physical retry. |
+| `tools/db/phase05/phase05-retry-matrix-fixture-ipc-lane7-reviewed.sql` | `513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E` | Reviewed fixture SQL khóa exact `ipc_lane7`; lần chạy đầu được giữ append-only sau khi A đã commit. |
+| `tools/db/phase05/phase05-retry-matrix-continuation-ipc-lane7-reviewed.sql` | `9F158B803168D90E0A8BC52B3322746112ABAB27397DB7D4B0BB01E985490448` | Reviewed continuation SQL sau parser/alias failure; không reset các fact đã commit. |
+| `tools/db/phase05/phase05-retry-matrix-final-continuation-ipc-lane7-reviewed.sql` | `1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01` | Reviewed final continuation SQL dùng cho C/D và postflight authoritative, chỉ exact lane7. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |

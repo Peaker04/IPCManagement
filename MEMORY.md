@@ -132,8 +132,20 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   một POST tạo đúng một issue/movement/receipt/transition/audit/outbox. Reload chọn DAV thấy tồn 0, hướng dẫn
   blocked và confirm disabled; không có implicit priority/transfer, DAV vẫn `SENTTOWAREHOUSE`, disposition count
   không đổi và 12 Golden request giữ nguyên. UI candidate dùng tên khách hàng/ngày, không hiển thị request code;
-  formatter được gom về shared warehouse allocation helper. Tiếp theo: retry matrix; không rollback fixture khi đã
-  có issue/lifecycle receipt và không tạo/sửa Golden source-line.
+  formatter được gom về shared warehouse allocation helper. Retry matrix nay PASS append-only trên runtime
+  run-owned FE `3036`/BE `8036`, exact `ipc_lane7`, head 70: A/B/C/D đều `EXPORTED`, stock fixture về 0;
+  replay cùng command trả `201` cùng issue, stale trả `409`, hai command khác nhau cạnh tranh cho kết quả
+  `201/409` và chỉ một winner. Mỗi scope có đúng một issue/line/ISSUE movement/receipt/transition/audit/outbox;
+  allocation disposition giữ 1, closed ServiceRun giữ 0, physical pointer/keyboard trusted và
+  protected-lane attempts 0. Các attempt A/B/D lỗi parser, SQL alias và thiếu Bearer được giữ nguyên,
+  không cleanup/rewrite. Aggregate exception allow-list PASS; hash chỉ ở `docs/EVIDENCE-INDEX.md`.
+  Closeout chưa được phép tạo top-level manifest/SUMMARY hoặc teardown: full backend hiện `939 pass / 5 fail /
+  1 intentional skip` do SQLite receipt fixture thiếu `purchaseOrderLineId`, PurchaseOrder compatibility-key
+  expectation cũ và hai Phase 4.2 immutable archive/policy gates; full frontend `805 pass / 19 fail` do các
+  source-inventory/count-lock expectation cũ, còn emitted-asset leakage thấy 53 sourcemap ignored từ 11/08.
+  Current-source build PASS, full ESLint PASS sau khi chuyển dish-label helper sang shared `scheduleModel`, và
+  focused schedule/warehouse `4/4` PASS. Tiếp theo remediation đúng các regression gate kéo theo; không chạy lại
+  Golden/retry fixture và không nới oracle lịch sử để làm xanh giả.
   Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
   `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
   counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài
