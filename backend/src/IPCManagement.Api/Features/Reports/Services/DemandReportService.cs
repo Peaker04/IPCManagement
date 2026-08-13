@@ -365,6 +365,8 @@ public class DemandReportService : IDemandReportService
             {
                 MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
                 MaterialRequestCode = item.RequestCode,
+                CustomerCode = item.Materialrequestlines.Select(line => line.PlanLine.Customer.CustomerCode).FirstOrDefault() ?? string.Empty,
+                CustomerName = item.Materialrequestlines.Select(line => line.PlanLine.Customer.CustomerName).FirstOrDefault() ?? string.Empty,
                 RequestDate = item.RequestDate,
                 RequestScope = item.RequestScope,
                 Status = item.Status,
@@ -377,6 +379,7 @@ public class DemandReportService : IDemandReportService
                       item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty),
                 HasExistingPurchaseRequest = item.Materialrequestlines.Any(line =>
                     line.Purchaserequestlines.Any(purchaseLine => purchaseLine.PurchaseRequest.Status != "CANCELLED")),
+                ConcurrencyVersion = item.Inventoryissues.LongCount(),
             })
             .ToListAsync();
 

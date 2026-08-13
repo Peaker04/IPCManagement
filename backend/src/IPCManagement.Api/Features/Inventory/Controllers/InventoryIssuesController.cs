@@ -86,6 +86,10 @@ public class InventoryIssuesController : ControllerBase
         {
             return Conflict(ApiResponse.FailResult(ex.Message, ex.Shortage));
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));

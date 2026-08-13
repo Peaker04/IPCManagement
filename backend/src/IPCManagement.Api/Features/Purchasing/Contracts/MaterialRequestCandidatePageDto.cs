@@ -12,12 +12,15 @@ public sealed class MaterialRequestCandidateDto
 {
     public string MaterialRequestId { get; set; } = string.Empty;
     public string MaterialRequestCode { get; set; } = string.Empty;
+    public string CustomerCode { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
     public DateOnly RequestDate { get; set; }
     public string RequestScope { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int ActionableLineCount { get; set; }
     public decimal ActionableQuantity { get; set; }
     public bool HasExistingPurchaseRequest { get; set; }
+    public long ConcurrencyVersion { get; set; }
 }
 
 public sealed class MaterialRequestCandidatePageDto

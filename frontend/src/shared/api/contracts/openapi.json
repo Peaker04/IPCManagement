@@ -20369,6 +20369,8 @@
       },
       "CreateInventoryIssueRequest": {
         "required": [
+          "commandId",
+          "expectedVersion",
           "issueDate",
           "lines",
           "materialRequestId",
@@ -20376,6 +20378,26 @@
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedVersion": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int64"
+          },
+          "correlationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "causationId": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
           "issueDate": {
             "type": "string",
             "format": "date"
@@ -23946,6 +23968,7 @@
       },
       "InventoryIssueCreatedDto": {
         "required": [
+          "concurrencyVersion",
           "issueCode",
           "issueId"
         ],
@@ -23956,6 +23979,10 @@
           },
           "issueCode": {
             "type": "string"
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -26294,6 +26321,9 @@
         "required": [
           "actionableLineCount",
           "actionableQuantity",
+          "concurrencyVersion",
+          "customerCode",
+          "customerName",
           "hasExistingPurchaseRequest",
           "materialRequestCode",
           "materialRequestId",
@@ -26307,6 +26337,12 @@
             "type": "string"
           },
           "materialRequestCode": {
+            "type": "string"
+          },
+          "customerCode": {
+            "type": "string"
+          },
+          "customerName": {
             "type": "string"
           },
           "requestDate": {
@@ -26329,6 +26365,10 @@
           },
           "hasExistingPurchaseRequest": {
             "type": "boolean"
+          },
+          "concurrencyVersion": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false

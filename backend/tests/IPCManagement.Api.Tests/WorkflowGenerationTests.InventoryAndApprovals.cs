@@ -332,15 +332,31 @@ public partial class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var service = CreateInventoryIssueService(context);
-            var result = await service.CreateAsync(new CreateInventoryIssueRequest
+            var request = new CreateInventoryIssueRequest
             {
+                CommandId = "inventory-issue-success-replay",
+                ExpectedVersion = 0,
                 IssueDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
                 WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
                 MaterialRequestId = materialRequestId
-            }, fixture.UserIdString);
+            };
+            var result = await service.CreateAsync(request, fixture.UserIdString);
+            var replay = await service.CreateAsync(request, fixture.UserIdString);
 
             result.Should().NotBeNull();
+            replay!.IssueId.Should().Be(result!.IssueId);
+            result.ConcurrencyVersion.Should().Be(1);
+            var stale = () => service.CreateAsync(new CreateInventoryIssueRequest
+            {
+                CommandId = "inventory-issue-stale",
+                ExpectedVersion = 0,
+                IssueDate = request.IssueDate,
+                ShiftName = request.ShiftName,
+                WarehouseId = request.WarehouseId,
+                MaterialRequestId = request.MaterialRequestId,
+            }, fixture.UserIdString);
+            await stale.Should().ThrowAsync<DbUpdateConcurrencyException>();
             var issueLine = await context.Inventoryissuelines.AsNoTracking().SingleAsync();
             issueLine.RequestedQty.Should().Be(200m);
             issueLine.IssuedQty.Should().Be(200m);
@@ -351,6 +367,11 @@ public partial class WorkflowGenerationTests
             var movement = await context.Stockmovements.AsNoTracking().SingleAsync();
             movement.QuantityOut.Should().Be(200m);
             movement.MovementType.Should().Be("ISSUE");
+            (await context.Inventoryissues.CountAsync()).Should().Be(1);
+            (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(1);
+            (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(1);
+            (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(1);
+            (await context.Auditlogs.CountAsync(item => item.EntityName == nameof(InventoryIssue) && item.BusinessArea == "Lifecycle")).Should().Be(1);
         }
     }
 
@@ -928,6 +949,8 @@ public partial class WorkflowGenerationTests
             var service = CreateInventoryIssueService(context);
             var act = async () => await service.CreateAsync(new CreateInventoryIssueRequest
             {
+                CommandId = "shared-shortage-retry",
+                ExpectedVersion = 0,
                 IssueDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
                 WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
@@ -955,11 +978,15 @@ public partial class WorkflowGenerationTests
             var audits = await context.Auditlogs.AsNoTracking()
                 .Where(item => item.BusinessArea == "StockException")
                 .ToListAsync();
-            audits.Should().HaveCount(2);
+            audits.Should().ContainSingle();
             audits.Should().OnlyContain(audit =>
                 audit.FieldName == "StockShortage" &&
                 audit.NewValue != null &&
                 audit.NewValue.Contains("missing=150"));
+
+            (await context.Lifecyclecommandreceipts.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(0);
+            (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(0);
+            (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(0);
 
             var report = await new DataQualityReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 100 });
             report.Issues.Should().ContainSingle(issue =>

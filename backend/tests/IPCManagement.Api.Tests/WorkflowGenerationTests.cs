@@ -711,6 +711,9 @@ public partial class WorkflowGenerationTests
         var candidate = page.Items.Should().ContainSingle().Subject;
         candidate.Status.Should().Be("MANAGERAPPROVED");
         candidate.ActionableQuantity.Should().Be(200m);
+        candidate.CustomerCode.Should().Be("CUS");
+        candidate.CustomerName.Should().Be("Customer");
+        candidate.ConcurrencyVersion.Should().Be(0);
     }
 
 }

@@ -61,6 +61,8 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
 {
     public CreateInventoryIssueDtoValidator()
     {
+        RuleFor(x => x.CommandId).NotEmpty().MaximumLength(128);
+        RuleFor(x => x.ExpectedVersion).GreaterThanOrEqualTo(0);
         RuleFor(x => x.IssueDate)
             .NotEmpty().WithMessage("Ngày xuất kho không được để trống.");
 

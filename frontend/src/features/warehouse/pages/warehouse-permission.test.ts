@@ -27,6 +27,8 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).toContain('refetchKitchenIssues()');
     expect(warehousePageSource).toContain('refetchSelectedWarehouseStock()');
     expect(warehousePageSource).toContain('isIssueAllocationRefreshing || isAllocationSourceError');
+    expect(warehousePageSource).toContain('commandId: issueCommandId');
+    expect(warehousePageSource).toContain('expectedVersion: selectedIssueCandidate.concurrencyVersion');
   });
 
   it('searches stock snapshots and ledger events before their pagination boundaries', () => {

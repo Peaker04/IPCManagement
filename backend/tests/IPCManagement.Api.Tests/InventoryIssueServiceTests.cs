@@ -47,6 +47,7 @@ public class InventoryIssueServiceTests
         var validator = new CreateInventoryIssueDtoValidator();
         var dto = new CreateInventoryIssueRequest
         {
+            CommandId = "validator-empty-lines",
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             WarehouseId = Guid.NewGuid().ToString(),
             MaterialRequestId = Guid.NewGuid().ToString(),

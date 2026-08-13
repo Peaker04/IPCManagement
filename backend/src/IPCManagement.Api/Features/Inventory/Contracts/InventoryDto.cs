@@ -171,6 +171,18 @@ public class InventoryIssueLineDto
 
 public class CreateInventoryIssueRequest
 {
+    [Required, MaxLength(128)]
+    public string CommandId { get; set; } = string.Empty;
+
+    [Range(0, long.MaxValue)]
+    public long ExpectedVersion { get; set; }
+
+    [MaxLength(128)]
+    public string? CorrelationId { get; set; }
+
+    [MaxLength(128)]
+    public string? CausationId { get; set; }
+
     [Required]
     public DateOnly IssueDate { get; set; }
 
@@ -208,6 +220,7 @@ public class InventoryIssueCreatedDto
 {
     public string IssueId { get; set; } = string.Empty;
     public string IssueCode { get; set; } = string.Empty;
+    public long ConcurrencyVersion { get; set; }
 }
 
 public class ConfirmInventoryIssueReceiptRequest

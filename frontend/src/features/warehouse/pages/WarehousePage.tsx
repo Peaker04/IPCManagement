@@ -31,14 +31,14 @@ import {
   useWorkflowOverview,
 } from '@/api/workflowApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
-import { formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
+import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import { useGetPurchaseOrdersPageQuery, useGetWarehouseSelectorQuery, type PurchaseOrderLineDto } from '@/api/workflowApi';
 import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialog';
 import { WarehouseBatchPurchaseReceiptDialog } from '../WarehouseBatchPurchaseReceiptDialog';
 import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
-import { buildWarehouseIssueAllocation } from '../warehouseIssueAllocation';
+import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
 import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
 import { WarehouseDemandPanel } from '../WarehouseDemandPanel';
@@ -50,9 +50,6 @@ import { Input } from '@/components/ui/input';
 import { addIsoDays } from '../warehouseDateRange';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { typography } from '@/lib/typography';
-
-export const formatIssueCandidateLabel = (candidate: { requestDate: string; actionableLineCount: number; materialRequestCode: string }) =>
-  `Ngày ${formatDateOnly(candidate.requestDate)} · ${candidate.actionableLineCount} nhóm nguyên liệu (${candidate.materialRequestCode})`;
 
 const EMPTY_QUERY_ROWS: never[] = [];
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
@@ -88,6 +85,7 @@ export default function WarehousePage() {
   const [issueCandidatePageNumber, setIssueCandidatePageNumber] = useState(1);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
+  const [issueCommandId, setIssueCommandId] = useState('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [stockMovementSearch, setStockMovementSearch] = useState('');
@@ -244,6 +242,7 @@ export default function WarehousePage() {
     setSelectedMaterialRequestId('');
     setSelectedWarehouseId('');
     setWarehouseFeedback(null);
+    setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
     setIsIssueDialogOpen(true);
   };
 
@@ -290,6 +289,8 @@ export default function WarehousePage() {
 
     try {
       const response = await createInventoryIssue({
+        commandId: issueCommandId,
+        expectedVersion: selectedIssueCandidate.concurrencyVersion,
         issueDate: selectedIssueCandidate.requestDate,
         warehouseId: selectedWarehouseId,
         materialRequestId: selectedIssueCandidate.materialRequestId,
@@ -306,6 +307,7 @@ export default function WarehousePage() {
         variant: 'info',
       });
       setIsIssueDialogOpen(false);
+      setIssueCommandId('');
       setSelectedView('movement');
     } catch (error) {
       setWarehouseFeedback({
@@ -433,6 +435,7 @@ export default function WarehousePage() {
                 onValueChange={(value) => {
                   setSelectedMaterialRequestId(value ?? '');
                   setSelectedWarehouseId('');
+                  setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
                 }}
               >
                 <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">

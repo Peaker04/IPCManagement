@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatIssueCandidateLabel } from './WarehousePage';
+import { formatIssueCandidateLabel } from '../warehouseIssueAllocation';
 
 describe('WarehousePage presentation', () => {
   it('describes an issue candidate in user language before its document code', () => {
@@ -7,8 +7,9 @@ describe('WarehousePage presentation', () => {
       formatIssueCandidateLabel({
         requestDate: '2026-08-10',
         actionableLineCount: 48,
-        materialRequestCode: 'MR-20260810-ANV',
+        customerName: 'An Vui',
+        customerCode: 'ANV',
       }),
-    ).toBe('Ngày 10/08/2026 · 48 nhóm nguyên liệu (MR-20260810-ANV)');
+    ).toBe('An Vui (ANV) · Ngày 10/08/2026 · 48 nhóm nguyên liệu');
   });
 });

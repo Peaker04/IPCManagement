@@ -91,6 +91,20 @@ public class InventoryIssuesControllerTests
         created.Value.Should().BeOfType<ApiResponse<InventoryIssueCreatedDto>>();
     }
 
+    [Fact]
+    public async Task Create_Should_ReturnConflict_WhenDemandVersionIsStale()
+    {
+        var userId = Guid.NewGuid().ToString();
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(userId);
+        _inventoryIssueService.CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), userId)
+            .Returns<Task<InventoryIssueCreatedDto?>>(_ => throw new Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException("Nhu cầu xuất kho đã thay đổi; hãy tải lại trước khi xác nhận."));
+
+        var result = await CreateController().CreateAsync(new CreateInventoryIssueRequest());
+
+        var conflict = result.Should().BeOfType<ConflictObjectResult>().Subject;
+        conflict.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+    }
+
     private InventoryIssuesController CreateController()
         => new(_inventoryIssueService, _currentUserService)
         {

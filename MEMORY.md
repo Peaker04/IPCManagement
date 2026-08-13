@@ -126,8 +126,14 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   dòng cần quyết định trước giới hạn trang, hiển thị ba dòng nhu cầu bị ảnh hưởng nhưng shared panel chỉ tạo một
   work item với ba lựa chọn hợp lệ. Chrome headed trusted pointer/keyboard, zero mutation; nullable fixture giữ 1,
   movement 1661 và disposition 0 trước/sau, protected-lane attempts 0. UI dùng ngôn ngữ người dùng, không lộ
-  UUID/enum/version. Tiếp theo: shared shortage/blocked allocation → retry matrix; không rollback fixture khi đã
-  có disposition và không tạo/sửa Golden source-line.
+  UUID/enum/version.
+  Shared shortage/blocked allocation đã PASS bằng kho fixture cô lập có đúng 1 kg và hai demand 1 kg ANV/DAV.
+  Thủ kho thấy hai khách hàng ngang hàng, physical chọn ANV; create issue nay có commandId/expectedVersion,
+  một POST tạo đúng một issue/movement/receipt/transition/audit/outbox. Reload chọn DAV thấy tồn 0, hướng dẫn
+  blocked và confirm disabled; không có implicit priority/transfer, DAV vẫn `SENTTOWAREHOUSE`, disposition count
+  không đổi và 12 Golden request giữ nguyên. UI candidate dùng tên khách hàng/ngày, không hiển thị request code;
+  formatter được gom về shared warehouse allocation helper. Tiếp theo: retry matrix; không rollback fixture khi đã
+  có issue/lifecycle receipt và không tạo/sửa Golden source-line.
   Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
   `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
   counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài

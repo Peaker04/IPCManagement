@@ -11231,6 +11231,11 @@ export interface components {
             readonly unitId: string;
         };
         readonly CreateInventoryIssueRequest: {
+            readonly causationId?: string | null;
+            readonly commandId: string;
+            readonly correlationId?: string | null;
+            /** Format: int64 */
+            readonly expectedVersion: number;
             /** Format: date */
             readonly issueDate: string;
             readonly lines: readonly components["schemas"]["CreateInventoryIssueLineRequest"][];
@@ -12221,6 +12226,8 @@ export interface components {
             readonly warehouseId: string;
         };
         readonly InventoryIssueCreatedDto: {
+            /** Format: int64 */
+            readonly concurrencyVersion: number;
             readonly issueCode: string;
             readonly issueId: string;
         };
@@ -12908,6 +12915,10 @@ export interface components {
             readonly actionableLineCount: number;
             /** Format: double */
             readonly actionableQuantity: number;
+            /** Format: int64 */
+            readonly concurrencyVersion: number;
+            readonly customerCode: string;
+            readonly customerName: string;
             readonly hasExistingPurchaseRequest: boolean;
             readonly materialRequestCode: string;
             readonly materialRequestId: string;

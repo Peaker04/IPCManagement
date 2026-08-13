@@ -8,7 +8,10 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Validators;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Shared.Contracts;
+using System.Data;
+using System.Text.Json;
 
 namespace IPCManagement.Api.Features.Inventory.Services;
 
@@ -70,6 +73,18 @@ public class InventoryIssueService : IInventoryIssueService
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
             ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
+        var commandId = dto.CommandId?.Trim() ?? string.Empty;
+        var hasLifecycleIdentity = commandId.Length > 0;
+        var recorder = _context is null ? null : new LifecycleTransitionRecorder(_context);
+        if (hasLifecycleIdentity && recorder is not null)
+        {
+            var replay = await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), materialRequestBytes);
+            if (replay is not null)
+            {
+                return JsonSerializer.Deserialize<InventoryIssueCreatedDto>(replay.ResponseJson)
+                    ?? throw new InvalidOperationException("Không thể đọc lại kết quả tạo phiếu xuất kho.");
+            }
+        }
         var issueId = GuidHelper.NewId();
         var issueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
         try
@@ -79,12 +94,20 @@ public class InventoryIssueService : IInventoryIssueService
                 {
                     var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
                         ?? throw new BusinessRuleException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
+                    var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
+                    if (hasLifecycleIdentity)
+                    {
+                        var currentVersion = await _context!.Inventoryissues.LongCountAsync(item => item.MaterialRequestId == materialRequestBytes);
+                        if (dto.ExpectedVersion != currentVersion)
+                        {
+                            throw new DbUpdateConcurrencyException("Nhu cầu xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
+                        }
+                    }
                     if (!IssuableDemandStatuses.Contains(materialRequest.Status))
                     {
                         throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi xuất kho.");
                     }
 
-                    var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
                     var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
                     await InventoryIssueStockValidator.EnsureAvailableAsync(
                         _context,
@@ -142,17 +165,33 @@ public class InventoryIssueService : IInventoryIssueService
 
                     await _unitOfWork.SaveChangesAsync();
 
-                    return new InventoryIssueCreatedDto
+                    var result = new InventoryIssueCreatedDto
                     {
                         IssueId = GuidHelper.ToGuidString(issue.IssueId),
-                        IssueCode = issue.IssueCode
+                        IssueCode = issue.IssueCode,
+                        ConcurrencyVersion = hasLifecycleIdentity ? checked(dto.ExpectedVersion + 1) : 0,
                     };
+                    if (hasLifecycleIdentity && recorder is not null)
+                    {
+                        var response = JsonSerializer.Serialize(result);
+                        recorder.Stage(new LifecycleTransitionRequest(
+                            nameof(InventoryIssue), materialRequestBytes, commandId, checked((int)result.ConcurrencyVersion),
+                            dto.ExpectedVersion == 0 ? null : "PARTIALLY_ISSUED", "ISSUED", userIdBytes,
+                            dto.ExpectedVersion, $"Tạo phiếu xuất {issue.IssueCode} cho nhu cầu đã chọn.",
+                            dto.CorrelationId?.Trim(), dto.CausationId?.Trim(), response, response));
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+
+                    return result;
                 },
-                async _ => await _issueRepository.GetByIdWithLinesAsync(issueId) is not null);
+                async token => hasLifecycleIdentity && recorder is not null
+                    ? await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), materialRequestBytes, token) is not null
+                    : await _issueRepository.GetByIdWithLinesAsync(issueId) is not null,
+                hasLifecycleIdentity ? IsolationLevel.Serializable : IsolationLevel.ReadCommitted);
         }
         catch (StockShortageException ex)
         {
-            await WriteStockShortageAuditAsync(ex.Shortage, materialRequestBytes, userIdBytes);
+            await WriteStockShortageAuditAsync(ex.Shortage, materialRequestBytes, userIdBytes, commandId);
             throw;
         }
     }
@@ -318,7 +357,7 @@ public class InventoryIssueService : IInventoryIssueService
                     cancellationToken));
     }
 
-    private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId)
+    private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId, string commandId)
     {
         if (_context is null)
         {
@@ -326,6 +365,11 @@ public class InventoryIssueService : IInventoryIssueService
         }
 
         var changedAt = DateTime.UtcNow;
+        if (commandId.Length > 0 && await _context.Auditlogs.AsNoTracking().AnyAsync(item =>
+                item.BusinessArea == "StockException" && item.EntityId == materialRequestId && item.CorrelationId == commandId))
+        {
+            return;
+        }
         foreach (var line in shortage.Lines)
         {
             _context.Auditlogs.Add(new AuditLog
@@ -340,6 +384,7 @@ public class InventoryIssueService : IInventoryIssueService
                 OldValue = $"available={line.AvailableQty}",
                 NewValue = $"ingredient={line.IngredientName}; required={line.RequiredQty}; available={line.AvailableQty}; missing={line.MissingQty}; unit={line.UnitName}; date={shortage.IssueDate:yyyy-MM-dd}",
                 Reason = $"Thiếu tồn kho {line.IngredientName}: cần {line.RequiredQty} {line.UnitName}, hiện có {line.AvailableQty} {line.UnitName} tại {shortage.WarehouseName ?? shortage.WarehouseId}."
+                ,CorrelationId = commandId.Length > 0 ? commandId : null
             });
         }
 

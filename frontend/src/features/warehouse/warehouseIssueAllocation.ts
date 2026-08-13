@@ -4,10 +4,18 @@ import type {
   KitchenIssueRow,
 } from '@/api/workflowApi';
 import type { DemandLine } from '@/types/workflow';
+import { formatDateOnly } from '@/lib/formatters';
 
 const QUANTITY_EPSILON = 0.000001;
 
 const lineKey = (ingredientId: string, unitId: string) => `${ingredientId}|${unitId}`;
+
+export const formatIssueCandidateLabel = (candidate: {
+  requestDate: string;
+  actionableLineCount: number;
+  customerName?: string;
+  customerCode?: string;
+}) => `${candidate.customerName || 'Khách hàng chưa xác định'}${candidate.customerCode ? ` (${candidate.customerCode})` : ''} · Ngày ${formatDateOnly(candidate.requestDate)} · ${candidate.actionableLineCount} nhóm nguyên liệu`;
 
 export interface WarehouseIssueAllocation {
   lines: CreateInventoryIssueLineRequest[];
