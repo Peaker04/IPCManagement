@@ -21,7 +21,7 @@ describe('workflowConfig', () => {
     expect(formatWorkflowStatus('PARTIALLY_RECEIVED')).toBe('Đã nhận một phần');
     expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ phê duyệt');
     expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
-    expect(formatWorkflowStatus('Trạng thái riêng')).toBe('Trạng thái riêng');
+    expect(formatWorkflowStatus('RAW_BACKEND_STATUS')).toBe('Trạng thái chưa xác định');
   });
 
   it('keeps lineage reconciliation codes out of user-facing reports', () => {

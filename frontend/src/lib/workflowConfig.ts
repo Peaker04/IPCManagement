@@ -177,7 +177,8 @@ const toneFromFallbackText = (status: string): WorkflowTone => {
 export const getWorkflowStatusPresentation = (status?: string): WorkflowStatusPresentation => {
   const value = status?.trim();
   if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
-  return workflowStatusPresentations[normalizeStatusCode(value)] ?? { label: value, tone: toneFromFallbackText(value) };
+  return workflowStatusPresentations[normalizeStatusCode(value)]
+    ?? { label: 'Trạng thái chưa xác định', tone: toneFromFallbackText(value) };
 };
 
 export const getServiceRunStatusPresentation = (status?: string): WorkflowStatusPresentation => {

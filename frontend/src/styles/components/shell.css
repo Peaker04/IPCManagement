@@ -403,6 +403,7 @@
   max-width: 100%;
   min-width: 0;
   vertical-align: middle;
+  transition: color var(--ipc-transition-fast), background-color var(--ipc-transition-fast), border-color var(--ipc-transition-fast), opacity var(--ipc-transition-fast);
 }
 
 .ipc-status-badge.is-neutral {
@@ -412,25 +413,25 @@
 }
 
 .ipc-status-badge.is-info {
-  border: 1px solid #b9d2f4;
+  border: 1px solid var(--ipc-color-border-focus);
   background: var(--ipc-primary-soft);
-  color: #1e5a9e;
+  color: var(--ipc-primary-600);
 }
 
 .ipc-status-badge.is-success {
-  border: 1px solid #b7ddd8;
+  border: 1px solid var(--ipc-color-status-success-border);
   background: var(--ipc-success-soft);
-  color: #0c5f59;
+  color: var(--ipc-color-status-success-hover);
 }
 
 .ipc-status-badge.is-warning {
-  border: 1px solid #f6d58b;
+  border: 1px solid var(--ipc-color-status-warning-border);
   background: var(--ipc-warning-soft);
-  color: #8a4b0f;
+  color: var(--ipc-color-status-warning-hover);
 }
 
 .ipc-status-badge.is-danger {
-  border: 1px solid #f3b7b7;
+  border: 1px solid var(--ipc-color-status-danger-border, var(--ipc-danger));
   background: var(--ipc-danger-soft);
   color: var(--ipc-danger);
 }

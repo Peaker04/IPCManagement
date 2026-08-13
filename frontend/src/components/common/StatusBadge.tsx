@@ -45,7 +45,8 @@ export function StatusBadge({ children, variant = 'neutral', size = 'default', f
       aria-label={label}
       title={label}
       data-size={size}
-      className={cn(typography.label, 'ipc-status-badge inline-flex min-w-0 items-center rounded-[3px] whitespace-nowrap', sizeClasses[size], badgeClasses[variant], className)}
+      data-layout-owner="status-badge"
+      className={cn(typography.label, 'ipc-status-badge inline-flex min-h-5 min-w-0 items-center rounded-[3px] whitespace-nowrap', sizeClasses[size], badgeClasses[variant], className)}
     >
       <span className={cn('ipc-status-badge-dot h-1.5 w-1.5 rounded-full', dotClasses[variant])} aria-hidden="true" />
       <span className="ipc-status-badge-label min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>

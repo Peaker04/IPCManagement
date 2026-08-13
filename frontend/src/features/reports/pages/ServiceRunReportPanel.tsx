@@ -25,14 +25,14 @@ const serviceRunPreferenceConfig: TablePreferenceConfig = {
 };
 
 function CorrectionOverlay({ serviceRunId, snapshotActual, isCloseSnapshot }: { serviceRunId: string; snapshotActual: number | null | undefined; isCloseSnapshot: boolean }) {
-  const { data: adjustments, isFetching, isError } = useGetServiceRunAdjustmentsQuery(serviceRunId, { skip: !isCloseSnapshot });
+  const { data: adjustments, isLoading, isFetching, isError } = useGetServiceRunAdjustmentsQuery(serviceRunId, { skip: !isCloseSnapshot });
   if (!isCloseSnapshot) return <span className="text-xs text-slate-500">Không có snapshot đóng ca (legacy).</span>;
-  if (isFetching) return <span className="text-xs text-slate-500" role="status">Đang tải điều chỉnh hậu kiểm…</span>;
+  if (isLoading) return <span className="block min-h-10 text-xs text-slate-500" role="status">Đang tải điều chỉnh hậu kiểm…</span>;
   if (isError) return <span className="text-xs text-red-700" role="alert">Không tải được điều chỉnh hậu kiểm; snapshot đóng ca vẫn được giữ riêng.</span>;
   const latest = adjustments?.[0];
-  if (!latest) return <span className="text-xs text-slate-500">Không có điều chỉnh hậu kiểm.</span>;
+  if (!latest) return <span className="block min-h-10 text-xs text-slate-500" data-refreshing={isFetching || undefined}>Không có điều chỉnh hậu kiểm.</span>;
   const delta = latest.correctedActualServings - (snapshotActual ?? 0);
-  return <span className="text-xs"><span className="block font-medium text-slate-800">Điều chỉnh hậu kiểm (append-only) · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
+  return <span className="block min-h-10 text-xs" data-refreshing={isFetching || undefined} aria-busy={isFetching || undefined}><span className="block font-medium text-slate-800">Điều chỉnh hậu kiểm · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
 }
 
 export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {

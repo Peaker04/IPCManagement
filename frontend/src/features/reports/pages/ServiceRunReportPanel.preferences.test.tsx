@@ -17,4 +17,10 @@ describe('Service Run table preferences', () => {
     expect(source).toContain('PaginationBar');
     expect(source).toContain('getServiceRunStatusPresentation');
   });
+
+  it('keeps the last adjustment visible during background refresh', () => {
+    expect(source).toContain('isLoading')
+    expect(source).toContain('data-refreshing={isFetching || undefined}')
+    expect(source).not.toContain("if (isFetching) return <span")
+  })
 });

@@ -28,6 +28,16 @@ describe('shared status presentation components', () => {
     expect(screen.getByRole('status', { name: 'Sẵn sàng' })).toHaveAttribute('data-size', size)
   })
 
+  it('keeps one stable geometry owner while status text changes', () => {
+    const { rerender } = render(<StatusBadge variant="warning">Đang xử lý</StatusBadge>)
+    const status = screen.getByRole('status', { name: 'Đang xử lý' })
+    expect(status).toHaveAttribute('data-layout-owner', 'status-badge')
+    expect(status).toHaveClass('min-h-5')
+
+    rerender(<StatusBadge variant="success">Đã hoàn tất</StatusBadge>)
+    expect(screen.getByRole('status', { name: 'Đã hoàn tất' })).toBe(status)
+  })
+
   it('keeps successful metrics quiet by default', () => {
     render(<ContextStrip items={[{ label: 'Cảnh báo', value: '0', tone: 'success' }]} />)
     expect(screen.getByText('0').closest('.ipc-context-badge')).toHaveClass('is-success', 'is-quiet')
