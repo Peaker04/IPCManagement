@@ -93,7 +93,7 @@ export function MenuAmendmentReconciliation() {
         <EmptyState title={`${scopeLabel ?? 'Phạm vi này'} chưa có yêu cầu cần đối soát`} className="!min-h-0 !p-4" />
       ) : (
         <div className="mt-3 overflow-x-auto rounded-md border border-slate-200">
-          <table className="min-w-[900px] text-left text-sm">
+          <table className="ipc-data-table min-w-[900px] text-left text-sm">
             <thead className="bg-slate-50 text-slate-700"><tr><th className="px-3 py-2">Khách hàng / thời điểm</th><th className="px-3 py-2">Chứng từ liên quan</th><th className="px-3 py-2">Lý do</th><th className="px-3 py-2">Phụ trách</th><th className="px-3 py-2">Hạn xử lý</th><th className="px-3 py-2">Trạng thái</th><th className="px-3 py-2">Thao tác</th></tr></thead>
             <tbody>{items.map((item) => {
               const presentation = amendmentDecisionStatus(item.status)

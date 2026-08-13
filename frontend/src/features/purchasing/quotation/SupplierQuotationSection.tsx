@@ -106,7 +106,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
               </InlineAlert>
             )}
             <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu">
-              <table className="ipc-table">
+              <table className="ipc-data-table min-w-[760px]">
                 <thead><tr><th>Nhà cung cấp</th><th className="text-right">Đơn giá (đ)</th><th>Hiệu lực từ</th><th>Hiệu lực đến</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
                 <tbody>
                   {workflow.rows.map((quotation) => (

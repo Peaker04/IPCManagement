@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '@/features/auth';
@@ -32,14 +32,6 @@ const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
 const preloadNavigationTarget = (path: string) => {
   void preloadRoute(path);
   void preloadRouteData(path);
-};
-
-const canPreloadRoutesInBackground = () => {
-  const connection = (navigator as Navigator & {
-    connection?: { effectiveType?: string; saveData?: boolean };
-  }).connection;
-
-  return !connection?.saveData && connection?.effectiveType !== 'slow-2g' && connection?.effectiveType !== '2g';
 };
 
 function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean; owner: string }) {
@@ -87,42 +79,6 @@ export const MainLayout = () => {
     if (isAdmin) return true;
     return item.requiredPermissions.some((perm) => currentUser?.permissions?.includes(perm));
   }), [currentUser?.permissions, isAdmin]);
-
-  useEffect(() => {
-    if (!canPreloadRoutesInBackground()) return;
-
-    let cancelled = false;
-    let idleHandle: number | undefined;
-    let timeoutHandle: number | undefined;
-    let nextRouteIndex = 0;
-
-    const scheduleNextRoute = () => {
-      if (cancelled || nextRouteIndex >= visibleMenuItems.length) return;
-
-      const preloadNextRoute = () => {
-        if (cancelled) return;
-        const path = visibleMenuItems[nextRouteIndex]?.path;
-        nextRouteIndex += 1;
-        if (!path) return;
-
-        void preloadRoute(path).finally(scheduleNextRoute);
-      };
-
-      if ('requestIdleCallback' in window) {
-        idleHandle = window.requestIdleCallback(preloadNextRoute, { timeout: 1_000 });
-      } else {
-        timeoutHandle = globalThis.setTimeout(preloadNextRoute, 120);
-      }
-    };
-
-    scheduleNextRoute();
-
-    return () => {
-      cancelled = true;
-      if (idleHandle !== undefined && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
-      if (timeoutHandle !== undefined) globalThis.clearTimeout(timeoutHandle);
-    };
-  }, [visibleMenuItems]);
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 

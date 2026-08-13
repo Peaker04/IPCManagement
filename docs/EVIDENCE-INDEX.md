@@ -341,6 +341,14 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `tools/db/phase05/phase05-retry-matrix-continuation-ipc-lane7-reviewed.sql` | `9F158B803168D90E0A8BC52B3322746112ABAB27397DB7D4B0BB01E985490448` | Reviewed continuation SQL sau parser/alias failure; không reset các fact đã commit. |
 | `tools/db/phase05/phase05-retry-matrix-final-continuation-ipc-lane7-reviewed.sql` | `1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01` | Reviewed final continuation SQL dùng cho C/D và postflight authoritative, chỉ exact lane7. |
 
+## Project-wide UI refresh stability Phase 3 — 14/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/ui-phase03-wave1-reports-pilot/manifest.json` | `47205142B955147ACCA120A1401F00BA846B582686813B69FCB082A1588493F3` | Headed baseline trước Reports warning-lane repair; CLS và attribution chỉ ra work area mount muộn. Dùng làm before evidence, không phải final gate. |
+| `.artifacts/shipyard-live/ui-phase03-wave1-reports-after/manifest.json` | `7867DE46FA86B9426A6B1449E1592713726C74AC20AF231AAC736A05BFD22F15` | Headed read-only after Reports repair trên exact lane7; giữ work area qua query phases và đo CLS sau sửa. |
+| `.artifacts/shipyard-live/ui-phase03-wave2-table-performance/manifest.json` | `3C8C4E01441EA72788D510768D01B24C2FFFF876EA3B734EC84707786C1B99CF` | Production-build headed read-only trên exact lane7: 44 route/tab probe, 35 table instance render được đều computed fixed layout, zero document reload/browser/request/mutation error. Một Chef navigation long task 56ms và các bảng conditional chưa render giữ `NEEDS_EVIDENCE`. Runtime preview owned đã teardown; FE 3036/BE 8036 của Kỳ giữ nguyên. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |

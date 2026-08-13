@@ -12,12 +12,17 @@ describe('MainLayout ownership and behavior contract', () => {
     expect(currentLayoutSource).toContain('item.requiredPermissions.some');
     expect(currentLayoutSource).toContain('preloadRoute(path)');
     expect(currentLayoutSource).toContain('preloadRouteData(path)');
-    expect(currentLayoutSource).toContain("effectiveType !== 'slow-2g'");
     expect(currentLayoutSource).toContain('onPointerEnter={() => preloadNavigationTarget(item.path)}');
     expect(currentLayoutSource).toContain('onFocus={() => preloadNavigationTarget(item.path)}');
     expect(currentLayoutSource).toContain('onTouchStart={() => preloadNavigationTarget(item.path)}');
     expect(currentLayoutSource).toContain('aria-current={isActive ? \'page\' : undefined}');
     expect(currentLayoutSource).toContain('id="ipc-main-content"');
     expect(currentLayoutSource).toContain('<Outlet />');
+  });
+
+  it('preloads only a route for which the user has shown navigation intent', () => {
+    expect(currentLayoutSource).not.toContain('requestIdleCallback');
+    expect(currentLayoutSource).not.toContain('scheduleNextRoute');
+    expect(currentLayoutSource).not.toContain('visibleMenuItems[nextRouteIndex]');
   });
 });

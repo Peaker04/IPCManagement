@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Project-wide Human UI and Refresh Stability
 status: in_progress
-stopped_at: Phase 3 Plan 01 Wave 1 inventory/status foundation in progress.
-last_updated: "2026-08-11T11:48:55.519Z"
-last_activity: 2026-08-11
-last_activity_desc: "Completed quick task `260811-nut`: contained TABLE-03 controls behind an accessible settings popover and verified the persisted/reset path."
+stopped_at: Phase 3 Wave 2 table geometry and intent-preload foundation committed; conditional table query/refetch coverage remains.
+last_updated: "2026-08-14T04:20:00+07:00"
+last_activity: 2026-08-14
+last_activity_desc: "Applied fixed layout to both table primitives, removed idle all-route preload, and measured 44 production route/tab probes on exact lane7."
 progress:
   total_phases: 3
   completed_phases: 1
@@ -30,9 +30,9 @@ See: `.planning/PROJECT.md`
 ## Current Position
 
 Phase: 3 of 3 (Project-wide Human UI and Refresh Stability)
-Plan: 1 of 3 in progress (Wave 1)
-Status: In progress — full surface inventory and shared user-language/status/refresh contracts.
-Last activity: 2026-08-11 — Completed Plan 02-03 owner-local Reports price discovery repair and evidence gate.
+Plan: 2 of 3 in progress (Wave 2)
+Status: In progress — table geometry foundation is measured; conditional table/query refresh owners remain.
+Last activity: 2026-08-14 — Fixed both table primitives and replaced idle all-route preload with intent-only preload.
 
 Progress: [█████████░] 83% (UIMA-03 remains blocked)
 
@@ -64,7 +64,9 @@ Progress: [█████████░] 83% (UIMA-03 remains blocked)
 
 ### Pending Todos
 
-- Warehouse and Approvals performance remediation requires lowest-owner CLS/long-task attribution; Wave 2 route-level evidence is insufficient for a production UI change.
+- Cover the 16 inventory tables not rendered by the current live data/tab fixture and disposition their initial/background refresh behavior.
+- Attribute the repeated cache-navigation 5-render result (existing threshold 4) and the Chef navigation 56ms long task before changing production owners.
+- Route gzip closure remains over all ten checked-in budgets; do not raise budgets without an approved baseline.
 
 ### Blockers/Concerns
 

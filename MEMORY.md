@@ -82,6 +82,16 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
   `139,21 KiB gzip` và shared RTK/query chunk `30,37 KiB gzip` là common cost. Không nâng budget; tiếp theo
   phân tích/split lowest shared owner, rồi production-build headed read-only trên `3036/8036` theo F12–F24.
 
+- Phase 3 Wave 2 checkpoint ngày 14/08: cả hai table primitive (`.ipc-data-table` và shadcn `Table`) nay dùng
+  fixed layout; hai bảng từng đứng ngoài primitive (đối soát amendment, báo giá NCC) đã nhập shared contract.
+  Main shell không còn idle-preload toàn bộ route, chỉ preload đúng route khi pointer/focus/touch thể hiện intent.
+  Focused inventory/shared `28/28` rồi `16/16`, ESLint và production build PASS. Performance test xác nhận idle
+  không tải route ngoài ý định và intent navigation có zero script sau click/zero long task; cache-navigation
+  vẫn đo 5 MainLayout render so với gate 4 nên giữ `NEEDS_EVIDENCE`. Production-build headed exact lane7 có 44
+  route/tab probe, 35 table instance render được đều fixed, zero reload/browser/request/mutation error, max CLS
+  0,06484; Chef navigation có một long task 56ms. 16 bảng conditional chưa render không được tính PASS. Preview
+  3046 đã teardown; FE 3036 PID 34048 và BE 8036 PID 32124 vẫn phục vụ Kỳ. Evidence/hash chỉ ở index.
+
 - Phase 5 Plan 05-04 đã hoàn tất ngày 2026-08-14. Top-level manifest PASS, hash authoritative ở
   `docs/EVIDENCE-INDEX.md`; full regression/build/EF/OpenAPI/hygiene xanh, protected-lane attempt 0 và
   runtime `3036/8036` đã teardown đúng owner. Không reset/seed/import lại ANV/DAV tuần `2026-08-10`;

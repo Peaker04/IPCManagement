@@ -184,14 +184,21 @@ function expectNavigationWithinBudget(sample: NavigationSample, budgetMs: number
   expect(sample.loadedResources.filter((resource) => resource.initiatorType === 'script')).toEqual([]);
 }
 
-test('desktop sidebar navigation stays responsive after idle route preloading', async ({ page }) => {
+test('desktop sidebar navigation stays responsive after intent preloading', async ({ page }) => {
   await openAuthenticatedDashboard(page);
   await page.waitForTimeout(750);
+
+  const weeklyMenuLink = page.getByRole('link', { name: 'Thực đơn tuần' });
+  await weeklyMenuLink.hover();
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
+    .filter((entry) => entry.initiatorType === 'script')
+    .map((entry) => entry.name.split('/').at(-1) ?? entry.name)))
+    .toEqual(expect.arrayContaining([expect.stringContaining('WeeklyMenuPage.tsx')]));
 
   const coldWeeklyMenu = await measureNavigation(
     page,
     'dashboard-to-weekly-menu-cold',
-    page.getByRole('link', { name: 'Thực đơn tuần' }),
+    weeklyMenuLink,
     ROUTES.WEEKLY_MENU,
     page.getByRole('tablist', { name: 'Chọn góc nhìn kế hoạch tuần' }),
   );
@@ -222,10 +229,10 @@ test('desktop sidebar navigation stays responsive after idle route preloading', 
   expectNavigationWithinBudget(warmWeeklyMenu, 300);
 });
 
-test('controlled background preloading warms every permitted sidebar route module', async ({ page }) => {
+test('idle time does not download route modules the user has not requested', async ({ page }) => {
   await openAuthenticatedDashboard(page);
-  const expectedModules = [
-    'DashboardPage.tsx',
+  await page.waitForTimeout(1_500);
+  const unexpectedModules = [
     'WeeklyMenuPage.tsx',
     'CoordinationPage.tsx',
     'ApprovalPage.tsx',
@@ -237,14 +244,19 @@ test('controlled background preloading warms every permitted sidebar route modul
     'ApprovalRulesPage.tsx',
   ];
 
-  await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
-    .filter((entry) => entry.initiatorType === 'script')
-    .map((entry) => entry.name.split('/').at(-1) ?? entry.name)), { timeout: 10_000 })
-    .toEqual(expect.arrayContaining(expectedModules.map((moduleName) => expect.stringContaining(moduleName))));
-
   const loadedModules = await page.evaluate(() => performance.getEntriesByType('resource')
     .filter((entry) => entry.initiatorType === 'script')
     .map((entry) => entry.name.split('/').at(-1) ?? entry.name));
+  for (const moduleName of unexpectedModules) {
+    expect(loadedModules.some((loadedModule) => loadedModule.includes(moduleName))).toBe(false);
+  }
+
+  const weeklyMenuLink = page.getByRole('link', { name: 'Thực đơn tuần' });
+  await weeklyMenuLink.hover();
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
+    .filter((entry) => entry.initiatorType === 'script')
+    .map((entry) => entry.name.split('/').at(-1) ?? entry.name)))
+    .toEqual(expect.arrayContaining([expect.stringContaining('WeeklyMenuPage.tsx')]));
   await page.evaluate(() => {
     const state = { fallbackMounts: 0 };
     (window as unknown as { __ipcPreloadedRouteProbe: typeof state }).__ipcPreloadedRouteProbe = state;
@@ -252,21 +264,21 @@ test('controlled background preloading warms every permitted sidebar route modul
       if (document.querySelector('#ipc-main-content section[aria-busy="true"]')) state.fallbackMounts += 1;
     }).observe(document.querySelector('#ipc-main-content')!, { childList: true, subtree: true });
   });
-  await page.getByRole('link', { name: 'Thực đơn tuần' }).click();
+  await weeklyMenuLink.click();
   await expect(page).toHaveURL(ROUTES.WEEKLY_MENU);
   await expect(page.locator('#ipc-main-content > .ipc-operational-frame')).toBeVisible();
   await expect.poll(() => page.evaluate(() =>
     (window as unknown as { __ipcPreloadedRouteProbe: { fallbackMounts: number } })
       .__ipcPreloadedRouteProbe.fallbackMounts)).toBe(0);
 
-  console.info(`BACKGROUND_PRELOADED_ROUTES ${JSON.stringify(loadedModules)}`);
-  await test.info().attach('background-preloaded-routes', {
+  console.info(`IDLE_LOADED_ROUTES ${JSON.stringify(loadedModules)}`);
+  await test.info().attach('idle-loaded-routes', {
     body: JSON.stringify(loadedModules, null, 2),
     contentType: 'application/json',
   });
 });
 
-test('background route preloading respects the browser data-saver preference', async ({ page }) => {
+test('explicit navigation intent still preloads only the selected route with data saver enabled', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'connection', {
       configurable: true,
@@ -276,11 +288,17 @@ test('background route preloading respects the browser data-saver preference', a
   await openAuthenticatedDashboard(page);
   await page.waitForTimeout(1_500);
 
+  await page.getByRole('link', { name: 'Thực đơn tuần' }).focus();
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
+    .filter((entry) => entry.initiatorType === 'script')
+    .map((entry) => entry.name.split('/').at(-1) ?? entry.name)))
+    .toEqual(expect.arrayContaining([expect.stringContaining('WeeklyMenuPage.tsx')]));
+
   const loadedModules = await page.evaluate(() => performance.getEntriesByType('resource')
     .filter((entry) => entry.initiatorType === 'script')
     .map((entry) => entry.name.split('/').at(-1) ?? entry.name));
   expect(loadedModules.some((moduleName) => moduleName.includes('DashboardPage.tsx'))).toBe(true);
-  expect(loadedModules.some((moduleName) => moduleName.includes('WeeklyMenuPage.tsx'))).toBe(false);
+  expect(loadedModules.some((moduleName) => moduleName.includes('WeeklyMenuPage.tsx'))).toBe(true);
   expect(loadedModules.some((moduleName) => moduleName.includes('ChefDashboardPage.tsx'))).toBe(false);
 });
 

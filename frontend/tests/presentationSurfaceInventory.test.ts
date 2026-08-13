@@ -7,6 +7,8 @@ type SurfaceCount = { path: string; tables: number; dialogs: number; switchers: 
 
 const frontendRoot = path.resolve(import.meta.dirname, '..')
 const sourceRoot = path.join(frontendRoot, 'src')
+const tableStylesPath = path.join(sourceRoot, 'styles/components/tables.css')
+const tablePrimitivePath = path.join(sourceRoot, 'components/ui/table.tsx')
 
 const productionTsxFiles = () => fs.readdirSync(sourceRoot, { recursive: true, withFileTypes: true })
   .filter((entry) => entry.isFile() && entry.name.endsWith('.tsx') && !/\.(?:test|spec)\.tsx$/.test(entry.name))
@@ -49,6 +51,23 @@ describe('project-wide presentation surface inventory', () => {
   it('keeps document reload out of production UI', () => {
     const offenders = productionTsxFiles().filter((file) => /(?:location\.reload|navigate\(\s*0\s*\))/.test(fs.readFileSync(file, 'utf8')))
     expect(offenders).toEqual([])
+  })
+
+  it('keeps the fixed-layout contract on every operational data table', () => {
+    const tableStyles = fs.readFileSync(tableStylesPath, 'utf8')
+    const tablePrimitive = fs.readFileSync(tablePrimitivePath, 'utf8')
+    const dataTableRule = tableStyles.match(/\.ipc-data-table\s*\{(?<body>[\s\S]*?)\}/)?.groups?.body ?? ''
+    expect(dataTableRule).toMatch(/table-layout:\s*fixed/)
+    expect(tableStyles).not.toMatch(/table-layout:\s*auto/)
+    expect(tablePrimitive).toContain('w-full table-fixed caption-bottom')
+
+    const unownedTables = productionTsxFiles().flatMap((file) => {
+      const source = fs.readFileSync(file, 'utf8')
+      return [...source.matchAll(/<table(?<attributes>[\s\S]*?)>/g)]
+        .filter((match) => !/ipc-data-table|data-slot=["']table["']/.test(match.groups?.attributes ?? ''))
+        .map(() => path.relative(frontendRoot, file).replaceAll('\\', '/'))
+    })
+    expect(unownedTables).toEqual([])
   })
 
   it('keeps the Reports price exception work area mounted across query phases', () => {

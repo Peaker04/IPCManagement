@@ -1,6 +1,7 @@
 .ipc-data-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-family: var(--font-sans);
   font-size: var(--text-table);
   font-weight: var(--text-table--font-weight);
@@ -323,7 +324,7 @@
   font-size: 0.8125rem;
   font-weight: 700;
   padding: 9px 12px;
-  text-align: center;
+  text-align: left;
 }
 
 .ipc-data-table td {
@@ -332,7 +333,7 @@
   font-size: 0.8125rem;
   height: 48px;
   padding: 8px 12px;
-  text-align: center;
+  text-align: left;
   vertical-align: middle;
 }
 
@@ -384,7 +385,7 @@
 }
 
 .ipc-schedule-table {
-  table-layout: auto;
+  table-layout: fixed;
   width: 100%;
   min-width: 980px;
 }
