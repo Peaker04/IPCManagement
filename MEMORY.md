@@ -70,6 +70,18 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
 
 ## Còn mở
 
+- UI Phase 3 `Project-wide Human UI and Refresh Stability` đã mở trong workstream
+  `dashboard-ui-rules-conformance`. Wave 1 commit `c9147a00` khóa inventory test-owned hiện hành:
+  53 production owner, 51 bảng, 33 dialog, 9 tab switcher; exact floorplan registry đã bổ sung tab
+  `purchasing-supplemental` từng bị bỏ sót. Shared `StatusBadge` giữ stable geometry owner, chỉ transition
+  color/opacity; unknown backend status hiển thị `Trạng thái chưa xác định`; Reports correction giữ dữ liệu
+  cũ khi background refetch và bỏ jargon `append-only` khỏi bề mặt. Focused `20/20`, inventory/floorplan
+  `28/28`, full ESLint và production build PASS. Full Vitest chưa có verdict vì runner vượt 4 phút và orphan
+  do lượt này tạo đã được dừng; không khai PASS. Route gzip budget đang RED cả 10 route, overage lớn nhất
+  Coordination `44,69 KiB`, Approval `36,56 KiB`, Dashboard `34,99 KiB`; trace cho thấy shared app chunk
+  `139,21 KiB gzip` và shared RTK/query chunk `30,37 KiB gzip` là common cost. Không nâng budget; tiếp theo
+  phân tích/split lowest shared owner, rồi production-build headed read-only trên `3036/8036` theo F12–F24.
+
 - Phase 5 Plan 05-04 đã hoàn tất ngày 2026-08-14. Top-level manifest PASS, hash authoritative ở
   `docs/EVIDENCE-INDEX.md`; full regression/build/EF/OpenAPI/hygiene xanh, protected-lane attempt 0 và
   runtime `3036/8036` đã teardown đúng owner. Không reset/seed/import lại ANV/DAV tuần `2026-08-10`;

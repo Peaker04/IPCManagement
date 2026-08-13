@@ -26,7 +26,7 @@ const tabAuthorities = [
   { routeKey: 'APPROVALS', file: 'src/features/approvals/pages/ApprovalPage.tsx', ids: ['approval-queue', 'approval-role', 'approval-history'] },
   { routeKey: 'CHEF_DASHBOARD', file: 'src/features/chef/pages/ChefDashboardPage.tsx', ids: ['chef-production', 'chef-documents'] },
   { routeKey: 'WEEKLY_MENU', file: 'src/features/projects/pages/WeeklyMenuPage.tsx', ids: ['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'] },
-  { routeKey: 'PURCHASING', file: 'src/features/purchasing/pages/PurchasingPage.tsx', ids: ['purchasing-workflow', 'purchasing-quotations'] },
+  { routeKey: 'PURCHASING', file: 'src/features/purchasing/pages/PurchasingPage.tsx', ids: ['purchasing-workflow', 'purchasing-supplemental', 'purchasing-quotations'] },
   { routeKey: 'REPORTS', file: 'src/features/reports/pages/reportsPageModelShared.ts', ids: ['reports-price', 'reports-demand', 'reports-purchase', 'reports-stock', 'reports-movement', 'reports-kitchen', 'reports-usage', 'reports-audit', 'reports-data-quality'] },
   { routeKey: 'REPORTS', file: 'src/features/reports/pages/reportsPageModelShared.ts', ids: ['price-sub-lines', 'price-sub-supplier', 'price-sub-period', 'price-sub-dishGroup'], sourceIds: ['lines', 'supplier', 'period', 'dishGroup'], parent: 'reports-price' },
   { routeKey: 'WAREHOUSE', file: 'src/features/warehouse/pages/WarehousePage.tsx', ids: ['warehouse-movement', 'warehouse-demand', 'warehouse-exceptions'] },

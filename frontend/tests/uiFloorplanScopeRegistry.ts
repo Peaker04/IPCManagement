@@ -60,7 +60,7 @@ const surfaceDefinitions: readonly SurfaceDefinition[] = [
     .map((surfaceId) => ({ routeKey: 'CHEF_DASHBOARD', surfaceKind: 'tab', surfaceId }) as const),
   ...['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials']
     .map((surfaceId) => ({ routeKey: 'WEEKLY_MENU', surfaceKind: 'tab', surfaceId }) as const),
-  ...['purchasing-workflow', 'purchasing-quotations']
+  ...['purchasing-workflow', 'purchasing-supplemental', 'purchasing-quotations']
     .map((surfaceId) => ({ routeKey: 'PURCHASING', surfaceKind: 'tab', surfaceId }) as const),
   ...['reports-price', 'reports-demand', 'reports-purchase', 'reports-stock', 'reports-movement', 'reports-kitchen', 'reports-usage', 'reports-audit', 'reports-data-quality']
     .map((surfaceId) => ({ routeKey: 'REPORTS', surfaceKind: 'tab', surfaceId }) as const),
