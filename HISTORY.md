@@ -1706,3 +1706,14 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   mỗi `th` là sticky owner duy nhất với nền opaque và inset separator. Bảng khác không đổi.
 - Headed probe sau cuộn pass cả main page và preview modal, top delta 1px, zero browser error; modal chỉ
   preview file, không bấm Lưu hay mutate DB. Focused 1/1, lint, build, dependency graph và diff check pass.
+# 2026-08-14 — Phase 5 Plan 05-04 closeout
+
+- Đóng ordered preflight → ANV/DAV Golden → exception matrix → retry durability trên exact `ipc_lane7`,
+  migration head 70 và `protectedLaneConnectionAttempts = 0`.
+- Over-fan amendment được remediation append-only; 120 decision lịch sử không bị rewrite. Kitchen discrepancy,
+  ambiguous lineage, shared shortage/blocked allocation và replay/stale/concurrent matrix đều PASS.
+- Closeout gates: backend `944 pass + 1 intentional skip`; frontend `152 files / 853 tests`; lint, hai build,
+  EF pending-model, OpenAPI deterministic parity, source ownership, registries và hygiene PASS.
+- Runtime owned PID 32448/32588 và port 8036/3036 đã teardown; PID 3580 ngoài run được giữ nguyên.
+- Artifact authoritative/hash nằm duy nhất trong `docs/EVIDENCE-INDEX.md`; execution summary ở
+  `.planning/workstreams/lifecycle-standardization/phases/05-service-run-integration/05-04-SUMMARY.md`.

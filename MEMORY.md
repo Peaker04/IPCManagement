@@ -14,8 +14,8 @@ db_lane: ipc_lane9
 warehouse_cleanup_lane: ipc_dev_warehouse_20260812
 e2e_lane: ipc_lane7
 e2e_runtime:
-  frontend: 3036
-  api: 8036
+  frontend: null
+  api: null
 credentials_via: IPC_LANE7_<ROLE>_PASSWORD
 workbook:
   path: 'C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx'
@@ -25,9 +25,9 @@ workbook:
 # Memory hiện hành
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
-lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 hiện giữ run-owned FE `3036` PID 32588
-và BE `8036` PID 32448 trên exact `ipc_lane7`, migration head 70; chỉ teardown hai PID này sau closeout.
-PID API 3580 là process ngoài run, không được kill. Runtime warehouse development `3020/8020` nếu còn
+lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 đã closeout; run-owned FE `3036` PID 32588
+và BE `8036` PID 32448 đã teardown, hai port đã đóng. Exact `ipc_lane7` giữ migration head 70 và toàn bộ
+Golden/exception lineage. PID API 3580 là process ngoài run và vẫn được giữ. Runtime warehouse development `3020/8020` nếu còn
 mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
 ## Memory ngắn cho phiên tiếp theo
@@ -69,103 +69,11 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
 
 ## Còn mở
 
-- Phase 5 Wave 3 Golden trên disposable `ipc_lane7`: Task 0 đã đóng; bằng chứng và chi tiết closeout ở
-  `HISTORY.md` và `docs/EVIDENCE-INDEX.md`. Lane hiện giữ ANV/DAV tuần hiện hành `2026-08-10`,
-  mỗi khách version 1 DRAFT, 12 schedule, 120 dòng import, tier 25k; tuần `2026-08-17` cũ vẫn được
-  giữ nguyên như scope riêng, không xóa/ghi đè. Runtime owned `3030/8030`
-  hiện đang mở cho Kỳ kiểm tra, trỏ đúng `ipc_lane7`. Shared primary button đã khóa semantic foreground
-  trắng; tab Nguyên liệu món có tìm kiếm không dấu; modal import giữ setup và `Kiểm tra · Lưu · Xóa`
-  trên một hàng, headed `1280×900` pass. Shared `Input type=date` nay hiển thị `dd/mm/yyyy` và
-  popup lịch tiếng Việt do ứng dụng sở hữu, nhưng payload API vẫn ISO.
-  Field `Tuần bắt đầu` chỉ nhận Thứ Hai; stale Chủ nhật `09/08` tự chuẩn hóa `10/08`, và đổi
-  khách hàng không còn xóa week scope. Popup compact `264px`; headed request/response + DOM pass cho ANV/DAV.
-  Matrix thực đơn main/modal đã loại collapsed-border + duplicate sticky owner; khi cuộn chỉ `th` sticky,
-  không còn đường chia cột xuyên header. Headed scroll probe pass cả hai owner, không mutation DB.
-  Task 0–2 của `05-04-PLAN.md` đã PASS. Resume point machine-readable ở `.planning/HANDOFF.json`,
-  hướng dẫn phiên mới ở `.planning/workstreams/lifecycle-standardization/phases/05-service-run-integration/.continue-here.md`.
-  Tiếp tục Task 3 exception matrix; không reset/import lại Task 0.
-  Task 1 đã PASS: contract parity generate deterministic và compile sau khi đồng bộ ServiceRun,
-  amendment decision, return allocation và purchasing compatibility; focused frontend 40/40, build/lint,
-  SQL contract và hygiene pass. Chrome headed run-owned đã chứng minh login request 200,
-  trusted pointer + keyboard, focus/DOM/read-request và zero workaround. Ba reviewed SQL receipt cũ
-  khớp exact hash/current source, target chỉ `ipc_lane7`, protected-lane attempt 0; Task 0 sau đó
-  xác nhận head 69 nên không apply DDL lại. Task 2 Golden manifest PASS trên exact `ipc_lane7`:
-  ANV/DAV cùng tuần có 12 demand, 6 PO giữ hai allocation, 6 receipt/584 line đã POSTED,
-  12 issue/584 line đã bếp nhận và 12 ServiceRun đóng độc lập. Bếp trưởng thực hiện
-  open/start/actual/confirm; Quản lý close. Lifecycle có 60 command receipt, transition, audit và outbox,
-  sequence 1→5. Năm viewport headed PASS với CLS `0–0.0557`, không overflow/lỗi browser; long task
-  navigation `90–101ms` được giữ trong evidence. Physical pointer/keyboard trusted, workaround false,
-  protected-lane attempt `0`. Runtime `3030/8030` được giữ cho Task 3; chỉ teardown process do run sở hữu.
-  Task 3 đang tiến hành: Service Run exception group, RETURN receipt, WASTE và EXCESS đã PASS trên cùng lineage.
-  RETURN DAV/Cá hố Ca chiều đã được `thukho` nhận thực tế `0,0008 kg`; WASTE ANV/Cà rốt
-  Ca chiều `0,0007 kg` đã do Bếp trưởng khai báo và Thủ kho xác nhận, zero stock movement.
-  UI Kho đã tách quyền `thukho` khỏi receipt draft `dieuphoi`, không còn raw UUID/decision token/copy backend;
-  dialog ngoại lệ Bếp lấy đủ material đúng source shift thay vì bị cắt theo trang checklist. Create/confirm
-  InventoryReturn nay có command receipt, transition, audit, outbox và replay idempotent. EXCESS append-only
-  giữ exact source/destination line; Admin positive và Thủ kho negative headed đều PASS. Focused regression
-  chứng minh same-command replay, invalid decision token, stale/different-command single-winner và unauthorized
-  actor không sinh thêm allocation/lifecycle fact. Tiếp theo: supplemental partial delivery isolation, sau đó
-  các exception group còn lại. Supplemental partial isolation đã pass về business/UI: ANV cấp
-  `0,0008/0,001 kg`, còn `0,0002 kg` hiển thị rõ và chỉ phần này sang PR draft; DAV zero.
-  Artifact ANV giữ trung thực sequence gap `0,2,3` do attempt trước fix; không rewrite. Fresh DAV
-  supplemental `SUP-20260813-153511-4FF3` đã PASS live sequence sạch `0,1`: yêu cầu `0,001 kg`,
-  route toàn bộ sang PR draft `PR-SUP-20260813-6F77`, ngày `2026-08-10`, ca `AFTERNOON`, exact
-  material-request lineage, hai receipt/outbox, trusted pointer/keyboard và protected-lane attempt 0.
-  Quality partial isolation từ chính PR DAV này đã PASS: Thu mua được cấp read-only
-  supplemental chain nhưng không có warehouse mutation; PR → approval → một PO → một receipt
-  `0,001 kg`, Thủ kho chốt `0,0008 kg` đạt / `0,0002 kg` không đạt. UI đã sửa làm tròn,
-  raw UUID/FULLDAY/Kilogram và backend jargon trên bề mặt supplemental/receipt; live readback hiển thị
-  đúng 6 chữ số, receipt sequence `0,1`, hai receipt/outbox. ANV supplemental vẫn `NEEDS_PURCHASE`,
-  sáu Golden PO/POSTED receipt không đổi. Tiếp theo amendment/reconciliation append-only, kitchen
-  discrepancy, ambiguous lineage, shared shortage/blocked allocation và retry matrix; không tạo lại các record trên.
-  Quick fix Thu mua sau quality: `Mua bổ sung` đã tách thành tab/URL riêng; tab mặc định
-  `Xử lý thu mua` trở lại chỉ có quy trình duyệt theo ngày. Headed physical click, URL/DOM,
-  zero overflow/error và protected-lane attempt 0 PASS.
-  Kitchen discrepancy isolation đã PASS trên ANV `2026-08-11 / AFTERNOON / 25k`: Bếp trưởng dùng
-  physical pointer/keyboard khai báo đúng source-line; pending declaration append-only đẩy riêng
-  ServiceRun này sang `Cần đối soát`, hiển thị lý do và bước Admin khác actor xử lý. DAV cùng phạm vi
-  vẫn có thể mở ca. Declaration command nay bắt buộc commandId/expectedVersion, replay không nhân đôi,
-  và ghi đủ một receipt/transition/audit/outbox; protected-lane attempts 0. Canonical role `beptruong`
-  đã thay alias rời rạc nên control không còn mất khi đổi từ Admin sang Bếp trưởng.
-  Ambiguous lineage đã PASS bằng compatibility fixture append-only, không phá Golden source-line: report ưu tiên
-  dòng cần quyết định trước giới hạn trang, hiển thị ba dòng nhu cầu bị ảnh hưởng nhưng shared panel chỉ tạo một
-  work item với ba lựa chọn hợp lệ. Chrome headed trusted pointer/keyboard, zero mutation; nullable fixture giữ 1,
-  movement 1661 và disposition 0 trước/sau, protected-lane attempts 0. UI dùng ngôn ngữ người dùng, không lộ
-  UUID/enum/version.
-  Shared shortage/blocked allocation đã PASS bằng kho fixture cô lập có đúng 1 kg và hai demand 1 kg ANV/DAV.
-  Thủ kho thấy hai khách hàng ngang hàng, physical chọn ANV; create issue nay có commandId/expectedVersion,
-  một POST tạo đúng một issue/movement/receipt/transition/audit/outbox. Reload chọn DAV thấy tồn 0, hướng dẫn
-  blocked và confirm disabled; không có implicit priority/transfer, DAV vẫn `SENTTOWAREHOUSE`, disposition count
-  không đổi và 12 Golden request giữ nguyên. UI candidate dùng tên khách hàng/ngày, không hiển thị request code;
-  formatter được gom về shared warehouse allocation helper. Retry matrix nay PASS append-only trên runtime
-  run-owned FE `3036`/BE `8036`, exact `ipc_lane7`, head 70: A/B/C/D đều `EXPORTED`, stock fixture về 0;
-  replay cùng command trả `201` cùng issue, stale trả `409`, hai command khác nhau cạnh tranh cho kết quả
-  `201/409` và chỉ một winner. Mỗi scope có đúng một issue/line/ISSUE movement/receipt/transition/audit/outbox;
-  allocation disposition giữ 1, closed ServiceRun giữ 0, physical pointer/keyboard trusted và
-  protected-lane attempts 0. Các attempt A/B/D lỗi parser, SQL alias và thiếu Bearer được giữ nguyên,
-  không cleanup/rewrite. Aggregate exception allow-list PASS; hash chỉ ở `docs/EVIDENCE-INDEX.md`.
-  Closeout remediation trên working tree đã đưa full backend về `944 pass / 1 intentional skip`, full frontend
-  về `152 files / 853 tests`, full ESLint, frontend production build, source-ownership `17/17`, PC disposition
-  `6/6` và operational registry `28/28` PASS. D-01 đã được khôi phục: `Xuất bản tuần` chỉ Admin thấy;
-  Manager/Coordinator có zero publish control. Leakage gate nay quét Vite manifest closure và sourcemap thực sự
-  được asset hiện hành tham chiếu, vẫn fail nếu source leakage tồn tại nhưng không đếm orphan map cũ. Backend
-  Release build vào `bin/Release` bị PID 3580 ngoài run khóa DLL/EXE; không kill process đó. Tiếp theo build vào
-  output cô lập, chạy EF pending-model, OpenAPI deterministic/parity, aggregate exception validate-only và hygiene.
-  Chỉ khi tất cả PASS mới tạo top-level manifest/SUMMARY, commit remediation và teardown PID 32448/32588;
-  không chạy lại Golden/retry fixture và không nới oracle lịch sử để làm xanh giả.
-  Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
-  `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
-  counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài
-  bộ lọc, báo số thay đổi chờ lưu và không còn mất draft khi gõ lý do. Over-fan đã được remediation
-  append-only trước correction: migration head 70 chỉ apply exact `ipc_lane7`; 120 decision lịch sử giữ
-  nguyên, append một remediation + một canonical decision đúng ANV `2026-08-10 / AFTERNOON / 25k /
-  Cá hố`, rồi headed Admin correction exact decision POST 200. Case nay RESOLVED với một linked
-  correction/transition; Golden menu/demand/purchase/receipt/issue counts không đổi, protected-lane attempt 0.
-  Effective lifecycle demand projection đã sửa sai lệch sau xuất: `suggestedPurchaseQty` vẫn là evidence
-  lúc sinh nhu cầu, còn fulfilled/outstanding lấy từ issue đã bếp nhận. Headed FE 3032/BE 8031 chứng minh
-  readiness tuần 222/222, ngày 14/08 ANV 37/37, KPI/badge/header cùng nhất quán, zero browser error.
-  Hash nằm ở `docs/EVIDENCE-INDEX.md`. Tiếp theo: kitchen discrepancy, ambiguous lineage, shared
-  shortage/blocked allocation và retry matrix.
+- Phase 5 Plan 05-04 đã hoàn tất ngày 2026-08-14. Top-level manifest PASS, hash authoritative ở
+  `docs/EVIDENCE-INDEX.md`; full regression/build/EF/OpenAPI/hygiene xanh, protected-lane attempt 0 và
+  runtime `3036/8036` đã teardown đúng owner. Không reset/seed/import lại ANV/DAV tuần `2026-08-10`;
+  dữ liệu append-only trên `ipc_lane7` được giữ làm lineage. Chi tiết execution nằm trong
+  `05-04-SUMMARY.md` và `HISTORY.md`; nội dung lịch sử dài phía dưới không phải next action.
 
 - Database unit investigation and whole-day E2E audit (12/08): read-only proof on
   `ipc_dev_warehouse_20260812` confirms the warehouse-clean baseline is correct: current stock, receipt, issue,
