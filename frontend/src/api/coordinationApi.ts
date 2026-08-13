@@ -401,7 +401,11 @@ breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult
       providesTags: ['Coordination'],
     }),
     executeMenuAmendmentDecision: builder.mutation<ApiResponse<MenuAmendmentDecisionItem>, MenuAmendmentDecisionCommand>({
-      query: ({ decisionItemId, ...body }) => ({ url: `/coordination/weekly-menu/amendments/decisions/${decisionItemId}/commands`, method: 'POST', body }),
+      query: ({ decisionItemId, ...command }) => ({
+        url: `/coordination/weekly-menu/amendments/decisions/${decisionItemId}/commands`,
+        method: 'POST',
+        body: { decisionItemId, ...command },
+      }),
       invalidatesTags: ['Coordination', workflowCacheTags.productionPlans],
     }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, WeeklyMenuImportHistoryQuery | void>({

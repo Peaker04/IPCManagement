@@ -162,6 +162,20 @@ public sealed partial class WeeklyMenuImportsController
         }
     }
 
+    [HttpPost("weekly-menu/amendments/reconciliation-cases/{reconciliationCaseId}/decision-fan-remediations")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    public async Task<IActionResult> RemediateMenuAmendmentDecisionFanAsync(string reconciliationCaseId, [FromBody] RemediateMenuAmendmentDecisionFanRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _menuAmendmentService.RemediateDecisionFanAsync(reconciliationCaseId, request, _currentUserService.GetUserId(User), cancellationToken);
+            return Ok(ApiResponse<MenuAmendmentDecisionRemediationDto>.SuccessResult(result, "Đã giữ nguyên hồ sơ cũ và bổ sung phạm vi xử lý chính xác."));
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ApiResponse.FailResult(ex.Message)); }
+        catch (BusinessRuleException ex) { return Conflict(ApiResponse.FailResult(ex.Message)); }
+        catch (ArgumentException ex) { return BadRequest(ApiResponse.FailResult(ex.Message)); }
+    }
+
     [HttpGet("weekly-menu/amendments/decisions")]
     public async Task<IActionResult> GetMenuAmendmentDecisionPageAsync(
         [FromQuery] string? customerId,

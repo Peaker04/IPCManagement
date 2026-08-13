@@ -2,7 +2,7 @@ import type { IngredientDemandAggregateReportDto, StockMovementViewDto } from '@
 import type { DemandLine, StockMovement, StockMovementType } from '@/types/workflow';
 
 export const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto): DemandLine => {
-  const shortage = Math.max(item.suggestedPurchaseQty, 0);
+  const shortage = Math.max(item.outstandingQty, 0);
   const serviceDate = item.requestDate?.split('T')[0];
   const isCancelled = item.hasCancelledLine;
 
@@ -14,12 +14,12 @@ export const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto)
     priceTierAmount: item.priceTierAmount,
     material: item.ingredientName ?? item.ingredientId,
     required: item.totalRequiredQty,
-    available: item.currentStockQty,
+    available: item.fulfilledQty,
     reserved: 0,
     unit: item.unitName ?? '',
     source: `${item.customerName ?? item.customerCode ?? item.customerId} · ${item.priceTierAmount / 1000}k · ${item.lineCount} dòng nhu cầu`,
-    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-    nextAction: isCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+    status: isCancelled ? 'Cần tính lại nhu cầu' : shortage > 0 ? 'Còn thiếu nguyên liệu' : 'Đã đáp ứng đủ',
+    nextAction: isCancelled ? 'Tính lại nhu cầu từ kế hoạch sản xuất' : shortage > 0 ? 'Xử lý phần còn thiếu' : 'Không cần xử lý thêm',
     tone: isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
   };
 };

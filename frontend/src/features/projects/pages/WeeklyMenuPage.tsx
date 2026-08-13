@@ -399,6 +399,7 @@ const WeeklyMenuPage = () => {
     missingBomCount: weeklyRowsMissingBom.length,
     invalidBomTierCount,
     demandMaterialCount: demandReadinessResult.data?.totalCount ?? 0,
+    demandShortageCount: demandReadinessResult.data?.shortageCount ?? 0,
   });
   const readOnlyScopeKey = `${weeklyScheduleScope.customerId}:${weeklyScheduleScope.weekStartDate}`;
   const sourceLabel = selectedCustomer?.customerCode ?? committedMenu?.customerCode ?? 'Chưa chọn';

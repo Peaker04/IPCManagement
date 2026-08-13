@@ -11,6 +11,7 @@ const readyInput: WeeklyMenuReadinessInput = {
   missingBomCount: 0,
   invalidBomTierCount: 0,
   demandMaterialCount: 50,
+  demandShortageCount: 0,
 }
 
 describe('buildWeeklyMenuReadiness', () => {
@@ -24,7 +25,8 @@ describe('buildWeeklyMenuReadiness', () => {
     [{ missingBomCount: 3 }, 'danger', 'Chưa thể tính nhu cầu'],
     [{ invalidBomTierCount: 1 }, 'danger', 'Chưa thể tính nhu cầu'],
     [{ demandMaterialCount: 0 }, 'info', 'Sẵn sàng tính nhu cầu'],
-    [{}, 'success', 'Dữ liệu tuần sẵn sàng'],
+    [{ demandShortageCount: 3 }, 'warning', 'Còn nguyên liệu cần xử lý'],
+    [{}, 'success', 'Vật tư tuần đã được đáp ứng'],
   ] as const)('maps %o to %s readiness', (overrides, tone, label) => {
     const result = buildWeeklyMenuReadiness({ ...readyInput, ...overrides })
     expect(result).toMatchObject({ tone, label })
@@ -43,10 +45,10 @@ describe('buildWeeklyMenuReadiness', () => {
   it('labels aggregate counts as day–ingredient rows instead of unique ingredients', () => {
     const result = buildWeeklyMenuReadiness(readyInput)
 
-    expect(result.detail).toContain('50 dòng ngày–nguyên liệu')
+    expect(result.detail).toContain('50/50 dòng ngày–nguyên liệu')
     expect(result.checkpoints).toContainEqual(expect.objectContaining({
       key: 'demand',
-      value: '50 dòng ngày–nguyên liệu',
+      value: 'Đã đáp ứng 50/50',
     }))
   })
 })

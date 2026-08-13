@@ -422,6 +422,64 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetIngredientDemandAggregatePageAsync_Should_Not_Report_Received_Issue_As_Missing()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var line = await context.Materialrequestlines.SingleAsync();
+            line.Request.Status = "EXPORTED";
+            var issue = new InventoryIssue
+            {
+                IssueId = fixture.IssueId,
+                IssueCode = "ISSUE-RECEIVED-DEMAND-PROJECTION",
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = fixture.WarehouseId,
+                MaterialRequestId = line.RequestId,
+                IssuedBy = fixture.UserId,
+                ReceivedBy = fixture.UserId,
+                ReceivedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+            };
+            issue.Inventoryissuelines.Add(new InventoryIssueLine
+            {
+                IssueLineId = GuidHelper.NewId(),
+                IssueId = issue.IssueId,
+                IngredientId = line.IngredientId,
+                UnitId = line.UnitId,
+                MaterialRequestLineId = line.RequestLineId,
+                RequestedQty = line.TotalRequiredQty,
+                IssuedQty = line.TotalRequiredQty,
+            });
+            context.Inventoryissues.Add(issue);
+            await context.SaveChangesAsync();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                DateFrom = "2026-06-15",
+                DateTo = "2026-06-15",
+                PageNumber = 1,
+                PageSize = 20,
+            });
+
+        page.ShortageCount.Should().Be(0);
+        var item = page.Items.Should().ContainSingle().Subject;
+        item.FulfilledQty.Should().Be(item.TotalRequiredQty);
+        item.OutstandingQty.Should().Be(0);
+        item.FulfillmentStatus.Should().Be("FULFILLED");
+        item.SuggestedPurchaseQty.Should().BeGreaterThan(0, "the immutable demand calculation remains historical evidence");
+    }
+
+    [Fact]
     public async Task GetIngredientDemandAggregatePageAsync_Should_SearchIngredientBeforePaging()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

@@ -16,6 +16,9 @@ describe('ingredient demand aggregate presentation', () => {
       totalRequiredQty: 5.5233,
       currentStockQty: 10,
       suggestedPurchaseQty: 0,
+      fulfilledQty: 5.5233,
+      outstandingQty: 0,
+      fulfillmentStatus: 'FULFILLED',
       lineCount: 2,
       hasCancelledLine: false,
     })

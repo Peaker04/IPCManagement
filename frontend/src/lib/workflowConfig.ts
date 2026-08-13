@@ -72,6 +72,10 @@ export const workflowLaneDefinitions: WorkflowLane[] = laneBase.map((lane) => ({
   tone: 'neutral',
 }));
 
+export const workflowLaneStatusByPath = Object.fromEntries(
+  workflowLaneDefinitions.map((lane) => [lane.route, lane.status]),
+) as Record<string, string>;
+
 export const laneIdByOwner: Record<string, WorkflowLaneId> = {
   'Điều phối': 'coordination',
   'Điều phối ca': 'coordination',

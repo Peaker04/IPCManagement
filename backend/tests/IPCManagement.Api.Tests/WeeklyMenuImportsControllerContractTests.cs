@@ -110,6 +110,7 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuImportHistoryAsync), "GET", "weekly-menu/import-history", []),
         new(nameof(WeeklyMenuImportsController.ImportWeeklyMenuAsync), "POST", "weekly-menu/import", []),
         new(nameof(WeeklyMenuImportsController.PreviewWeeklyMenuImportAsync), "POST", "weekly-menu/import/preview", []),
+        new(nameof(WeeklyMenuImportsController.RemediateMenuAmendmentDecisionFanAsync), "POST", "weekly-menu/amendments/reconciliation-cases/{reconciliationCaseId}/decision-fan-remediations", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.ReviewMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/review", ManagerRoles),
         new(nameof(WeeklyMenuImportsController.RollbackWeeklyMenuImportAsync), "POST", "weekly-menu/import/{menuVersionId}/rollback", []),
         new(nameof(WeeklyMenuImportsController.SaveCustomerImportMappingAsync), "PUT", "customers/{customerId}/import-mapping", [])

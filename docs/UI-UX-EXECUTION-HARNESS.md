@@ -37,6 +37,8 @@ không đoán `PASS` và không sửa production chỉ vì “trông không hợ
    phải là oracle, screenshot chỉ dành cho reviewer.
 4. Sửa tối thiểu đúng owner. Nếu issue có thể ảnh hưởng nhiều route, ưu tiên shared seam; page-local chỉ
    hợp lệ khi metric/source chứng minh scope cục bộ. Thêm regression tại seam gây lỗi.
+   Với query-state/refresh audit, báo đúng bảng `Rule | Phán quyết | Số đo | Vị trí | Số nơi cùng lỗi`;
+   `Không đo được` là verdict hợp lệ khi thiếu browser oracle hoặc project parameter.
 5. Chạy focused test trước, rồi lint/build/gate phù hợp. So sánh metric trước/sau; không cập nhật visual
    snapshot chỉ để biến test xanh.
 6. Với thay đổi có dữ liệu nghiệp vụ, chạy browser headed trên runtime do phiên tạo và chứng minh đủ

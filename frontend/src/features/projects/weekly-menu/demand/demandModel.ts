@@ -127,7 +127,7 @@ export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: numbe
     enoughCount: Math.max(total - shortages, 0),
     totalCount: total,
     tone: (lines.length === 0 ? 'neutral' : warningCount > 0 ? 'warning' : shortages > 0 ? 'danger' : 'success') as DemandLine['tone'],
-    label: lines.length === 0 ? 'Chưa kiểm tồn' : warningCount > 0 ? 'Cần tính lại' : shortages > 0 ? 'Thiếu nguyên liệu' : 'Đủ nguyên liệu',
+    label: lines.length === 0 ? 'Chưa có dữ liệu vật tư' : warningCount > 0 ? 'Cần tính lại' : shortages > 0 ? 'Còn thiếu vật tư' : 'Đã hoàn tất vật tư',
   }
 }
 

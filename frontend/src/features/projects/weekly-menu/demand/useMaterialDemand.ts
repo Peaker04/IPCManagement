@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppDispatch } from '@/lib/reduxHooks'
 import { apiSlice } from '@/api/apiSlice'
+import { workflowCacheTags } from '@/api/workflowCacheTags'
 import { useGenerateMaterialDemandMutation, useGetApprovalHistoryQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialDemandStalenessQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
 import type { DemandLine } from '@/types/workflow'
 import { useUpsertQuickServingsMutation } from '@/api/coordinationApi'
@@ -247,7 +248,13 @@ export function useMaterialDemand({
       setFeedback({ title: 'Chưa tạo được nhu cầu', message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'), variant: 'danger' })
       return
     }
-    reduxDispatch(apiSlice.util.invalidateTags(['Coordination']))
+    reduxDispatch(apiSlice.util.invalidateTags([
+      workflowCacheTags.ingredientDemand,
+      workflowCacheTags.materialRequestCandidates,
+      workflowCacheTags.purchasePlan,
+      workflowCacheTags.purchaseRequests,
+      workflowCacheTags.documents,
+    ]))
     const skipped = results.length - succeeded.length
     const demandLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.length, 0)
     const shortageLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length, 0)

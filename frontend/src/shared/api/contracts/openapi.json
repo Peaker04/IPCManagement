@@ -1683,6 +1683,47 @@
         }
       }
     },
+    "/api/coordination/weekly-menu/amendments/reconciliation-cases/{reconciliationCaseId}/decision-fan-remediations": {
+      "post": {
+        "tags": [
+          "Coordination"
+        ],
+        "parameters": [
+          {
+            "name": "reconciliationCaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemediateMenuAmendmentDecisionFanRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemediateMenuAmendmentDecisionFanRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemediateMenuAmendmentDecisionFanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/coordination/weekly-menu/amendments/decisions": {
       "get": {
         "tags": [
@@ -23207,9 +23248,12 @@
         "required": [
           "currentStockQty",
           "customerId",
+          "fulfilledQty",
+          "fulfillmentStatus",
           "hasCancelledLine",
           "ingredientId",
           "lineCount",
+          "outstandingQty",
           "priceTierAmount",
           "requestDate",
           "suggestedPurchaseQty",
@@ -23262,6 +23306,17 @@
           "suggestedPurchaseQty": {
             "type": "number",
             "format": "double"
+          },
+          "fulfilledQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "outstandingQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "fulfillmentStatus": {
+            "type": "string"
           },
           "lineCount": {
             "type": "integer",
@@ -31750,6 +31805,22 @@
         ],
         "type": "object",
         "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RemediateMenuAmendmentDecisionFanRequest": {
+        "required": [
+          "commandId",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string"
+          },
           "reason": {
             "type": "string"
           }

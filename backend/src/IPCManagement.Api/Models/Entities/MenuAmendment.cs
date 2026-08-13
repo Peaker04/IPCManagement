@@ -32,6 +32,19 @@ public sealed class MenuAmendmentReconciliationCase
     public string Status { get; set; } = "OPEN";
     public DateTime CreatedAt { get; set; }
     public MenuAmendment MenuAmendment { get; set; } = null!;
+    public ICollection<MenuAmendmentReconciliationRemediation> Remediations { get; set; } = new List<MenuAmendmentReconciliationRemediation>();
+}
+
+public sealed class MenuAmendmentReconciliationRemediation
+{
+    public byte[] MenuAmendmentReconciliationRemediationId { get; set; } = null!;
+    public byte[] MenuAmendmentReconciliationCaseId { get; set; } = null!;
+    public string CommandId { get; set; } = null!;
+    public string EffectiveImpactSnapshotJson { get; set; } = null!;
+    public string Reason { get; set; } = null!;
+    public byte[] CreatedBy { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+    public MenuAmendmentReconciliationCase ReconciliationCase { get; set; } = null!;
 }
 
 public sealed class MenuAmendmentReconciliationCorrection
@@ -39,6 +52,7 @@ public sealed class MenuAmendmentReconciliationCorrection
     public byte[] MenuAmendmentReconciliationCorrectionId { get; set; } = null!;
     public byte[] MenuAmendmentReconciliationCaseId { get; set; } = null!;
     public byte[] ServiceRunId { get; set; } = null!;
+    public byte[]? ServiceRunDecisionItemId { get; set; }
     public string Reason { get; set; } = null!;
     public byte[] CreatedBy { get; set; } = null!;
     public DateTime CreatedAt { get; set; }

@@ -87,6 +87,7 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<MenuAmendmentLine> Menuamendmentlines { get; set; }
     public virtual DbSet<MenuAmendmentReconciliationCase> Menuamendmentreconciliationcases { get; set; }
     public virtual DbSet<MenuAmendmentReconciliationCorrection> Menuamendmentreconciliationcorrections { get; set; }
+    public virtual DbSet<MenuAmendmentReconciliationRemediation> Menuamendmentreconciliationremediations { get; set; }
 
     public virtual DbSet<MenuSchedule> Menuschedules { get; set; }
 

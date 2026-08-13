@@ -2758,6 +2758,47 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/coordination/weekly-menu/amendments/reconciliation-cases/{reconciliationCaseId}/decision-fan-remediations": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly reconciliationCaseId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["RemediateMenuAmendmentDecisionFanRequest"];
+                    readonly "application/json": components["schemas"]["RemediateMenuAmendmentDecisionFanRequest"];
+                    readonly "text/json": components["schemas"]["RemediateMenuAmendmentDecisionFanRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/coordination/weekly-menu/bulk-update": {
         readonly parameters: {
             readonly query?: never;
@@ -11980,11 +12021,16 @@ export interface components {
             readonly customerCode?: string | null;
             readonly customerId: string;
             readonly customerName?: string | null;
+            /** Format: double */
+            readonly fulfilledQty: number;
+            readonly fulfillmentStatus: string;
             readonly hasCancelledLine: boolean;
             readonly ingredientId: string;
             readonly ingredientName?: string | null;
             /** Format: int32 */
             readonly lineCount: number;
+            /** Format: double */
+            readonly outstandingQty: number;
             /** Format: double */
             readonly priceTierAmount: number;
             /** Format: date */
@@ -14462,6 +14508,10 @@ export interface components {
             readonly reason: string;
         };
         readonly RejectSupplementalMaterialRequest: {
+            readonly reason: string;
+        };
+        readonly RemediateMenuAmendmentDecisionFanRequest: {
+            readonly commandId: string;
             readonly reason: string;
         };
         readonly ReplayLifecycleOutboxRequest: {

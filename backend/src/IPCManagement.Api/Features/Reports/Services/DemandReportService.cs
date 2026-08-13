@@ -2,6 +2,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 
@@ -249,8 +250,16 @@ public class DemandReportService : IDemandReportService
 
         var activeGrouped = grouped.Where(group => group.Any(item => item.Request.Status != "CANCELLED"));
         var totalCount = await activeGrouped.CountAsync();
-        var shortageCount = await activeGrouped.CountAsync(group =>
-            group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0);
+        var shortageCount = await activeGrouped.CountAsync(group => group.Sum(item =>
+            item.Request.Status == "EXPORTED"
+                ? item.TotalRequiredQty - (item.Inventoryissuelines
+                    .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                    .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
+                    ? item.TotalRequiredQty - (item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
+                    : 0m
+                : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0m);
         var items = await activeGrouped
             .OrderByDescending(group => group.Key.RequestDate)
             .ThenBy(group => group.Key.IngredientName)
@@ -274,11 +283,30 @@ public class DemandReportService : IDemandReportService
                 CurrentStockQty = group.Sum(item =>
                     item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
                 SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
+                FulfilledQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m
+                    : item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
+                OutstandingQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.TotalRequiredQty - (item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
+                        ? item.TotalRequiredQty - (item.Inventoryissuelines
+                            .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                            .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
+                        : 0m
+                    : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
                 LineCount = group.Count(item => item.Request.Status != "CANCELLED"),
                 // Cancelled history must not mark a successfully regenerated active group as stale.
                 HasCancelledLine = false,
             })
             .ToListAsync();
+
+        foreach (var item in items)
+        {
+            item.FulfillmentStatus = DemandFulfillmentStatus.Resolve(item.FulfilledQty, item.OutstandingQty);
+        }
 
         return new IngredientDemandAggregatePageDto
         {

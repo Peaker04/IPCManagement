@@ -309,6 +309,15 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 |---|---|---|
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/readback.json` | `23004E70868469D9974BA5EB5AA1E833B34C33A82E4A67A8342D8304FEED1FDE` | Readback authoritative `BLOCKED_BEFORE_CORRECTION`: một amendment/case/audit đã append, zero correction, Golden counts không đổi, nhưng pre-fix grouping sinh 120 decision item; correction bị chặn để không đóng sai toàn case. Protected-lane attempts 0. |
 
+## Phase 5 lifecycle fulfillment and amendment remediation — 14/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/lifecycle-fulfillment/readback.json` | `7A3166065AA1F42570EDCBA82DE0422491EEE544507F72482CA1A6689A4BD054` | Headed FE 3032/BE 8031 readback trên exact lane7: readiness tuần, checkpoint 222/222, KPI ngày 37/37 và trạng thái hoàn tất cùng dùng effective lifecycle projection; trusted pointer/keyboard, aggregate GET 200, zero browser error và protected-lane attempts 0. |
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/decision-fan-remediation.sql` | `F682B3878A49123FE0D379DFDC1CF8CF8AE3C2BB9CD6560AE3FB093C604AD049` | Reviewed idempotent SQL cho migration append-only remediation; apply/postflight chỉ exact `ipc_lane7`, head 70. |
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/ipc_lane7-pre-remediation.sql` | `3A64EBBCC152BA7BA3EB49CEE458F9914111801EA0502962C2E075732F545ABC` | Recoverable pre-remediation checkpoint của disposable lane7 trước migration/remediation. |
+| `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/correction/result.json` | `7C9533F2B4A48C6E84CE1F4B27C700560C0A9722D048F988C851108D9633B15A` | Remediation giữ 120 decision lịch sử, append một canonical decision rồi headed Admin correction PASS: exact decision POST 200, case RESOLVED, một linked correction/transition, Golden counts không đổi, protected-lane attempts 0. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |

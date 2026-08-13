@@ -152,13 +152,13 @@ export function MaterialDemandSection({
           </div>
           <div>
             <PackageSearch size={18} aria-hidden="true" />
-            <dt>Nguyên liệu trong ngày</dt>
-            <dd>{status.isDemandError ? 'Chưa xác định' : `${inventoryStatus.totalCount} nguyên liệu`}</dd>
+            <dt>Vật tư đã đáp ứng</dt>
+            <dd>{status.isDemandError ? 'Chưa xác định' : `${inventoryStatus.enoughCount}/${inventoryStatus.totalCount} nguyên liệu`}</dd>
           </div>
           <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : 'is-complete'}>
             <TriangleAlert size={18} aria-hidden="true" />
-            <dt>Ngoại lệ cần xử lý</dt>
-            <dd>{status.isDemandError ? 'Chưa xác định được' : inventoryStatus.shortageCount > 0 ? `Thiếu ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount} nguyên liệu` : 'Không có thiếu hụt'}</dd>
+            <dt>Phần còn phải xử lý</dt>
+            <dd>{status.isDemandError ? 'Chưa xác định được' : inventoryStatus.shortageCount > 0 ? `Còn thiếu ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount} nguyên liệu` : 'Đã hoàn tất vật tư'}</dd>
           </div>
         </dl>
 
@@ -298,7 +298,7 @@ export function MaterialDemandSection({
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <span className="text-xs font-medium text-slate-500">Phạm vi ngày đang xem: thiếu {inventoryStatus.shortageCount}/{inventoryStatus.totalCount}; đủ {inventoryStatus.enoughCount}; cần tính lại {inventoryStatus.staleCount}</span>
+                <span className="text-xs font-medium text-slate-500">Phạm vi ngày đang xem: đã đáp ứng {inventoryStatus.enoughCount}/{inventoryStatus.totalCount}; còn thiếu {inventoryStatus.shortageCount}; cần tính lại {inventoryStatus.staleCount}</span>
               </div>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>

@@ -75,11 +75,32 @@ internal sealed class MenuAmendmentReconciliationCorrectionConfiguration : IEnti
         entity.HasKey(item => item.MenuAmendmentReconciliationCorrectionId).HasName("PRIMARY");
         entity.ToTable("menuamendmentreconciliationcorrections");
         entity.HasIndex(item => new { item.MenuAmendmentReconciliationCaseId, item.CreatedAt }, "ixMenuAmendmentReconciliationCorrectionsCaseCreatedAt");
+        entity.HasIndex(item => item.ServiceRunDecisionItemId, "uqMenuAmendmentReconciliationCorrectionsDecision").IsUnique();
         entity.Property(item => item.MenuAmendmentReconciliationCorrectionId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationCorrectionId");
         entity.Property(item => item.MenuAmendmentReconciliationCaseId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationCaseId");
         entity.Property(item => item.ServiceRunId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunId");
+        entity.Property(item => item.ServiceRunDecisionItemId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunDecisionItemId");
         entity.Property(item => item.Reason).HasColumnType("text").HasColumnName("reason");
         entity.Property(item => item.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
         entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+    }
+}
+
+internal sealed class MenuAmendmentReconciliationRemediationConfiguration : IEntityTypeConfiguration<MenuAmendmentReconciliationRemediation>
+{
+    public void Configure(EntityTypeBuilder<MenuAmendmentReconciliationRemediation> entity)
+    {
+        entity.HasKey(item => item.MenuAmendmentReconciliationRemediationId).HasName("PRIMARY");
+        entity.ToTable("menuamendmentreconciliationremediations");
+        entity.HasIndex(item => item.CommandId, "uqMenuAmendmentReconciliationRemediationsCommand").IsUnique();
+        entity.HasIndex(item => new { item.MenuAmendmentReconciliationCaseId, item.CreatedAt }, "ixMenuAmendmentReconciliationRemediationsCaseCreatedAt");
+        entity.Property(item => item.MenuAmendmentReconciliationRemediationId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationRemediationId");
+        entity.Property(item => item.MenuAmendmentReconciliationCaseId).HasMaxLength(16).IsFixedLength().HasColumnName("menuAmendmentReconciliationCaseId");
+        entity.Property(item => item.CommandId).HasMaxLength(80).HasColumnName("commandId");
+        entity.Property(item => item.EffectiveImpactSnapshotJson).HasColumnType("longtext").HasColumnName("effectiveImpactSnapshotJson");
+        entity.Property(item => item.Reason).HasColumnType("text").HasColumnName("reason");
+        entity.Property(item => item.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
+        entity.Property(item => item.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+        entity.HasOne(item => item.ReconciliationCase).WithMany(item => item.Remediations).HasForeignKey(item => item.MenuAmendmentReconciliationCaseId).OnDelete(DeleteBehavior.Restrict);
     }
 }

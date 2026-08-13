@@ -34,3 +34,27 @@ public sealed record LifecycleOutboxHealth(
     int FailedCount,
     int PoisonCount,
     DateTime? OldestPendingAt);
+
+public static class DemandFulfillmentStatus
+{
+    public const string Missing = "MISSING";
+    public const string InProgress = "IN_PROGRESS";
+    public const string Fulfilled = "FULFILLED";
+
+    public static string Resolve(decimal fulfilledQuantity, decimal outstandingQuantity)
+        => outstandingQuantity <= 0m
+            ? Fulfilled
+            : fulfilledQuantity > 0m
+                ? InProgress
+                : Missing;
+}
+
+public static class DecisionCorrectionCompletionPolicy
+{
+    public static bool IsComplete(IEnumerable<string> effectiveDecisionIds, IEnumerable<string> correctedDecisionIds)
+    {
+        var corrected = correctedDecisionIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var effective = effectiveDecisionIds.ToArray();
+        return effective.Length > 0 && effective.All(corrected.Contains);
+    }
+}

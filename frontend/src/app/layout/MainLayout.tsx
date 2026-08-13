@@ -7,6 +7,8 @@ import { logoutSession } from '@/app/session/logoutSession';
 import { ROUTES } from '@/lib/routeConfig';
 import { preloadRoute, preloadRouteData } from '@/routes/routeLoaders';
 import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig';
+import { apiSlice } from '@/api/apiSlice';
+import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
 import {
   ChefHat,
@@ -71,6 +73,8 @@ export const MainLayout = () => {
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const activeRequestCount = useAppSelector((state) => Object.values(state.api.queries)
+    .filter((query) => query?.status === 'pending').length);
 
   const handleLogout = async () => {
     await logoutSession(dispatch, store.getState);
@@ -127,7 +131,7 @@ export const MainLayout = () => {
       case ROUTES.DASHBOARD:
         return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan vận hành', state: 'Theo dõi điểm tắc' };
       case ROUTES.WEEKLY_MENU:
-        return { title: 'KHSX và định lượng', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'KHSX và định lượng', workflow: workflowContext.lane.label, state: activeRequestCount > 0 ? 'Đang cập nhật dữ liệu' : 'Dữ liệu đã cập nhật' };
       case ROUTES.MEAL_ORDERS:
         return { title: 'Điều phối suất ăn', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.CHEF_DASHBOARD:
@@ -152,6 +156,11 @@ export const MainLayout = () => {
   const serviceDate = serviceDateFormatter.format(new Date());
   const showHeaderState = location.pathname !== ROUTES.MEAL_ORDERS;
   const statusTone = toneFromStatus(pageContext.state);
+  const refreshWeeklyMenu = () => dispatch(apiSlice.util.invalidateTags([
+    workflowCacheTags.ingredientDemand,
+    workflowCacheTags.documents,
+    workflowCacheTags.productionPlans,
+  ]));
 
   return (
     <div className="ipc-app-shell ipc-redesign-shell">
@@ -260,10 +269,17 @@ export const MainLayout = () => {
               owner={workflowContext.lane.owner}
             />
             {showHeaderState && (
-              <div className={`ipc-status-pill is-${statusTone}`}>
-                <span className="ipc-status-dot" />
-                <span>{pageContext.state}</span>
-              </div>
+              location.pathname === ROUTES.WEEKLY_MENU ? (
+                <button type="button" className={`ipc-status-pill is-${statusTone}`} onClick={refreshWeeklyMenu} title="Làm mới dữ liệu kế hoạch tuần">
+                  <span className="ipc-status-dot" />
+                  <span>{pageContext.state}</span>
+                </button>
+              ) : (
+                <div className={`ipc-status-pill is-${statusTone}`}>
+                  <span className="ipc-status-dot" />
+                  <span>{pageContext.state}</span>
+                </div>
+              )
             )}
           </div>
         </header>

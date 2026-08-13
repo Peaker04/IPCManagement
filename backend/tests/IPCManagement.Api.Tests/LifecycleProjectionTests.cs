@@ -16,4 +16,14 @@ public sealed class LifecycleProjectionTests
         line.AvailableForIssue.Should().Be(7m);
         line.UnresolvedDemand.Should().Be(2m);
     }
+
+    [Fact]
+    public void DecisionCorrectionCompletion_Should_RequireEveryEffectiveDecision()
+    {
+        DecisionCorrectionCompletionPolicy.IsComplete(["decision-1", "decision-2"], ["decision-1"])
+            .Should().BeFalse();
+        DecisionCorrectionCompletionPolicy.IsComplete(["decision-1", "decision-2"], ["decision-2", "decision-1"])
+            .Should().BeTrue();
+        DecisionCorrectionCompletionPolicy.IsComplete([], []).Should().BeFalse();
+    }
 }

@@ -11,6 +11,7 @@ export type WeeklyMenuReadinessInput = {
   missingBomCount: number
   invalidBomTierCount: number
   demandMaterialCount: number
+  demandShortageCount: number
 }
 
 export type WeeklyMenuReadinessCheckpoint = {
@@ -43,6 +44,7 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     missingBomCount,
     invalidBomTierCount,
     demandMaterialCount,
+    demandShortageCount,
   } = input
 
   const bomIssueParts = [
@@ -75,9 +77,11 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
       value: hasDemandIssue
         ? 'Không tải được'
         : demandMaterialCount > 0
-          ? `${demandMaterialCount} dòng ngày–nguyên liệu`
+          ? demandShortageCount > 0
+            ? `Còn thiếu ${demandShortageCount}/${demandMaterialCount}`
+            : `Đã đáp ứng ${demandMaterialCount}/${demandMaterialCount}`
           : 'Chưa tính',
-      state: checkpointState(demandMaterialCount > 0, hasDemandIssue, 'danger'),
+      state: checkpointState(demandMaterialCount > 0, hasDemandIssue || demandShortageCount > 0, 'danger'),
     },
   ]
 
@@ -105,5 +109,8 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
   if (demandMaterialCount === 0) {
     return { label: 'Sẵn sàng tính nhu cầu', detail: 'Thực đơn, số lượng khách và BOM đã đầy đủ.', tone: 'info', checkpoints }
   }
-  return { label: 'Dữ liệu tuần sẵn sàng', detail: `${demandMaterialCount} dòng ngày–nguyên liệu đã được tổng hợp cho thu mua.`, tone: 'success', checkpoints }
+  if (demandShortageCount > 0) {
+    return { label: 'Còn nguyên liệu cần xử lý', detail: `${demandShortageCount}/${demandMaterialCount} dòng ngày–nguyên liệu chưa được đáp ứng theo lifecycle.`, tone: 'warning', checkpoints }
+  }
+  return { label: 'Vật tư tuần đã được đáp ứng', detail: `${demandMaterialCount}/${demandMaterialCount} dòng ngày–nguyên liệu đã hoàn tất cấp phát.`, tone: 'success', checkpoints }
 }

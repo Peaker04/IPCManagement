@@ -119,13 +119,16 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
   `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
   counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài
-  bộ lọc, báo số thay đổi chờ lưu và không còn mất draft khi gõ lý do. Correction đang bị chặn:
-  create chạy bằng code cũ đã append 120 decision item do group `byte[]` theo tham chiếu và thiếu ngày;
-  correction count vẫn 0 vì resolve một item sẽ đóng toàn case sai. Production grouping đã sửa theo
-  customer string + ngày + ca + mức giá, focused backend 2/2 và frontend 7/7 pass, hai build pass.
-  Cần remediation append-only cho hồ sơ over-fan hiện hữu; không xóa/rewrite 120 item và không execute
-  correction trước remediation. Runtime BE PID 31400, exact lane7/head 69; readiness Degraded chỉ vì
-  outbox relay tắt.
+  bộ lọc, báo số thay đổi chờ lưu và không còn mất draft khi gõ lý do. Over-fan đã được remediation
+  append-only trước correction: migration head 70 chỉ apply exact `ipc_lane7`; 120 decision lịch sử giữ
+  nguyên, append một remediation + một canonical decision đúng ANV `2026-08-10 / AFTERNOON / 25k /
+  Cá hố`, rồi headed Admin correction exact decision POST 200. Case nay RESOLVED với một linked
+  correction/transition; Golden menu/demand/purchase/receipt/issue counts không đổi, protected-lane attempt 0.
+  Effective lifecycle demand projection đã sửa sai lệch sau xuất: `suggestedPurchaseQty` vẫn là evidence
+  lúc sinh nhu cầu, còn fulfilled/outstanding lấy từ issue đã bếp nhận. Headed FE 3032/BE 8031 chứng minh
+  readiness tuần 222/222, ngày 14/08 ANV 37/37, KPI/badge/header cùng nhất quán, zero browser error.
+  Hash nằm ở `docs/EVIDENCE-INDEX.md`. Tiếp theo: kitchen discrepancy, ambiguous lineage, shared
+  shortage/blocked allocation và retry matrix.
 
 - Database unit investigation and whole-day E2E audit (12/08): read-only proof on
   `ipc_dev_warehouse_20260812` confirms the warehouse-clean baseline is correct: current stock, receipt, issue,

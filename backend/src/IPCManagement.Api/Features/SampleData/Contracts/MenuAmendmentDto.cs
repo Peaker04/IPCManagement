@@ -60,6 +60,20 @@ public sealed class MenuAmendmentDecisionCommandRequest
     public string Reason { get; set; } = string.Empty;
 }
 
+public sealed class RemediateMenuAmendmentDecisionFanRequest
+{
+    public string CommandId { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class MenuAmendmentDecisionRemediationDto
+{
+    public string ReconciliationCaseId { get; set; } = string.Empty;
+    public string RemediationId { get; set; } = string.Empty;
+    public int PreservedDecisionCount { get; set; }
+    public int EffectiveDecisionCount { get; set; }
+}
+
 public sealed class MenuAmendmentDecisionScopeDto
 {
     public string DecisionItemId { get; set; } = string.Empty;

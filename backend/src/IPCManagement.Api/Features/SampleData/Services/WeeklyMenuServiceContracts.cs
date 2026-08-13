@@ -109,6 +109,7 @@ public interface IMenuAmendmentService
     Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentResultDto> BreakGlassExecuteAsync(string amendmentId, BreakGlassMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentDecisionItemDto> ExecuteDecisionAsync(string decisionItemId, MenuAmendmentDecisionCommandRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentDecisionRemediationDto> RemediateDecisionFanAsync(string reconciliationCaseId, RemediateMenuAmendmentDecisionFanRequest request, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentDecisionPageDto> GetDecisionPageAsync(string? customerId, bool allCustomers, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default);
 }

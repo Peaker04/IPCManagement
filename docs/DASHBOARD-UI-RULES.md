@@ -321,6 +321,23 @@ html { scrollbar-gutter: stable; }
 - **F10 (MUST)** Trước khi tối ưu phải **đo**; PR tối ưu hiệu năng MUST ghi số liệu trước/sau (thời gian render, số lần re-render, kích thước bundle).
 - **F11 (SHOULD)** Đặt ngưỡng chặn merge cho kích thước bundle mỗi route trong CI.
 
+### F.1 Trạng thái truy vấn và làm mới dữ liệu
+
+- **F12 (MUST)** Tách ba lớp trạng thái: trạng thái quy trình từ server, trạng thái suy diễn ở client,
+  và trạng thái tải của query. Không dùng `isFetching` để thay badge nghiệp vụ.
+- **F13 (MUST)** Không reload tài liệu để làm mới. Điều hướng nội bộ giữ cache còn hạn; skeleton chỉ
+  dành cho lần tải đầu. Khi refetch phải giữ dữ liệu cũ, hình học và vị trí cuộn.
+- **F14 (MUST)** Mutation chỉ invalidates exact entity/list/query families liên quan. Cấm invalidation
+  broad theo một domain type nếu nó đánh thức các query không liên quan.
+- **F15 (MUST)** Query arguments phải ổn định; request cũ không được ghi đè mutation mới. Polling hoặc
+  realtime phải tạm dừng khi tab ẩn và khi người dùng đang chỉnh sửa.
+- **F16 (MUST)** Mỗi query phải được phân loại A (biến động cao), B (tổng hợp), hoặc C (tham chiếu),
+  với TTL/poll policy khai báo tại một shared config. Không tự đặt chu kỳ trong page/component.
+- **F17 (MUST)** Chỉ số hiệu năng lấy từ production build. Request budget nhàn rỗi là tham số dự án có
+  tên; chưa có tham số và phép đo thì verdict phải là `NEEDS_EVIDENCE`, không được đoán PASS.
+- **F18 (SHOULD)** Danh sách cập nhật thường xuyên chuẩn hóa theo ID và giữ stable row references; khi
+  một bản ghi đổi, regression phải chứng minh các hàng không đổi không render lại.
+
 ---
 
 ## E. Trạng thái hệ thống: đang tải, rỗng, lỗi
