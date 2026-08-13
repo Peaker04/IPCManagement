@@ -337,6 +337,26 @@ html { scrollbar-gutter: stable; }
   tên; chưa có tham số và phép đo thì verdict phải là `NEEDS_EVIDENCE`, không được đoán PASS.
 - **F18 (SHOULD)** Danh sách cập nhật thường xuyên chuẩn hóa theo ID và giữ stable row references; khi
   một bản ghi đổi, regression phải chứng minh các hàng không đổi không render lại.
+- **F19 (MUST)** Ứng dụng phải có một cụm độ tươi dữ liệu dùng chung ở cấp shell: trạng thái đồng bộ,
+  thời điểm cập nhật gần nhất và hành động `Làm mới`. Hành động này chỉ refetch query liên quan, không
+  reload tài liệu; page/component không tự đặt thêm nút làm mới cạnh tranh với cụm dùng chung.
+- **F20 (MUST)** Tự động làm mới phải tạm dừng khi tab ẩn, modal/panel chỉnh sửa đang mở, focus nằm trong
+  control nhập liệu, hoặc đang có chọn nhiều/kéo thả. Khi tạm dừng, UI phải nói rõ `Đang tạm dừng`; khi
+  tab hiện lại chỉ refetch một lần rồi trở về nhịp bình thường.
+- **F21 (MUST)** Trong lúc mutation đang chạy, huỷ request đọc đang bay của cùng query và dừng refresh
+  cycle. Chỉ resume/invalidate sau mutation cuối cùng; response đọc cũ không được phép ghi đè trạng thái
+  vừa lưu. Mutation thất bại phải rollback optimistic state và giải thích bằng ngôn ngữ người dùng.
+- **F22 (MUST)** Mất kết nối hoặc refetch lỗi phải giữ dữ liệu cuối cùng, đánh dấu dữ liệu đã cũ và hiển
+  thị thời điểm/lần thử lại. Retry dùng backoff có giới hạn từ shared config; cấm hiển thị số cũ như thể
+  vẫn đang đồng bộ bình thường.
+- **F23 (SHOULD)** Ở trạng thái nhàn rỗi, request budget phải được đo theo màn hình trong production build.
+  Nếu vượt ngân sách, kiểm tra exact invalidation, query-argument identity và polling class trước khi cân
+  nhắc realtime. Chỉ nâng từ polling/version validation lên delta hoặc server push khi số đo chứng minh bậc
+  hiện tại không đáp ứng độ trễ nghiệp vụ.
+- **F24 (MUST)** Mọi verdict refresh/performance phải có số đo tái lập, tối thiểu gồm: navigation type,
+  request khi quay lại cache còn hạn, skeleton count lúc refetch, container delta, request khi modal mở,
+  request sau một mutation, request khi tab ẩn và số row render lại. Không đo được phải ghi
+  `NEEDS_EVIDENCE`, không kết luận bằng cảm nhận hoặc screenshot.
 
 ---
 

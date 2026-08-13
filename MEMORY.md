@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-13
+updated: 2026-08-14
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -14,8 +14,8 @@ db_lane: ipc_lane9
 warehouse_cleanup_lane: ipc_dev_warehouse_20260812
 e2e_lane: ipc_lane7
 e2e_runtime:
-  frontend: 3030
-  api: 8030
+  frontend: 3036
+  api: 8036
 credentials_via: IPC_LANE7_<ROLE>_PASSWORD
 workbook:
   path: 'C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx'
@@ -25,9 +25,10 @@ workbook:
 # Memory hiện hành
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
-lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed mới nhất dùng `3010/8010` với
-`ipc_lane9`, health/ready pass rồi đã teardown. Runtime warehouse development hiện đang mở tại
-`3020/8020`, trỏ `ipc_dev_warehouse_20260812`; Chrome profile riêng nằm trong artifact run.
+lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 hiện giữ run-owned FE `3036` PID 32588
+và BE `8036` PID 32448 trên exact `ipc_lane7`, migration head 70; chỉ teardown hai PID này sau closeout.
+PID API 3580 là process ngoài run, không được kill. Runtime warehouse development `3020/8020` nếu còn
+mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
 ## Memory ngắn cho phiên tiếp theo
 
@@ -41,6 +42,10 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
    `AGENTS.md` và chạy graph evidence. Nếu không, dùng source/test và gate GSD phù hợp, cùng secret scan
    và `git diff --check`.
 8. Sau mỗi chuỗi thay đổi/E2E đáng kể, cập nhật front matter, evidence, gate và phần còn mở; việc đã đóng phải xóa khỏi file này và append sang `HISTORY.md`.
+9. Rule refresh/performance từ `.docs/dashboard-state-refresh-rules.md` đã được hợp nhất vào canonical
+   `docs/DASHBOARD-UI-RULES.md` F12–F24: tách server/client/query state, không document reload, exact
+   invalidation, stable args, shared polling class, freshness ở shell, pause khi người dùng đang thao tác,
+   chống stale-response race, offline/backoff trung thực và verdict bắt buộc có số đo.
 
 ## Bất biến
 
@@ -139,13 +144,15 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   allocation disposition giữ 1, closed ServiceRun giữ 0, physical pointer/keyboard trusted và
   protected-lane attempts 0. Các attempt A/B/D lỗi parser, SQL alias và thiếu Bearer được giữ nguyên,
   không cleanup/rewrite. Aggregate exception allow-list PASS; hash chỉ ở `docs/EVIDENCE-INDEX.md`.
-  Closeout chưa được phép tạo top-level manifest/SUMMARY hoặc teardown: full backend hiện `939 pass / 5 fail /
-  1 intentional skip` do SQLite receipt fixture thiếu `purchaseOrderLineId`, PurchaseOrder compatibility-key
-  expectation cũ và hai Phase 4.2 immutable archive/policy gates; full frontend `805 pass / 19 fail` do các
-  source-inventory/count-lock expectation cũ, còn emitted-asset leakage thấy 53 sourcemap ignored từ 11/08.
-  Current-source build PASS, full ESLint PASS sau khi chuyển dish-label helper sang shared `scheduleModel`, và
-  focused schedule/warehouse `4/4` PASS. Tiếp theo remediation đúng các regression gate kéo theo; không chạy lại
-  Golden/retry fixture và không nới oracle lịch sử để làm xanh giả.
+  Closeout remediation trên working tree đã đưa full backend về `944 pass / 1 intentional skip`, full frontend
+  về `152 files / 853 tests`, full ESLint, frontend production build, source-ownership `17/17`, PC disposition
+  `6/6` và operational registry `28/28` PASS. D-01 đã được khôi phục: `Xuất bản tuần` chỉ Admin thấy;
+  Manager/Coordinator có zero publish control. Leakage gate nay quét Vite manifest closure và sourcemap thực sự
+  được asset hiện hành tham chiếu, vẫn fail nếu source leakage tồn tại nhưng không đếm orphan map cũ. Backend
+  Release build vào `bin/Release` bị PID 3580 ngoài run khóa DLL/EXE; không kill process đó. Tiếp theo build vào
+  output cô lập, chạy EF pending-model, OpenAPI deterministic/parity, aggregate exception validate-only và hygiene.
+  Chỉ khi tất cả PASS mới tạo top-level manifest/SUMMARY, commit remediation và teardown PID 32448/32588;
+  không chạy lại Golden/retry fixture và không nới oracle lịch sử để làm xanh giả.
   Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
   `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
   counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài
