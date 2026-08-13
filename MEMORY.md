@@ -92,6 +92,13 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
   0,06484; Chef navigation có một long task 56ms. 16 bảng conditional chưa render không được tính PASS. Preview
   3046 đã teardown; FE 3036 PID 34048 và BE 8036 PID 32124 vẫn phục vụ Kỳ. Evidence/hash chỉ ở index.
 
+- Phase 3 shell-refresh follow-up: `MainLayout` không còn subscribe toàn bộ RTK Query store để đổi nhãn badge
+  header theo mọi request con. Header Weekly Menu giữ ngữ cảnh ổn định `Theo dõi kế hoạch tuần`; trạng thái refresh
+  thật vẫn nằm tại query boundary của đúng work area. Cache-navigation đo MainLayout render `5 → 3` (gate `≤4`),
+  mỗi endpoint intent-prefetch đúng một request, warm return không refetch và CLS `0,0384`. Shared query/table
+  regression `68/68`, ESLint và production build PASS. Tiếp theo vẫn phải disposition 16 bảng conditional chưa
+  render trong live fixture; không suy rộng 35 instance đã đo thành 51/51.
+
 - Phase 5 Plan 05-04 đã hoàn tất ngày 2026-08-14. Top-level manifest PASS, hash authoritative ở
   `docs/EVIDENCE-INDEX.md`; full regression/build/EF/OpenAPI/hygiene xanh, protected-lane attempt 0 và
   runtime `3036/8036` đã teardown đúng owner. Không reset/seed/import lại ANV/DAV tuần `2026-08-10`;

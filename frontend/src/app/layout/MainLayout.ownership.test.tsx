@@ -25,4 +25,9 @@ describe('MainLayout ownership and behavior contract', () => {
     expect(currentLayoutSource).not.toContain('scheduleNextRoute');
     expect(currentLayoutSource).not.toContain('visibleMenuItems[nextRouteIndex]');
   });
+
+  it('does not rerender the app shell for every feature query transition', () => {
+    expect(currentLayoutSource).not.toContain('Object.values(state.api.queries)');
+    expect(currentLayoutSource).not.toContain('activeRequestCount');
+  });
 });

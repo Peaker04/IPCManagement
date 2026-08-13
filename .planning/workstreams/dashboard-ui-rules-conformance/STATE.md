@@ -8,7 +8,7 @@ status: in_progress
 stopped_at: Phase 3 Wave 2 table geometry and intent-preload foundation committed; conditional table query/refetch coverage remains.
 last_updated: "2026-08-14T04:20:00+07:00"
 last_activity: 2026-08-14
-last_activity_desc: "Applied fixed layout to both table primitives, removed idle all-route preload, and measured 44 production route/tab probes on exact lane7."
+last_activity_desc: "Applied fixed layout to both table primitives, removed idle all-route preload and global query-store shell subscription, then measured table and cache-navigation stability."
 progress:
   total_phases: 3
   completed_phases: 1
@@ -65,7 +65,7 @@ Progress: [█████████░] 83% (UIMA-03 remains blocked)
 ### Pending Todos
 
 - Cover the 16 inventory tables not rendered by the current live data/tab fixture and disposition their initial/background refresh behavior.
-- Attribute the repeated cache-navigation 5-render result (existing threshold 4) and the Chef navigation 56ms long task before changing production owners.
+- Attribute the Chef navigation 56ms long task before changing that production owner; cache-navigation shell render is resolved at 3 (gate ≤4).
 - Route gzip closure remains over all ten checked-in budgets; do not raise budgets without an approved baseline.
 
 ### Blockers/Concerns

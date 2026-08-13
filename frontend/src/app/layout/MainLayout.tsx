@@ -65,8 +65,6 @@ export const MainLayout = () => {
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const activeRequestCount = useAppSelector((state) => Object.values(state.api.queries)
-    .filter((query) => query?.status === 'pending').length);
 
   const handleLogout = async () => {
     await logoutSession(dispatch, store.getState);
@@ -87,7 +85,7 @@ export const MainLayout = () => {
       case ROUTES.DASHBOARD:
         return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan vận hành', state: 'Theo dõi điểm tắc' };
       case ROUTES.WEEKLY_MENU:
-        return { title: 'KHSX và định lượng', workflow: workflowContext.lane.label, state: activeRequestCount > 0 ? 'Đang cập nhật dữ liệu' : 'Dữ liệu đã cập nhật' };
+        return { title: 'KHSX và định lượng', workflow: workflowContext.lane.label, state: 'Theo dõi kế hoạch tuần' };
       case ROUTES.MEAL_ORDERS:
         return { title: 'Điều phối suất ăn', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.CHEF_DASHBOARD:
