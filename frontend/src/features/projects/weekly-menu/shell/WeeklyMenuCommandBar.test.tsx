@@ -50,6 +50,33 @@ describe('WeeklyMenuCommandBar select labels', () => {
   })
 })
 
+it('keeps the active week independent from customer selection', async () => {
+  const user = userEvent.setup()
+  const onCustomerChange = vi.fn()
+  const onWeekChange = vi.fn()
+  render(
+    <WeeklyMenuCommandBar
+      customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'AMANN' }]}
+      selectedCustomerId=""
+      weekStartDate="2026-08-10"
+      isCustomerLoading={false}
+      isImporting={false}
+      onEdit={vi.fn()}
+      onImport={vi.fn()}
+      onExport={vi.fn()}
+      onCustomerChange={onCustomerChange}
+      onWeekChange={onWeekChange}
+    />,
+  )
+
+  await user.click(screen.getByRole('combobox'))
+  await user.click(await screen.findByRole('option', { name: 'ANV - AMANN' }))
+
+  expect(onCustomerChange).toHaveBeenCalledWith('customer-1')
+  expect(onWeekChange).not.toHaveBeenCalled()
+  expect(screen.getByRole('textbox', { name: 'Tuần bắt đầu' })).toHaveValue('10/08/2026')
+})
+
 it('offers a guarded publish action for a draft weekly menu', async () => {
   const user = userEvent.setup()
   const onPublish = vi.fn()

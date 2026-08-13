@@ -1,7 +1,11 @@
 <!-- generated-by: gsd-doc-writer -->
 # Kiến trúc hệ thống
 
-Tổng quan nghiệp vụ và bốn vai trò vận hành nằm tại [DOMAIN.md](DOMAIN.md). Contract phân biệt dữ liệu theo ngày, tuần, snapshot, chứng từ và audit event được duy trì tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md). Mọi bảng nguyên liệu và phép aggregate mới phải tuân theo ma trận này. Chuỗi kiểm chứng và nguyên tắc phân xử lỗi giữa UI, FE, API và Database nằm tại [UI-UX-FE-BE-DATABASE-STANDARDIZATION.md](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md).
+Tổng quan nghiệp vụ và bốn vai trò vận hành nằm tại [DOMAIN.md](DOMAIN.md). Nguyên tắc UI/UX project-specific
+nằm tại [UI-PHILOSOPHY.md](UI-PHILOSOPHY.md), rule chi tiết tại [DASHBOARD-UI-RULES.md](DASHBOARD-UI-RULES.md),
+và contract phân biệt dữ liệu theo ngày, tuần, snapshot, chứng từ và audit event tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md).
+Mọi bảng nguyên liệu và phép aggregate mới phải tuân theo ma trận này. Chuỗi kiểm chứng và nguyên tắc phân xử lỗi
+giữa UI, FE, API và Database nằm tại [UI-UX-FE-BE-DATABASE-STANDARDIZATION.md](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md).
 
 ## Tổng quan
 
@@ -155,3 +159,11 @@ trả lại `Location` hợp lệ cho response create. `MaterialDemandService.Ge
 `MaterialStockPool` để quy đổi và tiêu thụ cùng một tồn kho dùng chung theo đơn vị BOM, tránh phân bổ lặp
 cùng lượng tồn cho nhiều demand line. API route, OpenAPI/generated TypeScript, public hook, cache key/tag
 và UI behavior không đổi.
+
+Receipt lifecycle uses immutable purchase-order source-line identity. A `PurchaseReceiptActiveLine` lease has a
+unique primary key per `PurchaseOrderLineId`, so only one receipt in `DRAFT`, `PENDING_APPROVAL` or `APPROVED`
+can own a line at once; `POSTED`, full quality rejection and audited `VOIDED` release the lease. The application
+also reads active legacy receipt lines as a fallback until they are reconciled, while the database fence resolves
+concurrent writes. The Warehouse UI receives the active receipt code/status and disables duplicate receive actions.
+`VOIDED` is an append-only pre-POSTED remediation transition requiring an Admin reason, audit log and lifecycle
+command; it never produces stock movement and must not be replaced with direct SQL deletion.

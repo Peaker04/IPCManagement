@@ -14,8 +14,8 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
   return (
     <>
       <Dialog open={state.isOpen} onOpenChange={actions.onOpenChange}>
-        <DialogContent aria-label="Nhập thực đơn từ Excel" className="ipc-weekly-dialog max-w-6xl overflow-hidden">
-          <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
+        <DialogContent aria-label="Nhập thực đơn từ Excel" className="ipc-weekly-dialog max-w-6xl">
+          <DialogHeader className="static flex flex-row items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <DialogTitle className="text-lg font-bold text-slate-900">Nhập thực đơn từ Excel</DialogTitle>
             <Button type="button" variant="outline" size="xs" onClick={actions.close} aria-label="Đóng modal nhập thực đơn" title="Đóng">
               <X size={16} /><span>Đóng</span>
@@ -45,7 +45,7 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
             <WeeklyMenuImportHistory workflow={workflow} />
             <WeeklyMenuImportReview workflow={workflow} />
           </div>
-          <DialogFooter className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <DialogFooter className="static mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
             <div className="text-sm font-medium text-slate-600">
               {state.jobs.length === 0 ? 'Thêm ít nhất một khách hàng và file Excel để bắt đầu' : `${readyJobs.length}/${state.jobs.length} file đã kiểm tra xong`}
             </div>

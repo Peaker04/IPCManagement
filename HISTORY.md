@@ -6,6 +6,17 @@ evidence cũ; không dùng bất kỳ trạng thái hay quality-gate lịch sử
 `MEMORY.md`. Phần bên dưới được nhập nguyên vẹn một lần từ handoff cũ; từ sau mốc tách này
 chỉ được append, không viết lại số cũ.
 
+## 2026-08-13 · Phase 5 Task 0 canonical weekly-menu import
+
+- Tạo checkpoint mới của exact `ipc_lane7` ngoài repo và restore-test thành công vào database disposable mới trước
+  cleanup. Cleanup giữ schema/migration và approved master, chỉ giữ khách hàng ANV/DAV, xóa toàn bộ lịch sử
+  menu/giao dịch/lifecycle/audit cũ và không kết nối protected lane.
+- Chuẩn hóa workbook về đúng ba sheet `25k`, `30k`, `34k`; customer/week/tier lấy từ UI; alias có prefix khách
+  hàng bị từ chối. Preview token khóa thêm parser version và batch commit chỉ mở khi mọi file hợp lệ.
+- Headed preview và atomic batch commit tạo Golden tuần 17/08/2026 cho ANV/DAV; mỗi khách 12 schedule, 96 món và
+  tier 25k. Headed reload readback pass. Trong gate phát hiện và sửa amendment inbox gọi query khi chưa có scope,
+  loại bỏ 422/console error. Hash authoritative nằm ở evidence index; runtime owned đã teardown.
+
 ## Dashboard UI Rules Conformance closeout ngày 11/08/2026
 
 - Workstream một phase/ba wave đã đóng toàn bộ 19 GAP của `DASHBOARD-UI-RULES-AUDIT.md`; 118
@@ -1560,3 +1571,138 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Mục closeout ngày 10/08 ở trên được giữ nguyên như lịch sử trước re-verification. Task 13 sau đó đã retire ba selector aggregate legacy trước mọi manifest/default/command/write, xóa Finance/Catalog PASS path và bổ sung runner self-scan; active D-03/D-04/D-05/gap modes không đổi.
 - Independent `04.2-VERIFICATION.md` hiện pass 7/7, zero gap/override/regression; focused Phase42 64/64, aggregate 20/20 gate và DCR-01..09 + VER-03 10/10. Restore/retention receipt cũ được đọc lại bằng hash, không rerun restore/retention và không chạm database/runtime/provider/`ipc_lane1`.
 - Phase 4.2 khép lại đúng 5 plan/3 wave, không Plan 06/Wave 4. Phase 5 Service-run integration đã unblocked và sẵn sàng discuss/plan review; addendum này không execute Phase 5.
+
+## UI/UX rule adoption docs-only ngày 12/08/2026
+
+- Tạo [`docs/UI-PHILOSOPHY.md`](docs/UI-PHILOSOPHY.md) làm điểm vào project-specific: nguyên tắc theo công việc
+  vận hành, query state, permission/action, dữ liệu hiển thị, layout, accessibility, owner code và quy trình verify.
+- Tạo [`docs/GLOSSARY.md`](docs/GLOSSARY.md) làm từ điển nhãn UI; cập nhật [`docs/DASHBOARD-UI-RULES.md`](docs/DASHBOARD-UI-RULES.md)
+  từ `planning-input` thành `adopted-contract` nhưng vẫn giữ phân biệt giữa contract và bằng chứng tuân thủ.
+- Đồng bộ các entrypoint trong `docs/ARCHITECTURE.md`, `docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`,
+  `docs/UI-UX-MEASUREMENT-PROTOCOL.md` và `frontend/README.md`; loại liên kết tới nguồn `.docs` cũ.
+- Chỉ thay đổi tài liệu. Markdown link scan, secret scan và `git diff --check` pass; không chạy lại `docs/ui-audit-kit`.
+
+## Phase 5 purchasing evidence continuation — 12/08/2026
+
+- Với scope `P5E2E0812SAFE` trên `ipc_lane9`, Admin đã tạo/đọc báo giá lịch sử có exact ingredient match,
+  sau đó Kỳ chốt ngày giao `2026-08-13`. Chrome headed Purchasing xác nhận supplier evidence, giá và ngày giao
+  cho 26 source-line của `PR-20260812-FULLDAY`; reload trả supplier-ready `26/38`, PR giữ `DRAFT` đúng rule.
+- 12 source-line (`Bột nở`, `Chuối`, `Da heo`, `Nạc đùi mông`, `Nấm mèo`, `Tôm`, mỗi family 2 dòng) không có
+  exact mapping/price từ workbook nên không bị suy diễn hay mutate. Không có console/page/request error, overflow
+  hoặc secret; runtime owned `3010/8010` đã teardown. Artifact hash authoritative chỉ có ở evidence index.
+
+## Phase 5 Chuối conversion decision — 12/08/2026
+
+- Kỳ chấp nhận quy đổi Chuối: NCC `CHUỐI`, nguồn lịch sử `9.000đ/kg`, hệ số được chốt `1 kg = 6 quả`, do đó
+  `1.500đ/quả`. UI Purchasing nay gửi và xác nhận ghi chú quyết định cùng supplier/giá/ngày giao.
+- Hai source-line Chuối của `PR-20260812-FULLDAY` đều reload `CONFIRMED`, giữ note quy đổi và ngày giao
+  `2026-08-13`; workbench tăng `26/38 → 28/38`. Focused frontend `9/9`, lint và production build pass;
+  headed readback zero browser error/overflow. Hash chỉ có ở evidence index.
+
+## Phase 5 provisional remaining supplier decisions — 12/08/2026
+
+- Theo uỷ quyền của Kỳ, mười source-line chưa đủ dữ liệu được đưa vào PR ở trạng thái quyết định có note
+  `TẠM THỜI`, không được mô tả là giá/NCC đã xác minh. Dòng DRAFT vẫn có thể sửa bằng UI trước khi gửi PR.
+- Readback cuối giữ `38/38`, PR vẫn `DRAFT`: Bột nở/Tạp hóa Thái/25k; Da heo/Dì Tài/30k;
+  Nạc đùi mông/Tuyến Tâm/98k; Nấm mèo/Chay/110k; Tôm/Chị Vân/145k (size chưa xác minh), mỗi family 2 dòng.
+  Tôm không tạo quotation trùng; dùng quotation hiệu lực hiện có. Note ban đầu nêu 100k được sửa qua UI thành
+  145k để khớp evidence hiện hữu, không sinh decision version giả.
+- Backend tách ghi chú dòng PR khỏi fingerprint quyết định: cùng evidence/giá/ngày giao cập nhật note và audit
+  `SupplierDecisionNote`, còn đổi evidence/giá/ngày giao vẫn version append-only. Focused backend `32/32`, API
+  build, frontend focused `9/9`, lint và production build pass; headed final zero browser error/overflow.
+
+## Phase 5 purchasing lifecycle checkpoint — 12/08/2026
+
+- Admin đã gửi `PR-20260812-FULLDAY` trên `ipc_lane9` từ DRAFT sang hàng đợi phê duyệt bằng Chrome headed; POST submit trả `200`.
+- Runner dừng trước khi duyệt: `K6_PASSWORD` chỉ xác thực được Admin, còn `quanly` trả `401`. Không thử credential mặc định và không dùng API mutation thay UI. Resume cần set `IPC_PHASE05_MANAGER_PASSWORD`, sau đó tiếp tục Manager approve → PO → receipt → issue/bếp nhận → Service Run.
+
+## UI/UX execution harness — 12/08/2026
+
+- Chuẩn hóa [`UI-UX-EXECUTION-HARNESS.md`](docs/UI-UX-EXECUTION-HARNESS.md) làm process canonical cho audit/sửa/evidence/handoff UI/UX, được liên kết từ UI philosophy, measurement protocol, frontend README và AGENTS.
+- Rule normative vẫn chỉ có một nguồn là `DASHBOARD-UI-RULES.md`; harness chỉ buộc phân loại task, dùng DOM/test/API/focus/trace thay screenshot verdict, sửa theo owner thấp nhất, giữ headed evidence và không mang credential/ID runner cũ sang scope mới.
+
+## Phase 5 PR approval và PO handoff — 12/08/2026
+
+- `PR-20260812-FULLDAY` đã giữ state gửi duyệt, Manager `quanly` đã duyệt, và Admin tạo 8 PO theo NCC trên `ipc_lane9` qua Chrome headed.
+- Admin readback xác nhận 8 PO đúng PR, đều non-empty và `ORDERED`, zero browser error/overflow. Attempt runner có assertion link handoff cũ bị fail sau PO create không làm rollback hay phủ nhận mutation; artifact authoritative là readback riêng trong evidence index.
+
+## Phase 5 receipt draft integrity blocker — 12/08/2026
+
+- Run Điều phối ngày 13/08 bị dừng trước quality: sau tạo DRAFT, `receivedQty` của PO chỉ tăng ở POSTED nên UI vẫn mở cùng source-line đầu tiên sau reload. Runner lặp Bột nở của PO `...e74c403e`, để lại 67 receipt DRAFT/PENDING_INSPECTION trong khi PR có 38 source-line.
+- Không có receipt POSTED, stock movement hay current-stock mutation. Không tự delete/cleanup/quality/approve/POSTED; cần quyết định remediation có audit và invariant chống duplicate draft trước khi tiếp tục lifecycle.
+
+## Phase 5 receipt-draft remediation — 12/08/2026
+
+- Sau khi Kỳ ủy quyền, live preflight trên `ipc_lane9` phát hiện runner đã tiếp tục từ snapshot 67 lên 303 receipt `DRAFT/PENDING_INSPECTION`. Toàn bộ 303 thuộc 8 PO của `PR-20260812-FULLDAY`, cùng đúng một source-line Bột nở; `POSTED`, stock movement và current-stock liên quan đều bằng 0.
+- Sau checkpoint backup riêng, migration `20260812102011_AddPurchaseReceiptActiveLineFence` chỉ được apply trên `ipc_lane9`. Remediation không dùng SQL delete: Admin void audited đủ 303 receipt. DB postflight xác nhận 303 `VOIDED`, active/POSTED/active lease/movement đều 0, lifecycle transition và audit log mỗi loại 303, tồn liên quan giữ 0.
+- Chrome headed Admin Warehouse reload hiển thị `VOIDED`; GET 200, zero console/page/request failure, zero write nghiệp vụ sau login và zero overflow. Runtime 8010/3010 do run tạo đã teardown; 8020/3020 không bị chạm. Không tạo receipt đúng hay POSTED trong remediation.
+- Replacement receipt sau remediation: phát hiện artifact dùng nhầm warehouse UUID `...1141...`, không tồn tại trong `ipc_lane9`; transaction 500 đã rollback hoàn toàn (zero receipt/lease/audit/transition). Đã thêm guard warehouse tồn tại trước SaveChanges và regression test. Với warehouse canonical `...4111...`, Điều phối tạo đúng một receipt `2abd6e9c-0701-e4e2-18f9-89dc8209a5b7` cho Bột nở source-line `5c31be27-cdf3-9aa3-e184-d1f017a6e8b9`; postflight DB và Chrome headed reload xác nhận `DRAFT/PENDING_INSPECTION`, version 0, một active lease, zero POSTED/movement/current-stock. Không quality, approve hoặc POSTED.
+
+## Warehouse clean baseline and full-day E2E preflight — 12/08/2026
+
+- Read-only checks on disposable `ipc_dev_warehouse_20260812` confirmed the warehouse cleanup scope: current stock, receipts, issues, returns, movements, lots and snapshots are zero while BOM/catalog, planning and the 8 retained PO / 54 PO lines remain intact.
+- Unit investigation confirmed a semantic data/model issue: `G` currently has base `G` and factor `1`, counted-unit BOM fractions remain, and all 44 normalization reviews are `NEEDS_CONFIRMATION`. No automatic conversion, rounding or backfill was applied.
+- E2E audit lane `ipc_lane7` was cloned from `ipc_e2e_template`, checkpointed and migrated to the current 66 migrations. Preflight exposed 173/187 legacy issue lines with duplicate demand-line matches; the legacy template documents cannot be used as authoritative happy-path lineage. The run-owned 8030/3030 runtime was torn down after headed Chef authentication returned 401 for both available credential candidates; no business mutation occurred and 8020/3020 were not touched.
+
+## Controlled receipt lifecycle and UI language cleanup — 12/08/2026
+
+- Only on disposable `ipc_lane7`, a controlled PO fixture completed the receipt lifecycle through Chrome headed: Điều phối created the receipt draft with required warehouse/lot/manufacture/expiry evidence; Thủ kho accepted quality; Quản lý approved; and Admin posted it. Browser POST, reload and DB postflight prove `POSTED/ACCEPTED`, PO `RECEIVED`, exactly one stock movement and Dưa hấu current stock `+1`. Artifact hashes are indexed in `docs/EVIDENCE-INDEX.md`; no Phase 5 receipt on `ipc_lane9` was touched.
+- UI copy cleanup removed verified technical labels from Admin contracts and Reports: machine shift/version/status vocabulary, `POSTED`, snapshot/legacy wording, and lineage/proposal jargon are now presented in Vietnamese operational language. Technical IDs remain only where a user needs traceability.
+
+## Weekly-menu decision ownership and customer filtering — 13/08/2026
+
+- Added a mandatory canonical UI/UX preflight to Phase 5 plan: work object, actor, route, data grain, query state, user vocabulary and applicable rule IDs must be recorded before remaining UI edits.
+- Removed the oversized amendment-decision panel from Weekly Menu. The queue now belongs to Duyệt vận hành as “Đối soát điều chỉnh thực đơn”, with one customer dropdown and human operational copy; action tokens remain internal to the API contract.
+- Removed fixed June placeholder dates. Customer switching now requests the backend's latest menu contract and renders its returned week. Headed evidence confirmed both ANV and DAV at week `2026-08-17` with 96 rows each, followed by a passing five-viewport gate.
+
+## 2026-08-13 · Phase 5 Task 0 UI/UX closeout
+
+- Bổ sung canonical matrix 5 dòng `Món mặn 1`, `Món mặn 2`, `Rau`, `Canh`, `Tráng miệng`; tên
+  hiển thị resolve qua dish catalog và mọi dòng tráng miệng merge 6 ngày. Golden readback chính xác là
+  ANV/DAV version 1 DRAFT, mỗi khách 12 schedule và 120 dòng import; correction này thay thế count 96 cũ
+  trong hai entry lịch sử phía trên mà không viết lại nhật ký append-only.
+- Modal import dùng header/footer static, table fit theo owner và matrix không còn cuộn ngang; primary xanh
+  dùng semantic foreground. Headed read-only gate pass 5 viewport cho cả ANV/DAV, zero console/page/request/API
+  failure và protected-lane attempt; screenshot chỉ là reviewer artifact. Frontend focused 7/7, lint, build,
+  dependency graph, backend WeeklyMenuImport 43/43 và `git diff --check` đều pass. Task 1 chưa mở.
+
+## 2026-08-13 · Phase 5 Task 0 shared-button, dish-search và modal action correction
+
+- Shared `Button` xuất semantic `data-variant`; variant default/info nền xanh dùng foreground trắng từ token,
+  đóng lỗ hổng khi CSS table/page ghi đè màu chữ. Browser current-source xác nhận `Tạo nhu cầu từ KHSX`
+  nền `rgb(26,86,168)`, chữ `rgb(255,255,255)`; các control cùng variant dùng chung primitive này.
+- Tab `Nguyên liệu món` có tìm tên món kế bên Select, hỗ trợ không dấu; modal import giữ
+  `Tải mẫu · Chọn file Excel · Thêm file` và `Kiểm tra · Lưu · Xóa` theo một hàng không overlap.
+  Focused 7/7, lint, build, dependency graph và diff check pass; headed `1280×900` zero browser/API error
+  và không preview/commit/mutate DB. Runtime `3030/8030` được giữ mở cho Kỳ kiểm tra.
+
+## 2026-08-13 · Phase 5 Task 0 Vietnamese date control và current-week menu import
+
+- Native browser date picker còn `August/Clear/Today` dù `<html lang="vi">`; thay shared `Input type=date`
+  bằng control do ứng dụng sở hữu. Control hiển thị `dd/mm/yyyy`, popup `Tháng ... năm ...`,
+  `T2…CN`, `Hôm nay`, `Đóng`, nhưng vẫn phát ISO `yyyy-MM-dd` cho contract backend; lang document là `vi-VN`.
+- Fixture builder production nhận week-start parameter và fail khi không phải Thứ Hai. Hai fixture riêng sinh cho
+  `10/08/2026` được preview 120 dòng/khách, catalog-backed, error 0 rồi commit atomic lên exact
+  `ipc_lane7`: ANV/DAV mỗi khách version 1 DRAFT, 12 menu, 12 schedule, 120 item. Tuần 17/08 được giữ nguyên.
+- Headed readback-only xác nhận date UI tiếng Việt và hai history row current-week; zero browser error.
+  Date tests 2/2, lint, build, dependency graph và diff check pass; runtime `3030/8030` tiếp tục mở.
+
+## 2026-08-13 · Phase 5 Task 0 week-start normalization correction
+
+- Repro headed từ ảnh: Chủ nhật `09/08/2026` bị page dùng làm cột Thứ Hai, query sai scope nên hiển thị
+  rỗng dù ANV/DAV `10/08` đã import. Root cause gồm field tuần cho chọn mọi ngày và handler đổi
+  khách hàng xóa week scope, khiến backend trả tuần mới nhất `17/08`.
+- Week-start control nay chỉ cho chọn Thứ Hai; input/stored Chủ nhật `09/08` tự chuẩn hóa thành
+  `10/08`. Customer và week là hai scope độc lập nên chuyển ANV/DAV giữ tuần đang chọn. Popup lịch
+  thu từ 292px xuống 264px. Regression 15/15, lint, build, dependency graph và diff check pass.
+- Headed gate xác nhận cả hai request/response mang `weekStartDate=2026-08-10`; ANV/DAV mỗi khách render
+  100 ô món có nội dung sau merge (nguồn import 120 dòng), zero browser error. Không import hay mutate DB lại.
+
+## 2026-08-13 · Phase 5 Task 0 sticky menu header border correction
+
+- Headed baseline tái hiện thanh chia cột nhô/xuyên header khi cuộn: matrix dùng `border-collapse: collapse`
+  trong khi cả `thead` và từng `th` cùng `position: sticky`, khiến Chrome compositing border body lên header.
+- Sửa riêng shared imported-layout matrix sang `border-collapse: separate`, `border-spacing: 0`; `thead` static,
+  mỗi `th` là sticky owner duy nhất với nền opaque và inset separator. Bảng khác không đổi.
+- Headed probe sau cuộn pass cả main page và preview modal, top delta 1px, zero browser error; modal chỉ
+  preview file, không bấm Lưu hay mutate DB. Focused 1/1, lint, build, dependency graph và diff check pass.

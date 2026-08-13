@@ -65,8 +65,8 @@ describe('AdminContractsPanel select labels', () => {
     const triggers = screen.getAllByRole('combobox');
     expect(triggers[0]).toHaveTextContent('KH-01 - Nhà máy An Bình');
     expect(triggers[0]).not.toHaveTextContent('customer-1');
-    expect(triggers[1]).toHaveTextContent('2026-07-30 / MORNING / Thực đơn ca sáng');
+    expect(triggers[1]).toHaveTextContent('2026-07-30 / Ca sáng / Thực đơn ca sáng');
     expect(triggers[1]).not.toHaveTextContent('schedule-1');
-    expect(triggers[2]).toHaveTextContent('ACTIVE');
+    expect(triggers[2]).toHaveTextContent('Đang áp dụng');
   });
 });

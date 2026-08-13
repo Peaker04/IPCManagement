@@ -22,9 +22,12 @@ internal sealed class InventoryAllocationDispositionConfiguration : IEntityTypeC
         entity.Property(item => item.Version).IsConcurrencyToken().HasDefaultValue(0L).HasColumnName("version");
         entity.Property(item => item.CorrelationId).HasMaxLength(128).HasColumnName("correlationId");
         entity.Property(item => item.CausationId).HasMaxLength(128).HasColumnName("causationId");
-        entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(item => item.SourceIssueLineId).OnDelete(DeleteBehavior.Restrict);
-        entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(item => item.DestinationIssueLineId).OnDelete(DeleteBehavior.Restrict);
-        entity.HasOne<User>().WithMany().HasForeignKey(item => item.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(item => item.SourceIssueLineId).OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryallocationdispositions_ibfk_1");
+        entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(item => item.DestinationIssueLineId).OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryallocationdispositions_ibfk_2");
+        entity.HasOne<User>().WithMany().HasForeignKey(item => item.CreatedBy).OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryallocationdispositions_ibfk_3");
     }
 }
 

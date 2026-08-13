@@ -109,18 +109,6 @@ PREPARE phase05_add_source_line_material_index FROM @phase05_add_source_line_mat
 EXECUTE phase05_add_source_line_material_index;
 DEALLOCATE PREPARE phase05_add_source_line_material_index;
 
-SET @phase05_add_scoped_service_run_index = (
-    SELECT IF(COUNT(*) = 0,
-        'CREATE UNIQUE INDEX `uqServiceRunsCustomerDateShiftTier` ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`)',
-        'SELECT 1')
-    FROM `information_schema`.`statistics`
-    WHERE `table_schema` = DATABASE() AND `table_name` = 'serviceruns'
-      AND `index_name` = 'uqServiceRunsCustomerDateShiftTier'
-);
-PREPARE phase05_add_scoped_service_run_index FROM @phase05_add_scoped_service_run_index;
-EXECUTE phase05_add_scoped_service_run_index;
-DEALLOCATE PREPARE phase05_add_scoped_service_run_index;
-
 SET @phase05_add_source_line_run_fk = (
     SELECT IF(COUNT(*) = 0,
         'ALTER TABLE `servicerunsourcelines` ADD CONSTRAINT `fkServiceRunSourceLinesRun` FOREIGN KEY (`serviceRunId`) REFERENCES `serviceruns` (`serviceRunId`) ON DELETE RESTRICT',
@@ -157,23 +145,65 @@ PREPARE phase05_add_service_run_customer_fk FROM @phase05_add_service_run_custom
 EXECUTE phase05_add_service_run_customer_fk;
 DEALLOCATE PREPARE phase05_add_service_run_customer_fk;
 
+WITH `resolvedCandidates` AS (
+    SELECT candidateRun.`serviceRunId`, resolved.`customerId`, plan.`planDate` AS `serviceDate`,
+           candidateRun.`shiftName`, resolved.`priceTierAmount`
+    FROM `serviceruns` AS candidateRun
+    INNER JOIN `productionplans` AS plan ON plan.`planId` = candidateRun.`planId`
+    INNER JOIN (
+        SELECT line.`planId`, line.`shiftName`, MIN(line.`customerId`) AS `customerId`,
+               MIN(requestLine.`priceTierAmount`) AS `priceTierAmount`
+        FROM `productionplanlines` AS line
+        INNER JOIN `materialrequestlines` AS requestLine ON requestLine.`planLineId` = line.`planLineId`
+        GROUP BY line.`planId`, line.`shiftName`
+        HAVING COUNT(DISTINCT line.`customerId`) = 1
+           AND COUNT(DISTINCT requestLine.`priceTierAmount`) = 1
+    ) AS resolved ON resolved.`planId` = candidateRun.`planId` AND resolved.`shiftName` = candidateRun.`shiftName`
+), `nonConflictingScopes` AS (
+    SELECT `customerId`, `serviceDate`, `shiftName`, `priceTierAmount`
+    FROM `resolvedCandidates`
+    GROUP BY `customerId`, `serviceDate`, `shiftName`, `priceTierAmount`
+    HAVING COUNT(*) = 1
+)
 UPDATE `serviceruns` AS run
-INNER JOIN `productionplans` AS plan ON plan.`planId` = run.`planId`
-INNER JOIN (
-    SELECT line.`planId`, line.`shiftName`, MIN(line.`customerId`) AS `customerId`,
-           MIN(requestLine.`priceTierAmount`) AS `priceTierAmount`
-    FROM `productionplanlines` AS line
-    INNER JOIN `materialrequestlines` AS requestLine ON requestLine.`planLineId` = line.`planLineId`
-    GROUP BY line.`planId`, line.`shiftName`
-    HAVING COUNT(DISTINCT line.`customerId`) = 1
-       AND COUNT(DISTINCT requestLine.`priceTierAmount`) = 1
-) AS resolved ON resolved.`planId` = run.`planId` AND resolved.`shiftName` = run.`shiftName`
+INNER JOIN `resolvedCandidates` AS resolved ON resolved.`serviceRunId` = run.`serviceRunId`
+INNER JOIN `nonConflictingScopes` AS scope ON scope.`customerId` = resolved.`customerId`
+    AND scope.`serviceDate` = resolved.`serviceDate`
+    AND scope.`shiftName` = resolved.`shiftName`
+    AND scope.`priceTierAmount` = resolved.`priceTierAmount`
+LEFT JOIN (
+    SELECT `customerId`, `serviceDate`, `shiftName`, `priceTierAmount`
+    FROM (
+        SELECT `customerId`, `serviceDate`, `shiftName`, `priceTierAmount`
+        FROM `serviceruns`
+        WHERE `customerId` IS NOT NULL
+          AND `serviceDate` IS NOT NULL
+          AND `priceTierAmount` IS NOT NULL
+    ) AS `scopedSnapshot`
+) AS existingScope ON existingScope.`customerId` = resolved.`customerId`
+    AND existingScope.`serviceDate` = resolved.`serviceDate`
+    AND existingScope.`shiftName` = resolved.`shiftName`
+    AND existingScope.`priceTierAmount` = resolved.`priceTierAmount`
 SET run.`customerId` = resolved.`customerId`,
-    run.`serviceDate` = plan.`planDate`,
+    run.`serviceDate` = resolved.`serviceDate`,
     run.`priceTierAmount` = resolved.`priceTierAmount`
 WHERE run.`customerId` IS NULL
-   OR run.`serviceDate` IS NULL
-   OR run.`priceTierAmount` IS NULL;
+  AND run.`serviceDate` IS NULL
+  AND run.`priceTierAmount` IS NULL
+  AND existingScope.`customerId` IS NULL;
+
+-- Create scoped uniqueness only after unambiguous legacy scopes have been backfilled.
+SET @phase05_add_scoped_service_run_index = (
+    SELECT IF(COUNT(*) = 0,
+        'CREATE UNIQUE INDEX `uqServiceRunsCustomerDateShiftTier` ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`)',
+        'SELECT 1')
+    FROM `information_schema`.`statistics`
+    WHERE `table_schema` = DATABASE() AND `table_name` = 'serviceruns'
+      AND `index_name` = 'uqServiceRunsCustomerDateShiftTier'
+);
+PREPARE phase05_add_scoped_service_run_index FROM @phase05_add_scoped_service_run_index;
+EXECUTE phase05_add_scoped_service_run_index;
+DEALLOCATE PREPARE phase05_add_scoped_service_run_index;
 
 INSERT IGNORE INTO `servicerunsourcelines`
     (`serviceRunSourceLineId`, `serviceRunId`, `materialRequestLineId`, `recordedAt`)
@@ -193,7 +223,7 @@ WHERE run.`customerId` IS NOT NULL
 INSERT INTO `servicerundecisionitems`
     (`serviceRunDecisionItemId`, `planId`, `customerId`, `serviceDate`, `shiftName`, `priceTierAmount`, `reason`, `createdAt`)
 SELECT UUID_TO_BIN(UUID()), run.`planId`, NULL, plan.`planDate`, run.`shiftName`, NULL,
-       'Legacy ServiceRun scope is not single-valued; resolve customer and price tier before lifecycle mutation.',
+       'Legacy ServiceRun scope is ambiguous or conflicts with another ServiceRun; resolve customer and price tier before lifecycle mutation.',
        UTC_TIMESTAMP()
 FROM `serviceruns` AS run
 INNER JOIN `productionplans` AS plan ON plan.`planId` = run.`planId`
@@ -203,5 +233,8 @@ WHERE (run.`customerId` IS NULL OR run.`serviceDate` IS NULL OR run.`priceTierAm
       FROM `servicerundecisionitems` AS decisionItem
       WHERE decisionItem.`planId` = run.`planId`
         AND decisionItem.`shiftName` = run.`shiftName`
-        AND decisionItem.`reason` = 'Legacy ServiceRun scope is not single-valued; resolve customer and price tier before lifecycle mutation.'
+        AND decisionItem.`reason` = 'Legacy ServiceRun scope is ambiguous or conflicts with another ServiceRun; resolve customer and price tier before lifecycle mutation.'
   );
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+VALUES ('20260812170357_AddMultiCustomerServiceRunKernel', '9.0.16');

@@ -91,12 +91,6 @@ namespace IPCManagement.Api.Migrations
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
 
             migrationBuilder.CreateIndex(
-                name: "uqServiceRunsCustomerDateShiftTier",
-                table: "serviceruns",
-                columns: new[] { "customerId", "serviceDate", "shiftName", "priceTierAmount" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "ixServiceRunDecisionItemsPlanShiftReason",
                 table: "servicerundecisionitems",
                 columns: new[] { "planId", "shiftName", "reason" });
@@ -113,24 +107,59 @@ namespace IPCManagement.Api.Migrations
                 unique: true);
 
             migrationBuilder.Sql("""
+                WITH resolvedCandidates AS (
+                    SELECT candidateRun.serviceRunId, resolved.customerId, plan.planDate AS serviceDate,
+                           candidateRun.shiftName, resolved.priceTierAmount
+                    FROM serviceruns AS candidateRun
+                    INNER JOIN productionplans AS plan ON plan.planId = candidateRun.planId
+                    INNER JOIN (
+                        SELECT line.planId, line.shiftName, MIN(line.customerId) AS customerId,
+                               MIN(requestLine.priceTierAmount) AS priceTierAmount
+                        FROM productionplanlines AS line
+                        INNER JOIN materialrequestlines AS requestLine ON requestLine.planLineId = line.planLineId
+                        GROUP BY line.planId, line.shiftName
+                        HAVING COUNT(DISTINCT line.customerId) = 1
+                           AND COUNT(DISTINCT requestLine.priceTierAmount) = 1
+                    ) AS resolved ON resolved.planId = candidateRun.planId AND resolved.shiftName = candidateRun.shiftName
+                ), nonConflictingScopes AS (
+                    SELECT customerId, serviceDate, shiftName, priceTierAmount
+                    FROM resolvedCandidates
+                    GROUP BY customerId, serviceDate, shiftName, priceTierAmount
+                    HAVING COUNT(*) = 1
+                )
                 UPDATE serviceruns AS run
-                INNER JOIN productionplans AS plan ON plan.planId = run.planId
-                INNER JOIN (
-                    SELECT line.planId, line.shiftName, MIN(line.customerId) AS customerId,
-                           MIN(requestLine.priceTierAmount) AS priceTierAmount
-                    FROM productionplanlines AS line
-                    INNER JOIN materialrequestlines AS requestLine ON requestLine.planLineId = line.planLineId
-                    GROUP BY line.planId, line.shiftName
-                    HAVING COUNT(DISTINCT line.customerId) = 1
-                       AND COUNT(DISTINCT requestLine.priceTierAmount) = 1
-                ) AS resolved ON resolved.planId = run.planId AND resolved.shiftName = run.shiftName
+                INNER JOIN resolvedCandidates AS resolved ON resolved.serviceRunId = run.serviceRunId
+                INNER JOIN nonConflictingScopes AS scope ON scope.customerId = resolved.customerId
+                    AND scope.serviceDate = resolved.serviceDate
+                    AND scope.shiftName = resolved.shiftName
+                    AND scope.priceTierAmount = resolved.priceTierAmount
+                LEFT JOIN (
+                    SELECT customerId, serviceDate, shiftName, priceTierAmount
+                    FROM (
+                        SELECT customerId, serviceDate, shiftName, priceTierAmount
+                        FROM serviceruns
+                        WHERE customerId IS NOT NULL
+                          AND serviceDate IS NOT NULL
+                          AND priceTierAmount IS NOT NULL
+                    ) AS scopedSnapshot
+                ) AS existingScope ON existingScope.customerId = resolved.customerId
+                    AND existingScope.serviceDate = resolved.serviceDate
+                    AND existingScope.shiftName = resolved.shiftName
+                    AND existingScope.priceTierAmount = resolved.priceTierAmount
                 SET run.customerId = resolved.customerId,
-                    run.serviceDate = plan.planDate,
+                    run.serviceDate = resolved.serviceDate,
                     run.priceTierAmount = resolved.priceTierAmount
                 WHERE run.customerId IS NULL
-                   OR run.serviceDate IS NULL
-                   OR run.priceTierAmount IS NULL;
+                  AND run.serviceDate IS NULL
+                  AND run.priceTierAmount IS NULL
+                  AND existingScope.customerId IS NULL;
                 """);
+
+            migrationBuilder.CreateIndex(
+                name: "uqServiceRunsCustomerDateShiftTier",
+                table: "serviceruns",
+                columns: new[] { "customerId", "serviceDate", "shiftName", "priceTierAmount" },
+                unique: true);
 
             migrationBuilder.Sql("""
                 INSERT INTO servicerunsourcelines
@@ -153,7 +182,7 @@ namespace IPCManagement.Api.Migrations
                 INSERT INTO servicerundecisionitems
                     (serviceRunDecisionItemId, planId, customerId, serviceDate, shiftName, priceTierAmount, reason, createdAt)
                 SELECT UUID_TO_BIN(UUID()), run.planId, NULL, plan.planDate, run.shiftName, NULL,
-                       'Legacy ServiceRun scope is not single-valued; resolve customer and price tier before lifecycle mutation.',
+                       'Legacy ServiceRun scope is ambiguous or conflicts with another ServiceRun; resolve customer and price tier before lifecycle mutation.',
                        UTC_TIMESTAMP()
                 FROM serviceruns AS run
                 INNER JOIN productionplans AS plan ON plan.planId = run.planId

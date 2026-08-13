@@ -11,7 +11,7 @@ Reviewed artifacts:
 - EF migration: `20260812170357_AddMultiCustomerServiceRunKernel`
 - EF migration source: `backend/src/IPCManagement.Api/Migrations/20260812170357_AddMultiCustomerServiceRunKernel.cs`
 - Reviewed SQL: `tools/db/phase05/phase05-service-run-ipc-lane7-reviewed.sql`
-- Reviewed SQL SHA-256: `1180DA66DFB7842B943825815F89480C588EF0280182AA2365583303F6E28ACD`
+- Reviewed SQL SHA-256: `892CC19ACEFE14D6B2CEF53375AE0C37616849CAC9E11D090DC0BC345C0A5DA8`
 - Runner: `tools/db/phase05/Invoke-Phase05Lane7Migration.ps1`
 
 Plan 05-05 adds a second ordered, reviewed artifact after the ServiceRun kernel:
@@ -30,7 +30,7 @@ movements, audit rows and outbox history are preserved.
 The SQL is additive. It retains `uqServiceRunsPlanShift` because an existing foreign key depends
 on that legacy key, and adds `uqServiceRunsCustomerDateShiftTier` for the customer-scoped identity.
 It also retains close snapshots, documents, stock movements, audit rows and outbox history. It backfills only a single-valued `customer × tier` source scope; legacy rows
-with zero or multiple candidates remain unscoped and receive one decision item.
+with zero or multiple candidates, or whose resolved scope conflicts with another legacy run, remain unscoped and receive one decision item. The scoped unique index is created only after that safe backfill boundary.
 
 The reviewed ServiceRun SQL is compatible with MySQL 9.5: it does not use conditional
 `ADD COLUMN`, `CREATE INDEX`, or `ADD CONSTRAINT` syntax. Each additive column, index, and
@@ -58,6 +58,17 @@ For the purchasing addition, POST-FLIGHT must separately record existence of
 durable lifecycle evidence exists: preserve both reviewed SQL receipts and resolve legacy
 compatibility through the existing decision queue; do not execute destructive Down SQL.
 
+Plan 05-06 adds the third ordered artifact required for the audited-only cross-customer
+allocation disposition path:
+
+- EF migration: `20260812174836_AddInventoryAllocationDispositions`
+- Reviewed disposition SQL: `tools/db/phase05/phase05-inventory-allocation-dispositions-ipc-lane7-reviewed.sql`
+- Reviewed disposition SQL SHA-256: `C2D70A58F1DB10DEEF0897434BC55541EBBF2096C0ACC95727466269F517BEE6`
+
+It adds only the `inventoryallocationdispositions` audit table, its three lookup indexes,
+and its source-line/user foreign keys. It never transfers stock, rewrites an issue line,
+or creates a disposition row; it only makes the reviewed Phase 5 source schema runnable.
+
 ## Inspect-first use
 
 Wave 1 validates the contract with `-NoDatabase`; it does not run the runner against a database.
@@ -65,6 +76,6 @@ Later, inspection without `-Apply` outputs the expected manifest and still does 
 APPLY is refused unless all of these are present: `-Apply`, `-Database ipc_lane7`, the exact
 `-ApprovedSqlSha256`, and an existing `-CheckpointReceipt`.
 
-Plan 05-05 must add the ordered purchasing migration and its reviewed SQL. It is an addition to,
-not a replacement for, this ServiceRun kernel artifact. Plan 05-04 owns the ordered live apply
+Plan 05-05 and Plan 05-06 add the ordered purchasing and allocation-disposition migrations. They are additions to,
+not replacements for, this ServiceRun kernel artifact. Plan 05-04 owns the ordered live apply
 and evidence consumption.

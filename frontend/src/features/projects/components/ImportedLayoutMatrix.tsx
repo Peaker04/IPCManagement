@@ -17,6 +17,7 @@ interface ImportedLayoutMatrixProps {
   displayDays: Array<{ key: string; label: string; date: string }>
   activeDayKey?: string
   maxBodyHeight?: string
+  dishNamesById?: ReadonlyMap<string, string>
 }
 
 const formatDishName = (value?: string | null) => {
@@ -68,12 +69,12 @@ const buildCellSpans = (rows: ImportedLayoutRow[], displayDays: Array<{ key: str
   return spans
 }
 
-export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyHeight = 'max-h-[440px]' }: ImportedLayoutMatrixProps) {
+export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyHeight = 'max-h-[440px]', dishNamesById }: ImportedLayoutMatrixProps) {
   const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)))
 
   return (
     <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
-      <table className="ipc-data-table ipc-schedule-table">
+      <table className="ipc-data-table ipc-schedule-table ipc-imported-layout-matrix">
         <thead>
           <tr>
             <th className="w-[190px] min-w-[190px] border-r border-slate-200 bg-slate-100 text-left">Bố cục / dòng</th>
@@ -98,16 +99,25 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
                 {sectionRows.map((row) => (
                   <tr key={row.key}>
                     <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-[12.5px] font-semibold text-slate-800">{row.slotLabel}</span></td>
-                    {displayDays.map((day, index) => {
+                    {(() => {
+                      const cells = displayDays.map((day) => row.cells[day.key]).filter(Boolean)
+                      const firstCell = cells[0]
+                      const firstDishName = firstCell?.dishId ? dishNamesById?.get(firstCell.dishId) ?? firstCell.dishName : firstCell?.dishName
+                      const isMergedDessert = (row.slot === 'fruit' || row.slot === 'dessert')
+                        && cells.length === displayDays.length
+                        && cells.every((cell) => (cell.dishId || cell.dishName) === (firstCell?.dishId || firstCell?.dishName))
+                      if (isMergedDessert) return <td colSpan={displayDays.length} className="border-r border-slate-200 bg-white p-2 text-center align-middle text-[12.5px] font-semibold text-slate-900">{formatDishName(firstDishName)}</td>
+                      return displayDays.map((day, index) => {
                       const cell = row.cells[day.key]
                       const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 }
                       if (spanInfo.hidden) return null
                       return (
                         <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('border-r border-slate-200 p-2 text-center align-middle text-[12.5px]', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
-                          {cell ? <span className="font-semibold text-slate-900">{formatDishName(cell.dishName)}</span> : '-'}
+                          {cell ? <span className="font-semibold text-slate-900">{formatDishName(cell.dishId ? dishNamesById?.get(cell.dishId) ?? cell.dishName : cell.dishName)}</span> : '-'}
                         </td>
                       )
-                    })}
+                      })
+                    })()}
                   </tr>
                 ))}
               </Fragment>

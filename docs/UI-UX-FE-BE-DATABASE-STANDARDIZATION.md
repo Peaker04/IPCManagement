@@ -36,7 +36,7 @@ Bản này **không thay thế** các nguồn chuyên biệt:
 - quy tắc grain và chống double-count: [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md);
 - quyết định UI canon: [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) và [`PB-UI-VARIANT-AUDIT.md`](PB-UI-VARIANT-AUDIT.md);
 - trạng thái/evidence hiện hành: [`MEMORY.md`](../MEMORY.md) và [`EVIDENCE-INDEX.md`](EVIDENCE-INDEX.md);
-- nguyên tắc UI/UX đầy đủ: [`.docs/IPC Management — Bộ nguyên tắc UI UX cho Dashboard c3d822de045b40d895664ec6e74b5427.md`](../.docs/IPC%20Management%20%E2%80%94%20B%E1%BB%99%20nguy%C3%AAn%20t%E1%BA%AFc%20UI%20UX%20cho%20Dashboard%20c3d822de045b40d895664ec6e74b5427.md).
+- điểm vào nguyên tắc UI/UX của IPCManagement: [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md); rule normative đầy đủ: [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md).
 
 ### 2.1. Trạng thái rollout
 
@@ -218,7 +218,8 @@ Với thay đổi chỉ ở UI, vẫn phải chạy source-aware/UI tests phù h
 
 ## 10. Nguồn kiểm chứng
 
-- [Nguyên tắc UI/UX Dashboard](../.docs/IPC%20Management%20%E2%80%94%20B%E1%BB%99%20nguy%C3%AAn%20t%E1%BA%AFc%20UI%20UX%20cho%20Dashboard%20c3d822de045b40d895664ec6e74b5427.md)
+- [Triết lý và cách áp dụng UI/UX](UI-PHILOSOPHY.md)
+- [Bộ rule UI/UX Dashboard](DASHBOARD-UI-RULES.md)
 - [Ma trận UI conformance](UI-CONFORMANCE-MATRIX.md)
 - [Closeout UI/UX addendum](UI-UX-ADDENDUM-CLOSEOUT.md)
 - [Ma trận grain dữ liệu](DATA-GRAIN-MATRIX.md)

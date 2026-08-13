@@ -1,9 +1,9 @@
 ---
 title: UI/UX & Performance Rules — Web Dashboard
-status: planning-input
+status: adopted-contract
 scope: frontend
 owner: GSD
-last_reviewed: 2026-08-11
+last_reviewed: 2026-08-12
 ---
 
 # UI/UX & Performance Rules — Web Dashboard
@@ -11,6 +11,10 @@ last_reviewed: 2026-08-11
 > Bộ quy tắc chuẩn hoá cho ứng dụng dashboard quản trị / vận hành (admin, ERP, MES, back-office).
 > Đây là **rule chung áp cho toàn hệ thống**, không phải bản audit của một màn hình hay một ảnh chụp cụ thể.
 > Nguồn: Nielsen Norman Group, Core Web Vitals (web.dev), WCAG 2.2, IBM Carbon, Atlassian Design System, Shopify Polaris, SAP Fiori, ISA-101 High-Performance HMI.
+
+> **Trạng thái áp dụng:** Đây là contract normative cho UI mới và UI được sửa trong IPCManagement. Tài liệu
+> không tự chứng minh mọi route đã tuân thủ; mức `PASS`, `GAP`, `NEEDS_EVIDENCE` và `UNRESOLVED` phải lấy từ
+> source, test và evidence hiện hành. Điểm vào dành cho dev là [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md).
 
 ---
 
@@ -46,11 +50,11 @@ source, test và runtime hiện hành trước khi chuyển bất kỳ rule nào
 | Artifact | Vị trí canonical | Trạng thái/gate khi audit |
 | --- | --- | --- |
 | Bộ rule làm đầu vào audit | `docs/DASHBOARD-UI-RULES.md` | File này là bản duy nhất; MUST NOT copy sang `.docs/` hoặc `.planning/` |
-| Triết lý UI và quy ước điều hướng | `docs/UI-PHILOSOPHY.md` | Tạo hoặc cập nhật qua workflow docs của GSD nếu audit xác nhận còn thiếu |
+| Triết lý UI và quy ước điều hướng | `docs/UI-PHILOSOPHY.md` | Điểm vào project-specific; liên kết về rule ID, owner và gate |
 | Token màu, khoảng cách và typography | `frontend/src/styles/index.css` | Giữ tại CSS entry hiện hành; chỉ tách module token khi plan chứng minh seam rõ ràng |
 | Từ điển nhãn trạng thái/workflow | `frontend/src/lib/workflowConfig.ts` | Mở rộng nguồn hiện có; MUST NOT tạo một từ điển song song |
 | Formatter số, tiền, ngày giờ, đơn vị và phần trăm | `frontend/src/lib/formatters.ts` | Mở rộng nguồn hiện có; formatter đặc thù domain chỉ được giữ khi audit nêu rõ ownership |
-| Từ điển thuật ngữ nghiệp vụ | `docs/GLOSSARY.md` | Tạo hoặc cập nhật qua workflow docs của GSD nếu audit xác nhận còn thiếu |
+| Từ điển thuật ngữ nghiệp vụ | `docs/GLOSSARY.md` | Nguồn nhãn UI; mở rộng khi thêm khái niệm hoặc status mới |
 | Artifact phase, plan và verification | `.planning/phases/<phase>/` | Chỉ GSD tạo và quản lý; tài liệu này không tự tạo state planning |
 | Evidence runtime/visual | `.artifacts/<run>/` | Chỉ lưu output có thể tái tạo; hash authoritative được đăng ký tại `docs/EVIDENCE-INDEX.md` |
 

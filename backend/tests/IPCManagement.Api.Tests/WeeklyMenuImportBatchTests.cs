@@ -100,7 +100,8 @@ public sealed class WeeklyMenuImportBatchTests
                 checksum,
                 GuidHelper.ToGuidString(customer.CustomerId),
                 week,
-                25000m);
+                25000m,
+                WeeklyMenuWorkbookParser.ParserVersion);
             return new PreparedWeeklyMenuImport(plan, customer, 25000m, ticket.Token);
         }).ToList();
     }

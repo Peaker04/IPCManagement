@@ -19,9 +19,9 @@ type SourceRow = NonNullable<SupplyLineReconciliationDto['legacyLineageDispositi
 type SelectedSource = Pick<SourceRow, 'legacyLineType' | 'legacyLineId'>;
 
 const statusLabel: Record<string, string> = {
-  UNDISPOSITIONED: 'Chưa lập proposal',
-  PENDING_MANAGER_REVIEW: 'Chờ Manager duyệt',
-  APPROVED: 'Đã duyệt · chờ Admin áp dụng',
+  UNDISPOSITIONED: 'Chưa lập đề xuất xử lý',
+  PENDING_MANAGER_REVIEW: 'Chờ Quản lý duyệt',
+  APPROVED: 'Đã duyệt · chờ Quản trị viên áp dụng',
   REJECTED: 'Đã từ chối',
   APPLIED: 'Đã áp dụng',
 };
@@ -62,7 +62,7 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
 
   const submitCreate = async () => {
     if (!selectedSource || !targetLineId || !reason.trim()) {
-      setFeedback('Cần chọn dòng nguồn và nhập lý do trước khi tạo proposal.');
+      setFeedback('Cần chọn dòng nguồn và nhập lý do trước khi tạo đề xuất xử lý.');
       return;
     }
     try {
@@ -73,18 +73,18 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
         targetLineId,
         reason: reason.trim(),
       }).unwrap();
-      setFeedback('Đã tạo proposal, đang chờ Manager review.');
+      setFeedback('Đã tạo đề xuất xử lý, đang chờ Quản lý duyệt.');
       setSelectedSource(null);
       setTargetLineId('');
       setReason('');
     } catch {
-      setFeedback('Không thể tạo proposal; hãy tải lại trạng thái source-line.');
+      setFeedback('Không thể tạo đề xuất xử lý; hãy tải lại trạng thái dòng nguồn.');
     }
   };
 
   const submitReview = async (dispositionId: string, version: number, approve: boolean) => {
     if (!reason.trim()) {
-      setFeedback('Cần nhập lý do review.');
+      setFeedback('Cần nhập lý do duyệt.');
       return;
     }
     try {
@@ -92,16 +92,16 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
         dispositionId,
         body: { commandId: newCommandId(approve ? 'legacy-approve' : 'legacy-reject'), expectedVersion: version, approve, reason: reason.trim() },
       }).unwrap();
-      setFeedback(approve ? 'Đã duyệt proposal.' : 'Đã từ chối proposal.');
+      setFeedback(approve ? 'Đã duyệt đề xuất xử lý.' : 'Đã từ chối đề xuất xử lý.');
       setReason('');
     } catch {
-      setFeedback('Review thất bại; proposal có thể đã đổi version hoặc đã được xử lý.');
+      setFeedback('Duyệt thất bại; đề xuất có thể đã được cập nhật hoặc xử lý.');
     }
   };
 
   const submitApply = async (dispositionId: string, version: number) => {
     if (!reason.trim()) {
-      setFeedback('Cần nhập lý do áp dụng provenance.');
+      setFeedback('Cần nhập lý do áp dụng liên kết nguồn.');
       return;
     }
     try {
@@ -109,10 +109,10 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
         dispositionId,
         body: { commandId: newCommandId('legacy-apply'), expectedVersion: version, reason: reason.trim() },
       }).unwrap();
-      setFeedback('Đã áp dụng provenance; reconciliation sẽ tải lại theo source-line.');
+      setFeedback('Đã áp dụng liên kết nguồn; bảng đối soát sẽ tải lại theo từng dòng.');
       setReason('');
     } catch {
-      setFeedback('Áp dụng thất bại; source-line có thể đã được map bởi luồng khác.');
+      setFeedback('Áp dụng thất bại; dòng nguồn có thể đã được liên kết bởi luồng khác.');
     }
   };
 
@@ -124,15 +124,15 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
         <div>
           <h3 id="legacy-lineage-title" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Link2 size={16} aria-hidden="true" />
-            Xử lý lineage legacy theo source-line
+            Đối soát liên kết chứng từ lịch sử
           </h3>
           <p className="mt-1 max-w-3xl text-xs text-slate-600">
-            Mỗi dòng phải được đối chiếu bằng chứng riêng. Không map theo tên nguyên liệu; mọi action đều có version, lý do và audit.
+            Mỗi dòng phải được đối chiếu bằng chứng riêng. Không liên kết theo tên nguyên liệu; mọi thao tác đều lưu lý do và nhật ký.
           </p>
         </div>
         <label className="min-w-[260px] text-xs font-semibold text-slate-600" htmlFor="legacy-disposition-reason">
-          Lý do action
-          <Input id="legacy-disposition-reason" value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 h-9 bg-white" placeholder="Nhập bằng chứng / lý do xử lý" />
+          Lý do xử lý
+          <Input id="legacy-disposition-reason" value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 h-9 bg-white" placeholder="Nhập bằng chứng hoặc lý do xử lý" />
         </label>
       </div>
 
@@ -140,24 +140,24 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
 
       {(pendingResult.isError || approvedResult.isError) && (
         <QueryErrorAlert
-          title="Không tải được proposal lineage"
+          title="Không tải được đề xuất liên kết nguồn"
           onRetry={() => void Promise.all([pendingResult.refetch(), approvedResult.refetch()])}
           isRetrying={pendingResult.isFetching || approvedResult.isFetching}
           className="mt-3"
         >
-          Danh sách review chưa đầy đủ; không suy diễn là không có proposal đang chờ.
+          Danh sách duyệt chưa đầy đủ; không suy diễn là không có đề xuất đang chờ.
         </QueryErrorAlert>
       )}
 
       {canCreateOrApply && undispositioned.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-semibold text-slate-700">Legacy chưa có proposal ({undispositioned.length})</p>
+          <p className="text-xs font-semibold text-slate-700">Dữ liệu lịch sử chưa có đề xuất xử lý ({undispositioned.length})</p>
           {undispositioned.map((item) => (
             <div key={`${item.legacyLineType}-${item.legacyLineId}`} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-2 text-xs">
               <span className={typography.code}>{item.legacyLineType} · {item.legacyLineId}</span>
               <StatusBadge variant={statusTone(item.status)}>{statusLabel[item.status] ?? item.status}</StatusBadge>
               <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedSource(item); setTargetLineId(''); }} disabled={isBusy}>
-                <ClipboardCheck size={14} /> Chọn source đích
+                <ClipboardCheck size={14} /> Chọn dòng đích
               </Button>
             </div>
           ))}
@@ -167,38 +167,38 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
       {selectedSource && canCreateOrApply && (
         <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-center justify-between gap-2 text-xs font-semibold text-blue-900">
-            <span>Chọn dòng đích cho {selectedSource.legacyLineType} · {selectedSource.legacyLineId}</span>
+            <span>Chọn dòng đích cho mã nguồn {selectedSource.legacyLineType} · {selectedSource.legacyLineId}</span>
             <Button type="button" size="sm" variant="ghost" aria-label="Đóng chọn source đích" onClick={() => setSelectedSource(null)}><X size={14} /></Button>
           </div>
           {candidatesResult.isError && (
             <QueryErrorAlert
-              title="Không tải được source-line đích"
+              title="Không tải được dòng đích"
               onRetry={() => void candidatesResult.refetch()}
               isRetrying={candidatesResult.isFetching}
               className="mt-2"
             >
-              Không thể tạo proposal cho đến khi danh sách ứng viên được tải lại.
+              Không thể tạo đề xuất xử lý cho đến khi danh sách ứng viên được tải lại.
             </QueryErrorAlert>
           )}
           <Select value={targetLineId || null} onValueChange={(value) => setTargetLineId(value ?? '')} disabled={candidatesResult.isError || candidatesResult.isFetching}>
-            <SelectTrigger className="mt-2 w-full bg-white" aria-label="Dòng đích provenance">
-              <SelectValue placeholder="Chọn dòng source-line hợp lệ" />
+            <SelectTrigger className="mt-2 w-full bg-white" aria-label="Dòng chứng từ đích">
+              <SelectValue placeholder="Chọn dòng chứng từ hợp lệ" />
             </SelectTrigger>
             <SelectContent>
               {(candidatesResult.data ?? []).map((candidate) => (
                 <SelectItem key={candidate.targetLineId} value={candidate.targetLineId}>
-                  {candidate.documentCode} · {candidate.targetLineId} · unit {candidate.unitId}
+                  {candidate.documentCode} · Mã dòng kỹ thuật: {candidate.targetLineId} · Đơn vị: {candidate.unitId}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button type="button" className="mt-2" size="sm" onClick={submitCreate} disabled={isBusy || candidatesResult.isFetching || !targetLineId}>Tạo proposal</Button>
+          <Button type="button" className="mt-2" size="sm" onClick={submitCreate} disabled={isBusy || candidatesResult.isFetching || !targetLineId}>Tạo đề xuất xử lý</Button>
         </div>
       )}
 
       {reviewItems.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-semibold text-slate-700">Proposal đang chờ xử lý ({reviewItems.length})</p>
+          <p className="text-xs font-semibold text-slate-700">Đề xuất đang chờ xử lý ({reviewItems.length})</p>
           {reviewItems.map((item) => (
             <div key={item.dispositionId} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-2 text-xs">
               <span className={typography.code}>{item.legacyLineType} · {item.legacyLineId}</span>
@@ -211,7 +211,7 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
                 </>
               )}
               {item.status === 'APPROVED' && canCreateOrApply && (
-                <Button type="button" size="sm" onClick={() => submitApply(item.dispositionId, item.version)} disabled={isBusy}>Áp dụng provenance</Button>
+                <Button type="button" size="sm" onClick={() => submitApply(item.dispositionId, item.version)} disabled={isBusy}>Áp dụng liên kết nguồn</Button>
               )}
             </div>
           ))}

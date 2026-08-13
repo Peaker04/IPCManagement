@@ -1,4 +1,4 @@
-import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants'
+import { DAYS_OF_WEEK } from '@/lib/constants'
 import { buildImportedDayDates, buildImportedLayoutRows } from '../model/scope'
 import { formatMenuDishName, isMeaningfulMenuDiff, parseDisplayDateToIso, summarizeImportWarnings } from '../model/formatters'
 import type { WeeklyMenuImportJob } from '../model/types'
@@ -13,9 +13,9 @@ export const buildImportPresentation = (
 ) => {
   const preview = job?.previewResult ?? null
   const previewDates = preview ? buildImportedDayDates(preview.rows) : {}
-  const previewDisplayDays = DEFAULT_DAYS_OF_WEEK.map((day) => ({
+  const previewDisplayDays = DAYS_OF_WEEK.slice(0, 6).map((day) => ({
     ...day,
-    date: previewDates[day.key] ?? displayDays.find((displayDay) => displayDay.key === day.key)?.date ?? day.date,
+    date: previewDates[day.key] ?? displayDays.find((displayDay) => displayDay.key === day.key)?.date ?? '',
   }))
   const validationChecks = buildImportValidationChecks(job)
   const duplicateGroups = buildImportDuplicateGroups(preview?.rows ?? [])

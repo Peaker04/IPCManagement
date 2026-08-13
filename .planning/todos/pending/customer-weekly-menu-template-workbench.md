@@ -3,10 +3,13 @@ title: Build customer weekly-menu template workbench
 date: 2026-07-24
 priority: high
 phase: unassigned
-status: pending
+status: superseded
+superseded_by: .planning/notes/canonical-weekly-menu-import-cleanup.md
 ---
 
 # Build customer weekly-menu template workbench
+
+> Superseded on 2026-08-13. The locked contract uses shared canonical `25k`/`30k`/`34k` sheets; customer, week and tier are selected in the UI. Do not implement the ANV fallback or customer-specific sheet/layout workflow below.
 
 Implement the approved SAP Fiori workflow for a system-wide ANV default template plus customer-specific workbook layout and default-menu overrides.
 

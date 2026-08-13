@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getPurchaseRequests: vi.fn(),
   getHistory: vi.fn(),
   executeDecision: vi.fn(),
+  getMenuDecisions: vi.fn(),
 }));
 
 vi.mock('@/api/workflowApi', () => ({
@@ -17,6 +18,12 @@ vi.mock('@/api/workflowApi', () => ({
   useGetPurchaseRequestsPageQuery: mocks.getPurchaseRequests,
   useGetApprovalHistoryQuery: mocks.getHistory,
   useExecuteApprovalDecisionMutation: () => [mocks.executeDecision, { isLoading: false }],
+}));
+
+vi.mock('@/api/coordinationApi', () => ({
+  useGetCoordinationCustomersQuery: () => ({ data: { data: [{ customerId: 'anv', customerCode: 'ANV', customerName: 'Công ty ANV' }, { customerId: 'dav', customerCode: 'DAV', customerName: 'Công ty DAV' }] } }),
+  useGetMenuAmendmentDecisionPageQuery: mocks.getMenuDecisions,
+  useExecuteMenuAmendmentDecisionMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 import ApprovalPage from './ApprovalPage';
@@ -130,6 +137,7 @@ describe('ApprovalPage query state boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.executeDecision.mockReturnValue({ unwrap: vi.fn() });
+    mocks.getMenuDecisions.mockReturnValue({ data: undefined, isError: false, isLoading: false, refetch: vi.fn() });
     mocks.getApprovals.mockReturnValue(readyQuery(approvalPage()));
     mocks.getDocuments.mockReturnValue(readyQuery([]));
     mocks.getPurchaseRequests.mockReturnValue(readyQuery(purchaseRequestPage));

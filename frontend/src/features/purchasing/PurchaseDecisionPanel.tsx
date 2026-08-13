@@ -157,6 +157,7 @@ export function PurchaseDecisionPanel({
   const [selectedEvidence, setSelectedEvidence] = useState<SupplierEvidenceCandidate>();
   const [proposedUnitPrice, setProposedUnitPrice] = useState('');
   const [proposedDeliveryDate, setProposedDeliveryDate] = useState('');
+  const [decisionNote, setDecisionNote] = useState('');
   const [selectedDemandId, setSelectedDemandId] = useState('');
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const [errorMessage, setErrorMessage] = useState('');
@@ -199,6 +200,7 @@ export function PurchaseDecisionPanel({
     setSelectedEvidence(candidate);
     setProposedUnitPrice(String(candidate.unitPrice));
     setProposedDeliveryDate('');
+    setDecisionNote('');
     setErrorMessage('');
   };
 
@@ -225,6 +227,7 @@ export function PurchaseDecisionPanel({
             proposedUnitPrice: Number(proposedUnitPrice),
             proposedDeliveryDate,
             expectedDecisionVersion: selectedLine.currentSupplierDecision?.version ?? 0,
+            note: decisionNote.trim() || undefined,
           },
         }).unwrap();
         setSuccessMessage(`Đã xác nhận nhà cung cấp cho ${selectedLine.ingredientName}.`);
@@ -370,16 +373,22 @@ export function PurchaseDecisionPanel({
                 )}
                 {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}
                 {selectedEvidence ? (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <label className="space-y-2 text-body font-semibold text-slate-900">
-                      <span>Giá đề xuất</span>
-                      <Input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
+                  <>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-body font-semibold text-slate-900">
+                        <span>Giá đề xuất</span>
+                        <Input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
+                      </label>
+                      <label className="space-y-2 text-body font-semibold text-slate-900">
+                        <span>Ngày giao</span>
+                        <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
+                      </label>
+                    </div>
+                    <label className="block space-y-2 text-body font-semibold text-slate-900">
+                      <span>Ghi chú quyết định</span>
+                      <Input aria-label="Ghi chú quyết định" value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} />
                     </label>
-                    <label className="space-y-2 text-body font-semibold text-slate-900">
-                      <span>Ngày giao</span>
-                      <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
-                    </label>
-                  </div>
+                  </>
                 ) : null}
                 <Button
                   className="min-h-11 sm:min-h-9"
@@ -466,6 +475,7 @@ export function PurchaseDecisionPanel({
               <p><strong>Bằng chứng:</strong> {evidenceLabel(selectedEvidence)}</p>
               <p><strong>Giá đề xuất:</strong> {formatCurrency(Number(proposedUnitPrice))}</p>
               <p><strong>Ngày giao:</strong> {formatDateOnly(proposedDeliveryDate)}</p>
+              {decisionNote.trim() ? <p><strong>Ghi chú:</strong> {decisionNote.trim()}</p> : null}
             </div>
           ) : null}
           {errorMessage ? <InlineAlert title="Chưa thể lưu thay đổi" variant="danger"><span role="alert">{errorMessage}</span></InlineAlert> : null}

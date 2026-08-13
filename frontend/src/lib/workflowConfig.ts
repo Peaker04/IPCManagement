@@ -206,6 +206,38 @@ export const formatWorkflowStatus = (status?: string) => {
   return getWorkflowStatusPresentation(status).label;
 };
 
+export const formatShiftName = (shift?: string) => {
+  const normalized = normalizeStatusCode(shift ?? '');
+  return ({ MORNING: 'Ca sáng', AFTERNOON: 'Ca chiều' } as const)[normalized as 'MORNING' | 'AFTERNOON']
+    ?? (shift?.trim() || 'Chưa xác định ca');
+};
+
+export const formatMenuVersionStatus = (status?: string) => {
+  const normalized = normalizeStatusCode(status ?? '');
+  return ({
+    DRAFT: 'Bản nháp',
+    ACTIVE: 'Đang áp dụng',
+    SUPERSEDED: 'Đã thay thế',
+    LOCKED: 'Đã khóa',
+  } as const)[normalized as 'DRAFT' | 'ACTIVE' | 'SUPERSEDED' | 'LOCKED']
+    ?? formatWorkflowStatus(status);
+};
+
+/** Keeps coupled receipt lifecycle enums out of user-facing UI. */
+export const formatReceiptLifecycleStatus = (status?: string, qualityStatus?: string) => {
+  const normalizedStatus = normalizeStatusCode(status ?? '');
+  const normalizedQuality = normalizeStatusCode(qualityStatus ?? '');
+
+  if (normalizedStatus === 'DRAFT' && normalizedQuality === 'PENDINGINSPECTION') return 'Chờ kiểm tra chất lượng';
+  if (normalizedStatus === 'PENDINGAPPROVAL' && normalizedQuality === 'ACCEPTED') return 'Chờ Quản lý duyệt';
+  if (normalizedStatus === 'PENDINGAPPROVAL' && normalizedQuality === 'PARTIALLYACCEPTED') return 'Chờ duyệt phần đạt';
+  if (normalizedStatus === 'APPROVED' && ['ACCEPTED', 'PARTIALLYACCEPTED'].includes(normalizedQuality)) return 'Sẵn sàng ghi sổ kho';
+  if (normalizedStatus === 'POSTED' && ['ACCEPTED', 'PARTIALLYACCEPTED'].includes(normalizedQuality)) return 'Đã ghi sổ kho';
+  if (normalizedStatus === 'REJECTED' && normalizedQuality === 'REJECTED') return 'Không đạt chất lượng';
+
+  return formatWorkflowStatus(status);
+};
+
 export const ownerToLaneId = (owner?: string): WorkflowLaneId => {
   if (!owner) return 'admin';
   return laneIdByOwner[owner] ?? 'admin';

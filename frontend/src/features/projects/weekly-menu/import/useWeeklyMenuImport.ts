@@ -187,7 +187,7 @@ export const useWeeklyMenuImport = ({
   }
   const commitReadyJobs = async () => {
     const pending = state.jobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error)
-    if (!pending.length) return setFeedback('Chưa có dòng hợp lệ để lưu', 'Chỉ những file đã kiểm tra xong và không có lỗi mới được lưu.', 'warning')
+    if (!state.jobs.length || pending.length !== state.jobs.length) return setFeedback('Chưa thể lưu batch', 'Tất cả file đã chọn phải được kiểm tra xong và không có lỗi trước khi lưu.', 'warning')
     if (pending.length === 1) {
       if (await commitJob(pending[0].jobId, false)) close()
       return

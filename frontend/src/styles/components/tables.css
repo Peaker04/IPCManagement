@@ -430,7 +430,33 @@
 
 .ipc-weekly-menu-shell {
   max-height: min(68vh, 720px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.ipc-imported-layout-matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.ipc-weekly-menu-shell[data-sticky-header="true"] .ipc-imported-layout-matrix thead {
+  position: static;
+}
+
+.ipc-weekly-menu-shell[data-sticky-header="true"] .ipc-imported-layout-matrix thead th {
+  background-clip: padding-box;
+  box-shadow: 0 -1px 0 0 var(--ipc-slate-300) inset;
+  isolation: isolate;
+}
+
+.ipc-imported-layout-matrix th:not(:first-child),
+.ipc-imported-layout-matrix td:not(:first-child) {
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
 }
 
 .ipc-cost-table-shell {
@@ -451,7 +477,8 @@
 
 .ipc-weekly-dialog {
   max-height: min(86dvh, 760px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
 }
 

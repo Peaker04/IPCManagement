@@ -221,9 +221,11 @@ describe('purchasing hook behavior', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
     fireEvent.change(screen.getByLabelText('Ngày giao'), { target: { value: '2026-07-21' } })
+    fireEvent.change(screen.getByLabelText('Ghi chú quyết định'), { target: { value: 'Quy đổi từ đơn giá theo kg.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' }))
 
     expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
+    expect(screen.getByText('Quy đổi từ đơn giá theo kg.')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chọn nhà cung cấp' })).toHaveFocus())
     expect(mocks.confirmLineSupplier).not.toHaveBeenCalled()
   })

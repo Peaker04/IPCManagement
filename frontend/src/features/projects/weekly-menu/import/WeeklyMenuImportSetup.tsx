@@ -23,7 +23,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
   return (
     <>
       <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-        <div className="grid min-w-0 grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_minmax(165px,190px)_minmax(210px,240px)_minmax(250px,1.25fr)_130px]">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-[minmax(200px,1fr)_180px_210px_minmax(390px,1.6fr)]">
           <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <Select
               value={state.draftCustomerId || EMPTY_CUSTOMER_VALUE}
@@ -56,19 +56,20 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               aria-invalid={Boolean(weekError) || undefined}
               aria-describedby={weekError ? 'weekly-menu-import-week-error' : undefined}
               type="date"
+              weekStartOnly
               value={state.weekStartDate}
               onChange={(event) => actions.selectWeek(event.target.value)}
               className="h-9 min-h-9"
             />
             {weekError && <p id="weekly-menu-import-week-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{weekError.title}</span>{' '}{weekError.message}</p>}
           </FieldRow>
-          <FieldRow label="Định mức BOM" hint="Chọn tier cho file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
+          <FieldRow label="Mức giá thực đơn" hint="Chọn mức giá áp dụng cho file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <Select
               value={String(state.priceTierAmount)}
               onValueChange={(value) => { if (value !== null) actions.selectPriceTier(normalizeBomPriceTier(Number(value))) }}
               disabled={status.isImporting}
             >
-              <SelectTrigger aria-label="Định mức BOM" className="h-9 min-h-9 w-full">
+              <SelectTrigger aria-label="Mức giá thực đơn" className="h-9 min-h-9 w-full">
                 <SelectValue>{formatBomTierLabel(state.priceTierAmount)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -88,17 +89,17 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               aria-describedby={fileError ? 'weekly-menu-import-file-error weekly-menu-import-file-meta' : 'weekly-menu-import-file-meta'}
               disabled={status.isImporting}
             />
-            <div className="grid min-w-0 grid-cols-1 gap-2 2xl:grid-cols-[minmax(170px,1fr)_minmax(138px,0.8fr)]">
+            <div className="flex min-w-0 flex-nowrap gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => void actions.downloadWeeklyMenuTemplate()}
                 disabled={status.isDownloadingTemplate || status.isImporting || !selectedCustomer}
-                className="w-full justify-center gap-2"
+                className="min-w-0 flex-1 justify-center gap-2"
               >
                 <Download size={16} />
-                {status.isDownloadingTemplate ? 'Đang tải...' : 'Tải mẫu theo khách'}
+                {status.isDownloadingTemplate ? 'Đang tải...' : 'Tải mẫu'}
               </Button>
               <Button
                 type="button"
@@ -106,24 +107,22 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={status.isImporting}
-                className="w-full justify-center"
+                className="min-w-0 flex-1 justify-center"
               >
                 Chọn file Excel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={actions.addJob}
+                disabled={status.isImporting || !state.selectedFile || !selectedCustomer}
+                className="min-w-[92px] shrink-0"
+              >
+                Thêm file
               </Button>
             </div>
             {fileError && <p id="weekly-menu-import-file-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{fileError.title}</span>{' '}{fileError.message}</p>}
           </FieldRow>
-          <div className="flex flex-col gap-1.5 md:pt-10">
-            <Button
-              type="button"
-              size="sm"
-              onClick={actions.addJob}
-              disabled={status.isImporting || !state.selectedFile || !selectedCustomer}
-              className="w-full"
-            >
-              Thêm file
-            </Button>
-          </div>
         </div>
         <div className="mt-3 flex min-h-8 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
           <Button type="button" variant="outline" size="xs" textWrap="wrap" onClick={actions.toggleQuickCustomer} disabled={status.isImporting}>

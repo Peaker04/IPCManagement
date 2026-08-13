@@ -32,7 +32,7 @@ function CorrectionOverlay({ serviceRunId, snapshotActual, isCloseSnapshot }: { 
   const latest = adjustments?.[0];
   if (!latest) return <span className="text-xs text-slate-500">Không có điều chỉnh hậu kiểm.</span>;
   const delta = latest.correctedActualServings - (snapshotActual ?? 0);
-  return <span className="text-xs"><span className="block font-medium text-slate-800">Append-only · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
+  return <span className="text-xs"><span className="block font-medium text-slate-800">Điều chỉnh hậu kiểm (append-only) · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
 }
 
 export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
@@ -42,7 +42,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
   const { data, isFetching, isError, refetch } = useGetServiceRunPageQuery({ pageNumber: page, pageSize: 20, serviceDate, shiftName: shiftName || undefined });
   const rows = data?.items ?? [];
 
-  return <SectionPanel title="Ca phục vụ và chứng từ nguồn" icon={<ClipboardList size={18} />} description="Trạng thái do backend tính từ KHSX, nhu cầu, phiếu xuất/trả và cấp bổ sung. Ca đã đóng dùng snapshot tại thời điểm close; legacy chưa có snapshot được ghi rõ.">
+  return <SectionPanel title="Ca phục vụ và chứng từ nguồn" icon={<ClipboardList size={18} />} description="Trạng thái do backend tính từ KHSX, nhu cầu, phiếu xuất/trả và cấp bổ sung. Bản chốt đóng ca là dữ liệu bất biến; điều chỉnh hậu kiểm luôn hiển thị tách riêng, không mở lại ca.">
     {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Không thể kết luận tình trạng đóng ca khi projection chứng từ nguồn chưa tải được." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
       <TableViewport ariaLabel="Bảng Ca phục vụ" caption="Các chứng từ nguồn được hiển thị theo từng Ca, không gộp theo tên nguyên liệu." preferences={{ accountId: currentAccountId, config: serviceRunPreferenceConfig }}>
         {({ columns }) => <table className="ipc-data-table ipc-status-action-table min-w-[1240px]">
@@ -52,7 +52,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
               const { lifecycle, materialRequestCodes, issueCodes, returnCodes, supplementalRequestCodes, materialRequestLineIds, issueLineIds, estimatedPurchaseCost, actualReceivedCost, isCloseSnapshot } = row;
               const statusPresentation = getServiceRunStatusPresentation(lifecycle.status);
               const cells: Record<string, ReactNode> = {
-                plan: <><div className="font-medium text-slate-800">{lifecycle.planCode}</div><div className="text-xs text-slate-500">{lifecycle.shiftName === 'MORNING' ? 'Ca sáng' : 'Ca chiều'}{lifecycle.status === 'CLOSED' ? (isCloseSnapshot ? ' · Snapshot đóng ca' : ' · Legacy: dữ liệu live') : ''}</div></>,
+                plan: <><div className="font-medium text-slate-800">{lifecycle.planCode}</div><div className="text-xs text-slate-500">{lifecycle.shiftName === 'MORNING' ? 'Ca sáng' : 'Ca chiều'}{lifecycle.status === 'CLOSED' ? (isCloseSnapshot ? ' · Dữ liệu tại thời điểm đóng ca' : ' · Dữ liệu lịch sử, chưa có bản chốt') : ''}</div></>,
                 status: <StatusBadge variant={statusPresentation.tone}>{statusPresentation.label}</StatusBadge>,
                 blocker: <span className="max-w-64 text-xs">{lifecycle.blockers.length ? lifecycle.blockers.map(formatServiceRunBlocker).join(' · ') : '—'}</span>,
                 demand: <span className="text-xs">{materialRequestCodes.join(', ') || '—'}<span className="mt-1 block text-slate-500">{materialRequestLineIds.length} dòng nhu cầu</span></span>,

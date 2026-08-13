@@ -30,6 +30,7 @@ import {
   PurchaseRequestHistoryState,
   WorkflowDocumentsState,
 } from './ApprovalQueryPanels';
+import { MenuAmendmentReconciliation } from '../components/MenuAmendmentReconciliation';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -313,6 +314,7 @@ export default function ApprovalPage() {
 
       {activeView === 'queue' && (
         <div id="approval-queue-panel" role="tabpanel" aria-labelledby="approval-queue-tab">
+          <MenuAmendmentReconciliation />
           <SplitWorkbench
             detailLabel="Chứng từ"
             detailClassName="min-h-[148px]"

@@ -6,6 +6,8 @@ param(
     [string]$ExpectedDomSelector,
     [string]$ExpectedRequestPattern,
     [string]$CdpEndpoint,
+    [string]$LoginUsername,
+    [string]$PasswordEnvironmentVariable,
     [switch]$ValidateOnly
 )
 
@@ -14,7 +16,10 @@ $ErrorActionPreference = 'Stop'
 function Write-ControlReceipt {
     param([hashtable]$Receipt)
     New-Item -ItemType Directory -Force -Path $ArtifactRoot | Out-Null
-    $Receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ArtifactRoot 'browser-control.json') -Encoding utf8
+    [System.IO.File]::WriteAllText(
+        (Join-Path $ArtifactRoot 'browser-control.json'),
+        ($Receipt | ConvertTo-Json -Depth 8),
+        [System.Text.UTF8Encoding]::new($false))
 }
 
 if ($ValidateOnly) {
@@ -31,6 +36,12 @@ if ([string]::IsNullOrWhiteSpace($RuntimeUrl) -or [string]::IsNullOrWhiteSpace($
     [string]::IsNullOrWhiteSpace($ExpectedDomSelector) -or [string]::IsNullOrWhiteSpace($ExpectedRequestPattern)) {
     throw 'RuntimeUrl, TargetSelector, ExpectedDomSelector, and ExpectedRequestPattern are mandatory for physical input proof. No browser was started.'
 }
+if ([string]::IsNullOrWhiteSpace($LoginUsername) -xor [string]::IsNullOrWhiteSpace($PasswordEnvironmentVariable)) {
+    throw 'Physical login requires both LoginUsername and PasswordEnvironmentVariable. No browser was started.'
+}
+if ($PasswordEnvironmentVariable -and [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($PasswordEnvironmentVariable))) {
+    throw "The required in-memory credential '$PasswordEnvironmentVariable' is not available. No browser was started."
+}
 
 $receipt = [ordered]@{
     formatVersion = 1
@@ -41,6 +52,7 @@ $receipt = [ordered]@{
     expectedDomSelector = $ExpectedDomSelector
     expectedRequestPattern = $ExpectedRequestPattern
     strategy = if ($CdpEndpoint) { 'attached-cdp-remediation' } else { 'run-owned-headed-chrome' }
+    login = if ($LoginUsername) { @{ username = $LoginUsername; succeeded = $false } } else { $null }
     pointer = @{ trusted = $false }
     keyboard = @{ trusted = $false }
     protectedLaneConnectionAttempts = 0
@@ -52,8 +64,9 @@ $receipt = [ordered]@{
 $nodeProgram = @'
 const fs = require('fs');
 const { chromium } = require('@playwright/test');
-const [out, runtimeUrl, targetSelector, expectedDomSelector, expectedRequestPattern, cdpEndpoint] = process.argv.slice(2);
-const receipt = JSON.parse(fs.readFileSync(out, 'utf8'));
+const [out, runtimeUrl, targetSelector, expectedDomSelector, expectedRequestPattern, suppliedCdpEndpoint, loginUsername, passwordEnvironmentVariable] = process.argv.slice(1);
+const cdpEndpoint = suppliedCdpEndpoint === '__NO_CDP__' ? '' : suppliedCdpEndpoint;
+const receipt = JSON.parse(fs.readFileSync(out, 'utf8').replace(/^\uFEFF/, ''));
 (async () => {
   let browser, context, page;
   try {
@@ -65,11 +78,32 @@ const receipt = JSON.parse(fs.readFileSync(out, 'utf8'));
       addEventListener('keydown', e => { if (e.isTrusted) window.__phase05Input.keyboard = true; }, true);
     });
     const requests = [];
+    const responses = [];
     page.on('request', request => requests.push(`${request.method()} ${request.url()}`));
+    page.on('response', response => {
+      if (response.url().includes('/api/auth/login')) responses.push({ status: response.status(), url: response.url() });
+    });
     await page.goto(runtimeUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    if (loginUsername) {
+      const password = process.env[passwordEnvironmentVariable];
+      if (!password) throw new Error(`Missing in-memory credential ${passwordEnvironmentVariable}`);
+      await page.locator('#username').click({ timeout: 10000 });
+      await page.keyboard.type(loginUsername);
+      await page.locator('#password').click({ timeout: 10000 });
+      await page.keyboard.type(password);
+      const loginRequestsStart = requests.length;
+      await page.locator('form button[type="submit"]').click({ timeout: 10000 });
+      try { await page.waitForURL(url => !url.pathname.endsWith('/login'), { timeout: 15000 }); } catch { }
+      receipt.login.succeeded = !new URL(page.url()).pathname.endsWith('/login');
+      receipt.login.requestObserved = requests.slice(loginRequestsStart).some(request => request.includes('POST') && request.includes('/api/auth/login'));
+      receipt.login.responses = responses;
+      receipt.login.alert = await page.locator('[role="alert"]').allTextContents();
+      if (!receipt.login.succeeded) throw new Error(`Physical login did not navigate; responses=${JSON.stringify(responses)} alerts=${JSON.stringify(receipt.login.alert)}`);
+    }
     const target = page.locator(targetSelector);
     await target.waitFor({ state: 'visible', timeout: 10000 });
     receipt.target = { visible: await target.isVisible(), enabled: await target.isEnabled(), receivesEvents: true };
+    const actionRequestsStart = requests.length;
     await target.click({ timeout: 10000 });
     await page.keyboard.press('Tab');
     const input = await page.evaluate(() => window.__phase05Input);
@@ -77,8 +111,9 @@ const receipt = JSON.parse(fs.readFileSync(out, 'utf8'));
     receipt.keyboard.trusted = input.keyboard === true;
     receipt.focused = await page.evaluate(() => document.activeElement?.outerHTML?.slice(0, 300) || null);
     receipt.domExpected = await page.locator(expectedDomSelector).count() > 0;
-    receipt.requestObserved = requests.some(request => request.includes(expectedRequestPattern));
+    receipt.requestObserved = requests.slice(actionRequestsStart).some(request => request.includes(expectedRequestPattern));
     receipt.verdict = receipt.pointer.trusted && receipt.keyboard.trusted && receipt.domExpected && receipt.requestObserved
+      && (!loginUsername || (receipt.login.succeeded && receipt.login.requestObserved))
       ? 'PHYSICAL_INPUT_PASS' : 'PHYSICAL_INPUT_FAIL';
   } catch (error) { receipt.verdict = 'PHYSICAL_INPUT_FAIL'; receipt.failure = String(error.stack || error); }
   finally { receipt.completedAtUtc = new Date().toISOString(); fs.writeFileSync(out, `${JSON.stringify(receipt, null, 2)}\n`); if (context && !cdpEndpoint) await context.close(); if (browser && cdpEndpoint) await browser.close(); }
@@ -87,5 +122,6 @@ const receipt = JSON.parse(fs.readFileSync(out, 'utf8'));
 '@
 
 Write-ControlReceipt -Receipt $receipt
-& node --input-type=commonjs -e $nodeProgram (Join-Path $ArtifactRoot 'browser-control.json') $RuntimeUrl $TargetSelector $ExpectedDomSelector $ExpectedRequestPattern $CdpEndpoint
+if ([string]::IsNullOrWhiteSpace($CdpEndpoint)) { $CdpEndpoint = '__NO_CDP__' }
+& node --input-type=commonjs -e $nodeProgram (Join-Path $ArtifactRoot 'browser-control.json') $RuntimeUrl $TargetSelector $ExpectedDomSelector $ExpectedRequestPattern $CdpEndpoint $LoginUsername $PasswordEnvironmentVariable
 exit $LASTEXITCODE

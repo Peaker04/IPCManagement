@@ -27,23 +27,8 @@ internal sealed class WeeklyMenuTemplateService(IpcManagementContext context) : 
                 .FirstOrDefaultAsync(cancellationToken) ?? customerCode;
         }
 
-        var content = string.Equals(customerCode, "ANV", StringComparison.OrdinalIgnoreCase)
-            ? ReadEmbeddedAnvWeeklyMenuTemplate()
-            : WeeklyMenuTemplateWorkbookBuilder.Build(resolvedWeekStart, customerCode);
+        var content = WeeklyMenuTemplateWorkbookBuilder.Build(resolvedWeekStart, customerCode);
         return (content, customerCode);
-    }
-
-    private static byte[] ReadEmbeddedAnvWeeklyMenuTemplate()
-    {
-        const string resourceName =
-            "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx";
-        using var resourceStream = typeof(WeeklyMenuTemplateService).Assembly
-            .GetManifestResourceStream(resourceName)
-            ?? throw new BusinessRuleException(
-                "Không tìm thấy template thực đơn ANV mặc định trong ứng dụng.");
-        using var output = new MemoryStream();
-        resourceStream.CopyTo(output);
-        return output.ToArray();
     }
 
     private static DateOnly ResolveCurrentWeekStart()

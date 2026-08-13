@@ -340,6 +340,23 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                 if (currentDecision is not null &&
                     string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
                 {
+                    if (!string.Equals(line.Note, exceptionReason, StringComparison.Ordinal))
+                    {
+                        _context.Auditlogs.Add(new AuditLog
+                        {
+                            AuditId = GuidHelper.NewId(),
+                            ChangedAt = DateTime.UtcNow,
+                            ChangedBy = actorId,
+                            BusinessArea = "Purchasing",
+                            EntityName = nameof(PurchaseRequestLine),
+                            EntityId = line.PurchaseRequestLineId,
+                            FieldName = "SupplierDecisionNote",
+                            OldValue = line.Note,
+                            NewValue = exceptionReason,
+                            Reason = "Cập nhật ghi chú cho quyết định nhà cung cấp hiện hành."
+                        });
+                        line.Note = exceptionReason;
+                    }
                     await UpsertPriceExceptionAsync(
                         currentDecision,
                         null,

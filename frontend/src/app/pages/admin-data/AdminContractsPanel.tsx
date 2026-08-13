@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/formatters';
+import { formatMenuVersionStatus, formatShiftName, formatWorkflowStatus } from '@/lib/workflowConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
@@ -23,12 +24,12 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
             { label: 'customer contract', view: queryViews.contracts },
             ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
           ]}>
-          <SectionPanel title="Customer contract và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
+          <SectionPanel title="Hợp đồng khách hàng và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
             <ContextStrip
               items={[
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
                 { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
-                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.join(', ') || '-', tone: 'info' },
+                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.map(formatShiftName).join(', ') || '-', tone: 'info' },
                 { label: 'BOM áp dụng', value: 'Theo đơn giá menu, 100%', tone: 'info' },
                 { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' },
               ]}
@@ -111,7 +112,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 />
 
                 <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-note">
-                  Ghi chú contract
+                  Ghi chú hợp đồng
                 </label>
                 <Textarea
                   id="admin-contract-note"
@@ -153,19 +154,19 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-shifts">
-                    Ca phục vụ
+                    Ca phục vụ (cách nhau bằng dấu phẩy)
                     <Input
                       id="admin-contract-shifts"
                       value={contractForm.shiftNames}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, shiftNames: event.target.value }))}
-                      placeholder="MORNING,AFTERNOON"
+                      placeholder="Ca sáng, Ca chiều"
                     />
                   </label>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
                   <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-default-price">
-                    Đơn giá mặc định / tier BOM
+                    Đơn giá mặc định / mức BOM
                     <Input
                       id="admin-contract-default-price"
                       type="number"
@@ -189,12 +190,12 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
                 <Button variant="default" size="sm" type="button" disabled={isSavingContract || (!isCreatingContract && !selectedContract)} onClick={() => void handleSaveCustomerContract()}>
                   <Save size={15} />
-                  {isCreatingContract ? 'Tạo contract' : 'Lưu contract'}
+                  {isCreatingContract ? 'Tạo hợp đồng' : 'Lưu hợp đồng'}
                 </Button>
               </div>
 
               <div className="grid gap-4">
-                <TableViewport caption="Danh sách contract khách hàng" ariaLabel="Bảng contract khách hàng">
+                <TableViewport caption="Danh sách hợp đồng khách hàng" ariaLabel="Bảng hợp đồng khách hàng">
                   <table className="ipc-data-table text-sm">
                     <thead>
                       <tr>
@@ -202,7 +203,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                         <th>Ngày làm việc</th>
                         <th>Ca</th>
                         <th>Hiệu lực</th>
-                        <th>Đơn giá / tier</th>
+                        <th>Đơn giá / mức BOM</th>
                         <th>BOM áp dụng</th>
                         <th>Trạng thái</th>
                       </tr>
@@ -215,10 +216,10 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                             <div className="text-xs text-slate-500">{contract.customerName}</div>
                           </td>
                           <td>{contract.activeWeekDays.join(', ') || '-'}</td>
-                          <td>{contract.shiftNames.join(', ') || '-'}</td>
+                          <td>{contract.shiftNames.map(formatShiftName).join(', ') || '-'}</td>
                           <td>
                             <div>{contract.effectiveFrom ?? '-'}</div>
-                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : contract.contractStatus}</div>
+                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : formatWorkflowStatus(contract.contractStatus)}</div>
                           </td>
                           <td className="ipc-numeric-cell">{contract.defaultMenuPrice == null ? '-' : formatCurrency(contract.defaultMenuPrice)}</td>
                           <td className="ipc-numeric-cell">100%</td>
@@ -246,24 +247,24 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                         }}
                       >
                         <SelectTrigger id="admin-contract-schedule" className="w-full">
-                          <SelectValue>{selectedSchedule ? `${selectedSchedule.serviceDate} / ${selectedSchedule.shift} / ${selectedSchedule.menuName}` : 'Chọn lịch thực đơn'}</SelectValue>
+                          <SelectValue>{selectedSchedule ? `${selectedSchedule.serviceDate} / ${formatShiftName(selectedSchedule.shift)} / ${selectedSchedule.menuName}` : 'Chọn lịch thực đơn'}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {menuSchedules.map((schedule) => (
                             <SelectItem key={schedule.menuScheduleId} value={schedule.menuScheduleId}>
-                              {schedule.serviceDate} / {schedule.shift} / {schedule.menuName}
+                              {schedule.serviceDate} / {formatShiftName(schedule.shift)} / {schedule.menuName}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <span className="text-[11px] font-medium text-slate-500">
                         {selectedSchedule?.sourceImportBatch
-                          ? `Batch ${selectedSchedule.sourceImportBatch} / V${selectedSchedule.menuVersionNo ?? '-'} / ${selectedSchedule.menuVersionStatus ?? selectedSchedule.status}`
-                          : `Version ${selectedSchedule?.status ?? '-'}`}
+                          ? `Lần nhập ${selectedSchedule.sourceImportBatch} · Phiên bản ${selectedSchedule.menuVersionNo ?? '-'} · ${formatMenuVersionStatus(selectedSchedule.menuVersionStatus ?? selectedSchedule.status)}`
+                          : `Trạng thái phiên bản: ${formatMenuVersionStatus(selectedSchedule?.status)}`}
                       </span>
                     </label>
                     <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
-                      Đơn giá / tier BOM
+                      Đơn giá / mức BOM
                       <Input
                         inputMode="decimal"
                         type="number"
@@ -274,19 +275,19 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
-                      Version
+                      Trạng thái phiên bản
                       <Select
                         value={scheduleRuleForm.status}
                         onValueChange={(value) => setScheduleRuleForm((prev) => ({ ...prev, status: value ?? prev.status }))}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue>{scheduleRuleForm.status}</SelectValue>
+                        <SelectValue>{formatMenuVersionStatus(scheduleRuleForm.status)}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DRAFT">DRAFT</SelectItem>
-                          <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                          <SelectItem value="SUPERSEDED">SUPERSEDED</SelectItem>
-                          <SelectItem value="LOCKED">LOCKED</SelectItem>
+                          <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                          <SelectItem value="ACTIVE">Đang áp dụng</SelectItem>
+                          <SelectItem value="SUPERSEDED">Đã thay thế</SelectItem>
+                          <SelectItem value="LOCKED">Đã khóa</SelectItem>
                         </SelectContent>
                       </Select>
                     </label>
@@ -297,7 +298,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                     <Input
                       value={scheduleRuleForm.reason}
                       onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, reason: event.target.value }))}
-                      placeholder="Cập nhật contract/version"
+                      placeholder="Lý do cập nhật hợp đồng hoặc phiên bản"
                     />
                   </label>
 
@@ -307,10 +308,10 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                       Lưu quy tắc
                     </Button>
                     <Button variant="outline" size="sm" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('ACTIVE')}>
-                      Publish
+                      Áp dụng phiên bản
                     </Button>
                     <Button variant="outline" size="sm" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('SUPERSEDED')}>
-                      Archive
+                      Lưu phiên bản cũ
                     </Button>
                   </div>
                 </div>

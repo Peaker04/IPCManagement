@@ -29,8 +29,8 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
             className="pl-9"
           />
         </div>
-        <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
-          <table className="ipc-data-table">
+        <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần" frozenFirstIdentifier={false}>
+          <table className="ipc-data-table table-fixed">
             <thead>
               <tr>
                 <th className="text-left">Khách hàng</th><th className="text-left">Tuần</th><th className="text-center">Phiên bản</th>
@@ -58,9 +58,9 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                         size="xs"
                         onClick={() => actions.requestRollback(item.menuVersionId, label)}
                         disabled={!item.canRollback || status.isRollingBack}
-                        title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể rollback'}
+                        title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể hủy phiên import'}
                       >
-                        Rollback
+                        Hủy phiên
                       </Button>
                     </td>
                   </tr>

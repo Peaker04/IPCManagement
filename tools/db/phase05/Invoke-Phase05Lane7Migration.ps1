@@ -18,15 +18,16 @@ $allowedDatabase = 'ipc_lane7'
 if (-not $Sql -or $Sql.Count -eq 0) {
     $Sql = @(
         (Join-Path $PSScriptRoot 'phase05-service-run-ipc-lane7-reviewed.sql'),
-        (Join-Path $PSScriptRoot 'phase05-purchasing-ipc-lane7-reviewed.sql')
+        (Join-Path $PSScriptRoot 'phase05-purchasing-ipc-lane7-reviewed.sql'),
+        (Join-Path $PSScriptRoot 'phase05-inventory-allocation-dispositions-ipc-lane7-reviewed.sql')
     )
 }
 
 if ($Database -cne $allowedDatabase) {
     throw "Phase 05 migration target must be exactly '$allowedDatabase'; no database connection was attempted."
 }
-if ($Sql.Count -ne 2) {
-    throw 'Phase 05 requires exactly two ordered reviewed SQL artifacts: ServiceRun, then purchasing compatibility.'
+if ($Sql.Count -ne 3) {
+    throw 'Phase 05 requires exactly three ordered reviewed SQL artifacts: ServiceRun, purchasing compatibility, then allocation dispositions.'
 }
 foreach ($sqlPath in $Sql) {
     if (-not (Test-Path -LiteralPath $sqlPath -PathType Leaf)) {
@@ -50,7 +51,8 @@ $manifest = [ordered]@{
     receiptStages = @('PRE-FLIGHT', 'CHECKPOINT', 'APPLY', 'POST-FLIGHT', 'ROLLBACK')
     requiredMigrationHeads = @(
         '20260812170357_AddMultiCustomerServiceRunKernel',
-        '20260812172709_AddPurchaseOrderCompatibilityScope'
+        '20260812172709_AddPurchaseOrderCompatibilityScope',
+        '20260812174836_AddInventoryAllocationDispositions'
     )
 }
 
@@ -61,7 +63,7 @@ if (-not $Apply) {
 if ($ApprovedSqlSha256.Count -ne $sqlArtifacts.Count -or
     (@($ApprovedSqlSha256 | ForEach-Object { $_.ToUpperInvariant() }) -join ',') -cne
     (@($sqlArtifacts | ForEach-Object { $_.sha256 }) -join ',')) {
-    throw 'APPLY requires exact ordered -ApprovedSqlSha256 values for ServiceRun then purchasing SQL; no database connection was attempted.'
+    throw 'APPLY requires exact ordered -ApprovedSqlSha256 values for ServiceRun, purchasing compatibility, then allocation disposition SQL; no database connection was attempted.'
 }
 if ([string]::IsNullOrWhiteSpace($CheckpointReceipt) -or -not (Test-Path -LiteralPath $CheckpointReceipt -PathType Leaf)) {
     throw 'APPLY requires an existing -CheckpointReceipt; no database connection was attempted.'
@@ -71,7 +73,9 @@ if ([string]::IsNullOrWhiteSpace($CheckpointReceipt) -or -not (Test-Path -Litera
 # The only connection-capable action targets ipc_lane7; protected lanes remain at zero attempts.
 foreach ($sqlArtifact in $sqlArtifacts) {
     $manifest.targetLaneConnectionAttempts++
-    Get-Content -LiteralPath $sqlArtifact.path -Raw | & $MySqlExe "--host=$DbHost" "--port=$Port" "--user=$DbUser" "--database=$allowedDatabase"
+    # Reviewed guarded DDL emits harmless SELECT 1 no-op rows. Suppress those rows so the
+    # resulting APPLY receipt remains a single parseable JSON document.
+    Get-Content -LiteralPath $sqlArtifact.path -Raw | & $MySqlExe "--host=$DbHost" "--port=$Port" "--user=$DbUser" "--database=$allowedDatabase" | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "MySQL apply failed for $($sqlArtifact.path) with exit code $LASTEXITCODE. Preserve the checkpoint and collect a POST-FLIGHT failure receipt."
     }

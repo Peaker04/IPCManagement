@@ -707,6 +707,11 @@ button[data-slot="button"] {
   word-break: keep-all;
 }
 
+button[data-slot="button"][data-variant="default"],
+button[data-slot="button"][data-variant="info"] {
+  color: var(--primary-foreground) !important;
+}
+
 button[data-slot="button"][data-text-wrap="wrap"] {
   overflow-wrap: normal !important;
   white-space: normal;
@@ -719,7 +724,7 @@ button[data-slot="button"][data-text-wrap="wrap"] {
 
 .ipc-button-primary {
   background: var(--ipc-primary);
-  color: #ffffff;
+  color: var(--primary-foreground) !important;
 }
 
 .ipc-button-primary:hover {

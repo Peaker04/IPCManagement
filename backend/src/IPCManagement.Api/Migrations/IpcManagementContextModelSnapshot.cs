@@ -5860,19 +5860,22 @@ namespace IPCManagement.Api.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedBy")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("inventoryallocationdispositions_ibfk_3");
 
                     b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", null)
                         .WithMany()
                         .HasForeignKey("DestinationIssueLineId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("inventoryallocationdispositions_ibfk_2");
 
                     b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", null)
                         .WithMany()
                         .HasForeignKey("SourceIssueLineId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("inventoryallocationdispositions_ibfk_1");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryIssue", b =>

@@ -4,7 +4,7 @@ import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
 import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { typography } from '@/lib/typography';
-import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
+import { DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi';
 import {
@@ -22,6 +22,7 @@ import {
   LAST_WEEKLY_MENU_CUSTOMER_KEY,
   LAST_WEEKLY_MENU_WEEK_KEY,
   normalizeDishMatchKey,
+  normalizeWeekStartDate,
   parseDisplayDateToIso,
   toLocalIsoDate,
 } from '../weekly-menu/model/formatters';
@@ -35,7 +36,6 @@ import { useWeeklyMenuImport } from '../weekly-menu/import/useWeeklyMenuImport';
 import { WeeklyMenuImportDialog } from '../weekly-menu/import/WeeklyMenuImportDialog';
 import { useWeeklyScheduleEditor } from '../weekly-menu/schedule/useWeeklyScheduleEditor';
 import { WeeklyScheduleEditorDialog } from '../weekly-menu/schedule/WeeklyScheduleEditorDialog';
-import { MenuAmendmentInbox } from '../weekly-menu/schedule/MenuAmendmentInbox';
 import type { WeeklyScheduleFeedback } from '../weekly-menu/schedule/types';
 import { useWeeklyProductionPlan } from '../weekly-menu/production-plan/useWeeklyProductionPlan';
 import { useMaterialDemand } from '../weekly-menu/demand/useMaterialDemand';
@@ -111,7 +111,7 @@ const WeeklyMenuPage = () => {
     || (committedMenuView.phase === 'ready' && committedMenuView.isRefreshing);
   const committedMenu = committedMenuResponse?.data;
   const committedMenuRows = committedMenu?.rows;
-  const displayedWeekStartDate = committedMenuWeekStartDate || committedMenu?.weekStartDate?.split('T')[0] || '';
+  const displayedWeekStartDate = committedMenu?.weekStartDate?.split('T')[0] || committedMenuWeekStartDate || '';
   const menuScheduleWeekStartDate = committedMenu?.weekStartDate?.split('T')[0] ?? (committedMenuWeekStartDate || undefined);
   const menuSchedulesQuery = useGetMenuSchedulesQuery(
     {
@@ -149,11 +149,14 @@ const WeeklyMenuPage = () => {
     [committedMenuRows],
   );
   const displayDays = useMemo(
-    () => DEFAULT_DAYS_OF_WEEK.map((day) => ({
-      ...day,
-      date: committedMenuDates[day.key] ?? day.date,
-    })),
-    [committedMenuDates],
+    () => DAYS_OF_WEEK.slice(0, 6).map((day, index) => {
+      if (committedMenuDates[day.key]) return { ...day, date: committedMenuDates[day.key] };
+      if (!displayedWeekStartDate) return { ...day, date: '' };
+      const date = new Date(`${displayedWeekStartDate}T00:00:00`);
+      date.setDate(date.getDate() + index);
+      return { ...day, date: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}` };
+    }),
+    [committedMenuDates, displayedWeekStartDate],
   );
   const committedLayoutRows = useMemo(
     () => buildImportedLayoutRows(committedMenuRows ?? []),
@@ -321,6 +324,7 @@ const WeeklyMenuPage = () => {
     activeView === 'production-plan' && Boolean(committedMenu?.weekStartDate),
   );
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
+  const dishNamesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish.name])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
     [catalogDishes],
@@ -449,23 +453,21 @@ const WeeklyMenuPage = () => {
         onPublish={() => void publishWeeklyMenu()}
         onCustomerChange={(customerId) => {
           setSelectedMenuCustomerId(customerId);
-          setCommittedMenuWeekStartDate('');
           resetScopedWeeklyMenuUi();
           if (customerId) window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, customerId);
           else window.localStorage.removeItem(LAST_WEEKLY_MENU_CUSTOMER_KEY);
-          window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
         }}
         onWeekChange={(weekStartDate) => {
-          setCommittedMenuWeekStartDate(weekStartDate);
+          const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate);
+          setCommittedMenuWeekStartDate(normalizedWeekStartDate);
           resetScopedWeeklyMenuUi();
-          if (weekStartDate) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, weekStartDate);
+          if (normalizedWeekStartDate) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
           else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
         }}
       />}
       context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
-        <MenuAmendmentInbox />
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
@@ -511,6 +513,7 @@ const WeeklyMenuPage = () => {
               scope={weeklyScheduleScope}
               hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
               committedRows={committedLayoutRows}
+              dishNamesById={dishNamesById}
               scheduleWorkflow={scheduleWorkflow}
               productionPlanWorkflow={productionPlanWorkflow}
               demandWorkflow={demandWorkflow}

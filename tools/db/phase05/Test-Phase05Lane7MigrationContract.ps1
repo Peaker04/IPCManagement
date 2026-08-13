@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 if (-not $NoDatabase) { throw 'This contract test is file-only; pass -NoDatabase.' }
 $sqlPaths = $Sql -split ',' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-if ($sqlPaths.Count -ne 2) { throw 'The Phase 05 contract requires ordered ServiceRun and purchasing reviewed SQL files.' }
+if ($sqlPaths.Count -ne 3) { throw 'The Phase 05 contract requires ordered ServiceRun, purchasing, and allocation disposition reviewed SQL files.' }
 foreach ($path in @($Runbook, $Runner) + $sqlPaths) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing contract file: $path" }
 }
@@ -56,7 +56,12 @@ foreach ($required in @(
     '`information_schema`.`statistics`',
     '`information_schema`.`table_constraints`',
     'CREATE UNIQUE INDEX `uqServiceRunsCustomerDateShiftTier` ON `serviceruns` (`customerId`, `serviceDate`, `shiftName`, `priceTierAmount`)',
-    'ADD CONSTRAINT `fkServiceRunsCustomer` FOREIGN KEY (`customerId`)'
+    'ADD CONSTRAINT `fkServiceRunsCustomer` FOREIGN KEY (`customerId`)',
+    'WITH `resolvedCandidates` AS',
+    'HAVING COUNT(*) = 1',
+    'AS `scopedSnapshot`',
+    'Legacy ServiceRun scope is ambiguous or conflicts with another ServiceRun',
+    "VALUES ('20260812170357_AddMultiCustomerServiceRunKernel', '9.0.16')"
 )) {
     if ($serviceRunSql -notmatch [regex]::Escape($required)) {
         throw "ServiceRun reviewed SQL is missing additive scoped-identity contract: $required"
@@ -67,6 +72,10 @@ if ($serviceRunSql -match '(?im)\bADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\b|\bCREATE\s+
 }
 if ($serviceRunMigrationText -match 'DropIndex\(\s*name:\s*"uqServiceRunsPlanShift"') {
     throw 'ServiceRun EF migration must preserve uqServiceRunsPlanShift because an existing foreign key depends on it.'
+}
+if ($serviceRunMigrationText.IndexOf('WITH resolvedCandidates AS', [StringComparison]::Ordinal) -gt
+    $serviceRunMigrationText.IndexOf('name: "uqServiceRunsCustomerDateShiftTier"', [StringComparison]::Ordinal)) {
+    throw 'ServiceRun EF migration must backfill only non-conflicting legacy scopes before creating scoped uniqueness.'
 }
 foreach ($required in @(
     'name: "uqServiceRunsCustomerDateShiftTier"',
@@ -81,14 +90,31 @@ if ($runbookText.IndexOf('20260812170357_AddMultiCustomerServiceRunKernel', [Str
     $runbookText.IndexOf('20260812172709_AddPurchaseOrderCompatibilityScope', [StringComparison]::Ordinal)) {
     throw 'Runbook migration order must place ServiceRun before purchasing compatibility.'
 }
+if ($runbookText.IndexOf('20260812172709_AddPurchaseOrderCompatibilityScope', [StringComparison]::Ordinal) -gt
+    $runbookText.IndexOf('20260812174836_AddInventoryAllocationDispositions', [StringComparison]::Ordinal)) {
+    throw 'Runbook migration order must place purchasing compatibility before allocation dispositions.'
+}
 foreach ($required in @('receivingWarehouseId', 'purchasingTerms', 'proposedDeliveryDate', 'ixPurchaseOrdersCompatibility', 'ixPurchaseLineSupplierDecisionsCompatibility', 'forward-recovery')) {
     if ($runbookText -notmatch [regex]::Escape($required)) { throw "Runbook is missing purchasing postflight or recovery assertion: $required" }
 }
 foreach ($required in @("`$allowedDatabase = 'ipc_lane7'", 'if ($Database -cne $allowedDatabase)', 'if (-not $Apply)', 'ApprovedSqlSha256', 'CheckpointReceipt')) {
     if ($runnerText -notmatch [regex]::Escape($required)) { throw "Runner is missing guard: $required" }
 }
-foreach ($required in @('[string[]]$Sql', '[string[]]$ApprovedSqlSha256', 'exactly two ordered reviewed SQL artifacts', 'targetLaneConnectionAttempts', 'protectedLaneConnectionAttempts = 0')) {
+foreach ($required in @('[string[]]$Sql', '[string[]]$ApprovedSqlSha256', 'exactly three ordered reviewed SQL artifacts', 'targetLaneConnectionAttempts', 'protectedLaneConnectionAttempts = 0')) {
     if ($runnerText -notmatch [regex]::Escape($required)) { throw "Runner is missing ordered migration contract: $required" }
+}
+$allocationSql = $sqlArtifacts[2].Text
+foreach ($required in @(
+    'CREATE TABLE IF NOT EXISTS `inventoryallocationdispositions`',
+    'ixInventoryAllocationDispositionsDestination',
+    'ixInventoryAllocationDispositionsSource',
+    'IX_inventoryallocationdispositions_createdBy',
+    'inventoryallocationdispositions_ibfk_1',
+    'inventoryallocationdispositions_ibfk_2',
+    'inventoryallocationdispositions_ibfk_3',
+    "VALUES ('20260812174836_AddInventoryAllocationDispositions', '9.0.16')"
+)) {
+    if ($allocationSql -notmatch [regex]::Escape($required)) { throw "Allocation disposition SQL is missing required contract: $required" }
 }
 if ($runnerText -match 'protectedLaneConnectionAttempts\s*=\s*1') {
     throw 'Runner must not record an ipc_lane7 connection as a protected-lane connection attempt.'

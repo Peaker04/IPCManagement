@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { WeeklyMenuImportJobs } from './WeeklyMenuImportJobs'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
@@ -30,6 +30,14 @@ const buildWorkflow = (commitJob: ReturnType<typeof vi.fn>, commitReadyJobs: Ret
   },
 } as unknown as WeeklyMenuImportWorkflow)
 
+const buildMixedWorkflow = () => ({
+  ...buildWorkflow(vi.fn(), vi.fn()),
+  state: {
+    jobs: [job, { ...job, jobId: 'job-2', customerId: 'customer-2', customerCode: 'DAV', status: 'failed', error: 'File lỗi' }],
+  },
+  readyJobs: [job],
+} as unknown as WeeklyMenuImportWorkflow)
+
 describe('WeeklyMenuImportJobs confirmation contract', () => {
   it('does not commit a single file before scope-aware confirmation', () => {
     const commitJob = vi.fn()
@@ -47,12 +55,26 @@ describe('WeeklyMenuImportJobs confirmation contract', () => {
     const commitReadyJobs = vi.fn()
     render(<WeeklyMenuImportJobs workflow={buildWorkflow(vi.fn(), commitReadyJobs)} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu file hợp lệ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu toàn bộ file' }))
 
     expect(commitReadyJobs).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: 'Lưu 1 file hợp lệ?' })).toHaveTextContent('1 file với 12 dòng món sẽ được lưu atomic')
-    expect(screen.getByRole('dialog', { name: 'Lưu 1 file hợp lệ?' })).toHaveTextContent('toàn bộ batch sẽ được hoàn tác')
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu các file hợp lệ' }))
+    expect(screen.getByRole('dialog', { name: 'Lưu toàn bộ 1 file?' })).toHaveTextContent('1 file với 12 dòng món sẽ được lưu atomic')
+    expect(screen.getByRole('dialog', { name: 'Lưu toàn bộ 1 file?' })).toHaveTextContent('toàn bộ batch sẽ được hoàn tác')
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Lưu toàn bộ 1 file?' })).getByRole('button', { name: 'Lưu toàn bộ file' }))
     expect(commitReadyJobs).toHaveBeenCalledOnce()
+  })
+
+  it('does not offer batch commit until every selected file is valid', () => {
+    render(<WeeklyMenuImportJobs workflow={buildMixedWorkflow()} />)
+
+    expect(screen.getByRole('button', { name: 'Lưu toàn bộ file' })).toBeDisabled()
+  })
+
+  it('keeps check, save and remove actions on one row', () => {
+    render(<WeeklyMenuImportJobs workflow={buildWorkflow(vi.fn(), vi.fn())} />)
+
+    const actionRow = screen.getByTestId('import-job-actions')
+    expect(actionRow).toHaveClass('flex-nowrap')
+    expect(within(actionRow).getAllByRole('button').map((button) => button.textContent)).toEqual(['Kiểm tra', 'Lưu', 'Xóa'])
   })
 })

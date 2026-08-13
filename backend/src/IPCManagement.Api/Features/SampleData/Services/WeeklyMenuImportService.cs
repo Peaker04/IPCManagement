@@ -66,7 +66,8 @@ internal sealed class WeeklyMenuImportService(
                     plan.SourceChecksum,
                     GuidHelper.ToGuidString(customer.CustomerId),
                     plan.WeekStartDate,
-                    normalizedPriceTier);
+                    normalizedPriceTier,
+                    WeeklyMenuWorkbookParser.ParserVersion);
                 result.PreviewToken = ticket.Token;
                 result.PreviewExpiresAt = ticket.ExpiresAt;
             }
@@ -218,7 +219,8 @@ internal sealed class WeeklyMenuImportService(
                 item.Plan.SourceChecksum!,
                 GuidHelper.ToGuidString(item.Customer.CustomerId),
                 item.Plan.WeekStartDate,
-                item.PriceTierAmount);
+                item.PriceTierAmount,
+                WeeklyMenuWorkbookParser.ParserVersion);
         }
 
         List<WeeklyMenuImportResultDto> committedResults = [];

@@ -8,6 +8,8 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal static class WeeklyMenuWorkbookParser
 {
+    internal const string ParserVersion = "canonical-three-tier-v1";
+
     internal static WeeklyMenuImportPlan Parse(
         XlsxWorkbookReader reader,
         string workbookPath,
@@ -98,21 +100,6 @@ internal static class WeeklyMenuWorkbookParser
         string? sheetNameHint,
         decimal? priceTierAmount)
     {
-        if (priceTierAmount is not null && !string.IsNullOrWhiteSpace(sheetNameHint))
-        {
-            var customerTierSheets = sheetsMatchingPriceTier
-                .Where(candidate => candidate.SheetName.Contains(sheetNameHint, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            if (customerTierSheets.Count == 0)
-            {
-                throw new BusinessRuleException(
-                    $"File Excel không có sheet {sheetNameHint} cho định mức {priceTierAmount / 1000m:0}k. " +
-                    "Vui lòng dùng đúng file mẫu đã tải theo khách hàng.");
-            }
-
-            return customerTierSheets;
-        }
-
         if (priceTierAmount is not null)
         {
             if (sheetsMatchingPriceTier.Count == 0)
@@ -129,11 +116,11 @@ internal static class WeeklyMenuWorkbookParser
 
     private static bool SheetNameMatchesPriceTier(string sheetName, decimal priceTierAmount)
     {
-        var normalized = WeeklyMenuWorkbookSyntaxPolicy.NormalizeText(sheetName);
+        var normalized = WeeklyMenuWorkbookSyntaxPolicy.NormalizeText(sheetName).Trim();
         var rounded = DecimalPolicy.RoundMoney(priceTierAmount);
         var tierInThousands = rounded / 1000m;
-        return normalized.Contains(rounded.ToString("0", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase) ||
-               normalized.Contains($"{tierInThousands:0}K", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(normalized, rounded.ToString("0", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(normalized, $"{tierInThousands:0}K", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int ScoreMenuSheet(
@@ -144,6 +131,11 @@ internal static class WeeklyMenuWorkbookParser
             .Contains("MENU", StringComparison.OrdinalIgnoreCase) ? 8 : 0;
         foreach (var value in rows.Take(80).SelectMany(row => row.Values))
         {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                score += 1;
+            }
+
             if (WeeklyMenuWorkbookSyntaxPolicy.IsSection(value))
             {
                 score += 15;

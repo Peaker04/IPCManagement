@@ -1,8 +1,13 @@
 # UI/UX measurement protocol
 
-`docs/ui-audit-kit/` là nguồn tham khảo đã được chuẩn hóa vào IPCManagement. Từ nay agent không kết luận
+[`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md) và [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) là contract
+nguyên tắc đã áp dụng; `docs/ui-audit-kit/` là nguồn tham khảo đã được chuẩn hóa vào IPCManagement. Từ nay agent không kết luận
 UI đúng/sai bằng cách đọc screenshot. Kết luận phải xuất phát từ test, DOM metrics, API evidence, focus
 state hoặc performance record có thể lặp lại.
+
+Quy trình đầy đủ từ phân loại task, sửa đúng owner, browser evidence đến handoff session nằm ở
+[`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md). File này chỉ giữ oracle/gate đo lường,
+không trở thành một workflow cạnh tranh.
 
 ## Cleanup quy trình cũ
 

@@ -300,6 +300,65 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task WeeklyMenuReimport_Should_ScopePurchaseOrderBySourcePlanDate_NotPurchaseDocumentDate()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        demand.Should().NotBeNull();
+        await ApproveDemandAsync(context, demand!.MaterialRequestId);
+        var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandRequest { MaterialRequestId = demand.MaterialRequestId },
+            fixture.UserIdString);
+        purchase.Should().NotBeNull();
+
+        var purchaseRequest = await context.Purchaserequests.SingleAsync();
+        purchaseRequest.PurchaseForDate = new DateOnly(2026, 6, 22);
+        context.Purchaseorders.Add(new PurchaseOrder
+        {
+            PurchaseOrderId = GuidHelper.NewId(),
+            PurchaseOrderCode = "PO-DOCUMENT-DATE-DIFFERS-FROM-SOURCE",
+            PurchaseRequestId = purchaseRequest.PurchaseRequestId,
+            SupplierId = fixture.SupplierId,
+            OrderDate = new DateOnly(2026, 6, 22),
+            Status = "ORDERED",
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        var customer = await context.Customers.SingleAsync();
+        var version = new MenuVersion
+        {
+            MenuVersionId = GuidHelper.NewId(),
+            CustomerId = customer.CustomerId,
+            WeekStartDate = new DateOnly(2026, 6, 22),
+            VersionNo = 1,
+            Status = "DRAFT",
+            SourceImportBatch = "MENU-CUS-20260622-V01",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.Menuversions.Add(version);
+        await context.SaveChangesAsync();
+
+        var invalidated = await CreateWeeklyMenuImportPersistence(context)
+            .InvalidateWorkflowDocumentsForMenuReimportAsync(
+                customer,
+                new DateOnly(2026, 6, 22),
+                new DateOnly(2026, 6, 27),
+                version,
+                fixture.UserIdString,
+                CancellationToken.None);
+
+        invalidated.Should().Be(0);
+        (await context.Purchaseorders.AsNoTracking().SingleAsync()).Status.Should().Be("ORDERED");
+    }
+
+    [Fact]
     public async Task WeeklyMenuImport_Should_PreserveExistingGlobalDishClassification()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

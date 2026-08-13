@@ -25,6 +25,16 @@ import {
   type ScheduleRuleFormState,
 } from './adminDataPageTypes';
 import { EMPTY_ADMIN_LIST, toAdminView } from './adminDataPageModelShared';
+import { formatMenuVersionStatus } from '@/lib/workflowConfig';
+
+const toApiShiftName = (value: string): ApiShiftName | null => {
+  const normalized = value.trim().toLocaleUpperCase('vi-VN');
+  if (['MORNING', 'CA SÁNG', 'CA SANG'].includes(normalized)) return 'MORNING';
+  if (['AFTERNOON', 'CA CHIỀU', 'CA CHIEU'].includes(normalized)) return 'AFTERNOON';
+  return null;
+};
+
+const formatContractShiftInput = (shift: string) => shift === 'MORNING' ? 'Ca sáng' : shift === 'AFTERNOON' ? 'Ca chiều' : shift;
 
 export function useAdminContractsPanelModel(activeView: AdminView) {
   const [selectedContractCustomerId, setSelectedContractCustomerId] = useState('');
@@ -75,7 +85,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
       effectiveFrom: contract.effectiveFrom ?? '',
       effectiveTo: contract.effectiveTo ?? '',
       activeWeekDays: contract.activeWeekDays.join(','),
-      shiftNames: contract.shiftNames.join(','),
+      shiftNames: contract.shiftNames.map(formatContractShiftInput).join(', '),
       defaultMenuPrice: contract.defaultMenuPrice != null ? String(contract.defaultMenuPrice) : '',
     } : defaultContractForm);
     setContractFeedback(null);
@@ -98,7 +108,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
       ...defaultContractForm,
       isActive: true,
       activeWeekDays: 't2,t3,t4,t5,t6,t7',
-      shiftNames: 'MORNING,AFTERNOON',
+      shiftNames: 'Ca sáng, Ca chiều',
       defaultMenuPrice: '25000',
     });
     loadScheduleRuleForm(undefined);
@@ -138,16 +148,17 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
     }
 
     const activeWeekDays = contractForm.activeWeekDays.split(',').map((value) => value.trim()).filter(Boolean);
-    const shiftNames: ApiShiftName[] = contractForm.shiftNames
+    const rawShiftNames = contractForm.shiftNames
       .split(',')
-      .map((value) => value.trim().toUpperCase())
-      .filter(Boolean) as ApiShiftName[];
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const shiftNames = rawShiftNames.map(toApiShiftName);
     if (activeWeekDays.length === 0) {
       setContractFeedback({ type: 'error', message: 'Ngày làm việc contract không được trống.' });
       return;
     }
-    if (shiftNames.length === 0) {
-      setContractFeedback({ type: 'error', message: 'Ca phục vụ contract không được trống.' });
+    if (shiftNames.length === 0 || shiftNames.some((shift) => !shift)) {
+      setContractFeedback({ type: 'error', message: 'Ca phục vụ không được trống hoặc không đúng định dạng.' });
       return;
     }
 
@@ -158,7 +169,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
       effectiveFrom: contractForm.effectiveFrom || undefined,
       effectiveTo: contractForm.effectiveTo || undefined,
       activeWeekDays,
-      shiftNames,
+      shiftNames: shiftNames as ApiShiftName[],
       defaultMenuPrice,
       defaultBomRatePercent: 100,
     };
@@ -222,7 +233,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
     try {
       await updateMenuScheduleVersion({ menuScheduleId: selectedSchedule.menuScheduleId, body }).unwrap();
       setScheduleRuleForm((prev) => ({ ...prev, status }));
-      setContractFeedback({ type: 'success', message: `Đã chuyển version thực đơn sang ${status}.` });
+      setContractFeedback({ type: 'success', message: `Đã chuyển trạng thái phiên bản thực đơn thành ${formatMenuVersionStatus(status)}.` });
     } catch (error) {
       setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được version thực đơn.') });
     }

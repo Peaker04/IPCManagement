@@ -63,6 +63,7 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
+      data-variant={variant}
       data-text-wrap={textWrap}
       className={cn(buttonVariants({ variant, size, textWrap, className }))}
       {...props}

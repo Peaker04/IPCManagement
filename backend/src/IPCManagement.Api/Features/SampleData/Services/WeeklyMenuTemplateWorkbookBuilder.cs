@@ -73,7 +73,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     private static CustomerTemplateProfile ResolveProfile(string? customerCode)
     {
         var normalized = NormalizeCustomerCode(customerCode);
-        var slots = new[] { "Món mặn 1", "Món mặn 2", "Rau", "Canh", "Trái cây" };
+        var slots = new[] { "Món mặn 1", "Món mặn 2", "Rau", "Canh", "Tráng miệng" };
 
         return normalized switch
         {
@@ -107,7 +107,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     private static string BuildWorkbookXml(CustomerTemplateProfile profile)
     {
         var sheets = string.Concat(PriceTiers.Select((priceTier, index) => FormattableString.Invariant($"""
-            <sheet name="{Escape(BuildSheetName(profile.CustomerCode, priceTier))}" sheetId="{index + 1}" r:id="rId{index + 1}"/>
+            <sheet name="{Escape(FormatPriceTier(priceTier))}" sheetId="{index + 1}" r:id="rId{index + 1}"/>
             """)));
 
         return $$"""
@@ -253,10 +253,10 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
         var rowNumber = startRow + 1;
         foreach (var slot in slots)
         {
-            if (string.Equals(slot, "Trái cây", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(slot, "Tráng miệng", StringComparison.OrdinalIgnoreCase))
             {
                 AddMergedMenuSlotRow(builder, rowNumber, slot);
-                mergedRanges.Add($"C{rowNumber}:I{rowNumber}");
+                mergedRanges.Add($"D{rowNumber}:I{rowNumber}");
             }
             else
             {
@@ -319,7 +319,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     private static void AddMergedMenuSlotRow(StringBuilder builder, int rowNumber, string slotLabel)
     {
         builder.Append(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\" ht=\"24.75\" customHeight=\"1\">");
-        AddCell(builder, "C", rowNumber, slotLabel, 7);
+        AddCell(builder, "C", rowNumber, slotLabel, 5);
         for (var column = 4; column <= 9; column++)
         {
             AddCell(builder, ColumnIndexToLetter(column), rowNumber, string.Empty, 7);
@@ -352,12 +352,6 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
 
     private static string FormatPriceTier(decimal priceTier)
         => $"{priceTier / 1000m:0}k";
-
-    private static string BuildSheetName(string customerCode, decimal priceTier)
-    {
-        var name = $"{customerCode} {FormatPriceTier(priceTier)}";
-        return name.Length <= 31 ? name : name[..31];
-    }
 
     private static string NormalizeCustomerCode(string? customerCode)
     {

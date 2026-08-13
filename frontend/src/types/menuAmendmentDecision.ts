@@ -32,6 +32,6 @@ export type MenuAmendmentDecisionCommand = {
 }
 
 export const amendmentDecisionStatus = (status: string) => ({
-  OPEN: { label: 'Cần quyết định', tone: 'warning' as const },
-  RESOLVED: { label: 'Đã ghi correction', tone: 'success' as const },
+  OPEN: { label: 'Chờ đối soát', tone: 'warning' as const },
+  RESOLVED: { label: 'Đã ghi nhận điều chỉnh', tone: 'success' as const },
 }[status] ?? { label: status || 'Chưa cập nhật', tone: 'neutral' as const })

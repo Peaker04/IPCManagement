@@ -2,7 +2,7 @@ import { apiSlice } from './apiSlice'
 import { workflowCacheTags } from './workflowCacheTags'
 import type { components, paths } from '@/shared/api/contracts/schema'
 import type { ApiResponse } from '@/types/api'
-import type { MenuAmendmentDecisionCommand, MenuAmendmentDecisionItem, MenuAmendmentDecisionPage } from '@/features/projects/weekly-menu/schedule/menuAmendmentDecisionTypes'
+import type { MenuAmendmentDecisionCommand, MenuAmendmentDecisionItem, MenuAmendmentDecisionPage } from '@/types/menuAmendmentDecision'
 import type {
   CoordinationScopeActionRequest,
   CoordinationScopeActionResult,

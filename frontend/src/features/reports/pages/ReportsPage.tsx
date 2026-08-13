@@ -467,7 +467,7 @@ return (
                   <th>Nguyên liệu</th>
                   <th>Cần</th>
                   <th>PR/PO</th>
-                  <th>Nhập POSTED</th>
+                  <th>Đã nhập kho</th>
                   <th>Đã xuất</th>
                   <th>Bếp nhận</th>
                   <th>Bổ sung<br />(YC/cấp/PR)</th>

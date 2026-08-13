@@ -4,6 +4,7 @@ import {
   formatImportDate,
   formatMenuDishName,
   isValidWeekStartDate,
+  normalizeWeekStartDate,
   normalizeDishMatchKey,
   parseDisplayDateToIso,
   summarizeImportWarnings,
@@ -37,6 +38,8 @@ describe('weekly menu pure model', () => {
     expect(parseDisplayDateToIso('20/7/2026')).toBe('2026-07-20')
     expect(isValidWeekStartDate('2026-07-20')).toBe(true)
     expect(isValidWeekStartDate('2026-07-21')).toBe(false)
+    expect(normalizeWeekStartDate('2026-08-09')).toBe('2026-08-10')
+    expect(normalizeWeekStartDate('2026-08-10')).toBe('2026-08-10')
   })
 
   it('collapses repeated contract warnings while preserving other warnings', () => {

@@ -9,6 +9,7 @@ internal sealed record WeeklyMenuImportPreviewTicket(
     string CustomerId,
     DateOnly WeekStartDate,
     decimal PriceTierAmount,
+    string ParserVersion,
     DateTimeOffset ExpiresAt);
 
 internal sealed record IssuedWeeklyMenuImportPreviewTicket(string Token, DateTimeOffset ExpiresAt);
@@ -22,7 +23,8 @@ internal sealed class WeeklyMenuImportPreviewTicketStore(IMemoryCache cache)
         string checksum,
         string customerId,
         DateOnly weekStartDate,
-        decimal priceTierAmount)
+        decimal priceTierAmount,
+        string parserVersion)
     {
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var expiresAt = DateTimeOffset.UtcNow.Add(Lifetime);
@@ -33,6 +35,7 @@ internal sealed class WeeklyMenuImportPreviewTicketStore(IMemoryCache cache)
                 customerId,
                 weekStartDate,
                 priceTierAmount,
+                parserVersion,
                 expiresAt),
             expiresAt);
         return new IssuedWeeklyMenuImportPreviewTicket(token, expiresAt);
@@ -43,7 +46,8 @@ internal sealed class WeeklyMenuImportPreviewTicketStore(IMemoryCache cache)
         string checksum,
         string customerId,
         DateOnly weekStartDate,
-        decimal priceTierAmount)
+        decimal priceTierAmount,
+        string parserVersion)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -61,7 +65,8 @@ internal sealed class WeeklyMenuImportPreviewTicketStore(IMemoryCache cache)
         if (!string.Equals(ticket.Checksum, checksum, StringComparison.Ordinal) ||
             !string.Equals(ticket.CustomerId, customerId, StringComparison.OrdinalIgnoreCase) ||
             ticket.WeekStartDate != weekStartDate ||
-            ticket.PriceTierAmount != priceTierAmount)
+            ticket.PriceTierAmount != priceTierAmount ||
+            !string.Equals(ticket.ParserVersion, parserVersion, StringComparison.Ordinal))
         {
             throw new BusinessRuleException(
                 "File hoặc phạm vi import đã thay đổi sau khi xem trước. Vui lòng kiểm tra lại file.");

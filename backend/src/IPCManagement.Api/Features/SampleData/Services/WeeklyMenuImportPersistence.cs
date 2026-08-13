@@ -197,8 +197,8 @@ internal sealed class WeeklyMenuImportPersistence(
             .Include(request => request.Plan)
                 .ThenInclude(plan => plan.Productionplanlines)
             .Where(request =>
-                request.RequestDate >= weekStartDate &&
-                request.RequestDate <= weekEndDate &&
+                request.Plan.PlanDate >= weekStartDate &&
+                request.Plan.PlanDate <= weekEndDate &&
                 request.Status != "CANCELLED" &&
                 request.Plan.Productionplanlines.Any(line =>
                     line.CustomerId.SequenceEqual(customer.CustomerId)))
@@ -223,10 +223,10 @@ internal sealed class WeeklyMenuImportPersistence(
                 .ThenInclude(line => line.MaterialRequestLine)
                     .ThenInclude(line => line.PlanLine)
             .Where(request =>
-                request.PurchaseForDate >= weekStartDate &&
-                request.PurchaseForDate <= weekEndDate &&
                 request.Status != "CANCELLED" &&
                 request.Purchaserequestlines.Any(line =>
+                    line.MaterialRequestLine.PlanLine.Plan.PlanDate >= weekStartDate &&
+                    line.MaterialRequestLine.PlanLine.Plan.PlanDate <= weekEndDate &&
                     line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)))
             .ToListAsync(cancellationToken);
         foreach (var request in purchaseRequests)
@@ -254,21 +254,21 @@ internal sealed class WeeklyMenuImportPersistence(
         CancellationToken cancellationToken)
     {
         var hasPurchaseOrder = await context.Purchaseorders.AnyAsync(order =>
-            order.PurchaseRequest.PurchaseForDate >= weekStartDate &&
-            order.PurchaseRequest.PurchaseForDate <= weekEndDate &&
             order.PurchaseRequest.Purchaserequestlines.Any(line =>
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate >= weekStartDate &&
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate <= weekEndDate &&
                 line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
             cancellationToken);
         var hasReceipt = await context.Inventoryreceipts.AnyAsync(receipt =>
             receipt.PurchaseRequest != null &&
-            receipt.PurchaseRequest.PurchaseForDate >= weekStartDate &&
-            receipt.PurchaseRequest.PurchaseForDate <= weekEndDate &&
             receipt.PurchaseRequest.Purchaserequestlines.Any(line =>
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate >= weekStartDate &&
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate <= weekEndDate &&
                 line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
             cancellationToken);
         var hasIssue = await context.Inventoryissues.AnyAsync(issue =>
-            issue.MaterialRequest.RequestDate >= weekStartDate &&
-            issue.MaterialRequest.RequestDate <= weekEndDate &&
+            issue.MaterialRequest.Plan.PlanDate >= weekStartDate &&
+            issue.MaterialRequest.Plan.PlanDate <= weekEndDate &&
             issue.MaterialRequest.Plan.Productionplanlines.Any(line =>
                 line.CustomerId.SequenceEqual(customer.CustomerId)),
             cancellationToken);

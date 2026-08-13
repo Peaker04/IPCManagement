@@ -28,9 +28,9 @@ namespace IPCManagement.Api.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PRIMARY", x => x.allocationDispositionId);
-                    table.ForeignKey(name: "FK_inventoryallocationdispositions_inventoryissuelines_destinationIssueLineId", column: x => x.destinationIssueLineId, principalTable: "inventoryissuelines", principalColumn: "issueLineId", onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(name: "FK_inventoryallocationdispositions_inventoryissuelines_sourceIssueLineId", column: x => x.sourceIssueLineId, principalTable: "inventoryissuelines", principalColumn: "issueLineId", onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(name: "FK_inventoryallocationdispositions_users_createdBy", column: x => x.createdBy, principalTable: "users", principalColumn: "userId", onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(name: "inventoryallocationdispositions_ibfk_2", column: x => x.destinationIssueLineId, principalTable: "inventoryissuelines", principalColumn: "issueLineId", onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(name: "inventoryallocationdispositions_ibfk_1", column: x => x.sourceIssueLineId, principalTable: "inventoryissuelines", principalColumn: "issueLineId", onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(name: "inventoryallocationdispositions_ibfk_3", column: x => x.createdBy, principalTable: "users", principalColumn: "userId", onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(name: "ixInventoryAllocationDispositionsDestination", table: "inventoryallocationdispositions", column: "destinationIssueLineId");

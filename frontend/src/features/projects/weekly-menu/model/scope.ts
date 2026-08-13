@@ -32,16 +32,9 @@ export const SECTIONS = [
   { label: 'MENU CHAY - CA CHIỀU', slotType: 'afternoonVegetarian' as const, category: 'vegetarian' as const, shift: 'afternoon' as const },
 ] as const
 
-const isLegacyFruitLabel = (value?: string) => normalizeDishMatchKey(value).includes('TRAI CAY')
-
 export const resolveImportedSlotLabel = (
   row: WeeklyMenuImportResult['rows'][number],
-  occurrence: number,
-) => {
-  const label = row.slotLabel || importSlotLabels[row.slot] || row.slot
-  if (row.slot === 'fruit' && occurrence > 1 && isLegacyFruitLabel(label)) return 'Sữa chua'
-  return label
-}
+) => importSlotLabels[row.slot] || row.slotLabel || row.slot
 
 export const getNormalizedSlotType = (row: WeeklyMenuImportResult['rows'][number]) => {
   const shift = row.dbShiftName === 'MORNING' ? 'morning' : 'afternoon'
@@ -66,7 +59,7 @@ export const buildImportedLayoutRows = (
       firstIndex: index,
       sourceSection: row.sourceSection,
       slot: row.slot,
-      slotLabel: resolveImportedSlotLabel(row, occurrence),
+      slotLabel: resolveImportedSlotLabel(row),
       cells: {},
     }
 

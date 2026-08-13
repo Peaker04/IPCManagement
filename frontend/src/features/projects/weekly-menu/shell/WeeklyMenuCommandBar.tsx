@@ -77,7 +77,7 @@ export const WeeklyMenuCommandBar = ({
       </Select>
     </FieldRow>
     <FieldRow label="Tuần bắt đầu">
-      <Input type="date" value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} />
+      <Input aria-label="Tuần bắt đầu" type="date" weekStartOnly value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} />
     </FieldRow>
   </CommandBar>
   )

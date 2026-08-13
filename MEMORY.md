@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-12
+updated: 2026-08-13
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -8,8 +8,15 @@ runtime_ports:
   mysql: 3306
   audit_frontend: 3010
   audit_api: 8010
+  warehouse_dev_frontend: 3020
+  warehouse_dev_api: 8020
 db_lane: ipc_lane9
-credentials_via: K6_PASSWORD
+warehouse_cleanup_lane: ipc_dev_warehouse_20260812
+e2e_lane: ipc_lane7
+e2e_runtime:
+  frontend: 3030
+  api: 8030
+credentials_via: IPC_LANE7_<ROLE>_PASSWORD
 workbook:
   path: 'C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx'
   sha256: A7E734CEFBD409E7220C4FF19B3E1B7FDDD4E33D202A3F24E63309D60D4D5A01
@@ -19,7 +26,8 @@ workbook:
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
 lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed mới nhất dùng `3010/8010` với
-`ipc_lane9`, health/ready pass rồi đã teardown; hiện không có runtime audit trên hai port này.
+`ipc_lane9`, health/ready pass rồi đã teardown. Runtime warehouse development hiện đang mở tại
+`3020/8020`, trỏ `ipc_dev_warehouse_20260812`; Chrome profile riêng nằm trong artifact run.
 
 ## Memory ngắn cho phiên tiếp theo
 
@@ -56,6 +64,69 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
 
 ## Còn mở
 
+- Phase 5 Wave 3 Golden trên disposable `ipc_lane7`: Task 0 đã đóng; bằng chứng và chi tiết closeout ở
+  `HISTORY.md` và `docs/EVIDENCE-INDEX.md`. Lane hiện giữ ANV/DAV tuần hiện hành `2026-08-10`,
+  mỗi khách version 1 DRAFT, 12 schedule, 120 dòng import, tier 25k; tuần `2026-08-17` cũ vẫn được
+  giữ nguyên như scope riêng, không xóa/ghi đè. Runtime owned `3030/8030`
+  hiện đang mở cho Kỳ kiểm tra, trỏ đúng `ipc_lane7`. Shared primary button đã khóa semantic foreground
+  trắng; tab Nguyên liệu món có tìm kiếm không dấu; modal import giữ setup và `Kiểm tra · Lưu · Xóa`
+  trên một hàng, headed `1280×900` pass. Shared `Input type=date` nay hiển thị `dd/mm/yyyy` và
+  popup lịch tiếng Việt do ứng dụng sở hữu, nhưng payload API vẫn ISO.
+  Field `Tuần bắt đầu` chỉ nhận Thứ Hai; stale Chủ nhật `09/08` tự chuẩn hóa `10/08`, và đổi
+  khách hàng không còn xóa week scope. Popup compact `264px`; headed request/response + DOM pass cho ANV/DAV.
+  Matrix thực đơn main/modal đã loại collapsed-border + duplicate sticky owner; khi cuộn chỉ `th` sticky,
+  không còn đường chia cột xuyên header. Headed scroll probe pass cả hai owner, không mutation DB.
+  Golden downstream vẫn chưa PASS:
+  Task 1–3 của `05-04-PLAN.md` còn publish, số suất, demand, PO grouping,
+  receipt/quality/post, issue, kitchen acknowledgement, independent ServiceRun close, exception matrix và năm
+  viewport. Resume point machine-readable ở `.planning/HANDOFF.json`, hướng dẫn phiên mới ở
+  `.planning/workstreams/lifecycle-standardization/phases/05-service-run-integration/.continue-here.md`.
+  Tiếp tục từ Task 1; phải qua physical headed control + exact-lane migration receipts trước Golden mutation;
+  không reset/import lại Task 0.
+
+- Database unit investigation and whole-day E2E audit (12/08): read-only proof on
+  `ipc_dev_warehouse_20260812` confirms the warehouse-clean baseline is correct: current stock, receipt, issue,
+  return, movement, lot and snapshot are all `0`; BOM/catalog and `8` PO / `54` PO lines are intentionally
+  preserved. The unit problem is semantic, not Vietnamese decimal formatting: `G` remains `baseUnitCode=G`, factor
+  `1` (not the intended `KG` / `0.001`); fractional BOM quantities persist for counted units (CAI 18/55,
+  CAY 3/3, LAT 12/15, MIENG 3/3, O 5/15, QUA 3/3); all `44` normalization reviews remain
+  `NEEDS_CONFIRMATION`. Do not auto-convert `G`, round counted units, or apply package factor without owner decision.
+  Audit lane `ipc_lane7` was cloned from `ipc_e2e_template`, checkpointed, migrated 49→66 migrations and passed
+  source-line/fence schema postflight. It then exposed legacy template lineage GAP: `173/187` issue lines match
+  duplicate demand lines, so those documents cannot prove an end-to-end happy path. Credentials were reset only in
+  `ipc_lane7`. The controlled receipt fixture `PO-E2E-RECEIPT-20260812` completed in Chrome headed: Điều phối created
+  the draft, Thủ kho accepted quality, Quản lý approved and Admin posted. Browser API evidence plus DB postflight prove
+  `POSTED/ACCEPTED`, correct lot/manufacture/expiry evidence, PO `RECEIVED`, exactly one stock movement and Dưa hấu
+  stock `+1`; artifact hashes are only in `docs/EVIDENCE-INDEX.md`. Whole-day issue → kitchen receipt → service-run
+  lifecycle still requires a new controlled fixture because legacy source-line lineage is ambiguous. Runtime `8030/3030`
+  is owned by this E2E and must be torn down on close; user runtime `8020/3020` is untouched.
+
+- Phase 5 Purchasing live scope `P5E2E0812SAFE` trên `ipc_lane9`: `PR-20260812-FULLDAY` đã được Admin gửi từ
+  `DRAFT` sang hàng đợi duyệt qua Chrome headed; trước khi gửi có `38/38` dòng đã chọn supplier quotation, ngày giao
+  Kỳ chốt `2026-08-13`.
+  Hai dòng Chuối dùng NCC `CHUỐI`, `1.500đ/quả`; từng source-line lưu note quy đổi `9.000đ/kg`, `1 kg = 6 quả`.
+  Evidence authoritative/hash ở `docs/EVIDENCE-INDEX.md` (`service-run-confirm-historical-supplier-decisions`,
+  `service-run-confirm-banana-conversion`, `service-run-correct-provisional-shrimp-note`). Mười source-line
+  còn lại đã dùng decision `TẠM THỜI` để Kỳ sửa sau: Bột nở/Tạp hóa Thái/25k, Da heo/Dì Tài/30k,
+  Nạc đùi mông/Tuyến Tâm/98k, Nấm mèo/Chay/110k, Tôm/Chị Vân/145k (size chưa xác minh); mỗi family 2 dòng.
+  Dòng DRAFT không còn sửa được sau khi gửi. Manager đã duyệt và Admin tạo 8 PO theo NCC; headed readback xác nhận
+  đúng 8 PO không rỗng của PR, tất cả `ORDERED`, zero browser error/overflow. Receipt-draft integrity blocker đã đóng:
+  runner Điều phối từng tạo lặp 303 receipt `DRAFT/PENDING_INSPECTION` cùng source-line Bột nở của một PO; preflight
+  live xác nhận 8 PO, 303 receipt cùng đúng một source-line và zero `POSTED`/stock movement/current-stock mutation.
+  Migration `20260812102011_AddPurchaseReceiptActiveLineFence` đã apply **chỉ trên `ipc_lane9`** sau checkpoint backup;
+  active-line fence, legacy fallback, UI chặn action trùng và lifecycle `VOIDED` có audit là source-of-truth. Remediation
+  đã void có audit 303/303 draft: DB postflight có active/POSTED/lease/movement đều 0, transition và audit đều 303,
+  current stock liên quan vẫn 0. Chrome headed Admin reload trên runtime owned 3010/8010 hiển thị `VOIDED`, zero browser
+  error, write nghiệp vụ và overflow. Sau đó đã tạo **đúng một** replacement receipt
+  `2abd6e9c-0701-e4e2-18f9-89dc8209a5b7` cho canonical Bột nở source-line
+  `5c31be27-cdf3-9aa3-e184-d1f017a6e8b9`, kho hợp lệ `11111111-1111-4111-8111-111111111102`, quantity `2.7132 kg`,
+  giá `25.000đ`, lô `P5E2E0812SAFE-e74c403e`: DB và Chrome headed Điều phối reload cùng xác nhận
+  `DRAFT/PENDING_INSPECTION`, version 0, một active lease, zero POSTED/movement/current-stock mutation. Guard backend
+  giờ trả 404 cho warehouse ID không tồn tại thay vì FK 500; focused test `WarehousePurchaseReceivingTests` 21/21 pass.
+  Không quality/approve/POSTED receipt này nếu chưa có lệnh mới. Runtime 8010/3010 của remediation đã teardown sau
+  evidence; 8020/3020 ngoài scope vẫn giữ nguyên. Evidence/hash chỉ ở `docs/EVIDENCE-INDEX.md`. Credential Manager dùng
+  biến riêng `IPC_PHASE05_MANAGER_PASSWORD`.
+
 - Project-wide UI/UX audit is at `docs/UI-UX-PROJECT-AUDIT.md`: Wave 3 closed Reports UX-01/UX-02 with the owner-local
   `ReportsPricePanel` detail action and the existing debounced server-bound search. Focused controls 3/3, five-desktop
   measurements 10/10, lint and production build pass. Wave 2 corrective headed evidence on `ipc_lane9` resolves Approvals:
@@ -87,6 +158,14 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   `docs/UI-UX-MEASUREMENT-PROTOCOL.md`. Chạy `NODE_OPTIONS=--max-old-space-size=4096 npm run test:ui-measurements -w frontend`
   để đo các protected route với đúng năm desktop viewport; fixture read-only pass `35/35`. Screenshot vẫn lưu cho reviewer
   và E2E evidence, nhưng không đủ độc lập để kết luận PASS/FAIL.
+- UI/UX rule adoption docs-only ngày 12/08 đã tạo điểm vào canonical tại `docs/UI-PHILOSOPHY.md` và glossary tại
+  `docs/GLOSSARY.md`; `docs/DASHBOARD-UI-RULES.md` chuyển sang `adopted-contract`. Các entrypoint
+  `docs/ARCHITECTURE.md`, `docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`, `docs/UI-UX-MEASUREMENT-PROTOCOL.md`
+  và `frontend/README.md` đã trỏ về các tài liệu này. Không có thay đổi source/runtime/database; link scan,
+  secret scan và `git diff --check` pass.
+- Quy trình thực thi UI/UX canonical nằm tại `docs/UI-UX-EXECUTION-HARNESS.md`: phân loại audit/sửa/mutation,
+  dùng DOM/test/API/focus/trace thay vì screenshot verdict, sửa theo owner thấp nhất, browser headed theo lane
+  hiện hành, DevTools MCP chỉ on-demand và handoff không mang credential/runner ID cũ sang scope mới.
 - UX-05 control-surface đã đóng: `NODE_OPTIONS=--max-old-space-size=4096 npm run test:controls -w frontend -- --workers=1`
   pass `25/25`. Purchasing và Warehouse đều render named populated table viewport với local horizontal scroll tại `390px`.
   Sửa chỉ ở fixture: inventory return/amendment shape và contract `production-plans/filter` theo range, không đổi production UI.
@@ -119,6 +198,13 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   pending/processing/failed/poison; base có zero backlog và relay readiness Healthy. Off-site encrypted
   restore chain vẫn `BLOCKED_EXTERNAL`. Unit normalization/catalog/legacy data-quality cần source owner,
   không auto-merge/backfill.
+
+## Warehouse-only cleanup checkpoint 2026-08-12
+
+- Authoritative disposable lane là `ipc_dev_warehouse_20260812`. Chỉ dữ liệu kho vật lý cũ được làm sạch: receipt, issue, return, supplemental, correction, stocktake, movement, snapshot và current stock. Evidence/hash nằm trong `docs/EVIDENCE-INDEX.md` dưới `warehouse-clean-20260812`; lane chưa promote.
+- BOM lấy nguyên từ `.docs/IPC. Định lượng 07.2026.xlsx`, không force số nguyên và không làm tròn quantity phân số. Postflight so sánh toàn bộ cột `dishbom` hai chiều với `ipcmanagement` có zero difference; menu, planning, demand, PR/PO và approval history giữ nguyên.
+- `ipc_dev_clean_20260812` là attempt làm sạch quá rộng trước khi Kỳ thu hẹp scope; giữ làm historical/superseded evidence, không dùng cho phát triển, E2E hoặc promotion. Không tự drop lane này nếu chưa có cleanup authorization riêng.
+- Runtime riêng cho lane authoritative đang chạy tại frontend `3020`, API `8020`; API readiness HTTP 200, database/migration Healthy, tổng health Degraded chỉ vì outbox relay tắt trong development. Chrome profile riêng đã mở tại `http://127.0.0.1:3020`; không login tự động và không chạm session Chrome có sẵn. Runtime manifest: `.artifacts/shipyard-live/warehouse-runtime-20260812/manifest.json`.
 
 ## Shipyard canonical workflow
 

@@ -17,7 +17,7 @@ namespace IPCManagement.Api.Tests;
 public class WeeklyMenuImportParserTests
 {
     [Fact]
-    public void ParseWeeklyMenuWorkbook_Should_ParseCurrentAnvFixture_ByPriceTier()
+    public void ParseWeeklyMenuWorkbook_Should_RejectLegacyCustomerPrefixedFixture()
     {
         var fixturePath = Path.Combine(
             AppContext.BaseDirectory,
@@ -30,20 +30,15 @@ public class WeeklyMenuImportParserTests
         try
         {
             File.WriteAllBytes(tempFile, populatedBytes);
-            var plan = InvokeParse(
+            var action = () => InvokeParse(
                 tempFile,
                 Path.GetFileName(fixturePath),
                 new DateOnly(2026, 7, 20),
                 new CustomerImportMapping { SheetNameHint = "ANV" },
                 25000);
 
-            GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
-            GetProperty<DateOnly>(plan, "WeekStartDate").Should().Be(new DateOnly(2026, 7, 20));
-            GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
-            GetEnumerable(plan, "Sections").Should().HaveCount(4);
-            GetEnumerable(plan, "Items").Should().NotBeEmpty();
-            GetStrings(plan, "Warnings").Should().NotContain(message =>
-                message.Contains("menu dùng chung", StringComparison.OrdinalIgnoreCase));
+            action.Should().Throw<BusinessRuleException>()
+                .WithMessage("File Excel không có sheet cho định mức 25k.");
         }
         finally
         {
@@ -76,7 +71,7 @@ public class WeeklyMenuImportParserTests
                 priceTier);
 
             action.Should().Throw<BusinessRuleException>()
-                .WithMessage("*đúng sheet đơn giá đã chọn*");
+                .WithMessage($"File Excel không có sheet cho định mức {priceTier / 1000m:0}k.");
         }
         finally
         {
@@ -85,7 +80,7 @@ public class WeeklyMenuImportParserTests
     }
 
     [Fact]
-    public async Task BuildWeeklyMenuTemplateAsync_Should_ReturnEmbeddedAnvDefaultForAnvCustomer()
+    public async Task BuildWeeklyMenuTemplateAsync_Should_ReturnCanonicalAnvWorkbook()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
             .UseInMemoryDatabase($"weekly-menu-template-{Guid.NewGuid():N}")
@@ -105,15 +100,11 @@ public class WeeklyMenuImportParserTests
         var result = await service.BuildWeeklyMenuTemplateAsync(
             GuidHelper.ToGuidString(customerId),
             new DateOnly(2026, 7, 20));
-        using var embeddedTemplate = typeof(WeeklyMenuTemplateService).Assembly
-            .GetManifestResourceStream(
-                "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx")
-            ?? throw new InvalidOperationException("Embedded ANV template was not found.");
-        using var expectedContent = new MemoryStream();
-        await embeddedTemplate.CopyToAsync(expectedContent);
-
         result.CustomerCode.Should().Be("ANV");
-        result.Content.Should().Equal(expectedContent.ToArray());
+        using var archive = new ZipArchive(new MemoryStream(result.Content), ZipArchiveMode.Read);
+        var workbookXml = ReadEntry(archive, "xl/workbook.xml");
+        workbookXml.Should().Contain("25k").And.Contain("30k").And.Contain("34k");
+        workbookXml.Should().NotContain("ANV 25k").And.NotContain("DAV 25k");
     }
 
     [Fact]
@@ -147,7 +138,7 @@ public class WeeklyMenuImportParserTests
         XDocument.Parse(sheet2Xml);
         XDocument.Parse(sheet3Xml);
 
-        workbookXml.Should().Contain("IPC 25k").And.Contain("IPC 30k").And.Contain("IPC 34k");
+        workbookXml.Should().Contain("25k").And.Contain("30k").And.Contain("34k").And.NotContain("IPC 25k");
         sheet1Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
         sheet2Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
         sheet3Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
@@ -157,9 +148,10 @@ public class WeeklyMenuImportParserTests
             .Contain("Món mặn 1")
             .And.Contain("Món mặn 2")
             .And.Contain("""<dimension ref="A1:I32"/>""")
-            .And.Contain("""<mergeCell ref="C13:I13"/>""")
-            .And.Contain("""<mergeCell ref="C32:I32"/>""")
-            .And.NotContain("Sữa chua");
+            .And.Contain("Tráng miệng")
+            .And.Contain("""<mergeCell ref="D13:I13"/>""")
+            .And.Contain("""<mergeCell ref="D32:I32"/>""")
+            .And.NotContain("""<mergeCell ref="C13:I13"/>""");
         sheet1Xml.Should().Contain("zoomScale=\"55\"").And.Contain("zoomScaleNormal=\"55\"");
     }
 
@@ -181,8 +173,8 @@ public class WeeklyMenuImportParserTests
         var davSheetXml = ReadEntry(davArchive, "xl/worksheets/sheet1.xml");
         var anvSheetXml = ReadEntry(anvArchive, "xl/worksheets/sheet1.xml");
 
-        davWorkbookXml.Should().Contain("DAV 25k").And.Contain("DAV 30k").And.Contain("DAV 34k");
-        anvWorkbookXml.Should().Contain("ANV 25k").And.Contain("ANV 30k").And.Contain("ANV 34k");
+        davWorkbookXml.Should().Contain("25k").And.Contain("30k").And.Contain("34k").And.NotContain("DAV 25k");
+        anvWorkbookXml.Should().Contain("25k").And.Contain("30k").And.Contain("34k").And.NotContain("ANV 25k");
         davSheetXml.Should().Contain("THỰC ĐƠN DAV");
         anvSheetXml.Should().Contain("THỰC ĐƠN AMANN");
         anvSheetXml.Should()
@@ -190,20 +182,21 @@ public class WeeklyMenuImportParserTests
             .And.Contain("Món mặn 2")
             .And.Contain("""<dimension ref="A1:I32"/>""")
             .And.Contain("""<row r="20" ht="19.5" customHeight="1"/>""")
-            .And.Contain("""<mergeCell ref="C13:I13"/>""")
-            .And.Contain("""<mergeCell ref="C19:I19"/>""")
-            .And.Contain("""<mergeCell ref="C26:I26"/>""")
-            .And.Contain("""<mergeCell ref="C32:I32"/>""")
-            .And.NotContain("Sữa chua");
+            .And.Contain("Tráng miệng")
+            .And.Contain("""<mergeCell ref="D13:I13"/>""")
+            .And.Contain("""<mergeCell ref="D19:I19"/>""")
+            .And.Contain("""<mergeCell ref="D26:I26"/>""")
+            .And.Contain("""<mergeCell ref="D32:I32"/>""");
         davSheetXml.Should()
             .Contain("Món mặn 1")
             .And.Contain("Món mặn 2")
             .And.Contain("""<dimension ref="A1:I32"/>""")
-            .And.Contain("""<mergeCell ref="C13:I13"/>""")
-            .And.Contain("""<mergeCell ref="C32:I32"/>""")
+            .And.Contain("Tráng miệng")
+            .And.Contain("""<mergeCell ref="D13:I13"/>""")
+            .And.Contain("""<mergeCell ref="D32:I32"/>""")
             .And.NotContain("Phụ 1")
             .And.NotContain("Phụ 2")
-            .And.NotContain("Sữa chua");
+            .And.NotContain("Phụ 2");
     }
 
     [Fact]
@@ -212,7 +205,7 @@ public class WeeklyMenuImportParserTests
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
         try
         {
-            CreateWorkbook(tempFile, "ANV 25k", [
+            CreateWorkbook(tempFile, "25k", [
                 ["", "", "THỰC ĐƠN AMANN"],
                 ["", "", "Từ ngày 15/06/2026 đến ngày 20/06/2026"],
                 ["", "", "", "Thứ 2", "Thứ 3"],
@@ -263,7 +256,10 @@ public class WeeklyMenuImportParserTests
 
             cells.Select(cell => (string?)cell.Attribute("r")).Should().Equal(
                 Enumerable.Range(3, 7).Select(column => $"{ColumnLetter(column)}{rowNumber}"));
-            cells.Should().OnlyContain(cell => (string?)cell.Attribute("s") == "7");
+            cells.Single(cell => (string?)cell.Attribute("r") == $"C{rowNumber}")
+                .Descendants(spreadsheet + "t").Single().Value.Should().Be("Tráng miệng");
+            cells.Where(cell => (string?)cell.Attribute("r") != $"C{rowNumber}")
+                .Should().OnlyContain(cell => (string?)cell.Attribute("s") == "7");
         }
     }
 
@@ -280,18 +276,22 @@ public class WeeklyMenuImportParserTests
             ["D10"] = "Trứng chiên sáng",
             ["D11"] = "Rau luộc sáng",
             ["D12"] = "Canh bí sáng",
+            ["D13"] = "Trái cây",
             ["D15"] = "Đậu hũ kho sáng",
             ["D16"] = "Nấm xào sáng",
             ["D17"] = "Rau chay sáng",
             ["D18"] = "Canh chay sáng",
+            ["D19"] = "Sữa chua",
             ["D22"] = "Cá kho chiều",
             ["D23"] = "Trứng chiên chiều",
             ["D24"] = "Rau luộc chiều",
             ["D25"] = "Canh bí chiều",
+            ["D26"] = "Trái cây",
             ["D28"] = "Đậu hũ kho chiều",
             ["D29"] = "Nấm xào chiều",
             ["D30"] = "Rau chay chiều",
-            ["D31"] = "Canh chay chiều"
+            ["D31"] = "Canh chay chiều",
+            ["D32"] = "Sữa chua"
         });
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
 
@@ -305,14 +305,14 @@ public class WeeklyMenuImportParserTests
                 new CustomerImportMapping { SheetNameHint = "ANV" },
                 25000m);
 
-            GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
+            GetProperty<string>(plan, "SheetName").Should().Be("25k");
             GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
             GetEnumerable(plan, "Sections").Should().HaveCount(4);
-            GetEnumerable(plan, "Items").Should().HaveCount(16);
+            GetEnumerable(plan, "Items").Should().HaveCount(40);
             GetEnumerable(plan, "Items")
                 .Select(item => GetProperty<string>(item, "Slot"))
                 .Should()
-                .Contain(["main", "sub1", "rau", "canh"]);
+                .Contain(["main", "sub1", "rau", "canh", "dessert"]);
         }
         finally
         {
@@ -371,7 +371,7 @@ public class WeeklyMenuImportParserTests
     }
 
     [Fact]
-    public void Validate_Should_Warn_When_DishNotExistsInCatalog()
+    public void Validate_Should_Block_When_DishNotExistsInCatalog()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
         try
@@ -405,11 +405,11 @@ public class WeeklyMenuImportParserTests
                 }
             ]);
 
+            validation.HasCriticalErrors.Should().BeTrue();
             validation.Issues.Should().ContainSingle(issue =>
-                issue.Code == "NEW_DISH_WARNING" || 
-                issue.Code == "DISH_NOT_FOUND" ||
-                issue.Message.Contains("không tồn tại") ||
-                issue.Message.Contains("mới"));
+                issue.Code == "DISH_NOT_FOUND" &&
+                issue.Severity == "error" &&
+                issue.Message.Contains("ngân hàng món ăn"));
         }
         finally
         {
@@ -794,14 +794,14 @@ public class WeeklyMenuImportParserTests
             ];
 
             CreateMultiSheetWorkbook(tempFile, [
-                ("menu 25k", BuildRows("Món 25k"), null),
-                ("menu 30k", BuildRows("Món 30k"), null),
-                ("menu 34k", BuildRows("Món 34k"), null),
+                ("25k", BuildRows("Món 25k"), null),
+                ("30k", BuildRows("Món 30k"), null),
+                ("34k", BuildRows("Món 34k"), null),
             ]);
 
             var plan = InvokeParse(tempFile, "weekly-menu-template.xlsx", new DateOnly(2026, 6, 15), null, 30000m);
 
-            GetProperty<string>(plan, "SheetName").Should().Be("menu 30k");
+            GetProperty<string>(plan, "SheetName").Should().Be("30k");
             GetEnumerable(plan, "Items")
                 .Select(item => GetProperty<string>(item, "DishName"))
                 .Should()
@@ -816,7 +816,90 @@ public class WeeklyMenuImportParserTests
     }
 
     [Fact]
-    public void ParseWeeklyMenuWorkbook_Should_RequireCustomerAndTierOnSameSheet()
+    public void ParseWeeklyMenuWorkbook_Should_UseSingleTierSheet_RegardlessOfSelectedCustomer()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            static IReadOnlyList<IReadOnlyList<string>> BuildRows(string dishName) =>
+            [
+                ["", "Mẫu nhập thực đơn tuần IPC"],
+                ["", "Đơn giá BOM"],
+                ["", "Tuần bắt đầu"],
+                ["", "Loại menu / dòng", "15/06/2026"],
+                [],
+                ["", "MENU MẶN - CA SÁNG"],
+                ["", "Món mặn chính", dishName],
+                ["", "Rau", $"Rau {dishName}"]
+            ];
+
+            CreateMultiSheetWorkbook(tempFile, [
+                ("25k", BuildRows("Món 25k"), null),
+                ("30k", BuildRows("Món 30k"), null),
+                ("34k", BuildRows("Món 34k"), null),
+            ]);
+
+            var plan = InvokeParse(
+                tempFile,
+                "weekly-menu-template.xlsx",
+                new DateOnly(2026, 6, 15),
+                new CustomerImportMapping { SheetNameHint = "DAV" },
+                30000m);
+
+            GetProperty<string>(plan, "SheetName").Should().Be("30k");
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "DishName"))
+                .Should().Contain("Món 30k");
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_PreferPopulatedSheet_WhenTierHasAnEmptyTemplateFirst()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            static IReadOnlyList<IReadOnlyList<string>> BuildRows(string dishName) =>
+            [
+                ["", "Mẫu nhập thực đơn tuần IPC"],
+                ["", "Đơn giá BOM"],
+                ["", "Tuần bắt đầu"],
+                ["", "Loại menu / dòng", "15/06/2026"],
+                [],
+                ["", "MENU MẶN - CA SÁNG"],
+                ["", "Món mặn chính", dishName],
+                ["", "Rau", dishName.Length == 0 ? "" : $"Rau {dishName}"]
+            ];
+
+            CreateMultiSheetWorkbook(tempFile, [
+                ("25k", BuildRows("Món 25k"), null),
+                ("30k", BuildRows("Món có dữ liệu"), null),
+            ]);
+
+            var plan = InvokeParse(
+                tempFile,
+                "weekly-menu-template.xlsx",
+                new DateOnly(2026, 6, 15),
+                new CustomerImportMapping { SheetNameHint = "DAV" },
+                30000m);
+
+            GetProperty<string>(plan, "SheetName").Should().Be("30k");
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "DishName"))
+                .Should().Contain("Món có dữ liệu");
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_RejectCustomerPrefixedTierAliases()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
         try
@@ -838,25 +921,15 @@ public class WeeklyMenuImportParserTests
                 ("DAV 25k", BuildRows("Món DAV"), null),
             ]);
 
-            var davPlan = InvokeParse(
+            var action = () => InvokeParse(
                 tempFile,
                 "weekly-menu-template.xlsx",
                 new DateOnly(2026, 6, 15),
                 new CustomerImportMapping { SheetNameHint = "DAV" },
                 25000m);
-            var missingCustomerTier = () => InvokeParse(
-                tempFile,
-                "weekly-menu-template.xlsx",
-                new DateOnly(2026, 6, 15),
-                new CustomerImportMapping { SheetNameHint = "IPC" },
-                25000m);
 
-            GetProperty<string>(davPlan, "SheetName").Should().Be("DAV 25k");
-            GetEnumerable(davPlan, "Items")
-                .Select(item => GetProperty<string>(item, "DishName"))
-                .Should().Contain("Món DAV").And.NotContain("Món ANV");
-            missingCustomerTier.Should().Throw<BusinessRuleException>()
-                .WithMessage("*đúng file mẫu đã tải theo khách hàng*");
+            action.Should().Throw<BusinessRuleException>()
+                .WithMessage("File Excel không có sheet cho định mức 25k.");
         }
         finally
         {
