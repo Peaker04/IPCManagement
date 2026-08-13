@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ROUTES } from '@/lib/routeConfig';
-import { formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
+import { formatLegacyDispositionStatus, formatLegacyLineType, formatReconciliationDisposition, formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
 
 describe('workflowConfig', () => {
   it('maps Vietnamese operational status text to alert tones', () => {
@@ -22,6 +22,12 @@ describe('workflowConfig', () => {
     expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ phê duyệt');
     expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
     expect(formatWorkflowStatus('Trạng thái riêng')).toBe('Trạng thái riêng');
+  });
+
+  it('keeps lineage reconciliation codes out of user-facing reports', () => {
+    expect(formatReconciliationDisposition('LEGACY_LINEAGE_RECONCILIATION_REQUIRED')).toBe('Cần quyết định');
+    expect(formatLegacyLineType('ISSUE_LINE')).toBe('Dòng xuất kho');
+    expect(formatLegacyDispositionStatus('PENDING_MANAGER_REVIEW')).toBe('Chờ Quản lý duyệt');
   });
 
   it('routes known owners to workflow lanes and unknown owners to admin', () => {

@@ -121,9 +121,13 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Run headed m�
   ServiceRun này sang `Cần đối soát`, hiển thị lý do và bước Admin khác actor xử lý. DAV cùng phạm vi
   vẫn có thể mở ca. Declaration command nay bắt buộc commandId/expectedVersion, replay không nhân đôi,
   và ghi đủ một receipt/transition/audit/outbox; protected-lane attempts 0. Canonical role `beptruong`
-  đã thay alias rời rạc nên control không còn mất khi đổi từ Admin sang Bếp trưởng. Tiếp theo: ambiguous
-  lineage → shared shortage/blocked allocation → retry matrix; lane7 hiện zero nullable issue/return
-  provenance nên không được phá Golden source-line để tạo fixture.
+  đã thay alias rời rạc nên control không còn mất khi đổi từ Admin sang Bếp trưởng.
+  Ambiguous lineage đã PASS bằng compatibility fixture append-only, không phá Golden source-line: report ưu tiên
+  dòng cần quyết định trước giới hạn trang, hiển thị ba dòng nhu cầu bị ảnh hưởng nhưng shared panel chỉ tạo một
+  work item với ba lựa chọn hợp lệ. Chrome headed trusted pointer/keyboard, zero mutation; nullable fixture giữ 1,
+  movement 1661 và disposition 0 trước/sau, protected-lane attempts 0. UI dùng ngôn ngữ người dùng, không lộ
+  UUID/enum/version. Tiếp theo: shared shortage/blocked allocation → retry matrix; không rollback fixture khi đã
+  có disposition và không tạo/sửa Golden source-line.
   Amendment headed đã tạo đúng một hồ sơ cho ANV `2026-08-10 / AFTERNOON / savory-main`, đổi
   `Cá hố kho` sang `Heo xào cải chua`; physical pointer/keyboard trusted, POST 200 và Golden document
   counts không đổi. Không tạo lại amendment này. UI editor nay luôn hiện món hiện hành dù nằm ngoài

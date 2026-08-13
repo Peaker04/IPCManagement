@@ -13,18 +13,10 @@ import {
   useReviewLegacyLineageDispositionMutation,
 } from '@/features/reports/reportsApi';
 import type { SupplyLineReconciliationDto } from '@/api/workflowApiTypes';
-import { typography } from '@/lib/typography';
+import { formatLegacyDispositionStatus, formatLegacyLineType } from '@/lib/workflowConfig';
 
 type SourceRow = NonNullable<SupplyLineReconciliationDto['legacyLineageDispositions']>[number];
-type SelectedSource = Pick<SourceRow, 'legacyLineType' | 'legacyLineId'>;
-
-const statusLabel: Record<string, string> = {
-  UNDISPOSITIONED: 'Chưa lập đề xuất xử lý',
-  PENDING_MANAGER_REVIEW: 'Chờ Quản lý duyệt',
-  APPROVED: 'Đã duyệt · chờ Quản trị viên áp dụng',
-  REJECTED: 'Đã từ chối',
-  APPLIED: 'Đã áp dụng',
-};
+type SelectedSource = Pick<SourceRow, 'legacyLineType' | 'legacyLineId'> & { displayLabel: string };
 
 const statusTone = (status: string) => {
   if (status === 'APPROVED') return 'success' as const;
@@ -53,7 +45,10 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
   const [apply, applyState] = useApplyLegacyLineageDispositionMutation();
 
   const undispositioned = useMemo(
-    () => rows.flatMap((row) => (row.legacyLineageDispositions ?? []).filter((item) => item.status === 'UNDISPOSITIONED')),
+    () => rows.flatMap((row) => (row.legacyLineageDispositions ?? [])
+      .filter((item) => item.status === 'UNDISPOSITIONED')
+      .map((item) => ({ ...item, displayLabel: `${formatLegacyLineType(item.legacyLineType)} · ${row.materialRequestCode} · ${row.ingredientName ?? 'Nguyên liệu chưa có tên'} · ${row.unitName ?? 'chưa có đơn vị'}` })))
+      .filter((item, index, all) => all.findIndex((candidate) => candidate.legacyLineType === item.legacyLineType && candidate.legacyLineId === item.legacyLineId) === index),
     [rows],
   );
   const reviewItems = [...(pendingResult.data ?? []), ...(approvedResult.data ?? [])]
@@ -154,9 +149,9 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
           <p className="text-xs font-semibold text-slate-700">Dữ liệu lịch sử chưa có đề xuất xử lý ({undispositioned.length})</p>
           {undispositioned.map((item) => (
             <div key={`${item.legacyLineType}-${item.legacyLineId}`} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-2 text-xs">
-              <span className={typography.code}>{item.legacyLineType} · {item.legacyLineId}</span>
-              <StatusBadge variant={statusTone(item.status)}>{statusLabel[item.status] ?? item.status}</StatusBadge>
-              <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedSource(item); setTargetLineId(''); }} disabled={isBusy}>
+              <span className="font-medium text-slate-800">{item.displayLabel}</span>
+              <StatusBadge variant={statusTone(item.status)}>{formatLegacyDispositionStatus(item.status)}</StatusBadge>
+              <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedSource({ legacyLineType: item.legacyLineType, legacyLineId: item.legacyLineId, displayLabel: item.displayLabel }); setTargetLineId(''); }} disabled={isBusy}>
                 <ClipboardCheck size={14} /> Chọn dòng đích
               </Button>
             </div>
@@ -167,7 +162,7 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
       {selectedSource && canCreateOrApply && (
         <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-center justify-between gap-2 text-xs font-semibold text-blue-900">
-            <span>Chọn dòng đích cho mã nguồn {selectedSource.legacyLineType} · {selectedSource.legacyLineId}</span>
+            <span>Chọn dòng chứng từ đích cho {selectedSource.displayLabel}</span>
             <Button type="button" size="sm" variant="ghost" aria-label="Đóng chọn source đích" onClick={() => setSelectedSource(null)}><X size={14} /></Button>
           </div>
           {candidatesResult.isError && (
@@ -185,9 +180,9 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
               <SelectValue placeholder="Chọn dòng chứng từ hợp lệ" />
             </SelectTrigger>
             <SelectContent>
-              {(candidatesResult.data ?? []).map((candidate) => (
+              {(candidatesResult.data ?? []).map((candidate, index, candidates) => (
                 <SelectItem key={candidate.targetLineId} value={candidate.targetLineId}>
-                  {candidate.documentCode} · Mã dòng kỹ thuật: {candidate.targetLineId} · Đơn vị: {candidate.unitId}
+                  {candidate.documentCode} · Lựa chọn {index + 1}/{candidates.length}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -201,9 +196,8 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
           <p className="text-xs font-semibold text-slate-700">Đề xuất đang chờ xử lý ({reviewItems.length})</p>
           {reviewItems.map((item) => (
             <div key={item.dispositionId} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white p-2 text-xs">
-              <span className={typography.code}>{item.legacyLineType} · {item.legacyLineId}</span>
-              <StatusBadge variant={statusTone(item.status)}>{statusLabel[item.status] ?? item.status}</StatusBadge>
-              <span className="text-slate-500">v{item.version}</span>
+              <span className="font-medium text-slate-800">{formatLegacyLineType(item.legacyLineType)}</span>
+              <StatusBadge variant={statusTone(item.status)}>{formatLegacyDispositionStatus(item.status)}</StatusBadge>
               {item.status === 'PENDING_MANAGER_REVIEW' && canReview && (
                 <>
                   <Button type="button" size="sm" onClick={() => submitReview(item.dispositionId, item.version, true)} disabled={isBusy}><Check size={14} /> Duyệt</Button>

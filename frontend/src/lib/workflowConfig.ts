@@ -205,6 +205,43 @@ export const formatServiceRunConfirmationOutcome = (outcome?: string) => {
   return ({ PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', WAIVED: 'Đã miễn xác nhận' } as const)[normalizeStatusCode(value) as 'PENDING' | 'CONFIRMED' | 'WAIVED'] ?? 'Chưa xác nhận';
 };
 
+const reconciliationDispositionPresentations: Readonly<Record<string, string>> = {
+  MATCHED: 'Đã khớp',
+  SUPPLEMENTALOPEN: 'Đang chờ cấp bổ sung',
+  KITCHENACKPENDING: 'Chờ Bếp xác nhận',
+  DEMANDREMAINING: 'Còn thiếu nguyên liệu',
+  OVERISSUEDRECONCILIATIONREQUIRED: 'Cần đối soát phần cấp dư',
+  LEGACYDISPOSITIONPARTIAL: 'Cần quyết định thêm',
+  LEGACYDISPOSITIONPENDINGMANAGERREVIEW: 'Chờ Quản lý quyết định',
+  LEGACYDISPOSITIONAPPROVEDAWAITINGAPPLY: 'Đã duyệt · chờ áp dụng',
+  LEGACYDISPOSITIONREJECTED: 'Cần quyết định lại',
+  LEGACYLINEAGERECONCILIATIONREQUIRED: 'Cần quyết định',
+};
+
+export const formatReconciliationDisposition = (disposition?: string) => {
+  const value = disposition?.trim();
+  if (!value) return 'Chưa có kết quả đối soát';
+  return reconciliationDispositionPresentations[normalizeStatusCode(value)] ?? 'Cần kiểm tra đối soát';
+};
+
+export const formatLegacyLineType = (lineType?: string) => {
+  const normalized = normalizeStatusCode(lineType ?? '');
+  return ({ ISSUELINE: 'Dòng xuất kho', RETURNLINE: 'Dòng trả kho' } as const)[normalized as 'ISSUELINE' | 'RETURNLINE']
+    ?? 'Dòng chứng từ lịch sử';
+};
+
+export const formatLegacyDispositionStatus = (status?: string) => {
+  const normalized = normalizeStatusCode(status ?? '');
+  return ({
+    UNDISPOSITIONED: 'Cần lập đề xuất',
+    PENDINGMANAGERREVIEW: 'Chờ Quản lý duyệt',
+    APPROVED: 'Đã duyệt · chờ áp dụng',
+    REJECTED: 'Đã từ chối',
+    APPLIED: 'Đã liên kết nguồn',
+  } as const)[normalized as 'UNDISPOSITIONED' | 'PENDINGMANAGERREVIEW' | 'APPROVED' | 'REJECTED' | 'APPLIED']
+    ?? 'Cần kiểm tra trạng thái';
+};
+
 export const toneFromStatus = (status?: string): WorkflowTone => getWorkflowStatusPresentation(status).tone;
 
 export const formatWorkflowStatus = (status?: string) => {

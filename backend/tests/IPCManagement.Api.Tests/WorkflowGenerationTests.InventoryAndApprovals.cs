@@ -757,7 +757,48 @@ public partial class WorkflowGenerationTests
             };
             context.Inventoryissuelines.Add(secondIssueLine);
             context.Inventoryreturns.Add(reportOnlyReturn);
+
+            // Action-required legacy rows must be selected before the report
+            // limit, even when a newer ordinary demand row would otherwise win.
+            var originalRequest = await context.Materialrequests.SingleAsync();
+            var originalRequestLine = await context.Materialrequestlines.SingleAsync();
+            var newerRequestId = GuidHelper.NewId();
+            context.Materialrequests.Add(new MaterialRequest
+            {
+                RequestId = newerRequestId,
+                RequestCode = "MR-REPORT-NEWER",
+                PlanId = originalRequest.PlanId,
+                RequestDate = originalRequest.RequestDate.AddDays(1),
+                RequestScope = originalRequest.RequestScope,
+                Status = originalRequest.Status,
+                CreatedBy = originalRequest.CreatedBy,
+                Materialrequestlines =
+                {
+                    new MaterialRequestLine
+                    {
+                        RequestLineId = GuidHelper.NewId(),
+                        RequestId = newerRequestId,
+                        PlanLineId = originalRequestLine.PlanLineId,
+                        IngredientId = originalRequestLine.IngredientId,
+                        UnitId = originalRequestLine.UnitId,
+                        PriceTierAmount = originalRequestLine.PriceTierAmount,
+                        BomScope = originalRequestLine.BomScope,
+                        TotalServings = originalRequestLine.TotalServings,
+                        GrossQtyPerServing = originalRequestLine.GrossQtyPerServing,
+                        BomRatePercent = originalRequestLine.BomRatePercent,
+                        AppliedPortionRuleSource = originalRequestLine.AppliedPortionRuleSource,
+                        AppliedPortionRatePercent = originalRequestLine.AppliedPortionRatePercent,
+                        TotalRequiredQty = 1m,
+                        CurrentStockQty = 0m,
+                        SuggestedPurchaseQty = 1m
+                    }
+                }
+            });
             await context.SaveChangesAsync();
+
+            var prioritized = await new InventoryOperationsReportService(context)
+                .GetSupplyLineReconciliationAsync(new WorkflowReportQueryDto { Limit = 1 });
+            prioritized.Should().ContainSingle(item => item.LegacyLineageExceptionCount == 1);
 
             var usage = await new InventoryOperationsReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
             var row = usage.Single(item => item.IssueLineId == GuidHelper.ToGuidString(originalIssueLine.IssueLineId));

@@ -46,6 +46,7 @@ import { ServiceRunReportPanel } from './ServiceRunReportPanel';
 import { LegacyLineageDispositionPanel } from '../LegacyLineageDispositionPanel';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatReconciliationDisposition } from '@/lib/workflowConfig';
 
 const EMPTY_SHIFT_SELECT_VALUE = '__all-shifts__';
 
@@ -473,7 +474,7 @@ return (
                   <th>Bổ sung<br />(YC/cấp/PR)</th>
                   <th>Hoàn/Hao</th>
                   <th>Delta</th>
-                  <th>Disposition</th>
+                  <th>Kết quả đối soát</th>
                 </tr>
               </thead>
               <tbody>
@@ -489,7 +490,7 @@ return (
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.supplementalRequestedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalFulfilledQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalPurchaseAllocatedQty, row.unitName ?? '')}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.returnedQty + row.wastedQty, row.unitName ?? '')}</td>
                     <td className="ipc-numeric-cell font-bold">{formatQuantityWithUnit(row.deltaQty, row.unitName ?? '')}</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${row.disposition} · ${row.legacyLineageExceptionCount}` : row.disposition}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${formatReconciliationDisposition(row.disposition)} · ${row.legacyLineageExceptionCount} dòng` : formatReconciliationDisposition(row.disposition)}</StatusBadge></td>
                   </tr>
                 ))}
               </tbody>

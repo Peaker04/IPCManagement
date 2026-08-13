@@ -285,7 +285,18 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
         if (dateFrom is not null) demandLines = demandLines.Where(line => line.Request.RequestDate >= dateFrom);
         if (dateTo is not null) demandLines = demandLines.Where(line => line.Request.RequestDate <= dateTo);
         var lines = await demandLines
-            .OrderByDescending(line => line.Request.RequestDate)
+            .OrderByDescending(line =>
+                _context.Inventoryissuelines.Any(issueLine =>
+                    issueLine.MaterialRequestLineId == null &&
+                    issueLine.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
+                    issueLine.IngredientId.SequenceEqual(line.IngredientId) &&
+                    issueLine.UnitId.SequenceEqual(line.UnitId)) ||
+                _context.Inventoryreturnlines.Any(returnLine =>
+                    returnLine.SourceIssueLineId == null &&
+                    returnLine.Return.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
+                    returnLine.IngredientId.SequenceEqual(line.IngredientId) &&
+                    returnLine.UnitId.SequenceEqual(line.UnitId)))
+            .ThenByDescending(line => line.Request.RequestDate)
             .ThenBy(line => line.RequestLineId)
             .Take(limit)
             .ToListAsync();

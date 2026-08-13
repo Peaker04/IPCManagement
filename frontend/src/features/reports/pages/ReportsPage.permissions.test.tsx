@@ -340,7 +340,7 @@ describe('ReportsPage query state boundary', () => {
     expect(screen.getAllByRole('columnheader', { name: 'Đã xuất' })).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: /Bổ sung/ })).toBeInTheDocument();
     expect(screen.getByText('3 kg / 2 kg / 2,5 kg')).toBeInTheDocument();
-    expect(screen.getByText('LEGACY_LINEAGE_RECONCILIATION_REQUIRED · 3')).toBeInTheDocument();
+    expect(screen.getByText('Cần quyết định · 3 dòng')).toBeInTheDocument();
   });
 
   it('bounds long audit values in a fixed-layout seven-column table', () => {
