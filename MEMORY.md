@@ -14,8 +14,8 @@ db_lane: ipc_lane9
 warehouse_cleanup_lane: ipc_dev_warehouse_20260812
 e2e_lane: ipc_lane7
 e2e_runtime:
-  frontend: null
-  api: null
+  frontend: 3036
+  api: 8036
 credentials_via: IPC_LANE7_<ROLE>_PASSWORD
 workbook:
   path: 'C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx'
@@ -25,9 +25,10 @@ workbook:
 # Memory hiện hành
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
-lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 đã closeout; run-owned FE `3036` PID 32588
-và BE `8036` PID 32448 đã teardown, hai port đã đóng. Exact `ipc_lane7` giữ migration head 70 và toàn bộ
-Golden/exception lineage. PID API 3580 là process ngoài run và vẫn được giữ. Runtime warehouse development `3020/8020` nếu còn
+lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 đã closeout; runtime phục vụ Kỳ kiểm thử lại
+đang mở với FE `3036` PID 34048 và BE `8036` PID 32124 trên exact `ipc_lane7`. Readiness HTTP 200:
+database/migrations Healthy, tổng trạng thái Degraded chỉ vì lifecycle outbox relay cố ý tắt. Chỉ teardown
+hai PID mới này khi Kỳ yêu cầu. PID API 3580 là process ngoài run và vẫn được giữ. Runtime warehouse development `3020/8020` nếu còn
 mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
 ## Memory ngắn cho phiên tiếp theo
