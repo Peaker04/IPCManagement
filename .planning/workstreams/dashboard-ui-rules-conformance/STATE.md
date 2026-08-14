@@ -6,9 +6,9 @@ current_phase: 3
 current_phase_name: Project-wide Human UI and Refresh Stability
 status: in_progress
 stopped_at: Phase 3 Wave 2 table geometry and intent-preload foundation committed; conditional table query/refetch coverage remains.
-last_updated: "2026-08-14T04:20:00+07:00"
+last_updated: "2026-08-14T13:02:00+07:00"
 last_activity: 2026-08-14
-last_activity_desc: "Applied fixed layout to both table primitives, removed idle all-route preload and global query-store shell subscription, then measured table and cache-navigation stability."
+last_activity_desc: "Closed Wave 2 UI vocabulary and Data Quality action-width regressions; corrected the table-coverage method after discovering repeated runtime instances were being counted as source owners."
 progress:
   total_phases: 3
   completed_phases: 1
@@ -32,7 +32,7 @@ See: `.planning/PROJECT.md`
 Phase: 3 of 3 (Project-wide Human UI and Refresh Stability)
 Plan: 2 of 3 in progress (Wave 2)
 Status: In progress — table geometry foundation is measured; conditional table/query refresh owners remain.
-Last activity: 2026-08-14 — Fixed both table primitives and replaced idle all-route preload with intent-only preload.
+Last activity: 2026-08-14 — Closed Data Quality technical copy/action-width regressions and updated read-only fixture assertions; source-owner table coverage remains open.
 
 Progress: [█████████░] 83% (UIMA-03 remains blocked)
 
@@ -64,7 +64,7 @@ Progress: [█████████░] 83% (UIMA-03 remains blocked)
 
 ### Pending Todos
 
-- Cover the 16 inventory tables not rendered by the current live data/tab fixture and disposition their initial/background refresh behavior.
+- Build a source-owner-aware read-only fixture for the 16 conditional table owners; do not use repeated runtime instance counts as coverage.
 - Attribute the Chef navigation 56ms long task before changing that production owner; cache-navigation shell render is resolved at 3 (gate ≤4).
 - Route gzip closure remains over all ten checked-in budgets; do not raise budgets without an approved baseline.
 
