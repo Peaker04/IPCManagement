@@ -44,6 +44,14 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
    và `git diff --check`.
 8. Sau mỗi chuỗi thay đổi/E2E đáng kể, cập nhật front matter, evidence, gate và phần còn mở; việc đã đóng phải xóa khỏi file này và append sang `HISTORY.md`.
 
+## Wave 2 conditional table gate · 14/08/2026
+
+Đã thêm fixture source-owner read-only tại `frontend/tests/conditionalTableFixture.ts` và test
+`frontend/tests/conditionalTableFixture.test.ts`. Fixture khóa đúng 16 owner logic (Admin BOM 2,
+Admin Statistics 3, Reports 7, Reports Price 4), mỗi owner có loading/empty/ready state và không
+phát sinh mutation. Evidence: `.artifacts/shipyard-live/phase05-wave2-conditional-table-fixture-20260814.json`.
+Đây mới là contract fixture; chưa có headed render record cho 16 owner và chưa được tuyên bố 51/51.
+
 ## Wave 2 correction — Chef receipt scope (14/08/2026)
 
 - Commit `f4b77cf1` sửa lỗi lệch phạm vi: `getKitchenIssuesPage` của Chef truyền `shiftName` cùng `dateFrom/dateTo`, đồng nhất với action query và bộ đếm ký nhận.

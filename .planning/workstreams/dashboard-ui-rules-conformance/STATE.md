@@ -32,7 +32,7 @@ See: `.planning/PROJECT.md`
 Phase: 3 of 3 (Project-wide Human UI and Refresh Stability)
 Plan: 2 of 3 in progress (Wave 2)
 Status: In progress — table geometry foundation is measured; conditional table/query refresh owners remain.
-Last activity: 2026-08-14 — Closed Data Quality technical copy/action-width regressions and updated read-only fixture assertions; source-owner table coverage remains open.
+Last activity: 2026-08-14 — Closed Data Quality technical copy/action-width regressions and added a source-owner read-only fixture contract for all 16 conditional table owners; headed render evidence and Chef long-task attribution remain open.
 
 Progress: [█████████░] 83% (UIMA-03 remains blocked)
 
@@ -65,6 +65,7 @@ Progress: [█████████░] 83% (UIMA-03 remains blocked)
 ### Pending Todos
 
 - Build a source-owner-aware read-only fixture for the 16 conditional table owners; do not use repeated runtime instance counts as coverage.
+- Fixture contract is now `frontend/tests/conditionalTableFixture.ts` with focused test `frontend/tests/conditionalTableFixture.test.ts`; it covers Admin BOM (2), Admin Statistics (3), Reports (7) and Reports Price (4), each in loading/empty/ready states. Browser rendering is still pending.
 - Attribute the Chef navigation 56ms long task before changing that production owner; cache-navigation shell render is resolved at 3 (gate ≤4).
 - Route gzip closure remains over all ten checked-in budgets; do not raise budgets without an approved baseline.
 
