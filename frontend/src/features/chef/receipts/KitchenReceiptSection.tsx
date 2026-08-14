@@ -55,6 +55,7 @@ export function KitchenReceiptSection({
                 onPageChange={onReceiptPageChange}
               />
             )}
+            checklistPageLabel={`Trang ${receiptPage} · ${receiptPageSize} dòng tối đa trong ${receiptTotalCount} dòng nguồn`}
           />
         </>
       )}

@@ -253,10 +253,8 @@ public class DemandReportService : IDemandReportService
         var shortageCount = await activeGrouped.CountAsync(group => group.Sum(item =>
             item.Request.Status == "EXPORTED"
                 ? item.TotalRequiredQty - (item.Inventoryissuelines
-                    .Where(issueLine => issueLine.Issue.ReceivedAt != null)
                     .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
                     ? item.TotalRequiredQty - (item.Inventoryissuelines
-                        .Where(issueLine => issueLine.Issue.ReceivedAt != null)
                         .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
                     : 0m
                 : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0m);
@@ -288,6 +286,18 @@ public class DemandReportService : IDemandReportService
                         .Where(issueLine => issueLine.Issue.ReceivedAt != null)
                         .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m
                     : item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
+                PendingKitchenReceiptQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt == null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m
+                    : 0m),
+                UnissuedQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.TotalRequiredQty - (item.Inventoryissuelines
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
+                        ? item.TotalRequiredQty - (item.Inventoryissuelines
+                            .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
+                        : 0m
+                    : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
                 OutstandingQty = group.Sum(item => item.Request.Status == "EXPORTED"
                     ? item.TotalRequiredQty - (item.Inventoryissuelines
                         .Where(issueLine => issueLine.Issue.ReceivedAt != null)

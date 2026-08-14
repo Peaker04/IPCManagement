@@ -117,22 +117,24 @@ export const getDemandDayIndex = (
 }
 
 export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: number, shortageCount?: number) => {
-  const warningCount = lines.filter((line) => line.tone === 'warning').length
-  const shortages = shortageCount ?? lines.filter((line) => Math.max(line.required - (line.available - line.reserved), 0) > 0).length
+  const pendingKitchenCount = lines.filter((line) => (line.pendingKitchenReceiptQty ?? 0) > 0).length
+  const staleCount = lines.filter((line) => line.tone === 'warning' && (line.pendingKitchenReceiptQty ?? 0) <= 0).length
+  const shortages = shortageCount ?? lines.filter((line) => (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0).length
   const total = totalCount ?? lines.length
   return {
-    warningCount,
-    staleCount: warningCount,
+    warningCount: staleCount + pendingKitchenCount,
+    staleCount,
+    pendingKitchenCount,
     shortageCount: shortages,
-    enoughCount: Math.max(total - shortages, 0),
+    enoughCount: Math.max(total - shortages - pendingKitchenCount - staleCount, 0),
     totalCount: total,
-    tone: (lines.length === 0 ? 'neutral' : warningCount > 0 ? 'warning' : shortages > 0 ? 'danger' : 'success') as DemandLine['tone'],
-    label: lines.length === 0 ? 'Chưa có dữ liệu vật tư' : warningCount > 0 ? 'Cần tính lại' : shortages > 0 ? 'Còn thiếu vật tư' : 'Đã hoàn tất vật tư',
+    tone: (lines.length === 0 ? 'neutral' : shortages > 0 ? 'danger' : pendingKitchenCount > 0 || staleCount > 0 ? 'warning' : 'success') as DemandLine['tone'],
+    label: lines.length === 0 ? 'Chưa có dữ liệu vật tư' : shortages > 0 ? 'Còn nguyên liệu chưa xuất' : pendingKitchenCount > 0 ? 'Chờ Bếp nhận nguyên liệu' : staleCount > 0 ? 'Cần tính lại' : 'Đã hoàn tất vật tư',
   }
 }
 
 export const isDemandLineException = (line: DemandLine) =>
-  line.tone === 'warning' || Math.max(line.required - (line.available - line.reserved), 0) > 0
+  line.tone === 'warning' || (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0
 
 export const partitionDemandLines = (lines: DemandLine[]) => ({
   exceptionLines: lines.filter(isDemandLineException),

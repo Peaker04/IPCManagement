@@ -431,7 +431,7 @@
 
 .ipc-reports-quality-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1180px;
   table-layout: fixed;
 }
 
@@ -447,7 +447,7 @@
 
 .ipc-reports-quality-table td {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   vertical-align: top;
 }
 

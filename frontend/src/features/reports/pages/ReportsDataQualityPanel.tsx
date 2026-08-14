@@ -8,7 +8,7 @@ import {
   TableViewport,
 } from '@/components/common';
 import { Input } from '@/components/ui/input';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { formatDataQualityRemediationStatus, formatPriorityLabel } from '@/lib/workflowConfig';
 import { uiCopy } from '@/lib/uiCopy';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { standardPageSizeOptions, type ReportsPageModel } from './useReportsPageModel';
@@ -67,7 +67,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
           </span>
         )}
       </div>
-      <TableViewport ariaLabel="Bảng data quality trước production">
+      <TableViewport ariaLabel="Bảng vấn đề dữ liệu trước khi vận hành">
         <table className="ipc-data-table ipc-reports-quality-table">
           <thead>
             <tr>
@@ -96,11 +96,11 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                 </td>
                 <td>
                   <div className="font-semibold text-slate-800">{row.slaLabel}</div>
-                  <div className={cn(typography.caption, 'text-slate-500')}>Priority {row.priorityRank}</div>
+                  <div className={cn(typography.caption, 'text-slate-500')}>{formatPriorityLabel(row.priorityRank)}</div>
                 </td>
                 <td>
                   <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
-                    {formatWorkflowStatus(row.remediationStatus)}
+                    {formatDataQualityRemediationStatus(row.remediationStatus)}
                   </StatusBadge>
                 </td>
                 <td>{row.owner}</td>
@@ -109,12 +109,12 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                   <div className="font-medium text-slate-800">{row.entityLabel}</div>
                   <div className={cn(typography.caption, 'text-slate-500')}>{row.entityName} / {row.entityCode}</div>
                 </td>
-                <td className="text-left">{row.message}</td>
-                <td className="text-left">{row.suggestedAction}</td>
+                <td className="ipc-quality-description-cell text-left" title={row.message}>{row.message}</td>
+                <td className="ipc-quality-action-guidance-cell text-left" title={row.suggestedAction}>{row.suggestedAction}</td>
                 <td>
                   {row.route ? (
                     <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.route}>
-                      Xử lý
+                      {row.actionLabel}
                     </Link>
                   ) : (
                     <span className="text-slate-500">-</span>

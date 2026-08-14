@@ -41,7 +41,9 @@ export default function ChefDashboardPage() {
   }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
   const receipts = useKitchenReceipts(scope, setFeedback, isProductionView)
-  const production = useChefProductionPlan(scope, receipts.actionRows, receipts.signedMaterials, setFeedback, isProductionView)
+  // The checklist must render the paged receipt query. The action query remains wide
+  // for mutations, but feeding it here made every page render the same 500-row slice.
+  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback, isProductionView)
   const exceptions = useChefExceptions(scope, production.productionPlan, receipts.actionRows, setFeedback, isProductionView)
   const journal = useChefJournal(!isProductionView)
   const hasUnreviewedReceiptPages = receipts.hasAdditionalPages

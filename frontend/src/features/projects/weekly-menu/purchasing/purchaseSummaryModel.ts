@@ -13,8 +13,8 @@ export const buildPurchaseSummaryPresentation = (
   const materialEntries = Object.entries(materialSummary).filter(([, data]) => data.theory > 0)
   const usesDemand = demandLines.length > 0
   const orderedDemandLines = [...aggregatedDemandLines].sort((left, right) => {
-    const leftShortage = Math.max(left.required - (left.available - left.reserved), 0)
-    const rightShortage = Math.max(right.required - (right.available - right.reserved), 0)
+    const leftShortage = left.unissuedQty ?? Math.max(left.required - (left.available - left.reserved), 0)
+    const rightShortage = right.unissuedQty ?? Math.max(right.required - (right.available - right.reserved), 0)
     return Number(rightShortage > 0) - Number(leftShortage > 0)
       || rightShortage - leftShortage
       || (left.serviceDate ?? '').localeCompare(right.serviceDate ?? '')
@@ -31,8 +31,9 @@ export const buildPurchaseSummaryPresentation = (
     ? []
     : materialEntries.slice(start, start + PURCHASE_SUMMARY_PAGE_SIZE)
   const shortageCount = aggregatedDemandLines.filter(
-    (line) => Math.max(line.required - (line.available - line.reserved), 0) > 0,
+    (line) => (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0,
   ).length
+  const pendingKitchenCount = aggregatedDemandLines.filter((line) => (line.pendingKitchenReceiptQty ?? 0) > 0).length
 
   return {
     usesDemand,
@@ -42,6 +43,7 @@ export const buildPurchaseSummaryPresentation = (
     demandRows,
     materialRows,
     shortageCount,
+    pendingKitchenCount,
     totalCost: calculateTotalMaterialCost(materialSummary),
   }
 }

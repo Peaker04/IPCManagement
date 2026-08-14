@@ -26,6 +26,12 @@ import type { ApiResponse } from '@/types/api';
 import type { CursorPage, PageNumberPage } from '@/api/workflowApiTypes';
 import type { DemandLine } from '@/types/workflow';
 import { resolveDemandLinePresentation } from '@/lib/actionEligibility';
+import {
+  formatDataQualityCategory,
+  formatDataQualityEntity,
+  formatDataQualityOwner,
+  getDataQualityActionLabel,
+} from '@/lib/workflowConfig';
 
 export const getReportData = <T>(response: ApiResponse<T>): T => response.data as T;
 
@@ -192,19 +198,21 @@ export const mapPageNumberPage = <TDto, TRow>(
 
 export const mapDataQualityIssue = (issue: DataQualityIssueDto): DataQualityIssueRow => ({
   id: issue.issueId,
-  category: issue.category,
+  categoryCode: issue.category,
+  category: formatDataQualityCategory(issue.category),
   severity: issue.severity === 'error' ? 'error' : 'warning',
-  owner: issue.owner || 'Quản lý vận hành',
+  owner: formatDataQualityOwner(issue.owner),
   priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
   slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
   slaDueAt: issue.slaDueAt ?? undefined,
   slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
-  entityName: issue.entityName,
+  entityName: formatDataQualityEntity(issue.entityName),
   entityId: issue.entityId ?? undefined,
   entityCode: issue.entityCode,
   entityLabel: issue.entityLabel,
   message: issue.message,
   suggestedAction: issue.suggestedAction,
+  actionLabel: getDataQualityActionLabel(issue.category),
   route: issue.route,
   remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
   remediationAt: issue.remediationAt ?? undefined,

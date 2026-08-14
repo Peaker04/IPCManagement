@@ -23310,10 +23310,12 @@
           "ingredientId",
           "lineCount",
           "outstandingQty",
+          "pendingKitchenReceiptQty",
           "priceTierAmount",
           "requestDate",
           "suggestedPurchaseQty",
           "totalRequiredQty",
+          "unissuedQty",
           "unitId"
         ],
         "type": "object",
@@ -23364,6 +23366,14 @@
             "format": "double"
           },
           "fulfilledQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "pendingKitchenReceiptQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "unissuedQty": {
             "type": "number",
             "format": "double"
           },

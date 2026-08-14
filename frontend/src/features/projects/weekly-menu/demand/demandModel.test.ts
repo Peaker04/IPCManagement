@@ -28,10 +28,11 @@ describe('material demand model', () => {
       warningCount: 1,
       staleCount: 1,
       shortageCount: 7,
-      enoughCount: 35,
+      pendingKitchenCount: 0,
+      enoughCount: 34,
       totalCount: 42,
-      tone: 'warning',
-      label: 'Cần tính lại',
+      tone: 'danger',
+      label: 'Còn nguyên liệu chưa xuất',
     })
   })
 

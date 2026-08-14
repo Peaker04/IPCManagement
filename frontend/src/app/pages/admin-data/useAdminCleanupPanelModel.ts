@@ -27,16 +27,16 @@ export function useAdminCleanupPanelModel(activeView: AdminView, operationalDate
         action,
         note: action === 'resolve'
           ? 'Đánh dấu đã xử lý từ màn Quản trị dữ liệu.'
-          : 'Mở lại issue từ màn Quản trị dữ liệu.',
+          : 'Mở lại vấn đề từ màn Quản trị dữ liệu.',
       }).unwrap();
       setDataQualityFeedback({
         type: 'success',
         message: action === 'resolve'
-          ? 'Đã đánh dấu issue là resolved. Nếu lỗi gốc vẫn còn, issue vẫn nằm trong bảng để xử tiếp.'
-          : 'Đã mở lại issue để tiếp tục xử lý.',
+          ? 'Đã đánh dấu vấn đề là đã xử lý. Nếu nguyên nhân vẫn còn, vấn đề sẽ tiếp tục xuất hiện để xử lý.'
+          : 'Đã mở lại vấn đề để tiếp tục xử lý.',
       });
     } catch (error) {
-      setDataQualityFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được trạng thái data-quality issue.') });
+      setDataQualityFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được trạng thái vấn đề dữ liệu.') });
     }
   };
 

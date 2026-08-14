@@ -155,10 +155,16 @@ export function MaterialDemandSection({
             <dt>Vật tư đã đáp ứng</dt>
             <dd>{status.isDemandError ? 'Chưa xác định' : `${inventoryStatus.enoughCount}/${inventoryStatus.totalCount} nguyên liệu`}</dd>
           </div>
-          <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : 'is-complete'}>
+          <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : inventoryStatus.pendingKitchenCount > 0 ? 'is-warning' : 'is-complete'}>
             <TriangleAlert size={18} aria-hidden="true" />
             <dt>Phần còn phải xử lý</dt>
-            <dd>{status.isDemandError ? 'Chưa xác định được' : inventoryStatus.shortageCount > 0 ? `Còn thiếu ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount} nguyên liệu` : 'Đã hoàn tất vật tư'}</dd>
+            <dd>{status.isDemandError
+              ? 'Chưa xác định được'
+              : inventoryStatus.shortageCount > 0
+                ? `Còn ${inventoryStatus.shortageCount} nguyên liệu chưa xuất`
+                : inventoryStatus.pendingKitchenCount > 0
+                  ? `${inventoryStatus.pendingKitchenCount} nguyên liệu chờ Bếp nhận`
+                  : 'Đã hoàn tất vật tư'}</dd>
           </div>
         </dl>
 
@@ -298,7 +304,7 @@ export function MaterialDemandSection({
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <span className="text-xs font-medium text-slate-500">Phạm vi ngày đang xem: đã đáp ứng {inventoryStatus.enoughCount}/{inventoryStatus.totalCount}; còn thiếu {inventoryStatus.shortageCount}; cần tính lại {inventoryStatus.staleCount}</span>
+                <span className="text-xs font-medium text-slate-500">Phạm vi ngày đang xem: hoàn tất {inventoryStatus.enoughCount}/{inventoryStatus.totalCount}; chưa xuất {inventoryStatus.shortageCount}; chờ Bếp nhận {inventoryStatus.pendingKitchenCount}; cần tính lại {inventoryStatus.staleCount}</span>
               </div>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>

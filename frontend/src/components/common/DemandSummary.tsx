@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
@@ -28,6 +29,7 @@ const shortenStatus = (status: string) => {
   if (normalized.includes('tạo lại') || normalized.includes('sinh lại')) return 'Cần sinh lại';
   if (normalized.includes('duyệt giá')) return 'Duyệt giá';
   if (normalized.includes('thiếu')) return 'Thiếu hàng';
+  if (normalized.includes('bếp xác nhận')) return 'Chờ Bếp nhận';
   if (normalized.includes('tồn kho đủ')) return 'Đủ hàng';
 
   return formatWorkflowStatus(status);
@@ -69,7 +71,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
               <th style={{ width: showServiceDate ? '15%' : '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
               <th style={{ width: showServiceDate ? '18%' : '22%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Cần</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Khả dụng</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Đã cấp</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
@@ -106,11 +108,15 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                     </StatusBadge>
                   </td>
                   <td className="text-center whitespace-nowrap">
-                    {renderAction?.(line) ?? (
+                    {renderAction?.(line) ?? (line.actionHref ? (
+                      <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={line.actionHref}>
+                        {shortenNextAction(line.nextAction)}
+                      </Link>
+                    ) : (
                       <span className={cn('ipc-demand-next-action', `is-${line.tone}`)} title={line.nextAction}>
                         {shortenNextAction(line.nextAction)}
                       </span>
-                    )}
+                    ))}
                   </td>
                 </tr>
               );

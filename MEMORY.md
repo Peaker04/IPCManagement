@@ -99,6 +99,16 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
   regression `68/68`, ESLint và production build PASS. Tiếp theo vẫn phải disposition 16 bảng conditional chưa
   render trong live fixture; không suy rộng 35 instance đã đo thành 51/51.
 
+- Wave 2 lifecycle/UI correction ngày 14/08 đang ở working tree: aggregate demand đã tách
+  `pendingKitchenReceiptQty` khỏi `unissuedQty` (3 kg ANV 15/08 là ba source-line retry chưa có `ReceivedAt`,
+  không được gọi là thiếu mua); OpenAPI/schema đã sinh lại từ DTO. FE map pending sang “Chờ Bếp nhận” và link có
+  ngày tới `/chef-dashboard`, thiếu thật tới Thu mua, hoàn tất là text tĩnh. Chef checklist đã sửa dùng query
+  phân trang 20 dòng thay vì action query 500 dòng; đổi trang reset nhóm mở và hiển thị nhãn trang. Data Quality
+  dùng vocabulary tiếng Việt dùng chung, action link gộp vào cột hướng xử lý; bảng quality có min-width và clamp
+  nội dung dài. Focused FE `55/55`, backend regression `1/1`, lint/build PASS; chưa có headed re-run, 16
+  conditional fixtures hoặc Chef 56ms attribution. BE PID 32124 vẫn là artifact cũ do môi trường chặn dừng
+  process; không khai live API đã cập nhật cho đến khi restart được process owner.
+
 - Phase 5 Plan 05-04 đã hoàn tất ngày 2026-08-14. Top-level manifest PASS, hash authoritative ở
   `docs/EVIDENCE-INDEX.md`; full regression/build/EF/OpenAPI/hygiene xanh, protected-lane attempt 0 và
   runtime `3036/8036` đã teardown đúng owner. Không reset/seed/import lại ANV/DAV tuần `2026-08-10`;

@@ -49,20 +49,20 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                   <tr>
                     <td className="font-semibold">Workflow thất bại</td>
                     <td className="ipc-numeric-cell">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
-                    <td className="text-left">Import, nhu cầu hoặc mua hàng đang ở trạng thái FAILED/IMPORT_FAILED.</td>
+                    <td className="text-left">Dữ liệu nhập, nhu cầu hoặc mua hàng đang bị lỗi và cần điều tra.</td>
                     <td className="ipc-badge-cell">
                       {renderKpiStatus(Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
                   </tr>
                   <tr>
-                    <td className="font-semibold">Data quality critical</td>
+                    <td className="font-semibold">Vấn đề dữ liệu nghiêm trọng</td>
                     <td className="ipc-numeric-cell">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
-                    <td className="text-left">Issue mức error cần xử lý trước khi tiếp tục luồng production.</td>
+                    <td className="text-left">Lỗi dữ liệu cần xử lý trước khi tiếp tục vận hành.</td>
                     <td className="ipc-badge-cell">
                       {renderKpiStatus(Boolean(operationalKpis?.criticalDataQualityCount), 'Đang chặn', 'Đạt')}
                     </td>
-                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở data quality</Link></td>
+                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở vấn đề dữ liệu</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Approval chờ lâu</td>

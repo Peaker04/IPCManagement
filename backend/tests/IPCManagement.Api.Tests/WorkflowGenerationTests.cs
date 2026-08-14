@@ -480,6 +480,61 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetIngredientDemandAggregatePageAsync_Should_Classify_Unreceived_Issue_As_Kitchen_Handoff_Not_Shortage()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var line = await context.Materialrequestlines.SingleAsync();
+            line.Request.Status = "EXPORTED";
+            var issue = new InventoryIssue
+            {
+                IssueId = fixture.IssueId,
+                IssueCode = "ISSUE-PENDING-KITCHEN-HANDOFF",
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = fixture.WarehouseId,
+                MaterialRequestId = line.RequestId,
+                IssuedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+            };
+            issue.Inventoryissuelines.Add(new InventoryIssueLine
+            {
+                IssueLineId = GuidHelper.NewId(),
+                IssueId = issue.IssueId,
+                IngredientId = line.IngredientId,
+                UnitId = line.UnitId,
+                MaterialRequestLineId = line.RequestLineId,
+                RequestedQty = line.TotalRequiredQty,
+                IssuedQty = line.TotalRequiredQty,
+            });
+            context.Inventoryissues.Add(issue);
+            await context.SaveChangesAsync();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                DateFrom = "2026-06-15",
+                DateTo = "2026-06-15",
+                PageNumber = 1,
+                PageSize = 20,
+            });
+
+        page.ShortageCount.Should().Be(0);
+        var item = page.Items.Should().ContainSingle().Subject;
+        item.PendingKitchenReceiptQty.Should().Be(item.TotalRequiredQty);
+        item.UnissuedQty.Should().Be(0);
+        item.OutstandingQty.Should().Be(item.TotalRequiredQty);
+    }
+
+    [Fact]
     public async Task GetIngredientDemandAggregatePageAsync_Should_SearchIngredientBeforePaging()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

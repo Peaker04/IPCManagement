@@ -1,10 +1,14 @@
 import type { IngredientDemandAggregateReportDto, StockMovementViewDto } from '@/api/workflowApiTypes';
 import type { DemandLine, StockMovement, StockMovementType } from '@/types/workflow';
+import { ROUTES } from '@/lib/routeConfig';
 
 export const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto): DemandLine => {
-  const shortage = Math.max(item.outstandingQty, 0);
+  const shortage = Math.max(item.unissuedQty, 0);
+  const pendingKitchenReceipt = Math.max(item.pendingKitchenReceiptQty, 0);
   const serviceDate = item.requestDate?.split('T')[0];
   const isCancelled = item.hasCancelledLine;
+  const kitchenHref = serviceDate ? `${ROUTES.CHEF_DASHBOARD}?date=${serviceDate}` : ROUTES.CHEF_DASHBOARD;
+  const purchasingHref = serviceDate ? `${ROUTES.PURCHASING}?date=${serviceDate}` : ROUTES.PURCHASING;
 
   return {
     id: `aggregate-${serviceDate}-${item.customerId}-${item.priceTierAmount}-${item.ingredientId}-${item.unitId}`,
@@ -14,13 +18,16 @@ export const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto)
     priceTierAmount: item.priceTierAmount,
     material: item.ingredientName ?? item.ingredientId,
     required: item.totalRequiredQty,
-    available: item.fulfilledQty,
+    available: item.fulfilledQty + pendingKitchenReceipt,
     reserved: 0,
     unit: item.unitName ?? '',
     source: `${item.customerName ?? item.customerCode ?? item.customerId} · ${item.priceTierAmount / 1000}k · ${item.lineCount} dòng nhu cầu`,
-    status: isCancelled ? 'Cần tính lại nhu cầu' : shortage > 0 ? 'Còn thiếu nguyên liệu' : 'Đã đáp ứng đủ',
-    nextAction: isCancelled ? 'Tính lại nhu cầu từ kế hoạch sản xuất' : shortage > 0 ? 'Xử lý phần còn thiếu' : 'Không cần xử lý thêm',
-    tone: isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
+    pendingKitchenReceiptQty: pendingKitchenReceipt,
+    unissuedQty: shortage,
+    status: isCancelled ? 'Cần tính lại nhu cầu' : shortage > 0 ? 'Còn thiếu nguyên liệu' : pendingKitchenReceipt > 0 ? 'Chờ bếp xác nhận' : 'Đã đáp ứng đủ',
+    nextAction: isCancelled ? 'Mở nhu cầu để tính lại' : shortage > 0 ? 'Mở thu mua' : pendingKitchenReceipt > 0 ? 'Mở checklist nhận nguyên liệu' : 'Đã hoàn tất',
+    actionHref: isCancelled ? ROUTES.WEEKLY_MENU : shortage > 0 ? purchasingHref : pendingKitchenReceipt > 0 ? kitchenHref : undefined,
+    tone: isCancelled || pendingKitchenReceipt > 0 ? 'warning' : shortage > 0 ? 'danger' : 'success',
   };
 };
 

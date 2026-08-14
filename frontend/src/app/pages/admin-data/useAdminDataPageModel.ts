@@ -43,7 +43,7 @@ export function useAdminDataPageModel() {
       ? [
           { label: 'Khách hàng', value: contractQueryViews.contracts.phase === 'ready' ? contractModel.customerContracts.length.toString() : '—', tone: 'neutral' as const },
           { label: 'Đang dùng', value: contractQueryViews.contracts.phase === 'ready' ? contractModel.customerContracts.filter((item) => item.isActive).length.toString() : '—', tone: contractQueryViews.contracts.phase === 'ready' ? 'success' as const : 'neutral' as const },
-          { label: 'Lịch version', value: contractQueryViews.menuSchedules.phase === 'ready' ? contractModel.menuSchedules.length.toString() : '—', tone: 'neutral' as const },
+          { label: 'Phiên bản lịch', value: contractQueryViews.menuSchedules.phase === 'ready' ? contractModel.menuSchedules.length.toString() : '—', tone: 'neutral' as const },
         ]
       : effectiveActiveView === 'cleanup'
         ? [
@@ -63,15 +63,15 @@ export function useAdminDataPageModel() {
                 { label: 'Đề xuất mua', value: statisticsQueryViews.purchasePlan.phase === 'ready' ? statisticsModel.totalPurchaseQty.toString() : '—', tone: statisticsQueryViews.purchasePlan.phase !== 'ready' ? 'neutral' as const : statisticsModel.totalPurchaseQty ? 'warning' as const : 'success' as const },
               ]
             : effectiveActiveView === 'audit'
-              ? [{ label: 'Audit', value: auditView.phase === 'ready' ? `${auditModel.displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]
+              ? [{ label: 'Nhật ký', value: auditView.phase === 'ready' ? `${auditModel.displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]
               : [{ label: 'Nhân viên', value: employeeQueryViews.employees.phase === 'ready' ? `${employeeModel.employeeMeta?.totalCount ?? 0} tài khoản` : '—', tone: employeeQueryViews.employees.phase === 'ready' ? 'info' as const : 'neutral' as const }];
   const adminTabs: ViewTab[] = [
     { id: 'admin-bom-import', label: 'BOM theo đơn giá' },
-    { id: 'admin-contracts', label: 'Contract' },
+    { id: 'admin-contracts', label: 'Hợp đồng' },
     { id: 'admin-cleanup', label: 'Dữ liệu lỗi' },
     { id: 'admin-inventory', label: 'Tồn kho' },
     { id: 'admin-statistics', label: 'Thống kê' },
-    { id: 'admin-audit', label: 'Audit' },
+    { id: 'admin-audit', label: 'Nhật ký thay đổi' },
     ...(canManageEmployees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
   ];
   const queryViews = {

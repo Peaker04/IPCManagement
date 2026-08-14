@@ -7,6 +7,7 @@ import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 import { formatDateTime } from '@/lib/formatters';
+import { formatDataQualityRemediationStatus, formatPriorityLabel } from '@/lib/workflowConfig';
 
 type AdminCleanupPanelProps = { model: AdminDataPageModel };
 
@@ -22,16 +23,16 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
               items={[
                 { label: 'Tổng lỗi', value: `${dataQualityErrorCount}`, tone: dataQualityErrorCount ? 'danger' : 'success' },
                 { label: 'Thiếu BOM', value: `${dataQualityReport?.missingBomCount ?? 0}`, tone: (dataQualityReport?.missingBomCount ?? 0) ? 'danger' : 'success' },
-                { label: 'Unit/quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
+                { label: 'Đơn vị & quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
                 { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
-                { label: 'Phiếu orphan', value: `${dataQualityReport?.orphanDocumentCount ?? 0}`, tone: (dataQualityReport?.orphanDocumentCount ?? 0) ? 'warning' : 'success' },
+                { label: 'Phiếu mất liên kết', value: `${dataQualityReport?.orphanDocumentCount ?? 0}`, tone: (dataQualityReport?.orphanDocumentCount ?? 0) ? 'warning' : 'success' },
                 { label: 'SLA gấp', value: `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Đã xử lý', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: 'success' },
               ]}
             />
 
             {dataQualityFeedback && (
-              <InlineAlert title={dataQualityFeedback.type === 'success' ? 'Đã cập nhật data-quality issue' : 'Chưa cập nhật được issue'} variant={dataQualityFeedback.type === 'success' ? 'info' : 'danger'}>
+              <InlineAlert title={dataQualityFeedback.type === 'success' ? 'Đã cập nhật vấn đề dữ liệu' : 'Chưa cập nhật được vấn đề'} variant={dataQualityFeedback.type === 'success' ? 'info' : 'danger'}>
                 {dataQualityFeedback.message}
               </InlineAlert>
             )}
@@ -44,16 +45,15 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                     <th>Mức</th>
                     <th>SLA</th>
                     <th>Trạng thái xử lý</th>
-                    <th>Owner</th>
+                    <th>Phụ trách</th>
                     <th>Đối tượng</th>
                     <th className="text-left">Mô tả</th>
-                    <th className="text-left">Cách xử lý</th>
-                    <th>Đi tới</th>
-                    <th>Resolve</th>
+                    <th className="text-left">Hướng xử lý</th>
+                    <th>Cập nhật</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={10} /> : dataQualityIssues.map((issue, index) => (
+                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityIssues.map((issue, index) => (
                     <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
@@ -63,11 +63,11 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                       </td>
                       <td>
                         <div className="font-semibold text-slate-900">{issue.slaLabel}</div>
-                        <div className="text-xs text-slate-500">Priority {issue.priorityRank}</div>
+                        <div className="text-xs text-slate-500">{formatPriorityLabel(issue.priorityRank)}</div>
                       </td>
                       <td>
                         <StatusBadge variant={issue.remediationStatus === 'resolved' ? 'success' : issue.remediationStatus === 'reopened' ? 'danger' : 'neutral'}>
-                          {issue.remediationStatus === 'resolved' ? 'Đã xử lý' : issue.remediationStatus === 'reopened' ? 'Reopened' : 'Open'}
+                          {formatDataQualityRemediationStatus(issue.remediationStatus)}
                         </StatusBadge>
                         {issue.remediationAt && (
                           <div className="text-xs text-slate-500">
@@ -80,21 +80,21 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                         <div className="font-semibold text-slate-900">{issue.entityCode}</div>
                         <div className="text-xs text-slate-500">{issue.entityName} / {issue.entityLabel}</div>
                       </td>
-                      <td className="ipc-quality-description-cell text-left text-slate-700">{issue.message}</td>
-                      <td className="ipc-quality-action-guidance-cell text-left text-slate-600">{issue.suggestedAction}</td>
-                      <td className="ipc-row-action-cell">
+                      <td className="ipc-quality-description-cell text-left text-slate-700" title={issue.message}>{issue.message}</td>
+                      <td className="ipc-quality-action-guidance-cell text-left text-slate-600" title={issue.suggestedAction}>
+                        <span className="ipc-quality-guidance-copy">{issue.suggestedAction}</span>
                         <Link
                           className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control"
-                          to={issue.category === 'missing_bom'
+                          to={issue.categoryCode === 'missing_bom'
                             ? `${ROUTES.ADMIN_DATA}?view=bom-import${issue.entityId ? `&dishId=${encodeURIComponent(issue.entityId)}` : ''}`
                             : issue.route || ROUTES.ADMIN_DATA}
                           onClick={() => {
-                            if (issue.category === 'missing_bom' && issue.entityId) {
+                            if (issue.categoryCode === 'missing_bom' && issue.entityId) {
                               setActiveView('bom-import');
                             }
                           }}
                         >
-                          Sửa
+                          {issue.actionLabel}
                         </Link>
                       </td>
                       <td className="ipc-row-action-cell">
@@ -106,7 +106,7 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                           disabled={updateDataQualityIssueRemediationState.isLoading}
                           onClick={() => void handleDataQualityRemediation(issue, issue.remediationStatus === 'resolved' ? 'reopen' : 'resolve')}
                         >
-                          {issue.remediationStatus === 'resolved' ? 'Reopen' : 'Resolve'}
+                          {issue.remediationStatus === 'resolved' ? 'Mở lại xử lý' : 'Đánh dấu đã xử lý'}
                         </Button>
                       </td>
                     </tr>

@@ -14,6 +14,7 @@ interface HeadChefDashboardProps {
   onExcessMaterialReturn?: (data: ExcessMaterial) => void
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
   checklistPagination?: ReactNode
+  checklistPageLabel?: string
 }
 
 export function HeadChefDashboard({
@@ -23,6 +24,7 @@ export function HeadChefDashboard({
   onExcessMaterialReturn,
   onMaterialSignoff,
   checklistPagination,
+  checklistPageLabel,
 }: HeadChefDashboardProps) {
   const [expandedDishId, setExpandedDishId] = useState<string | null>(null)
 
@@ -41,8 +43,10 @@ export function HeadChefDashboard({
 
           {/* Kitchen Material Checklist */}
           <MaterialChecklist
+            key={`${checklistPageLabel ?? 'checklist'}-${productionPlan.receivedMaterials[0]?.id ?? 'empty'}`}
             materials={productionPlan.receivedMaterials}
             onMaterialSignoff={onMaterialSignoff}
+            pageLabel={checklistPageLabel}
           />
           {checklistPagination}
         </div>

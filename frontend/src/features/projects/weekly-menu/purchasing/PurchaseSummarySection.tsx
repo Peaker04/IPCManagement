@@ -7,6 +7,7 @@ import { formatMaterialDishSource, formatQuantityVariance } from '../model/forma
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
 import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'
 import { Input } from '@/components/ui/input'
+import { Link } from 'react-router-dom'
 
 const tableHeadClass = 'text-center'
 const tableCellClass = 'text-center'
@@ -24,7 +25,8 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           { label: 'Khách hàng', value: presentation.customerLabel, tone: 'neutral' },
           { label: 'Tuần', value: presentation.weekLabel, tone: 'neutral' },
           { label: presentation.usesDemand ? 'Dòng ngày - nguyên liệu' : 'Nguyên liệu tổng tuần', value: (presentation.usesDemand ? presentation.totalItems : presentation.materialCount).toString(), tone: 'neutral' },
-          { label: 'Cần xử lý', value: presentation.usesDemand ? `${presentation.shortageCount} thiếu` : 'Chưa kiểm tồn', tone: presentation.shortageCount > 0 ? 'danger' : 'neutral' },
+          { label: 'Chưa xuất', value: presentation.usesDemand ? `${presentation.shortageCount} nguyên liệu` : 'Chưa kiểm tồn', tone: presentation.shortageCount > 0 ? 'danger' : 'neutral' },
+          { label: 'Chờ Bếp nhận', value: presentation.usesDemand ? `${presentation.pendingKitchenCount} nguyên liệu` : '—', tone: presentation.pendingKitchenCount > 0 ? 'warning' : 'neutral' },
           { label: 'Giá trị định lượng', value: formatCurrency(presentation.totalCost), tone: 'info' },
         ]} />
       </div>
@@ -79,7 +81,11 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
                 <td className="ipc-badge-cell">{line.tone === 'success'
                   ? <span className="ipc-inline-status"><CheckCircle2 size={15} aria-hidden="true" />Đủ</span>
                   : <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">{line.status}</StatusBadge>}
-                </td><td className={`${tableCellClass} text-left ${line.tone === 'success' ? 'text-slate-600' : 'font-semibold text-slate-800'}`}>{line.nextAction}</td>
+                </td><td className={`${tableCellClass} ${line.tone === 'success' ? 'text-slate-600' : 'font-semibold text-slate-800'}`}>
+                  {line.actionHref
+                    ? <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={line.actionHref}>{line.nextAction}</Link>
+                    : <span>{line.nextAction}</span>}
+                </td>
               </tr>
             })}
             {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey} className="table-row">

@@ -21,6 +21,7 @@ import { typography } from '@/lib/typography'
 interface MaterialChecklistProps {
   materials: ChefMaterial[]
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
+  pageLabel?: string
 }
 
 type MaterialGroup = {
@@ -46,7 +47,7 @@ const groupMaterialsByStableIdentity = (materials: ChefMaterial[]): MaterialGrou
   return Array.from(groups.values())
 }
 
-export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChecklistProps) {
+export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel }: MaterialChecklistProps) {
   const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null)
   const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null)
   const pendingMaterial = materials.find((material) => material.id === pendingMaterialId)
@@ -56,7 +57,9 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
   return (
     <SectionPanel
       title="Checklist nhận nguyên liệu"
-      description="Hiển thị một dòng tổng theo nguyên liệu và đơn vị trong ngày/ca; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn."
+      description={pageLabel
+        ? `${pageLabel}. Mỗi nguyên liệu một dòng tổng; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.`
+        : 'Mỗi nguyên liệu một dòng tổng; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.'}
       badge={
         <span className="text-sm text-slate-500 font-medium">
           Đã nhận: {signedCount}/{materials.length} dòng nguồn
@@ -117,7 +120,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                   return [summary, ...group.lines.map((material) => (
                     <TableRow key={material.id} className={cn('border-slate-200 bg-white', material.signed && 'bg-emerald-50/20')}>
                       <TableCell>{material.signed ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><Check className="size-3.5" />Đã nhận</span> : <Button type="button" size="xs" variant="outline" aria-label={`Nhận ${material.name} từ ${material.issueCode ?? material.id}`} onClick={() => setPendingMaterialId(material.id)}>Nhận</Button>}</TableCell>
-                      <TableCell className="pl-6 text-xs font-medium text-slate-700">↳ Dòng nguồn</TableCell>
+                      <TableCell className="pl-6 text-xs font-medium text-slate-700"><span className="inline-flex items-center gap-1"><span aria-hidden="true">↳</span><span>Dòng xuất nguồn</span></span></TableCell>
                       <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>{material.issueCode ?? material.issueId ?? material.id}</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(material.unit)}</TableCell>
                       <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>

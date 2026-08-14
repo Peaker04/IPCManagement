@@ -177,7 +177,7 @@
 
 .ipc-admin-quality-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1180px;
   table-layout: fixed;
 }
 
@@ -205,20 +205,21 @@
   width: 12%;
 }
 
-.ipc-admin-quality-table th:nth-child(7),
-.ipc-admin-quality-table th:nth-child(8) {
-  width: 14%;
+.ipc-admin-quality-table th:nth-child(7) {
+  width: 17%;
 }
 
-.ipc-admin-quality-table th:nth-child(9),
-.ipc-admin-quality-table th:nth-child(10) {
-  width: 9%;
-  min-width: 0;
+.ipc-admin-quality-table th:nth-child(8) {
+  width: 20%;
+}
+
+.ipc-admin-quality-table th:nth-child(9) {
+  width: 12%;
 }
 
 .ipc-admin-quality-table td {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   vertical-align: top;
 }
 
@@ -237,7 +238,19 @@
 .ipc-admin-quality-table .ipc-quality-description-cell,
 .ipc-admin-quality-table .ipc-quality-action-guidance-cell {
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+.ipc-quality-description-cell,
+.ipc-quality-guidance-copy {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.ipc-quality-action-guidance-cell .ipc-table-action-control {
+  margin-top: 0.5rem;
 }
 
 .ipc-swimlane-table th:nth-child(1) {

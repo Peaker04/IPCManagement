@@ -12047,6 +12047,8 @@ export interface components {
             /** Format: double */
             readonly outstandingQty: number;
             /** Format: double */
+            readonly pendingKitchenReceiptQty: number;
+            /** Format: double */
             readonly priceTierAmount: number;
             /** Format: date */
             readonly requestDate: string;
@@ -12054,6 +12056,8 @@ export interface components {
             readonly suggestedPurchaseQty: number;
             /** Format: double */
             readonly totalRequiredQty: number;
+            /** Format: double */
+            readonly unissuedQty: number;
             readonly unitId: string;
             readonly unitName?: string | null;
         };

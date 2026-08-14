@@ -22,6 +22,8 @@ public sealed class IngredientDemandAggregateDto
     public decimal CurrentStockQty { get; set; }
     public decimal SuggestedPurchaseQty { get; set; }
     public decimal FulfilledQty { get; set; }
+    public decimal PendingKitchenReceiptQty { get; set; }
+    public decimal UnissuedQty { get; set; }
     public decimal OutstandingQty { get; set; }
     public string FulfillmentStatus { get; set; } = string.Empty;
     public int LineCount { get; set; }

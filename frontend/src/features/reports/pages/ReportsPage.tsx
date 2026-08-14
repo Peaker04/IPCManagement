@@ -184,8 +184,8 @@ return (
                   <th>Nguyên liệu</th>
                   <th>Nguồn</th>
                   <th>Cần</th>
-                  <th>Tồn hiện có</th>
-                  <th>Thiếu/mua</th>
+                  <th>Đã cấp/xuất</th>
+                  <th>Chưa xuất</th>
                   <th>Trạng thái</th>
                   <th>Chuyển xử lý</th>
                 </tr>
@@ -198,9 +198,12 @@ return (
                     <td>{row.source}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.available, row.unit)}</td>
-                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(Math.max(row.required - row.available, 0), row.unit)}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.unissuedQty ?? Math.max(row.required - row.available, 0), row.unit)}</td>
                     <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
-                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.tone === 'danger' ? ROUTES.PURCHASING : ROUTES.WAREHOUSE}>{formatWorkflowStatus(row.nextAction)}</Link></td>
+                    <td>{row.actionHref
+                      ? <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.actionHref}>{row.nextAction}</Link>
+                      : <span className="text-slate-600">{row.nextAction}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

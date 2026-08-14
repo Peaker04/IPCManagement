@@ -550,6 +550,7 @@ export interface UsageReportRow {
 
 export interface DataQualityIssueRow {
   id: string;
+  categoryCode: string;
   category: string;
   severity: 'error' | 'warning';
   owner: string;
@@ -563,6 +564,7 @@ export interface DataQualityIssueRow {
   entityLabel: string;
   message: string;
   suggestedAction: string;
+  actionLabel: string;
   route: string;
   remediationStatus: 'open' | 'resolved' | 'reopened';
   remediationAt?: string;

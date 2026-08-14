@@ -266,6 +266,85 @@ export const formatMenuVersionStatus = (status?: string) => {
     ?? formatWorkflowStatus(status);
 };
 
+const dataQualityCategoryLabels: Readonly<Record<string, string>> = {
+  missing_bom: 'Thiếu định lượng món',
+  legacy_missing_bom: 'Định lượng cũ chưa đầy đủ',
+  invalid_unit: 'Đơn vị chưa hợp lệ',
+  missing_conversion: 'Thiếu quy đổi đơn vị',
+  legacy_bom_tier: 'Định lượng cũ chưa đúng mức giá',
+  legacy_missing_conversion: 'Dữ liệu cũ thiếu quy đổi',
+  inactive_bom_ingredient: 'Định lượng dùng nguyên liệu ngừng hoạt động',
+  negative_stock: 'Tồn kho âm',
+  inventory_ledger_mismatch: 'Tồn kho lệch sổ',
+  stock_shortage: 'Nguyên liệu chưa đủ để cấp',
+  missing_contract: 'Thiếu cấu hình hợp đồng',
+  missing_supplier: 'Chưa chọn nhà cung cấp',
+  stale_demand: 'Nhu cầu cần tính lại',
+  stale_purchase_request: 'Đề xuất mua cần cập nhật',
+  kitchen_receipt_discrepancy: 'Bếp nhận lệch số lượng',
+  orphan_document: 'Chứng từ mất liên kết',
+  unit_normalization_review: 'Cần xác nhận chuẩn hóa đơn vị',
+};
+
+const dataQualityOwnerLabels: Readonly<Record<string, string>> = {
+  admin: 'Quản trị dữ liệu',
+  management: 'Quản lý vận hành',
+  manager: 'Quản lý vận hành',
+  purchasing: 'Bộ phận Thu mua',
+  warehouse: 'Bộ phận Kho',
+  kitchen: 'Bộ phận Bếp',
+  coordination: 'Bộ phận Điều phối',
+};
+
+const dataQualityEntityLabels: Readonly<Record<string, string>> = {
+  customercontract: 'Hợp đồng khách hàng',
+  dish: 'Món ăn',
+  bom: 'Định lượng món',
+  ingredient: 'Nguyên liệu',
+  inventory: 'Tồn kho',
+  stockmovement: 'Bút toán kho',
+  materialrequest: 'Phiếu yêu cầu nguyên liệu',
+  purchaserequest: 'Đề xuất mua',
+  purchaseorder: 'Đơn mua hàng',
+  inventoryissue: 'Phiếu xuất kho',
+  inventoryreceipt: 'Phiếu nhập kho',
+};
+
+export const formatDataQualityCategory = (category?: string) =>
+  dataQualityCategoryLabels[category?.trim().toLocaleLowerCase('en-US') ?? ''] ?? 'Vấn đề dữ liệu cần kiểm tra';
+
+export const formatDataQualityOwner = (owner?: string) =>
+  dataQualityOwnerLabels[owner?.trim().toLocaleLowerCase('en-US') ?? ''] ?? (owner?.trim() || 'Bộ phận vận hành');
+
+export const formatDataQualityEntity = (entity?: string) =>
+  dataQualityEntityLabels[normalizeStatusCode(entity ?? '').toLocaleLowerCase('en-US')] ?? 'Đối tượng nghiệp vụ';
+
+export const formatDataQualityRemediationStatus = (status?: string) => ({
+  open: 'Chưa xử lý',
+  resolved: 'Đã xử lý',
+  reopened: 'Đã mở lại',
+} as const)[status?.trim().toLocaleLowerCase('en-US') as 'open' | 'resolved' | 'reopened'] ?? 'Chưa xử lý';
+
+export const formatPriorityLabel = (priority?: number) => priority ? `Ưu tiên P${priority}` : 'Chưa xếp ưu tiên';
+
+export const getDataQualityActionLabel = (category?: string) => ({
+  missing_bom: 'Mở định lượng món',
+  legacy_missing_bom: 'Mở định lượng món',
+  missing_contract: 'Mở hợp đồng',
+  missing_supplier: 'Mở chọn nhà cung cấp',
+  stock_shortage: 'Mở kế hoạch mua',
+  stale_demand: 'Mở nhu cầu nguyên liệu',
+  stale_purchase_request: 'Mở đề xuất mua',
+  kitchen_receipt_discrepancy: 'Mở checklist Bếp nhận',
+  negative_stock: 'Mở tồn kho',
+  inventory_ledger_mismatch: 'Mở đối chiếu tồn kho',
+  orphan_document: 'Mở nhật ký chứng từ',
+  invalid_unit: 'Mở danh mục đơn vị',
+  missing_conversion: 'Mở quy đổi đơn vị',
+  legacy_missing_conversion: 'Mở quy đổi đơn vị',
+  unit_normalization_review: 'Mở chuẩn hóa đơn vị',
+} as const)[category?.trim().toLocaleLowerCase('en-US') as keyof typeof dataQualityCategoryLabels] ?? 'Mở nơi xử lý';
+
 /** Keeps coupled receipt lifecycle enums out of user-facing UI. */
 export const formatReceiptLifecycleStatus = (status?: string, qualityStatus?: string) => {
   const normalizedStatus = normalizeStatusCode(status ?? '');
