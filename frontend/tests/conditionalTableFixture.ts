@@ -18,7 +18,7 @@ const sourceRoot = path.resolve(import.meta.dirname, '../src')
 
 export const conditionalTableFixtures: readonly ConditionalTableFixture[] = [
   {
-    id: 'admin-bom-current', route: '/admin-data', view: 'bom', sourceFile: 'app/pages/admin-data/AdminBomPanel.tsx', sourceSymbol: 'AdminBomPanel', tableIndex: 0,
+    id: 'admin-bom-current', route: '/admin-data', view: 'bom-import', sourceFile: 'app/pages/admin-data/AdminBomPanel.tsx', sourceSymbol: 'AdminBomPanel', tableIndex: 0,
     regionLabel: 'BOM hiện tại theo đơn giá', condition: /bomPanelMode\s*===\s*['"]current['"]/, headerSignature: ['Món', 'Nguyên liệu', 'Đơn vị', 'Định lượng/suất'], states: ['loading', 'empty', 'ready'],
   },
   {
@@ -48,7 +48,7 @@ export const conditionalTableFixtures: readonly ConditionalTableFixture[] = [
   ] as const).map(([view, regionLabel, headerSignature], index) => ({
     id: `reports-${view}`,
     route: '/reports' as const,
-    view,
+    view: view === 'reconciliation' ? 'usage' : view,
     sourceFile: 'features/reports/pages/ReportsPage.tsx',
     sourceSymbol: 'ReportsPage',
     tableIndex: index,

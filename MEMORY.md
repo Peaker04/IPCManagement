@@ -50,7 +50,19 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
 `frontend/tests/conditionalTableFixture.test.ts`. Fixture khóa đúng 16 owner logic (Admin BOM 2,
 Admin Statistics 3, Reports 7, Reports Price 4), mỗi owner có loading/empty/ready state và không
 phát sinh mutation. Evidence: `.artifacts/shipyard-live/phase05-wave2-conditional-table-fixture-20260814.json`.
-Đây mới là contract fixture; chưa có headed render record cho 16 owner và chưa được tuyên bố 51/51.
+Headed Chrome fixture hiện đã render đủ `16 × 5 = 80` owner/viewport cell qua component production với
+intercepted read-only API: zero mutation, API non-2xx, console/page error; max CLS `0.0000973`. Hai long task
+`63ms` và `54ms` chỉ được gắn tới route/owner record, chưa có script stack nên vẫn `NEEDS_EVIDENCE` và không
+cho phép tuyên bố 51/51. Evidence: `.artifacts/shipyard-live/phase05-wave2-conditional-table-render-20260814.json`.
+
+## Golden demo scope dành cho Kỳ · 14/08/2026
+
+Tuần `2026-08-17` không sạch (ANV/DAV mỗi bên đã có 1 menu version và 12 lịch) nên bị loại. Tuần
+`2026-08-24` trên exact `ipc_lane7` đã được read-only preflight xác nhận `CLEAN_SCOPE_PASS`: menu version,
+lịch, kế hoạch, nhu cầu, Ca phục vụ và phiếu xuất đều 0; mutation 0 và protected-lane connection attempt 0.
+Giữ scope này chưa import để Kỳ tự chạy demo. Trước buổi demo chạy
+`tools/e2e/Test-Phase05GoldenDemoScope.ps1`; hướng dẫn và ảnh ở
+`docs/operations/golden-demo-walkthrough.md`. Không cleanup/reset tuần cũ.
 
 ## Wave 2 correction — Chef receipt scope (14/08/2026)
 
