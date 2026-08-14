@@ -26,7 +26,7 @@ workbook:
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
 lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 đã closeout; runtime phục vụ Kỳ kiểm thử lại
-đang mở với FE `3036` PID 34048 và BE `8036` PID 32124 trên exact `ipc_lane7`. Readiness HTTP 200:
+đang mở với FE `3036` PID 34048 và BE `8036` PID 28544 trên exact `ipc_lane7`. Readiness HTTP 200:
 database/migrations Healthy, tổng trạng thái Degraded chỉ vì lifecycle outbox relay cố ý tắt. Chỉ teardown
 hai PID mới này khi Kỳ yêu cầu. PID API 3580 là process ngoài run và vẫn được giữ. Runtime warehouse development `3020/8020` nếu còn
 mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
@@ -106,8 +106,9 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
   phân trang 20 dòng thay vì action query 500 dòng; đổi trang reset nhóm mở và hiển thị nhãn trang. Data Quality
   dùng vocabulary tiếng Việt dùng chung, action link gộp vào cột hướng xử lý; bảng quality có min-width và clamp
   nội dung dài. Focused FE `55/55`, backend regression `1/1`, lint/build PASS; chưa có headed re-run, 16
-  conditional fixtures hoặc Chef 56ms attribution. BE PID 32124 vẫn là artifact cũ do môi trường chặn dừng
-  process; không khai live API đã cập nhật cho đến khi restart được process owner.
+  conditional fixtures hoặc Chef 56ms attribution. BE đã restart đúng owner sang artifact mới PID 28544; live API
+  readback ANV 15/08 trả `unissuedQty=0`, `pendingKitchenReceiptQty=3` cho Thịt bằm. Extra FE 3037 dùng để
+  bootstrapping đã teardown; FE 3036 PID 34048 vẫn là runtime chính.
 
 - Phase 5 Plan 05-04 đã hoàn tất ngày 2026-08-14. Top-level manifest PASS, hash authoritative ở
   `docs/EVIDENCE-INDEX.md`; full regression/build/EF/OpenAPI/hygiene xanh, protected-lane attempt 0 và
