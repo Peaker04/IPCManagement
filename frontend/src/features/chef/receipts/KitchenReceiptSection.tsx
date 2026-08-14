@@ -14,6 +14,8 @@ type Props = {
   receiptPage: number
   receiptPageSize: number
   receiptTotalCount: number
+  receiptTotalSignedCount: number
+  receiptActionRowCount: number
   onReceiptPageChange: (page: number) => void
 }
 
@@ -27,6 +29,8 @@ export function KitchenReceiptSection({
   receiptPage,
   receiptPageSize,
   receiptTotalCount,
+  receiptTotalSignedCount,
+  receiptActionRowCount,
   onReceiptPageChange,
 }: Props) {
   return (
@@ -56,6 +60,8 @@ export function KitchenReceiptSection({
               />
             )}
             checklistPageLabel={`Trang ${receiptPage} · ${receiptPageSize} dòng tối đa trong ${receiptTotalCount} dòng nguồn`}
+            checklistTotalSignedCount={receiptTotalSignedCount}
+            checklistTotalSourceCount={receiptActionRowCount || receiptTotalCount}
           />
         </>
       )}

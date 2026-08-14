@@ -136,6 +136,8 @@ export default function ChefDashboardPage() {
               receiptPage={receipts.page}
               receiptPageSize={receipts.pageSize}
               receiptTotalCount={receipts.totalCount}
+              receiptTotalSignedCount={receipts.totalSignedCount}
+              receiptActionRowCount={receipts.actionRowCount}
               onReceiptPageChange={receipts.setPage}
             />
             </ChefQueryBoundary>

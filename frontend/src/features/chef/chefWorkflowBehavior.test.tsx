@@ -85,7 +85,7 @@ describe('chef workflow service-date behavior', () => {
     mocks.getInventoryReturns.mockReturnValue({ data: undefined, isLoading: false, isError: false })
   })
 
-  it('queries every receipt for the service date and filters the selected shift locally', async () => {
+  it('queries receipt pages in the selected shift scope', async () => {
     const unrelatedIssue = issue({ issueDate: '2026-07-19', shiftName: 'AFTERNOON' })
     mocks.getKitchenIssues.mockReturnValue({
       data: { items: [unrelatedIssue], totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false },
@@ -97,6 +97,7 @@ describe('chef workflow service-date behavior', () => {
     expect(mocks.getKitchenIssues).toHaveBeenCalledWith({
       dateFrom: '2026-07-20',
       dateTo: '2026-07-20',
+      shiftName: 'MORNING',
       pageNumber: 1,
       pageSize: 20,
     }, { skip: false })

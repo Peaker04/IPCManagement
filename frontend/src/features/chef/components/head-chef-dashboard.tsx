@@ -15,6 +15,8 @@ interface HeadChefDashboardProps {
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
   checklistPagination?: ReactNode
   checklistPageLabel?: string
+  checklistTotalSignedCount?: number
+  checklistTotalSourceCount?: number
 }
 
 export function HeadChefDashboard({
@@ -25,6 +27,8 @@ export function HeadChefDashboard({
   onMaterialSignoff,
   checklistPagination,
   checklistPageLabel,
+  checklistTotalSignedCount,
+  checklistTotalSourceCount,
 }: HeadChefDashboardProps) {
   const [expandedDishId, setExpandedDishId] = useState<string | null>(null)
 
@@ -47,6 +51,8 @@ export function HeadChefDashboard({
             materials={productionPlan.receivedMaterials}
             onMaterialSignoff={onMaterialSignoff}
             pageLabel={checklistPageLabel}
+            totalSignedCount={checklistTotalSignedCount}
+            totalSourceCount={checklistTotalSourceCount}
           />
           {checklistPagination}
         </div>

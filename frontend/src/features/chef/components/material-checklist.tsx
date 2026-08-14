@@ -22,6 +22,8 @@ interface MaterialChecklistProps {
   materials: ChefMaterial[]
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
   pageLabel?: string
+  totalSignedCount?: number
+  totalSourceCount?: number
 }
 
 type MaterialGroup = {
@@ -47,7 +49,7 @@ const groupMaterialsByStableIdentity = (materials: ChefMaterial[]): MaterialGrou
   return Array.from(groups.values())
 }
 
-export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel }: MaterialChecklistProps) {
+export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, totalSignedCount, totalSourceCount }: MaterialChecklistProps) {
   const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null)
   const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null)
   const pendingMaterial = materials.find((material) => material.id === pendingMaterialId)
@@ -62,7 +64,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel }: M
         : 'Mỗi nguyên liệu một dòng tổng; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.'}
       badge={
         <span className="text-sm text-slate-500 font-medium">
-          Đã nhận: {signedCount}/{materials.length} dòng nguồn
+          Đã nhận: {totalSignedCount ?? signedCount}/{totalSourceCount ?? materials.length} dòng nguồn
         </span>
       }
       className={cn(typography.body, 'ipc-chef-checklist-panel')}

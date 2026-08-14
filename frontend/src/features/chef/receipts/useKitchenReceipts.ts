@@ -17,6 +17,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
   const query = useGetKitchenIssuesPageQuery({
     dateFrom: scope.serviceDate,
     dateTo: scope.serviceDate,
+    shiftName: scope.apiShiftName,
     pageNumber: page,
     pageSize: KITCHEN_RECEIPT_PAGE_SIZE,
   }, { skip: !enabled })
@@ -40,6 +41,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     [actionQueryView, scope.serviceDate, scope.activeShift],
   )
   const pendingCount = countPendingKitchenReceipts(rows)
+  const totalSignedCount = actionRows.filter((row) => row.isReceivedByKitchen || Boolean(signedMaterials[`${scope.serviceDate}-${scope.activeShift}-${row.issueId}-${row.id}`])).length
   const hasAdditionalPages = (response?.totalPages ?? 0) > 1
 
   const signOff = async (material: ChefMaterial | undefined, signed: boolean) => {
@@ -91,6 +93,8 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     page: response?.pageNumber ?? page,
     pageSize: response?.pageSize ?? KITCHEN_RECEIPT_PAGE_SIZE,
     totalCount: response?.totalCount ?? rows.length,
+    totalSignedCount,
+    actionRowCount: actionRows.length,
     hasAdditionalPages,
     allReceived: rows.length > 0 && pendingCount === 0 && !hasAdditionalPages,
     setPage,
