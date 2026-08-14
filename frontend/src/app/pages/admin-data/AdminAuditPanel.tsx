@@ -43,7 +43,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
   return (
     <>
       {effectiveActiveView === 'audit' && (
-        <SectionPanel title="Nhật ký thay đổi hệ thống (Audit Trail)" icon={<History size={18} />}>
+        <SectionPanel title="Nhật ký thay đổi hệ thống" icon={<History size={18} />}>
           <div id="admin-audit-panel" role="tabpanel" aria-labelledby="admin-audit-tab" className="flex flex-col gap-4">
             {/* Bộ lọc Audit log */}
             <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">

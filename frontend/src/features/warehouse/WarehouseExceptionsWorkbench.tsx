@@ -222,7 +222,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         title: selectedReturn.returnType === 'WASTE' ? 'Đã ghi nhận hao hụt' : 'Đã nhập lại nguyên liệu trả',
         message: selectedReturn.returnType === 'WASTE'
           ? 'Hao hụt đã được ghi audit và không cộng tồn.'
-          : 'Số thực nhận đã được cộng vào tồn kho và ghi stock ledger.',
+          : 'Số thực nhận đã được cộng vào tồn kho và ghi vào sổ kho.',
         variant: 'info',
       });
     } catch (error) {

@@ -715,8 +715,8 @@ public class DishCatalogTests
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Trùng dish/ingredient/unit/effective date")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Khoảng hiệu lực BOM bị overlap trong file")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("DishCode không tồn tại")));
-        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("IngredientCode không tồn tại")));
-        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("UnitCode không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã nguyên liệu không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã đơn vị không tồn tại")));
         await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*File BOM còn lỗi*");
 

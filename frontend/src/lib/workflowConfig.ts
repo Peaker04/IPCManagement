@@ -350,6 +350,9 @@ export const formatDataQualityCopy = (value?: string) => (value?.trim() || 'Chư
   .replace(/current\s*stock/gi, 'tồn kho hiện tại')
   .replace(/stock\s*movements?/gi, 'bút toán kho')
   .replace(/\bledger\b/gi, 'sổ kho')
+  .replace(/\bportion\s*rule\b/gi, 'quy tắc khẩu phần')
+  .replace(/\bpublish(?:ed)?\b/gi, 'công bố')
+  .replace(/\bcontracts?\b/gi, 'hợp đồng')
   .replace(/\bkilograms?\b/gi, 'kg')
   .replace(/\bpieces?\b/gi, 'cái');
 

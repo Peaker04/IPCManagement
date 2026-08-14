@@ -27,7 +27,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
           <AdminQueryBoundary queries={[
             { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
             { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
-            { label: 'customer contract', view: queryViews.contracts },
+            { label: 'hợp đồng khách hàng', view: queryViews.contracts },
           ]}>
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
             <div className="grid gap-4">
@@ -63,11 +63,11 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                       <SelectValue>
                         {selectedImportContract
                           ? `${selectedImportContract.customerCode} - ${selectedImportContract.customerName}`
-                          : 'BOM global'}
+                          : 'BOM dùng chung'}
                       </SelectValue>
                       </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={EMPTY_BOM_SELECT_VALUE}>BOM global</SelectItem>
+                      <SelectItem value={EMPTY_BOM_SELECT_VALUE}>BOM dùng chung</SelectItem>
                       {customerContracts.map((contract) => (
                         <SelectItem key={contract.customerId} value={contract.customerId}>
                           {contract.customerCode} - {contract.customerName}
@@ -163,14 +163,14 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </div>
 
                 {bomImportFeedback && (
-                  <InlineAlert title={bomImportFeedback.type === 'success' ? 'BOM import' : 'Cần kiểm tra'} variant={bomImportFeedback.type === 'success' ? 'info' : 'danger'}>
+                  <InlineAlert title={bomImportFeedback.type === 'success' ? 'Đã nhập định lượng' : 'Cần kiểm tra'} variant={bomImportFeedback.type === 'success' ? 'info' : 'danger'}>
                     {bomImportFeedback.message}
                   </InlineAlert>
                 )}
 
                 {bomTemplateDishId && (
                   <InlineAlert title="Mẫu theo món thiếu BOM" variant="info">
-                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. IngredientCode không cần nhập; chỉ điền IngredientName, UnitCode, định lượng và import lại.
+                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. Mã nguyên liệu và mã đơn vị có thể để trống khi thêm nguyên liệu mới; chỉ cần điền tên nguyên liệu, đơn vị, định lượng rồi tải lên lại.
                   </InlineAlert>
                 )}
 
@@ -182,8 +182,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
               <div className="flex flex-col gap-3">
                 <ContextStrip
                   items={[
-                    { label: 'Tier', value: `${formatNumber(bomImportTier / 1000)}k`, tone: 'info' },
-                    { label: 'Scope', value: bomImportCustomerId ? 'Customer override' : 'Global', tone: bomImportCustomerId ? 'warning' : 'neutral' },
+                    { label: 'Mức định lượng', value: `${formatNumber(bomImportTier / 1000)}k`, tone: 'info' },
+                    { label: 'Phạm vi', value: bomImportCustomerId ? 'Theo khách hàng' : 'Dùng chung', tone: bomImportCustomerId ? 'warning' : 'neutral' },
                     { label: 'BOM hiện tại', value: `${currentBomRows.length} dòng`, tone: currentBomRows.length ? 'success' : 'neutral' },
                     { label: 'Kết quả kiểm tra', value: bomImportPreview ? `${bomImportPreview.validRows}/${bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
                   ]}
@@ -239,7 +239,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           <th>Món</th>
                           <th>Nguyên liệu</th>
                           <th>ĐVT</th>
-                          <th>Qty/suất</th>
+                          <th>Định lượng/suất</th>
                           <th>Hao hụt</th>
                           <th>Hiệu lực</th>
                           <th>Trạng thái</th>
@@ -292,9 +292,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           <th>Món</th>
                           <th>Nguyên liệu</th>
                           <th>ĐVT</th>
-                          <th>Qty/suất</th>
+                          <th>Định lượng/suất</th>
                           <th>Hao hụt</th>
-                          <th>Action</th>
+                          <th>Thao tác</th>
                           <th>Trạng thái</th>
                         </tr>
                       </thead>
@@ -330,7 +330,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
           <DialogHeader>
             <DialogTitle>{editingBom ? 'Chỉnh nhanh dòng BOM' : 'Thêm dòng BOM thủ công'}</DialogTitle>
             <DialogDescription>
-              Tier {formatNumber(bomImportTier / 1000)}k · {bomImportCustomerId ? 'BOM theo khách hàng' : 'BOM global'}. Dòng published được điều chỉnh bằng version mới để giữ lịch sử.
+              Mức định lượng {formatNumber(bomImportTier / 1000)}k · {bomImportCustomerId ? 'BOM theo khách hàng' : 'BOM dùng chung'}. Dòng đang áp dụng được điều chỉnh bằng phiên bản mới để giữ lịch sử.
             </DialogDescription>
           </DialogHeader>
 
@@ -406,7 +406,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
 
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-qty">
-                Qty/suất <span className="text-rose-600" aria-hidden="true">*</span>
+                Định lượng/suất <span className="text-rose-600" aria-hidden="true">*</span>
                 <Input id="manual-bom-qty" type="number" min="0.000001" step="0.000001" required aria-invalid={Boolean(bomFormErrors.grossQtyPerServing) || undefined} aria-describedby={bomFormErrors.grossQtyPerServing ? 'manual-bom-qty-error' : undefined} value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
                 {bomFormErrors.grossQtyPerServing && <span id="manual-bom-qty-error" className="text-xs font-normal text-red-700">{bomFormErrors.grossQtyPerServing}</span>}
               </label>

@@ -21,7 +21,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
       {effectiveActiveView === 'contracts' && (
         <div id="admin-contracts-panel" role="tabpanel" aria-labelledby="admin-contracts-tab" className="flex flex-col gap-4">
           <AdminQueryBoundary queries={[
-            { label: 'customer contract', view: queryViews.contracts },
+            { label: 'hợp đồng khách hàng', view: queryViews.contracts },
             ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
           ]}>
           <SectionPanel title="Hợp đồng khách hàng và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>

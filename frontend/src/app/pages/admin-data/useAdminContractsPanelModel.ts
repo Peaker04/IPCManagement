@@ -46,7 +46,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
   const customerContractsQuery = useGetCustomerContractsQuery(undefined, {
     skip: activeView !== 'contracts' && activeView !== 'bom-import',
   });
-  const customerContractsView = toAdminView(customerContractsQuery, 'customer contract');
+  const customerContractsView = toAdminView(customerContractsQuery, 'hợp đồng khách hàng');
   const customerContracts = customerContractsView.phase === 'ready'
     ? customerContractsView.data.data ?? EMPTY_ADMIN_LIST
     : EMPTY_ADMIN_LIST;

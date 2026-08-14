@@ -308,8 +308,8 @@ public sealed class DataQualityReportService : IDataQualityReportService
             GuidHelper.ToGuidString(plan.PlanId),
             plan.PlanCode,
             plan.Customer?.CustomerName ?? GuidHelper.ToGuidString(plan.CustomerId!),
-            "KHSX có khách hàng nhưng không có contract hiệu lực cho ngày phục vụ.",
-            "Tạo hoặc publish contract khách hàng trước khi chốt giá/BOM.",
+            "KHSX có khách hàng nhưng chưa có hợp đồng hiệu lực cho ngày phục vụ.",
+            "Tạo hoặc công bố hợp đồng khách hàng trước khi chốt giá và định lượng.",
             "/admin-data?view=contracts")));
 
         var inactiveSupplierLines = await _context.Purchaserequestlines

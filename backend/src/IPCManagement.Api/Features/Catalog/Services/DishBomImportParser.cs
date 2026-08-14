@@ -117,7 +117,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                 var nameUnitKey = NormalizeIngredientLookupKey(ingredientName, unit.UnitCode);
                 if (ambiguousIngredientNameUnits.Contains(nameUnitKey))
                 {
-                    errors.Add("IngredientName + UnitCode đang trùng nhiều nguyên liệu, cần nhập IngredientCode để map chính xác.");
+                    errors.Add("Tên nguyên liệu và mã đơn vị đang trùng nhiều dòng; hãy nhập mã nguyên liệu để hệ thống ghép đúng.");
                 }
                 else if (ingredientsByNameUnit.TryGetValue(nameUnitKey, out var matchedIngredient))
                 {
@@ -133,21 +133,21 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             }
             if (string.IsNullOrWhiteSpace(ingredientCode) && string.IsNullOrWhiteSpace(ingredientName))
             {
-                errors.Add("IngredientName bắt buộc khi không nhập IngredientCode.");
+                errors.Add("Cần nhập tên nguyên liệu nếu bỏ trống mã nguyên liệu.");
             }
             else if (!string.IsNullOrWhiteSpace(ingredientCode) && ingredient is null)
             {
-                errors.Add("IngredientCode không tồn tại hoặc nguyên liệu đã ngừng sử dụng.");
+                errors.Add("Mã nguyên liệu không tồn tại hoặc nguyên liệu đã ngừng sử dụng.");
             }
             if (unit is null)
             {
-                errors.Add("UnitCode không tồn tại.");
+                errors.Add("Mã đơn vị không tồn tại.");
             }
             else if (ingredient is null && string.IsNullOrWhiteSpace(ingredientCode))
             {
                 if (!hasWarehouse)
                 {
-                    errors.Add("Chưa có kho nguyên liệu để tự tạo IngredientCode mới.");
+                errors.Add("Chưa có kho nguyên liệu để tự tạo mã nguyên liệu mới.");
                 }
                 else
                 {

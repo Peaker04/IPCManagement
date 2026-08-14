@@ -104,7 +104,7 @@ const DashboardPage = () => {
       key: 'bom',
       order: '02',
       title: 'Định lượng BOM',
-      description: 'KHSX kiểm tier BOM, định lượng và tồn kho.',
+      description: 'KHSX kiểm mức BOM, định lượng và tồn kho.',
       lanes: [laneById.get('planning'), laneById.get('admin')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.WEEKLY_MENU,
     },

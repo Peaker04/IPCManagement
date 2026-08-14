@@ -99,7 +99,7 @@ export function useAdminBomPanelModel(
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      setBomImportFeedback({ type: 'success', message: `Đã tải ${getBomTemplateTypeLabel(templateType).toLowerCase()}. IngredientCode có thể để trống khi nhập nguyên liệu mới.` });
+      setBomImportFeedback({ type: 'success', message: `Đã tải ${getBomTemplateTypeLabel(templateType).toLowerCase()}. Mã nguyên liệu có thể để trống khi nhập nguyên liệu mới.` });
     } catch (error) {
       setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa tải được file mẫu BOM.') });
     }
@@ -206,7 +206,7 @@ export function useAdminBomPanelModel(
     const quantityInvalid = !Number.isFinite(quantity) || quantity <= 0;
     const wasteRateInvalid = !Number.isFinite(wasteRate) || wasteRate < 0 || wasteRate > 100;
     if (quantityInvalid || wasteRateInvalid) {
-      const message = 'Qty/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.';
+      const message = 'Định lượng/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.';
       setBomFormErrors({
         ...(quantityInvalid ? { grossQtyPerServing: message } : {}),
         ...(wasteRateInvalid ? { wasteRatePercent: message } : {}),

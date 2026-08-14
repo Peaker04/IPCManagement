@@ -62,6 +62,11 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
 - Data Quality action cells reserve `8.5rem` and rebalance the fixed table columns; headed fixture confirms the full `Đánh dấu đã xử lý` control is readable at all five desktop viewports.
 - Updated read-only fixture assertions for current approval modal vocabulary (`Duyệt đề xuất mua?`, `Giữ đề xuất mua`) and Warehouse empty state. Safe dialogs, Data Quality stress table, and Warehouse empty state each pass `5/5` viewports; no mutation.
 - Important coverage correction: the Wave 2 audit script found that the old `35 + 16` arithmetic counted repeated runtime instances across tabs, not unique source owners. Do not claim `51/51` until a source-owner mapping fixture exists. Evidence: `.artifacts/shipyard-live/phase05-wave2-ui-ux-regression-20260814.json`.
+
+## Hidden copy scan (14/08/2026)
+
+- Scanned all 9 application routes and all visible tabs in headed Chrome, including secondary table/tab content. Removed remaining user-facing `Action`, `Audit Trail`, `Tier`, `Scope`, `Customer override`, `BOM global`, `Qty/suất`, `stock ledger`, `contract`, `publish`, and BOM import field jargon.
+- Import file headers remain technical by contract, but validation/error guidance now uses Vietnamese labels. Focused FE tests `11/11`, FE lint/build, and backend Release test-project build pass. No browser mutation. Evidence: `.artifacts/shipyard-live/phase05-wave2-hidden-copy-scan-20260814.json`.
 9. Rule refresh/performance từ `.docs/dashboard-state-refresh-rules.md` đã được hợp nhất vào canonical
    `docs/DASHBOARD-UI-RULES.md` F12–F24: tách server/client/query state, không document reload, exact
    invalidation, stable args, shared polling class, freshness ở shell, pause khi người dùng đang thao tác,

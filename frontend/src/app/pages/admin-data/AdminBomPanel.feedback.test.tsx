@@ -55,8 +55,8 @@ describe('Admin BOM form feedback', () => {
     })));
     await act(() => result.current.handleSaveBomLine(submitEvent));
     expect(result.current.bomFormErrors).toEqual({
-      grossQtyPerServing: 'Qty/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.',
-      wasteRatePercent: 'Qty/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.',
+      grossQtyPerServing: 'Định lượng/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.',
+      wasteRatePercent: 'Định lượng/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.',
     });
 
     act(() => result.current.setBomForm((current) => ({
@@ -220,7 +220,7 @@ describe('Admin BOM form feedback', () => {
     expect(viewport).toContainElement(table);
     expect(table).toHaveClass('ipc-bom-current-table');
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
-      'Món', 'Nguyên liệu', 'ĐVT', 'Qty/suất', 'Hao hụt', 'Hiệu lực', 'Trạng thái', 'Thao tác',
+      'Món', 'Nguyên liệu', 'ĐVT', 'Định lượng/suất', 'Hao hụt', 'Hiệu lực', 'Trạng thái', 'Thao tác',
     ]);
     expect(screen.getByRole('navigation', { name: 'Phân trang danh sách' })).not.toHaveClass('ipc-table-viewport');
   });

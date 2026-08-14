@@ -83,8 +83,8 @@ describe('PB canon source inventory', () => {
     expect(findMethodCalls(production, 'toFixed').map(({ path, line }) => `${path}:${line}`)).toEqual([
       'src/features/chef/production/chefProductionModel.ts:236',
       'src/features/chef/production/chefProductionModel.ts:275',
-      'src/features/projects/weekly-menu/purchasing/purchaseSummaryModel.ts:63',
-      'src/features/projects/weekly-menu/purchasing/purchaseSummaryModel.ts:64',
+      'src/features/projects/weekly-menu/purchasing/purchaseSummaryModel.ts:65',
+      'src/features/projects/weekly-menu/purchasing/purchaseSummaryModel.ts:66',
     ])
     expect(findMethodCalls(production, 'toLocaleString').map(({ path, line }) => `${path}:${line}`)).toEqual([
       'src/features/projects/weekly-menu/model/formatters.ts:111',

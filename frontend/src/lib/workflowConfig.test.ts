@@ -34,6 +34,8 @@ describe('workflowConfig', () => {
     expect(formatDataQualityCopy('Currentstock / Cá chua')).toBe('tồn kho hiện tại / Cá chua');
     expect(formatDataQualityCopy('Current stock 10 Kilogram không khớp ledger. Đối chiếu stock movements.'))
       .toBe('tồn kho hiện tại 10 kg không khớp sổ kho. Đối chiếu bút toán kho.');
+    expect(formatDataQualityCopy('Chưa có contract hiệu lực; publish contract trước khi chốt BOM.'))
+      .toBe('Chưa có hợp đồng hiệu lực; công bố hợp đồng trước khi chốt BOM.');
   });
 
   it('routes known owners to workflow lanes and unknown owners to admin', () => {
