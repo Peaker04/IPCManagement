@@ -43,6 +43,13 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
    `AGENTS.md` và chạy graph evidence. Nếu không, dùng source/test và gate GSD phù hợp, cùng secret scan
    và `git diff --check`.
 8. Sau mỗi chuỗi thay đổi/E2E đáng kể, cập nhật front matter, evidence, gate và phần còn mở; việc đã đóng phải xóa khỏi file này và append sang `HISTORY.md`.
+
+## Wave 2 correction — Chef receipt scope (14/08/2026)
+
+- Commit `f4b77cf1` sửa lỗi lệch phạm vi: `getKitchenIssuesPage` của Chef truyền `shiftName` cùng `dateFrom/dateTo`, đồng nhất với action query và bộ đếm ký nhận.
+- Headed browser trên `3036/8036`, exact `ipc_lane7`, request thực tế `.../kitchen-issues/page?...&shiftName=MORNING&pageNumber=1&pageSize=20`; API trả `totalCount=51`, `totalPages=3`, `items=20`; DOM hiển thị `Đã nhận: 51/51 dòng nguồn` và `Trang 1/3`. Không mutation, console/page/request error hoặc overflow. Evidence: `.artifacts/shipyard-live/phase05-wave2-chef-scope-20260814/manifest.json`.
+- Regression `frontend/src/features/chef/chefWorkflowBehavior.test.tsx` khóa query phải có `shiftName`; focused suite `9/9`, lint/build/OpenAPI parity pass.
+- Còn mở theo Wave 2: dựng fixture read-only cho 16 bảng conditional; chưa tuyên bố đủ `51/51 browser evidence`. Chef navigation long task hiện đo 94ms, chưa có attribution production owner; không sửa owner chỉ từ số đo.
 9. Rule refresh/performance từ `.docs/dashboard-state-refresh-rules.md` đã được hợp nhất vào canonical
    `docs/DASHBOARD-UI-RULES.md` F12–F24: tách server/client/query state, không document reload, exact
    invalidation, stable args, shared polling class, freshness ở shell, pause khi người dùng đang thao tác,
