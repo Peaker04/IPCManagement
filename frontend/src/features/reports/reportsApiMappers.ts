@@ -28,6 +28,7 @@ import type { DemandLine } from '@/types/workflow';
 import { resolveDemandLinePresentation } from '@/lib/actionEligibility';
 import {
   formatDataQualityCategory,
+  formatDataQualityCopy,
   formatDataQualityEntity,
   formatDataQualityOwner,
   getDataQualityActionLabel,
@@ -209,9 +210,9 @@ export const mapDataQualityIssue = (issue: DataQualityIssueDto): DataQualityIssu
   entityName: formatDataQualityEntity(issue.entityName),
   entityId: issue.entityId ?? undefined,
   entityCode: issue.entityCode,
-  entityLabel: issue.entityLabel,
-  message: issue.message,
-  suggestedAction: issue.suggestedAction,
+  entityLabel: formatDataQualityCopy(issue.entityLabel),
+  message: formatDataQualityCopy(issue.message),
+  suggestedAction: formatDataQualityCopy(issue.suggestedAction),
   actionLabel: getDataQualityActionLabel(issue.category),
   route: issue.route,
   remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',

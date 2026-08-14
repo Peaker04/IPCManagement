@@ -210,11 +210,11 @@
 }
 
 .ipc-admin-quality-table th:nth-child(8) {
-  width: 20%;
+  width: 18%;
 }
 
 .ipc-admin-quality-table th:nth-child(9) {
-  width: 12%;
+  width: 14%;
 }
 
 .ipc-admin-quality-table td {
@@ -230,9 +230,9 @@
 
 .ipc-admin-quality-table .ipc-row-action-cell .ipc-table-action-control,
 .ipc-admin-quality-table .ipc-row-action-cell .ipc-table-action-control.ipc-button {
-  width: 5.25rem;
-  min-width: 5.25rem;
-  max-width: 5.25rem;
+  width: 8.5rem;
+  min-width: 8.5rem;
+  max-width: 8.5rem;
 }
 
 .ipc-admin-quality-table .ipc-quality-description-cell,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ROUTES } from '@/lib/routeConfig';
-import { formatLegacyDispositionStatus, formatLegacyLineType, formatReconciliationDisposition, formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
+import { formatDataQualityCopy, formatLegacyDispositionStatus, formatLegacyLineType, formatReconciliationDisposition, formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
 
 describe('workflowConfig', () => {
   it('maps Vietnamese operational status text to alert tones', () => {
@@ -28,6 +28,12 @@ describe('workflowConfig', () => {
     expect(formatReconciliationDisposition('LEGACY_LINEAGE_RECONCILIATION_REQUIRED')).toBe('Cần quyết định');
     expect(formatLegacyLineType('ISSUE_LINE')).toBe('Dòng xuất kho');
     expect(formatLegacyDispositionStatus('PENDING_MANAGER_REVIEW')).toBe('Chờ Quản lý duyệt');
+  });
+
+  it('replaces storage implementation vocabulary in data-quality copy', () => {
+    expect(formatDataQualityCopy('Currentstock / Cá chua')).toBe('tồn kho hiện tại / Cá chua');
+    expect(formatDataQualityCopy('Current stock 10 Kilogram không khớp ledger. Đối chiếu stock movements.'))
+      .toBe('tồn kho hiện tại 10 kg không khớp sổ kho. Đối chiếu bút toán kho.');
   });
 
   it('routes known owners to workflow lanes and unknown owners to admin', () => {

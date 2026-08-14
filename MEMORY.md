@@ -55,6 +55,13 @@ mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng tha
 
 - `WarehouseReceiptLifecyclePanel` now keeps “Đã ghi sổ kho” material lines inside a bounded internal scroll region (`288px` viewport), with a stable `474px` detail card, explicit “Nguyên liệu trong phiếu / N dòng nguồn” header, two-column quantity summary, truncation for long names/reasons, and no horizontal overflow.
 - Headed read-only proof selected a receipt with `6336px` line content at `/warehouse`; page stayed bounded and no mutation/errors occurred. Evidence JSON: `.artifacts/shipyard-live/phase05-wave2-warehouse-receipt-long-20260814.json`; screenshot is reviewer-only.
+
+## Wave 2 UI/UX regression closure (14/08/2026)
+
+- Data Quality now sanitizes server-authored implementation terms (`Current stock`, `Currentstock`, `ledger`, `stock movements`, `Kilogram`) at the shared mapper seam before rendering; user-facing copy remains Vietnamese.
+- Data Quality action cells reserve `8.5rem` and rebalance the fixed table columns; headed fixture confirms the full `Đánh dấu đã xử lý` control is readable at all five desktop viewports.
+- Updated read-only fixture assertions for current approval modal vocabulary (`Duyệt đề xuất mua?`, `Giữ đề xuất mua`) and Warehouse empty state. Safe dialogs, Data Quality stress table, and Warehouse empty state each pass `5/5` viewports; no mutation.
+- Important coverage correction: the Wave 2 audit script found that the old `35 + 16` arithmetic counted repeated runtime instances across tabs, not unique source owners. Do not claim `51/51` until a source-owner mapping fixture exists. Evidence: `.artifacts/shipyard-live/phase05-wave2-ui-ux-regression-20260814.json`.
 9. Rule refresh/performance từ `.docs/dashboard-state-refresh-rules.md` đã được hợp nhất vào canonical
    `docs/DASHBOARD-UI-RULES.md` F12–F24: tách server/client/query state, không document reload, exact
    invalidation, stable args, shared polling class, freshness ở shell, pause khi người dùng đang thao tác,

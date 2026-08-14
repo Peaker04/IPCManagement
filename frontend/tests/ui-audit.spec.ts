@@ -130,9 +130,9 @@ function buildDataQualityIssues(count = 8) {
       entityName: ['Cá chua', 'Cá nục', 'Chanh', 'Đu đủ xanh'][index % 4],
       entityId: `ingredient-${index}`,
       entityCode: 'Kho mẫu IPC',
-      entityLabel: `Currentstock / ${['Cá chua', 'Cá nục', 'Chanh', 'Đu đủ xanh'][index % 4]}`,
-      message: `Current stock ${quantity.toFixed(6)} Kilogram không khớp ledger ${(quantity + (index % 2 === 0 ? 0.000001 : 80)).toFixed(6)} Kilogram. Lệch ${(index % 2 === 0 ? 0.000001 : -80).toFixed(6)} Kilogram.`,
-      suggestedAction: 'Đối chiếu stock movements và tạo điều chỉnh tồn qua ledger, không sửa trực tiếp current stock.',
+      entityLabel: `Tồn kho hiện tại / ${['Cá chua', 'Cá nục', 'Chanh', 'Đu đủ xanh'][index % 4]}`,
+      message: `Tồn kho hiện tại ${quantity.toFixed(6)} kg không khớp sổ kho ${(quantity + (index % 2 === 0 ? 0.000001 : 80)).toFixed(6)} kg. Lệch ${(index % 2 === 0 ? 0.000001 : -80).toFixed(6)} kg.`,
+      suggestedAction: 'Đối chiếu bút toán kho và tạo điều chỉnh tồn qua sổ kho, không sửa trực tiếp tồn kho hiện tại.',
       route: ROUTES.WAREHOUSE,
       remediationStatus: 'open',
     };
@@ -753,11 +753,11 @@ test.describe('UI measurement audit', () => {
         }
 
         await page.goto(ROUTES.APPROVALS);
-        const approvalTrigger = page.getByRole('button', { name: 'Duyệt' }).first();
+        const approvalTrigger = page.getByRole('button', { name: 'Duyệt chứng từ', exact: true }).first();
         await approvalTrigger.focus();
         const approvalClientWidth = await page.evaluate(() => document.documentElement.clientWidth);
         await approvalTrigger.click();
-        const approvalDialog = page.getByRole('dialog', { name: 'Duyệt chứng từ?' });
+        const approvalDialog = page.getByRole('dialog', { name: 'Duyệt đề xuất mua?' });
         await expect(approvalDialog).toBeVisible();
         await expect(approvalDialog).toHaveAttribute('aria-modal', 'true');
         expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(approvalClientWidth);
@@ -768,7 +768,7 @@ test.describe('UI measurement audit', () => {
         records.push(await collectInteractionRecord(page, {
           route: 'approvals', owner: 'ApprovalPage', state: 'safe-dialog-open', viewport: viewport.name,
         }, approvalIssues, signals));
-        await approvalDialog.getByRole('button', { name: 'Giữ chứng từ' }).click();
+        await approvalDialog.getByRole('button', { name: 'Giữ đề xuất mua' }).click();
         await expect(approvalDialog).toBeHidden();
         await expect(approvalTrigger).toBeFocused();
 
@@ -781,7 +781,8 @@ test.describe('UI measurement audit', () => {
         await navigateInApp(page, `${ROUTES.ADMIN_DATA}?view=cleanup`);
         await expect(page.getByRole('tab', { name: 'Dữ liệu lỗi' })).toHaveAttribute('aria-selected', 'true');
         await expect(page.locator('#admin-cleanup-panel')).toBeVisible();
-        await expect(page.getByText('inventory_ledger_mismatch').first()).toBeVisible();
+        await expect(page.getByText('Tồn kho lệch sổ').first()).toBeVisible();
+        await expect(page.getByText(/Current stock|Currentstock|stock movements|ledger/i)).toHaveCount(0);
         await stabilize(page);
 
         await expectNoAuditIssues(
@@ -833,7 +834,7 @@ test.describe('UI measurement audit', () => {
         const lifecyclePanel = page.getByTestId('receipt-lifecycle-panel');
         await expect(lifecyclePanel).toBeVisible();
         await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'false');
-        await expect(page.getByText('Chưa có phiếu nhập lifecycle mới trong trang này.', { exact: true })).toBeVisible();
+        await expect(page.getByText('Chưa có phiếu nhập cần xử lý trong trang này.', { exact: true })).toBeVisible();
         await expectNoAuditIssues(
           `${viewport.name}-warehouse-receipt-empty`,
           await collectLayoutIssues(page, 'warehouse-receipt-empty', viewport.name),

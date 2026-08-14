@@ -345,6 +345,14 @@ export const getDataQualityActionLabel = (category?: string) => ({
   unit_normalization_review: 'Mở chuẩn hóa đơn vị',
 } as const)[category?.trim().toLocaleLowerCase('en-US') as keyof typeof dataQualityCategoryLabels] ?? 'Mở nơi xử lý';
 
+/** Replaces storage implementation vocabulary in server-authored guidance. */
+export const formatDataQualityCopy = (value?: string) => (value?.trim() || 'Chưa có mô tả')
+  .replace(/current\s*stock/gi, 'tồn kho hiện tại')
+  .replace(/stock\s*movements?/gi, 'bút toán kho')
+  .replace(/\bledger\b/gi, 'sổ kho')
+  .replace(/\bkilograms?\b/gi, 'kg')
+  .replace(/\bpieces?\b/gi, 'cái');
+
 /** Keeps coupled receipt lifecycle enums out of user-facing UI. */
 export const formatReceiptLifecycleStatus = (status?: string, qualityStatus?: string) => {
   const normalizedStatus = normalizeStatusCode(status ?? '');
