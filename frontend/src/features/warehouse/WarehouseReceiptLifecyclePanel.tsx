@@ -256,9 +256,24 @@ export function WarehouseReceiptLifecyclePanel() {
             </div>
           </div>
           <InlineAlert title="Điều kiện hành động" variant={showQualityControl || showPostControl ? 'info' : 'warning'}>{selectionReason}</InlineAlert>
-          <ul className="grid gap-1 text-xs text-slate-700" aria-label="Dòng phiếu nhập">
-            {receipt.lines.map((line) => <li key={line.receiptLineId} className="rounded-sm border border-slate-200 bg-white px-2 py-1.5"><strong>{line.ingredientName ?? line.ingredientId}</strong> · {formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })} {line.acceptedQuantity != null && <>· đạt {formatQuantityWithUnit(line.acceptedQuantity, line.unitName ?? '', { maximumFractionDigits: 6 })}</>} {line.rejectedQuantity != null && <>· không đạt {formatQuantityWithUnit(line.rejectedQuantity, line.unitName ?? '', { maximumFractionDigits: 6 })}</>} {line.qualityReason && <span className="block text-amber-800">Lý do: {line.qualityReason}</span>}</li>)}
-          </ul>
+          <div className="rounded-sm border border-slate-200 bg-white" aria-label="Dòng phiếu nhập">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <span className="font-semibold text-slate-800">Nguyên liệu trong phiếu</span>
+              <span className="whitespace-nowrap text-slate-500">{receipt.lines.length} dòng nguồn</span>
+            </div>
+            <ul className="grid max-h-72 gap-1 overflow-y-auto p-2 text-xs text-slate-700" aria-label="Danh sách dòng nguyên liệu">
+              {receipt.lines.map((line) => <li key={line.receiptLineId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-sm border border-slate-200 px-3 py-2">
+                <div className="min-w-0">
+                  <strong className="block truncate text-slate-900" title={line.ingredientName ?? line.ingredientId}>{line.ingredientName ?? line.ingredientId}</strong>
+                  {line.qualityReason && <span className="mt-0.5 block truncate text-amber-800" title={line.qualityReason}>Lý do: {line.qualityReason}</span>}
+                </div>
+                <div className="text-right leading-5 tabular-nums">
+                  <span className="block font-medium text-slate-800">{formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })}</span>
+                  {(line.acceptedQuantity != null || line.rejectedQuantity != null) && <span className="block whitespace-nowrap text-slate-500">Đạt {formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })} · Không đạt {formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}</span>}
+                </div>
+              </li>)}
+            </ul>
+          </div>
         </div>
       )}
       {feedback && <InlineAlert title="Phiếu nhập" variant="info">{feedback}</InlineAlert>}
