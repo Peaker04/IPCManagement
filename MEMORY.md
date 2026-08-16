@@ -404,3 +404,10 @@ Phase 24 P7 đóng no-op: `production_fixes: 0`, `green_assertions_after_fix: 0`
 Phase 26 chỉ thuộc milestone v1.4 riêng ở trên.
 
 Số liệu ở HISTORY.md là lịch sử, không bao giờ override file này.
+
+Advanced display preferences (current source): commit `0fe52946` adds an Admin-only Vietnamese
+display settings panel under `Thiết lập quy trình duyệt`. It persists navigation and Quản trị dữ liệu
+tab visibility in browser local storage, defaults to all visible, prevents hiding every area/tab, and
+does not change backend permissions, direct routes, Golden lifecycle, runtime or database. Targeted
+preference/layout tests and frontend production build pass; the full frontend suite exceeded the
+120-second command limit without an assertion report.
