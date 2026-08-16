@@ -11,6 +11,7 @@ import { useAdminContractsPanelModel } from './useAdminContractsPanelModel';
 import { useAdminEmployeesPanelModel } from './useAdminEmployeesPanelModel';
 import { useAdminInventoryPanelModel } from './useAdminInventoryPanelModel';
 import { useAdminStatisticsPanelModel } from './useAdminStatisticsPanelModel';
+import { readAdminTabPreferences } from '@/lib/navigationPreferences';
 
 export function useAdminDataPageModel() {
   const [isViewPending, startViewTransition] = useTransition();
@@ -23,6 +24,7 @@ export function useAdminDataPageModel() {
     ? searchParams.get('view') as AdminView
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
+  const adminTabPreferences = readAdminTabPreferences();
 
   const { queryViews: bomQueryViews, ...bomModel } = useAdminBomPanelModel(activeView, bomTemplateDishId);
   const { queryViews: contractQueryViews, ...contractModel } = useAdminContractsPanelModel(activeView);
@@ -66,13 +68,13 @@ export function useAdminDataPageModel() {
               ? [{ label: 'Nhật ký', value: auditView.phase === 'ready' ? `${auditModel.displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]
               : [{ label: 'Nhân viên', value: employeeQueryViews.employees.phase === 'ready' ? `${employeeModel.employeeMeta?.totalCount ?? 0} tài khoản` : '—', tone: employeeQueryViews.employees.phase === 'ready' ? 'info' as const : 'neutral' as const }];
   const adminTabs: ViewTab[] = [
-    { id: 'admin-bom-import', label: 'BOM theo đơn giá' },
-    { id: 'admin-contracts', label: 'Hợp đồng' },
-    { id: 'admin-cleanup', label: 'Dữ liệu lỗi' },
-    { id: 'admin-inventory', label: 'Tồn kho' },
-    { id: 'admin-statistics', label: 'Thống kê' },
-    { id: 'admin-audit', label: 'Nhật ký thay đổi' },
-    ...(canManageEmployees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
+    ...(adminTabPreferences['bom-import'] ? [{ id: 'admin-bom-import', label: 'BOM theo đơn giá' }] : []),
+    ...(adminTabPreferences.contracts ? [{ id: 'admin-contracts', label: 'Hợp đồng' }] : []),
+    ...(adminTabPreferences.cleanup ? [{ id: 'admin-cleanup', label: 'Dữ liệu lỗi' }] : []),
+    ...(adminTabPreferences.inventory ? [{ id: 'admin-inventory', label: 'Tồn kho' }] : []),
+    ...(adminTabPreferences.statistics ? [{ id: 'admin-statistics', label: 'Thống kê' }] : []),
+    ...(adminTabPreferences.audit ? [{ id: 'admin-audit', label: 'Nhật ký thay đổi' }] : []),
+    ...(canManageEmployees && adminTabPreferences.employees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
   ];
   const queryViews = {
     audit: auditView,
@@ -91,6 +93,7 @@ export function useAdminDataPageModel() {
     stockMovements: inventoryQueryViews.stockMovements,
   };
 
+  const effectiveTabView = adminTabs.some((tab) => tab.id === `admin-${effectiveActiveView}`) ? effectiveActiveView : (adminTabs[0]?.id.replace('admin-', '') as AdminView ?? 'bom-import');
   return {
     queryViews,
     ...bomModel,
@@ -104,7 +107,7 @@ export function useAdminDataPageModel() {
     adminTabs,
     bomTemplateDishId,
     canManageEmployees,
-    effectiveActiveView,
+    effectiveActiveView: effectiveTabView,
     isViewPending,
     setActiveView,
     startViewTransition,

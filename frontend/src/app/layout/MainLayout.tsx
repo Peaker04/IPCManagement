@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '@/features/auth';
@@ -10,6 +10,7 @@ import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig'
 import { apiSlice } from '@/api/apiSlice';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
+import { readNavigationPreferences, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
 import {
   ChefHat,
   LayoutDashboard,
@@ -46,17 +47,17 @@ function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean
   );
 }
 
-const menuItems: Array<{ path: string; label: string; icon: ReactNode; requiredPermissions?: string[] }> = [
-  { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
-  { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, requiredPermissions: ['coordination.read'] },
-  { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, requiredPermissions: ['coordination.read'] },
-  { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, requiredPermissions: ['purchase.request.approve'] },
-  { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, requiredPermissions: ['purchase.read'] },
-  { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, requiredPermissions: ['warehouse.read'] },
-  { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, requiredPermissions: ['production.read'] },
-  { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, requiredPermissions: ['report.read'] },
-  { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, requiredPermissions: ['*'] },
-  { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập duyệt', icon: <Settings size={18} />, requiredPermissions: ['*'] },
+const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[] }> = [
+  { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} />, preferenceKey: 'dashboard' },
+  { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, preferenceKey: 'weekly-menu', requiredPermissions: ['coordination.read'] },
+  { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, preferenceKey: 'meal-orders', requiredPermissions: ['coordination.read'] },
+  { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, preferenceKey: 'approvals', requiredPermissions: ['purchase.request.approve'] },
+  { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, preferenceKey: 'purchasing', requiredPermissions: ['purchase.read'] },
+  { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'] },
+  { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, preferenceKey: 'chef-dashboard', requiredPermissions: ['production.read'] },
+  { path: ROUTES.REPORTS, label: 'Báo cáo vận hành', icon: <TrendingUp size={18} />, preferenceKey: 'reports', requiredPermissions: ['report.read'] },
+  { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, preferenceKey: 'admin-data', requiredPermissions: ['*'] },
+  { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập quy trình duyệt', icon: <Settings size={18} />, preferenceKey: 'approval-rules', requiredPermissions: ['*'] },
 ];
 
 export const MainLayout = () => {
@@ -65,6 +66,7 @@ export const MainLayout = () => {
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [navigationPreferences, setNavigationPreferences] = useState(readNavigationPreferences);
 
   const handleLogout = async () => {
     await logoutSession(dispatch, store.getState);
@@ -73,10 +75,21 @@ export const MainLayout = () => {
 
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
   const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
+    if (!navigationPreferences[item.preferenceKey]) return false;
     if (!item.requiredPermissions) return true;
     if (isAdmin) return true;
     return item.requiredPermissions.some((perm) => currentUser?.permissions?.includes(perm));
-  }), [currentUser?.permissions, isAdmin]);
+  }), [currentUser?.permissions, isAdmin, navigationPreferences]);
+
+  useEffect(() => {
+    const refresh = () => setNavigationPreferences(readNavigationPreferences());
+    window.addEventListener('storage', refresh);
+    window.addEventListener('ipc:navigation-preferences-changed', refresh);
+    return () => {
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener('ipc:navigation-preferences-changed', refresh);
+    };
+  }, []);
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 
