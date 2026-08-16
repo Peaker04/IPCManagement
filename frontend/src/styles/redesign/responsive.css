@@ -45,6 +45,11 @@
   background: #fbfdff;
 }
 
+.ipc-redesign-shell .ipc-advanced-settings-link {
+  border-color: #b9cee9;
+  background: #fbfdff;
+}
+
 .ipc-redesign-shell .ipc-logout-button {
   min-height: 38px;
   border-color: #fecaca;

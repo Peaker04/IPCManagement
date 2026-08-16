@@ -25,6 +25,7 @@ import {
   Database,
   Menu,
   Settings,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 
@@ -115,6 +116,8 @@ export const MainLayout = () => {
         return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.APPROVAL_RULES:
         return { title: 'Thiết lập quy trình duyệt', workflow: 'Phê duyệt', state: 'Cấu hình hệ thống' };
+      case ROUTES.ADVANCED_SETTINGS:
+        return { title: 'Thiết lập nâng cao', workflow: 'Quản trị hệ thống', state: 'Cấu hình hiển thị' };
       default:
         return { title: 'Hệ thống Quản lý Bếp ăn', workflow: 'Vận hành', state: 'Đang hoạt động' };
     }
@@ -185,6 +188,17 @@ export const MainLayout = () => {
         </nav>
 
         <div className="ipc-sidebar-footer">
+          {isAdmin && (
+            <Link
+              to={ROUTES.ADVANCED_SETTINGS}
+              onClick={() => setIsMobileNavOpen(false)}
+              aria-current={location.pathname === ROUTES.ADVANCED_SETTINGS ? 'page' : undefined}
+              className={`ipc-advanced-settings-link${location.pathname === ROUTES.ADVANCED_SETTINGS ? ' is-active' : ''}`}
+            >
+              <SlidersHorizontal size={16} />
+              <span>Thiết lập nâng cao</span>
+            </Link>
+          )}
           {currentUser && (
             <div className="ipc-user-card" aria-label={uiCopy.navigation.account}>
               <div className="ipc-avatar">
@@ -272,6 +286,7 @@ export const MainLayout = () => {
 const routeOwnership = {
   [ROUTES.ADMIN_DATA]: { ownerId: 'uio-2', floorplanId: 'uif-2', regionId: 'uir-2' },
   [ROUTES.APPROVAL_RULES]: { ownerId: 'uio-a', floorplanId: 'uif-a', regionId: 'uir-a' },
+  [ROUTES.ADVANCED_SETTINGS]: { ownerId: 'uio-a2', floorplanId: 'uif-a2', regionId: 'uir-a2' },
   [ROUTES.APPROVALS]: { ownerId: 'uio-b', floorplanId: 'uif-b', regionId: 'uir-b' },
   [ROUTES.CHEF_DASHBOARD]: { ownerId: 'uio-f', floorplanId: 'uif-f', regionId: 'uir-f' },
   [ROUTES.DASHBOARD]: { ownerId: 'uio-i', floorplanId: 'uif-i', regionId: 'uir-i' },

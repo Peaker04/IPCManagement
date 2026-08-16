@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toQueryView } from '@/lib/queryView';
-import { AdvancedDisplaySettings } from '../components/AdvancedDisplaySettings';
 
 interface RuleAssignmentForm {
   sequence: number;
@@ -345,7 +344,6 @@ export default function ApprovalRulesPage() {
             </>
           )}
         </SectionPanel>
-        <AdvancedDisplaySettings />
       </div>
 
       {/* Create / Edit Rule Dialog */}

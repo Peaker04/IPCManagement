@@ -11,6 +11,7 @@ import {
   AdminDataPage,
   ApprovalPage,
   ApprovalRulesPage,
+  AdvancedDisplaySettingsPage,
   ChefDashboardPage,
   CoordinationPage,
   DashboardPage,
@@ -61,6 +62,7 @@ export const AppRouter = () => {
             <Route path={ROUTES.WAREHOUSE} element={<RoleGuard requiredPermissions={['warehouse.read']}><Suspense fallback={routeFallback}><WarehousePage /></Suspense></RoleGuard>} />
             <Route path={ROUTES.ADMIN_DATA} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdminDataPage /></Suspense></RoleGuard>} />
             <Route path={ROUTES.APPROVAL_RULES} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><ApprovalRulesPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.ADVANCED_SETTINGS} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdvancedDisplaySettingsPage /></Suspense></RoleGuard>} />
           </Route>
         </Route>
 

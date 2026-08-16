@@ -38,6 +38,7 @@ const purchasingRoute = createPreloadableRoute(() => import('../features/purchas
 const warehouseRoute = createPreloadableRoute(() => import('../features/warehouse/pages/WarehousePage'));
 const adminDataRoute = createPreloadableRoute(() => import('../app/pages/AdminDataPage'));
 const approvalRulesRoute = createPreloadableRoute(() => import('../features/admin/pages/ApprovalRulesPage'));
+const advancedSettingsRoute = createPreloadableRoute(() => import('../features/admin/pages/AdvancedDisplaySettingsPage'));
 
 export const DashboardPage = dashboardRoute.Component;
 export const WeeklyMenuPage = weeklyMenuRoute.Component;
@@ -49,6 +50,7 @@ export const PurchasingPage = purchasingRoute.Component;
 export const WarehousePage = warehouseRoute.Component;
 export const AdminDataPage = adminDataRoute.Component;
 export const ApprovalRulesPage = approvalRulesRoute.Component;
+export const AdvancedDisplaySettingsPage = advancedSettingsRoute.Component;
 
 const routePreloaders: Partial<Record<string, () => Promise<void>>> = {
   [ROUTES.DASHBOARD]: dashboardRoute.preload,
@@ -61,6 +63,7 @@ const routePreloaders: Partial<Record<string, () => Promise<void>>> = {
   [ROUTES.WAREHOUSE]: warehouseRoute.preload,
   [ROUTES.ADMIN_DATA]: adminDataRoute.preload,
   [ROUTES.APPROVAL_RULES]: approvalRulesRoute.preload,
+  [ROUTES.ADVANCED_SETTINGS]: advancedSettingsRoute.preload,
 };
 
 export function preloadRoute(path: string): Promise<void> {

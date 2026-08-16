@@ -283,6 +283,29 @@
   overflow-wrap: anywhere;
 }
 
+.ipc-advanced-settings-link {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: var(--ipc-space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--ipc-radius-md);
+  background: #ffffff;
+  color: var(--ipc-slate-700);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 7px var(--ipc-space-3);
+  text-decoration: none;
+  transition: background-color var(--ipc-transition-fast), border-color var(--ipc-transition-fast), color var(--ipc-transition-fast);
+}
+
+.ipc-advanced-settings-link:hover,
+.ipc-advanced-settings-link.is-active {
+  border-color: var(--ipc-primary);
+  background: var(--ipc-primary-soft);
+  color: var(--ipc-primary-600);
+}
+
 .ipc-header-context {
   display: flex;
   width: 100%;

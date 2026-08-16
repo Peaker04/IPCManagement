@@ -426,3 +426,7 @@ Baseline runtime verification (2026-08-16): the current source adds
 The runtime is currently owned and running. Headed Chrome read-only Dashboard evidence passed at
 `1440x900`: 44 successful API responses, zero console/page/request/mutation/overflow errors, max
 CLS `0.0374`, zero long tasks; authoritative manifest/hash is recorded in `docs/EVIDENCE-INDEX.md`.
+
+Advanced settings separation (current source): `Thiết lập nâng cao` is now a separate Admin-only
+route `/admin/advanced-settings`, linked above the sidebar account/role badge. It is removed from
+the approval-rules page; non-Admin sees no link and direct navigation is redirected to `/403`.
