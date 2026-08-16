@@ -358,6 +358,12 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/phase05-golden-demo-scope-20260824.json` | `4CAF36992E49627BE95AFE64C84AAB15068AAE41B60B98FF768CF158A97BBE23` | Read-only exact-lane preflight dành cho Kỳ tự demo: ANV/DAV tuần 2026-08-24 có zero menu/lịch/kế hoạch/nhu cầu/Ca phục vụ/phiếu xuất, mutation 0 và protectedLaneConnectionAttempts 0. Receipt chỉ giữ chỗ scope sạch; không chứng minh Golden lifecycle đã chạy. |
 | `.artifacts/shipyard-live/phase05-wave2-full-ui-20260814/manifest.json` | `248145A6669203ED9DA3322DAEE2E996694E3B5EEA3A86DF9FAE23BC901DA084` | Chrome headed exact lane7, 9 route × 5 viewport: 45 probes, 594 GET, zero console/page/request failure, zero escaped mutation/overflow, max CLS 0.0834; 15 navigation long tasks 52–87ms chưa attribution, 16 conditional tables vẫn chưa được tính PASS. |
 
+## Baseline ipcmanagement runtime — 16/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/shipyard-live/ipcmanagement-baseline-dashboard-20260816/manifest.json` | `DF107CF8FF5BC9B6B8468FE121FB7B889731DAC0F002CCBC18BC7878FECABFC1` | Chrome headed FE `3037` / BE `8037` trỏ exact `ipcmanagement`, Dashboard + zoom reflow read-only: 44 API response đều 2xx, zero console/page/request/mutation/overflow, max CLS `0.0374`, long task `0`, performance threshold failures `0`. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |

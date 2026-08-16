@@ -420,3 +420,9 @@ amendment references, and the reviewed TEXT-prefix index on `servicerundecisioni
 attempt stopped at `20260812170357_AddMultiCustomerServiceRunKernel` because MySQL rejected a full TEXT
 index; its DDL partials were verified empty, removed, and the migration was corrected to use
 `reason(255)` before retry. Golden/runtime lanes were not targeted.
+
+Baseline runtime verification (2026-08-16): the current source adds
+`tools/e2e/Start-BaselineRuntime.ps1`, exact target `ipcmanagement`, FE `3037`, BE `8037`.
+The runtime is currently owned and running. Headed Chrome read-only Dashboard evidence passed at
+`1440x900`: 44 successful API responses, zero console/page/request/mutation/overflow errors, max
+CLS `0.0374`, zero long tasks; authoritative manifest/hash is recorded in `docs/EVIDENCE-INDEX.md`.
