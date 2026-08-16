@@ -3,6 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from
 import { useSearchParams } from 'react-router-dom';
 import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
+import { visibleTabIds } from '@/lib/navigationPreferences';
 import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import {
@@ -53,9 +54,9 @@ export default function PurchasingPage() {
   const [page, setPage] = useState(1);
   const [selectedLineId, setSelectedLineId] = useState<string>();
   const requestedView = searchParams.get('view');
-  const activeView: PurchasingView = requestedView === 'quotations' || requestedView === 'supplemental'
-    ? requestedView
-    : 'workflow';
+  const purchasingTabIds = useMemo(() => visibleTabIds('purchasing') as PurchasingView[], []);
+  const requestedPurchasingView: PurchasingView = requestedView === 'quotations' || requestedView === 'supplemental' ? requestedView : 'workflow';
+  const activeView: PurchasingView = purchasingTabIds.includes(requestedPurchasingView) ? requestedPurchasingView : purchasingTabIds[0] ?? 'workflow';
   const quotationWorkflow = useSupplierQuotations(activeView === 'quotations');
   const requestedStage = searchParams.get('stage');
   const initialRoute = resolvePurchasingRouteState(
@@ -246,7 +247,7 @@ export default function PurchasingPage() {
             { id: 'purchasing-workflow', label: 'Xử lý thu mua' },
             { id: 'purchasing-supplemental', label: 'Mua bổ sung' },
             { id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' },
-          ]}
+          ].filter((tab) => purchasingTabIds.includes(tab.id.replace('purchasing-', '') as PurchasingView))}
           activeTab={`purchasing-${activeView}`}
           onTabChange={changeView}
         />

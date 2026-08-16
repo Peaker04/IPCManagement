@@ -6,6 +6,7 @@ import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { typography } from '@/lib/typography';
 import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
+import { visibleTabIds } from '@/lib/navigationPreferences';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi';
 import {
@@ -197,7 +198,8 @@ const WeeklyMenuPage = () => {
     dispatch(setWeeklyMenu(committedMenu.importedWeeklyMenu));
   }, [committedMenu, committedMenuView.phase, dispatch]);
 
-  const [selectedView, setSelectedView] = useState<WeeklyMenuView>('schedule');
+  const weeklyMenuTabIds = visibleTabIds('weekly-menu') as WeeklyMenuView[];
+  const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() => weeklyMenuTabIds[0] ?? 'schedule');
   const activeView = useDeferredValue(selectedView);
   const isViewPending = selectedView !== activeView;
   const [menuFeedback, setMenuFeedback] = useState<{
@@ -480,7 +482,7 @@ const WeeklyMenuPage = () => {
             { id: 'purchase-summary', label: 'Tổng hợp mua' },
             { id: 'cost', label: 'Giá vốn' },
             { id: 'dish-materials', label: 'Nguyên liệu món' },
-          ]}
+          ].filter((tab) => weeklyMenuTabIds.includes(tab.id as WeeklyMenuView))}
           activeTab={selectedView}
           onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
         />

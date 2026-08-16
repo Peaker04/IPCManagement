@@ -435,3 +435,10 @@ Advanced settings UX pass: removed the redundant disclaimer sentence, grouped co
 `Khu vực điều hành` and `Tab trong Quản trị dữ liệu`, added explicit action labels, visible focus
 states, and an aria-live confirmation after each toggle. Review used the project SAP Fiori sketch
 direction plus UI UX Pro Max accessibility and interaction hierarchy guidance.
+
+All-page tab visibility (current source): one shared preference registry now owns 9 canonical
+ViewSwitcher groups (weekly menu, warehouse, approvals, purchasing, chef, reports, price subviews,
+admin data and BOM modes). Advanced settings uses collapsed per-page disclosure with visible counts;
+opening a page reveals only its tab toggles, and every group keeps at least one tab visible. Headed
+verification hid `Mua bổ sung`, confirmed it disappeared on the real Purchasing page, then reset all
+preferences; evidence hash is in `docs/EVIDENCE-INDEX.md`.

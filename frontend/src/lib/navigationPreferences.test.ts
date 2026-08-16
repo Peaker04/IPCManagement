@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultNavigationPreferences, readNavigationPreferences, writeNavigationPreferences } from './navigationPreferences';
+import { defaultNavigationPreferences, pageTabGroups, readNavigationPreferences, readPageTabPreferences, visibleTabIds, writeNavigationPreferences, writePageTabPreferences } from './navigationPreferences';
 
 const storage = () => {
   const values = new Map<string, string>();
@@ -20,5 +20,16 @@ describe('navigation display preferences', () => {
     expect(readNavigationPreferences(target).reports).toBe(false);
     target.setItem('ipc.navigation-preferences.v1', '{"reports":"false","unknown":false}');
     expect(readNavigationPreferences(target).reports).toBe(true);
+  });
+
+  it('covers every shared ViewSwitcher group without allowing an empty group', () => {
+    const target = storage();
+    const preferences = readPageTabPreferences(target);
+    expect(pageTabGroups).toHaveLength(9);
+    for (const group of pageTabGroups) expect(visibleTabIds(group.id, preferences).length).toBe(group.tabs.length);
+
+    preferences.reports.audit = false;
+    writePageTabPreferences(preferences, target);
+    expect(visibleTabIds('reports', readPageTabPreferences(target))).not.toContain('audit');
   });
 });

@@ -11,7 +11,7 @@ import { useAdminContractsPanelModel } from './useAdminContractsPanelModel';
 import { useAdminEmployeesPanelModel } from './useAdminEmployeesPanelModel';
 import { useAdminInventoryPanelModel } from './useAdminInventoryPanelModel';
 import { useAdminStatisticsPanelModel } from './useAdminStatisticsPanelModel';
-import { readAdminTabPreferences } from '@/lib/navigationPreferences';
+import { readPageTabPreferences } from '@/lib/navigationPreferences';
 
 export function useAdminDataPageModel() {
   const [isViewPending, startViewTransition] = useTransition();
@@ -24,7 +24,7 @@ export function useAdminDataPageModel() {
     ? searchParams.get('view') as AdminView
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
-  const adminTabPreferences = readAdminTabPreferences();
+  const adminTabPreferences = readPageTabPreferences()['admin-data'];
 
   const { queryViews: bomQueryViews, ...bomModel } = useAdminBomPanelModel(activeView, bomTemplateDishId);
   const { queryViews: contractQueryViews, ...contractModel } = useAdminContractsPanelModel(activeView);

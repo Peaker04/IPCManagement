@@ -364,6 +364,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 |---|---|---|
 | `.artifacts/shipyard-live/ipcmanagement-baseline-dashboard-20260816/manifest.json` | `DF107CF8FF5BC9B6B8468FE121FB7B889731DAC0F002CCBC18BC7878FECABFC1` | Chrome headed FE `3037` / BE `8037` trỏ exact `ipcmanagement`, Dashboard + zoom reflow read-only: 44 API response đều 2xx, zero console/page/request/mutation/overflow, max CLS `0.0374`, long task `0`, performance threshold failures `0`. |
 | `.artifacts/shipyard-live/ipcmanagement-baseline-runtime/advanced-settings-admin-1440x900.png` | `D5297E3DB6B7C093595D144826B36109D4AE1C3ED0546BEE0596D0001C9AD104` | Admin headed check: liên kết `Thiết lập nâng cao` nằm ngay trên thẻ tài khoản, click mở `/admin/advanced-settings`; role `quanly` không thấy liên kết và direct route chuyển `/403`. |
+| `.artifacts/shipyard-live/ipcmanagement-baseline-runtime/advanced-settings-all-pages-1440x900.png` | `DC729F95D16E78A429FF01D4026859E27D9931BA96F5529B82543AFCC40C5FDD` | Admin headed check cho registry 9 nhóm tab: mặc định tất cả accordion đóng, mỗi dòng hiển thị count; flow Thu mua ẩn `Mua bổ sung` làm tab biến mất trên trang thật rồi `Hiện tất cả` khôi phục preference. |
 
 ## Attempt cũ, không authoritative
 

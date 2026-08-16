@@ -20,12 +20,14 @@ import { ChefQueryBoundary } from '../ChefQueryBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'
+import { visibleTabIds } from '@/lib/navigationPreferences'
 
 export default function ChefDashboardPage() {
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
   const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
-  const [selectedView, setSelectedView] = useState<'production' | 'documents'>('production')
+  const chefTabIds = visibleTabIds('chef') as Array<'production' | 'documents'>
+  const [selectedView, setSelectedView] = useState<'production' | 'documents'>(() => chefTabIds[0] ?? 'production')
   const activeView = useDeferredValue(selectedView)
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const isProductionView = activeView === 'production'
@@ -96,7 +98,7 @@ export default function ChefDashboardPage() {
         <ViewSwitcher
           compact
           ariaLabel="Chọn góc nhìn bếp trưởng"
-          tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }]}
+          tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }].filter((tab) => chefTabIds.includes(tab.id.replace('chef-', '') as 'production' | 'documents'))}
           activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
           onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}
         />

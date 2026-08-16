@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { ContextStripItem } from '@/components/common';
 import type { WorkflowReportQuery } from '@/api/workflowApi';
 import { uiCopy } from '@/lib/uiCopy';
+import { visibleTabIds } from '@/lib/navigationPreferences';
 import { buildCsv, downloadCsv } from './reportCsv';
 import {
   priceSubViewTabs,
@@ -49,19 +50,22 @@ export const useReportsPageModel = ({
     priceSubViewTabs.some((tab) => tab.id === initialPriceSubView) ? initialPriceSubView as PriceSubView : 'lines',
   );
   const canReadReceiptPriceVariance = canReadPurchaseReports || canReadWarehouseReports;
+  const preferredReportViews = useMemo(() => visibleTabIds('reports') as ReportView[], []);
+  const preferredPriceSubViews = useMemo(() => visibleTabIds('reports-price') as PriceSubView[], []);
   const visibleReportViews = useMemo<ReportView[]>(() => validReportViews.filter((view) => {
+    if (!preferredReportViews.includes(view)) return false;
     if (view === 'price') return canReadReceiptPriceVariance;
     if (view === 'purchase') return canReadPurchaseReports;
     if (view === 'audit') return canReadAuditChanges;
     return true;
-  }), [canReadReceiptPriceVariance, canReadPurchaseReports, canReadAuditChanges]);
+  }), [canReadReceiptPriceVariance, canReadPurchaseReports, canReadAuditChanges, preferredReportViews]);
   const visibleReportTabs = useMemo(
     () => reportTabs.filter((tab) => visibleReportViews.includes(tab.id.replace('reports-', '') as ReportView)),
     [visibleReportViews],
   );
   const visiblePriceSubViewTabs = useMemo(
-    () => priceSubViewTabs.filter((tab) => tab.id === 'lines' ? canReadReceiptPriceVariance : canReadPurchaseReports),
-    [canReadReceiptPriceVariance, canReadPurchaseReports],
+    () => priceSubViewTabs.filter((tab) => preferredPriceSubViews.includes(tab.id) && (tab.id === 'lines' ? canReadReceiptPriceVariance : canReadPurchaseReports)),
+    [canReadReceiptPriceVariance, canReadPurchaseReports, preferredPriceSubViews],
   );
   const activeView: ReportView = visibleReportViews.includes(requestedView)
     ? requestedView

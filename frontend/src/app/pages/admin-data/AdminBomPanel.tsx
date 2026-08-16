@@ -10,6 +10,7 @@ import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
+import { visibleTabIds } from '@/lib/navigationPreferences';
 
 type AdminBomPanelProps = { model: AdminDataPageModel };
 
@@ -20,6 +21,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
   const selectedImportContract = customerContracts?.find((contract) => contract.customerId === bomImportCustomerId);
   const selectedDish = dishCatalog.find((dish) => dish.id === bomForm.dishId);
   const selectedIngredient = ingredientCatalog.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
+  const bomTabIds = visibleTabIds('admin-bom') as Array<'current' | 'preview'>;
+  const visibleBomPanelMode = bomTabIds.includes(bomPanelMode) ? bomPanelMode : bomTabIds[0] ?? 'current';
   return (
     <>
       {effectiveActiveView === 'bom-import' && (
@@ -196,11 +199,11 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     tabs={[
                       { id: 'bom-current', label: 'BOM hiện tại' },
                       { id: 'bom-preview', label: 'Bản xem trước' },
-                    ]}
-                    activeTab={`bom-${bomPanelMode}`}
+                    ].filter((tab) => bomTabIds.includes(tab.id.replace('bom-', '') as 'current' | 'preview'))}
+                    activeTab={`bom-${visibleBomPanelMode}`}
                     onTabChange={(id) => setBomPanelMode(id === 'bom-preview' ? 'preview' : 'current')}
                   />
-                  {bomPanelMode === 'current' && (
+                  {visibleBomPanelMode === 'current' && (
                     <div className="flex min-w-0 flex-1 gap-2 sm:max-w-xl sm:justify-end">
                       <label className="relative min-w-0 flex-1 sm:max-w-xs">
                         <span className="sr-only">Tìm món hoặc nguyên liệu</span>
@@ -220,7 +223,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   )}
                 </div>
 
-                {bomPanelMode === 'current' ? (
+                {visibleBomPanelMode === 'current' ? (
                   <div id="bom-current-panel" role="tabpanel" aria-labelledby="bom-current-tab" className="min-w-0">
                     <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
                       <table className="ipc-data-table ipc-bom-current-table table-fixed">

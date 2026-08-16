@@ -31,13 +31,15 @@ import {
   WorkflowDocumentsState,
 } from './ApprovalQueryPanels';
 import { MenuAmendmentReconciliation } from '../components/MenuAmendmentReconciliation';
+import { visibleTabIds } from '@/lib/navigationPreferences';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const queueFocusRef = useRef<HTMLDivElement>(null);
   const decisionTriggerRef = useRef<HTMLElement | null>(null);
-  const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
+  const approvalTabIds = visibleTabIds('approvals') as Array<'queue' | 'role' | 'history'>;
+  const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>(() => approvalTabIds[0] ?? 'queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
@@ -307,7 +309,7 @@ export default function ApprovalPage() {
           { id: 'approval-queue', label: 'Cần duyệt' },
           { id: 'approval-role', label: 'Theo vai trò' },
           { id: 'approval-history', label: 'Lịch sử' },
-        ]}
+        ].filter((tab) => approvalTabIds.includes(tab.id.replace('approval-', '') as 'queue' | 'role' | 'history'))}
         activeTab={`approval-${activeView}`}
         onTabChange={(id) => setActiveView(id.replace('approval-', '') as 'queue' | 'role' | 'history')}
       />

@@ -6,9 +6,10 @@ import {
   defaultNavigationPreferences,
   readNavigationPreferences,
   resetNavigationPreferences,
-  defaultAdminTabPreferences,
-  readAdminTabPreferences,
-  writeAdminTabPreferences,
+  defaultPageTabPreferences,
+  pageTabGroups,
+  readPageTabPreferences,
+  writePageTabPreferences,
   writeNavigationPreferences,
   type NavigationPreferenceKey,
 } from '@/lib/navigationPreferences';
@@ -25,15 +26,10 @@ const items: ReadonlyArray<{ key: NavigationPreferenceKey; label: string; descri
   { key: 'admin-data', label: 'Quản trị dữ liệu', description: 'BOM, tồn kho và nhật ký.' },
   { key: 'approval-rules', label: 'Thiết lập quy trình duyệt', description: 'Quy tắc và thời hạn phê duyệt.' },
 ];
-const adminTabs = [
-  ['bom-import', 'BOM theo đơn giá'], ['contracts', 'Hợp đồng'], ['cleanup', 'Dữ liệu lỗi'],
-  ['inventory', 'Tồn kho'], ['statistics', 'Thống kê'], ['audit', 'Nhật ký thay đổi'], ['employees', 'Nhân viên'],
-] as const;
-
 export function AdvancedDisplaySettings() {
   const { toast } = useToast();
   const [preferences, setPreferences] = useState(() => readNavigationPreferences());
-  const [tabPreferences, setTabPreferences] = useState(() => readAdminTabPreferences());
+  const [tabPreferences, setTabPreferences] = useState(() => readPageTabPreferences());
   const [lastChange, setLastChange] = useState('');
   const visibleCount = useMemo(() => Object.values(preferences).filter(Boolean).length, [preferences]);
   const update = (key: NavigationPreferenceKey) => {
@@ -46,8 +42,8 @@ export function AdvancedDisplaySettings() {
   const reset = () => {
     setPreferences({ ...defaultNavigationPreferences });
     resetNavigationPreferences();
-    setTabPreferences({ ...defaultAdminTabPreferences });
-    writeAdminTabPreferences(defaultAdminTabPreferences);
+    setTabPreferences(structuredClone(defaultPageTabPreferences));
+    writePageTabPreferences(defaultPageTabPreferences);
     setLastChange('Đã hiện lại toàn bộ khu vực và tab.');
     toast({ title: 'Đã hiện lại toàn bộ khu vực', variant: 'success' });
   };
@@ -84,23 +80,38 @@ export function AdvancedDisplaySettings() {
           })}
           </div>
         </section>
-        <section aria-labelledby="advanced-admin-tabs-title" className="space-y-2 border-t border-slate-200 pt-4">
+        <section aria-labelledby="advanced-page-tabs-title" className="space-y-2 border-t border-slate-200 pt-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 id="advanced-admin-tabs-title" className="text-sm font-semibold text-slate-800">Tab trong Quản trị dữ liệu</h3>
-            <span className="text-xs text-slate-500">Chỉ áp dụng cho trang Quản trị dữ liệu</span>
+            <h3 id="advanced-page-tabs-title" className="text-sm font-semibold text-slate-800">Tab theo từng trang</h3>
+            <span className="text-xs text-slate-500">Mở một trang để chọn tab cần hiển thị</span>
           </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {adminTabs.map(([key, label]) => {
-              const visible = tabPreferences[key];
-              return <button key={key} type="button" onClick={() => {
-                const next = { ...tabPreferences, [key]: !visible };
-                if (Object.values(next).every((value) => !value)) return;
-                setTabPreferences(next);
-                writeAdminTabPreferences(next);
-                setLastChange(`${label}: ${next[key] ? 'đang hiện' : 'đang ẩn'}.`);
-              }} aria-pressed={visible} aria-label={`${label}, ${visible ? 'đang hiện' : 'đang ẩn'}. Nhấn để đổi`} className="flex min-h-12 items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                <span>{label}</span><span className="text-xs text-slate-500">{visible ? 'Đang hiện' : 'Đang ẩn'}</span>
-              </button>;
+          <div className="grid gap-2">
+            {pageTabGroups.map((group) => {
+              const visibleCount = group.tabs.filter(([id]) => tabPreferences[group.id]?.[id] !== false).length;
+              return (
+                <details key={group.id} className="group rounded-md border border-slate-200 bg-white">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500">
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-800">{group.label}</span><span className="block truncate text-xs text-slate-500">{group.description}</span></span>
+                    <StatusBadge variant={visibleCount === group.tabs.length ? 'neutral' : 'warning'}>{visibleCount}/{group.tabs.length} tab đang hiện</StatusBadge>
+                    <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-180">⌄</span>
+                  </summary>
+                  <div className="grid gap-2 border-t border-slate-200 bg-slate-50/60 p-3 md:grid-cols-2">
+                    {group.tabs.map(([key, label]) => {
+                      const visible = tabPreferences[group.id]?.[key] !== false;
+                      return <button key={key} type="button" onClick={() => {
+                        const groupPreferences = { ...tabPreferences[group.id], [key]: !visible };
+                        if (Object.values(groupPreferences).every((value) => !value)) return;
+                        const next = { ...tabPreferences, [group.id]: groupPreferences };
+                        setTabPreferences(next);
+                        writePageTabPreferences(next);
+                        setLastChange(`${group.label} — ${label}: ${groupPreferences[key] ? 'đang hiện' : 'đang ẩn'}.`);
+                      }} aria-pressed={visible} aria-label={`${group.label}, ${label}, ${visible ? 'đang hiện' : 'đang ẩn'}. Nhấn để đổi`} className="flex min-h-11 items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                        <span>{label}</span><span className="text-xs font-semibold text-slate-600">{visible ? 'Đang hiện' : 'Đang ẩn'}</span>
+                      </button>;
+                    })}
+                  </div>
+                </details>
+              );
             })}
           </div>
         </section>

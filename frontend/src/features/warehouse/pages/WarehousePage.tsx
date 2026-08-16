@@ -18,6 +18,7 @@ import {
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
+import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
   useCreateInventoryIssueMutation,
   useGetCurrentStockQuery,
@@ -68,7 +69,8 @@ export default function WarehousePage() {
   const canReceivePurchases = useHasRole(['dieuphoi']);
   const canCreateInventoryIssues = useHasRole(['thukho']);
   const canDispositionReturns = useHasRole([]);
-  const [selectedView, setSelectedView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const warehouseTabIds = visibleTabIds('warehouse') as Array<'movement' | 'demand' | 'exceptions'>;
+  const [selectedView, setSelectedView] = useState<'movement' | 'demand' | 'exceptions'>(() => warehouseTabIds[0] ?? 'movement');
   const activeView = useDeferredValue(selectedView);
   const isViewPending = selectedView !== activeView;
   const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
@@ -675,7 +677,7 @@ export default function WarehousePage() {
           { id: 'warehouse-movement', label: 'Luân chuyển' },
           { id: 'warehouse-demand', label: 'Nhu cầu xuất' },
           { id: 'warehouse-exceptions', label: 'Ngoại lệ' },
-        ]}
+        ].filter((tab) => warehouseTabIds.includes(tab.id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions'))}
         activeTab={`warehouse-${selectedView}`}
         onTabChange={(id) => setSelectedView(id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions')}
       />
