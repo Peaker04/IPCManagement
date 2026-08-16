@@ -7,7 +7,7 @@ export default function AdvancedDisplaySettingsPage() {
     <OperationalFrame
       eyebrow="Quản trị hệ thống"
       title="Thiết lập nâng cao"
-      description="Tùy chỉnh khu vực và tab hiển thị cho giao diện của Admin. Không thay đổi quyền, dữ liệu hoặc quy trình nghiệp vụ."
+      description="Chọn khu vực cần dùng thường xuyên trong menu và tab quản trị."
       command={
         <div className="ipc-command-meta">
           <SlidersHorizontal size={16} />

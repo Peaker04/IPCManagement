@@ -430,3 +430,8 @@ CLS `0.0374`, zero long tasks; authoritative manifest/hash is recorded in `docs/
 Advanced settings separation (current source): `Thiết lập nâng cao` is now a separate Admin-only
 route `/admin/advanced-settings`, linked above the sidebar account/role badge. It is removed from
 the approval-rules page; non-Admin sees no link and direct navigation is redirected to `/403`.
+
+Advanced settings UX pass: removed the redundant disclaimer sentence, grouped controls into
+`Khu vực điều hành` and `Tab trong Quản trị dữ liệu`, added explicit action labels, visible focus
+states, and an aria-live confirmation after each toggle. Review used the project SAP Fiori sketch
+direction plus UI UX Pro Max accessibility and interaction hierarchy guidance.
