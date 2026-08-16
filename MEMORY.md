@@ -411,3 +411,12 @@ tab visibility in browser local storage, defaults to all visible, prevents hidin
 does not change backend permissions, direct routes, Golden lifecycle, runtime or database. Targeted
 preference/layout tests and frontend production build pass; the full frontend suite exceeded the
 120-second command limit without an assertion report.
+
+Baseline migration sync (2026-08-16): `ipcmanagement` was backed up to
+`D:\Backups\ipc\ipcmanagement-20260816-203830.zip` before apply. Read-only lineage showed 49/70
+migrations; the 21 source-only migrations were applied successfully and postflight now reports 70/70,
+latest `20260813171032_AddMenuAmendmentDecisionFanRemediations`, zero orphan receipt/service-run/
+amendment references, and the reviewed TEXT-prefix index on `servicerundecisionitems`. The first
+attempt stopped at `20260812170357_AddMultiCustomerServiceRunKernel` because MySQL rejected a full TEXT
+index; its DDL partials were verified empty, removed, and the migration was corrected to use
+`reason(255)` before retry. Golden/runtime lanes were not targeted.

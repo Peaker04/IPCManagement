@@ -90,10 +90,12 @@ namespace IPCManagement.Api.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
 
-            migrationBuilder.CreateIndex(
-                name: "ixServiceRunDecisionItemsPlanShiftReason",
-                table: "servicerundecisionitems",
-                columns: new[] { "planId", "shiftName", "reason" });
+            // MySQL does not allow a full TEXT column in an index. Keep the
+            // searchable scope columns in the regular index and add a bounded
+            // prefix for the human explanation through reviewed SQL.
+            migrationBuilder.Sql(
+                "CREATE INDEX `ixServiceRunDecisionItemsPlanShiftReason` " +
+                "ON `servicerundecisionitems` (`planId`, `shiftName`, `reason`(255));");
 
             migrationBuilder.CreateIndex(
                 name: "IX_servicerunsourcelines_materialRequestLineId",
