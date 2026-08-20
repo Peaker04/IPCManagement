@@ -181,6 +181,17 @@ async function newColdPage(browser, viewport) {
     storageState: authState,
   })
   const page = await context.newPage()
+  await page.route('**/api/auth/profile', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      success: true,
+      data: {
+        userId: 'dev-admin', username: 'admin', fullName: 'Trần Văn Giám Đốc',
+        roleCode: 'ADMIN', roleName: 'admin', isAdminFullAccess: true, permissions: ['*'],
+      },
+    }),
+  }))
   await page.addInitScript(initProbe)
   const cdp = await context.newCDPSession(page)
   await cdp.send('Network.enable')
