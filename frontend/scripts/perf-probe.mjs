@@ -182,7 +182,7 @@ async function newColdPage(browser, viewport) {
 async function openTarget(page, target) {
   const expected = new URL(target.path, CONFIG.baseUrl).pathname
   await page.goto(targetUrl(target), { waitUntil: 'commit', timeout: CONFIG.settle.maxWaitMs })
-  await page.waitForSelector('main.ipc-content-shell', { state: 'attached', timeout: CONFIG.settle.maxWaitMs })
+  await page.waitForSelector('.ipc-content-shell', { state: 'attached', timeout: CONFIG.settle.maxWaitMs })
   const actual = new URL(page.url()).pathname
   if (actual !== expected) throw new Error(`Route mismatch: expected ${expected}, received ${actual}`)
   if (target.tab) {
@@ -195,7 +195,7 @@ async function openTarget(page, target) {
 
 async function snapshot(page, target) {
   return page.evaluate((tab) => {
-    const scope = tab ? document.getElementById(`${tab}-panel`) : document.querySelector('main.ipc-content-shell')
+    const scope = tab ? document.getElementById(`${tab}-panel`) : document.querySelector('.ipc-content-shell')
     const visible = (node) => node && node.getClientRects().length > 0
     const frame = scope ? [...scope.querySelectorAll('.ipc-table-viewport')].find(visible) : null
     const rows = frame ? [...frame.querySelectorAll('tbody tr')].filter(visible) : []
@@ -205,8 +205,8 @@ async function snapshot(page, target) {
       t: performance.now(),
       scopeFound: Boolean(scope),
       frameFound: Boolean(frame),
-      frameSelector: tab ? `#${tab}-panel .ipc-table-viewport` : 'main.ipc-content-shell .ipc-table-viewport',
-      anchorSelector: tab ? `#${tab}-panel tbody tr:first-child` : 'main.ipc-content-shell tbody tr:first-child',
+      frameSelector: tab ? `#${tab}-panel .ipc-table-viewport` : '.ipc-content-shell .ipc-table-viewport',
+      anchorSelector: tab ? `#${tab}-panel tbody tr:first-child` : '.ipc-content-shell tbody tr:first-child',
       anchorFound: Boolean(anchor),
       anchorTop: anchor?.getBoundingClientRect().top ?? null,
       clientHeight: frame?.clientHeight ?? null,
