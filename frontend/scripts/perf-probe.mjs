@@ -395,7 +395,9 @@ async function main() {
     navigation: 'context nguội theo route; tab được kích hoạt và xác minh aria-selected trước t_0',
     throttle: CONFIG.throttle, thresholds: T, load: [], inp: [], overflow: [],
   }
-  const browser = await chromium.launch({ args: ['--no-sandbox'] })
+  // Reuse the headed Chrome installation already required by the repo's Playwright config.
+  // This avoids a hidden dependency on a separately downloaded Playwright Chromium shell.
+  const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--no-sandbox'] })
   try {
     await bootstrapAuth(browser)
     if (flags.load) for (const target of targets) report.load.push(await measureLoad(browser, target))
