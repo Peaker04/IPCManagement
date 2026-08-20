@@ -219,6 +219,7 @@ async function openTarget(page, target) {
   const actual = new URL(page.url()).pathname
   if (actual !== expected) throw new Error(`Route mismatch: expected ${expected}, received ${actual}`)
   if (target.tab) {
+    await page.waitForSelector(`#${target.tab}-tab`, { state: 'attached', timeout: CONFIG.settle.maxWaitMs })
     const tab = page.locator(`#${target.tab}-tab`)
     if (await tab.count() !== 1) throw new Error(`Không tìm thấy đúng một tab #${target.tab}-tab`)
     if (await tab.getAttribute('aria-selected') !== 'true') await tab.click()
