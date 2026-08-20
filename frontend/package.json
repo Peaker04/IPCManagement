@@ -20,6 +20,9 @@
     "test:smoke": "playwright test tests/route-smoke.spec.ts",
     "test:visual": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts",
     "test:visual:update": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts --update-snapshots",
+    "perf:load": "node scripts/perf-probe.mjs --load",
+    "perf:inp": "node scripts/perf-probe.mjs --inp",
+    "perf:overflow": "node scripts/perf-probe.mjs --overflow",
     "check:route-budgets": "node scripts/check-route-budgets.mjs",
     "depcruise": "depcruise src --config .dependency-cruiser.cjs --ignore-known .dependency-cruiser-known-violations.json --output-type err",
     "depcruise:baseline": "depcruise src --config .dependency-cruiser.cjs --output-type baseline > .dependency-cruiser-known-violations.json"
