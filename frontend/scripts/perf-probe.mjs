@@ -145,6 +145,19 @@ async function bootstrapAuth(browser) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
   try {
+    if (CONFIG.credentials.username === 'admin' && CONFIG.credentials.password === 'admin') {
+      await page.goto(new URL('/login', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
+      await page.evaluate(() => {
+        localStorage.setItem('user', JSON.stringify({
+          id: 'dev-admin', username: 'admin', fullName: 'Trần Văn Giám Đốc', role: 'admin',
+          roleCode: 'ADMIN', roleName: 'admin', isAdminFullAccess: true, permissions: ['*'],
+        }))
+        sessionStorage.setItem('token', 'dev-login-fallback-token-admin')
+      })
+      await page.goto(new URL('/', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
+      authState = await context.storageState()
+      return
+    }
     // The repository's mock-login contract is activated by making the login
     // mutation fail, which lets LoginPage's explicit admin/admin fallback run.
     await page.route('**/api/auth/login', (route) => route.abort())
