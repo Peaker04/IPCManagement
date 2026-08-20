@@ -137,6 +137,7 @@ function initProbe() {
 }
 
 let authState
+const useMockAuth = () => CONFIG.credentials.username === 'admin' && CONFIG.credentials.password === 'admin'
 
 async function bootstrapAuth(browser) {
   if (!CONFIG.credentials.username || !CONFIG.credentials.password) {
@@ -158,9 +159,11 @@ async function bootstrapAuth(browser) {
       authState = await context.storageState()
       return
     }
-    // The repository's mock-login contract is activated by making the login
-    // mutation fail, which lets LoginPage's explicit admin/admin fallback run.
-    await page.route('**/api/auth/login', (route) => route.abort())
+    if (useMockAuth()) {
+      // The repository's mock-login contract is activated by making the login
+      // mutation fail, which lets LoginPage's explicit admin/admin fallback run.
+      await page.route('**/api/auth/login', (route) => route.abort())
+    }
     await page.goto(new URL('/login', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
     await page.locator('#username').fill(CONFIG.credentials.username)
     await page.locator('#password').fill(CONFIG.credentials.password)
@@ -181,12 +184,9 @@ async function newColdPage(browser, viewport) {
     storageState: authState,
   })
   const page = await context.newPage()
-  await page.route('**/api/auth/profile', (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({
-      success: true,
-      data: {
+  if (useMockAuth()) await page.route('**/api/auth/profile', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({
+      success: true, data: {
         userId: 'dev-admin', username: 'admin', fullName: 'Trần Văn Giám Đốc',
         roleCode: 'ADMIN', roleName: 'admin', isAdminFullAccess: true, permissions: ['*'],
       },
