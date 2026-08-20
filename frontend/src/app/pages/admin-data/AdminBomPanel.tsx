@@ -1,5 +1,5 @@
 import { Download, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
-import { ConfirmDialog, ContextStrip, FieldRow, InlineAlert, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport, ViewSwitcher } from '@/components/common';
+import { ConfirmDialog, ContextStrip, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,28 +10,24 @@ import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
-import { visibleTabIds } from '@/lib/navigationPreferences';
 
 type AdminBomPanelProps = { model: AdminDataPageModel };
 
 const EMPTY_BOM_SELECT_VALUE = '__empty_bom_select__';
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
-  const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
   const selectedImportContract = customerContracts?.find((contract) => contract.customerId === bomImportCustomerId);
   const selectedDish = dishCatalog.find((dish) => dish.id === bomForm.dishId);
   const selectedIngredient = ingredientCatalog.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
-  const bomTabIds = visibleTabIds('admin-bom') as Array<'current' | 'preview'>;
-  const visibleBomPanelMode = bomTabIds.includes(bomPanelMode) ? bomPanelMode : bomTabIds[0] ?? 'current';
   return (
     <>
-      {effectiveActiveView === 'bom-import' && (
-        <div id="admin-bom-import-panel" role="tabpanel" aria-labelledby="admin-bom-import-tab" className="flex flex-col gap-4">
-          <AdminQueryBoundary queries={[
-            { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
-            { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
-            { label: 'hợp đồng khách hàng', view: queryViews.contracts },
-          ]}>
+      <KeepAliveTabPanel id="admin-bom-import" active={effectiveActiveView === 'bom-import'} className="flex flex-col gap-4">
+        <AdminQueryBoundary queries={[
+          { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
+          { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
+          { label: 'hợp đồng khách hàng', view: queryViews.contracts },
+        ]}>
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
             <div className="grid gap-4">
               <div className="grid self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -95,7 +91,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                       variant="outline"
                       size="sm"
                       type="button"
-                      disabled={downloadBomTemplateState.isLoading}
+                      disabled={Boolean(downloadBomTemplateState?.isLoading)}
                       onClick={() => void handleDownloadBomTemplate('missing')}
                     >
                       <Download size={15} />
@@ -105,7 +101,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                       variant="outline"
                       size="sm"
                       type="button"
-                      disabled={downloadBomTemplateState.isLoading}
+                      disabled={Boolean(downloadBomTemplateState?.isLoading)}
                       onClick={() => void handleDownloadBomTemplate('blank')}
                     >
                       <Download size={15} />
@@ -116,7 +112,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                         variant="outline"
                         size="sm"
                         type="button"
-                        disabled={downloadBomTemplateState.isLoading}
+                        disabled={Boolean(downloadBomTemplateState?.isLoading)}
                         onClick={() => void handleDownloadBomTemplate('dish')}
                       >
                         <Download size={15} />
@@ -127,15 +123,24 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </FieldRow>
 
                 <FieldRow label="File import">
-                  <input
-                    className="ipc-input w-full"
-                    type="file"
-                    accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                    onChange={(event) => {
-                      setBomImportFile(event.target.files?.[0] ?? null);
-                      setBomImportPreview(null);
-                    }}
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500">
+                      <Upload size={15} className="text-slate-500" />
+                      <span>{bomImportFile ? 'Đổi file Excel' : 'Chọn file Excel'}</span>
+                      <input
+                        className="sr-only"
+                        type="file"
+                        accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                        onChange={(event) => {
+                          setBomImportFile(event.target.files?.[0] ?? null);
+                          setBomImportPreview(null);
+                        }}
+                      />
+                    </label>
+                    <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                      {bomImportFile ? bomImportFile.name : 'Chưa chọn file (.xlsx, .csv)'}
+                    </span>
+                  </div>
                 </FieldRow>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -143,9 +148,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     variant="default"
                     size="sm"
                     type="button"
-                    disabled={previewBomImportState.isLoading || !bomImportFile}
+                    disabled={Boolean(previewBomImportState?.isLoading || !bomImportFile)}
                     aria-describedby="bom-import-action-guidance"
-                    title={previewBomImportState.isLoading ? 'Đang kiểm tra file BOM.' : !bomImportFile ? 'Chọn file BOM trước khi kiểm tra.' : undefined}
+                    title={previewBomImportState?.isLoading ? 'Đang kiểm tra file BOM.' : !bomImportFile ? 'Chọn file BOM trước khi kiểm tra.' : undefined}
                     onClick={() => void handlePreviewBomImport()}
                   >
                     <Search size={15} />
@@ -155,9 +160,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     variant="default"
                     size="sm"
                     type="button"
-                    disabled={commitBomImportState.isLoading || !bomImportPreview?.canCommit}
+                    disabled={Boolean(commitBomImportState?.isLoading || !bomImportPreview?.canCommit)}
                     aria-describedby="bom-import-action-guidance"
-                    title={commitBomImportState.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Preview còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
+                    title={commitBomImportState?.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Preview còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
                     onClick={() => void handleCommitBomImport()}
                   >
                     <Save size={15} />
@@ -173,12 +178,12 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
 
                 {bomTemplateDishId && (
                   <InlineAlert title="Mẫu theo món thiếu BOM" variant="info">
-                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. Mã nguyên liệu và mã đơn vị có thể để trống khi thêm nguyên liệu mới; chỉ cần điền tên nguyên liệu, đơn vị, định lượng rồi tải lên lại.
+                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. Mã nguyên liệu và mã đơn vị có thể điền tên nguyên liệu, đơn vị, định lượng rồi tải lên lại.
                   </InlineAlert>
                 )}
 
                 <InlineAlert title="Cấu trúc nhập BOM mới" variant="info">
-                  <span id="bom-import-action-guidance">Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Chọn file, kiểm tra preview và xử lý hết lỗi chặn trước khi nhập dữ liệu.</span>
+                  <span id="bom-import-action-guidance">Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Chọn file, kiểm tra bản xem trước và xử lý hết lỗi chặn trước khi nhập dữ liệu.</span>
                 </InlineAlert>
               </div>
 
@@ -187,23 +192,16 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   items={[
                     { label: 'Mức định lượng', value: `${formatNumber(bomImportTier / 1000)}k`, tone: 'info' },
                     { label: 'Phạm vi', value: bomImportCustomerId ? 'Theo khách hàng' : 'Dùng chung', tone: bomImportCustomerId ? 'warning' : 'neutral' },
-                    { label: 'BOM hiện tại', value: `${currentBomRows.length} dòng`, tone: currentBomRows.length ? 'success' : 'neutral' },
+                    { label: 'BOM hiện tại', value: `${(currentBomRows ?? []).length} dòng`, tone: (currentBomRows ?? []).length ? 'success' : 'neutral' },
                     { label: 'Kết quả kiểm tra', value: bomImportPreview ? `${bomImportPreview.validRows}/${bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
                   ]}
                 />
 
                 <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
-                  <ViewSwitcher
-                    compact
-                    ariaLabel="Chọn dữ liệu BOM hiển thị"
-                    tabs={[
-                      { id: 'bom-current', label: 'BOM hiện tại' },
-                      { id: 'bom-preview', label: 'Bản xem trước' },
-                    ].filter((tab) => bomTabIds.includes(tab.id.replace('bom-', '') as 'current' | 'preview'))}
-                    activeTab={`bom-${visibleBomPanelMode}`}
-                    onTabChange={(id) => setBomPanelMode(id === 'bom-preview' ? 'preview' : 'current')}
-                  />
-                  {visibleBomPanelMode === 'current' && (
+                  <div className="text-xs font-semibold text-slate-600" role="status">
+                    {bomPanelMode === 'preview' ? 'Đang xem kết quả kiểm tra file — nhập dữ liệu để áp dụng.' : 'BOM đang áp dụng'}
+                  </div>
+                  {bomPanelMode === 'current' && (
                     <div className="flex min-w-0 flex-1 gap-2 sm:max-w-xl sm:justify-end">
                       <label className="relative min-w-0 flex-1 sm:max-w-xs">
                         <span className="sr-only">Tìm món hoặc nguyên liệu</span>
@@ -223,110 +221,107 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   )}
                 </div>
 
-                {visibleBomPanelMode === 'current' ? (
-                  <div id="bom-current-panel" role="tabpanel" aria-labelledby="bom-current-tab" className="min-w-0">
-                    <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
-                      <table className="ipc-data-table ipc-bom-current-table table-fixed">
-                      <colgroup>
-                        <col className="w-[16%]" />
-                        <col className="w-[22%]" />
-                        <col className="w-[8%]" />
-                        <col className="w-[12%]" />
-                        <col className="w-[10%]" />
-                        <col className="w-[14%]" />
-                        <col className="w-[8%]" />
-                        <col className="w-[10%]" />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th>Món</th>
-                          <th>Nguyên liệu</th>
-                          <th>ĐVT</th>
-                          <th>Định lượng/suất</th>
-                          <th>Hao hụt</th>
-                          <th>Hiệu lực</th>
-                          <th>Trạng thái</th>
-                          <th className="whitespace-nowrap">Thao tác</th>
+                <KeepAliveTabPanel id="bom-current" active={bomPanelMode === 'current'} className="min-w-0">
+                  <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
+                    <table className="ipc-data-table ipc-bom-current-table table-fixed">
+                    <colgroup>
+                      <col className="w-[16%]" />
+                      <col className="w-[22%]" />
+                      <col className="w-[8%]" />
+                      <col className="w-[12%]" />
+                      <col className="w-[10%]" />
+                      <col className="w-[14%]" />
+                      <col className="w-[8%]" />
+                      <col className="w-[10%]" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Món</th>
+                        <th>Nguyên liệu</th>
+                        <th>ĐVT</th>
+                        <th>Định lượng/suất</th>
+                        <th>Hao hụt</th>
+                        <th>Hiệu lực</th>
+                        <th>Trạng thái</th>
+                        <th className="whitespace-nowrap">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentBomPagination?.rows ?? []).map(({ dish, line }) => (
+                        <tr key={line.bomId}>
+                          <td className="align-top"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
+                          <td className="align-top"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
+                          <td className="align-top whitespace-nowrap">{line.unit}</td>
+                          <td className="align-top text-right font-semibold tabular-nums">{line.grossQtyPerServing}</td>
+                          <td className="align-top text-right tabular-nums">{line.wasteRatePercent}%</td>
+                          <td className="align-top"><div>{line.effectiveFrom}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div></td>
+                          <td className="align-top"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>{line.bomStatusLabel || line.bomStatus}</StatusBadge></td>
+                          <td className="align-top">
+                            <div className="flex flex-wrap justify-center gap-1">
+                              <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
+                                <Pencil size={14} /> Sửa
+                              </Button>
+                              <Button variant="outline" size="xs" className="text-rose-700 hover:text-rose-800" type="button" onClick={() => setClosingBom({ dishId: dish.id, dishName: dish.name, line })}>
+                                <Power size={14} /> Ngừng
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {currentBomPagination.rows.map(({ dish, line }) => (
-                          <tr key={line.bomId}>
-                            <td className="align-top"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
-                            <td className="align-top"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
-                            <td className="align-top whitespace-nowrap">{line.unit}</td>
-                            <td className="align-top text-right font-semibold tabular-nums">{line.grossQtyPerServing}</td>
-                            <td className="align-top text-right tabular-nums">{line.wasteRatePercent}%</td>
-                            <td className="align-top"><div>{line.effectiveFrom}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div></td>
-                            <td className="align-top"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>{line.bomStatusLabel || line.bomStatus}</StatusBadge></td>
-                            <td className="align-top">
-                              <div className="flex flex-wrap justify-center gap-1">
-                                <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
-                                  <Pencil size={14} /> Sửa
-                                </Button>
-                                <Button variant="outline" size="xs" className="text-rose-700 hover:text-rose-800" type="button" onClick={() => setClosingBom({ dishId: dish.id, dishName: dish.name, line })}>
-                                  <Power size={14} /> Ngừng
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {!isDishCatalogLoading && currentBomRows.length === 0 && <EmptyRow colSpan={8} />}
-                        {isDishCatalogLoading && (
-                          <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
-                        )}
-                      </tbody>
-                      </table>
-                    </TableViewport>
-                    <PaginationBar
-                      page={currentBomPagination.page}
-                      pageSize={currentBomPagination.pageSize}
-                      totalItems={currentBomPagination.totalItems}
-                      onPageChange={currentBomPagination.setPage}
-                    />
-                  </div>
-                ) : (
-                  <div id="bom-preview-panel" role="tabpanel" aria-labelledby="bom-preview-tab" className="min-w-0">
-                    <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
-                    <table className="ipc-data-table">
-                      <thead>
-                        <tr>
-                          <th>Dòng</th>
-                          <th>Món</th>
-                          <th>Nguyên liệu</th>
-                          <th>ĐVT</th>
-                          <th>Định lượng/suất</th>
-                          <th>Hao hụt</th>
-                          <th>Thao tác</th>
-                          <th>Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                         {bomPreviewPagination.rows.map((row) => (
-                          <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
-                            <td>{row.rowNumber}</td>
-                            <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
-                            <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
-                            <td>{row.unitCode}</td>
-                            <td>{row.grossQtyPerServing}</td>
-                            <td>{row.wasteRatePercent}%</td>
-                            <td>{row.action}</td>
-                            <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors?.[0] ?? row.warnings?.[0] ?? 'Hợp lệ'}</StatusBadge></td>
-                          </tr>
-                        ))}
-                        {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}
-                      </tbody>
+                      ))}
+                      {!isDishCatalogLoading && (!currentBomRows || currentBomRows.length === 0) && <EmptyRow colSpan={8} />}
+                      {isDishCatalogLoading && (
+                        <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
+                      )}
+                    </tbody>
                     </table>
-                     </PaginatedTableFrame>
-                    <PaginationBar page={bomPreviewPagination.page} pageSize={bomPreviewPagination.pageSize} totalItems={bomPreviewPagination.totalItems} onPageChange={bomPreviewPagination.setPage} />
-                  </div>
-                )}
+                  </TableViewport>
+                  <PaginationBar
+                    page={currentBomPagination?.page ?? 1}
+                    pageSize={currentBomPagination?.pageSize ?? 8}
+                    totalItems={currentBomPagination?.totalItems ?? 0}
+                    onPageChange={currentBomPagination?.setPage ?? (() => {})}
+                  />
+                </KeepAliveTabPanel>
+
+                <KeepAliveTabPanel id="bom-preview" active={bomPanelMode === 'preview'} className="min-w-0">
+                  <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th>Dòng</th>
+                        <th>Món</th>
+                        <th>Nguyên liệu</th>
+                        <th>ĐVT</th>
+                        <th>Định lượng/suất</th>
+                        <th>Hao hụt</th>
+                        <th>Thao tác</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                       {(bomPreviewPagination?.rows ?? []).map((row) => (
+                        <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
+                          <td>{row.rowNumber}</td>
+                          <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
+                          <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
+                          <td>{row.unitCode}</td>
+                          <td>{row.grossQtyPerServing}</td>
+                          <td>{row.wasteRatePercent}%</td>
+                          <td>{row.action}</td>
+                          <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors?.[0] ?? row.warnings?.[0] ?? 'Hợp lệ'}</StatusBadge></td>
+                        </tr>
+                      ))}
+                      {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}
+                    </tbody>
+                  </table>
+                  </PaginatedTableFrame>
+                  <PaginationBar page={bomPreviewPagination?.page ?? 1} pageSize={bomPreviewPagination?.pageSize ?? 8} totalItems={bomPreviewPagination?.totalItems ?? 0} onPageChange={bomPreviewPagination?.setPage ?? (() => {})} />
+                </KeepAliveTabPanel>
               </div>
             </div>
           </SectionPanel>
           </AdminQueryBoundary>
-        </div>
-      )}
+        </KeepAliveTabPanel>
 
       {isBomDialogOpen && <Dialog open onOpenChange={setIsBomDialogOpen}>
         <DialogContent aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'} className="max-w-2xl">

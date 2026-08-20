@@ -78,9 +78,7 @@ export const pageTabGroups = [
   { id: 'purchasing', label: 'Thu mua', description: 'Quy trình mua, mua bổ sung và báo giá', tabs: [['workflow', 'Xử lý thu mua'], ['supplemental', 'Mua bổ sung'], ['quotations', 'Báo giá nhà cung cấp']] },
   { id: 'chef', label: 'Bếp trưởng', description: 'Ca sản xuất và chứng từ bếp', tabs: [['production', 'Ca sản xuất'], ['documents', 'Chứng từ bếp']] },
   { id: 'reports', label: 'Báo cáo vận hành', description: 'Các nhóm báo cáo chính', tabs: [['price', 'Biến động giá'], ['demand', 'Nhu cầu nguyên liệu'], ['purchase', 'Kế hoạch thu mua'], ['stock', 'Tồn kho'], ['movement', 'Nhập/xuất kho'], ['kitchen', 'Xuất bếp'], ['usage', 'Sử dụng thực tế'], ['audit', 'Nhật ký thay đổi'], ['data-quality', 'Chất lượng dữ liệu']] },
-  { id: 'reports-price', label: 'Biến động giá', description: 'Góc nhìn chi tiết trong báo cáo giá', tabs: [['lines', 'Theo dòng nhập'], ['supplier', 'Theo nhà cung cấp'], ['period', 'Theo thời gian'], ['dishGroup', 'Theo nhóm món']] },
   { id: 'admin-data', label: 'Quản trị dữ liệu', description: 'Dữ liệu nền và nhật ký quản trị', tabs: [['bom-import', 'BOM theo đơn giá'], ['contracts', 'Hợp đồng'], ['cleanup', 'Dữ liệu lỗi'], ['inventory', 'Tồn kho'], ['statistics', 'Thống kê'], ['audit', 'Nhật ký thay đổi'], ['employees', 'Nhân viên']] },
-  { id: 'admin-bom', label: 'BOM theo đơn giá', description: 'Dữ liệu đang dùng và bản kiểm tra', tabs: [['current', 'Dữ liệu đang dùng'], ['preview', 'Bản kiểm tra']] },
 ] as const;
 
 export type PageTabGroupId = typeof pageTabGroups[number]['id'];

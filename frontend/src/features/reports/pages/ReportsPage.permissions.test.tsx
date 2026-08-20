@@ -189,7 +189,7 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
     });
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
     // PurchaseAccess cũng mở 3 cách phân tích tổng hợp của price-variance/*.
-    expect(screen.getByRole('tab', { name: 'Theo nhà cung cấp' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
   });
 
   it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', () => {
@@ -197,10 +197,7 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
 
     // receipt-price-variance dùng PurchaseOrderReadAccess nên Thủ kho vẫn xem được dòng nhập.
     expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Theo dòng nhập' })).toBeInTheDocument();
-    ['Theo nhà cung cấp', 'Theo thời gian', 'Theo nhóm món'].forEach((label) => {
-      expect(screen.queryByRole('tab', { name: label })).not.toBeInTheDocument();
-    });
+    expect(screen.getByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Kế hoạch thu mua' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
   });
@@ -230,7 +227,7 @@ describe('ReportsPage falls back when the URL points at a forbidden tab', () => 
   it('keeps Thủ kho on the allowed price sub tab when the URL asks for a PurchaseAccess aggregate', () => {
     renderReportsPage('thukho', '/reports?view=price&subview=supplier');
 
-    expect(screen.getByRole('tab', { name: 'Theo dòng nhập' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(mocks.priceVarianceBySupplierPage).toHaveBeenCalledWith(expect.anything(), { skip: true });
     expect(mocks.priceVariancePage).toHaveBeenCalledWith(expect.anything(), { skip: false });
   });
@@ -396,7 +393,7 @@ describe('ReportsPage query state boundary', () => {
     expect(screen.getByText('PN-20260729-01')).toBeInTheDocument();
     expect(screen.getByText('29/07/2026')).toBeInTheDocument();
     expect(screen.getByText('120 kg')).toBeInTheDocument();
-    expect(screen.getByText('Đang cập nhật báo cáo')).toBeInTheDocument();
+    expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument();
   });
 
   it('renders the report shift label instead of its enum value', async () => {

@@ -83,7 +83,6 @@ export const tablePreferenceOwnerRegistry: readonly TablePreferenceOwner[] = [
   { id: 'service-run-report', disposition: 'customizable' },
   { id: 'admin-statistics', disposition: 'exception', reason: 'essential-workflow' },
   { id: 'admin-cleanup', disposition: 'exception', reason: 'essential-workflow' },
-  { id: 'admin-bom', disposition: 'exception', reason: 'nested-detail' },
   { id: 'admin-contracts', disposition: 'exception', reason: 'essential-workflow' },
   { id: 'admin-employees', disposition: 'exception', reason: 'essential-workflow' },
   { id: 'chef-checklist', disposition: 'exception', reason: 'essential-workflow' },
