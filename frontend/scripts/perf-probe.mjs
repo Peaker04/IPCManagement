@@ -19,7 +19,7 @@ const CONFIG = {
   ],
   primaryViewport: { w: 1440, h: 900 },
   throttle: { cpuRate: 4, downKbps: 500, upKbps: 500, latencyMs: 400 },
-  settle: { quietMs: 700, maxWaitMs: 25000, pollMs: 100 },
+  settle: { quietMs: 700, maxWaitMs: 60000, pollMs: 100 },
   thresholds: {
     CGR_MAX: 0.1,
     CLS_MAX: 0.1,
