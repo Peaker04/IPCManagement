@@ -145,6 +145,9 @@ async function bootstrapAuth(browser) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
   try {
+    // The repository's mock-login contract is activated by making the login
+    // mutation fail, which lets LoginPage's explicit admin/admin fallback run.
+    await page.route('**/api/auth/login', (route) => route.abort())
     await page.goto(new URL('/login', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
     await page.locator('#username').fill(CONFIG.credentials.username)
     await page.locator('#password').fill(CONFIG.credentials.password)
