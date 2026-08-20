@@ -25,7 +25,7 @@ describe('navigation display preferences', () => {
   it('covers every shared ViewSwitcher group without allowing an empty group', () => {
     const target = storage();
     const preferences = readPageTabPreferences(target);
-    expect(pageTabGroups).toHaveLength(9);
+    expect(pageTabGroups).toHaveLength(7);
     for (const group of pageTabGroups) expect(visibleTabIds(group.id, preferences).length).toBe(group.tabs.length);
 
     preferences.reports.audit = false;

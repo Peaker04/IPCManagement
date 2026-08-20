@@ -1,7 +1,24 @@
-import { useMemo, useState } from 'react';
-import { Eye, EyeOff, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { memo, useCallback, useMemo, useState } from 'react';
+import {
+  CalendarDays,
+  ChefHat,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  Database,
+  Layers,
+  LayoutDashboard,
+  RotateCcw,
+  Settings,
+  ShoppingCart,
+  SlidersHorizontal,
+  TrendingUp,
+  Utensils,
+  Warehouse,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SectionPanel, StatusBadge, useToast } from '@/components/common';
+import { ConfirmDialog, SectionPanel, StatusBadge, useToast } from '@/components/common';
+import { cn } from '@/lib/utils';
 import {
   defaultNavigationPreferences,
   readNavigationPreferences,
@@ -12,110 +29,463 @@ import {
   writePageTabPreferences,
   writeNavigationPreferences,
   type NavigationPreferenceKey,
+  type PageTabGroupId,
 } from '@/lib/navigationPreferences';
 
-const items: ReadonlyArray<{ key: NavigationPreferenceKey; label: string; description: string }> = [
-  { key: 'dashboard', label: 'Tổng quan', description: 'Bàn điều hành và cảnh báo trong ngày.' },
-  { key: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch sản xuất và định lượng.' },
-  { key: 'meal-orders', label: 'Điều phối suất ăn', description: 'Số suất và lịch phục vụ.' },
-  { key: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ cần phê duyệt.' },
-  { key: 'purchasing', label: 'Thu mua', description: 'Đề xuất và chứng từ mua.' },
-  { key: 'warehouse', label: 'Kho nguyên liệu', description: 'Nhập, xuất và xử lý chênh lệch.' },
-  { key: 'chef-dashboard', label: 'Bếp trưởng', description: 'Checklist và xác nhận bếp.' },
-  { key: 'reports', label: 'Báo cáo vận hành', description: 'Báo cáo biến động và đối chiếu.' },
-  { key: 'admin-data', label: 'Quản trị dữ liệu', description: 'BOM, tồn kho và nhật ký.' },
-  { key: 'approval-rules', label: 'Thiết lập quy trình duyệt', description: 'Quy tắc và thời hạn phê duyệt.' },
+interface NavigationItemConfig {
+  key: NavigationPreferenceKey;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}
+
+const navigationItems: ReadonlyArray<NavigationItemConfig> = [
+  { key: 'dashboard', label: 'Tổng quan', description: 'Bàn điều hành và cảnh báo trong ngày.', icon: LayoutDashboard },
+  { key: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch sản xuất và định lượng.', icon: CalendarDays },
+  { key: 'meal-orders', label: 'Điều phối suất ăn', description: 'Số suất và lịch phục vụ.', icon: Utensils },
+  { key: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ cần phê duyệt.', icon: ClipboardCheck },
+  { key: 'purchasing', label: 'Thu mua', description: 'Đề xuất và chứng từ mua.', icon: ShoppingCart },
+  { key: 'warehouse', label: 'Kho nguyên liệu', description: 'Nhập, xuất và xử lý chênh lệch.', icon: Warehouse },
+  { key: 'chef-dashboard', label: 'Bếp trưởng', description: 'Checklist và xác nhận bếp.', icon: ChefHat },
+  { key: 'reports', label: 'Báo cáo vận hành', description: 'Báo cáo biến động và đối chiếu.', icon: TrendingUp },
+  { key: 'admin-data', label: 'Quản trị dữ liệu', description: 'BOM, tồn kho và nhật ký.', icon: Database },
+  { key: 'approval-rules', label: 'Thiết lập quy trình duyệt', description: 'Quy tắc và thời hạn phê duyệt.', icon: Settings },
 ];
+
+const groupIcons: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  'weekly-menu': CalendarDays,
+  warehouse: Warehouse,
+  approvals: ClipboardCheck,
+  purchasing: ShoppingCart,
+  chef: ChefHat,
+  reports: TrendingUp,
+  'admin-data': Database,
+};
+
+const SwitchIndicator = memo(function SwitchIndicator({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-150',
+        checked ? 'bg-blue-600' : 'bg-slate-300'
+      )}
+    >
+      <span
+        className={cn(
+          'pointer-events-none block size-3.5 rounded-full bg-white shadow-xs transition-transform duration-150',
+          checked ? 'translate-x-4.5' : 'translate-x-0.5'
+        )}
+      />
+    </span>
+  );
+});
+
+interface NavigationItemCardProps {
+  item: NavigationItemConfig;
+  visible: boolean;
+  onToggle: (key: NavigationPreferenceKey) => void;
+}
+
+const NavigationItemCard = memo(function NavigationItemCard({
+  item,
+  visible,
+  onToggle,
+}: NavigationItemCardProps) {
+  const Icon = item.icon;
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={visible}
+      aria-label={`${item.label}, ${visible ? 'đang hiện' : 'đang ẩn'}`}
+      onClick={() => onToggle(item.key)}
+      className={cn(
+        'group relative flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border p-3.5 text-left transition-[background-color,border-color,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+        visible
+          ? 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/70'
+          : 'border-slate-200/80 bg-slate-50/80 opacity-60 hover:opacity-85'
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          className={cn(
+            'flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors',
+            visible
+              ? 'border-slate-200 bg-slate-100 text-slate-700 group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:text-blue-700'
+              : 'border-slate-200 bg-slate-200/60 text-slate-400'
+          )}
+        >
+          <Icon size={18} />
+        </div>
+        <div className="min-w-0">
+          <span
+            className={cn(
+              'block truncate text-sm font-semibold',
+              visible ? 'text-slate-800' : 'text-slate-500 line-through decoration-slate-400'
+            )}
+          >
+            {item.label}
+          </span>
+          <p className="mt-0.5 truncate text-xs text-slate-500">{item.description}</p>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2.5 pl-2">
+        <span className={cn('text-xs font-medium', visible ? 'text-slate-700' : 'text-slate-400')}>
+          {visible ? 'Đang hiện' : 'Đã ẩn'}
+        </span>
+        <SwitchIndicator checked={visible} />
+      </div>
+    </button>
+  );
+});
+
+interface PageTabItemButtonProps {
+  groupLabel: string;
+  tabId: string;
+  tabLabel: string;
+  visible: boolean;
+  onToggle: (tabId: string, tabLabel: string) => void;
+}
+
+const PageTabItemButton = memo(function PageTabItemButton({
+  groupLabel,
+  tabId,
+  tabLabel,
+  visible,
+  onToggle,
+}: PageTabItemButtonProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={visible}
+      aria-label={`${groupLabel}, ${tabLabel}, ${visible ? 'đang hiện' : 'đang ẩn'}`}
+      onClick={() => onToggle(tabId, tabLabel)}
+      className={cn(
+        'flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-left transition-[background-color,border-color,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+        visible
+          ? 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50'
+          : 'border-slate-200/70 bg-slate-100/60 opacity-60 hover:opacity-85'
+      )}
+    >
+      <span
+        className={cn(
+          'min-w-0 truncate text-xs font-medium',
+          visible ? 'text-slate-800' : 'text-slate-400 line-through'
+        )}
+      >
+        {tabLabel}
+      </span>
+
+      <div className="flex shrink-0 items-center gap-2">
+        <span className={cn('text-caption', visible ? 'text-slate-600' : 'text-slate-400')}>
+          {visible ? 'Hiện' : 'Ẩn'}
+        </span>
+        <SwitchIndicator checked={visible} />
+      </div>
+    </button>
+  );
+});
+
+interface PageTabGroupCardProps {
+  group: typeof pageTabGroups[number];
+  groupPreferences: Record<string, boolean>;
+  isExpanded: boolean;
+  onToggleExpand: (groupId: string) => void;
+  onToggleTab: (groupId: PageTabGroupId, tabId: string, tabLabel: string) => void;
+  onShowAllInGroup: (groupId: PageTabGroupId) => void;
+}
+
+const PageTabGroupCard = memo(function PageTabGroupCard({
+  group,
+  groupPreferences,
+  isExpanded,
+  onToggleExpand,
+  onToggleTab,
+  onShowAllInGroup,
+}: PageTabGroupCardProps) {
+  const Icon = groupIcons[group.id] || Layers;
+  const visibleInGroup = useMemo(
+    () => group.tabs.filter(([id]) => groupPreferences[id] !== false).length,
+    [group.tabs, groupPreferences]
+  );
+  const totalInGroup = group.tabs.length;
+  const allInGroupVisible = visibleInGroup === totalInGroup;
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-colors">
+      {/* Accordion Header */}
+      <button
+        type="button"
+        aria-expanded={isExpanded}
+        onClick={() => onToggleExpand(group.id)}
+        className="flex w-full cursor-pointer select-none items-center justify-between gap-3 p-3.5 text-left hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-600">
+            <Icon size={16} />
+          </div>
+          <div className="min-w-0">
+            <span className="block text-sm font-semibold text-slate-800">{group.label}</span>
+            <p className="mt-0.5 truncate text-xs text-slate-500">{group.description}</p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          {!allInGroupVisible && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowAllInGroup(group.id);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onShowAllInGroup(group.id);
+                }
+              }}
+              className="hidden rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 sm:inline-flex"
+            >
+              Hiện tất cả tab
+            </span>
+          )}
+          <StatusBadge variant={allInGroupVisible ? 'neutral' : 'warning'}>
+            {visibleInGroup}/{totalInGroup} tab đang hiện
+          </StatusBadge>
+          <span className="text-slate-400 transition-transform duration-150">
+            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </span>
+        </div>
+      </button>
+
+      {/* Accordion Body */}
+      {isExpanded && (
+        <div className="border-t border-slate-200 bg-slate-50/60 p-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+            {group.tabs.map(([tabId, tabLabel]) => {
+              const isTabVisible = groupPreferences[tabId] !== false;
+
+              return (
+                <PageTabItemButton
+                  key={tabId}
+                  groupLabel={group.label}
+                  tabId={tabId}
+                  tabLabel={tabLabel}
+                  visible={isTabVisible}
+                  onToggle={(tId, tLabel) => onToggleTab(group.id, tId, tLabel)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 export function AdvancedDisplaySettings() {
   const { toast } = useToast();
   const [preferences, setPreferences] = useState(() => readNavigationPreferences());
   const [tabPreferences, setTabPreferences] = useState(() => readPageTabPreferences());
   const [lastChange, setLastChange] = useState('');
-  const visibleCount = useMemo(() => Object.values(preferences).filter(Boolean).length, [preferences]);
-  const update = (key: NavigationPreferenceKey) => {
-    const next = { ...preferences, [key]: !preferences[key] };
-    if (Object.values(next).every((value) => !value)) return;
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(pageTabGroups.map((g) => [g.id, false]))
+  );
+
+  const visibleNavCount = useMemo(() => Object.values(preferences).filter(Boolean).length, [preferences]);
+
+  const { totalTabs, totalVisibleTabs } = useMemo(() => {
+    let total = 0;
+    let visible = 0;
+    for (const group of pageTabGroups) {
+      total += group.tabs.length;
+      visible += group.tabs.filter(([id]) => tabPreferences[group.id]?.[id] !== false).length;
+    }
+    return { totalTabs: total, totalVisibleTabs: visible };
+  }, [tabPreferences]);
+
+  const updateNav = useCallback((key: NavigationPreferenceKey) => {
+    const isCurrentlyVisible = preferences[key];
+    if (isCurrentlyVisible && visibleNavCount <= 1) {
+      toast({
+        title: 'Không thể ẩn',
+        description: 'Phải giữ lại ít nhất 1 khu vực hiển thị trên thanh menu.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const nextValue = !isCurrentlyVisible;
+    const next = { ...preferences, [key]: nextValue };
     setPreferences(next);
     writeNavigationPreferences(next);
-    setLastChange(`${items.find((item) => item.key === key)?.label ?? 'Khu vực'}: ${next[key] ? 'đang hiện' : 'đang ẩn'}.`);
-  };
-  const reset = () => {
+    const itemLabel = navigationItems.find((item) => item.key === key)?.label ?? 'Khu vực';
+    setLastChange(`${itemLabel}: ${nextValue ? 'đang hiện' : 'đã ẩn'}.`);
+  }, [preferences, visibleNavCount, toast]);
+
+  const updateTab = useCallback((groupId: PageTabGroupId, tabKey: string, tabLabel: string) => {
+    const groupDef = pageTabGroups.find((g) => g.id === groupId);
+    const currentGroup = tabPreferences[groupId] ?? {};
+    const isCurrentlyVisible = currentGroup[tabKey] !== false;
+
+    if (isCurrentlyVisible) {
+      const visibleCountInGroup = groupDef
+        ? groupDef.tabs.filter(([id]) => currentGroup[id] !== false).length
+        : 0;
+
+      if (visibleCountInGroup <= 1) {
+        toast({
+          title: 'Không thể ẩn',
+          description: 'Mỗi trang nghiệp vụ phải giữ lại ít nhất 1 tab hiển thị.',
+          variant: 'warning',
+        });
+        return;
+      }
+    }
+
+    const nextValue = !isCurrentlyVisible;
+    const nextGroup = { ...currentGroup, [tabKey]: nextValue };
+    const next = { ...tabPreferences, [groupId]: nextGroup };
+    setTabPreferences(next);
+    writePageTabPreferences(next);
+    const groupLabel = groupDef?.label ?? 'Trang';
+    setLastChange(`${groupLabel} — ${tabLabel}: ${nextValue ? 'đang hiện' : 'đã ẩn'}.`);
+  }, [tabPreferences, toast]);
+
+  const showAllTabsInGroup = useCallback((groupId: PageTabGroupId) => {
+    const group = pageTabGroups.find((g) => g.id === groupId);
+    if (!group) return;
+
+    const nextGroup = Object.fromEntries(group.tabs.map(([id]) => [id, true]));
+    const next = { ...tabPreferences, [groupId]: nextGroup };
+    setTabPreferences(next);
+    writePageTabPreferences(next);
+    toast({ title: `Đã hiện toàn bộ tab của ${group.label}`, variant: 'success' });
+  }, [tabPreferences, toast]);
+
+  const toggleGroupExpand = useCallback((groupId: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+  }, []);
+
+  const toggleAllGroups = useCallback((expand: boolean) => {
+    setExpandedGroups(Object.fromEntries(pageTabGroups.map((g) => [g.id, expand])));
+  }, []);
+
+  const resetAll = useCallback(() => {
     setPreferences({ ...defaultNavigationPreferences });
     resetNavigationPreferences();
     setTabPreferences(structuredClone(defaultPageTabPreferences));
     writePageTabPreferences(defaultPageTabPreferences);
-    setLastChange('Đã hiện lại toàn bộ khu vực và tab.');
-    toast({ title: 'Đã hiện lại toàn bộ khu vực', variant: 'success' });
-  };
+    setLastChange('Đã khôi phục toàn bộ khu vực và tab về mặc định.');
+    toast({
+      title: 'Đã khôi phục mặc định',
+      description: 'Tất cả khu vực menu và tab đã được hiển thị đầy đủ.',
+      variant: 'success',
+    });
+  }, [toast]);
+
+  const allGroupsExpanded = useMemo(
+    () => pageTabGroups.every((g) => expandedGroups[g.id]),
+    [expandedGroups]
+  );
 
   return (
-    <SectionPanel title="Thiết lập nâng cao" icon={<SlidersHorizontal size={18} />}>
-      <div className="space-y-4 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-md bg-slate-50 p-3">
-          <div>
-            <p className="font-semibold text-slate-800">Khu vực đang sử dụng</p>
-            <p className="mt-1 text-xs text-slate-600">Nhấn vào một dòng để đổi trạng thái hiển thị.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <StatusBadge variant="neutral">{visibleCount}/{items.length} khu vực đang hiện</StatusBadge>
-            <Button type="button" size="xs" variant="outline" onClick={reset}><RotateCcw size={13} /> Hiện tất cả</Button>
-          </div>
+    <div className="space-y-6">
+      {/* Top Actions & Summary Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge variant="neutral">{visibleNavCount}/{navigationItems.length} menu đang bật</StatusBadge>
+          <StatusBadge variant={totalVisibleTabs === totalTabs ? 'neutral' : 'warning'}>
+            {totalVisibleTabs}/{totalTabs} tab đang bật
+          </StatusBadge>
         </div>
-        {lastChange && <p className="sr-only" role="status" aria-live="polite">{lastChange}</p>}
-        <section aria-labelledby="advanced-navigation-title" className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 id="advanced-navigation-title" className="text-sm font-semibold text-slate-800">Khu vực điều hành</h3>
-            <span className="text-xs text-slate-500">Menu bên trái</span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-          {items.map((item) => {
-            const visible = preferences[item.key];
-            return (
-              <button key={item.key} type="button" onClick={() => update(item.key)} aria-pressed={visible} aria-label={`${item.label}, ${visible ? 'đang hiện' : 'đang ẩn'}. Nhấn để đổi`} className="flex min-h-16 min-w-0 items-start gap-3 rounded-md border border-slate-200 bg-white p-3 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                <span className="mt-0.5 shrink-0 text-slate-500" aria-hidden="true">{visible ? <Eye size={16} /> : <EyeOff size={16} />}</span>
-                <span className="min-w-0 flex-1"><span className="block font-semibold text-slate-800">{item.label}</span><span className="mt-0.5 block text-xs text-slate-500">{item.description}</span></span>
-                <span className="shrink-0 text-xs font-semibold text-slate-600">{visible ? 'Đang hiện' : 'Đang ẩn'}</span>
-              </button>
-            );
-          })}
-          </div>
-        </section>
-        <section aria-labelledby="advanced-page-tabs-title" className="space-y-2 border-t border-slate-200 pt-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 id="advanced-page-tabs-title" className="text-sm font-semibold text-slate-800">Tab theo từng trang</h3>
-            <span className="text-xs text-slate-500">Mở một trang để chọn tab cần hiển thị</span>
-          </div>
-          <div className="grid gap-2">
-            {pageTabGroups.map((group) => {
-              const visibleCount = group.tabs.filter(([id]) => tabPreferences[group.id]?.[id] !== false).length;
-              return (
-                <details key={group.id} className="group rounded-md border border-slate-200 bg-white">
-                  <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500">
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-800">{group.label}</span><span className="block truncate text-xs text-slate-500">{group.description}</span></span>
-                    <StatusBadge variant={visibleCount === group.tabs.length ? 'neutral' : 'warning'}>{visibleCount}/{group.tabs.length} tab đang hiện</StatusBadge>
-                    <span aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-180">⌄</span>
-                  </summary>
-                  <div className="grid gap-2 border-t border-slate-200 bg-slate-50/60 p-3 md:grid-cols-2">
-                    {group.tabs.map(([key, label]) => {
-                      const visible = tabPreferences[group.id]?.[key] !== false;
-                      return <button key={key} type="button" onClick={() => {
-                        const groupPreferences = { ...tabPreferences[group.id], [key]: !visible };
-                        if (Object.values(groupPreferences).every((value) => !value)) return;
-                        const next = { ...tabPreferences, [group.id]: groupPreferences };
-                        setTabPreferences(next);
-                        writePageTabPreferences(next);
-                        setLastChange(`${group.label} — ${label}: ${groupPreferences[key] ? 'đang hiện' : 'đang ẩn'}.`);
-                      }} aria-pressed={visible} aria-label={`${group.label}, ${label}, ${visible ? 'đang hiện' : 'đang ẩn'}. Nhấn để đổi`} className="flex min-h-11 items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                        <span>{label}</span><span className="text-xs font-semibold text-slate-600">{visible ? 'Đang hiện' : 'Đang ẩn'}</span>
-                      </button>;
-                    })}
-                  </div>
-                </details>
-              );
-            })}
-          </div>
-        </section>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setIsResetConfirmOpen(true)}
+          className="gap-1.5 font-medium"
+        >
+          <RotateCcw size={13} /> Khôi phục mặc định
+        </Button>
       </div>
-    </SectionPanel>
+
+      {lastChange && <p className="sr-only" role="status" aria-live="polite">{lastChange}</p>}
+
+      {/* On-demand Confirmation Dialog (M3.1) */}
+      {isResetConfirmOpen && (
+        <ConfirmDialog
+          open={isResetConfirmOpen}
+          onOpenChange={setIsResetConfirmOpen}
+          title="Khôi phục thiết lập mặc định?"
+          description="Toàn bộ các mục trên menu chính và tất cả tab chức năng sẽ được hiển thị lại đầy đủ."
+          confirmLabel="Khôi phục mặc định"
+          onConfirm={() => {
+            resetAll();
+            setIsResetConfirmOpen(false);
+          }}
+        />
+      )}
+
+      {/* Section 1: Main Navigation Sidebar */}
+      <SectionPanel
+        title="Menu điều hướng chính (Thanh bên trái)"
+        icon={<SlidersHorizontal size={18} />}
+        description="Bật hoặc tắt các khu vực nghiệp vụ hiển thị trên thanh menu chính bên trái màn hình."
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {navigationItems.map((item) => (
+            <NavigationItemCard
+              key={item.key}
+              item={item}
+              visible={preferences[item.key]}
+              onToggle={updateNav}
+            />
+          ))}
+        </div>
+      </SectionPanel>
+
+      {/* Section 2: Page Tabs */}
+      <SectionPanel
+        title="Tab chức năng theo từng trang"
+        icon={<Layers size={18} />}
+        description="Mở từng nhóm trang nghiệp vụ để ẩn/hiện các tab chức năng bên trong."
+        badge={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => toggleAllGroups(!allGroupsExpanded)}
+              className="text-xs text-slate-600"
+            >
+              {allGroupsExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {pageTabGroups.map((group) => (
+            <PageTabGroupCard
+              key={group.id}
+              group={group}
+              groupPreferences={tabPreferences[group.id] ?? {}}
+              isExpanded={!!expandedGroups[group.id]}
+              onToggleExpand={toggleGroupExpand}
+              onToggleTab={updateTab}
+              onShowAllInGroup={showAllTabsInGroup}
+            />
+          ))}
+        </div>
+      </SectionPanel>
+    </div>
   );
 }
