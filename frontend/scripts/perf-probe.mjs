@@ -137,6 +137,7 @@ function initProbe() {
 }
 
 let authState
+let authToken
 const useMockAuth = () => CONFIG.credentials.username === 'admin' && CONFIG.credentials.password === 'admin'
 
 async function bootstrapAuth(browser) {
@@ -157,6 +158,7 @@ async function bootstrapAuth(browser) {
       })
       await page.goto(new URL('/', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
       authState = await context.storageState()
+      authToken = await page.evaluate(() => sessionStorage.getItem('token'))
       return
     }
     if (useMockAuth()) {
@@ -172,6 +174,7 @@ async function bootstrapAuth(browser) {
       page.getByRole('button', { name: 'Đăng nhập' }).click(),
     ])
     authState = await context.storageState()
+    authToken = await page.evaluate(() => sessionStorage.getItem('token'))
   } finally {
     await context.close()
   }
@@ -184,6 +187,9 @@ async function newColdPage(browser, viewport) {
     storageState: authState,
   })
   const page = await context.newPage()
+  await page.addInitScript((token) => {
+    if (token) sessionStorage.setItem('token', token)
+  }, authToken)
   if (useMockAuth()) await page.route('**/api/auth/profile', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({
       success: true, data: {
