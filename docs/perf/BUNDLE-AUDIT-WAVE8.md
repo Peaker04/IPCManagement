@@ -99,3 +99,22 @@ safe optimization for this graph.
   use a verified dynamic reducer/endpoint registration seam), then compare a
   clean manifest and route closure. Accept a candidate only when the entry and
   affected route closures both decrease and public/cache tests remain green.
+
+## Wave 9 result — auth timeout dialog split (2026-08-21)
+
+`SessionTimeoutModal` was an eager `AppRouter` import even though it only becomes
+useful after session expiry. Loading it through a `Suspense` boundary moves its
+Base UI dialog/floating runtime to a separate emitted chunk. A clean build
+reduced the shared entry from about **141.5 KiB** to **128.8 KiB gzip** and
+reduced every measured route by roughly 12–13 KiB. Route budgets still fail,
+which is expected: the remaining shared API/UI closure is larger than the
+existing thresholds.
+
+Wave 9 checklist:
+
+- [x] No threshold or cache identity change.
+- [x] Production build passes.
+- [x] Lint, dependency-cruiser and workflow API boundary pass.
+- [x] Route contract tests pass (3 files / 12 tests).
+- [ ] Full unit suite: runner timed out after 64 seconds; rerun before wave close.
+- [ ] Stage only the lazy-load hunk; `AppRouter.tsx` contains unrelated working-tree edits.
