@@ -11,9 +11,10 @@ const ready = (overrides: Partial<Extract<QueryView<unknown>, { phase: 'ready' }
   ...overrides,
 })
 
-const renderBoundary = (views: QueryView<unknown>[], preserveFallback = false) => render(
+const renderBoundary = (views: QueryView<unknown>[], preserveFallback = false, noticePlacement: 'inline' | 'overlay' = 'inline') => render(
   <QueryViewBoundary
     preserveFallback={preserveFallback}
+    noticePlacement={noticePlacement}
     queries={views.map((view, index) => ({ label: `nguồn ${index + 1}`, view }))}
   >
     <div>Kết quả điều phối</div>
@@ -79,5 +80,12 @@ describe('QueryViewBoundary', () => {
     renderBoundary([{ phase: 'error', message: 'Lỗi tải.', retry: vi.fn(), isRetrying: false }], true)
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
     expect(screen.getByText(/Lỗi tải/)).toBeInTheDocument()
+  })
+
+  it('supports overlay notices without changing the fallback flow', () => {
+    renderBoundary([{ phase: 'error', message: 'Lỗi overlay.', retry: vi.fn(), isRetrying: false }], true, 'overlay')
+    expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
+    expect(screen.getByText(/Lỗi overlay/)).toBeInTheDocument()
+    expect(screen.getByRole('alert').parentElement?.parentElement).toHaveClass('absolute')
   })
 })
