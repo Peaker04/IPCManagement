@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { PurchaseOrderLineDto } from '@/api/workflowApi';
 import { Button } from '@/components/ui/button';
+import { TableViewport } from '@/components/common';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
@@ -53,6 +54,7 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
           <span className="relative block"><Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" /><Input id="purchase-order-line-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 bg-white pl-9" /></span>
         </label>
       </div>
+      <TableViewport ariaLabel="Nhóm dòng đơn mua chờ nhập kho" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để kiểm tra và ghi nhận nhập kho.">
       <table className="ipc-data-table min-w-[900px]">
         <thead><tr><th>Nguyên liệu</th><th>Đã nhận / đặt</th><th>Đơn giá đặt</th><th>Bằng chứng bắt buộc</th><th>Thao tác</th></tr></thead>
         <tbody>
@@ -80,6 +82,7 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
           })}
         </tbody>
       </table>
+      </TableViewport>
     </>
   );
 }

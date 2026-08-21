@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -32,5 +32,23 @@ describe('table contracts', () => {
       expect(contract.primaryStatus).not.toBe('');
       expect(existsSync(resolve(process.cwd(), '..', contract.file))).toBe(true);
     }
+  });
+
+  it('does not introduce direct production tables outside the canonical viewport primitives', () => {
+    const sourceRoot = resolve(process.cwd(), 'src');
+    const directTables: string[] = [];
+    const visit = (directory: string) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = resolve(directory, entry.name);
+        if (entry.isDirectory()) { visit(path); continue; }
+        if (!entry.name.endsWith('.tsx') || path.replaceAll('\\', '/').endsWith('components/ui/table.tsx')) continue;
+        const source = readFileSync(path, 'utf8');
+        if (/<table\b/.test(source) && !/TableViewport|DataTableShell|PaginatedTableFrame|CursorPaginationBar/.test(source)) {
+          directTables.push(path.replace(`${resolve(process.cwd(), '..')}\\`, ''));
+        }
+      }
+    };
+    visit(sourceRoot);
+    expect(directTables).toEqual([]);
   });
 });

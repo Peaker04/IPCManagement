@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
 import { Button } from '@/components/ui/button';
+import { TableViewport } from '@/components/common';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 
@@ -71,6 +72,7 @@ export function PurchaseLineGroups({
           </span>
         </label>
       </div>
+      <TableViewport ariaLabel="Nhóm dòng nguyên liệu cần mua" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để xử lý từng dòng chứng từ.">
       <table className="ipc-data-table min-w-[900px] table-fixed">
         <thead>
           <tr>
@@ -128,6 +130,7 @@ export function PurchaseLineGroups({
           })}
         </tbody>
       </table>
+      </TableViewport>
     </>
   );
 }
