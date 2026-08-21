@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
+import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
 import { TableViewport } from '@/components/common';
 import { Input } from '@/components/ui/input';
