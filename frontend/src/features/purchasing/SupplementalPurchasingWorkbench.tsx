@@ -5,13 +5,9 @@ import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
-import {
-  useGetPurchaseOrdersQuery,
-  useGetPurchaseRequestsQuery,
-  useGetSupplementalMaterialRequestsQuery,
-  type PurchaseRequestWorkflowLine,
-  type PurchaseWorkbenchServiceDate,
-} from '@/api/workflowApi';
+import { useGetPurchaseOrdersQuery, useGetPurchaseRequestsQuery } from '@/features/purchasing/purchasingApi';
+import { useGetSupplementalMaterialRequestsQuery } from '@/features/warehouse/warehouseApi';
+import type { PurchaseRequestWorkflowLine, PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from './PurchaseDecisionPanel';
 import type { PurchasingStageId } from './purchasingModel';
 
