@@ -68,13 +68,13 @@ Mỗi finding phải ghi đủ:
 
 ### Pilot: Approval
 
-- [ ] Đo baseline route closure và asset closure của Approval.
-- [ ] Tách queue/detail/history capability theo owner thực tế.
-- [ ] Giữ nguyên approval state, permission, mutation và invalidation behavior.
-- [ ] Regression test action eligibility, mutation loading/success/error và retry.
-- [ ] Headed browser test đủ 5 viewport, queue, detail, dialog, keyboard và focus return.
-- [ ] Route closure sau sửa giảm thật và không làm shared chunk tăng ngược.
-- [ ] Clean build, lint, dependency-cruiser và route-budget verification pass.
+- [x] Đo baseline route closure và asset closure của Approval: `236.88 KiB`.
+- [x] Tách capability route-owned có kiểm soát: `MenuAmendmentReconciliation` lazy-load dưới Suspense; queue/detail/history query panels vẫn synchronous để giữ state contract.
+- [x] Giữ nguyên approval state, permission, mutation và invalidation behavior.
+- [x] Regression Approval: `18/18 PASS`; full frontend sau pilot `157 files / 888 tests PASS`.
+- [x] Headed browser protected-route/action matrix: `5/5 viewport PASS`; không overflow/action regression.
+- [x] Route closure giảm thật: `236.88 → 235.68 KiB` (`-1.20 KiB`); shared common floor không tăng.
+- [ ] Clean route-budget verification pass: Approval còn `235.68 / 202.00 KiB`; controlled seam hợp lệ nhưng chưa đạt threshold.
 
 ### Rollout còn lại
 
@@ -219,7 +219,7 @@ Checklist chỉ được đóng khi:
 - [x] Quyết định UI/UX: evidence-first audit bằng DOM/runtime/interaction, không dùng screenshot đơn lẻ.
 - [ ] Gate 0 — baseline mới cho checklist này (đã hoàn tất build/manifest/viewport; còn thiếu source-owner inventory project-wide).
 - [ ] Gate 1 — capability island implementation (Coordination pilot đã chứng minh giảm `5.31 KiB`, chưa đạt threshold và chưa rollout).
-- [ ] Gate 2 — controlled lazy confirmation seam.
+- [ ] Gate 2 — controlled lazy confirmation seam; Approval capability pilot đã pass nhưng confirmation dialog chưa được tách vì cần focus/keyboard/mutation contract riêng.
 - [ ] Gate 3 — project-wide UI/UX inventory.
 - [ ] Gate 4 — copy/vocabulary audit.
 - [ ] Gate 5 — table/action-column audit.

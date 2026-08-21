@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -33,8 +33,9 @@ import {
   PurchaseRequestHistoryState,
   WorkflowDocumentsState,
 } from './ApprovalQueryPanels';
-import { MenuAmendmentReconciliation } from '../components/MenuAmendmentReconciliation';
 import { visibleTabIds } from '@/lib/navigationPreferences';
+
+const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -318,7 +319,9 @@ export default function ApprovalPage() {
 
       <div className="flex-1 min-h-0 flex flex-col">
         <KeepAliveTabPanel id="approval-queue" active={activeView === 'queue'}>
-          <MenuAmendmentReconciliation />
+          <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <MenuAmendmentReconciliation />
+          </Suspense>
           <SplitWorkbench
             detailLabel="Chứng từ"
             detailClassName="flex-1 min-h-0"
