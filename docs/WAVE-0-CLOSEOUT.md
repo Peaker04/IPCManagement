@@ -1,6 +1,6 @@
 # Wave 0 closeout — inventory và table contract
 
-Ngày: 2026-08-21  
+Ngày: 2026-08-21
 Commits: `d9edd6d5`, `ceb5ab7c`, `be307c90`
 
 ## Scope delivered
@@ -37,4 +37,3 @@ Exception này không làm mất tính đúng của artifact Wave 0 vì mọi co
 - Wave 1 không được phụ thuộc vào việc sửa hai file exception.
 - Nếu Wave 1 chạm vào `ApprovalRulesPage.tsx` hoặc `GLOSSARY.md`, phải xử lý whitespace exception trong cùng commit và chạy lại repo-wide check.
 - Mọi table contract mới phát hiện trong Wave 1 phải cập nhật `table-contracts.json` và test trước khi merge.
-
