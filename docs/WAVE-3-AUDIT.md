@@ -23,6 +23,7 @@ Status: **IN PROGRESS — pagination implementation landed; runtime/data evidenc
 - [x] Preview runtime load probe executed for `reports-data-quality` under H.1 throttle: `t0=7650.7ms`, `tsettled=8538.3ms`, `deltaTop=0`, `CGR=0/900`, `scroll growth=0/102`, `CLS window=0.0025`, `rowsSkeletonAtT0=0`, integrity violations=0. Evidence: `frontend/artifacts/perf-probe-report.{json,md}`.
 - [x] Probe confirms the bundle mounts and settles even while the API proxy is unavailable; proxy refusal is recorded separately and is not misclassified as a UI pass.
 - [ ] Query projection and response size are measured on a multi-year fixture.
+- [x] Authenticated rerun after cell clamping reduced settled row heights to a uniform ~130px and `scrollHeight` to 1076px; growth ratio improved from 1.6781 to 1.4566 but remains above the 0.5 gate.
 - [ ] DTO null/date/timezone semantics are covered by a regression test.
 - [ ] Detail/rollback action preserves list context after refetch.
 
