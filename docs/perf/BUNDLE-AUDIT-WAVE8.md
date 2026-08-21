@@ -524,6 +524,43 @@ Wave 38 checklist:
   contract fixtures fail on `MaterialDemandSection.tsx` baseline/range checks.
 - [x] Atomic commit: `5d789e6c`.
 
+## Wave 39 candidate disposition — split workbench accepted (2026-08-21)
+
+Source-aware import inspection found `SplitWorkbench` in three routes (Chef,
+Approval and Warehouse) and `DocumentRail` in four routes (Chef, Approval,
+Warehouse and Weekly Menu). Both candidates were measured independently against
+a fresh production-build baseline; no interface, behavior, RTK Query topology or
+budget threshold changed.
+
+Accepted `SplitWorkbench` result:
+
+- `common` chunk: **51.76 → 51.63 KiB gzip** (`-0.13 KiB`).
+- Dashboard: **229.99 → 229.89 KiB**; Weekly Menu: **291.41 → 291.31 KiB**.
+- Chef: **271.42 → 271.62 KiB**; Approval: **236.97 → 237.15 KiB**;
+  Warehouse: **274.09 → 274.26 KiB**.
+- The ten-route closure total improved by **0.18 KiB**. Small consumer-route
+  duplication did not make the aggregate result worse.
+
+Rejected `DocumentRail` result:
+
+- Although the combined prototype reduced `common` to **50.72 KiB gzip**, its
+  four consumer routes increased by about **0.77–1.14 KiB** each.
+- Incrementally over the accepted `SplitWorkbench` seam, the ten-route total
+  worsened by about **0.31 KiB**. Its barrel export and consumer imports were
+  therefore restored with a controlled patch.
+
+Wave 39 checklist:
+
+- [x] Candidate imports/re-exports and true route consumers inspected.
+- [x] One RTK Query reducer, middleware and cache identity preserved.
+- [x] Production build, ESLint and dependency-cruiser pass (`423 modules / 1593 dependencies`).
+- [x] Targeted regression: **4 files / 40 tests passed**.
+- [x] Full suite: **155 files / 886 tests passed**, with exactly two known
+  dirty-scope `MaterialDemandSection.tsx` fixture failures; full suite is not
+  reported as PASS.
+- [x] Route-budget thresholds unchanged; gate remains **RED for all 10 routes**.
+- [x] Atomic code commit: `171e00e6`.
+
 ## Wave 34 completion audit against the cleanup objective (2026-08-21)
 
 | Objective requirement | Evidence | Status |

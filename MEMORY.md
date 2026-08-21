@@ -131,6 +131,12 @@ Giữ scope này chưa import để Kỳ tự chạy demo. Trước buổi demo 
   Coordination `44,69 KiB`, Approval `36,56 KiB`, Dashboard `34,99 KiB`; trace cho thấy shared app chunk
   `139,21 KiB gzip` và shared RTK/query chunk `30,37 KiB gzip` là common cost. Không nâng budget; tiếp theo
   phân tích/split lowest shared owner, rồi production-build headed read-only trên `3036/8036` theo F12–F24.
+- Route-budget Wave 39 đã đóng tại code `171e00e6`: `SplitWorkbench` rời common barrel sang direct leaf import
+  cho Chef/Approval/Warehouse; common **51,76 → 51,63 KiB gzip**, tổng mười route closure cải thiện **0,18 KiB**.
+  `DocumentRail` bị loại vì prototype làm tổng closure xấu thêm khoảng **0,31 KiB** và đã được hoàn nguyên có
+  kiểm soát. Build/lint/depcruise và targeted **40/40** pass; full suite **155 file/886 test pass** nhưng vẫn có
+  đúng hai dirty-scope failure ở `MaterialDemandSection`, nên không khai full PASS. Route-budget vẫn RED 10/10,
+  threshold và RTK Query cache identity không đổi. Wave kế tiếp phải chọn seam nhỏ mới bằng source-aware evidence.
 
 - Phase 3 Wave 2 checkpoint ngày 14/08: cả hai table primitive (`.ipc-data-table` và shadcn `Table`) nay dùng
   fixed layout; hai bảng từng đứng ngoài primitive (đối soát amendment, báo giá NCC) đã nhập shared contract.
