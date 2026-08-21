@@ -326,7 +326,16 @@ async function runInteraction(browser, target, interaction) {
     await openTarget(page, target); await sampleT0(page, target); await sampleSettled(page, target)
     await page.evaluate(() => { window.__probe.events.length = 0 })
     if (interaction.selector) {
-      const locator = page.locator(interaction.selector)
+      // Tab switching and global navigation belong to the route shell; all
+      // other interactions must resolve inside the active target panel so a
+      // warehouse search or row action cannot accidentally measure a sibling
+      // table that happens to render earlier in the DOM.
+      const interactionRoot = interaction.id === 'tab-switch' || interaction.id === 'sidebar-toggle'
+        ? page
+        : target.tab
+          ? page.locator(`#${target.tab}-panel`)
+          : page.locator('.ipc-content-shell')
+      const locator = interactionRoot.locator(interaction.selector)
       if (!await locator.count()) return { na: `selector không khớp: ${interaction.selector}` }
       if (!await locator.first().isVisible()) return { na: `phần tử không hiển thị: ${interaction.selector}` }
       if (interaction.action === 'type') { await locator.first().click(); await locator.first().type('a') } else await locator.first().click()
