@@ -114,7 +114,7 @@ Giữ scope này chưa import để Kỳ tự chạy demo. Trước buổi demo 
 
 ## Còn mở
 
-- Chuỗi chuẩn hóa bảng dùng `docs/TABLE-STANDARDIZATION-ROADMAP.md` làm contract thứ tự Wave 0–8 và checklist đóng wave; current execution đang ở Wave 3 (ledger/document dài hạn). Import-history đã batch rollback eligibility theo page (4 query cố định) và FE đã truyền active customer scope/reset page khi scope đổi. Wave 3 chưa đóng vì fixture nhiều năm, DTO date/timezone, list-context sau detail/rollback và consumer scan ledger còn mở. `docs/CODE-CLEANUP-INVENTORY.md` giữ candidate dead/unwired; hai script chưa có consumer (`generate-status-tokens.mjs`, `measure-ultimate-baseline.mjs`) chỉ ở trạng thái REVIEW, không được chạy/xoá/commit đoán mò trong dirty worktree.
+- Chuỗi chuẩn hóa bảng dùng `docs/TABLE-STANDARDIZATION-ROADMAP.md` làm contract thứ tự Wave 0–8 và checklist đóng wave; current execution đang ở Wave 3 (ledger/document dài hạn). Import-history đã batch rollback eligibility theo page (4 query cố định), FE đã truyền active customer scope/reset page khi scope đổi, và regression khóa date window inclusive qua 2023→2030. Wave 3 chưa đóng vì DTO date/timezone, list-context sau detail/rollback và consumer scan ledger còn mở. `docs/CODE-CLEANUP-INVENTORY.md` giữ candidate dead/unwired; hai script chưa có consumer (`generate-status-tokens.mjs`, `measure-ultimate-baseline.mjs`) chỉ ở trạng thái REVIEW, không được chạy/xoá/commit đoán mò trong dirty worktree.
 
 - UI Phase 3 `Project-wide Human UI and Refresh Stability` đã mở trong workstream
   `dashboard-ui-rules-conformance`. Wave 1 commit `c9147a00` khóa inventory test-owned hiện hành:
