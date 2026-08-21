@@ -23,8 +23,8 @@ import {
   TableViewport,
   SectionPanel,
   StatusBadge,
-  StockMovementTable,
 } from '@/components/common';
+import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/routeConfig';
 import { useHasPermission } from '@/lib/useHasPermission';

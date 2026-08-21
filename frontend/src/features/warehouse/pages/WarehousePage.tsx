@@ -15,10 +15,10 @@ import {
   SectionPanel,
   SplitWorkbench,
   StatusBadge,
-  StockMovementTable,
   TableViewport,
   ViewSwitcher,
 } from '@/components/common';
+import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ROUTES } from '@/lib/routeConfig';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
