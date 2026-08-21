@@ -264,6 +264,20 @@ Wave 17 checklist:
 - [x] No route threshold, cache, or API-slice changes.
 - [x] Atomic commit: `18c2972b`.
 
+## Wave 18 closure — narrow coordination feature barrel (2026-08-21)
+
+Only the `coordinationReducer` barrel export has repository consumers (store and
+route guard tests). The wildcard re-exports of slice actions, API endpoints and
+types were unused; those modules remain available through their canonical leaf
+paths and the feature barrel now exposes only the reducer contract.
+
+Wave 18 checklist:
+
+- [x] Build, lint and dependency-cruiser pass (`431 modules / 1602 dependencies`).
+- [x] Route guard regression: `1 file / 5 tests passed`.
+- [x] Entry remains **98.25 KiB gzip**; no route/cache/API-slice policy changes.
+- [x] Atomic commit: `acddf56a`.
+
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
 
 The shared-barrel cleanup chain was rerun against the complete frontend unit
