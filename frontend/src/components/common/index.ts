@@ -28,6 +28,7 @@ export { DemandSummary } from './DemandSummary';
 export { DocumentRail } from './DocumentRail';
 export { StockMovementTable } from './StockMovementTable';
 export { ViewSwitcher } from './ViewSwitcher';
+export { KeepAliveTabPanel } from './KeepAliveTabPanel';
 export { ToastProvider } from './ToastProvider';
 export { ActionGuard } from './ActionGuard';
 export { ServiceRunBlockerPanel, ServiceRunTrackPanel } from './ServiceRunBlockerPanel';
