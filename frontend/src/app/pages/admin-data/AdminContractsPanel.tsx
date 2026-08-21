@@ -210,8 +210,8 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                       {customerContracts.length === 0 ? <EmptyRow colSpan={7} /> : customerContracts.map((contract) => (
                         <tr key={contract.customerId}>
                           <td>
-                            <div className="font-semibold text-slate-900">{contract.customerCode}</div>
-                            <div className="text-xs text-slate-500">{contract.customerName}</div>
+                            <div className="font-semibold text-slate-900">{contract.customerName}</div>
+                            <div className="text-xs text-slate-500">Mã {contract.customerCode}</div>
                           </td>
                           <td>{contract.activeWeekDays.join(', ') || '-'}</td>
                           <td>{contract.shiftNames.map(formatShiftName).join(', ') || '-'}</td>

@@ -71,4 +71,11 @@ describe('AdminContractsPanel select labels', () => {
     expect(screen.getByText('Không giới hạn')).toBeInTheDocument();
     expect(screen.getAllByText('100%', { exact: true })).toHaveLength(1);
   });
+
+  it('puts the customer name before its technical identifier in the master table', async () => {
+    const source = await import('./AdminContractsPanel.tsx?raw');
+    const text = source.default as string;
+    expect(text.indexOf('{contract.customerName}')).toBeLessThan(text.indexOf('Mã {contract.customerCode}'));
+    expect(text).not.toContain('<div className="font-semibold text-slate-900">{contract.customerCode}</div>');
+  });
 });

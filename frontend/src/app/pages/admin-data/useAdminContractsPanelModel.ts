@@ -222,7 +222,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
 
   const handleUpdateScheduleVersion = async (status: string) => {
     if (!selectedSchedule) {
-      setContractFeedback({ type: 'error', message: 'Chưa chọn lịch thực đơn để cập nhật version.' });
+      setContractFeedback({ type: 'error', message: 'Chưa chọn lịch thực đơn để cập nhật phiên bản.' });
       return;
     }
     const body: UpdateMenuScheduleVersionRequest = {
@@ -235,7 +235,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
       setScheduleRuleForm((prev) => ({ ...prev, status }));
       setContractFeedback({ type: 'success', message: `Đã chuyển trạng thái phiên bản thực đơn thành ${formatMenuVersionStatus(status)}.` });
     } catch (error) {
-      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được version thực đơn.') });
+      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được phiên bản thực đơn.') });
     }
   };
 
