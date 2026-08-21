@@ -19,7 +19,6 @@ export { SideRail } from './SideRail';
 export { SplitWorkbench } from './SplitWorkbench';
 export { StatCard } from './StatCard';
 export { StatusBadge } from './StatusBadge';
-export { SwimlaneProgress } from './SwimlaneProgress';
 export { Toolbar } from './Toolbar';
 export { WorkQueue } from './WorkQueue';
 export { RoleInbox } from './RoleInbox';
