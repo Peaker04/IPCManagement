@@ -278,6 +278,21 @@ Wave 18 checklist:
 - [x] Entry remains **98.25 KiB gzip**; no route/cache/API-slice policy changes.
 - [x] Atomic commit: `acddf56a`.
 
+## Wave 19 closure — full regression and boundary inventory (2026-08-21)
+
+After the shared-barrel and feature-barrel reductions, the complete frontend
+unit suite was rerun. Remaining feature barrels are now intentional contracts:
+`auth` exposes selectors/login primitives used by shell/guards, and
+`coordination` exposes only the reducer used by store/guards. Chef has no barrel
+because all consumers use explicit leaf imports.
+
+Wave 19 checklist:
+
+- [x] Full unit suite: **158 files / 891 tests passed** in 251.06s.
+- [x] Prior build, lint and dependency-cruiser gates remain green.
+- [x] No unverified wildcard feature barrel remains in the audited scope.
+- [x] No route-budget, cache, API-slice, or threshold changes.
+
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
 
 The shared-barrel cleanup chain was rerun against the complete frontend unit
