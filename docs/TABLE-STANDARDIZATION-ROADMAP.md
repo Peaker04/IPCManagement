@@ -1,0 +1,186 @@
+# Roadmap chuẩn hóa bảng toàn dự án
+
+Ngày lập: 2026-08-21  
+Phạm vi chuẩn: `docs/table-contracts.json` và `docs/TABLE-INVENTORY.md`.  
+Rule chuẩn: `docs/DASHBOARD-UI-RULES.md`, `docs/GLOSSARY.md`, `docs/DATA-GRAIN-MATRIX.md`.
+
+## Mục tiêu và nguyên tắc điều phối
+
+Roadmap này là nơi duy nhất khai trạng thái và thứ tự wave. Các file `WAVE-*-AUDIT.md` giữ finding và evidence chi tiết, không tự mở hoặc đóng wave.
+
+Mỗi bảng phải được xử lý theo grain và mục đích nghiệp vụ, không áp một cấu hình chung cho mọi loại dữ liệu. Một wave chỉ được đóng khi:
+
+1. toàn bộ surface trong scope có disposition `KEEP`, `CHANGE`, `REMOVE` hoặc `DEFER` có owner và lý do;
+2. ảnh hưởng kéo theo tới query, API, cache, pagination, export, permission, route, test và tài liệu đã được xử lý hoặc ghi thành blocker của chính wave;
+3. code/component/export/fixture/style/script bị thay thế đã có consumer proof trước khi xoá;
+4. code mới có consumer production hoặc test contract rõ ràng, không để trạng thái “đã viết nhưng chưa gắn”;
+5. build/test/source scan và runtime gate phù hợp đều có evidence.
+
+`DEFER` không được dùng để đóng wave nếu hạng mục đó là điều kiện đúng của chính scope. Hạng mục chỉ được chuyển wave khi wave nhận đã tồn tại trong bảng phụ thuộc bên dưới và có tiêu chí nhận cụ thể.
+
+## Trạng thái wave
+
+| Wave | Phạm vi | Trạng thái | Điều kiện đi tiếp |
+| --- | --- | --- | --- |
+| 0 | Inventory, grain, owner, row key, pagination contract | CLOSED | Contract source-backed và inventory không orphan |
+| 1 | Primitive, density, skeleton, viewport, ownership migration | CLOSED | Không còn direct production table ngoài canonical viewport; legacy selector đã disposition |
+| 2 | Action queue và exception workbench | CLOSED | Eligibility/action/status owner rõ; bảng chất lượng đã rút gọn |
+| 3 | Ledger, document và dữ liệu lưu nhiều năm | IN PROGRESS | Import history/ledger có server boundary, date semantics và context-preserving detail |
+| 4 | Master/reference và document master-detail | NOT STARTED | Effective range, history, permission và detail layout đúng grain |
+| 5 | Aggregate/report/KPI và loại bỏ duplicate thông tin | NOT STARTED | Không KPI/bảng/cột lặp cùng fact; drill-down giữ nguồn |
+| 6 | FE↔BE↔DB cho dữ liệu dài hạn | NOT STARTED | Query projection, index, paging/cursor, DTO/date/unit và payload budget có số đo |
+| 7 | Geometry, loading stability, INP, overflow trên toàn inventory | NOT STARTED | Probe đủ route/tab/surface; row token, CLS/CGR/INP/overflow đạt, integrity sạch |
+| 8 | Dead/unwired code, regression toàn dự án và closeout | NOT STARTED | Zero orphan không disposition; full gate và docs trạng thái thống nhất |
+
+## Wave 3 — Ledger và document dài hạn
+
+Áp dụng cho audit event, stock movement, import history, receipt/issue/PO history và các bảng chứng từ có retention nhiều năm.
+
+### Cách xử lý
+
+- Dùng server cursor/page theo thứ tự ổn định; không tải toàn bộ rồi phân trang ở FE.
+- Mọi row key là document/source-line/event ID, không dùng tên hay index.
+- Có time range và timezone semantics rõ; sort phải deterministic khi timestamp trùng.
+- List chỉ giữ trường quyết định; payload/audit diff dài đi vào detail/drawer có bounded scroll.
+- Reload/refetch giữ filter, cursor/list context và không làm biến mất hàng cũ trong background fetch.
+
+### Checklist đóng Wave 3
+
+- [x] Canonical viewport và stable row key cho surface đã audit.
+- [x] Import history có server page/date/customer boundary.
+- [x] Probe bảng chất lượng xác nhận hàng `48→53px`, growth `0.0913`, không đổi ngưỡng.
+- [ ] Fixture nhiều năm chứng minh query/payload không tăng tuyến tính theo tổng lịch sử.
+- [ ] DTO null/date/timezone có regression.
+- [ ] Detail/rollback quay lại đúng filter/page/cursor sau refetch.
+- [ ] Mỗi ledger surface trong contract có retention và pagination disposition được kiểm chứng từ source.
+- [ ] Consumer scan cho shared movement/import components; export hoặc fixture cũ được giữ/xoá có bằng chứng.
+
+## Wave 4 — Master/reference và master-detail
+
+Áp dụng cho BOM, nhân viên, hợp đồng, báo giá, catalog và document header/line.
+
+### Cách xử lý
+
+- Tên người dùng đọc đứng trước mã; metadata phụ không thành cột riêng nếu không phục vụ sort/filter/action.
+- Effective range, active state và approval state không trộn thành một trạng thái.
+- Header và line dùng master-detail; không nhân header facts trên mọi dòng.
+- Action phải theo permission/eligibility từ owner; modal/drawer không tạo máy trạng thái song song.
+
+### Checklist đóng Wave 4
+
+- [ ] Mọi master/reference contract có natural label, stable ID và effective-range disposition.
+- [ ] Duplicate header facts đã chuyển khỏi line table hoặc có lý do giữ.
+- [ ] Edit/detail action giữ list context và focus return.
+- [ ] Permission, empty/loading/error và optimistic/refetch state có regression.
+- [ ] Component/form/style cũ bị thay thế đã source-scan và xoá cùng consumer cuối.
+
+## Wave 5 — Aggregate, report và duplicate thông tin
+
+Áp dụng cho KPI, demand/cost/purchase summary, statistics và các góc nhìn báo cáo.
+
+### Cách xử lý
+
+- Một fact chỉ có một vị trí chính; KPI không lặp lại nguyên bảng nếu không thêm quyết định.
+- Tổng hợp luôn có grain/time scope/unit và drill-down về source ID.
+- Các góc nhìn chỉ đổi tham số được biểu diễn bằng filter/combobox, không tạo technical nested tab.
+- Danh sách mục tiêu 5–7 cột; secondary text/tooltip/detail dùng cho thông tin bổ trợ.
+
+### Checklist đóng Wave 5
+
+- [ ] Ma trận `fact → KPI/table/detail` không có duplicate không chủ đích.
+- [ ] Aggregate không double-count và không trộn day/week/snapshot/source-line grain.
+- [ ] Unit/currency/date format thống nhất FE và export.
+- [ ] Mọi technical tab/view còn lại đã giữ hoặc loại bằng phân tích nghiệp vụ.
+- [ ] Report query/cache key đổi góc nhìn không trả stale data.
+
+## Wave 6 — Truyền dữ liệu dài hạn FE↔BE↔DB
+
+Wave này chỉ sửa cross-stack khi evidence ở Wave 3–5 chứng minh vấn đề không thể giải quyết đúng ở presentation.
+
+### Cách xử lý theo lớp
+
+| Lớp | Bắt buộc kiểm | Không được làm |
+| --- | --- | --- |
+| DB | index theo filter/sort thực, keyset order, query plan, retention | thêm index đoán mò hoặc đổi grain |
+| BE | projection tối thiểu, server filter/sort/page, cancellation, deterministic order | trả entity graph đầy đủ rồi cắt ở FE |
+| API/DTO | page metadata/cursor, null/date/unit semantics, payload budget | overload một field cho nhiều nghĩa |
+| FE | stable args/cache key, giữ previous data, bounded render, exact invalidation | client-side pagination trên tập nhiều năm |
+
+### Checklist đóng Wave 6
+
+- [ ] Query plan và response bytes đo trên fixture nhiều năm.
+- [ ] Page/cursor không duplicate/missing row khi dữ liệu mới được chèn.
+- [ ] API contract, OpenAPI và FE type đồng bộ.
+- [ ] Filter/sort/export dùng cùng semantics.
+- [ ] Không N+1, overfetch entity graph hoặc cache key thiếu scope.
+- [ ] Regression nối DB result → API payload → FE row/count.
+
+## Wave 7 — Runtime geometry và performance
+
+Chạy production build dưới H.1 cho toàn bộ route/tab/table contract, không chỉ ba route mẫu.
+
+### Checklist đóng Wave 7
+
+- [ ] Mỗi contract có ít nhất loading và ready measurement; empty/error cho owner conditional.
+- [ ] Skeleton count/cột/density khớp ready table; hàng settled không vượt token density.
+- [ ] Probe in selector và mẫu số cho mọi tỷ lệ; missing anchor/data trả `N/A` có lý do.
+- [ ] CLS, CGR, scroll growth, INP decomposition và overflow đạt ngưỡng canonical.
+- [ ] Desktop viewport matrix đúng `MEMORY.md`; screenshot chỉ là reviewer artifact.
+- [ ] Request, console/page error, long task và final DOM JSON được lưu.
+- [ ] Không sửa threshold hoặc thêm khoảng trắng/chiều cao giả để làm gate xanh.
+
+## Wave 8 — Dead/unwired cleanup và closeout
+
+Cleanup diễn ra trong từng wave; Wave 8 là sweep cuối, không phải nơi dồn nợ.
+
+### Phân loại bắt buộc
+
+| Loại | Proof để `REMOVE` | Nếu còn nghi ngờ |
+| --- | --- | --- |
+| Component/hook | zero import, zero lazy/registry/string consumer, build/test pass | `KEEP-REVIEW` kèm owner |
+| Export | zero import từ barrel và direct path | giữ cho tới khi source-aware scan đủ |
+| CSS selector/token | zero JSX/class/string/generated consumer và visual gate pass | không xoá bằng grep đơn lẻ nếu class sinh động |
+| Route/tab/permission token | không còn registry, deep-link, preference, test fixture hoặc BE contract | xử lý cùng mọi consumer, không xoá riêng UI |
+| Script/config | không có package/CI/docs/manual invocation và có replacement | ghi replacement command trước khi xoá |
+| Test fixture/mock | không được discovery/import và không còn khóa contract hiện hành | cập nhật inventory/count-lock cùng commit |
+| Code đã viết chưa gắn | có contract cần dùng thì wire + test; không có contract thì remove | không giữ vì “có thể dùng sau” |
+
+### Checklist đóng Wave 8
+
+- [ ] Source-aware unused scan có disposition cho mọi candidate.
+- [ ] Dependency-cruiser/build/lint/test discovery không báo orphan mới.
+- [ ] Route/tab/preference/permission/API/cache literals khớp source hiện hành.
+- [ ] Không còn file mới chưa tracked thuộc production scope.
+- [ ] Repository `git diff --check`, secret/stub scan và full regression pass.
+- [ ] Runtime probe Wave 7 vẫn pass sau cleanup.
+- [ ] `MEMORY.md`, history, evidence index và audit docs không mâu thuẫn.
+
+## Gate ảnh hưởng kéo theo giữa các wave
+
+Trước mỗi commit và trước khi đóng wave, điền đủ bảng sau trong audit của wave:
+
+| Hạng mục thay đổi | Consumers/callers | API/cache/DB | Route/permission | Test/fixture | Docs/evidence | Kết quả |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<file/symbol/contract>` | paths đã kiểm | affected/N/A | affected/N/A | paths đã cập nhật | paths/artifact | handled/blocker |
+
+Quy tắc chuyển wave:
+
+- Wave sau chỉ nhận một finding nếu finding có ID, owner, source evidence, tiêu chí hoàn tất và regression cần chạy.
+- Nếu thay đổi làm phát sinh lỗi ở surface ngoài scope nhưng cùng shared owner, surface đó nhập vào wave hiện tại.
+- Nếu lỗi chỉ lộ ra ở lớp khác nhưng quyết định đúng phụ thuộc grain/contract hiện tại, dừng đóng wave và xử lý cross-stack trong cùng wave hoặc kích hoạt Wave 6 với finding cụ thể.
+- Không đánh dấu `PASS` từ build riêng, API riêng hoặc screenshot riêng.
+
+## Lệnh gate tối thiểu
+
+Chạy từ root, điều chỉnh focused suite theo file đã chạm:
+
+```powershell
+node frontend/scripts/perf-probe.mjs --check
+npm run test:unit -w frontend -- --run tests/tableContracts.test.ts
+npm run depcruise -w frontend
+npm run lint -w frontend
+npm run build -w frontend
+git diff --check
+```
+
+Runtime/browser và backend regression được bổ sung theo checklist của wave; các lệnh tối thiểu trên không thay thế chúng.

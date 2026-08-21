@@ -28,4 +28,4 @@ Approval reconciliation, warehouse exception queues, report data-quality issues 
 
 ## Go/no-go
 
-Wave 3 may start. No unowned action-queue component or direct-table consumer remains in the audited scope. Runtime throttled probe is deferred to Wave 7 because the standalone probe is not present in this repository.
+Wave 3 may start. No unowned action-queue component or direct-table consumer remains in the audited scope. Runtime matrix đầy đủ vẫn thuộc Wave 7; probe hiện hành đã được tích hợp tại `frontend/scripts/perf-probe.mjs` và lần đo owner-local mới nhất được ghi trong `docs/WAVE-3-AUDIT.md`.

@@ -3,6 +3,8 @@
 Ngày chụp: 2026-08-21
 Phạm vi: `frontend/src/**/*.tsx`; bảng được nhận diện bằng phần tử `<table>` trong production source.
 
+Roadmap và trạng thái wave: `docs/TABLE-STANDARDIZATION-ROADMAP.md`. Closeout Wave 0: `docs/WAVE-0-CLOSEOUT.md`.
+
 ## Quy ước
 
 - **Grain** là một dòng đại diện cho cái gì; không suy ra grain từ tên file.
@@ -67,6 +69,6 @@ Phạm vi: `frontend/src/**/*.tsx`; bảng được nhận diện bằng phần 
 - [x] Common table surface đã được đánh dấu `consumer-dependent`; chưa xoá khi chưa có source-aware consumer proof.
 - [x] Registry stale của các surface đã loại bỏ (`approval-role`, `admin-bom` navigation, `reports-price` preference group) đã được xử lý ở các commit trước.
 - [x] `npm run build` pass sau mọi thay đổi Wave 0.
-- [ ] Unit/contract tests và `git diff --check` pass cho artifact contract mới.
+- [x] Unit/contract test cho artifact contract pass; commit-scoped diff check pass. Repository-wide exception được disposition trong closeout.
 
-Wave 0 **chưa đóng** cho tới khi test contract kiểm tra path, id uniqueness, row key và owner của `docs/table-contracts.json` được thêm và pass; chưa được bắt đầu Wave 1.
+Wave 0 đã đóng theo `docs/WAVE-0-CLOSEOUT.md`; thay đổi inventory mới phải cập nhật contract và test trong cùng wave sở hữu thay đổi.
