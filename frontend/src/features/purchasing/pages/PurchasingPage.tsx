@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
@@ -9,11 +9,9 @@ import { toQueryView } from '@/lib/queryView';
 import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
 import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
-import { SupplementalPurchasingWorkbench } from '../SupplementalPurchasingWorkbench';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { PurchaseWorkflowGuide } from '../PurchaseWorkflowGuide';
-import { SupplierQuotationSection } from '../quotation/SupplierQuotationSection';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
 import {
   getPurchasingErrorMessage,
@@ -22,6 +20,10 @@ import {
   resolvePurchasingRouteState,
   type PurchasingStageId,
 } from '../purchasingModel';
+
+const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
+const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection').then(({ SupplierQuotationSection: component }) => ({ default: component })))
+const purchasingCapabilityFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 const emptyStageCounts: PurchaseWorkflowStageCounts = {
   demand: 0,
@@ -313,12 +315,16 @@ export default function PurchasingPage() {
           </KeepAliveTabPanel>
 
           <KeepAliveTabPanel id="purchasing-supplemental" active={activeView === 'supplemental'} lazy={false}>
-            <SupplementalPurchasingWorkbench week={routeState.week} />
+            <Suspense fallback={purchasingCapabilityFallback}>
+              <SupplementalPurchasingWorkbench week={routeState.week} />
+            </Suspense>
           </KeepAliveTabPanel>
 
           <KeepAliveTabPanel id="purchasing-quotations" active={activeView === 'quotations'}>
             {activeView === 'quotations' ? (
-              <SupplierQuotationSection workflow={quotationWorkflow} />
+              <Suspense fallback={purchasingCapabilityFallback}>
+                <SupplierQuotationSection workflow={quotationWorkflow} />
+              </Suspense>
             ) : null}
           </KeepAliveTabPanel>
         </div>
