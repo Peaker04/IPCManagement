@@ -8,20 +8,20 @@ describe('workflowConfig', () => {
     expect(toneFromStatus('Thiếu BOM')).toBe('danger');
     expect(toneFromStatus('Không đủ tồn kho')).toBe('danger');
     expect(toneFromStatus('Chưa đồng bộ dữ liệu')).toBe('neutral');
-    expect(toneFromStatus('Đã gửi bếp')).toBe('success');
+    expect(toneFromStatus('Đã gửi bếp')).toBe('neutral');
     expect(toneFromStatus('')).toBe('neutral');
   });
 
-  it('uses readable labels for technical workflow statuses', () => {
-    expect(formatWorkflowStatus('PENDING')).toBe('Đang chờ xử lý');
-    expect(formatWorkflowStatus('SENTTOWAREHOUSE')).toBe('Đã gửi kho');
+  it('uses readable concise labels for technical workflow statuses (Rule S1.2, S1.7)', () => {
+    expect(formatWorkflowStatus('PENDING')).toBe('Chờ duyệt');
+    expect(formatWorkflowStatus('SENTTOWAREHOUSE')).toBe('Đã xuất kho');
     expect(formatWorkflowStatus('ordered')).toBe('Đã đặt hàng');
-    expect(formatWorkflowStatus('resolved')).toBe('Đã xử lý');
-    expect(formatWorkflowStatus('reopened')).toBe('Đã mở lại');
-    expect(formatWorkflowStatus('PARTIALLY_RECEIVED')).toBe('Đã nhận một phần');
-    expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ phê duyệt');
+    expect(formatWorkflowStatus('resolved')).toBe('Hoàn tất');
+    expect(formatWorkflowStatus('reopened')).toBe('Đang mở');
+    expect(formatWorkflowStatus('PARTIALLY_RECEIVED')).toBe('Nhận một phần');
+    expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ duyệt');
     expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
-    expect(formatWorkflowStatus('RAW_BACKEND_STATUS')).toBe('Trạng thái chưa xác định');
+    expect(formatWorkflowStatus('RAW_BACKEND_STATUS')).toBe('Chưa cập nhật');
   });
 
   it('keeps lineage reconciliation codes out of user-facing reports', () => {
@@ -38,20 +38,24 @@ describe('workflowConfig', () => {
       .toBe('Chưa có hợp đồng hiệu lực; công bố hợp đồng trước khi chốt BOM.');
   });
 
-  it('routes known owners to workflow lanes and unknown owners to admin', () => {
-    expect(ownerToLaneId('Kế hoạch định lượng')).toBe('planning');
-    expect(ownerToLaneId('Thu mua')).toBe('purchasing');
-    expect(ownerToLaneId('Bếp trưởng')).toBe('kitchen');
-    expect(ownerToLaneId('Vai trò mới')).toBe('admin');
-    expect(ownerToLaneId()).toBe('admin');
+  it('maps paths to canonical owners and titles', () => {
+    expect(getWorkflowContextForPath(ROUTES.MEAL_ORDERS).lane.owner).toBe('Điều phối ca');
+    expect(getWorkflowContextForPath(ROUTES.WEEKLY_MENU).lane.owner).toBe('Kế hoạch định lượng');
+    expect(getWorkflowContextForPath(ROUTES.CHEF_DASHBOARD).lane.owner).toBe('Bếp trưởng ca');
+    expect(getWorkflowContextForPath(ROUTES.WAREHOUSE).lane.owner).toBe('Kho nguyên liệu');
+    expect(getWorkflowContextForPath(ROUTES.PURCHASING).lane.owner).toBe('Nhân sự thu mua');
+    expect(getWorkflowContextForPath(ROUTES.APPROVALS).lane.owner).toBe('Quản lí vận hành');
+    expect(getWorkflowContextForPath(ROUTES.ADMIN_DATA).lane.owner).toBe('Quản trị dữ liệu');
   });
 
-  it('keeps route lookup aligned with workflow context', () => {
-    expect(routeByLaneId.planning).toBe(ROUTES.WEEKLY_MENU);
+  it('resolves lane id from owner variants', () => {
+    expect(ownerToLaneId('Bếp trưởng')).toBe('kitchen');
+    expect(ownerToLaneId('Thủ kho')).toBe('warehouse');
+    expect(ownerToLaneId('Admin dữ liệu')).toBe('admin');
+  });
 
-    const context = getWorkflowContextForPath(ROUTES.WEEKLY_MENU);
-
-    expect(context.lane.id).toBe('planning');
-    expect(context.lane.nextAction).toBe('Đề xuất mua thêm');
+  it('provides route lookup by lane id', () => {
+    expect(routeByLaneId.coordination).toBe(ROUTES.MEAL_ORDERS);
+    expect(routeByLaneId.kitchen).toBe(ROUTES.CHEF_DASHBOARD);
   });
 });

@@ -99,50 +99,50 @@ export const routeByLaneId: Record<WorkflowLaneId, string> = Object.fromEntries(
 const normalizeStatusCode = (status: string) => status.toUpperCase().replace(/[\s_-]/g, '');
 
 const workflowStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
-  APPROVED: { label: 'Đã phê duyệt', tone: 'success' },
+  APPROVED: { label: 'Đã duyệt', tone: 'neutral' },
   CANCELLED: { label: 'Đã hủy', tone: 'danger' },
-  COMPLETED: { label: 'Hoàn tất', tone: 'success' },
-  CONFIRMED: { label: 'Đã xác nhận', tone: 'success' },
-  CREATED: { label: 'Mới tạo', tone: 'neutral' },
+  COMPLETED: { label: 'Hoàn tất', tone: 'neutral' },
+  CONFIRMED: { label: 'Đã xác nhận', tone: 'neutral' },
+  CREATED: { label: 'Bản nháp', tone: 'neutral' },
   DRAFT: { label: 'Bản nháp', tone: 'neutral' },
-  EXPORTED: { label: 'Đã xuất kho', tone: 'success' },
-  ERROR: { label: 'Có lỗi', tone: 'danger' },
-  MANAGERAPPROVED: { label: 'Quản lí đã duyệt', tone: 'success' },
-  ORDERED: { label: 'Đã đặt hàng', tone: 'success' },
-  PARTIALRECEIVED: { label: 'Đã nhận một phần', tone: 'warning' },
-  PARTIALLYRECEIVED: { label: 'Đã nhận một phần', tone: 'warning' },
-  PARTIALLYFULFILLED: { label: 'Đã cấp một phần', tone: 'warning' },
-  PENDING: { label: 'Đang chờ xử lý', tone: 'warning' },
-  PENDINGAPPROVAL: { label: 'Chờ Quản lý duyệt', tone: 'warning' },
-  PENDINGRECEIPT: { label: 'Chờ kho tiếp nhận', tone: 'warning' },
-  PENDINGWAREHOUSEREVIEW: { label: 'Chờ kho xử lý', tone: 'warning' },
-  NEEDSPURCHASE: { label: 'Chờ thu mua', tone: 'warning' },
-  ISSUED: { label: 'Chờ bếp ký nhận', tone: 'warning' },
-  FULFILLED: { label: 'Đã cấp đủ', tone: 'success' },
-  RECORDED: { label: 'Đã ghi nhận', tone: 'success' },
+  EXPORTED: { label: 'Đã xuất kho', tone: 'neutral' },
+  ERROR: { label: 'Bị chặn', tone: 'danger' },
+  MANAGERAPPROVED: { label: 'Đã duyệt', tone: 'neutral' },
+  ORDERED: { label: 'Đã đặt hàng', tone: 'neutral' },
+  PARTIALRECEIVED: { label: 'Nhận một phần', tone: 'warning' },
+  PARTIALLYRECEIVED: { label: 'Nhận một phần', tone: 'warning' },
+  PARTIALLYFULFILLED: { label: 'Nhận một phần', tone: 'warning' },
+  PENDING: { label: 'Chờ duyệt', tone: 'warning' },
+  PENDINGAPPROVAL: { label: 'Chờ duyệt', tone: 'warning' },
+  PENDINGRECEIPT: { label: 'Chờ vật tư', tone: 'warning' },
+  PENDINGWAREHOUSEREVIEW: { label: 'Chờ duyệt', tone: 'warning' },
+  NEEDSPURCHASE: { label: 'Chờ vật tư', tone: 'warning' },
+  ISSUED: { label: 'Chờ vật tư', tone: 'warning' },
+  FULFILLED: { label: 'Hoàn tất', tone: 'neutral' },
+  RECORDED: { label: 'Hoàn tất', tone: 'neutral' },
   OPEN: { label: 'Đang mở', tone: 'warning' },
-  RECEIVED: { label: 'Đã nhận đủ', tone: 'success' },
+  RECEIVED: { label: 'Hoàn tất', tone: 'neutral' },
   REJECTED: { label: 'Bị từ chối', tone: 'danger' },
-  REOPENED: { label: 'Đã mở lại', tone: 'warning' },
-  RESOLVED: { label: 'Đã xử lý', tone: 'success' },
-  ROLLEDBACK: { label: 'Đã hoàn tác', tone: 'warning' },
-  PUBLISHED: { label: 'Đã phát hành', tone: 'success' },
-  SENTTOKITCHEN: { label: 'Đã gửi bếp', tone: 'success' },
-  SENTTOSUPPLIER: { label: 'Đã gửi nhà cung cấp', tone: 'success' },
-  SENTTOWAREHOUSE: { label: 'Đã gửi kho', tone: 'success' },
-  SUBMITTED: { label: 'Chờ phê duyệt', tone: 'warning' },
-  WARNING: { label: 'Có cảnh báo', tone: 'warning' },
+  REOPENED: { label: 'Đang mở', tone: 'warning' },
+  RESOLVED: { label: 'Hoàn tất', tone: 'neutral' },
+  ROLLEDBACK: { label: 'Đang mở', tone: 'warning' },
+  PUBLISHED: { label: 'Đã xuất kho', tone: 'neutral' },
+  SENTTOKITCHEN: { label: 'Đã xuất kho', tone: 'neutral' },
+  SENTTOSUPPLIER: { label: 'Đã đặt hàng', tone: 'neutral' },
+  SENTTOWAREHOUSE: { label: 'Đã xuất kho', tone: 'neutral' },
+  SUBMITTED: { label: 'Chờ duyệt', tone: 'warning' },
+  WARNING: { label: 'Bị chặn', tone: 'danger' },
 };
 
 const serviceRunStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
-  PLANNED: { label: 'Đã mở ca', tone: 'neutral' },
-  BLOCKED: { label: 'Đang bị chặn', tone: 'danger' },
-  MATERIALSINPROGRESS: { label: 'Đang hoàn tất vật tư', tone: 'warning' },
-  READYTOPRODUCE: { label: 'Sẵn sàng phục vụ', tone: 'warning' },
-  INSERVICE: { label: 'Đang phục vụ', tone: 'warning' },
-  RECONCILIATIONREQUIRED: { label: 'Cần đối soát', tone: 'danger' },
-  READYTOCLOSE: { label: 'Sẵn sàng đóng ca', tone: 'success' },
-  CLOSED: { label: 'Đã đóng ca', tone: 'success' },
+  PLANNED: { label: 'Bản nháp', tone: 'neutral' },
+  BLOCKED: { label: 'Bị chặn', tone: 'danger' },
+  MATERIALSINPROGRESS: { label: 'Chờ vật tư', tone: 'warning' },
+  READYTOPRODUCE: { label: 'Sẵn sàng', tone: 'neutral' },
+  INSERVICE: { label: 'Đang mở', tone: 'warning' },
+  RECONCILIATIONREQUIRED: { label: 'Bị chặn', tone: 'danger' },
+  READYTOCLOSE: { label: 'Sẵn sàng', tone: 'neutral' },
+  CLOSED: { label: 'Hoàn tất', tone: 'neutral' },
 };
 
 const serviceRunBlockerPresentations: Readonly<Record<string, string>> = {
@@ -170,7 +170,7 @@ const toneFromFallbackText = (status: string): WorkflowTone => {
   const normalized = status.toLocaleLowerCase('vi-VN');
   if (['thiếu', 'vượt', 'không đủ', 'lỗi', 'tắc', 'từ chối', 'hủy'].some((token) => normalized.includes(token))) return 'danger';
   if (['chờ', 'cần', 'mới', 'theo dõi', 'dự thảo', 'một phần', 'mở lại'].some((token) => normalized.includes(token))) return 'warning';
-  if (['đã', 'hoàn tất', 'đủ', 'ổn định', 'hợp lệ', 'hoạt động'].some((token) => normalized.includes(token))) return 'success';
+  if (['đã', 'hoàn tất', 'đủ', 'ổn định', 'hợp lệ', 'hoạt động'].some((token) => normalized.includes(token))) return 'neutral';
   return 'neutral';
 };
 
@@ -178,14 +178,14 @@ export const getWorkflowStatusPresentation = (status?: string): WorkflowStatusPr
   const value = status?.trim();
   if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
   return workflowStatusPresentations[normalizeStatusCode(value)]
-    ?? { label: 'Trạng thái chưa xác định', tone: toneFromFallbackText(value) };
+    ?? { label: 'Chưa cập nhật', tone: toneFromFallbackText(value) };
 };
 
 export const getServiceRunStatusPresentation = (status?: string): WorkflowStatusPresentation => {
   const value = status?.trim();
-  if (!value) return { label: 'Chưa cập nhật trạng thái ca phục vụ', tone: 'neutral' };
+  if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
   return serviceRunStatusPresentations[normalizeStatusCode(value)]
-    ?? { label: 'Trạng thái ca phục vụ chưa được hỗ trợ', tone: 'neutral' };
+    ?? { label: 'Chưa cập nhật', tone: 'neutral' };
 };
 
 export const formatServiceRunBlocker = (blocker?: string) => {
