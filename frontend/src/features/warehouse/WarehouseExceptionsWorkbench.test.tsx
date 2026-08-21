@@ -68,7 +68,7 @@ const allocationRow = {
   decisionId: 'return-allocation:source-line-a', allowedActions: ['CROSS_CUSTOMER_DISPOSITION'],
 };
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/warehouse/warehouseApi', () => ({
   useGetSupplementalMaterialRequestsQuery: mocks.supplementalQuery,
   useGetInventoryReturnsQuery: mocks.returnsQuery,
   useGetInventoryReturnByIdQuery: mocks.returnDetailQuery,
