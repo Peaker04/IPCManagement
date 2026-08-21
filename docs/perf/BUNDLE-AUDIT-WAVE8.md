@@ -234,3 +234,13 @@ Wave 14 gates:
 - [x] Dependency-cruiser pass: **432 modules / 1606 dependencies**.
 - [x] No route-budget, cache, or API-slice changes.
 - [x] Atomic commit: `79e90fa2`.
+
+## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
+
+The shared-barrel cleanup chain was rerun against the complete frontend unit
+suite, not only compile-time checks.
+
+- [x] Full unit suite: **158 files / 891 tests passed** in 250.02s.
+- [x] Build, lint and dependency-cruiser remain green after the suite.
+- [x] No changed route thresholds, cache identity, or API-slice topology.
+- [x] Unrelated working-tree changes remain uncommitted and untouched.
