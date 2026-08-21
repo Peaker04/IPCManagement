@@ -202,7 +202,7 @@ export const useReportsPageModel = ({
   };
   const reportContextItems: ContextStripItem[] = [
     ...(canReadReceiptPriceVariance
-      ? [{ label: 'Cảnh báo giá', value: priceView.phase === 'ready' ? priceModel.warningItems.length.toString() : '—', tone: priceView.phase !== 'ready' ? 'neutral' as const : priceModel.warningItems.length ? 'danger' as const : 'success' as const }]
+      ? [{ label: 'Cảnh báo giá trên trang', value: priceView.phase === 'ready' ? `${priceModel.warningItems.length}/${priceModel.priceVarianceRows.length}` : '—', tone: priceView.phase !== 'ready' ? 'neutral' as const : priceModel.warningItems.length ? 'danger' as const : 'success' as const }]
       : []),
     { label: 'Thiếu nguyên liệu', value: demandPurchaseViews.demand.phase === 'ready' ? demandPurchaseModel.shortageCount.toString() : '—', tone: demandPurchaseViews.demand.phase !== 'ready' ? 'neutral' : demandPurchaseModel.shortageCount ? 'danger' : 'success' },
     { label: 'Dòng tồn kho', value: stockMovementViews.stock.phase === 'ready' ? stockMovementViews.stock.data.totalCount.toString() : '—', tone: 'neutral' },

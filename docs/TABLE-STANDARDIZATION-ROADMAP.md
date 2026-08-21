@@ -115,7 +115,7 @@ Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like m
 |---|---|---|---|---|
 | Reports Data Quality | workflow quality issue page + read-only KPI/report scope | Reports | Cùng backend projection với Admin Cleanup | KEEP BOTH: Reports chỉ xem, tìm kiếm và điều hướng; Admin Cleanup là owner remediation mutation. Không gộp hai action owner.
 | Admin Cleanup | quality issue page + remediation state | Admin Data | Lặp một phần KPI Reports | KEEP ACTION OWNER: KPI rút gọn, mutation chỉ ở Admin.
-| Reports Price | receipt-line / supplier / month / dish-group aggregate | Reports Price combobox scope | Bốn bảng đổi tham số | KEEP AS FILTERED VIEWS: không nested technical tab; mỗi bảng có grain và pagination riêng.
+| Reports Price | receipt-line / supplier / month / dish-group aggregate | Reports Price combobox scope | Bốn bảng đổi tham số | KEEP AS FILTERED VIEWS: không nested technical tab; mỗi bảng có grain và pagination riêng. Context metric đã sửa thành `warning/pageRows` có mẫu số.
 | Reports Demand/Purchase | day demand vs purchase-plan source-line | Reports | Dễ trùng tổng shortage/estimated amount | OPEN: map metric → grain → source ID trước khi chỉnh UI.
 
 ### Checklist đóng Wave 5

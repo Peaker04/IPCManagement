@@ -55,4 +55,9 @@ describe('Reports page-model ownership contract', () => {
   it('retains the public compatibility model type', () => {
     expect(facadeSource).toContain('export type ReportsPageModel = ReturnType<typeof useReportsPageModel>');
   });
+
+  it('does not present a page-local warning count as a report-wide total', () => {
+    expect(facadeSource).toContain("label: 'Cảnh báo giá trên trang'");
+    expect(facadeSource).toContain('`${priceModel.warningItems.length}/${priceModel.priceVarianceRows.length}`');
+  });
 });
