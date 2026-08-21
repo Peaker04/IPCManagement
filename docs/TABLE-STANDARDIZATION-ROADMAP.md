@@ -251,6 +251,12 @@ Full-suite rerun after the owner commits exposed two concurrency-only timeouts i
 
 ### Checklist đóng Wave 8
 
+> **Gate carryover 21/08/2026:** `npm run check:route-budgets` currently fails on the
+> current worktree/dist for all 10 routes (overages range 12.02–51.01 KiB).
+> This is an open payload/bundle-budget carryover; thresholds were not changed and
+> Wave 8 must not be closed until the bundle is reduced or the documented owner
+> disposition is verified.
+
 - [ ] Source-aware unused scan có disposition cho mọi candidate.
 - [x] Dependency-cruiser/build/lint/test discovery không báo orphan mới (423 modules / 1573 dependencies / 0 violations; lint pass; production build 2289 modules; unit 158 files / 890 tests).
 - [ ] Route/tab/preference/permission/API/cache literals khớp source hiện hành.
