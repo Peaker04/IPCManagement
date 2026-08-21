@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import {
   ArrowLeftRight,
   Database,
@@ -43,11 +44,13 @@ import { ReportsDataQualityPanel } from './ReportsDataQualityPanel';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import { ReportsPricePanel } from './ReportsPricePanel';
-import { ServiceRunReportPanel } from './ServiceRunReportPanel';
-import { LegacyLineageDispositionPanel } from '../LegacyLineageDispositionPanel';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatReconciliationDisposition } from '@/lib/workflowConfig';
+
+const ServiceRunReportPanel = lazy(() => import('./ServiceRunReportPanel').then(({ ServiceRunReportPanel: component }) => ({ default: component })))
+const LegacyLineageDispositionPanel = lazy(() => import('../LegacyLineageDispositionPanel').then(({ LegacyLineageDispositionPanel: component }) => ({ default: component })))
+const reportCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 const EMPTY_SHIFT_SELECT_VALUE = '__all-shifts__';
 
@@ -512,13 +515,17 @@ const ReportsPage = () => {
             </TableViewport>
           </SectionPanel>
           {reconciliationRows.some((row) => Array.isArray(row.legacyLineageDispositions)) && (
-            <LegacyLineageDispositionPanel rows={reconciliationRows} />
+            <Suspense fallback={reportCapabilityFallback}>
+              <LegacyLineageDispositionPanel rows={reconciliationRows} />
+            </Suspense>
           )}
         </ReportQueryBoundary>
       </KeepAliveTabPanel>
 
       <KeepAliveTabPanel id="reports-audit" active={activeView === 'audit'}>
-        <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />
+        <Suspense fallback={reportCapabilityFallback}>
+          <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />
+        </Suspense>
         <ReportQueryBoundary view={reportViews.audit}>
           <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
             <TableViewport className="ipc-reports-audit-shell" ariaLabel="Bảng audit thay đổi hệ thống">
