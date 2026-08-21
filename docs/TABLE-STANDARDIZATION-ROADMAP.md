@@ -26,11 +26,41 @@ Mỗi bảng phải được xử lý theo grain và mục đích nghiệp vụ,
 | 1 | Primitive, density, skeleton, viewport, ownership migration | CLOSED | Không còn direct production table ngoài canonical viewport; legacy selector đã disposition |
 | 2 | Action queue và exception workbench | CLOSED | Eligibility/action/status owner rõ; bảng chất lượng đã rút gọn |
 | 3 | Ledger, document và dữ liệu lưu nhiều năm | IN PROGRESS | Import history/ledger có server boundary, date semantics và context-preserving detail |
-| 4 | Master/reference và document master-detail | NOT STARTED | Effective range, history, permission và detail layout đúng grain |
-| 5 | Aggregate/report/KPI và loại bỏ duplicate thông tin | NOT STARTED | Không KPI/bảng/cột lặp cùng fact; drill-down giữ nguồn |
+| 4 | Master/reference và document master-detail | IN PROGRESS | Effective range, history, permission và detail layout đúng grain; đóng carry-over focus/dead-code |
+| 5 | Aggregate/report/KPI và loại bỏ duplicate thông tin | IN PROGRESS | Không KPI/bảng/cột lặp cùng fact; drill-down giữ nguồn; đóng format/cache/technical-view |
 | 6 | FE↔BE↔DB cho dữ liệu dài hạn | NOT STARTED | Query projection, index, paging/cursor, DTO/date/unit và payload budget có số đo |
 | 7 | Geometry, loading stability, INP, overflow trên toàn inventory | NOT STARTED | Probe đủ route/tab/surface; row token, CLS/CGR/INP/overflow đạt, integrity sạch |
 | 8 | Dead/unwired code, regression toàn dự án và closeout | NOT STARTED | Zero orphan không disposition; full gate và docs trạng thái thống nhất |
+
+## Wave 0 — Inventory và contract nền
+
+### Checklist đóng Wave 0
+
+- [x] Mọi table surface trong `docs/TABLE-INVENTORY.md` có route/tab, business grain, owner và row key.
+- [x] `docs/table-contracts.json` là nguồn contract duy nhất; không tạo bản sao cấu hình trong component.
+- [x] Pagination, sort, date/unit và retention semantics được ghi hoặc có finding chuyển wave.
+- [x] Source-aware scan xác nhận owner có consumer production/test hợp lệ.
+- [x] Carry-over có ID, owner, evidence và wave nhận cụ thể.
+
+## Wave 1 — Primitive, density và skeleton
+
+### Checklist đóng Wave 1
+
+- [x] Bảng production dùng canonical viewport/primitive hoặc có disposition ngoại lệ.
+- [x] Row key, cột và density token được khóa bằng contract test.
+- [x] Skeleton count/cột không tạo layout shift; selector legacy đã có disposition.
+- [x] Responsive/overflow có owner; technical nested tab không thay cho filter/view.
+- [x] Component, barrel export, fixture và CSS bị thay thế đã source-scan; candidate chưa đủ proof chuyển Wave 7/8.
+
+## Wave 2 — Action queue và exception workbench
+
+### Checklist đóng Wave 2
+
+- [x] Mỗi action có eligibility/permission/status owner duy nhất và state disabled/loading/error rõ.
+- [x] Bảng chỉ giữ cột phục vụ quyết định; metadata phụ chuyển vào detail/tooltip đúng grain.
+- [x] Bulk action, retry và refetch giữ selection/filter/page context.
+- [x] Empty/loading/error và optimistic rollback có focused regression.
+- [x] Consumer scan đã xử lý barrel/export/style/fixture liên quan; shared owner không bị xoá theo một surface.
 
 ## Wave 3 — Ledger và document dài hạn
 
