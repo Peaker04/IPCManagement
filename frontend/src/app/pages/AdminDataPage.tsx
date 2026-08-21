@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Database, PackageCheck, SlidersHorizontal, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CommandBar, ContextStrip, OperationalFrame, ViewSwitcher } from '@/components/common';
@@ -8,9 +9,11 @@ import { AdminCleanupPanel } from './admin-data/AdminCleanupPanel';
 import { AdminContractsPanel } from './admin-data/AdminContractsPanel';
 import { AdminEmployeesPanel } from './admin-data/AdminEmployeesPanel';
 import { AdminInventoryPanel } from './admin-data/AdminInventoryPanel';
-import { AdminStatisticsPanel } from './admin-data/AdminStatisticsPanel';
 import { useAdminDataPageModel } from './admin-data/useAdminDataPageModel';
 import type { AdminView } from './admin-data/adminDataPageTypes';
+
+const AdminStatisticsPanel = lazy(() => import('./admin-data/AdminStatisticsPanel').then(({ AdminStatisticsPanel: component }) => ({ default: component })))
+const AdminPanelFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 export default function AdminDataPage() {
   const model = useAdminDataPageModel();
@@ -66,7 +69,9 @@ return (
       <AdminContractsPanel model={model} />
       <AdminCleanupPanel model={model} />
       <AdminInventoryPanel model={model} />
-      <AdminStatisticsPanel model={model} />
+      <Suspense fallback={AdminPanelFallback}>
+        <AdminStatisticsPanel model={model} />
+      </Suspense>
       <AdminEmployeesPanel model={model} />
       <AdminAuditPanel model={model} />
     </OperationalFrame>

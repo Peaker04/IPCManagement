@@ -79,7 +79,7 @@ Mỗi finding phải ghi đủ:
 ### Rollout còn lại
 
 - [ ] Warehouse capability island pass — pilot evidence: `WarehouseDemandPanel` + `WarehouseExceptionsWorkbench` lazy-load; `274.00 → 266.15 KiB` (`-7.85 KiB`), `10/10` focused tests, headed `5/5` viewport pass; threshold `257.00 KiB` chưa đạt.
-- [ ] Admin Data capability island pass.
+- [ ] Admin Data capability island pass — pilot evidence: `AdminStatisticsPanel` lazy-load; `268.72 → 267.89 KiB` (`-0.83 KiB`), focused `6/6`, headed `5/5` viewport pass; threshold `259.00 KiB` chưa đạt.
 - [ ] Dashboard capability island pass.
 - [ ] Reports capability island pass.
 - [ ] Chef capability island pass.
