@@ -384,6 +384,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `artifacts/perf-probe-warehouse-inp-tab.json` | `924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC` | Corrected five-repeat H.1 tab-switch interaction on warehouse movement: 40ms median, presentation share 0.7225, no processing debt, DAT. |
 | `artifacts/perf-probe-admin-audit-pagination.json` | `28897D19F6EEA22E48C10E74236F93F8D805FA422D706BD8EA3DE5B603BB9263` | Five-repeat pagination probe on admin audit; `N/A` is justified because the cursor page reported no enabled next/previous action in the rendered state, not because the target tab was skipped. |
 | `artifacts/perf-probe-coordination-export.json` | `99068232CD40525ABC2453F93B0F712A1B7A0DEC6372FF06E9FADD7A96869F62` | Five-repeat coordination export probe; `N/A` because the guarded export action was not rendered for the current data/permission state. This is evidence of conditional ownership, not a pass. |
+| `artifacts/perf-probe-purchasing-submit.json` | `86CC7D7DFA962CCB55A0D4FA520CCD267F3B749BD5651CBFD14E2E7E34EBB0EB` | Five-repeat `workflow-submit` probe on `purchasing-workflow`; `N/A` because no actionable submit/supplier-confirm control was rendered in the current workflow state. |
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
