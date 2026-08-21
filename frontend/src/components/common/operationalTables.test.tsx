@@ -189,10 +189,10 @@ describe("RoleInbox", () => {
     );
 
     expect(screen.getByText("Việc 1")).toBeInTheDocument();
-    expect(screen.getAllByText("Đang chờ xử lý")).toHaveLength(4);
+    expect(screen.getAllByText("PENDING")).toHaveLength(4);
     expect(screen.queryByText("Việc 5")).not.toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: "Đang chờ xử lý" }),
+      screen.getAllByRole("button", { name: "PENDING" }),
     ).toHaveLength(4);
 
     await userEvent.click(screen.getByRole("button", { name: /Trang sau/i }));
@@ -233,7 +233,7 @@ describe("ApprovalQueue", () => {
     expect(screen.getByText("Đơn mua quá hạn")).toBeInTheDocument();
     expect(screen.getByText("Thời hạn xử lý: Quá hạn")).toBeInTheDocument();
     expect(screen.getByText("Thời hạn xử lý: 2g 30p")).toBeInTheDocument();
-    expect(screen.getAllByText("Đang chờ xử lý")).toHaveLength(2);
+    expect(screen.getAllByText("Chờ duyệt")).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "Duyệt Đơn mua quá hạn" }),
     ).toBeInTheDocument();
@@ -253,7 +253,7 @@ describe("ApprovalQueue", () => {
     );
 
     const nextAction = document.querySelector(".ipc-approval-record-action");
-    expect(nextAction).toHaveTextContent("Đang chờ xử lý");
+    expect(nextAction).toHaveTextContent("Chờ duyệt");
     expect(nextAction).not.toHaveTextContent("PENDING");
     expect(screen.queryByText("PENDING")).not.toBeInTheDocument();
   });
@@ -345,8 +345,8 @@ describe("StockMovementTable", () => {
 
     expect(screen.getByText("IR-20260710-001")).toBeInTheDocument();
     expect(screen.getByText("Gạo tẻ")).toBeInTheDocument();
-    expect(screen.getByText("Đã nhận đủ")).toBeInTheDocument();
-    expect(screen.getByText("Đang chờ xử lý")).toBeInTheDocument();
+    expect(screen.getByText("Hoàn tất")).toBeInTheDocument();
+    expect(screen.getByText("Chờ duyệt")).toBeInTheDocument();
     expect(screen.queryByText("Thịt gà")).not.toBeInTheDocument();
 
     await userEvent.click(
