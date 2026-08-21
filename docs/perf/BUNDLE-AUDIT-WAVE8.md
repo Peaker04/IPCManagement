@@ -161,6 +161,5 @@ Wave 10 checklist:
 - [x] No route-budget threshold change.
 - [x] Build, lint, dependency-cruiser and workflow API boundary pass.
 - [x] Route ownership tests pass (`3 files / 12 tests`).
-- [ ] Full 158-file suite rerun after the source-registry parser change.
-- [ ] Stage only the lazy-auth changes; `AppRouter.tsx` and the registry test
-  contain unrelated working-tree edits.
+- [x] Full suite rerun after the source-registry parser change: `158 files / 891 tests` passed in 211.04s.
+- [x] Lazy-auth changes staged separately from unrelated working-tree edits.
