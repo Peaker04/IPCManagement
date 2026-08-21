@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
-import {
-  useGetPurchaseWorkbenchQuery,
-  type PurchaseWorkflowStageCounts,
-} from '@/api/workflowApi';
+import { useGetPurchaseWorkbenchQuery } from '@/features/purchasing/purchasingApi';
+import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { SupplementalPurchasingWorkbench } from '../SupplementalPurchasingWorkbench';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
@@ -272,46 +270,58 @@ export default function PurchasingPage() {
           ) : null}
         </div>}
 
-        {activeView === 'quotations' ? (
-          <SupplierQuotationSection workflow={quotationWorkflow} />
-        ) : activeView === 'supplemental' ? (
-          <div id="purchasing-supplemental-panel" role="tabpanel" aria-labelledby="purchasing-supplemental-tab">
-            <SupplementalPurchasingWorkbench week={routeState.week} />
-          </div>
-        ) : <div id="purchasing-workflow-panel" role="tabpanel" aria-labelledby="purchasing-workflow-tab" className="space-y-4">
-          {workbenchView.phase === 'ready' ? (
-            <>
-              <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
-              <PurchaseWorkflowGuide
-                currentStage={activeDate?.currentStage}
-                selectedStage={routeState.stage}
-                stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
-                onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
-              />
-
-              <PurchaseServiceDateWorkbench
-                serviceDates={workbenchView.data.serviceDates}
-                selectedDate={routeState.date}
-                selectedLineId={selectedLineId}
-                page={workbenchView.data.page}
-                pageSize={workbenchView.data.pageSize}
-                totalItems={workbenchView.data.totalItems}
-                isLoading={false}
-                onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
-                onLineChange={setSelectedLineId}
-                onPageChange={setPage}
-              >
-                <PurchaseDecisionPanel
-                  key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
-                  week={routeState.week}
+        <div className="min-h-[480px]">
+          <KeepAliveTabPanel id="purchasing-workflow" active={activeView === 'workflow'} className="space-y-4">
+            {workbenchView.phase === 'ready' ? (
+              <>
+                <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
+                <PurchaseWorkflowGuide
+                  currentStage={activeDate?.currentStage}
                   selectedStage={routeState.stage}
-                  serviceDate={activeDate}
-                  selectedLine={selectedLine}
+                  stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
+                  onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
                 />
-              </PurchaseServiceDateWorkbench>
-            </>
-          ) : <div className="min-h-[420px]" aria-hidden="true" />}
-        </div>}
+
+                <PurchaseServiceDateWorkbench
+                  serviceDates={workbenchView.data.serviceDates}
+                  selectedDate={routeState.date}
+                  selectedLineId={selectedLineId}
+                  page={workbenchView.data.page}
+                  pageSize={workbenchView.data.pageSize}
+                  totalItems={workbenchView.data.totalItems}
+                  isLoading={false}
+                  onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
+                  onLineChange={setSelectedLineId}
+                  onPageChange={setPage}
+                >
+                  <PurchaseDecisionPanel
+                    key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
+                    week={routeState.week}
+                    selectedStage={routeState.stage}
+                    serviceDate={activeDate}
+                    selectedLine={selectedLine}
+                  />
+                </PurchaseServiceDateWorkbench>
+              </>
+            ) : (
+              <div className="min-h-[420px] rounded-lg border border-slate-200 bg-white p-4 space-y-4 motion-reduce:animate-none" aria-busy="true">
+                <div className="h-10 w-full animate-pulse rounded bg-slate-100" />
+                <div className="h-12 w-full animate-pulse rounded bg-slate-50" />
+                <div className="h-64 w-full animate-pulse rounded bg-slate-50" />
+              </div>
+            )}
+          </KeepAliveTabPanel>
+
+          <KeepAliveTabPanel id="purchasing-supplemental" active={activeView === 'supplemental'} lazy={false}>
+            <SupplementalPurchasingWorkbench week={routeState.week} />
+          </KeepAliveTabPanel>
+
+          <KeepAliveTabPanel id="purchasing-quotations" active={activeView === 'quotations'}>
+            {activeView === 'quotations' ? (
+              <SupplierQuotationSection workflow={quotationWorkflow} />
+            ) : null}
+          </KeepAliveTabPanel>
+        </div>
       </div>
     </OperationalFrame>
   );
