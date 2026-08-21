@@ -31,7 +31,6 @@ export { ViewSwitcher } from './ViewSwitcher';
 export { KeepAliveTabPanel } from './KeepAliveTabPanel';
 export { ToastProvider } from './ToastProvider';
 export { ActionGuard } from './ActionGuard';
-export { ServiceRunBlockerPanel, ServiceRunTrackPanel } from './ServiceRunBlockerPanel';
 export { useToast } from './useToast';
 export { ConfirmDialog } from './ConfirmDialog';
 export type { ToastItem, ToastOptions, ToastVariant } from './toast-context';
