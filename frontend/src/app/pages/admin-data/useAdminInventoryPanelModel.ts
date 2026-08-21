@@ -1,4 +1,5 @@
-import { useDeferredValue, useState } from 'react';
+import { useState } from 'react';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
   useGetCurrentStockPageQuery,
   useGetStockMovementPageQuery,
@@ -11,7 +12,7 @@ export function useAdminInventoryPanelModel(activeView: AdminView) {
   const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [inventoryMovementSearch, setInventoryMovementSearchState] = useState('');
-  const deferredInventoryMovementSearch = useDeferredValue(inventoryMovementSearch.trim());
+  const deferredInventoryMovementSearch = useDebouncedValue(inventoryMovementSearch.trim(), 250);
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
     movementType: 'adjustment',

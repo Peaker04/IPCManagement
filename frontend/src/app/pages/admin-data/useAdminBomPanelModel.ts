@@ -1,4 +1,5 @@
-import { useDeferredValue, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
   useAddDishBomLineMutation,
   useCloseDishBomLineMutation,
@@ -40,7 +41,7 @@ export function useAdminBomPanelModel(
   const [bomImportFeedback, setBomImportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [bomPanelMode, setBomPanelMode] = useState<BomPanelMode>('current');
   const [bomSearch, setBomSearch] = useState('');
-  const deferredBomSearch = useDeferredValue(bomSearch);
+  const debouncedBomSearch = useDebouncedValue(bomSearch, 250);
   const [bomForm, setBomForm] = useState<BomFormState>(createDefaultBomForm);
   const [bomFormErrors, setBomFormErrors] = useState<BomFormErrors>({});
   const [editingBom, setEditingBom] = useState<{ dishId: string; line: CatalogIngredient } | null>(null);
@@ -61,20 +62,26 @@ export function useAdminBomPanelModel(
   const ingredientCatalogView = toAdminView(ingredientCatalogQuery, 'danh mục nguyên liệu');
   const ingredientCatalog = ingredientCatalogView.phase === 'ready' ? ingredientCatalogView.data : EMPTY_ADMIN_LIST;
   const isIngredientCatalogLoading = ingredientCatalogView.phase === 'uninitialized' || ingredientCatalogView.phase === 'loading';
+
+  const flattenedBomLines = useMemo(() => {
+    if (!isBomView) return [];
+    return dishCatalog
+      .filter((dish) => dish.isActive)
+      .flatMap((dish) => dish.ingredients.map((line) => ({ dish, line })));
+  }, [dishCatalog, isBomView]);
+
   const currentBomRows = useMemo(() => {
     if (!isBomView) return [];
     const today = getTodayInputValue();
-    const search = deferredBomSearch.trim().toLocaleLowerCase('vi-VN');
+    const search = debouncedBomSearch.trim().toLocaleLowerCase('vi-VN');
 
-    return dishCatalog
-      .filter((dish) => dish.isActive)
-      .flatMap((dish) => dish.ingredients.map((line) => ({ dish, line })))
+    return flattenedBomLines
       .filter(({ line }) => line.priceTierAmount === bomImportTier)
       .filter(({ line }) => bomImportCustomerId ? line.customerId === bomImportCustomerId : !line.customerId)
       .filter(({ line }) => line.bomStatus !== 'ARCHIVED' && (!line.effectiveTo || line.effectiveTo >= today))
       .filter(({ dish, line }) => !search || `${dish.code} ${dish.name} ${line.ingredientCode} ${line.name}`.toLocaleLowerCase('vi-VN').includes(search))
       .sort((left, right) => left.dish.name.localeCompare(right.dish.name, 'vi') || left.line.name.localeCompare(right.line.name, 'vi'));
-  }, [bomImportCustomerId, bomImportTier, deferredBomSearch, dishCatalog, isBomView]);
+  }, [bomImportCustomerId, bomImportTier, debouncedBomSearch, flattenedBomLines, isBomView]);
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading;
   const currentBomPagination = usePaginatedRows(currentBomRows, 8);
   const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);

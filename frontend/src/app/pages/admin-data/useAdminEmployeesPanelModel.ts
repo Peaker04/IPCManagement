@@ -1,4 +1,5 @@
-import { useDeferredValue, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
   type AdminEmployee,
   useCreateAdminEmployeeMutation,
@@ -21,14 +22,14 @@ export function useAdminEmployeesPanelModel(activeView: AdminView, canManageEmpl
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(defaultEmployeeForm);
   const [employeeNotice, setEmployeeNotice] = useState<string | null>(null);
-  const deferredEmployeeSearch = useDeferredValue(employeeSearch);
+  const debouncedEmployeeSearch = useDebouncedValue(employeeSearch, 250);
   const employeeQuery = useMemo(
     () => ({
       pageNumber: employeePage,
       pageSize: 8,
-      searchKeyword: deferredEmployeeSearch.trim() || undefined,
+      searchKeyword: debouncedEmployeeSearch.trim() || undefined,
     }),
-    [deferredEmployeeSearch, employeePage],
+    [debouncedEmployeeSearch, employeePage],
   );
   const employeesQuery = useGetAdminEmployeesQuery(employeeQuery, {
     skip: !canManageEmployees || activeView !== 'employees',
