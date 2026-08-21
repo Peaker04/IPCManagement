@@ -118,3 +118,23 @@ Wave 9 checklist:
 - [x] Route contract tests pass (3 files / 12 tests).
 - [x] Full unit suite: `158 files / 891 tests` passed in 214.30s.
 - [ ] Stage only the lazy-load hunk; `AppRouter.tsx` contains unrelated working-tree edits.
+
+## Wave 10 experiments — rejected candidates (2026-08-21)
+
+Two candidates were measured and reverted because route closure is the governing
+metric, not entry size alone:
+
+- Moving `MainLayout` refresh invalidation into a lazy module reduced the entry
+  by about 2 KiB but increased measured route closure by about 0.6 KiB and did
+  not reduce the shared `workflowCacheTags` payload.
+- Replacing the eager auth pages' common barrel imports with direct component
+  imports produced a smaller entry but introduced a larger shared `common`
+  closure; route totals were worse. The common barrel remains a candidate only
+  after its exports are split without creating a new shared route dependency.
+- Dynamically importing `coordinationApi` inside coordination thunks did not
+  change the entry closure because other eager consumers still retain the API
+  runtime. It was reverted to avoid unnecessary async seams.
+
+These candidates are **not optimizations**. Thresholds and cache identity remain
+unchanged. The next candidate must remove a shared consumer from the complete
+manifest closure, not merely move bytes between entry and shared chunks.
