@@ -15,7 +15,7 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 | `tests/statusTokenContract.test.ts` | Vitest discovery theo hậu tố `.test.ts` | test entry | KEEP; xác minh test pass trong wave token owner |
 | `src/features/projects/weekly-menu/coordinationBoundary.test.ts` | Dependency-cruiser đánh dấu orphan vì là test entry | expected entrypoint | KEEP |
 | `src/test/setup.ts` | Dependency-cruiser đánh dấu orphan; được Vitest config nạp làm setup | expected config entrypoint | KEEP |
-| `public/robots.txt`, `public/llms.txt` | Vite phục vụ implicit từ `public/`, không có TS import | static runtime asset | KEEP-REVIEW; kiểm content/deploy contract trước khi commit |
+| `public/robots.txt`, `public/llms.txt` | Vite phục vụ implicit từ `public/`; `llms.txt` mô tả public navigation còn `robots.txt` chỉ khai báo crawler policy | static runtime asset | KEEP; đã kiểm route link, không lộ API/secret; tiếp tục review khi deploy domain thay đổi |
 | `scripts/generate-status-tokens.mjs` | Không có package script, CI, docs hoặc source reference; token contract test đã kiểm tra trực tiếp `workflowConfig.ts` ↔ `index.css` | superseded/unwired mutating tool | REMOVED; giữ `statusTokenContract.test.ts` làm canonical check |
 | `scripts/measure-ultimate-baseline.mjs` | Đã xác minh file `0` bytes, không có package script, CI, docs hoặc source reference | empty/unwired candidate; không có executable capability | REMOVED trong commit cleanup sau consumer proof |
 
@@ -58,7 +58,7 @@ Không phát hiện ledger owner nào chỉ còn export mà không có consumer.
 | --- | --- | --- | --- | --- |
 | CLN-01 | 7/8 | `generate-status-tokens.mjs` | Token contract đã có test canonical; script mutating không có consumer; đã xoá | REMOVED |
 | CLN-02 | 7/8 | `measure-ultimate-baseline.mjs` | Đã đối chiếu: 0 bytes, không capability/consumer; đã xoá cùng inventory update | REMOVED |
-| CLN-03 | 8 | public crawler/LLM files | Xác nhận deploy/product intent và nội dung không lộ route nội bộ | REVIEW |
+| CLN-03 | 8 | public crawler/LLM files | Đã xác nhận asset là public navigation metadata; sửa link `/projects` → `/weekly-menu`, không có API/secret | KEEP |
 | CLN-04 | mỗi wave | legacy fixture/selector/export phát hiện khi sửa owner | Source-aware zero-consumer proof | CONTINUOUS |
 
 Wave 4 cleanup: removed stale `bom-current`/`bom-preview` nested-tab entries and browser clicks from floorplan and conditional read-only fixtures. Production retains the two internal render states; only obsolete navigation assumptions were removed.
