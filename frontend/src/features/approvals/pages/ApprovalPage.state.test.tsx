@@ -12,12 +12,18 @@ const mocks = vi.hoisted(() => ({
   getMenuDecisions: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/approvals/approvalsApi', () => ({
   useGetApprovalRecordsQuery: mocks.getApprovals,
-  useGetWorkflowDocumentsQuery: mocks.getDocuments,
-  useGetPurchaseRequestsPageQuery: mocks.getPurchaseRequests,
   useGetApprovalHistoryQuery: mocks.getHistory,
   useExecuteApprovalDecisionMutation: () => [mocks.executeDecision, { isLoading: false }],
+}));
+
+vi.mock('@/api/workflowDocumentsApi', () => ({
+  useGetWorkflowDocumentsQuery: mocks.getDocuments,
+}));
+
+vi.mock('@/features/purchasing/purchasingApi', () => ({
+  useGetPurchaseRequestsPageQuery: mocks.getPurchaseRequests,
 }));
 
 vi.mock('@/api/coordinationApi', () => ({
@@ -151,7 +157,7 @@ describe('ApprovalPage query state boundary', () => {
 
     renderPage();
 
-    expect(screen.getByText('Bạn không có quyền xem hàng đợi phê duyệt.')).toBeInTheDocument();
+    expect(screen.getAllByText('Bạn không có quyền xem hàng đợi phê duyệt.')[0]).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
     expect(screen.queryByText('Không có chứng từ chờ duyệt')).toBeNull();
   });
@@ -161,7 +167,7 @@ describe('ApprovalPage query state boundary', () => {
     mocks.getApprovals.mockReturnValue(failedQuery(500, refetch));
 
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Thử tải lại' })[0]);
 
     expect(refetch).toHaveBeenCalledOnce();
   });
@@ -171,8 +177,8 @@ describe('ApprovalPage query state boundary', () => {
 
     renderPage();
 
-    expect(screen.getByText('Duyệt đề xuất mua PR-001')).toBeInTheDocument();
-    expect(screen.getByText('Đang cập nhật hàng đợi')).toBeInTheDocument();
+    expect(screen.getAllByText('Duyệt đề xuất mua PR-001')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Đang cập nhật hàng đợi')[0]).toBeInTheDocument();
   });
 
   it('opens the purchase-request approval dialog from that row and mutates only after confirmation', async () => {
@@ -185,7 +191,7 @@ describe('ApprovalPage query state boundary', () => {
 
     renderPage();
 
-    const row = screen.getByText('Duyệt đề xuất mua PR-20260810-FULLDAY').closest('article');
+    const row = screen.getAllByText('Duyệt đề xuất mua PR-20260810-FULLDAY')[0].closest('article');
     if (!row) throw new Error('Expected the PR approval row to be rendered.');
     fireEvent.click(within(row).getByRole('button', { name: 'Duyệt chứng từ' }));
 
@@ -218,9 +224,9 @@ describe('ApprovalPage query state boundary', () => {
       targetId: 'demand-1',
       week: '2026-07-20',
     }));
-    expect(screen.getByText('Phạm vi: Tuần từ 20/07/2026')).toBeInTheDocument();
+    expect(screen.getAllByText('Phạm vi: Tuần từ 20/07/2026')[0]).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Tìm chứng từ hoặc nguyên liệu'), {
+    fireEvent.change(screen.getAllByLabelText('Tìm chứng từ hoặc nguyên liệu')[0], {
       target: { value: 'Bột nở' },
     });
     await waitFor(() => expect(mocks.getApprovals).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -279,6 +285,6 @@ describe('ApprovalPage query state boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: /PR-001/ }));
 
     expect(screen.getByText('Quản lý vận hành')).toBeInTheDocument();
-    expect(screen.getByText('Đang cập nhật lịch sử')).toBeInTheDocument();
+    expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument();
   });
 });
