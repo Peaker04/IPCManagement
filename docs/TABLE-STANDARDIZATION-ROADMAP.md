@@ -84,11 +84,19 @@ Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like m
 - [x] BOM current/preview được giữ là hai state của import workflow, không phải nested navigation. Floorplan/UI audit/conditional fixture đã bỏ technical-tab assumptions; read-only inventory còn 15 owner, preview tiếp tục thuộc mutation/import workflow evidence.
 - [x] BOM summary được single-owner ở context cấp trang; panel không lặp lại fact và số dòng kiểm tra dùng `totalRows`. Copy thao tác đã đổi sang ngôn ngữ nghiệp vụ; test contract khóa duplicate/technical copy.
 - [x] Phiếu nhập master list không còn chỉ đọc 20 header đầu: query phân trang theo `totalCount`, detail selection được reset khi đổi trang; focused lifecycle contract 7/7.
-- [ ] Mọi master/reference contract có natural label, stable ID và effective-range disposition.
-- [ ] Duplicate header facts đã chuyển khỏi line table hoặc có lý do giữ.
+- [x] Natural label/stable ID/effective-range disposition đã được source-scan cho BOM (`dish.id + bomId`, ngày hiệu lực), contracts (`customerId`, range/status tách), quotations (`quotationId`, range/active tách), employees (`userId`, active/role tách), receipt (`receiptId`/`receiptLineId`, header-line tách). Không còn một owner nào dùng tên hiển thị làm React key.
+- [x] Duplicate header facts đã chuyển khỏi line table hoặc có lý do giữ: receipt header chỉ ở master/detail header, dòng chỉ giữ nguyên liệu và số lượng; BOM summary có single-owner; contracts không nhân header fact vào line.
 - [ ] Edit/detail action giữ list context và focus return.
-- [ ] Permission, empty/loading/error và optimistic/refetch state có regression.
+- [x] Permission, empty/loading/error và optimistic/refetch state đã có regression ở focused contracts: Admin BOM feedback, Admin Employees confirmation, Supplier Quotations state, Warehouse receipt lifecycle; các test contract đều chặn empty/error giả và giữ selection sau refetch.
 - [ ] Component/form/style cũ bị thay thế đã source-scan và xoá cùng consumer cuối.
+
+### Wave 4 carry-over audit
+
+| Carry-over | Owner | Evidence hiện hành | Disposition |
+|---|---|---|---|
+| Edit giữ list context | Employees, Contracts, Quotations | mutation/refetch tests giữ page/selection; chưa có browser focus assertion | Mở — bổ sung focus return contract trước khi đóng wave |
+| Dead/unwired component cleanup | frontend scripts + UI fixtures | `docs/CODE-CLEANUP-INVENTORY.md`, source-aware scan | Mở — Wave 7/8, không xoá đoán mò |
+| Production-like retention/query plan | Import history | `W3-CARRY-01` | Chuyển Wave 6 — cần EXPLAIN trên MySQL fixture |
 
 ## Wave 5 — Aggregate, report và duplicate thông tin
 
