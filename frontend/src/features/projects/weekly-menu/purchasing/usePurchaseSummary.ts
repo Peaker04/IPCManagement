@@ -1,5 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react'
-import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi'
+import { useGetIngredientDemandAggregatePageQuery } from '@/features/reports/reportsApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import type { DemandLine } from '@/types/workflow'
 import type { MaterialSummary } from '../model/types'
