@@ -948,6 +948,53 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    [Trait("Category", "Performance")]
+    public async Task WeeklyMenuImportHistory_ShouldBatchPageEligibilityLookups()
+    {
+        var queryCounter = new SelectCommandCounter();
+        await using var fixture = await WorkflowFixture.CreateAsync(queryCounter);
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var setupContext = fixture.CreateContext())
+        {
+            var schedule = await setupContext.Menuschedules.SingleAsync();
+            var version = new MenuVersion
+            {
+                MenuVersionId = GuidHelper.NewId(),
+                CustomerId = fixture.CustomerId,
+                WeekStartDate = schedule.WeekStartDate,
+                VersionNo = 1,
+                Status = "DRAFT",
+                SourceFileName = "history-fixture.xlsx",
+                SourceImportBatch = "history-fixture",
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                SuccessRowCount = 1
+            };
+            setupContext.Menuversions.Add(version);
+            schedule.MenuVersionId = version.MenuVersionId;
+            await setupContext.SaveChangesAsync();
+        }
+
+        queryCounter.Reset();
+        await using var context = fixture.CreateContext();
+        var service = new WeeklyMenuImportHistoryService(
+            context,
+            new WeeklyMenuAuditActorResolver(context));
+        var result = await service.GetWeeklyMenuImportHistoryAsync(
+            fixture.CustomerIdString,
+            null,
+            null,
+            new PagedRequestDto { PageNumber = 1, PageSize = 10 });
+
+        result.Items.Should().ContainSingle();
+        result.Items.Single().CanRollback.Should().BeFalse();
+        queryCounter.SelectCount.Should().BeLessThanOrEqualTo(4,
+            "history page, schedule eligibility and quantity-link checks must be batched per page");
+    }
+
+    [Fact]
     public async Task MenuScheduleEffectiveRangeAudit_Should_JoinApiWeekTransitionActorAndCorrelation()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
