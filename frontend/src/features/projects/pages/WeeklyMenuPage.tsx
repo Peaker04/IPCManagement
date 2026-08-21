@@ -8,7 +8,7 @@ import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
-import { useGetIngredientDemandAggregatePageQuery } from '@/features/reports/reportsApi';
+import { useGetIngredientDemandAggregatePageQuery } from '@/api/reportsApi';
 import {
   useGetCoordinationCustomersQuery,
   useGetCustomerContractsQuery,

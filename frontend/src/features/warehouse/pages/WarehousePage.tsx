@@ -30,7 +30,7 @@ import {
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
   useWorkflowOverview,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
 import { useGetPurchaseOrdersPageQuery } from '@/features/purchasing/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
+import { useGetStockMovementsQuery } from '@/api/reportsApi'
+import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi'
 import { toChefView } from '../chefQueryView'
 
 const EMPTY_CHEF_LIST: never[] = []

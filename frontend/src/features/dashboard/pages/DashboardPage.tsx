@@ -4,7 +4,7 @@ import { CommandBar, EmptyState, OperationalFrame, StatusBadge } from '@/compone
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { Button } from '@/components/ui/button';
 import { useGetOperationalKpisQuery } from '@/api/dashboardApi';
-import { useWorkflowOverview } from '@/features/reports/reportsApi';
+import { useWorkflowOverview } from '@/api/reportsApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
 import { ROUTES } from '@/lib/routeConfig';
