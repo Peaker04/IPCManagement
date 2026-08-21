@@ -1,6 +1,6 @@
 # Table inventory — Wave 0
 
-Ngày chụp: 2026-08-21  
+Ngày chụp: 2026-08-21
 Phạm vi: `frontend/src/**/*.tsx`; bảng được nhận diện bằng phần tử `<table>` trong production source.
 
 ## Quy ước
