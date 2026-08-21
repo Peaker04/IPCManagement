@@ -1,11 +1,6 @@
 import { useDeferredValue, useState } from 'react';
-import {
-  toNextReportCursor,
-  useGetCurrentStockPageQuery,
-  useGetStockMovementPageQuery,
-  type ReportCursor,
-  type WorkflowReportQuery,
-} from '@/api/workflowApi';
+import { useGetCurrentStockPageQuery, useGetStockMovementPageQuery } from '@/features/reports/reportsApi';
+import { toNextReportCursor, type ReportCursor, type WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatDateTime } from '@/lib/formatters';
 import type { StockMovement } from '@/types/workflow';
