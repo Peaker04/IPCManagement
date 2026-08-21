@@ -500,6 +500,30 @@ Wave 37 checklist:
 - [x] Full unit suite: **157 files / 888 tests passed**.
 - [x] Atomic commit: `83fcf2e4`.
 
+## Wave 38 accepted seam — demand/movement widgets route-owned (2026-08-21)
+
+`DemandSummary` (warehouse + weekly-menu) and `StockMovementTable` (warehouse,
+admin-data, reports, chef) were removed from the common barrel and imported
+from their leaf modules by their owning routes.
+
+Measured against Wave 37:
+
+- Dashboard: **231.81 → 229.99 KiB gzip**.
+- Coordination: **234.78 → 232.97 KiB gzip**.
+- Approval: **238.78 → 236.97 KiB gzip**.
+- Purchasing: **261.65 → 259.84 KiB gzip**.
+- Approval-rules: **244.34 → 242.53 KiB gzip**.
+- All ten route closures decreased; thresholds remain unchanged.
+
+Wave 38 checklist:
+
+- [x] Build, lint and dependency-cruiser pass (`423 modules / 1591 dependencies`).
+- [x] Targeted widget/route tests: **3 files / 40 tests passed**.
+- [x] RTK Query reducer/middleware/cache identity unchanged.
+- [x] Full suite rerun: **155 files / 886 tests passed**; two unrelated dirty-tree
+  contract fixtures fail on `MaterialDemandSection.tsx` baseline/range checks.
+- [x] Atomic commit: `5d789e6c`.
+
 ## Wave 34 completion audit against the cleanup objective (2026-08-21)
 
 | Objective requirement | Evidence | Status |
