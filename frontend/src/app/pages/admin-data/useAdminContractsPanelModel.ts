@@ -154,7 +154,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
       .filter(Boolean);
     const shiftNames = rawShiftNames.map(toApiShiftName);
     if (activeWeekDays.length === 0) {
-      setContractFeedback({ type: 'error', message: 'Ngày làm việc contract không được trống.' });
+      setContractFeedback({ type: 'error', message: 'Ngày làm việc trong hợp đồng không được trống.' });
       return;
     }
     if (shiftNames.length === 0 || shiftNames.some((shift) => !shift)) {
@@ -178,19 +178,19 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
       if (isCreatingContract) {
         const createBody: CreateCustomerContractRequest = { customerCode: nextCustomerCode, ...body, customerName: nextCustomerName };
         const response = await createCustomerContract(createBody).unwrap();
-        if (!response.data) throw new Error('Không nhận được contract vừa tạo.');
+        if (!response.data) throw new Error('Không nhận được hợp đồng vừa tạo.');
 
         setSelectedContractCustomerId(response.data.customerId);
         setIsCreatingContract(false);
         loadContractForm(response.data);
-        setContractFeedback({ type: 'success', message: 'Đã tạo khách hàng và contract.' });
+        setContractFeedback({ type: 'success', message: 'Đã tạo khách hàng và hợp đồng.' });
         return;
       }
 
       await updateCustomerContract({ customerId: selectedContract!.customerId, body }).unwrap();
-      setContractFeedback({ type: 'success', message: 'Đã lưu contract khách hàng.' });
+      setContractFeedback({ type: 'success', message: 'Đã lưu hợp đồng khách hàng.' });
     } catch (error) {
-      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được contract khách hàng.') });
+      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được hợp đồng khách hàng.') });
     }
   };
 

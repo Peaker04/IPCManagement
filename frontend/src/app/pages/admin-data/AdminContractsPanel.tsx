@@ -29,7 +29,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
                 { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
                 { label: 'Ca phục vụ', value: selectedContract?.shiftNames.map(formatShiftName).join(', ') || '-', tone: 'info' },
-                { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' },
+                { label: 'Lịch theo phiên bản', value: menuSchedules.length.toString(), tone: 'neutral' },
               ]}
             />
 
