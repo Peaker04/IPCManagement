@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import type { PurchaseOrderLineDto } from '@/api/workflowApi';
+import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
 import { TableViewport } from '@/components/common';
 import { Input } from '@/components/ui/input';
