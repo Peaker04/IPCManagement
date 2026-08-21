@@ -539,9 +539,10 @@ public partial class WorkflowGenerationTests
             GroupBy = "day",
             SearchKeyword = dayRows[0].IngredientName,
             PageNumber = 1,
-            PageSize = 20,
+            PageSize = 1,
         });
         searchedPage.TotalCount.Should().Be(2);
+        searchedPage.Items.Should().ContainSingle();
         searchedPage.TotalShortageQty.Should().Be(19);
 
         var emptySearchPage = await reportService.GetPurchasePlanPageAsync(new PurchasePlanPageQueryDto
