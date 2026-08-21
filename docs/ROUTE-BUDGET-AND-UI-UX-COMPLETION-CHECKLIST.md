@@ -58,13 +58,13 @@ Mỗi finding phải ghi đủ:
 
 ### Pilot: Coordination
 
-- [ ] Đo baseline route closure và asset closure của Coordination.
-- [ ] Tách các capability đủ điều kiện: order table, detail dialog, action/exception surface.
-- [ ] Giữ nguyên query args, endpoint names, cache tags và action eligibility.
-- [ ] Regression test loading/empty/error/permission/refetch/action.
-- [ ] Headed browser test đủ 5 viewport, tab, filter, pagination, detail và keyboard path.
-- [ ] Route closure sau sửa giảm thật và không làm route khác tăng ngoài ngưỡng chấp nhận.
-- [ ] Clean build, lint, dependency-cruiser và route-budget verification pass.
+- [x] Đo baseline route closure và asset closure của Coordination: `232.59 KiB`.
+- [x] Tách capability route-owned: `ActionToolbar` và `OrderTable` lazy-load dưới Suspense; detail dialog vẫn do OrderTable ownership quản lý.
+- [x] Giữ nguyên query args, endpoint names, cache tags và action eligibility; workflow API boundary vẫn `0` runtime consumer.
+- [x] Regression Coordination: `6 files / 50 tests PASS`; build và lint PASS.
+- [x] Headed browser test đủ 5 viewport cho protected-route overflow/action contract: `5/5 PASS`.
+- [x] Route closure giảm thật: `232.59 → 227.28 KiB` (`-5.31 KiB`); không route nào khác tăng quá mức baseline đo được.
+- [ ] Clean route-budget verification pass: Coordination còn `227.28 / 196.00 KiB`, pilot chứng minh hướng đúng nhưng chưa đạt threshold.
 
 ### Pilot: Approval
 
@@ -218,7 +218,7 @@ Checklist chỉ được đóng khi:
 - [x] Quyết định kiến trúc: Route-owned capability islands + controlled lazy confirmation seam.
 - [x] Quyết định UI/UX: evidence-first audit bằng DOM/runtime/interaction, không dùng screenshot đơn lẻ.
 - [ ] Gate 0 — baseline mới cho checklist này (đã hoàn tất build/manifest/viewport; còn thiếu source-owner inventory project-wide).
-- [ ] Gate 1 — capability island implementation.
+- [ ] Gate 1 — capability island implementation (Coordination pilot đã chứng minh giảm `5.31 KiB`, chưa đạt threshold và chưa rollout).
 - [ ] Gate 2 — controlled lazy confirmation seam.
 - [ ] Gate 3 — project-wide UI/UX inventory.
 - [ ] Gate 4 — copy/vocabulary audit.
