@@ -380,6 +380,8 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `artifacts/perf-probe-warehouse-geometry.json` | `583BF2A0A62374FFEE2B29F039FDBD371718719379BC8991E7760422938D53C8` | Targeted post-fix production-preview H.1 rerun: 8 rows and 429px at both t0/settled, deltaTop 0, CGR 0, growth 0, integrity 0. |
 | `artifacts/perf-probe-warehouse-geometry.md` | `0280FC7DD6C3CBD85E5F388AA03FDA5B1A7EEF0EDDA72DB701F3247E898222E3` | Human-readable companion for the warehouse geometry regression evidence. |
 | `artifacts/perf-probe-warehouse-inp-smoke-v2.json` | `5636B3301BF656BCD35709DA1BBAE0710AA4C5A4310565A9C8188CD10E7CCBE7` | One-repeat smoke after probe correction: target tab is activated; tab-switch and search samples include inputDelay/processing/presentation, both presentation-dominated and not processing debt. Not a five-repeat gate. |
+| `artifacts/perf-probe-warehouse-inp-search.json` | `FD95283109B3EC0213F89CC1C5DBDCEA5CE8276F47BDAD92DF2FB15EC3046824` | Corrected five-repeat H.1 search interaction on warehouse movement: 40ms median, presentation share 0.9025, no processing debt, DAT. |
+| `artifacts/perf-probe-warehouse-inp-tab.json` | `924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC` | Corrected five-repeat H.1 tab-switch interaction on warehouse movement: 40ms median, presentation share 0.7225, no processing debt, DAT. |
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|

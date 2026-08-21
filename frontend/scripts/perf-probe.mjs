@@ -64,6 +64,10 @@ const INTERACTIONS = [
   { id: 'row-action', label: 'Thao tác 6 — Hành động hàng', selector: 'tbody tr button, tbody tr [role="button"], tbody tr a[href]', action: 'click' },
   { id: 'sidebar-toggle', label: 'Thao tác 7 — Sidebar toggle', selector: '[data-sidebar-toggle], nav button[aria-expanded][aria-controls]', action: 'click' },
 ]
+const interactionFilter = process.env.PROBE_INTERACTIONS?.split(',').map((value) => value.trim()).filter(Boolean)
+const ACTIVE_INTERACTIONS = interactionFilter?.length
+  ? INTERACTIONS.filter((interaction) => interactionFilter.includes(interaction.id))
+  : INTERACTIONS
 
 const T = CONFIG.thresholds
 const round = (value, digits = 2) => value == null ? null : Math.round(value * 10 ** digits) / 10 ** digits
@@ -463,7 +467,7 @@ async function main() {
   try {
     await bootstrapAuth(browser)
     if (flags.load) for (const target of targets) report.load.push(await measureLoad(browser, target))
-    if (flags.inp) for (const target of targets) for (const interaction of INTERACTIONS) report.inp.push(await measureInteraction(browser, target, interaction))
+    if (flags.inp) for (const target of targets) for (const interaction of ACTIVE_INTERACTIONS) report.inp.push(await measureInteraction(browser, target, interaction))
     if (flags.overflow) for (const target of targets) for (const viewport of CONFIG.viewports) report.overflow.push(await scanOverflow(browser, target, viewport, flags.strip))
   } finally { await browser.close() }
   report.integrityViolations = assertIntegrity(report)

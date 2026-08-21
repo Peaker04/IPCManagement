@@ -1,0 +1,54 @@
+{
+  "startedAt": "2026-08-21T11:15:33.646Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "profile": "mock=huge",
+  "navigation": "context nguội theo route; tab được kích hoạt và xác minh aria-selected trước t_0",
+  "throttle": {
+    "cpuRate": 4,
+    "downKbps": 500,
+    "upKbps": 500,
+    "latencyMs": 400
+  },
+  "thresholds": {
+    "CGR_MAX": 0.1,
+    "CLS_MAX": 0.1,
+    "SCROLL_GROWTH_MAX_RATIO": 0.5,
+    "INP_MAX": 200,
+    "INP_MAX_LAB_4X": 500,
+    "OVERFLOW_TOLERANCE_PX": 1,
+    "PRESENTATION_DOMINANT_SHARE": 0.6,
+    "REPEATS": 5
+  },
+  "load": [],
+  "inp": [
+    {
+      "route": "warehouse",
+      "tab": "warehouse-movement",
+      "interaction": "tab-switch",
+      "samples": 5,
+      "value": 40,
+      "min": 32,
+      "max": 64,
+      "components": {
+        "inputDelay": 10,
+        "processing": 1.6,
+        "presentation": 28.9
+      },
+      "presentationShare": 0.7225,
+      "dominatedBy": "trình bày",
+      "isProcessingDebt": false,
+      "verdict": "DAT",
+      "target": "button#warehouse-demand-tab.ipc-view-tab.is-active"
+    }
+  ],
+  "overflow": [],
+  "integrityViolations": [],
+  "counts": {
+    "loadRows": 0,
+    "loadGradable": 0,
+    "inpCells": 1,
+    "inpValueBearing": 1,
+    "overflowRuns": 0,
+    "overflowFailing": 0
+  }
+}
