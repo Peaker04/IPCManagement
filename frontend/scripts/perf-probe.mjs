@@ -378,13 +378,37 @@ async function scanOverflow(browser, target, viewport, stripSelector) {
       const root = strip ? document.querySelector(strip) : document.body
       if (!root) return { id, viewport: viewportLabel, scope: strip, scopeFound: false, verdict: 'N/A', findings: [] }
       const findings = []
+      const describe = (element) => {
+        const testId = element.getAttribute('data-testid')
+        const stableId = element.id && !/^(_r_|base-ui-)/.test(element.id) ? `#${element.id}` : ''
+        const classes = [...element.classList].filter((name) => !name.startsWith('base-ui-')).slice(0, 3)
+        const suffix = classes.length ? `.${classes.join('.')}` : ''
+        return testId ? `[data-testid="${testId}"]` : stableId || `${element.tagName.toLowerCase()}${suffix}`
+      }
       for (const element of [root, ...root.querySelectorAll('*')]) {
         if (!element.getClientRects().length) continue
-        const style = getComputedStyle(element); const dx = element.scrollWidth - element.clientWidth; const dy = element.scrollHeight - element.clientHeight
+        if (element.classList.contains('sr-only')) continue
+        const style = getComputedStyle(element)
+        const isVisuallyHiddenControl = /^(INPUT|SELECT|TEXTAREA)$/.test(element.tagName) && (
+          element.getAttribute('type') === 'hidden' ||
+          style.opacity === '0' ||
+          style.clip !== 'auto' ||
+          style.clipPath !== 'none'
+        )
+        if (isVisuallyHiddenControl || element.getAttribute('aria-hidden') === 'true') continue
+        const dx = element.scrollWidth - element.clientWidth; const dy = element.scrollHeight - element.clientHeight
         if (dx <= tolerance && dy <= tolerance) continue
         const scrollable = /(auto|scroll)/.test(style.overflowX) || /(auto|scroll)/.test(style.overflowY)
         const kind = scrollable ? 'có thanh cuộn' : style.textOverflow === 'ellipsis' ? 'thu gọn' : 'cắt mất chữ'
-        findings.push({ kind, element: element.id ? `#${element.id}` : element.tagName.toLowerCase(), dx, dy })
+        findings.push({
+          kind,
+          element: describe(element),
+          text: (element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+          dx,
+          dy,
+          overflowX: style.overflowX,
+          overflowY: style.overflowY,
+        })
       }
       const pageOverflowX = document.documentElement.scrollWidth - document.documentElement.clientWidth
       return { id, viewport: viewportLabel, scope: strip || 'toàn trang', scopeFound: true, pageOverflowX, findings: findings.slice(0, 40), verdict: findings.some((item) => item.kind === 'cắt mất chữ') || pageOverflowX > tolerance ? 'TRUOT' : 'DAT' }
