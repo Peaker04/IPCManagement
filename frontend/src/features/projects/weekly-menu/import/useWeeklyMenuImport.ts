@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useMemo, useReducer, useRef, useState } from 'react'
 import type { CreateCustomerContractRequest } from '@/types/coordination'
 import {
   useCommitWeeklyMenuImportBatchMutation,
@@ -51,10 +51,9 @@ export const useWeeklyMenuImport = ({
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
-  const [historyPage, setHistoryPage] = useState(1)
-  useEffect(() => {
-    setHistoryPage(1)
-  }, [customerId])
+  const [historyPagination, setHistoryPagination] = useState({ customerId, page: 1 })
+  const historyPage = historyPagination.customerId === customerId ? historyPagination.page : 1
+  const setHistoryPage = (page: number) => setHistoryPagination({ customerId, page })
   const historyQuery = useGetWeeklyMenuImportHistoryQuery({
     customerId: customerId || undefined,
     pageNumber: historyPage,

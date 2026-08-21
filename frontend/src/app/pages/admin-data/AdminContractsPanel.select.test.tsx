@@ -68,6 +68,7 @@ describe('AdminContractsPanel select labels', () => {
     expect(triggers[1]).toHaveTextContent('2026-07-30 / Ca sáng / Thực đơn ca sáng');
     expect(triggers[1]).not.toHaveTextContent('schedule-1');
     expect(triggers[2]).toHaveTextContent('Đang áp dụng');
+    expect(screen.getByText('Không giới hạn')).toBeInTheDocument();
     expect(screen.getAllByText('100%', { exact: true })).toHaveLength(1);
   });
 });

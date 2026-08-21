@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/formatters';
-import { formatMenuVersionStatus, formatShiftName, formatWorkflowStatus } from '@/lib/workflowConfig';
+import { formatMenuVersionStatus, formatShiftName } from '@/lib/workflowConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
@@ -217,7 +217,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                           <td>{contract.shiftNames.map(formatShiftName).join(', ') || '-'}</td>
                           <td>
                             <div>{contract.effectiveFrom ?? '-'}</div>
-                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : formatWorkflowStatus(contract.contractStatus)}</div>
+                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : 'Không giới hạn'}</div>
                           </td>
                           <td className="ipc-numeric-cell">{contract.defaultMenuPrice == null ? '-' : formatCurrency(contract.defaultMenuPrice)}</td>
                           <td className="ipc-numeric-cell">100%</td>
