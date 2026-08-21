@@ -9,7 +9,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Multi-panel administration shell has panel-local state and operations, not one importable lifecycle.",
         "sources": [
-          "frontend/src/app/pages/AdminDataPage.tsx:15-60"
+          "frontend/src/app/pages/AdminDataPage.tsx:15-75"
         ]
       },
       "backendBacked": false,
@@ -172,7 +172,7 @@
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
           "frontend/src/features/reports/pages/ReportsPage.tsx:60-85",
-          "frontend/src/features/reports/pages/ReportsPage.tsx:166"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:169"
         ]
       },
       "backendBacked": false,

@@ -11,17 +11,17 @@ import {
 const production = readProductionSources()
 
 const commandBarExceptionLocations = [
-  'src/app/pages/AdminDataPage.tsx:24',
-  'src/app/pages/AdminDataPage.tsx:29',
+  'src/app/pages/AdminDataPage.tsx:27',
+  'src/app/pages/AdminDataPage.tsx:32',
   'src/features/admin/pages/ApprovalRulesPage.tsx:238',
-  'src/features/approvals/pages/ApprovalPage.tsx:259',
-  'src/features/approvals/pages/ApprovalPage.tsx:269',
+  'src/features/approvals/pages/ApprovalPage.tsx:260',
+  'src/features/approvals/pages/ApprovalPage.tsx:270',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:48',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:52',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:57',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:62',
-  'src/features/reports/pages/ReportsPage.tsx:78',
-  'src/features/reports/pages/ReportsPage.tsx:87',
+  'src/features/reports/pages/ReportsPage.tsx:81',
+  'src/features/reports/pages/ReportsPage.tsx:90',
   'src/features/warehouse/pages/WarehousePage.tsx:334',
 ]
 

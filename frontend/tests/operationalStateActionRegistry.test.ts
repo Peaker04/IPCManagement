@@ -84,7 +84,7 @@ const manifestDebtRawSources: Record<string, string> = {
 
 const manifestDebtExpectations: DebtSourceExpectations = {
   AdminData: {
-    'frontend/src/app/pages/AdminDataPage.tsx:15-60': [
+    'frontend/src/app/pages/AdminDataPage.tsx:15-75': [
       'const model = useAdminDataPageModel();',
       '<ViewSwitcher',
       "onTabChange={(id) => startViewTransition(() => setActiveView(id.replace('admin-', '') as AdminView))}",
@@ -129,7 +129,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:166': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:169': [
       '<ReportQueryBoundary view={reportViews.demand}>',
     ],
   },
@@ -614,7 +614,7 @@ describe('operational state/action family coverage', () => {
   })
 
   it('rejects a missing AdminData fragment in raw source', () => {
-    const descriptor = 'frontend/src/app/pages/AdminDataPage.tsx:15-60'
+    const descriptor = 'frontend/src/app/pages/AdminDataPage.tsx:15-75'
     const mutatedExpectations = structuredClone(manifestDebtExpectations)
     mutatedExpectations.AdminData[descriptor] = [
       '__missing_admin_data_fragment__',
@@ -626,7 +626,7 @@ describe('operational state/action family coverage', () => {
       mutatedExpectations,
       manifestDebtRawSources,
     )).toThrow(
-      'Debt source "frontend/src/app/pages/AdminDataPage.tsx:15-60" expected fragment "__missing_admin_data_fragment__" exactly once in raw source, found 0.',
+      'Debt source "frontend/src/app/pages/AdminDataPage.tsx:15-75" expected fragment "__missing_admin_data_fragment__" exactly once in raw source, found 0.',
     )
   })
 
