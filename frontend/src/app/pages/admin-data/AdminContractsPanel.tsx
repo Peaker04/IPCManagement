@@ -1,5 +1,5 @@
 import { CalendarCheck, Pencil, PlusCircle, Save } from 'lucide-react';
-import { TableViewport, ContextStrip, SectionPanel, StatusBadge } from '@/components/common';
+import { TableViewport, ContextStrip, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,19 +18,17 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
   const { contractFeedback, contractForm, customerContracts, effectiveActiveView, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, isCreatingContract, isSavingContract, loadContractForm, loadScheduleRuleForm, menuSchedules, queryViews, scheduleRuleForm, selectedContract, selectedSchedule, setContractForm, setIsCreatingContract, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, startNewContract } = model;
   return (
     <>
-      {effectiveActiveView === 'contracts' && (
-        <div id="admin-contracts-panel" role="tabpanel" aria-labelledby="admin-contracts-tab" className="flex flex-col gap-4">
-          <AdminQueryBoundary queries={[
-            { label: 'hợp đồng khách hàng', view: queryViews.contracts },
-            ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
-          ]}>
+      <KeepAliveTabPanel id="admin-contracts" active={effectiveActiveView === 'contracts'} className="flex flex-col gap-4">
+        <AdminQueryBoundary queries={[
+          { label: 'hợp đồng khách hàng', view: queryViews.contracts },
+          ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
+        ]}>
           <SectionPanel title="Hợp đồng khách hàng và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
             <ContextStrip
               items={[
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
                 { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
                 { label: 'Ca phục vụ', value: selectedContract?.shiftNames.map(formatShiftName).join(', ') || '-', tone: 'info' },
-                { label: 'BOM áp dụng', value: 'Theo đơn giá menu, 100%', tone: 'info' },
                 { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' },
               ]}
             />
@@ -319,8 +317,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
             </div>
           </SectionPanel>
           </AdminQueryBoundary>
-        </div>
-      )}
+        </KeepAliveTabPanel>
 
 
     </>

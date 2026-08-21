@@ -78,6 +78,7 @@ Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like m
 
 ### Checklist đóng Wave 4
 
+- [x] Wave 4 audit bắt đầu tại Admin Contracts: duplicate `BOM áp dụng 100%` đã bỏ khỏi ContextStrip, giữ tại cột bảng; focused render test khóa chỉ còn một fact presentation.
 - [ ] Mọi master/reference contract có natural label, stable ID và effective-range disposition.
 - [ ] Duplicate header facts đã chuyển khỏi line table hoặc có lý do giữ.
 - [ ] Edit/detail action giữ list context và focus return.
