@@ -474,6 +474,32 @@ Wave 36 checklist:
 - [ ] Lifecycle E2E remains pending until `IPC_TEST_CONNECTION_STRING` is
   available for an isolated MySQL test database.
 
+## Wave 37 accepted seam — route-owned widgets leave common barrel (2026-08-21)
+
+Bundle-module inspection identified route-owned widgets inside the shared
+`common` chunk. `ApprovalQueue`, `RoleInbox`, `ExceptionLane`, `PageStepper`,
+and `SideRail` now use explicit leaf imports from their owning routes; their
+common-barrel exports were removed. RTK Query remains one slice with unchanged
+reducer, middleware and cache identity.
+
+Measured result:
+
+- `common` chunk: **56.02 → 52.04 KiB gzip** (`-3.98 KiB`).
+- Dashboard closure: **234.09 → 231.81 KiB**.
+- Coordination: **237.05 → 234.78 KiB**.
+- Approval: **239.54 → 238.78 KiB**.
+- Approval-rules: **246.64 → 244.34 KiB**.
+- All ten routes improved against the pre-wave baseline; budgets remain
+  unchanged and still fail.
+
+Wave 37 checklist:
+
+- [x] One RTK Query cache identity preserved.
+- [x] Build, lint and dependency-cruiser pass.
+- [x] Targeted tests: **3 files / 26 tests passed**.
+- [x] Full unit suite: **157 files / 888 tests passed**.
+- [x] Atomic commit: `83fcf2e4`.
+
 ## Wave 34 completion audit against the cleanup objective (2026-08-21)
 
 | Objective requirement | Evidence | Status |
