@@ -1,4 +1,4 @@
-import { Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
@@ -8,7 +8,7 @@ import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
-import { useGetIngredientDemandAggregatePageQuery } from '@/api/workflowApi';
+import { useGetIngredientDemandAggregatePageQuery } from '@/features/reports/reportsApi';
 import {
   useGetCoordinationCustomersQuery,
   useGetCustomerContractsQuery,
@@ -379,6 +379,8 @@ const WeeklyMenuPage = () => {
     weeklyPlanRows,
     invalidScheduleMenuPrices,
     quickServingRows,
+    dishesById,
+    dishesByName,
   });
   const demandLines = demandWorkflow.presentation.demandLines;
   const aggregatedDemandLines = demandWorkflow.presentation.aggregatedDemandLines;
@@ -473,6 +475,7 @@ const WeeklyMenuPage = () => {
       context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
+        <WeeklyMenuReadiness readiness={readiness} />
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
@@ -486,7 +489,6 @@ const WeeklyMenuPage = () => {
           activeTab={selectedView}
           onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
         />
-        <WeeklyMenuReadiness readiness={readiness} />
         <WeeklyMenuAlerts
           invalidBomTierCount={invalidBomTierCount}
           menuFeedback={menuFeedback}
@@ -499,42 +501,35 @@ const WeeklyMenuPage = () => {
         />
 
         <div
-          className={`${typography.body} relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none`}
+          className={`${typography.body} relative min-h-[480px]`}
           aria-busy={isViewPending}
           aria-live="polite"
         >
           {isViewPending && (
-            <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
+            <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200">
               Đang cập nhật
             </span>
           )}
-          <Suspense fallback={(
-            <section aria-busy="true" className="min-h-[420px] rounded-lg border border-slate-200 bg-white p-6">
-              <span className="text-sm font-medium text-slate-600">Đang chuẩn bị nội dung...</span>
-            </section>
-          )}>
-            <WeeklyMenuViewContent
-              activeView={activeView}
-              scope={weeklyScheduleScope}
-              hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
-              committedRows={committedLayoutRows}
-              dishNamesById={dishNamesById}
-              scheduleWorkflow={scheduleWorkflow}
-              productionPlanWorkflow={productionPlanWorkflow}
-              demandWorkflow={demandWorkflow}
-              servingFeedback={scheduleFeedback}
-              menuCostWorkflow={menuCostWorkflow}
-              purchaseSummaryWorkflow={purchaseSummaryWorkflow}
-              dishMaterialsWorkflow={dishMaterialsWorkflow}
-            />
-          </Suspense>
+          <WeeklyMenuViewContent
+            activeView={activeView}
+            scope={weeklyScheduleScope}
+            hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
+            committedRows={committedLayoutRows}
+            dishNamesById={dishNamesById}
+            scheduleWorkflow={scheduleWorkflow}
+            productionPlanWorkflow={productionPlanWorkflow}
+            demandWorkflow={demandWorkflow}
+            servingFeedback={scheduleFeedback}
+            menuCostWorkflow={menuCostWorkflow}
+            purchaseSummaryWorkflow={purchaseSummaryWorkflow}
+            dishMaterialsWorkflow={dishMaterialsWorkflow}
+          />
         </div>
 
         {importWorkflow.state.isOpen && <WeeklyMenuImportDialog workflow={importWorkflow} />}
 
         {scheduleWorkflow.state.isEditorOpen && <WeeklyScheduleEditorDialog workflow={scheduleWorkflow} />}
       </QueryViewBoundary>
-
     </OperationalFrame>
   );
 };
