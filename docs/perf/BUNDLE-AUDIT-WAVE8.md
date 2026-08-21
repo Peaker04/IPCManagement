@@ -291,6 +291,22 @@ Wave 19 checklist:
 - [x] Full unit suite: **158 files / 891 tests passed** in 251.06s.
 - [x] Prior build, lint and dependency-cruiser gates remain green.
 - [x] No unverified wildcard feature barrel remains in the audited scope.
+
+## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
+
+The unchanged route-budget gate was rerun against the current clean build. It
+still fails on all ten measured routes; the largest overages are coordination
+`+41.05 KiB`, approval `+37.54 KiB`, and dashboard `+35.09 KiB`. This is an
+accurate remaining boundary-debt signal, not a threshold dispute, so no budget
+or cache-policy adjustment was made.
+
+Wave 20 checklist:
+
+- [x] `check:route-budgets` executed against current artifacts.
+- [x] Exact current route values and overages captured in command evidence.
+- [x] No threshold, manualChunks, cache identity, or API-slice changes.
+- [ ] Route closure reduction remains the next implementation wave; it requires
+  per-route ownership analysis rather than further barrel-only cleanup.
 - [x] No route-budget, cache, API-slice, or threshold changes.
 
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
