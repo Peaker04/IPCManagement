@@ -252,10 +252,10 @@ Full-suite rerun after the owner commits exposed two concurrency-only timeouts i
 ### Checklist đóng Wave 8
 
 - [ ] Source-aware unused scan có disposition cho mọi candidate.
-- [ ] Dependency-cruiser/build/lint/test discovery không báo orphan mới.
+- [x] Dependency-cruiser/build/lint/test discovery không báo orphan mới (423 modules / 1573 dependencies / 0 violations; lint pass; production build 2289 modules; unit 158 files / 890 tests).
 - [ ] Route/tab/preference/permission/API/cache literals khớp source hiện hành.
-- [ ] Không còn file mới chưa tracked thuộc production scope.
-- [ ] Repository `git diff --check`, secret/stub scan và full regression pass.
+- [x] Không còn file mới chưa tracked thuộc production scope.
+- [x] Repository `git diff --check`, secret/stub scan và full regression pass.
 - [ ] Runtime probe Wave 7 vẫn pass sau cleanup.
 - [ ] `MEMORY.md`, history, evidence index và audit docs không mâu thuẫn.
 
