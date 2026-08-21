@@ -61,3 +61,14 @@ individual tag or renaming the chunk cannot materially reduce the 30 KiB gzip
 payload. The next implementation wave must break the module boundary/cycle so
 the base API runtime is not attributed to a tag-only shared chunk, then re-run
 the route-budget script against a clean manifest.
+
+## Boundary-2 measurement — domain consumer migration (2026-08-21)
+
+Three runtime consumers were moved off the `workflowApi` barrel: Approval Rules,
+`ServiceRunReportPanel`, and `useChefJournal`/`ServiceRunBlockerPanel`. The clean
+build still fails the global gate, but the route-specific effect is measurable:
+Approval Rules fell from about 256.40 KiB to **247.54 KiB**, and Coordination fell
+from about 246.92 KiB to **237.75 KiB** in the latest manifest closure. This is a
+real reduction without changing thresholds or cache identity. The shared `index`
+chunk grew, so migration must continue until the remaining barrel consumers are
+removed and the net route closure is verified.
