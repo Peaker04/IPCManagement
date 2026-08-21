@@ -1,7 +1,8 @@
 import { useDeferredValue, useState, type FormEvent } from 'react';
 import { useToast } from '@/components/common';
 import { useGetIngredientsQuery } from '@/api/dishCatalogApi';
-import { useCreateSupplierQuotationMutation, useDeactivateSupplierQuotationMutation, useGetSupplierQuotationsByIngredientPageQuery, useGetSuppliersQuery, useUpdateSupplierQuotationMutation, type SupplierQuotationDto } from '@/api/workflowApi';
+import { useCreateSupplierQuotationMutation, useDeactivateSupplierQuotationMutation, useGetSupplierQuotationsByIngredientPageQuery, useGetSuppliersQuery, useUpdateSupplierQuotationMutation } from '@/features/purchasing/purchasingApi';
+import type { SupplierQuotationDto } from '@/api/workflowApiTypes';
 import { toQueryView } from '@/lib/queryView';
 import { getPurchasingErrorMessage } from '../purchasingModel';
 
