@@ -8,11 +8,13 @@ import {
   DocumentRail,
   EmptyState,
   InlineAlert,
+  KeepAliveTabPanel,
   OperationalFrame,
   PaginationBar,
   QueryErrorAlert,
   SectionPanel,
   SplitWorkbench,
+  StatusBadge,
   StockMovementTable,
   TableViewport,
   ViewSwitcher,
@@ -20,7 +22,6 @@ import {
 import { ROUTES } from '@/lib/routeConfig';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
-  useCreateInventoryIssueMutation,
   useGetCurrentStockQuery,
   useGetCurrentStockPageQuery,
   useGetIngredientDemandAggregatePageQuery,
@@ -28,14 +29,16 @@ import {
   useGetMaterialRequestCandidatePageQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
-  useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
-} from '@/api/workflowApi';
-import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
+} from '@/features/reports/reportsApi';
+import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
+import { useGetPurchaseOrdersPageQuery } from '@/features/purchasing/purchasingApi';
+import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
+import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
 import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
-import { useGetPurchaseOrdersPageQuery, useGetWarehouseSelectorQuery, type PurchaseOrderLineDto } from '@/api/workflowApi';
+import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialog';
 import { WarehouseBatchPurchaseReceiptDialog } from '../WarehouseBatchPurchaseReceiptDialog';
 import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
@@ -418,126 +421,128 @@ export default function WarehousePage() {
         </InlineAlert>
       )}
 
-      <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
-        <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
-          <DialogHeader>
-            <DialogTitle id="warehouse-issue-title">Tạo phiếu xuất kho</DialogTitle>
-            <DialogDescription id="warehouse-issue-description">Chọn đúng nhu cầu nguyên liệu và kho xuất. Hệ thống không tự chọn chứng từ thay bạn.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-material-request">
-                Nhu cầu nguyên liệu{' '}
-                <span aria-hidden="true" className="text-red-600">
-                  *
-                </span>
-              </label>
-              <Select
-                value={selectedMaterialRequestId}
-                onValueChange={(value) => {
-                  setSelectedMaterialRequestId(value ?? '');
-                  setSelectedWarehouseId('');
-                  setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
-                }}
-              >
-                <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">
-                  <SelectValue placeholder="Chọn chứng từ cần xuất">{selectedIssueCandidate ? formatIssueCandidateLabel(selectedIssueCandidate) : 'Chọn chứng từ cần xuất'}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {issueCandidates.map((candidate) => (
-                    <SelectItem key={candidate.materialRequestId} value={candidate.materialRequestId}>
-                      {formatIssueCandidateLabel(candidate)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <PaginationBar
-                page={issueCandidatePageNumber}
-                pageSize={issueCandidatePage?.pageSize ?? 8}
-                totalItems={issueCandidatePage?.totalCount ?? 0}
-                onPageChange={(page) => {
-                  setSelectedMaterialRequestId('');
-                  setIssueCandidatePageNumber(page);
-                }}
-              />
-              {issueCandidates.length === 0 && (
-                <p
-                  className={isIssueCandidateError && !isFetchingIssueCandidates ? 'text-xs font-semibold text-red-700' : 'text-xs text-amber-700'}
-                  role={isIssueCandidateError && !isFetchingIssueCandidates ? 'alert' : undefined}
+      {isIssueDialogOpen && (
+        <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
+          <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
+            <DialogHeader>
+              <DialogTitle id="warehouse-issue-title">Tạo phiếu xuất kho</DialogTitle>
+              <DialogDescription id="warehouse-issue-description">Chọn đúng nhu cầu nguyên liệu và kho xuất. Hệ thống không tự chọn chứng từ thay bạn.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-material-request">
+                  Nhu cầu nguyên liệu{' '}
+                  <span aria-hidden="true" className="text-red-600">
+                    *
+                  </span>
+                </label>
+                <Select
+                  value={selectedMaterialRequestId}
+                  onValueChange={(value) => {
+                    setSelectedMaterialRequestId(value ?? '');
+                    setSelectedWarehouseId('');
+                    setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
+                  }}
                 >
-                  {isFetchingIssueCandidates
-                    ? 'Đang tải nhu cầu nguyên liệu...'
-                    : isIssueCandidateError
-                      ? 'Không tải được nhu cầu nguyên liệu. Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì hết nhu cầu cần xuất.'
-                      : 'Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.'}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-source">
-                Kho xuất{' '}
-                <span aria-hidden="true" className="text-red-600">
-                  *
-                </span>
-              </label>
-              <Select value={selectedWarehouseId} onValueChange={(value) => setSelectedWarehouseId(value ?? '')}>
-                <SelectTrigger id="warehouse-source" aria-label="Chọn kho xuất">
-                  <SelectValue placeholder="Chọn kho cấp nguyên liệu">{warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId)?.name ?? 'Chọn kho cấp nguyên liệu'}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouseOptions.map((warehouse) => (
-                    <SelectItem key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {warehouseOptions.length === 0 &&
-                (isWarehouseSelectorError ? (
-                  <p className="text-xs font-semibold text-red-700" role="alert">
-                    Không tải được danh sách kho. Chưa thể kết luận là không có kho nào cấp được nguyên liệu.
+                  <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">
+                    <SelectValue placeholder="Chọn chứng từ cần xuất">{selectedIssueCandidate ? formatIssueCandidateLabel(selectedIssueCandidate) : 'Chọn chứng từ cần xuất'}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {issueCandidates.map((candidate) => (
+                      <SelectItem key={candidate.materialRequestId} value={candidate.materialRequestId}>
+                        {formatIssueCandidateLabel(candidate)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <PaginationBar
+                  page={issueCandidatePageNumber}
+                  pageSize={issueCandidatePage?.pageSize ?? 8}
+                  totalItems={issueCandidatePage?.totalCount ?? 0}
+                  onPageChange={(page) => {
+                    setSelectedMaterialRequestId('');
+                    setIssueCandidatePageNumber(page);
+                  }}
+                />
+                {issueCandidates.length === 0 && (
+                  <p
+                    className={isIssueCandidateError && !isFetchingIssueCandidates ? 'text-xs font-semibold text-red-700' : 'text-xs text-amber-700'}
+                    role={isIssueCandidateError && !isFetchingIssueCandidates ? 'alert' : undefined}
+                  >
+                    {isFetchingIssueCandidates
+                      ? 'Đang tải nhu cầu nguyên liệu...'
+                      : isIssueCandidateError
+                        ? 'Không tải được nhu cầu nguyên liệu. Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì hết nhu cầu cần xuất.'
+                        : 'Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.'}
                   </p>
-                ) : (
-                  <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>
-                ))}
-              {selectedWarehouseId && (
-                <div
-                  className={`rounded-sm border px-3 py-2 text-xs ${
-                    isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock
-                      ? 'border-red-200 bg-red-50 font-semibold text-red-800'
-                      : selectedWarehouseAllocation.lines.length > 0
-                        ? 'border-sky-200 bg-sky-50 text-slate-700'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
-                  }`}
-                  role={isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock ? 'alert' : 'status'}
-                >
-                  {isIssueAllocationRefreshing
-                    ? 'Đang đối chiếu nhu cầu còn lại với tồn kho đã chọn...'
-                    : isAllocationSourceError
-                      ? 'Không đối chiếu được nhu cầu với tồn kho vì lỗi tải dữ liệu. Chưa thể kết luận kho này thiếu hàng; hãy tải lại trang trước khi xuất.'
-                      : selectedWarehouseAllocation.lines.length > 0
-                        ? `Kho có thể xuất ${selectedWarehouseAllocation.lines.length}/${selectedWarehouseAllocation.remainingLineCount} nhóm nguyên liệu còn lại; ${selectedWarehouseAllocation.fullyCoveredLineCount} nhóm đủ toàn bộ số lượng.`
-                        : 'Kho này không có tồn phù hợp với nhu cầu còn lại. Chọn kho khác để tiếp tục.'}
-                </div>
-              )}
+                )}
+              </div>
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-source">
+                  Kho xuất{' '}
+                  <span aria-hidden="true" className="text-red-600">
+                    *
+                  </span>
+                </label>
+                <Select value={selectedWarehouseId} onValueChange={(value) => setSelectedWarehouseId(value ?? '')}>
+                  <SelectTrigger id="warehouse-source" aria-label="Chọn kho xuất">
+                    <SelectValue placeholder="Chọn kho cấp nguyên liệu">{warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId)?.name ?? 'Chọn kho cấp nguyên liệu'}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouseOptions.map((warehouse) => (
+                      <SelectItem key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {warehouseOptions.length === 0 &&
+                  (isWarehouseSelectorError ? (
+                    <p className="text-xs font-semibold text-red-700" role="alert">
+                      Không tải được danh sách kho. Chưa thể kết luận là không có kho nào cấp được nguyên liệu.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>
+                  ))}
+                {selectedWarehouseId && (
+                  <div
+                    className={`rounded-sm border px-3 py-2 text-xs ${
+                      isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock
+                        ? 'border-red-200 bg-red-50 font-semibold text-red-800'
+                        : selectedWarehouseAllocation.lines.length > 0
+                          ? 'border-sky-200 bg-sky-50 text-slate-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-800'
+                    }`}
+                    role={isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock ? 'alert' : 'status'}
+                  >
+                    {isIssueAllocationRefreshing
+                      ? 'Đang đối chiếu nhu cầu còn lại với tồn kho đã chọn...'
+                      : isAllocationSourceError
+                        ? 'Không đối chiếu được nhu cầu với tồn kho vì lỗi tải dữ liệu. Chưa thể kết luận kho này thiếu hàng; hãy tải lại trang trước khi xuất.'
+                        : selectedWarehouseAllocation.lines.length > 0
+                          ? `Kho có thể xuất ${selectedWarehouseAllocation.lines.length}/${selectedWarehouseAllocation.remainingLineCount} nhóm nguyên liệu còn lại; ${selectedWarehouseAllocation.fullyCoveredLineCount} nhóm đủ toàn bộ số lượng.`
+                          : 'Kho này không có tồn phù hợp với nhu cầu còn lại. Chọn kho khác để tiếp tục.'}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsIssueDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void handleCreateInventoryIssue()}
-              disabled={
-                !selectedMaterialRequestId || !selectedWarehouseId || isIssueAllocationRefreshing || isAllocationSourceError || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue
-              }
-            >
-              {isCreatingIssue || isIssueAllocationRefreshing ? 'Đang đồng bộ số lượng...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsIssueDialogOpen(false)}>
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleCreateInventoryIssue()}
+                disabled={
+                  !selectedMaterialRequestId || !selectedWarehouseId || isIssueAllocationRefreshing || isAllocationSourceError || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue
+                }
+              >
+                {isCreatingIssue || isIssueAllocationRefreshing ? 'Đang đồng bộ số lượng...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {selectedPurchaseOrder && selectedReceiptLine && canReceivePurchases && (
         <WarehousePurchaseReceiptDialog
@@ -571,7 +576,7 @@ export default function WarehousePage() {
       <SectionPanel
         title="Đơn mua chờ nhập kho"
         icon={<ReceiptText size={18} aria-hidden="true" />}
-        description="Chọn đúng đơn và dòng thực nhận. Cờ bằng chứng do máy chủ cung cấp, không suy đoán theo tên nguyên liệu."
+        description="Chọn đúng đơn và dòng thực nhận để đối chiếu số lượng thực tế từ nhà cung cấp."
         className="min-w-0 overflow-hidden"
       >
         {!canReceivePurchases && (
@@ -584,15 +589,15 @@ export default function WarehousePage() {
           caption="Danh sách được phân trang và cuộn trong vùng cố định."
           className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
         >
-          <table className="ipc-data-table min-w-[820px]">
+          <table className="ipc-data-table min-w-[1060px] !table-auto">
             <thead>
               <tr>
-                <th>Đơn mua</th>
-                <th>Nhà cung cấp</th>
-                <th>Đề xuất mua</th>
-                <th>Trạng thái</th>
-                <th>Tiến độ dòng</th>
-                <th>Thao tác</th>
+                <th className="min-w-[280px]">Đơn mua</th>
+                <th className="min-w-[160px]">Nhà cung cấp</th>
+                <th className="min-w-[220px]">Đề xuất mua</th>
+                <th className="min-w-[140px]">Trạng thái</th>
+                <th className="min-w-[130px]">Tiến độ dòng</th>
+                <th className="min-w-[130px]">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -616,11 +621,15 @@ export default function WarehousePage() {
                   const isSelected = isPurchaseOrderDetailsOpen && selectedPurchaseOrderId === order.purchaseOrderId;
                   return (
                     <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
-                      <td className="font-semibold text-slate-900">{order.purchaseOrderCode}</td>
+                      <td className="font-semibold text-slate-900 whitespace-nowrap">{order.purchaseOrderCode}</td>
                       <td>{order.supplierName}</td>
-                      <td>{order.purchaseRequestCode}</td>
-                      <td>{formatWorkflowStatus(order.status)}</td>
-                      <td>
+                      <td className="whitespace-nowrap text-slate-600">{order.purchaseRequestCode}</td>
+                      <td className="ipc-badge-cell whitespace-nowrap">
+                        <StatusBadge variant={order.status === 'COMPLETED' ? 'success' : order.status === 'ORDERED' ? 'info' : order.status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
+                          {formatWorkflowStatus(order.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className="whitespace-nowrap">
                         {completedLines}/{order.lines.length} dòng đã đủ
                       </td>
                       <td>
@@ -682,11 +691,14 @@ export default function WarehousePage() {
         onTabChange={(id) => setSelectedView(id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions')}
       />
 
-      <div className={`${typography.body} relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none`} aria-busy={isViewPending} aria-live="polite">
-        {isViewPending && <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">Đang cập nhật</span>}
-        {activeView === 'movement' && (
-          <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab">
-            <SplitWorkbench
+      <div className={`${typography.body} relative min-h-[420px]`} aria-busy={isViewPending} aria-live="polite">
+        {isViewPending && (
+          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200">
+            Đang cập nhật
+          </span>
+        )}
+        <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
+          <SplitWorkbench
               detailLabel="Phiếu kho"
               detail={
                 <DocumentRail
@@ -735,11 +747,11 @@ export default function WarehousePage() {
                     />
                   )}
                   {currentStockView.phase === 'ready' && currentStockView.isRefreshing && (
-                    <InlineAlert title="Đang cập nhật tồn kho" variant="info" className="mb-3">
-                      Bảng hiện tại vẫn được giữ trong khi hệ thống tải bản mới.
-                    </InlineAlert>
+                    <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
+                      Đang cập nhật...
+                    </span>
                   )}
-                  <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
+                  <TableViewport className="ipc-warehouse-table-shell min-h-[27rem]" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
                     <table className="ipc-data-table">
                       <thead>
                         <tr>
@@ -751,20 +763,16 @@ export default function WarehousePage() {
                       </thead>
                       <tbody>
                         {currentStockView.phase === 'loading' ? (
-                          <tr>
-                            <td colSpan={4} className="text-center text-slate-600" role="status">
-                              Đang tải tồn kho hiện tại...
-                            </td>
-                          </tr>
-                        ) : currentStockView.phase === 'uninitialized' ? (
-                          <tr>
-                            <td colSpan={4} className="text-center text-slate-600">
-                              {currentStockView.instruction}
-                            </td>
-                          </tr>
+                          Array.from({ length: 8 }).map((_, i) => (
+                            <tr key={`stock-skel-${i}`}>
+                              <td colSpan={4} className="p-2">
+                                <div className="ipc-table-skeleton-cell h-8 w-full" />
+                              </td>
+                            </tr>
+                          ))
                         ) : currentStockRows.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className={isCurrentStockError ? 'text-center font-semibold text-red-700' : 'text-center text-slate-500'}>
+                            <td colSpan={4} className="py-6 text-center text-slate-500">
                               {currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}
                             </td>
                           </tr>
@@ -823,13 +831,16 @@ export default function WarehousePage() {
                     />
                   )}
                   {stockMovementView.phase === 'ready' && stockMovementView.isRefreshing && (
-                    <InlineAlert title="Đang cập nhật sổ luân chuyển" variant="info" className="mb-3">
-                      Các dòng hiện tại vẫn được giữ trong khi hệ thống tải bản mới.
-                    </InlineAlert>
+                    <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
+                      Đang cập nhật...
+                    </span>
                   )}
                   {stockMovementView.phase === 'loading' ? (
-                    <div className="ipc-stock-movement-table is-empty" role="status">
-                      Đang tải sổ luân chuyển kho...
+                    <div className="min-h-[380px] space-y-3 p-4" role="status" aria-label="Đang tải sổ luân chuyển kho">
+                      <div className="ipc-table-skeleton-cell h-8 w-full !bg-slate-100" />
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="ipc-table-skeleton-cell h-9 w-full" />
+                      ))}
                     </div>
                   ) : stockMovementView.phase === 'uninitialized' ? (
                     <InlineAlert title="Chưa tải sổ luân chuyển" variant="info">
@@ -837,6 +848,7 @@ export default function WarehousePage() {
                     </InlineAlert>
                   ) : stockMovementView.phase === 'ready' ? (
                     <StockMovementTable
+                      className="min-h-[27rem]"
                       movements={stockMovementPage?.items ?? EMPTY_QUERY_ROWS}
                       cursorPagination={{
                         page: stockMovementCursors.length + 1,
@@ -852,33 +864,30 @@ export default function WarehousePage() {
                 </SectionPanel>
               </div>
             </SplitWorkbench>
-          </div>
-        )}
+          </KeepAliveTabPanel>
 
-        {activeView === 'demand' && (
-          <>
-            <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
-            <WarehouseDemandPanel
-              demandSearch={demandSearch}
-              onDemandSearchChange={(value) => {
-                setDemandSearch(value);
-                setDemandPage(1);
-              }}
-              requestedDemandDate={requestedDemandDate}
-              requestedDemandWeek={requestedDemandWeek}
-              demandDateTo={demandDateTo}
-              isError={isDemandPageError}
-              isFetching={isFetchingDemandPage}
-              onRetry={refetchDemandPage}
-              lines={demandLines}
-              page={demandPageResponse?.pageNumber ?? demandPage}
-              pageSize={demandPageResponse?.pageSize ?? 8}
-              totalItems={demandPageResponse?.totalCount ?? 0}
-              onPageChange={setDemandPage}
-              inboxItems={warehouseInbox}
-            />
-          </>
-        )}
+        <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
+          <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
+          <WarehouseDemandPanel
+            demandSearch={demandSearch}
+            onDemandSearchChange={(value) => {
+              setDemandSearch(value);
+              setDemandPage(1);
+            }}
+            requestedDemandDate={requestedDemandDate}
+            requestedDemandWeek={requestedDemandWeek}
+            demandDateTo={demandDateTo}
+            isError={isDemandPageError}
+            isFetching={isFetchingDemandPage}
+            onRetry={refetchDemandPage}
+            lines={demandLines}
+            page={demandPageResponse?.pageNumber ?? demandPage}
+            pageSize={demandPageResponse?.pageSize ?? 8}
+            totalItems={demandPageResponse?.totalCount ?? 0}
+            onPageChange={setDemandPage}
+            inboxItems={warehouseInbox}
+          />
+        </KeepAliveTabPanel>
         {selectedPurchaseOrder && isBatchReceiptOpen && canReceivePurchases && (
           <WarehouseBatchPurchaseReceiptDialog
             open
@@ -898,11 +907,9 @@ export default function WarehousePage() {
           />
         )}
 
-        {activeView === 'exceptions' && (
-          <div id="warehouse-exceptions-panel" role="tabpanel" aria-labelledby="warehouse-exceptions-tab">
-            <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
-          </div>
-        )}
+        <KeepAliveTabPanel id="warehouse-exceptions" active={activeView === 'exceptions'}>
+          <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
+        </KeepAliveTabPanel>
       </div>
     </OperationalFrame>
   );
