@@ -247,6 +247,7 @@ async function snapshot(page, target) {
       scrollHeight: frame?.scrollHeight ?? null,
       rowsData: rows.length - skeletons.length,
       rowsSkeleton: skeletons.length,
+      rowHeights: rows.slice(0, 20).map((row) => Math.round(row.getBoundingClientRect().height * 100) / 100),
       innerHeight: window.innerHeight,
     }
   }, target.tab)
