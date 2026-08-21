@@ -292,6 +292,23 @@ Wave 19 checklist:
 - [x] Prior build, lint and dependency-cruiser gates remain green.
 - [x] No unverified wildcard feature barrel remains in the audited scope.
 
+## Wave 26 candidate audit — no independent eager feature seam (2026-08-21)
+
+All top-level operational pages are already loaded through the route loader and
+the router Suspense boundary. Remaining large modules are page-internal tabs
+and sections that share the page's query/state model; splitting them would
+introduce new loading states and duplicate orchestration rather than remove a
+dead boundary. No independent eager feature seam met the acceptance criteria
+for a controlled lazy move.
+
+Wave 26 checklist:
+
+- [x] Route-level lazy ownership verified.
+- [x] Page-internal coupling classified before any code movement.
+- [x] No speculative lazy import merged.
+- [ ] Revisit only when a tab/section gets an explicit data and Suspense
+  contract as part of a product feature change.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
