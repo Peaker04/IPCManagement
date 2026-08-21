@@ -31,27 +31,33 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetIngredientsQuery: mocks.getIngredients,
 }))
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/purchasing/purchasingApi', () => ({
   useCancelPurchaseOrderMutation: () => [vi.fn(), { isLoading: false }],
   useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
   useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
   useCreateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
   useDeactivateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
-  useGetMaterialRequestCandidatePageQuery: mocks.getCandidates,
   useGetPurchaseOrdersPageQuery: mocks.getOrders,
-  useGetPurchasePlanPageQuery: mocks.getPlan,
   useGetPurchaseRequestsPageQuery: mocks.getRequests,
-  useGetStockMovementPageQuery: mocks.getStockMovements,
   useGetSupplierQuotationsByIngredientPageQuery: mocks.getQuotations,
   useGetSuppliersQuery: mocks.getSuppliers,
-  useGetWarehouseSelectorQuery: mocks.getWarehouses,
   useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
   useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
-  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
   useRecordPurchaseOrderReceiptMutation: () => [vi.fn(), { isLoading: false }],
   useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
   useUpdatePurchaseRequestLineSupplierMutation: () => [vi.fn(), { isLoading: false }],
   useUpdateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
+}))
+
+vi.mock('@/features/reports/reportsApi', () => ({
+  useGetMaterialRequestCandidatePageQuery: mocks.getCandidates,
+  useGetPurchasePlanPageQuery: mocks.getPlan,
+  useGetStockMovementPageQuery: mocks.getStockMovements,
+}))
+
+vi.mock('@/features/warehouse/warehouseApi', () => ({
+  useGetWarehouseSelectorQuery: mocks.getWarehouses,
+  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
 }))
 
 import { useSupplierQuotations } from '@/features/purchasing/quotation/useSupplierQuotations'
