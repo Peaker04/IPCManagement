@@ -29,8 +29,8 @@ Mỗi bảng phải được xử lý theo grain và mục đích nghiệp vụ,
 | 4 | Master/reference và document master-detail | IN PROGRESS | Effective range, history, permission và detail layout đúng grain; đóng carry-over focus/dead-code |
 | 5 | Aggregate/report/KPI và loại bỏ duplicate thông tin | IN PROGRESS | Không KPI/bảng/cột lặp cùng fact; drill-down giữ nguồn; đóng format/cache/technical-view |
 | 6 | FE↔BE↔DB cho dữ liệu dài hạn | NOT STARTED | Query projection, index, paging/cursor, DTO/date/unit và payload budget có số đo |
-| 7 | Geometry, loading stability, INP, overflow trên toàn inventory | NOT STARTED | Probe đủ route/tab/surface; row token, CLS/CGR/INP/overflow đạt, integrity sạch |
-| 8 | Dead/unwired code, regression toàn dự án và closeout | NOT STARTED | Zero orphan không disposition; full gate và docs trạng thái thống nhất |
+| 7 | Geometry, loading stability, INP, overflow trên toàn inventory | IN PROGRESS | Probe đủ route/tab/surface; row token, CLS/CGR/INP/overflow đạt, integrity sạch |
+| 8 | Dead/unwired code, regression toàn dự án và closeout | IN PROGRESS | Zero orphan không disposition; full gate và docs trạng thái thống nhất |
 
 ## Wave 0 — Inventory và contract nền
 
