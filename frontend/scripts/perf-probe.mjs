@@ -243,8 +243,10 @@ async function snapshot(page, target) {
       anchorSelector: tab ? `#${tab}-panel tbody tr:first-child` : '.ipc-content-shell tbody tr:first-child',
       anchorFound: Boolean(anchor),
       anchorTop: anchor?.getBoundingClientRect().top ?? null,
+      anchorHeight: anchor?.getBoundingClientRect().height ?? null,
       clientHeight: frame?.clientHeight ?? null,
       scrollHeight: frame?.scrollHeight ?? null,
+      overflowY: frame ? getComputedStyle(frame).overflowY : null,
       rowsData: rows.length - skeletons.length,
       rowsSkeleton: skeletons.length,
       rowHeights: rows.slice(0, 20).map((row) => Math.round(row.getBoundingClientRect().height * 100) / 100),
@@ -262,7 +264,7 @@ async function sampleSettled(page, target) {
   const started = Date.now(); let signature; let stableSince = 0; let last
   while (Date.now() - started < CONFIG.settle.maxWaitMs) {
     last = await snapshot(page, target)
-    const next = [last.rowsData, last.rowsSkeleton, last.scrollHeight, last.clientHeight, last.anchorTop].join('|')
+    const next = [last.rowsData, last.rowsSkeleton, last.scrollHeight, last.clientHeight, last.anchorTop, last.anchorHeight].join('|')
     if (next === signature) {
       if (!stableSince) stableSince = Date.now()
       if (Date.now() - stableSince >= CONFIG.settle.quietMs) return { snapshot: last, timedOut: false }
@@ -300,6 +302,7 @@ async function measureLoad(browser, target) {
     if (start.clientHeight && end.scrollHeight != null) {
       row.growthDenominator = start.clientHeight
       row.growthRatio = round((end.scrollHeight - start.clientHeight) / start.clientHeight, 4)
+      row.growthFrameSelector = start.frameSelector
     } else { row.growthDenominator = null; row.growthRatio = null; row.notes.push('khung cuộn vắng tại t_0') }
     if (!end.rowsData) row.notes.push('không có dữ liệu: 0 hàng tại t_settled')
     row.gradable = end.rowsData > 0 && row.deltaTop != null
@@ -395,6 +398,7 @@ function assertIntegrity(report) {
     if (row.rowsDataSettled === 0 && row.verdicts?.cgr !== 'N/A') violations.push(`${row.id}: 0 hàng vẫn có phán quyết`)
     if (row.t0?.anchorFound === false && row.deltaTop != null) violations.push(`${row.id}: mốc neo vắng vẫn có hiệu số`)
     if (row.growthRatio != null && !row.growthDenominator) violations.push(`${row.id}: tỷ lệ tràn thiếu mẫu số`)
+    if (row.growthRatio != null && !row.growthFrameSelector) violations.push(`${row.id}: tỷ lệ tràn thiếu selector khung cuộn`)
     if (row.cgr != null && !row.cgrDenominator) violations.push(`${row.id}: CGR thiếu mẫu số`)
   }
   for (const cell of report.inp) {

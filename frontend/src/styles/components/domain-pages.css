@@ -446,19 +446,26 @@
 .ipc-reports-quality-table td {
   white-space: normal;
   overflow-wrap: break-word;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .ipc-reports-quality-table .ipc-quality-description-cell,
 .ipc-reports-quality-table .ipc-quality-action-guidance-cell,
 .ipc-reports-quality-table .ipc-quality-owner-cell,
-.ipc-reports-quality-table .ipc-quality-entity-cell,
-.ipc-reports-quality-table .ipc-quality-entity-meta {
+.ipc-reports-quality-table .ipc-quality-entity-cell {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 1;
   overflow: hidden;
   line-height: 1.45;
+}
+
+.ipc-reports-quality-table .ipc-quality-sla-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--ipc-space-2);
+  white-space: nowrap;
 }
 
 

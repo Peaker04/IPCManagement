@@ -18,12 +18,12 @@ Status: **IN PROGRESS — pagination implementation landed; runtime/data evidenc
 - [x] Import history has server-side date/customer/page boundaries.
 - [x] Backend API test suite (WorkflowGeneration filter) passes: 141 tests.
 - [x] Backend and frontend production builds pass after the contract change.
-- [x] `node frontend/scripts/perf-probe.mjs --check` passes (9 routes, 28 targets, 8 interactions; thresholds loaded).
+- [x] `node frontend/scripts/perf-probe.mjs --check` passes (9 routes, 27 targets, 8 interactions; thresholds loaded).
 - [x] Runtime availability check recorded: ports 3037/5173/5000/5001 were not serving in this session.
 - [x] Preview runtime load probe executed for `reports-data-quality` under H.1 throttle: `t0=7650.7ms`, `tsettled=8538.3ms`, `deltaTop=0`, `CGR=0/900`, `scroll growth=0/102`, `CLS window=0.0025`, `rowsSkeletonAtT0=0`, integrity violations=0. Evidence: `frontend/artifacts/perf-probe-report.{json,md}`.
 - [x] Probe confirms the bundle mounts and settles even while the API proxy is unavailable; proxy refusal is recorded separately and is not misclassified as a UI pass.
 - [ ] Query projection and response size are measured on a multi-year fixture.
-- [x] Authenticated rerun after cell clamping reduced settled row heights to a uniform ~130px and `scrollHeight` to 1076px; growth ratio improved from 1.6781 to 1.4566 but remains above the 0.5 gate.
+- [x] Authenticated bundle rerun identified 8 skeleton rows at `t0` (48px each) and 8 data rows at settled. Moving line-clamp boxes inside table cells and compacting stacked SLA/entity content reduced the settled row from 130.06px to 53px. Final `clientHeight=438→478`, `scrollHeight=438→478`, growth ratio `0.0913`, `CGR=0`, CLS window `0.0025`; all gates and integrity checks pass without changing thresholds. Evidence: `artifacts/perf-probe-report.{json,md}`.
 - [ ] DTO null/date/timezone semantics are covered by a regression test.
 - [ ] Detail/rollback action preserves list context after refetch.
 

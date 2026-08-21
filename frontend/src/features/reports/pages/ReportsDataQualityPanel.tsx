@@ -96,22 +96,36 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                   </StatusBadge>
                 </td>
                 <td>
-                  <div className="font-semibold text-slate-800">{row.slaLabel}</div>
-                  <div className={cn(typography.caption, 'text-slate-500')}>{formatPriorityLabel(row.priorityRank)}</div>
+                  <div
+                    className="ipc-quality-sla-cell"
+                    title={`${row.slaLabel} · ${formatPriorityLabel(row.priorityRank)} · ${formatDataQualityRemediationStatus(row.remediationStatus)}`}
+                  >
+                    <span className="min-w-0 truncate font-semibold text-slate-800">
+                      {row.slaLabel} · {formatPriorityLabel(row.priorityRank)}
+                    </span>
                   <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
                     {formatDataQualityRemediationStatus(row.remediationStatus)}
                   </StatusBadge>
+                  </div>
                 </td>
                 <td><span className="ipc-quality-owner-cell" title={row.owner}>{row.owner}</span></td>
                 <td>
-                  <div className="ipc-quality-entity-cell font-medium text-slate-800" title={`${row.category} · ${row.entityLabel}`}>{row.category} · {row.entityLabel}</div>
-                  <span className={cn(typography.caption, 'ipc-quality-entity-meta text-slate-500')}>{row.entityName} / {row.entityCode}</span>
+                  <span
+                    className="ipc-quality-entity-cell font-medium text-slate-800"
+                    title={`${row.category} · ${row.entityLabel} · ${row.entityName} / ${row.entityCode}`}
+                  >
+                    {row.category} · {row.entityLabel} · {row.entityName} / {row.entityCode}
+                  </span>
                 </td>
-                <td className="ipc-quality-description-cell text-left" title={row.message}>{row.message}</td>
-                <td className="ipc-quality-action-guidance-cell text-left" title={row.suggestedAction}>{row.suggestedAction}</td>
+                <td className="text-left">
+                  <span className="ipc-quality-description-cell" title={row.message}>{row.message}</span>
+                </td>
+                <td className="text-left">
+                  <span className="ipc-quality-action-guidance-cell" title={row.suggestedAction}>{row.suggestedAction}</span>
+                </td>
                 <td>
                   {row.route ? (
-                    <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.route}>
+                    <Link className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control" to={row.route}>
                       {row.actionLabel}
                     </Link>
                   ) : (
