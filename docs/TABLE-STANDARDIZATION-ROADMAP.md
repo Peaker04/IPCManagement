@@ -227,6 +227,8 @@ Full `npm --prefix frontend run test:unit` initially reported **152 passing test
 
 Wave 8 cannot close until every row above is `FIXED` or has a documented, approved disposition and the full suite is green.
 
+Full-suite rerun after the owner commits exposed two concurrency-only timeouts in `purchasingHooksBehavior.test.tsx`; the same file passed 9/9 in isolation. The suite now has a local 15-second ceiling (global test timeout and production behavior unchanged), and the authoritative rerun is **158 files / 890 tests pass**.
+
 #### W8-REG-05 execution checklist
 
 1. Read `uiFloorplanScopeRegistry` and `uiSourceOwnershipTargets` as the sole expected tuple source; produce the route and non-route tuple matrix before editing.

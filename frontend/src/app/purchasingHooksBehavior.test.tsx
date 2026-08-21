@@ -114,7 +114,7 @@ const supplierServiceDate = (): PurchaseWorkbenchServiceDate => ({
   }],
 })
 
-describe('purchasing hook behavior', () => {
+describe('purchasing hook behavior', { timeout: 15_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.getIngredients.mockReturnValue(readyQuery([]))
