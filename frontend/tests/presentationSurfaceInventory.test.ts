@@ -41,10 +41,10 @@ describe('project-wide presentation surface inventory', () => {
       fingerprint: fingerprint(items),
     }).toEqual({
       owners: 53,
-      tables: 51,
-      dialogs: 33,
-      switchers: 9,
-      fingerprint: '52d9cf588598a68e8953a90dfb3bed9706b26660e424584c49da16ec89aa322d',
+      tables: 50,
+      dialogs: 34,
+      switchers: 7,
+      fingerprint: '0a290104c9baa813c3cd5def7b0840ac179473bd6fe961d50f7ced6503047ba9',
     })
   })
 
