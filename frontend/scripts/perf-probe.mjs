@@ -316,10 +316,9 @@ async function measureLoad(browser, target) {
   return row
 }
 
-async function runInteraction(browser, route, interaction) {
+async function runInteraction(browser, target, interaction) {
   const { context, page } = await newColdPage(browser, CONFIG.primaryViewport)
   try {
-    const target = { ...route, route: route.id, tab: null }
     await openTarget(page, target); await sampleT0(page, target); await sampleSettled(page, target)
     await page.evaluate(() => { window.__probe.events.length = 0 })
     if (interaction.selector) {
@@ -346,13 +345,13 @@ async function runInteraction(browser, route, interaction) {
   }
 }
 
-async function measureInteraction(browser, route, interaction) {
+async function measureInteraction(browser, target, interaction) {
   const samples = []; const reasons = []
   for (let index = 0; index < T.REPEATS; index += 1) {
-    const result = await runInteraction(browser, route, interaction)
+    const result = await runInteraction(browser, target, interaction)
     if (result.na) reasons.push(result.na); else samples.push(result)
   }
-  if (!samples.length) return { route: route.id, interaction: interaction.id, value: null, verdict: 'N/A', naReason: reasons[0] || 'không thu được mẫu' }
+  if (!samples.length) return { route: target.route, tab: target.tab, interaction: interaction.id, value: null, verdict: 'N/A', naReason: reasons[0] || 'không thu được mẫu' }
   const value = median(samples.map((sample) => sample.duration))
   const components = {
     inputDelay: median(samples.map((sample) => sample.inputDelay)),
@@ -363,7 +362,7 @@ async function measureInteraction(browser, route, interaction) {
   const processingShare = value ? components.processing / value : 0
   const dominatedBy = presentationShare >= T.PRESENTATION_DOMINANT_SHARE ? 'trình bày' : processingShare >= T.PRESENTATION_DOMINANT_SHARE ? 'xử lý' : 'không rõ'
   return {
-    route: route.id, interaction: interaction.id, samples: samples.length, value, min: Math.min(...samples.map((sample) => sample.duration)), max: Math.max(...samples.map((sample) => sample.duration)),
+    route: target.route, tab: target.tab, interaction: interaction.id, samples: samples.length, value, min: Math.min(...samples.map((sample) => sample.duration)), max: Math.max(...samples.map((sample) => sample.duration)),
     components, presentationShare: round(presentationShare, 4), dominatedBy,
     isProcessingDebt: dominatedBy === 'xử lý' && value > T.INP_MAX_LAB_4X,
     verdict: verdict(value, T.INP_MAX_LAB_4X), target: samples[0].target, partialReason: reasons[0],
@@ -464,7 +463,7 @@ async function main() {
   try {
     await bootstrapAuth(browser)
     if (flags.load) for (const target of targets) report.load.push(await measureLoad(browser, target))
-    if (flags.inp) for (const route of ROUTES.filter((item) => targets.some((target) => target.route === item.id))) for (const interaction of INTERACTIONS) report.inp.push(await measureInteraction(browser, route, interaction))
+    if (flags.inp) for (const target of targets) for (const interaction of INTERACTIONS) report.inp.push(await measureInteraction(browser, target, interaction))
     if (flags.overflow) for (const target of targets) for (const viewport of CONFIG.viewports) report.overflow.push(await scanOverflow(browser, target, viewport, flags.strip))
   } finally { await browser.close() }
   report.integrityViolations = assertIntegrity(report)
