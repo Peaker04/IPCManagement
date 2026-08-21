@@ -1,7 +1,7 @@
 import { useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { ContextStripItem } from '@/components/common';
-import type { WorkflowReportQuery } from '@/api/workflowApi';
+import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { uiCopy } from '@/lib/uiCopy';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { buildCsv, downloadCsv } from './reportCsv';
