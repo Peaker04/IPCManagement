@@ -351,6 +351,27 @@ Wave 28 checklist:
 - [ ] Any future reduction must preserve one reducer/middleware/cache identity
   while changing only the emitted loading boundary.
 
+## Wave 29 handoff — current state and next-wave gates (2026-08-21)
+
+Completed state is stable and verified: dead barrel/API surfaces are removed,
+the full frontend suite is green, and all accepted changes are documented with
+atomic commits. The remaining route-budget overages are architecture debt, not
+an unverified cleanup failure.
+
+Next wave must begin with these gates:
+
+1. Preserve one `apiSlice` reducer, middleware and cache identity.
+2. Preserve synchronous confirmation behavior until a tested lazy wrapper exists.
+3. Measure manifest closure before and after every boundary change.
+4. Run build, lint, dependency-cruiser and the full unit suite before closing.
+5. Do not alter route thresholds to make a candidate pass.
+
+Wave 29 checklist:
+
+- [x] Completed/deferred/open work separated explicitly.
+- [x] Reopening criteria and required gates recorded.
+- [x] Handoff committed for the next architecture wave.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
