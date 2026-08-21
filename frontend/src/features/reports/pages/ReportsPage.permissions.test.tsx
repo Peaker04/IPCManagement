@@ -86,7 +86,7 @@ const mocks = vi.hoisted(() => ({
   supplyLineReconciliation: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/reports/reportsApi', () => ({
   useGetAuditChangePageQuery: mocks.auditChangePage,
   useGetCurrentStockPageQuery: mocks.currentStockPage,
   useGetDataQualityPageQuery: mocks.dataQualityPage,
@@ -102,6 +102,10 @@ vi.mock('@/api/workflowApi', () => ({
   useGetStockMovementPageQuery: mocks.stockMovementPage,
   useGetServiceRunPageQuery: mocks.serviceRunPage,
   useGetSupplyLineReconciliationQuery: mocks.supplyLineReconciliation,
+}));
+
+vi.mock('@/features/chef/chefApi', () => ({
+  useGetServiceRunPageQuery: mocks.serviceRunPage,
 }));
 
 import ReportsPage from './ReportsPage';
