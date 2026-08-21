@@ -227,6 +227,14 @@ Full `npm --prefix frontend run test:unit` currently reports **152 passing test 
 
 Wave 8 cannot close until every row above is `FIXED` or has a documented, approved disposition and the full suite is green.
 
+#### W8-REG-05 execution checklist
+
+1. Read `uiFloorplanScopeRegistry` and `uiSourceOwnershipTargets` as the sole expected tuple source; produce the route and non-route tuple matrix before editing.
+2. Update `MainLayout` route tuples and `ViewSwitcher` tab bindings from that matrix; do not invent IDs in production code.
+3. Run `uiOwnershipInstrumentationContract.test.tsx` and `uiFloorplanScopeContract.test.ts` together; any missing/orphan/wrong tuple reopens this finding.
+4. Run ownership/source-aware tests and the production build; inspect rendered `data-ui-*` attributes for one route and one tab group.
+5. Commit registry, production instrumentation, and contract changes atomically; update this finding to `FIXED` only after all four checks pass.
+
 ### Phân loại bắt buộc
 
 | Loại | Proof để `REMOVE` | Nếu còn nghi ngờ |
