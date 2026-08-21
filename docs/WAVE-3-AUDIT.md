@@ -19,6 +19,7 @@ Status: **IN PROGRESS — pagination implementation landed; runtime/data evidenc
 - [x] Backend API test suite (WorkflowGeneration filter) passes: 141 tests.
 - [x] Backend and frontend production builds pass after the contract change.
 - [x] `node frontend/scripts/perf-probe.mjs --check` passes (9 routes, 28 targets, 8 interactions; thresholds loaded).
+- [x] Runtime availability check recorded: ports 3037/5173/5000/5001 were not serving in this session.
 - [ ] Query projection and response size are measured on a multi-year fixture.
 - [ ] DTO null/date/timezone semantics are covered by a regression test.
 - [ ] Detail/rollback action preserves list context after refetch.
