@@ -17,13 +17,13 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 | `src/test/setup.ts` | Dependency-cruiser đánh dấu orphan; được Vitest config nạp làm setup | expected config entrypoint | KEEP |
 | `public/robots.txt`, `public/llms.txt` | Vite phục vụ implicit từ `public/`, không có TS import | static runtime asset | KEEP-REVIEW; kiểm content/deploy contract trước khi commit |
 | `scripts/generate-status-tokens.mjs` | Không có package script, CI, docs hoặc source reference; script có khả năng ghi CSS | unwired tool candidate | REVIEW/REMOVE trong wave token owner; không tự chạy hoặc commit khi chưa có contract |
-| `scripts/measure-ultimate-baseline.mjs` | Không có package script, CI, docs hoặc source reference | superseded/unwired probe candidate | REVIEW/REMOVE sau khi so coverage với `perf-probe.mjs` và `measure-baseline.mjs` |
+| `scripts/measure-ultimate-baseline.mjs` | File hiện có kích thước `0` bytes; không có package script, CI, docs hoặc source reference | empty/unwired candidate; không có executable capability | REMOVE khi owner xác nhận dirty-scope ownership; không commit file rỗng |
 
 Dependency-cruiser hiện quét `423` module và `1572` dependency, không có dependency-rule violation. Hai module có cờ orphan đều là entrypoint hợp lệ nêu trên; kết quả này không chứng minh export/CSS/script không dùng.
 
 ### Wave 4/5 cleanup recheck — 2026-08-21
 
-- Source scan trên `frontend/src`, `frontend/tests`, `frontend/package.json`, root `package.json`, `.github`, `tools` và `docs` không tìm thấy consumer cho hai script untracked `generate-status-tokens.mjs` và `measure-ultimate-baseline.mjs`.
+- Source scan trên `frontend/src`, `frontend/tests`, `frontend/package.json`, root `package.json`, `.github`, `tools` và `docs` không tìm thấy consumer cho hai script untracked `generate-status-tokens.mjs` và `measure-ultimate-baseline.mjs`. Đối chiếu capability cho thấy `measure-ultimate-baseline.mjs` là file rỗng `0` bytes; `perf-probe.mjs` mới là probe canonical có ba mode và integrity gate.
 - Hai script không được xóa trong wave này vì nằm trong dirty scope của owner khác; giữ `REVIEW` và chuyển quyết định sang Wave 7/8.
 - `KeepAliveTabPanel`, `useDebouncedValue` và `statusTokenContract.test.ts` đã có import/discovery consumer; disposition `KEEP` không thay đổi.
 
@@ -57,7 +57,7 @@ Không phát hiện ledger owner nào chỉ còn export mà không có consumer.
 | ID | Wave owner | Candidate | Điều kiện quyết định | Trạng thái |
 | --- | --- | --- | --- | --- |
 | CLN-01 | 7/8 | `generate-status-tokens.mjs` | Có canonical generated-token contract + package command thì wire; nếu không remove | REVIEW |
-| CLN-02 | 7/8 | `measure-ultimate-baseline.mjs` | Diff capability/output với probe canonical; migrate unique check hoặc remove | REVIEW |
+| CLN-02 | 7/8 | `measure-ultimate-baseline.mjs` | Đã đối chiếu: 0 bytes, không capability/consumer; remove sau owner confirmation | READY-REMOVE |
 | CLN-03 | 8 | public crawler/LLM files | Xác nhận deploy/product intent và nội dung không lộ route nội bộ | REVIEW |
 | CLN-04 | mỗi wave | legacy fixture/selector/export phát hiện khi sửa owner | Source-aware zero-consumer proof | CONTINUOUS |
 
