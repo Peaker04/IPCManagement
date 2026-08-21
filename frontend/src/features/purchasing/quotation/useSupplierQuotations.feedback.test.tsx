@@ -17,7 +17,7 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetIngredientsQuery: mocks.ingredients,
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/purchasing/purchasingApi', () => ({
   useCreateSupplierQuotationMutation: () => [mocks.createQuotation, { isLoading: false }],
   useDeactivateSupplierQuotationMutation: () => [mocks.deactivateQuotation],
   useGetSupplierQuotationsByIngredientPageQuery: () => ({ data: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8 }, isSuccess: true, isLoading: false, isFetching: false, isError: false, isUninitialized: false, refetch: vi.fn() }),

@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   purchase: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/reports/reportsApi', () => ({
   useGetIngredientDemandAggregatePageQuery: mocks.demand,
   useGetPurchasePlanPageQuery: mocks.purchase,
 }));
