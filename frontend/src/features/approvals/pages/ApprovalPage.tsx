@@ -16,7 +16,7 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
-import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/features/approvals/approvalsApi';
+import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi';
 import type { ApprovalRecord } from '@/types/workflow';

@@ -5,7 +5,7 @@ import { reportsApi } from '@/features/reports/reportsApi';
 import { purchasingApi } from '@/api/purchasingApi';
 import { warehouseApi } from '@/api/warehouseApi';
 import { chefApi } from '@/api/chefApi';
-import { approvalsApi } from '@/features/approvals/approvalsApi';
+import { approvalsApi } from '@/api/approvalsApi';
 import { adminWorkflowApi } from '@/features/admin/adminWorkflowApi';
 
 export const workflowApi = apiSlice as typeof apiSlice
@@ -244,7 +244,7 @@ export {
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
   useGetApprovalHistoryQuery,
-} from '@/features/approvals/approvalsApi';
+} from '@/api/approvalsApi';
 export {
   useGetApprovalRulesQuery,
   useCreateApprovalRuleMutation,
