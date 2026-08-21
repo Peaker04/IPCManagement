@@ -382,6 +382,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `artifacts/perf-probe-warehouse-inp-smoke-v2.json` | `5636B3301BF656BCD35709DA1BBAE0710AA4C5A4310565A9C8188CD10E7CCBE7` | One-repeat smoke after probe correction: target tab is activated; tab-switch and search samples include inputDelay/processing/presentation, both presentation-dominated and not processing debt. Not a five-repeat gate. |
 | `artifacts/perf-probe-warehouse-inp-search.json` | `FD95283109B3EC0213F89CC1C5DBDCEA5CE8276F47BDAD92DF2FB15EC3046824` | Corrected five-repeat H.1 search interaction on warehouse movement: 40ms median, presentation share 0.9025, no processing debt, DAT. |
 | `artifacts/perf-probe-warehouse-inp-tab.json` | `924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC` | Corrected five-repeat H.1 tab-switch interaction on warehouse movement: 40ms median, presentation share 0.7225, no processing debt, DAT. |
+| `artifacts/perf-probe-admin-audit-pagination.json` | `28897D19F6EEA22E48C10E74236F93F8D805FA422D706BD8EA3DE5B603BB9263` | Five-repeat pagination probe on admin audit; `N/A` is justified because the cursor page reported no enabled next/previous action in the rendered state, not because the target tab was skipped. |
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
