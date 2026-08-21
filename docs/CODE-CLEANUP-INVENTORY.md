@@ -12,7 +12,7 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 | `src/components/common/SkeletonTableRow.tsx` | Được export qua common barrel và render bởi `ReportsDataQualityPanel` | production-wired | KEEP |
 | `src/lib/useDebouncedValue.ts` | Được dùng bởi BOM, Employees và Inventory page models; có inventory purity contract | production-wired | KEEP |
 | `src/features/admin/components/AdvancedDisplaySettings.test.tsx` | Vitest discovery theo hậu tố `.test.tsx` | test entry | KEEP; không yêu cầu production import |
-| `tests/statusTokenContract.test.ts` | Vitest discovery theo hậu tố `.test.ts` | test entry | KEEP; xác minh test pass trong wave token owner |
+| `tests/statusTokenContract.test.ts` | Vitest discovery theo hậu tố `.test.ts`; khóa `workflowConfig.ts` với `--cell-status-min-w` | test entry | KEEP; tracked cùng status owner ở `9fa3c441`, focused owner suite 55/55 pass |
 | `src/features/projects/weekly-menu/coordinationBoundary.test.ts` | Dependency-cruiser đánh dấu orphan vì là test entry | expected entrypoint | KEEP |
 | `src/test/setup.ts` | Dependency-cruiser đánh dấu orphan; được Vitest config nạp làm setup | expected config entrypoint | KEEP |
 | `public/robots.txt`, `public/llms.txt` | Vite phục vụ implicit từ `public/`; `llms.txt` mô tả public navigation còn `robots.txt` chỉ khai báo crawler policy | static runtime asset | KEEP; đã kiểm route link, không lộ API/secret; tiếp tục review khi deploy domain thay đổi |
@@ -26,6 +26,7 @@ Dependency-cruiser hiện quét `423` module và `1572` dependency, không có d
 - Source scan trên `frontend/src`, `frontend/tests`, `frontend/package.json`, root `package.json`, `.github`, `tools` và `docs` không tìm thấy consumer cho hai script untracked `generate-status-tokens.mjs` và `measure-ultimate-baseline.mjs`. `generate-status-tokens.mjs` bị supersede bởi `statusTokenContract.test.ts` (test pass), còn `measure-ultimate-baseline.mjs` là file rỗng `0` bytes; `perf-probe.mjs` mới là probe canonical có ba mode và integrity gate.
 - Hai script đã được source/capability-scan và xoá sau khi chứng minh không có consumer; disposition chi tiết nằm ở CLN-01/CLN-02.
 - `KeepAliveTabPanel`, `useDebouncedValue` và `statusTokenContract.test.ts` đã có import/discovery consumer; disposition `KEEP` không thay đổi.
+- Bốn report N/A untracked `probe-h1[-real-admin]-report.{json,md}` đã bị loại sau khi xác nhận cả hai run đều `0/3` gradable; preview lineage và authenticated build evidence canonical được giữ.
 
 ## Ledger consumer scan — 2026-08-21
 
