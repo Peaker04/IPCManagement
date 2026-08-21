@@ -39,16 +39,12 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
             .AsNoTracking()
             .CountAsync(line => line.SuggestedPurchaseQty > 0 && line.Request.Status != "CANCELLED");
 
-        var candidateOverdueRequests = await _context.Purchaserequests
+        var overduePurchaseRequestCount = await _context.Purchaserequests
             .AsNoTracking()
-            .Include(pr => pr.Purchaserequestlines)
-                .ThenInclude(line => line.PurchaseOrderLine)
             .Where(pr => (pr.Status == "DRAFT" || pr.Status == "APPROVED") && pr.PurchaseForDate < today)
-            .ToListAsync();
-
-        var overduePurchaseRequestCount = candidateOverdueRequests.Count(pr => pr.Purchaserequestlines.Any(line =>
-            line.PurchaseOrderLine is null ||
-            DecimalPolicy.LessThanQuantity(line.PurchaseOrderLine.ReceivedQty, line.PurchaseOrderLine.OrderedQty)));
+            .CountAsync(pr => pr.Purchaserequestlines.Any(line =>
+                line.PurchaseOrderLine == null ||
+                DecimalPolicy.LessThanQuantity(line.PurchaseOrderLine.ReceivedQty, line.PurchaseOrderLine.OrderedQty)));
 
         var lateReceiptCount = await _context.Purchaseorders
             .AsNoTracking()
@@ -294,5 +290,4 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
             "AFTERNOON" or "CA CHIEU" or "CA CHIỀU" => "AFTERNOON",
             _ => null
         };
-
 }

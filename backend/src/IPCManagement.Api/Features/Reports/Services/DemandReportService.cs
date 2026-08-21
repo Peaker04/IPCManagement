@@ -27,13 +27,6 @@ public class DemandReportService : IDemandReportService
 
         var lines = _context.Materialrequestlines
             .AsNoTracking()
-            .Include(item => item.Request)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Customer)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Dish)
             .AsQueryable();
 
         if (ingredientId is not null)
@@ -105,13 +98,6 @@ public class DemandReportService : IDemandReportService
 
         var lines = _context.Materialrequestlines
             .AsNoTracking()
-            .Include(item => item.Request)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Customer)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Dish)
             .AsQueryable();
 
         if (ingredientId is not null)
@@ -201,7 +187,10 @@ public class DemandReportService : IDemandReportService
         var dateTo = ParseDateOnly(query.DateTo);
         var searchKeyword = query.SearchKeyword?.Trim();
 
-        var lines = _context.Materialrequestlines.AsNoTracking().AsQueryable();
+        var lines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Where(item => item.Request.Status != "CANCELLED")
+            .AsQueryable();
 
         if (ingredientId is not null)
         {
@@ -248,17 +237,16 @@ public class DemandReportService : IDemandReportService
             UnitName = item.Unit.UnitName,
         });
 
-        var activeGrouped = grouped.Where(group => group.Any(item => item.Request.Status != "CANCELLED"));
-        var totalCount = await activeGrouped.CountAsync();
-        var shortageCount = await activeGrouped.CountAsync(group => group.Sum(item =>
+        var totalCount = await grouped.CountAsync();
+        var shortageCount = await grouped.CountAsync(group => group.Sum(item =>
             item.Request.Status == "EXPORTED"
                 ? item.TotalRequiredQty - (item.Inventoryissuelines
                     .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
                     ? item.TotalRequiredQty - (item.Inventoryissuelines
                         .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
                     : 0m
-                : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0m);
-        var items = await activeGrouped
+                : item.SuggestedPurchaseQty) > 0m);
+        var items = await grouped
             .OrderByDescending(group => group.Key.RequestDate)
             .ThenBy(group => group.Key.IngredientName)
             .Skip((query.PageNumber - 1) * query.PageSize)
