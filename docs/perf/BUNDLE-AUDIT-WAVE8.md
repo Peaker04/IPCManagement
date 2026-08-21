@@ -249,6 +249,21 @@ Wave 16 checklist:
 - [x] Entry remains **98.25 KiB gzip**; no route/cache/API-slice policy changes.
 - [x] Atomic commit: `73448125`.
 
+## Wave 17 closure — remove unreferenced Chef feature barrel (2026-08-21)
+
+Repository search found no import of `features/chef/index.ts`; Chef routes and
+runtime modules use explicit leaf paths. The barrel contained only a page and
+type re-export surface with no consumer, so it was deleted rather than kept as
+an unconnected architectural promise.
+
+Wave 17 checklist:
+
+- [x] Targeted auth/route regression: **4 files / 22 tests passed**.
+- [x] Build and lint pass.
+- [x] Dependency-cruiser pass: **431 modules / 1604 dependencies**.
+- [x] No route threshold, cache, or API-slice changes.
+- [x] Atomic commit: `18c2972b`.
+
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
 
 The shared-barrel cleanup chain was rerun against the complete frontend unit
