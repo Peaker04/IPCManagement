@@ -72,11 +72,9 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
           <thead>
             <tr>
               <th>Mức độ</th>
-              <th>Hạn xử lý (SLA)</th>
-              <th>Trạng thái xử lý</th>
+              <th>SLA và trạng thái</th>
               <th>{uiCopy.reports.owner}</th>
-              <th>Nhóm lỗi</th>
-              <th>Đối tượng</th>
+              <th>Nhóm lỗi và đối tượng</th>
               <th>Vấn đề</th>
               <th>Cách xử lý</th>
               <th>Thao tác</th>
@@ -85,8 +83,8 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
           <tbody>
             {dataQualityRows.length === 0
               ? dataQualitySearch.trim()
-                ? <tr><td colSpan={9} className="py-8 text-center text-slate-500">Không tìm thấy vấn đề dữ liệu phù hợp.</td></tr>
-                : <EmptyRow colSpan={9} />
+                ? <tr><td colSpan={7} className="py-8 text-center text-slate-500">Không tìm thấy vấn đề dữ liệu phù hợp.</td></tr>
+                : <EmptyRow colSpan={7} />
               : dataQualityRows.map((row) => (
               <tr key={row.id}>
                 <td>
@@ -97,15 +95,13 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                 <td>
                   <div className="font-semibold text-slate-800">{row.slaLabel}</div>
                   <div className={cn(typography.caption, 'text-slate-500')}>{formatPriorityLabel(row.priorityRank)}</div>
-                </td>
-                <td>
                   <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
                     {formatDataQualityRemediationStatus(row.remediationStatus)}
                   </StatusBadge>
                 </td>
                 <td>{row.owner}</td>
-                <td>{row.category}</td>
                 <td>
+                  <div className="font-medium text-slate-800">{row.category}</div>
                   <div className="font-medium text-slate-800">{row.entityLabel}</div>
                   <div className={cn(typography.caption, 'text-slate-500')}>{row.entityName} / {row.entityCode}</div>
                 </td>
