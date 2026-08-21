@@ -159,7 +159,7 @@ Chạy production build dưới H.1 cho toàn bộ route/tab/table contract, kh�
 
 | ID | Owner | Evidence hiện có | Điều kiện đóng |
 | --- | --- | --- | --- |
-| W7-RUNTIME-01 | Runtime/FE | Static check pass: 9 routes, 27 targets, 8 interactions; production build/lint pass. H.1 load run on production bundle (`artifacts/perf-probe-wave5.{json,md}`) has integrity violations `0`; `schedule` is gradable and passes, while `reports-price` and `admin-audit` are correctly `N/A` because no frame/anchor and 0 settled data rows. | Run `--load`, `--inp`, `--overflow` on the served production bundle, headed Chrome, across all five desktop viewports in `MEMORY.md`; preserve request/console/page errors and complete the missing data/selector coverage before closing Wave 7. |
+| W7-RUNTIME-01 | Runtime/FE | Static check pass: 9 routes, 27 targets, 8 interactions; production build/lint pass. Rebuilt production bundle with `VITE_API_BASE_URL=http://127.0.0.1:5262`; H.1 load integrity is `0`, but `schedule` now exposes a real failure (`deltaTop=316px`, `CLS window=0.1287`) and `reports-price`/`admin-audit` remain correctly `N/A` with 0 settled data rows. | Fix the schedule mount shift without changing thresholds; provide valid data/selector coverage for the two N/A targets; then run `--load`, `--inp`, `--overflow` across all five desktop viewports and preserve request/console/page errors before closing Wave 7. |
 
 ### Checklist đóng Wave 7
 
