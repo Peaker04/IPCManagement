@@ -163,3 +163,29 @@ Wave 10 checklist:
 - [x] Route ownership tests pass (`3 files / 12 tests`).
 - [x] Full suite rerun after the source-registry parser change: `158 files / 891 tests` passed in 211.04s.
 - [x] Lazy-auth changes staged separately from unrelated working-tree edits.
+
+## Wave 11 accepted seam — remove unused ServiceRun barrel exports (2026-08-21)
+
+`ServiceRunBlockerPanel` and `ServiceRunTrackPanel` had no runtime consumers
+through `components/common/index.ts`; Warehouse and Purchasing already import
+the leaf module directly. Removing the dead barrel edge keeps the shared API
+surface honest without changing cache identity or route policy.
+
+Measured clean build after the change:
+
+- Entry: **98.25 KiB gzip**.
+- `workflowCacheTags` chunk: **0.51 KiB gzip** (the RTK runtime no longer leaks into this named chunk).
+- Dependency-cruiser: **432 modules / 1613 dependencies**, no violations.
+- Representative route closures: dashboard **234.09**, weekly-menu **293.64**, reports **265.69**, coordination **237.05**, approval-rules **246.64 KiB gzip**.
+
+The existing route budgets still report failures on several closures; this wave
+does not alter those thresholds and records the remaining debt for the next
+shared-boundary wave.
+
+Wave 11 checklist:
+
+- [x] Source-aware search found no barrel consumer before deletion.
+- [x] Build, lint and dependency-cruiser pass.
+- [x] Full unit suite: `158 files / 891 tests` passed.
+- [x] No threshold, cache, or API-slice changes.
+- [x] Atomic commit: `a2d0b8a`.
