@@ -159,7 +159,7 @@ Chạy production build dưới H.1 cho toàn bộ route/tab/table contract, kh�
 
 | ID | Owner | Evidence hiện có | Điều kiện đóng |
 | --- | --- | --- | --- |
-| W7-RUNTIME-01 | Runtime/FE | `node frontend/scripts/perf-probe.mjs --check` pass: 9 routes, 27 targets, 8 interactions; production build/lint pass. Không có runtime phục vụ ở `3037/3020/3036` tại lần kiểm tra gần nhất. | Chạy `--load`, `--inp`, `--overflow` trên bundle production đang phục vụ, headed Chrome, đúng 5 desktop viewport trong `MEMORY.md`; lưu JSON/MD, request/console/page errors và integrity pass. |
+| W7-RUNTIME-01 | Runtime/FE | Static check pass: 9 routes, 27 targets, 8 interactions; production build/lint pass. H.1 load run on production bundle (`artifacts/perf-probe-wave5.{json,md}`) has integrity violations `0`; `schedule` is gradable and passes, while `reports-price` and `admin-audit` are correctly `N/A` because no frame/anchor and 0 settled data rows. | Run `--load`, `--inp`, `--overflow` on the served production bundle, headed Chrome, across all five desktop viewports in `MEMORY.md`; preserve request/console/page errors and complete the missing data/selector coverage before closing Wave 7. |
 
 ### Checklist đóng Wave 7
 
