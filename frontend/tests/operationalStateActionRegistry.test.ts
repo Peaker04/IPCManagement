@@ -29,6 +29,7 @@ import reportsPageSource from '../src/features/reports/pages/ReportsPage.tsx?raw
 import chefProductionModelSource from '../src/features/chef/production/chefProductionModel.ts?raw'
 import chefProductionSectionSource from '../src/features/chef/production/ChefProductionSection.tsx?raw'
 import warehouseReceiptSource from '../src/features/warehouse/WarehousePurchaseReceiptDialog.tsx?raw'
+import advancedSettingsSource from '../src/features/admin/components/AdvancedDisplaySettings.tsx?raw'
 import manifestJson from './operationalRegistryFamilyManifest.json'
 import {
   assertStateActionRegistryRows,
@@ -71,6 +72,7 @@ type DebtSourceExpectations = Record<string, Record<string, string[]>>
 
 const manifestDebtRawSources: Record<string, string> = {
   'frontend/src/app/pages/AdminDataPage.tsx': adminDataPageSource,
+  'frontend/src/features/admin/components/AdvancedDisplaySettings.tsx': advancedSettingsSource,
   'frontend/src/features/admin/pages/ApprovalRulesPage.tsx': approvalRulesPageSource,
   'frontend/src/features/auth/pages/ForbiddenPage.tsx': forbiddenPageSource,
   'frontend/src/features/chef/production/ChefProductionSection.tsx': chefProductionSectionSource,
@@ -86,6 +88,12 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'const model = useAdminDataPageModel();',
       '<ViewSwitcher',
       "onTabChange={(id) => startViewTransition(() => setActiveView(id.replace('admin-', '') as AdminView))}",
+    ],
+  },
+  AdvancedDisplaySettings: {
+    'frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-34': [
+      'defaultNavigationPreferences,',
+      'type PageTabGroupId,',
     ],
   },
   ApprovalRules: {

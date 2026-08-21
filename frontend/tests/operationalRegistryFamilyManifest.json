@@ -16,6 +16,20 @@
       "backendEvidence": []
     },
     {
+      "id": "AdvancedDisplaySettings",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Display preferences and localStorage settings are client-side UI configurations.",
+        "sources": [
+          "frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-34"
+        ]
+      },
+      "backendBacked": false,
+      "backendEvidence": []
+    },
+    {
       "id": "ApprovalDocument",
       "disposition": "registry",
       "registryModule": "frontend/tests/operationalStateActionRegistry.test.ts",
