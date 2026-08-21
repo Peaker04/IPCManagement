@@ -59,10 +59,11 @@ const INTERACTIONS = [
   { id: 'tab-switch', label: 'Thao tác 1 — Chuyển tab', selector: '[role="tab"]:not([aria-selected="true"])', action: 'click' },
   { id: 'scope-change', label: 'Thao tác 2 — Đổi phạm vi', selector: '[data-scope-control] button, [data-scope-control] [role="combobox"]', action: 'click' },
   { id: 'table-sort', label: 'Thao tác 3 — Sort cột', selector: 'thead th button, thead th [role="button"], thead th[aria-sort]', action: 'click' },
-  { id: 'search-keystroke', label: 'Thao tác 4 — Gõ tìm kiếm', selector: 'input[type="search"], input[role="searchbox"]', action: 'type' },
-  { id: 'modal-open', label: 'Thao tác 5 — Mở modal', selector: '[data-modal-trigger], [aria-haspopup="dialog"]', action: 'click' },
-  { id: 'row-action', label: 'Thao tác 6 — Hành động hàng', selector: 'tbody tr button, tbody tr [role="button"], tbody tr a[href]', action: 'click' },
-  { id: 'sidebar-toggle', label: 'Thao tác 7 — Sidebar toggle', selector: '[data-sidebar-toggle], nav button[aria-expanded][aria-controls]', action: 'click' },
+  { id: 'pagination', label: 'Thao tác 4 — Chuyển trang', selector: 'nav[aria-label*="Phân trang"] button:not(:disabled)', action: 'click' },
+  { id: 'search-keystroke', label: 'Thao tác 5 — Gõ tìm kiếm', selector: 'input[type="search"], input[role="searchbox"]', action: 'type' },
+  { id: 'modal-open', label: 'Thao tác 6 — Mở modal', selector: '[data-modal-trigger], [aria-haspopup="dialog"]', action: 'click' },
+  { id: 'row-action', label: 'Thao tác 7 — Hành động hàng', selector: 'tbody tr button, tbody tr [role="button"], tbody tr a[href]', action: 'click' },
+  { id: 'sidebar-toggle', label: 'Thao tác 8 — Sidebar toggle', selector: '[data-sidebar-toggle], nav button[aria-expanded][aria-controls]', action: 'click' },
 ]
 const interactionFilter = process.env.PROBE_INTERACTIONS?.split(',').map((value) => value.trim()).filter(Boolean)
 const ACTIVE_INTERACTIONS = interactionFilter?.length
