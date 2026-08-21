@@ -1,11 +1,6 @@
 import { useDeferredValue, useEffect, useState } from 'react';
-import {
-  toNextReportCursor,
-  useGetAuditChangePageQuery,
-  useGetDataQualityPageQuery,
-  type ReportCursor,
-  type WorkflowReportQuery,
-} from '@/api/workflowApi';
+import { useGetAuditChangePageQuery, useGetDataQualityPageQuery } from '@/features/reports/reportsApi';
+import { toNextReportCursor, type ReportCursor, type WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatDateTime } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
