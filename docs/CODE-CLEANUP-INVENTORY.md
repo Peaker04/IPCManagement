@@ -18,6 +18,8 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 | `public/robots.txt`, `public/llms.txt` | Vite phục vụ implicit từ `public/`; `llms.txt` mô tả public navigation còn `robots.txt` chỉ khai báo crawler policy | static runtime asset | KEEP; đã kiểm route link, không lộ API/secret; tiếp tục review khi deploy domain thay đổi |
 | `scripts/generate-status-tokens.mjs` | Không có package script, CI, docs hoặc source reference; token contract test đã kiểm tra trực tiếp `workflowConfig.ts` ↔ `index.css` | superseded/unwired mutating tool | REMOVED; giữ `statusTokenContract.test.ts` làm canonical check |
 | `scripts/measure-ultimate-baseline.mjs` | Đã xác minh file `0` bytes, không có package script, CI, docs hoặc source reference | empty/unwired candidate; không có executable capability | REMOVED trong commit cleanup sau consumer proof |
+| `scripts/measure-baseline.mjs` | Không có package script, CI, test hoặc docs consumer; chức năng baseline cũ đã được thay bằng `perf-probe.mjs` | retired duplicate measurement tool | REMOVED sau source-aware consumer proof |
+| `scripts/measure-rigorous-baseline.mjs` | Không có package script, CI, test hoặc docs consumer; hiệu chuẩn cũ không nằm trong runtime gate hiện hành | retired duplicate measurement tool | REMOVED sau source-aware consumer proof |
 
 Dependency-cruiser hiện quét `423` module và `1572` dependency, không có dependency-rule violation. Hai module có cờ orphan đều là entrypoint hợp lệ nêu trên; kết quả này không chứng minh export/CSS/script không dùng.
 
