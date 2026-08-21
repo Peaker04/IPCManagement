@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
 import { createPortal } from "react-dom"
 
@@ -21,6 +22,81 @@ interface DialogContextValue {
 
 const DialogContext = React.createContext<DialogContextValue | null>(null)
 const inertSiblings = new Map<HTMLElement, { count: number; hadInert: boolean; value: string | null }>()
+
+let activeDialogCount = 0
+let originalBodyOverflow: string | null = null
+let lockedMainScrollTop = 0
+let activeCleanupFn: (() => void) | null = null
+
+export function lockBodyScroll() {
+  if (typeof document === "undefined") return
+  activeDialogCount += 1
+  if (activeDialogCount === 1) {
+    originalBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    document.body.classList.add("ipc-modal-open")
+
+    const mainContent = document.getElementById("ipc-main-content")
+    let onMainScroll: (() => void) | null = null
+    if (mainContent) {
+      lockedMainScrollTop = mainContent.scrollTop
+      onMainScroll = () => {
+        if (mainContent.scrollTop !== lockedMainScrollTop) {
+          mainContent.scrollTop = lockedMainScrollTop
+        }
+      }
+      mainContent.addEventListener("scroll", onMainScroll, { passive: false })
+    }
+
+    const onWheel = (event: WheelEvent) => {
+      const target = event.target as HTMLElement | null
+      const insideDialog = target?.closest('[role="dialog"]')
+      if (!insideDialog) {
+        event.preventDefault()
+      }
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      const target = event.target as HTMLElement | null
+      const insideDialog = target?.closest('[role="dialog"]')
+      if (!insideDialog) {
+        event.preventDefault()
+      }
+    }
+
+    window.addEventListener("wheel", onWheel, { passive: false })
+    window.addEventListener("touchmove", onTouchMove, { passive: false })
+
+    activeCleanupFn = () => {
+      if (mainContent && onMainScroll) {
+        mainContent.removeEventListener("scroll", onMainScroll)
+      }
+      window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchmove", onTouchMove)
+    }
+  }
+}
+
+export function unlockBodyScroll() {
+  if (typeof document === "undefined") return
+  activeDialogCount -= 1
+  if (activeDialogCount <= 0) {
+    activeDialogCount = 0
+    document.body.classList.remove("ipc-modal-open")
+
+    if (activeCleanupFn) {
+      activeCleanupFn()
+      activeCleanupFn = null
+    }
+
+    if (originalBodyOverflow !== null) {
+      document.body.style.overflow = originalBodyOverflow
+      originalBodyOverflow = null
+    } else {
+      document.body.style.removeProperty("overflow")
+    }
+  }
+}
 
 function markSiblingsInert(portalRoot: HTMLElement) {
   Array.from(document.body.children).forEach((element) => {
@@ -80,6 +156,17 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
   }, [onCloseRequest, onOpenChange])
 
   React.useEffect(() => {
+    if (!open) {
+      return undefined
+    }
+
+    lockBodyScroll()
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [open])
+
+  React.useEffect(() => {
     const portalRoot = document.getElementById(portalId)
     if (!open || !portalRoot) {
       return undefined
@@ -129,10 +216,14 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
       <DialogContext.Provider value={{ titleId, requestClose }}>
         <div
           aria-hidden="true"
-          className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px]"
+          className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px] overscroll-contain"
+          style={{ overscrollBehavior: 'contain' }}
           onClick={() => requestClose("backdrop")}
         />
-        <div className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+        <div
+          className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center overscroll-contain"
+          style={{ overscrollBehavior: 'contain' }}
+        >
           {children}
         </div>
       </DialogContext.Provider>
