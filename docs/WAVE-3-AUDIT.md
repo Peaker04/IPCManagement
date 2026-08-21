@@ -20,6 +20,8 @@ Status: **IN PROGRESS — pagination implementation landed; runtime/data evidenc
 - [x] Backend and frontend production builds pass after the contract change.
 - [x] `node frontend/scripts/perf-probe.mjs --check` passes (9 routes, 28 targets, 8 interactions; thresholds loaded).
 - [x] Runtime availability check recorded: ports 3037/5173/5000/5001 were not serving in this session.
+- [x] Preview runtime load probe executed for `reports-data-quality` under H.1 throttle: `t0=7650.7ms`, `tsettled=8538.3ms`, `deltaTop=0`, `CGR=0/900`, `scroll growth=0/102`, `CLS window=0.0025`, `rowsSkeletonAtT0=0`, integrity violations=0. Evidence: `frontend/artifacts/perf-probe-report.{json,md}`.
+- [x] Probe confirms the bundle mounts and settles even while the API proxy is unavailable; proxy refusal is recorded separately and is not misclassified as a UI pass.
 - [ ] Query projection and response size are measured on a multi-year fixture.
 - [ ] DTO null/date/timezone semantics are covered by a regression test.
 - [ ] Detail/rollback action preserves list context after refetch.
