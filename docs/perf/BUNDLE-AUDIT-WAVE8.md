@@ -390,3 +390,14 @@ suite, not only compile-time checks.
 - [x] Build, lint and dependency-cruiser remain green after the suite.
 - [x] No changed route thresholds, cache identity, or API-slice topology.
 - [x] Unrelated working-tree changes remain uncommitted and untouched.
+
+## Wave 25 boundary matrix — no safe byte-only move yet (2026-08-21)
+
+| Asset | Owner pattern | Decision |
+| --- | --- | --- |
+| `apiSlice` | MainLayout/store contract plus every endpoint family | Keep shared; splitting risks cache identity and invalidation behavior. |
+| `common` | Cross-route UI primitives, including synchronous confirmation | Keep shared until an explicit lazy wrapper contract exists. |
+| `select` | Feature/page consumers across several routes | Keep shared; duplicating it per route trades cache reuse for bytes. |
+
+The next implementation candidate must be a route-level feature that is
+currently eager and can be lazy-loaded under an existing Suspense boundary.
