@@ -37,13 +37,13 @@ Mỗi finding phải ghi đủ:
 
 ## Gate 0 — Scope và baseline
 
-- [ ] Xác nhận branch, `git status --short --branch` và giữ nguyên thay đổi ngoài scope.
-- [ ] Đọc `AGENTS.md`, `MEMORY.md`, `docs/UI-UX-EXECUTION-HARNESS.md`, `docs/DASHBOARD-UI-RULES.md`.
-- [ ] Ghi clean-build route-budget baseline từ manifest mới.
-- [ ] Xuất manifest closure từng route, phân loại entry/shared/route-only/API/CSS.
-- [ ] Xuất source-owner inventory cho toàn bộ route, tab, table, dialog, drawer và action surface.
-- [ ] Chốt viewport matrix hiện hành: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
-- [ ] Chốt actor/permission và runtime/DB lane từ `MEMORY.md`; không ghi password vào artifact.
+- [x] Xác nhận branch, `git status --short --branch` và giữ nguyên thay đổi ngoài scope.
+- [x] Đọc `AGENTS.md`, `MEMORY.md`, `docs/UI-UX-EXECUTION-HARNESS.md`, `docs/DASHBOARD-UI-RULES.md`.
+- [x] Ghi clean-build route-budget baseline từ manifest mới; baseline nằm trong `.artifacts/route-budget-gate0-baseline.log`.
+- [x] Xuất manifest closure từng route, phân loại entry/shared/route-only/API/CSS; baseline manifest được tạo bởi clean build hiện tại.
+- [ ] Xuất source-owner inventory cho toàn bộ route, tab, table, dialog, drawer và action surface. Hiện mới có inventory test-owned (`15/15` focused pass), chưa đủ project-wide owner closure.
+- [x] Chốt viewport matrix hiện hành: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
+- [x] Chốt actor/permission và runtime/DB lane từ `MEMORY.md`; không ghi password vào artifact.
 
 ## Gate 1 — Route-owned capability islands
 
@@ -217,7 +217,7 @@ Checklist chỉ được đóng khi:
 
 - [x] Quyết định kiến trúc: Route-owned capability islands + controlled lazy confirmation seam.
 - [x] Quyết định UI/UX: evidence-first audit bằng DOM/runtime/interaction, không dùng screenshot đơn lẻ.
-- [ ] Gate 0 — baseline mới cho checklist này.
+- [ ] Gate 0 — baseline mới cho checklist này (đã hoàn tất build/manifest/viewport; còn thiếu source-owner inventory project-wide).
 - [ ] Gate 1 — capability island implementation.
 - [ ] Gate 2 — controlled lazy confirmation seam.
 - [ ] Gate 3 — project-wide UI/UX inventory.
