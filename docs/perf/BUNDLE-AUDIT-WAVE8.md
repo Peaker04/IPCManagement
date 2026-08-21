@@ -405,6 +405,21 @@ Wave 31 checklist:
 - [x] Unrelated working-tree edits preserved; corrected staging before commit.
 - [x] Atomic commit: `ca3506be`.
 
+## Wave 32 inventory — reports surface retained by explicit consumers (2026-08-21)
+
+A source-aware scan of the reports feature found no additional dead leaf: the
+legacy reconciliation panel, empty-row primitive, navigation, service-run
+panel and report view-models all have explicit page or contract-test consumers.
+They remain in scope and were not deleted merely because their names suggest
+legacy behavior.
+
+Wave 32 checklist:
+
+- [x] Reports source inventory completed.
+- [x] Consumer references verified for each candidate.
+- [x] No unjustified deletion merged.
+- [x] Existing full-suite baseline remains the acceptance gate.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
