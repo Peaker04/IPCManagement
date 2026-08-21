@@ -9,6 +9,14 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain('đơn mua gốc');
   });
 
+  it('pages receipt headers and keeps detail selection inside the active page', () => {
+    expect(source).toContain('useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE })');
+    expect(source).toContain('canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)');
+    expect(source).toContain('totalItems={receiptPage?.totalCount ?? 0}');
+    expect(source).toContain('setSelectedReceiptId(undefined)');
+    expect(source).not.toContain('useGetInventoryReceiptsQuery({ pageNumber: 1, pageSize: 20 })');
+  });
+
   it('keeps quality, manager approval, and POST ownership visibly separate', () => {
     expect(source).toContain("useHasRole(['thukho'])");
     expect(source).toContain("useHasRole(['admin'])");

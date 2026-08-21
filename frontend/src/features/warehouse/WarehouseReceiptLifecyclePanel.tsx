@@ -4,7 +4,7 @@ import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { InlineAlert, QueryErrorAlert, TableViewport } from '@/components/common';
+import { InlineAlert, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatReceiptLifecycleStatus } from '@/lib/workflowConfig';
 import { typography } from '@/lib/typography';
@@ -23,6 +23,7 @@ type QualityDraft = Record<string, { acceptedQuantity: string; reason: string }>
 type CorrectionDraft = Record<string, string>;
 
 const commandId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
+const RECEIPT_PAGE_SIZE = 20;
 
 const messageFromError = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -40,7 +41,8 @@ export function WarehouseReceiptLifecyclePanel() {
   const canRework = useHasRole(['dieuphoi']);
   const canCorrect = canPost;
   const canVoid = canPost;
-  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ pageNumber: 1, pageSize: 20 });
+  const [receiptPageNumber, setReceiptPageNumber] = useState(1);
+  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE });
   const [selectedReceiptId, setSelectedReceiptId] = useState<string>();
   const [qualityOpen, setQualityOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
@@ -63,7 +65,9 @@ export function WarehouseReceiptLifecyclePanel() {
     () => (receiptPage?.items ?? []).filter((item) => Boolean(item.purchaseOrderId)),
     [receiptPage],
   );
-  const activeReceiptId = selectedReceiptId ?? canonicalReceipts[0]?.receiptId;
+  const activeReceiptId = canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)
+    ? selectedReceiptId
+    : canonicalReceipts[0]?.receiptId;
   const { data: receipt, isFetching: isFetchingReceipt, isError: isReceiptError, refetch: refetchReceipt } = useGetInventoryReceiptByIdQuery(activeReceiptId!, { skip: !activeReceiptId });
   const isLifecycleBusy = isFetching || isFetchingReceipt;
 
@@ -239,6 +243,18 @@ export function WarehouseReceiptLifecyclePanel() {
             </tbody>
           </table>
         </TableViewport>
+      )}
+      {!isError && (
+        <PaginationBar
+          page={receiptPage?.pageNumber ?? receiptPageNumber}
+          pageSize={receiptPage?.pageSize ?? RECEIPT_PAGE_SIZE}
+          totalItems={receiptPage?.totalCount ?? 0}
+          onPageChange={(page) => {
+            setReceiptPageNumber(page);
+            setSelectedReceiptId(undefined);
+            setFeedback(undefined);
+          }}
+        />
       )}
 
       {isReceiptError && <InlineAlert title="Không tải được chi tiết phiếu" variant="danger">Không thể xác định đủ các dòng nguyên liệu hoặc dữ liệu mới nhất; mọi thao tác đã bị chặn.</InlineAlert>}
