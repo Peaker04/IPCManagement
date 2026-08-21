@@ -162,6 +162,12 @@ Chạy production build dưới H.1 cho toàn bộ route/tab/table contract, kh�
 | W7-RUNTIME-01 | Runtime/FE | Static check pass: 9 routes, 27 targets, 8 interactions; production build/lint pass. Rebuilt production bundle with `VITE_API_BASE_URL=http://127.0.0.1:5262`; H.1 load integrity is `0`, but `schedule` now exposes a real failure (`deltaTop=316px`, `CLS window=0.1287`) and `reports-price`/`admin-audit` remain correctly `N/A` with 0 settled data rows. `VITE_ENABLE_MOCK_LOGIN` is DEV-only, so production bundle cannot use `admin/admin` mock auth. | Fix the schedule mount shift without changing thresholds; rerun with real credential/API-lane evidence for the two N/A targets; then run `--load`, `--inp`, `--overflow` across all five desktop viewports and preserve request/console/page errors before closing Wave 7. |
 | W7-RUNTIME-02 | Shared `QueryViewBoundary` owner | `preserveFallback` has 6 production consumers; Weekly Menu trace shows preserved error notices inserted in normal flow above `WeeklyMenuViewContent`, moving the anchor by `316px`. | Choose stable geometry/overlay semantics, add boundary regression plus Weekly Menu runtime regression, and re-run all affected consumers before changing the shared component. |
 
+#### W7-RUNTIME-02 decision contract
+
+- Add an explicit `noticePlacement` option to `QueryViewBoundary` with `inline` as the backward-compatible default.
+- Weekly Menu is the first scoped consumer to opt into `overlay`; the overlay must be keyboard/focus accessible and must not hide retry controls.
+- Add one common boundary test per placement plus a Weekly Menu source/runtime contract; only then update the shared file and commit it separately from unrelated dirty rewrites.
+
 ### Checklist đóng Wave 7
 
 - [ ] Mỗi contract có ít nhất loading và ready measurement; empty/error cho owner conditional.
