@@ -16,7 +16,7 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'Authentication bootstrap is a route/session gate: failure clears credentials and redirects, so it has no authoritative empty-data state.',
     requiredMarkers: ['useGetCurrentUserQuery', 'selectIsAuthLoading', 'logOut()', '<Navigate'],
   },
-  'src/features/reports/reportsApi.ts': {
+  'src/api/reportsApi.ts': {
     rationale: 'This non-rendering compatibility hook composes four query snapshots into one result consumed by an owning report boundary.',
     requiredMarkers: ['useGetWorkflowDocumentsQuery', 'useGetIngredientDemandQuery', 'refetch: () => Promise.all'],
   },

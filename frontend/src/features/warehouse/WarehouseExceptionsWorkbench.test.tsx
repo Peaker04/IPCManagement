@@ -68,7 +68,7 @@ const allocationRow = {
   decisionId: 'return-allocation:source-line-a', allowedActions: ['CROSS_CUSTOMER_DISPOSITION'],
 };
 
-vi.mock('@/features/warehouse/warehouseApi', () => ({
+vi.mock('@/api/warehouseApi', () => ({
   useGetSupplementalMaterialRequestsQuery: mocks.supplementalQuery,
   useGetInventoryReturnsQuery: mocks.returnsQuery,
   useGetInventoryReturnByIdQuery: mocks.returnDetailQuery,
@@ -84,7 +84,7 @@ vi.mock('@/features/warehouse/warehouseApi', () => ({
 import { WarehouseExceptionsWorkbench } from './WarehouseExceptionsWorkbench';
 import { WarehousePurchaseReceiptDialog } from './WarehousePurchaseReceiptDialog';
 import warehouseSource from './WarehouseExceptionsWorkbench.tsx?raw';
-import warehouseApiSource from './warehouseApi.ts?raw';
+import warehouseApiSource from '@/api/warehouseApi.ts?raw';
 import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApi';
 
 const readyQuery = <T,>(data: T, refetch: () => unknown = vi.fn(), overrides: Record<string, unknown> = {}) => ({
