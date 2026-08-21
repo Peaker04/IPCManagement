@@ -249,8 +249,7 @@
   --chart-1: var(--ipc-primary);
   --chart-2: var(--ipc-warning);
   --chart-3: var(--ipc-success);
-  --chart-4: #0284c7;
-  --chart-5: #475569;
+  --chart-4: #0284c7;  --chart-5: #475569;
   --radius: 0.1875rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #334155;
@@ -260,6 +259,21 @@
   --sidebar-accent-foreground: var(--ipc-primary);
   --sidebar-border: #d7e0eb;
   --sidebar-ring: var(--ipc-focus-ring);
+
+  /* Row height tokens according to 3 density levels (Rule T8) */
+  --table-row-height-compact: 40px;
+  --table-row-height-standard: 48px;
+  --table-row-height-relaxed: 56px;
+  --table-row-h: var(--table-row-height-standard);
+  --rows-hint: 6; /* 6 * 48px = 288px <= 324px (45% of 720p viewport) */
+
+  /* Button min-width tokens */
+  --button-min-w-sm: 4rem;
+  --button-min-w-default: 5rem;
+  --button-min-w-lg: 6rem;
+
+  /* Auto-computed status cell min-width from longest dictionary label (Rule S1.2, S1.7, C3) */
+  --cell-status-min-w: 7.75rem;
 
   color: var(--foreground);
   background: var(--background);
@@ -280,7 +294,22 @@ html {
   background: var(--background);
   color-scheme: light;
   overflow-x: clip;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable; /* Rule C5 */
+}
+
+/* Tabular numbers utility for financial & quantitative stability (Rule C4, T3) */
+.num,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.cell-status {
+  min-width: var(--cell-status-min-w, 7.75rem);
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 body {
@@ -289,14 +318,20 @@ body {
   background: var(--background);
   color: var(--foreground);
   overflow-x: clip;
-  scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media (min-width: 768px) {
-  html {
-    overflow-y: scroll;
-  }
-
   .ipc-main,
   .ipc-empty-state,
   .ipc-inline-alert-enter,
@@ -545,6 +580,10 @@ code {
 .ipc-view-switcher.is-compact::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: color-mix(in srgb, var(--ipc-primary) 45%, transparent);
+}
+
+[hidden] {
+  display: none !important;
 }
 
 .ipc-operational-view {
