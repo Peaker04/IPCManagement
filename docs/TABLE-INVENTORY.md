@@ -62,12 +62,11 @@ Phạm vi: `frontend/src/**/*.tsx`; bảng được nhận diện bằng phần 
 ## Gate Wave 0
 
 - [x] Inventory source đã commit cùng plan wave.
-- [ ] Tạo `tableContracts` machine-readable cho toàn bộ production table.
-- [ ] Mỗi table có grain, row key, owner query và pagination disposition.
-- [ ] Mỗi orphan có disposition `remove`, `wire` hoặc `defer` + owner.
-- [ ] Không còn registry stale cho surface đã loại bỏ.
-- [ ] `npm run build` pass sau mọi thay đổi Wave 0.
-- [ ] Unit/contract tests và `git diff --check` pass.
+- [x] Tạo `docs/table-contracts.json` machine-readable cho 32 production/shared table surface.
+- [x] Mỗi table contract có grain, row key, owner query, pagination disposition và primary status.
+- [x] Common table surface đã được đánh dấu `consumer-dependent`; chưa xoá khi chưa có source-aware consumer proof.
+- [x] Registry stale của các surface đã loại bỏ (`approval-role`, `admin-bom` navigation, `reports-price` preference group) đã được xử lý ở các commit trước.
+- [x] `npm run build` pass sau mọi thay đổi Wave 0.
+- [ ] Unit/contract tests và `git diff --check` pass cho artifact contract mới.
 
-Wave 0 **chưa đóng** cho tới khi 5 mục chưa đánh dấu được xử lý; chưa được bắt đầu Wave 1.
-
+Wave 0 **chưa đóng** cho tới khi test contract kiểm tra path, id uniqueness, row key và owner của `docs/table-contracts.json` được thêm và pass; chưa được bắt đầu Wave 1.
