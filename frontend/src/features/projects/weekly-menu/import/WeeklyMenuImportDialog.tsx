@@ -21,7 +21,7 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
               <X size={16} /><span>Đóng</span>
             </Button>
           </DialogHeader>
-          <div className="mt-5 flex flex-col gap-5">
+          <div className="mt-5 flex max-h-[calc(85vh-150px)] flex-col gap-5 overflow-y-auto pr-1">
             <div className="grid grid-cols-1 gap-3 p-0.5 md:grid-cols-3">
               {importWizardSteps.map((step, index) => (
                 <div key={step.key} className={getImportWizardStepClass(step.key, wizardStep)}>
@@ -53,16 +53,18 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ConfirmDialog
-        open={state.rollbackTarget !== null}
-        title="Xác nhận hủy phiên import"
-        description={`Hủy phiên import "${state.rollbackTarget?.label ?? ''}"? Lịch thực đơn của tuần đó sẽ bị xóa và không thể khôi phục.`}
-        confirmLabel="Xác nhận hủy"
-        busy={status.isRollingBack}
-        busyLabel="Đang hủy..."
-        onConfirm={() => void actions.confirmRollback()}
-        onOpenChange={(open) => !open && actions.cancelRollback()}
-      />
+      {state.rollbackTarget !== null && (
+        <ConfirmDialog
+          open={state.rollbackTarget !== null}
+          title="Xác nhận hủy phiên import"
+          description={`Hủy phiên import "${state.rollbackTarget?.label ?? ''}"? Lịch thực đơn của tuần đó sẽ bị xóa và không thể khôi phục.`}
+          confirmLabel="Xác nhận hủy"
+          busy={status.isRollingBack}
+          busyLabel="Đang hủy..."
+          onConfirm={() => void actions.confirmRollback()}
+          onOpenChange={(open) => !open && actions.cancelRollback()}
+        />
+      )}
     </>
   )
 }

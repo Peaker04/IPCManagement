@@ -106,14 +106,14 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
                       const isMergedDessert = (row.slot === 'fruit' || row.slot === 'dessert')
                         && cells.length === displayDays.length
                         && cells.every((cell) => (cell.dishId || cell.dishName) === (firstCell?.dishId || firstCell?.dishName))
-                      if (isMergedDessert) return <td colSpan={displayDays.length} className="border-r border-slate-200 bg-white p-2 text-center align-middle text-[12.5px] font-semibold text-slate-900">{formatDishName(firstDishName)}</td>
+                      if (isMergedDessert) return <td colSpan={displayDays.length} className="border-r border-slate-200 bg-white p-2 text-center align-middle text-[12.5px] font-semibold text-slate-900"><span className="block text-center">{formatDishName(firstDishName)}</span></td>
                       return displayDays.map((day, index) => {
                       const cell = row.cells[day.key]
                       const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 }
                       if (spanInfo.hidden) return null
                       return (
                         <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('border-r border-slate-200 p-2 text-center align-middle text-[12.5px]', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
-                          {cell ? <span className="font-semibold text-slate-900">{formatDishName(cell.dishId ? dishNamesById?.get(cell.dishId) ?? cell.dishName : cell.dishName)}</span> : '-'}
+                          {cell ? <span className="block text-center font-semibold text-slate-900">{formatDishName(cell.dishId ? dishNamesById?.get(cell.dishId) ?? cell.dishName : cell.dishName)}</span> : <span className="block text-center">-</span>}
                         </td>
                       )
                       })

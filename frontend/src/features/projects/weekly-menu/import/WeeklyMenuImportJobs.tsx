@@ -89,25 +89,27 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
           </tbody>
         </table>
       </TableViewport>
-      <ConfirmDialog
-        open={commitTarget !== null}
-        title={commitTarget?.kind === 'all' ? `Lưu toàn bộ ${readyJobs.length} file?` : 'Lưu file thực đơn này?'}
-        description={commitTarget?.kind === 'all'
-          ? `${readyJobs.length} file với ${readyRowCount} dòng món sẽ được lưu atomic trong cùng một transaction theo từng khách hàng và tuần; dữ liệu ở cùng phạm vi có thể được cập nhật. Nếu một file lỗi, toàn bộ batch sẽ được hoàn tác và không file nào được lưu.`
-          : commitJob
-            ? `${commitJob.customerCode} · tuần ${commitJob.weekStartDate || 'tự nhận theo file'} · ${commitJob.fileName} · ${commitJob.previewResult?.detectedLayout.rowsImported ?? 0} dòng món. Thực đơn đang lưu ở cùng phạm vi có thể được cập nhật.`
-            : 'File đã chọn sẽ được ghi vào thực đơn của khách hàng và tuần tương ứng.'}
-        confirmLabel={commitTarget?.kind === 'all' ? 'Lưu toàn bộ file' : 'Lưu file'}
-        busy={status.isCommitting}
-        busyLabel="Đang lưu..."
-        onConfirm={() => {
-          const target = commitTarget
-          setCommitTarget(null)
-          if (target?.kind === 'all') void actions.commitReadyJobs()
-          if (target?.kind === 'job') void actions.commitJob(target.jobId)
-        }}
-        onOpenChange={(open) => !open && setCommitTarget(null)}
-      />
+      {commitTarget !== null && (
+        <ConfirmDialog
+          open={commitTarget !== null}
+          title={commitTarget?.kind === 'all' ? `Lưu toàn bộ ${readyJobs.length} file?` : 'Lưu file thực đơn này?'}
+          description={commitTarget?.kind === 'all'
+            ? `${readyJobs.length} file với ${readyRowCount} dòng món sẽ được lưu atomic trong cùng một transaction theo từng khách hàng và tuần; dữ liệu ở cùng phạm vi có thể được cập nhật. Nếu một file lỗi, toàn bộ batch sẽ được hoàn tác và không file nào được lưu.`
+            : commitJob
+              ? `${commitJob.customerCode} · tuần ${commitJob.weekStartDate || 'tự nhận theo file'} · ${commitJob.fileName} · ${commitJob.previewResult?.detectedLayout.rowsImported ?? 0} dòng món. Thực đơn đang lưu ở cùng phạm vi có thể được cập nhật.`
+              : 'File đã chọn sẽ được ghi vào thực đơn của khách hàng và tuần tương ứng.'}
+          confirmLabel={commitTarget?.kind === 'all' ? 'Lưu toàn bộ file' : 'Lưu file'}
+          busy={status.isCommitting}
+          busyLabel="Đang lưu..."
+          onConfirm={() => {
+            const target = commitTarget
+            setCommitTarget(null)
+            if (target?.kind === 'all') void actions.commitReadyJobs()
+            if (target?.kind === 'job') void actions.commitJob(target.jobId)
+          }}
+          onOpenChange={(open) => !open && setCommitTarget(null)}
+        />
+      )}
     </div>
   )
 }

@@ -74,29 +74,45 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
           <>
             {activePage?.plans.map((plan) => {
               const planStatus = getWorkflowStatusPresentation(plan.status ?? undefined)
-              return <article key={plan.planId} className="ipc-fiori-object-card">
-                <div className="ipc-fiori-object-card__header">
-                  <div><span>Mã KHSX</span><h3>{plan.planCode}</h3></div>
-                  <StatusBadge variant={planStatus.tone}>{planStatus.label}</StatusBadge>
-                </div>
-                <dl className="ipc-fiori-meta">
-                  <div><dt>Ngày phục vụ</dt><dd>{formatDateOnly(plan.planDate)}</dd></div>
-                  <div><dt>Khách hàng</dt><dd title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
-                  <div><dt>Số dòng món</dt><dd>{plan.lines.length}</dd></div>
-                  <div><dt>Tổng số suất</dt><dd>{formatNumber(plan.lines.reduce((total, line) => total + line.totalServings, 0))}</dd></div>
-                </dl>
-                <TableViewport
-                  caption="Chi tiết kế hoạch sản xuất theo ca và món ăn"
-                  ariaLabel="Bảng chi tiết kế hoạch sản xuất"
-                  className="ipc-production-plan-table"
-                  size="weekly"
-                >
-                  <table className="ipc-data-table">
-                    <thead><tr><th className="w-[20%] text-left">Ca</th><th className="w-[50%] text-left">Món ăn</th><th className="w-[30%] text-right">Số lượng (suất)</th></tr></thead>
-                    <tbody>{plan.lines.map((line) => <tr key={line.planLineId}><td>{getShiftLabel(line.shiftName ?? undefined)}</td><td>{line.dishName ?? '-'}</td><td className="text-right font-medium">{line.totalServings}</td></tr>)}</tbody>
-                  </table>
-                </TableViewport>
-              </article>
+              return (
+                <article key={plan.planId} className="ipc-fiori-object-card">
+                  <div className="ipc-fiori-object-card__header">
+                    <div><span>Mã KHSX</span><h3>{plan.planCode}</h3></div>
+                    <StatusBadge variant={planStatus.tone}>{planStatus.label}</StatusBadge>
+                  </div>
+                  <dl className="ipc-fiori-meta">
+                    <div><dt>Ngày phục vụ</dt><dd>{formatDateOnly(plan.planDate)}</dd></div>
+                    <div><dt>Khách hàng</dt><dd title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
+                    <div><dt>Số dòng món</dt><dd>{plan.lines.length}</dd></div>
+                    <div><dt>Tổng số suất</dt><dd>{formatNumber(plan.lines.reduce((total, line) => total + line.totalServings, 0))} suất</dd></div>
+                  </dl>
+                  <TableViewport
+                    caption="Chi tiết kế hoạch sản xuất theo ca và món ăn"
+                    ariaLabel="Bảng chi tiết kế hoạch sản xuất"
+                    className="ipc-production-plan-table"
+                    size="weekly"
+                  >
+                    <table className="ipc-data-table">
+                      <thead>
+                        <tr>
+                          <th className="w-[20%] text-left">Ca</th>
+                          <th className="w-[50%] text-left">Món ăn</th>
+                          <th className="w-[30%] text-right">Số lượng</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {plan.lines.map((line) => (
+                          <tr key={line.planLineId}>
+                            <td>{getShiftLabel(line.shiftName ?? undefined)}</td>
+                            <td>{line.dishName ?? '-'}</td>
+                            <td className="text-right font-medium">{formatNumber(line.totalServings)} suất</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableViewport>
+                </article>
+              )
             })}
           </>
         )}

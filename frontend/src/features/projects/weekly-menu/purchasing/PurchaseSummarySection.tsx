@@ -1,6 +1,6 @@
-import { CheckCircle2, Search, ShoppingCart } from 'lucide-react'
+import { Search, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ContextStrip, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { formatCurrency, formatDateOnly, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
@@ -41,7 +41,6 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
         queries={queryView ? [{ label: 'tổng hợp mua của tuần', view: queryView }] : []}
         refreshLabel="Đang cập nhật tổng hợp tuần"
       >
-      {!presentation.usesDemand && <InlineAlert title="Chưa có số thiếu/đủ sau kiểm tồn" variant="warning" className="mb-3">Bảng dưới đây mới là định lượng nguyên liệu theo món. Bấm Tạo nhu cầu từ KHSX ở tab KHSX và nhu cầu để hệ thống kiểm tồn kho và trả ra Cần, Tồn khả dụng, Thiếu/Đủ.</InlineAlert>}
       <TableViewport
         caption={presentation.usesDemand
           ? 'Mỗi dòng thuộc một ngày, khách hàng, đơn giá, nguyên liệu và đơn vị trong tuần đang chọn'
@@ -54,7 +53,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           <thead>{presentation.usesDemand ? <tr>
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ngày</th>
             <th style={{ width: '14%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
-            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món ăn</th>
+            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món sử dụng</th>
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Cần</th>
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Tồn khả dụng</th>
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Chênh lệch</th>
@@ -78,9 +77,10 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
                 <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
                 <td className={tableCellClass}>{formatQuantityWithUnit(line.required, line.unit)}</td><td className={tableCellClass}>{formatQuantityWithUnit(available, line.unit)}</td>
                 <td className={`${tableCellClass} font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{formatQuantityVariance(variance, line.unit)}</td>
-                <td className="ipc-badge-cell">{line.tone === 'success'
-                  ? <span className="ipc-inline-status"><CheckCircle2 size={15} aria-hidden="true" />Đủ</span>
-                  : <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">{line.status}</StatusBadge>}
+                <td className="ipc-badge-cell">
+                  <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
+                    {line.tone === 'success' ? 'Đủ hàng' : line.status}
+                  </StatusBadge>
                 </td><td className={`${tableCellClass} ${line.tone === 'success' ? 'text-slate-600' : 'font-semibold text-slate-800'}`}>
                   {line.actionHref
                     ? <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={line.actionHref}>{line.nextAction}</Link>

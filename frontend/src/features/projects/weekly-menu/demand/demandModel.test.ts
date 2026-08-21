@@ -32,7 +32,7 @@ describe('material demand model', () => {
       enoughCount: 34,
       totalCount: 42,
       tone: 'danger',
-      label: 'Còn nguyên liệu chưa xuất',
+      label: 'Thiếu hàng',
     })
   })
 
@@ -138,7 +138,7 @@ describe('material demand model', () => {
 
   it('uses fallback plan dish sources when detail lines are empty', () => {
     const aggregateLines = [
-      { ingredientId: 'ingredient-1', material: 'Chả cá', unit: 'Miếng', source: '1 dòng nhu cầu' },
+      { ingredientId: 'ingredient-1', material: 'Chả cá', unit: 'Miếng', priceTierAmount: 25_000, source: '1 dòng nhu cầu' },
       { ingredientId: 'ingredient-2', material: 'Chuối', unit: 'Quả', source: '1 dòng nhu cầu' },
     ] as DemandLine[]
     const fallbackSources = {

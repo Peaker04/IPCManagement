@@ -48,8 +48,8 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
   } = input
 
   const bomIssueParts = [
-    missingBomCount > 0 ? `${missingBomCount} món thiếu BOM` : '',
-    invalidBomTierCount > 0 ? `${invalidBomTierCount} lịch/ca sai đơn giá` : '',
+    missingBomCount > 0 ? `${missingBomCount} món chưa có BOM` : '',
+    invalidBomTierCount > 0 ? `${invalidBomTierCount} ca sai đơn giá` : '',
   ].filter(Boolean)
 
   const checkpoints: WeeklyMenuReadinessCheckpoint[] = [
@@ -62,7 +62,7 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     {
       key: 'servings',
       label: 'Số lượng khách',
-      value: missingServingCount > 0 ? `${missingServingCount} dòng thiếu suất` : menuCount > 0 ? 'Đã đầy đủ' : 'Chưa kiểm tra',
+      value: missingServingCount > 0 ? `${missingServingCount} dòng chưa chốt suất` : menuCount > 0 ? 'Đã chốt đủ' : 'Chưa kiểm tra',
       state: checkpointState(menuCount > 0, missingServingCount > 0, 'warning'),
     },
     {
@@ -78,8 +78,8 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
         ? 'Không tải được'
         : demandMaterialCount > 0
           ? demandShortageCount > 0
-            ? `Còn thiếu ${demandShortageCount}/${demandMaterialCount}`
-            : `Đã đáp ứng ${demandMaterialCount}/${demandMaterialCount}`
+            ? `Thiếu ${demandShortageCount}/${demandMaterialCount} dòng`
+            : `Đủ ${demandMaterialCount}/${demandMaterialCount} dòng`
           : 'Chưa tính',
       state: checkpointState(demandMaterialCount > 0, hasDemandIssue || demandShortageCount > 0, 'danger'),
     },

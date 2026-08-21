@@ -1,5 +1,5 @@
 import type { DemandLine, WorkflowDocument } from '@/types/workflow'
-import type { MaterialDemandStaleness } from '@/api/workflowApi'
+import type { MaterialDemandStaleness } from '@/api/workflowApiTypes'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 import { formatMaterialDishSource } from '../model/formatters'
@@ -129,7 +129,7 @@ export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: numbe
     enoughCount: Math.max(total - shortages - pendingKitchenCount - staleCount, 0),
     totalCount: total,
     tone: (lines.length === 0 ? 'neutral' : shortages > 0 ? 'danger' : pendingKitchenCount > 0 || staleCount > 0 ? 'warning' : 'success') as DemandLine['tone'],
-    label: lines.length === 0 ? 'Chưa có dữ liệu vật tư' : shortages > 0 ? 'Còn nguyên liệu chưa xuất' : pendingKitchenCount > 0 ? 'Chờ Bếp nhận nguyên liệu' : staleCount > 0 ? 'Cần tính lại' : 'Đã hoàn tất vật tư',
+    label: lines.length === 0 ? 'Chưa có vật tư' : shortages > 0 ? 'Thiếu hàng' : pendingKitchenCount > 0 ? 'Chờ Bếp nhận' : staleCount > 0 ? 'Cần tính lại' : 'Đủ hàng',
   }
 }
 
@@ -145,7 +145,7 @@ const demandDishSourceKey = (line: DemandLine, fallbackServiceDate?: string) => 
   const date = line.serviceDate || fallbackServiceDate
   const unitIdentity = line.unitId || line.unit
   return date && line.ingredientId && unitIdentity
-    ? `${date}__${line.ingredientId}__${unitIdentity}__${line.priceTierAmount ?? 'no-tier'}`
+    ? `${date}__${String(line.ingredientId).trim().toLowerCase()}__${String(unitIdentity).trim().toLowerCase()}__${line.priceTierAmount ? Number(line.priceTierAmount) : 'no-tier'}`
     : `source__${line.id}`
 }
 
@@ -153,26 +153,75 @@ export const attachDemandDishSources = (
   aggregateLines: DemandLine[],
   detailLines: DemandLine[],
   serviceDate: string,
-  fallbackDishSources?: Record<string, { dishNames?: string[] } | string[] | undefined>,
+  fallbackDishSources?: Record<string, { dishNames?: string[] } | string[] | undefined> | Map<string, string[]>,
 ) => {
   const sourcesByMaterial = new Map<string, Set<string>>()
+  const sourcesByIngredient = new Map<string, Set<string>>()
+  const sourcesByName = new Map<string, Set<string>>()
 
-  detailLines.filter((line) => line.serviceDate === serviceDate).forEach((line) => {
-    const key = demandDishSourceKey(line, serviceDate)
-    const sources = sourcesByMaterial.get(key) ?? new Set<string>()
-    if (line.source) sources.add(line.source)
-    sourcesByMaterial.set(key, sources)
-  })
+  const addSource = (map: Map<string, Set<string>>, key: string | undefined, source: string | undefined) => {
+    if (!key || !source || source === 'Chưa xác định') return
+    const normalized = key.trim().toLowerCase()
+    const set = map.get(normalized) ?? new Set<string>()
+    set.add(source)
+    map.set(normalized, set)
+  }
+
+  detailLines
+    .filter((line) => line.serviceDate === serviceDate)
+    .forEach((line) => {
+      const key = demandDishSourceKey(line, serviceDate)
+      addSource(sourcesByMaterial, key, line.source)
+      if (line.ingredientId) {
+        addSource(sourcesByIngredient, line.ingredientId, line.source)
+      }
+      if (line.material) {
+        addSource(sourcesByName, `${line.material}|${line.unit ?? ''}`, line.source)
+        addSource(sourcesByName, line.material, line.source)
+      }
+    })
 
   return aggregateLines.map((line) => {
-    const detailSources = Array.from(sourcesByMaterial.get(demandDishSourceKey(line, serviceDate)) ?? [])
-    const fallbackEntry = fallbackDishSources?.[line.ingredientId ?? '']
-      ?? fallbackDishSources?.[line.material ?? '']
-    const fallbackSources = Array.isArray(fallbackEntry) ? fallbackEntry : (fallbackEntry?.dishNames ?? [])
+    const key = demandDishSourceKey(line, serviceDate)
+    let foundSources = Array.from(sourcesByMaterial.get(key) ?? [])
+
+    if (foundSources.length === 0 && line.ingredientId) {
+      foundSources = Array.from(sourcesByIngredient.get(line.ingredientId.trim().toLowerCase()) ?? [])
+    }
+    if (foundSources.length === 0 && line.material) {
+      foundSources = Array.from(
+        sourcesByName.get(`${line.material.trim().toLowerCase()}|${(line.unit ?? '').trim().toLowerCase()}`)
+          ?? sourcesByName.get(line.material.trim().toLowerCase())
+          ?? [],
+      )
+    }
+
+    if (foundSources.length === 0 && fallbackDishSources) {
+      if (fallbackDishSources instanceof Map) {
+        const fromMap = fallbackDishSources.get(line.ingredientId?.trim().toLowerCase() ?? '')
+          ?? fallbackDishSources.get(`${line.material?.trim().toLowerCase()}|${(line.unit ?? '').trim().toLowerCase()}`)
+          ?? fallbackDishSources.get(line.material?.trim().toLowerCase() ?? '')
+        if (fromMap && fromMap.length > 0) {
+          foundSources = fromMap
+        }
+      } else {
+        const entry = fallbackDishSources[line.ingredientId ?? '']
+          ?? fallbackDishSources[`${line.ingredientId}|${line.unitId}`]
+          ?? fallbackDishSources[`${line.material}|${line.unit}`]
+          ?? fallbackDishSources[line.material ?? '']
+
+        if (entry) {
+          const names = Array.isArray(entry) ? entry : (entry.dishNames ?? [])
+          if (names.length > 0) {
+            foundSources = names
+          }
+        }
+      }
+    }
 
     return {
       ...line,
-      source: formatMaterialDishSource(detailSources.length > 0 ? detailSources : fallbackSources),
+      source: formatMaterialDishSource(foundSources),
     }
   })
 }
