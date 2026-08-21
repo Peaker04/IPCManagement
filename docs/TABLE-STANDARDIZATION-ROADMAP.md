@@ -227,7 +227,7 @@ Full `npm --prefix frontend run test:unit` initially reported **152 passing test
 
 Wave 8 cannot close until every row above is `FIXED` or has a documented, approved disposition and the full suite is green.
 
-Full-suite rerun after the owner commits exposed two concurrency-only timeouts in `purchasingHooksBehavior.test.tsx`; the same file passed 9/9 in isolation. The suite now has a local 15-second ceiling (global test timeout and production behavior unchanged), and the authoritative rerun is **158 files / 890 tests pass**.
+Full-suite rerun after the owner commits exposed two concurrency-only timeouts in `purchasingHooksBehavior.test.tsx`; the same file passed 9/9 in isolation. The suite now has a local 15-second ceiling (global test timeout and production behavior unchanged), and the authoritative rerun is **158 files / 891 tests pass**.
 
 #### W8-REG-05 execution checklist
 
@@ -258,7 +258,7 @@ Full-suite rerun after the owner commits exposed two concurrency-only timeouts i
 > disposition is verified.
 
 - [ ] Source-aware unused scan có disposition cho mọi candidate.
-- [x] Dependency-cruiser/build/lint/test discovery không báo orphan mới (423 modules / 1573 dependencies / 0 violations; lint pass; production build 2289 modules; unit 158 files / 890 tests).
+- [x] Dependency-cruiser/build/lint/test discovery không báo orphan mới (423 modules / 1573 dependencies / 0 violations; lint pass; production build 2289 modules; unit 158 files / 891 tests).
 - [ ] Route/tab/preference/permission/API/cache literals khớp source hiện hành.
 - [x] Không còn file mới chưa tracked thuộc production scope.
 - [x] Repository `git diff --check`, secret/stub scan và full regression pass.
