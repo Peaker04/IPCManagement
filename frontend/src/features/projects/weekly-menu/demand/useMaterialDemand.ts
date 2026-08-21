@@ -5,7 +5,8 @@ import { workflowCacheTags } from '@/api/workflowCacheTags'
 import { useGenerateMaterialDemandMutation, useGetApprovalHistoryQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialDemandStalenessQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
 import type { DemandLine } from '@/types/workflow'
 import { useUpsertQuickServingsMutation } from '@/api/coordinationApi'
-import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
+import type { CatalogDish } from '@/api/dishCatalogApi'
+import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
 import { toQueryView } from '@/lib/queryView'
 import type { WeeklyPlanRow } from '../model/types'
@@ -25,6 +26,8 @@ type Options = {
   weeklyPlanRows: WeeklyPlanRow[]
   invalidScheduleMenuPrices: number[]
   quickServingRows: QuickServingRow[]
+  dishesById?: Map<string, CatalogDish>
+  dishesByName?: Map<string, CatalogDish>
 }
 
 const EMPTY_QUERY_ROWS: never[] = []
@@ -42,6 +45,8 @@ export function useMaterialDemand({
   weeklyPlanRows,
   invalidScheduleMenuPrices,
   quickServingRows,
+  dishesById,
+  dishesByName,
 }: Options) {
   const reduxDispatch = useAppDispatch()
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
@@ -163,7 +168,18 @@ export function useMaterialDemand({
       targetId: demandApprovalStatus.targetId,
     })
     : undefined
-  const aggregateLines = attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate)
+  const activeDayPlanSummary = useMemo(() => {
+    const rows = activeDay?.rows?.length
+      ? activeDay.rows
+      : weeklyPlanRows.filter((row) => row.serviceDate === activeDate)
+    if (!rows.length || !dishesById) return undefined
+    return buildPlanRowsMaterialSummary(rows, dishesById, dishesByName ?? new Map(), {
+      customerId: scope.customerId,
+      priceTier: scope.menuPrice,
+    })
+  }, [activeDate, activeDay, dishesById, dishesByName, scope.customerId, scope.menuPrice, weeklyPlanRows])
+
+  const aggregateLines = attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate, activeDayPlanSummary)
   const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, aggregatePage?.shortageCount)
   const inventoryGroups = partitionDemandLines(aggregateLines)
   const activeQuickServingRows = activeDay ? quickServingRows.filter((row) => row.serviceDate === activeDate) : []
