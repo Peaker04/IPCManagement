@@ -364,6 +364,21 @@ Wave 23 checklist:
 - [x] No speculative lazy change merged.
 - [ ] If pursued later, introduce an explicit `LazyConfirmDialog` wrapper with
   its own fallback/focus tests before changing the shared contract.
+
+## Wave 24 closure — controlled wrapper deferred (2026-08-21)
+
+The confirmation seam is intentionally deferred. Current evidence does not
+justify introducing a new wrapper solely to chase route bytes: eight consumers
+would need coordinated fallback, focus restoration, keyboard and test
+coverage. The shared synchronous contract remains the verified behavior.
+
+Wave 24 checklist:
+
+- [x] No speculative runtime/API change merged.
+- [x] Deferral criteria recorded (fallback, focus, keyboard and leaf tests).
+- [x] Route-budget thresholds and cache identity unchanged.
+- [x] Next candidate must provide measurable closure reduction without a
+  cross-route interaction contract rewrite.
 - [x] No route-budget, cache, API-slice, or threshold changes.
 
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
