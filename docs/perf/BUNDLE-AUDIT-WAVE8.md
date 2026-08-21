@@ -387,6 +387,24 @@ Wave 30 checklist:
 - [ ] Architecture implementation remains a future scoped wave, not a cleanup
   commit hidden in this handoff.
 
+## Wave 31 closure — delete proven-dead common leaf files (2026-08-21)
+
+The previously removed barrel exports had no runtime consumers; this wave
+completed the cleanup by deleting their leaf implementations and the
+`DataTableShell` leaf test: `PageHeader`, `PageSection`, `StatCard`,
+`DataTableShell`, `Toolbar`, `WorkQueue`, and `SwimlaneProgress`.
+
+The presentation inventory baseline was updated from **54/51** owners/tables
+to **53/50**; dialogs and switchers remain unchanged.
+
+Wave 31 checklist:
+
+- [x] Targeted inventory test: **5 tests passed**.
+- [x] Full unit suite: **157 files / 888 tests passed**.
+- [x] Build, lint and dependency-cruiser pass (`423 modules / 1587 dependencies`).
+- [x] Unrelated working-tree edits preserved; corrected staging before commit.
+- [x] Atomic commit: `ca3506be`.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
