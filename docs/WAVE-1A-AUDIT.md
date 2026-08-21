@@ -30,4 +30,3 @@ Ngày: 2026-08-21
 ## Decision
 
 **WAVE 1A CLOSED — GO TO WAVE 1B.** Wave 1B chỉ được bổ sung contract/test hoặc migrate consumer; không tạo table primitive song song.
-
