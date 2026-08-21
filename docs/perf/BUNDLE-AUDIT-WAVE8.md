@@ -189,3 +189,19 @@ Wave 11 checklist:
 - [x] Full unit suite: `158 files / 891 tests` passed.
 - [x] No threshold, cache, or API-slice changes.
 - [x] Atomic commit: `a2d0b8a`.
+
+## Wave 12 accepted seam — remove unused SwimlaneProgress barrel export (2026-08-21)
+
+Repository-wide source search found `SwimlaneProgress` only in its declaration;
+there is no application consumer, direct or through the common barrel. The
+component file remains untouched for safe future recovery, while the public
+shared barrel no longer advertises an unconnected runtime surface.
+
+Wave 12 gates:
+
+- [x] Clean TypeScript/Vite build; entry remains **98.25 KiB gzip**.
+- [x] ESLint pass.
+- [x] Dependency-cruiser pass: **432 modules / 1612 dependencies**.
+- [x] No route threshold or cache-policy change.
+- [x] Atomic commit: `efc8cfe2`.
+- [ ] Full unit rerun is reserved for the next grouped barrel wave; this export-only deletion is covered by compile/build and dependency closure gates.
