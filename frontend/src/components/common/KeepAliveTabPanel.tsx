@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface KeepAliveTabPanelProps {
@@ -23,10 +23,14 @@ export function KeepAliveTabPanel({
   fallback = null,
   children,
 }: KeepAliveTabPanelProps) {
-  const hasBeenActive = useRef(active || !lazy);
-  if (active) hasBeenActive.current = true;
+  const [hasBeenActive, setHasBeenActive] = useState(active || !lazy);
+  useEffect(() => {
+    if (!active || hasBeenActive) return;
+    const timer = window.setTimeout(() => setHasBeenActive(true), 0);
+    return () => window.clearTimeout(timer);
+  }, [active, hasBeenActive]);
 
-  const shouldRenderContent = !lazy || hasBeenActive.current;
+  const shouldRenderContent = !lazy || active || hasBeenActive;
 
   return (
     <div
