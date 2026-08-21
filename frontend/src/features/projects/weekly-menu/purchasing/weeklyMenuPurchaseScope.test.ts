@@ -14,5 +14,8 @@ describe('weekly purchase scope contract', () => {
     expect(purchaseSummarySource).toContain('{data.ingredientName}');
     expect(purchaseSummarySource).toContain('LT cả tuần');
     expect(purchaseSummarySource).toContain('Mỗi dòng thuộc một ngày, khách hàng, đơn giá, nguyên liệu và đơn vị');
+    expect(purchaseSummarySource).toContain("label: 'Dòng chưa xuất'");
+    expect(purchaseSummarySource).toContain("label: 'Dòng chờ Bếp nhận'");
+    expect(purchaseSummarySource).not.toContain("`${presentation.shortageCount} nguyên liệu`");
   });
 });
