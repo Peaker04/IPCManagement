@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/purchasing/purchasingApi', () => ({
   useGetPurchaseWorkbenchQuery: mocks.getWorkbench,
   useGetServiceRunPageQuery: mocks.getServiceRunPage,
 }));
@@ -43,6 +43,9 @@ vi.mock('../PurchaseWorkflowGuide', () => ({
 }));
 vi.mock('../quotation/SupplierQuotationSection', () => ({
   SupplierQuotationSection: () => <div data-testid="supplier-quotation-section" />,
+}));
+vi.mock('@/components/common/ServiceRunBlockerPanel', () => ({
+  ServiceRunBlockerPanel: () => <div data-testid="service-run-blocker" />,
 }));
 
 import PurchasingPage from './PurchasingPage';
@@ -142,7 +145,7 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.getByText('Đang tải')).toBeInTheDocument();
     expect(screen.getByTestId('service-date-workbench')).toHaveTextContent('service dates: 1');
     expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
-    expect(screen.queryByTestId('supplemental-workbench')).toBeNull();
+    expect(screen.getByTestId('supplemental-workbench').closest('[hidden]')).not.toBeNull();
   });
 
   it('keeps supplemental purchasing in its own URL-addressable tab', () => {
@@ -152,7 +155,7 @@ describe('PurchasingPage query state boundary', () => {
 
     expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
-    expect(screen.queryByTestId('service-date-workbench')).toBeNull();
+    expect(document.getElementById('purchasing-workflow-panel')).toHaveAttribute('hidden');
     expect(screen.getByRole('heading', { name: 'Mua bổ sung cho bếp' })).toBeInTheDocument();
   });
 
@@ -163,7 +166,7 @@ describe('PurchasingPage query state boundary', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Mua bổ sung' }));
 
     expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
-    expect(screen.queryByTestId('service-date-workbench')).toBeNull();
+    expect(screen.getByTestId('service-date-workbench').closest('[hidden]')).not.toBeNull();
     expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true');
   });
 });
