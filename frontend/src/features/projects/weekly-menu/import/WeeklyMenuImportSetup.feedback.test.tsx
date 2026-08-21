@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   refetchCustomers: vi.fn(),
   rollbackImport: vi.fn(),
+  historyQuery: vi.fn(),
 }))
 
 const readyQuery = <T,>(data: T) => ({
@@ -23,7 +24,10 @@ vi.mock('@/api/coordinationApi', () => ({
   useCommitWeeklyMenuImportMutation: () => [vi.fn(), { isLoading: false }],
   useCreateCustomerContractMutation: () => [vi.fn(), { isLoading: false }],
   useDownloadWeeklyMenuTemplateMutation: () => [vi.fn(), { isLoading: false }],
-  useGetWeeklyMenuImportHistoryQuery: () => readyQuery({ data: [] }),
+  useGetWeeklyMenuImportHistoryQuery: (...args: unknown[]) => {
+    mocks.historyQuery(...args)
+    return readyQuery({ data: [] })
+  },
   usePreviewWeeklyMenuImportMutation: () => [vi.fn(), { isLoading: false }],
   useRollbackWeeklyMenuImportMutation: () => [mocks.rollbackImport, { isLoading: false }],
   useSaveCustomerImportMappingMutation: () => [vi.fn(), { isLoading: false }],
@@ -57,7 +61,28 @@ const makeOptions = (overrides: Record<string, unknown> = {}) => ({
 describe('Weekly Menu Import setup feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.historyQuery.mockClear()
     mocks.rollbackImport.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({}) })
+  })
+
+  it('scopes import history to the active customer and resets its page when scope changes', () => {
+    const { result, rerender } = renderHook(
+      (options: Parameters<typeof useWeeklyMenuImport>[0]) => useWeeklyMenuImport(options),
+      { initialProps: makeOptions() as Parameters<typeof useWeeklyMenuImport>[0] },
+    )
+
+    expect(mocks.historyQuery).toHaveBeenLastCalledWith(
+      { customerId: 'customer-1', pageNumber: 1, pageSize: 10 },
+      { skip: true },
+    )
+    act(() => result.current.setHistoryPage(3))
+    expect(result.current.historyPage).toBe(3)
+    rerender(makeOptions({ customerId: 'customer-2' }) as Parameters<typeof useWeeklyMenuImport>[0])
+    expect(result.current.historyPage).toBe(1)
+    expect(mocks.historyQuery).toHaveBeenLastCalledWith(
+      { customerId: 'customer-2', pageNumber: 1, pageSize: 10 },
+      { skip: true },
+    )
   })
 
   it('keeps missing customer and file validation beside both affected fields', () => {

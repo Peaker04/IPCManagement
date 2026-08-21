@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { CreateCustomerContractRequest } from '@/types/coordination'
 import {
   useCommitWeeklyMenuImportBatchMutation,
@@ -52,7 +52,14 @@ export const useWeeklyMenuImport = ({
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
   const [historyPage, setHistoryPage] = useState(1)
-  const historyQuery = useGetWeeklyMenuImportHistoryQuery({ pageNumber: historyPage, pageSize: 10 }, { skip: !state.isOpen })
+  useEffect(() => {
+    setHistoryPage(1)
+  }, [customerId])
+  const historyQuery = useGetWeeklyMenuImportHistoryQuery({
+    customerId: customerId || undefined,
+    pageNumber: historyPage,
+    pageSize: 10,
+  }, { skip: !state.isOpen })
   const historyView = toLabeledQueryView(historyQuery, 'lịch sử import thực đơn tuần', {
     instruction: 'Mở hộp thoại import để tải lịch sử import thực đơn tuần.',
   })
