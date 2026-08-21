@@ -80,7 +80,7 @@ with a budget edit.
 ## Machine-readable inventory
 
 `npm run check:workflow-api-boundary` now inventories non-test TypeScript imports
-of the barrel. The current source snapshot is **4 import statements**, all
+of the barrel. The current source snapshot is **2 import statements**, all
 **runtime** and **0 type-only**. Duplicate entries in one file are intentional in
 the output because each import statement is a migration unit. This gate prevents
 the team from mistaking type-only consumers for bundle consumers and gives each

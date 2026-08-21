@@ -21,15 +21,15 @@ import type {
   PurchaseRequestWorkflowLine,
   PurchaseWorkbenchServiceDate,
   SupplierEvidenceCandidate,
-} from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
 import {
   useConfirmLineSupplierMutation,
   useCreatePurchaseOrdersFromRequestMutation,
   useCreatePurchaseRequestFromDemandMutation,
   useGetSupplierEvidenceQuery,
-  useGetWarehouseSelectorQuery,
   useSubmitPurchaseRequestMutation,
-} from '@/api/workflowApi';
+} from '@/features/purchasing/purchasingApi';
+import { useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
 import { getPurchasingErrorMessage, type PurchasingStageId } from './purchasingModel';
 
 interface PurchaseDecisionPanelProps {
@@ -428,6 +428,7 @@ export function PurchaseDecisionPanel({
                   </>
                 ) : null}
                 <Button
+                  data-inp-action="confirm-supplier"
                   className="min-h-11 sm:min-h-9"
                   disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || !receivingWarehouseId || !purchasingTerms.trim() || warehouseQuery.isError || Boolean(evidence?.blocker)}
                   onClick={() => setConfirmation({ type: 'supplier' })}
@@ -441,6 +442,7 @@ export function PurchaseDecisionPanel({
               <div className="rounded-[3px] border border-emerald-300 bg-emerald-50 px-3 py-3">
                 <p className="text-body font-semibold text-emerald-950">Đã đủ nhà cung cấp, giá và ngày giao cho mọi dòng.</p>
                 <Button
+                  data-inp-action="submit-purchase-request"
                   className="mt-3 min-h-11 sm:min-h-9"
                   onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}
                 >
@@ -490,40 +492,42 @@ export function PurchaseDecisionPanel({
         {selectedStage === 'receiving' ? <OrderHandoffStatus serviceDate={serviceDate} week={week} /> : null}
       </div>
 
-      <Dialog open={Boolean(confirmation)} onOpenChange={(open) => { if (!open) closeConfirmation(); }}>
-        <DialogContent
-          aria-labelledby="purchase-confirmation-title"
-          aria-describedby="purchase-confirmation-description"
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              closeConfirmation();
-            }
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle id="purchase-confirmation-title">{confirmationCopy.title}</DialogTitle>
-            <DialogDescription id="purchase-confirmation-description">{confirmationCopy.description}</DialogDescription>
-          </DialogHeader>
-          {confirmation?.type === 'supplier' && selectedLine && selectedEvidence ? (
-            <div className="space-y-2 rounded-[3px] border border-slate-300 bg-slate-50 p-3 text-body">
-              <p><strong>Nguyên liệu:</strong> {selectedLine.ingredientName}</p>
-              <p><strong>Nhà cung cấp:</strong> {selectedEvidence.supplierName}</p>
-              <p><strong>Bằng chứng:</strong> {evidenceLabel(selectedEvidence)}</p>
-              <p><strong>Giá đề xuất:</strong> {formatCurrency(Number(proposedUnitPrice))}</p>
-              <p><strong>Ngày giao:</strong> {formatDateOnly(proposedDeliveryDate)}</p>
-              <p><strong>Kho nhận:</strong> {warehouses.find((warehouse) => warehouse.warehouseId === receivingWarehouseId)?.warehouseName}</p>
-              <p><strong>Điều khoản mua:</strong> {purchasingTerms.trim()}</p>
-              {decisionNote.trim() ? <p><strong>Ghi chú:</strong> {decisionNote.trim()}</p> : null}
-            </div>
-          ) : null}
-          {errorMessage ? <InlineAlert title="Chưa thể lưu thay đổi" variant="danger"><span role="alert">{errorMessage}</span></InlineAlert> : null}
-          <DialogFooter>
-            <Button ref={safeActionRef} variant="outline" className="min-h-11 sm:min-h-9" disabled={isPending} onClick={closeConfirmation}>{confirmationCopy.safeLabel}</Button>
-            <Button className="min-h-11 sm:min-h-9" disabled={isPending} onClick={() => void executeConfirmation()}>{isPending ? 'Đang lưu...' : confirmationCopy.submitLabel}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {Boolean(confirmation) && (
+        <Dialog open={Boolean(confirmation)} onOpenChange={(open) => { if (!open) closeConfirmation(); }}>
+          <DialogContent
+            aria-labelledby="purchase-confirmation-title"
+            aria-describedby="purchase-confirmation-description"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                closeConfirmation();
+              }
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle id="purchase-confirmation-title">{confirmationCopy.title}</DialogTitle>
+              <DialogDescription id="purchase-confirmation-description">{confirmationCopy.description}</DialogDescription>
+            </DialogHeader>
+            {confirmation?.type === 'supplier' && selectedLine && selectedEvidence ? (
+              <div className="space-y-2 rounded-[3px] border border-slate-300 bg-slate-50 p-3 text-body">
+                <p><strong>Nguyên liệu:</strong> {selectedLine.ingredientName}</p>
+                <p><strong>Nhà cung cấp:</strong> {selectedEvidence.supplierName}</p>
+                <p><strong>Bằng chứng:</strong> {evidenceLabel(selectedEvidence)}</p>
+                <p><strong>Giá đề xuất:</strong> {formatCurrency(Number(proposedUnitPrice))}</p>
+                <p><strong>Ngày giao:</strong> {formatDateOnly(proposedDeliveryDate)}</p>
+                <p><strong>Kho nhận:</strong> {warehouses.find((warehouse) => warehouse.warehouseId === receivingWarehouseId)?.warehouseName}</p>
+                <p><strong>Điều khoản mua:</strong> {purchasingTerms.trim()}</p>
+                {decisionNote.trim() ? <p><strong>Ghi chú:</strong> {decisionNote.trim()}</p> : null}
+              </div>
+            ) : null}
+            {errorMessage ? <InlineAlert title="Chưa thể lưu thay đổi" variant="danger"><span role="alert">{errorMessage}</span></InlineAlert> : null}
+            <DialogFooter>
+              <Button ref={safeActionRef} variant="outline" className="min-h-11 sm:min-h-9" disabled={isPending} onClick={closeConfirmation}>{confirmationCopy.safeLabel}</Button>
+              <Button data-inp-action="confirm-purchase-dialog" className="min-h-11 sm:min-h-9" disabled={isPending} onClick={() => void executeConfirmation()}>{isPending ? 'Đang lưu...' : confirmationCopy.submitLabel}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </SectionPanel>
   );
 }
