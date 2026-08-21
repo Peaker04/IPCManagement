@@ -81,6 +81,7 @@ Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like m
 - [x] Wave 4 audit bắt đầu tại Admin Contracts: duplicate `BOM áp dụng 100%` đã bỏ khỏi ContextStrip, giữ tại cột bảng; focused render test khóa chỉ còn một fact presentation.
 - [x] Effective-range cell chỉ hiển thị khoảng ngày (`Không giới hạn` khi không có ngày cuối); contract status giữ riêng tại cột trạng thái. Import-history page reset carry-over cũng được sửa thành scope-keyed state để loại effect render cascade; lint và 8 focused tests pass.
 - [x] Admin Contracts user-facing copy bỏ `contract/version`, dùng `hợp đồng/phiên bản`; Supplier Quotations và Employees được disposition `KEEP` vì range, active state và row action là các quyết định riêng, không phải duplicate fact.
+- [x] BOM current/preview được giữ là hai state của import workflow, không phải nested navigation. Floorplan/UI audit/conditional fixture đã bỏ technical-tab assumptions; read-only inventory còn 15 owner, preview tiếp tục thuộc mutation/import workflow evidence.
 - [ ] Mọi master/reference contract có natural label, stable ID và effective-range disposition.
 - [ ] Duplicate header facts đã chuyển khỏi line table hoặc có lý do giữ.
 - [ ] Edit/detail action giữ list context và focus return.

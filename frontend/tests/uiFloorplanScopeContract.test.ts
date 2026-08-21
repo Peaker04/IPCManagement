@@ -22,7 +22,6 @@ const routeConfigSource = read('src/lib/routeConfig.ts')
 
 const tabAuthorities = [
   { routeKey: 'ADMIN_DATA', file: 'src/app/pages/admin-data/useAdminDataPageModel.ts', ids: ['admin-bom-import', 'admin-contracts', 'admin-cleanup', 'admin-inventory', 'admin-statistics', 'admin-audit', 'admin-employees'] },
-  { routeKey: 'ADMIN_DATA', file: 'src/app/pages/admin-data/AdminBomPanel.tsx', ids: ['bom-current', 'bom-preview'], parent: 'admin-bom-import' },
   { routeKey: 'APPROVALS', file: 'src/features/approvals/pages/ApprovalPage.tsx', ids: ['approval-queue', 'approval-history'] },
   { routeKey: 'CHEF_DASHBOARD', file: 'src/features/chef/pages/ChefDashboardPage.tsx', ids: ['chef-production', 'chef-documents'] },
   { routeKey: 'WEEKLY_MENU', file: 'src/features/projects/pages/WeeklyMenuPage.tsx', ids: ['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'] },

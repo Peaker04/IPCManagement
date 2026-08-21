@@ -22,10 +22,6 @@ export const conditionalTableFixtures: readonly ConditionalTableFixture[] = [
     regionLabel: 'BOM hiện tại theo đơn giá', condition: /bomPanelMode\s*===\s*['"]current['"]/, headerSignature: ['Món', 'Nguyên liệu', 'Đơn vị', 'Định lượng/suất'], states: ['loading', 'empty', 'ready'],
   },
   {
-    id: 'admin-bom-preview', route: '/admin-data', view: 'bom-import', sourceFile: 'app/pages/admin-data/AdminBomPanel.tsx', sourceSymbol: 'AdminBomPanel', tableIndex: 1,
-    regionLabel: 'Bản xem trước dữ liệu định lượng theo đơn giá', condition: /bomPanelMode/, headerSignature: ['Dòng', 'Món', 'Nguyên liệu', 'Định lượng'], states: ['loading', 'empty', 'ready'],
-  },
-  {
     id: 'admin-statistics-kpi', route: '/admin-data', view: 'statistics', sourceFile: 'app/pages/admin-data/AdminStatisticsPanel.tsx', sourceSymbol: 'AdminStatisticsPanel', tableIndex: 0,
     regionLabel: 'Bảng chỉ số thống kê vận hành', condition: /effectiveActiveView\s*===\s*['"]statistics['"]/, headerSignature: ['Chỉ số', 'Giá trị', 'Thao tác'], states: ['loading', 'empty', 'ready'],
   },

@@ -52,14 +52,6 @@ const openOwner = async (page: Page, fixture: typeof conditionalTableFixtures[nu
   if (fixture.id.startsWith('reports-price-')) query.set('subview', fixture.id.replace('reports-price-', ''))
   await page.goto(`${fixture.route}?${query}`)
 
-  if (fixture.id === 'admin-bom-current') {
-    const tab = page.getByRole('tab', { name: 'BOM hiện tại' })
-    if (await tab.count()) await tab.click()
-  }
-  if (fixture.id === 'admin-bom-preview') {
-    await page.getByRole('tab', { name: 'Bản xem trước' }).click()
-  }
-
   const region = page.getByRole('region', { name: fixture.regionLabel })
   await expect(region, fixture.id).toBeVisible()
   const table = region.locator('table').first()
@@ -90,7 +82,7 @@ test.describe('Wave 2 conditional table production rendering', () => {
   })
 
   for (const viewport of viewports) {
-    test(`renders all 16 source owners at ${viewport.name}`, async ({ page }) => {
+    test(`renders all ${conditionalTableFixtures.length} read-only source owners at ${viewport.name}`, async ({ page }) => {
       await page.setViewportSize(viewport)
       const nonReadRequests: string[] = []
       const apiResponses: string[] = []

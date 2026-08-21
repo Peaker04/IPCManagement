@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { conditionalTableFixtures, readConditionalTableSource } from './conditionalTableFixture'
 
 describe('Wave 2 conditional table read-only fixture', () => {
-  it('covers the 16 unique conditional table owners exactly once', () => {
-    expect(conditionalTableFixtures).toHaveLength(16)
-    expect(new Set(conditionalTableFixtures.map((fixture) => fixture.id)).size).toBe(16)
-    expect(new Set(conditionalTableFixtures.map((fixture) => `${fixture.sourceFile}:${fixture.tableIndex}`)).size).toBe(16)
+  it('covers the 15 read-only conditional table owners exactly once', () => {
+    expect(conditionalTableFixtures).toHaveLength(15)
+    expect(new Set(conditionalTableFixtures.map((fixture) => fixture.id)).size).toBe(15)
+    expect(new Set(conditionalTableFixtures.map((fixture) => `${fixture.sourceFile}:${fixture.tableIndex}`)).size).toBe(15)
+    expect(conditionalTableFixtures.map((fixture) => fixture.id)).not.toContain('admin-bom-preview')
   })
 
   it('keeps every fixture source-owned, conditional and renderable in loading/empty/ready states', () => {

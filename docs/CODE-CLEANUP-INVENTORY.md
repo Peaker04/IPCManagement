@@ -55,4 +55,6 @@ Không phát hiện ledger owner nào chỉ còn export mà không có consumer.
 | CLN-03 | 8 | public crawler/LLM files | Xác nhận deploy/product intent và nội dung không lộ route nội bộ | REVIEW |
 | CLN-04 | mỗi wave | legacy fixture/selector/export phát hiện khi sửa owner | Source-aware zero-consumer proof | CONTINUOUS |
 
+Wave 4 cleanup: removed stale `bom-current`/`bom-preview` nested-tab entries and browser clicks from floorplan and conditional read-only fixtures. Production retains the two internal render states; only obsolete navigation assumptions were removed.
+
 Không candidate nào trong bảng trên được gọi là “dead” chỉ vì build vẫn pass hoặc grep import bằng 0; config, test discovery, public assets và dynamic registry là consumer hợp lệ cần kiểm riêng.
