@@ -1,5 +1,6 @@
 import { AlertCircle } from 'lucide-react'
-import { EmptyState, PaginationBar, SplitWorkbench } from '@/components/common'
+import { EmptyState, PaginationBar } from '@/components/common'
+import { SplitWorkbench } from '@/components/common/SplitWorkbench'
 import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
 import { HeadChefDashboard } from '../components/head-chef-dashboard'
 import { ShiftJournal } from '../journal/ShiftJournal'

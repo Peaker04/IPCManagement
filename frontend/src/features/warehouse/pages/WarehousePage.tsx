@@ -13,11 +13,11 @@ import {
   PaginationBar,
   QueryErrorAlert,
   SectionPanel,
-  SplitWorkbench,
   StatusBadge,
   TableViewport,
   ViewSwitcher,
 } from '@/components/common';
+import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ROUTES } from '@/lib/routeConfig';
 import { visibleTabIds } from '@/lib/navigationPreferences';

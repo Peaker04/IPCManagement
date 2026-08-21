@@ -10,10 +10,10 @@ import {
   OperationalFrame,
   QueryErrorAlert,
   SectionPanel,
-  SplitWorkbench,
   useToast,
   ViewSwitcher,
 } from '@/components/common';
+import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';

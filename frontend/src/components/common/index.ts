@@ -10,7 +10,6 @@ export { OperationalFrame } from './OperationalFrame';
 export { PaginationBar } from './PaginationBar';
 export { CursorPaginationBar } from './CursorPaginationBar';
 export { SectionPanel } from './SectionPanel';
-export { SplitWorkbench } from './SplitWorkbench';
 export { StatusBadge } from './StatusBadge';
 export { DocumentRail } from './DocumentRail';
 export { ViewSwitcher } from './ViewSwitcher';
