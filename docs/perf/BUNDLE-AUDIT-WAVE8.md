@@ -372,6 +372,21 @@ Wave 29 checklist:
 - [x] Reopening criteria and required gates recorded.
 - [x] Handoff committed for the next architecture wave.
 
+## Wave 30 hygiene gate — working tree boundary (2026-08-21)
+
+`git diff --check` passes. The remaining dirty files are pre-existing,
+unrelated application/report/UI work and were not staged or altered by the
+cleanup waves. All wave commits are isolated to the documented boundary/code
+changes and their evidence.
+
+Wave 30 checklist:
+
+- [x] No whitespace errors in the working tree diff.
+- [x] No unrelated files staged by the wave sequence.
+- [x] Existing user changes preserved.
+- [ ] Architecture implementation remains a future scoped wave, not a cleanup
+  commit hidden in this handoff.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
