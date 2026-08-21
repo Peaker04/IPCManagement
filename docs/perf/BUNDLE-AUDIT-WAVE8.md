@@ -309,6 +309,31 @@ Wave 26 checklist:
 - [ ] Revisit only when a tab/section gets an explicit data and Suspense
   contract as part of a product feature change.
 
+## Wave 27 audit summary — checklist and open debt (2026-08-21)
+
+Completed cleanup waves removed unconsumed shared/API surfaces without changing
+behavior: ServiceRun exports, SwimlaneProgress, PageHeader/PageSection/StatCard,
+DataTableShell/Toolbar/WorkQueue, unused auth hook exports, the unused Chef
+barrel, and coordination wildcard exports. Build, lint, dependency-cruiser and
+full unit evidence were collected across the waves.
+
+Open, explicitly bounded debt:
+
+- Route closures still exceed unchanged budgets because the shared entry/common/
+  apiSlice floor is approximately **173.8 KiB gzip**.
+- `ConfirmDialog` remains synchronous until a controlled lazy wrapper provides
+  fallback, focus, keyboard and leaf-test contracts.
+- Page-internal tabs/sections remain coupled to their page query/state models;
+  they are not dead code and must not be split for bytes alone.
+
+Wave 27 checklist:
+
+- [x] Every accepted change has an atomic code commit and evidence commit.
+- [x] Every deferred candidate has a reason and reopening criteria.
+- [x] Thresholds, cache identity and API-slice topology remained unchanged.
+- [x] Full regression evidence: **158 files / 891 tests passed**.
+- [ ] Route-budget debt requires a separate product/runtime architecture wave.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
