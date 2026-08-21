@@ -109,6 +109,15 @@ Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like m
 - Các góc nhìn chỉ đổi tham số được biểu diễn bằng filter/combobox, không tạo technical nested tab.
 - Danh sách mục tiêu 5–7 cột; secondary text/tooltip/detail dùng cho thông tin bổ trợ.
 
+### Wave 5 initial fact/owner audit
+
+| Surface | Fact/grain | Primary owner | Duplicate risk | Disposition |
+|---|---|---|---|---|
+| Reports Data Quality | workflow quality issue page + read-only KPI/report scope | Reports | Cùng backend projection với Admin Cleanup | KEEP BOTH: Reports chỉ xem, tìm kiếm và điều hướng; Admin Cleanup là owner remediation mutation. Không gộp hai action owner.
+| Admin Cleanup | quality issue page + remediation state | Admin Data | Lặp một phần KPI Reports | KEEP ACTION OWNER: KPI rút gọn, mutation chỉ ở Admin.
+| Reports Price | receipt-line / supplier / month / dish-group aggregate | Reports Price combobox scope | Bốn bảng đổi tham số | KEEP AS FILTERED VIEWS: không nested technical tab; mỗi bảng có grain và pagination riêng.
+| Reports Demand/Purchase | day demand vs purchase-plan source-line | Reports | Dễ trùng tổng shortage/estimated amount | OPEN: map metric → grain → source ID trước khi chỉnh UI.
+
 ### Checklist đóng Wave 5
 
 - [ ] Ma trận `fact → KPI/table/detail` không có duplicate không chủ đích.
