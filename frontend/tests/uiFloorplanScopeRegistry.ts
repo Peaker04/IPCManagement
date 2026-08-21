@@ -54,7 +54,7 @@ const surfaceDefinitions: readonly SurfaceDefinition[] = [
     .map((surfaceId) => ({ routeKey: 'ADMIN_DATA', surfaceKind: 'tab', surfaceId }) as const),
   ...['bom-current', 'bom-preview']
     .map((surfaceId) => ({ routeKey: 'ADMIN_DATA', surfaceKind: 'nested-view', surfaceId, parentSurfaceId: 'admin-bom-import' }) as const),
-  ...['approval-queue', 'approval-role', 'approval-history']
+  ...['approval-queue', 'approval-history']
     .map((surfaceId) => ({ routeKey: 'APPROVALS', surfaceKind: 'tab', surfaceId }) as const),
   ...['chef-production', 'chef-documents']
     .map((surfaceId) => ({ routeKey: 'CHEF_DASHBOARD', surfaceKind: 'tab', surfaceId }) as const),

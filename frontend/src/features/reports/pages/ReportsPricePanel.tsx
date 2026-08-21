@@ -135,24 +135,20 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
               </label>
             </div>
             <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
-              <table className="ipc-data-table ipc-report-table min-w-[980px]">
+              <table className="ipc-data-table ipc-report-table min-w-[760px]">
                 <thead>
                   <tr>
                     <th>Tên nguyên liệu</th>
-                    <th>Phiếu nhập</th>
-                    <th>Ngày nhập</th>
+                    <th>Nguồn nhập</th>
                     <th>Số lượng</th>
-                    <th>ĐV</th>
                     <th>Giá tham chiếu</th>
                     <th>Giá nhập</th>
-                    <th>Thay đổi</th>
-                    <th>Đánh giá</th>
-                    <th>Chi tiết</th>
+                    <th>Biến động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {priceVarianceRows.length === 0 ? (
-                    <EmptyRow colSpan={10} isError={priceVarianceResult.isError} />
+                    <EmptyRow colSpan={6} isError={priceVarianceResult.isError} />
                   ) : (
                     priceVarianceRows.map((item, index) => (
                       <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -165,29 +161,24 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                             </span>
                           </span>
                         </td>
-                        <td>{item.receiptCode}</td>
-                        <td>{formatDateOnly(item.receiptDate)}</td>
+                        <td><div className="font-medium text-slate-800">{item.receiptCode}</div><div className="text-xs text-slate-500">{formatDateOnly(item.receiptDate)}</div></td>
                         <td className="ipc-numeric-cell">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
-                        <td>{formatUnit(item.unit)}</td>
                         <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
                         <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>
-                        <td className={item.warning ? 'ipc-numeric-cell font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'ipc-numeric-cell font-bold text-[var(--ipc-warning)]' : 'ipc-numeric-cell text-slate-600'}>
-                          <span className="inline-flex items-center gap-1 justify-end w-full">
+                        <td className="text-right">
+                          <span className={item.warning ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-warning)]' : 'inline-flex w-full items-center justify-end gap-1 text-slate-600'}>
                             {item.change > 0 && <span className="inline-block text-[10px] text-inherit">▲</span>}
                             {item.change > 0 ? `+${formatPercent(item.change)}` : '0%'}
                           </span>
-                        </td>
-                        <td className="ipc-badge-cell">
-                          {item.warning ? (
-                            <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
-                          ) : item.change > 0 ? (
-                            <StatusBadge variant="warning" className="ipc-table-badge ipc-table-badge--status">Theo dõi</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
-                          )}
-                        </td>
-                        <td className="ipc-report-action-cell">
-                          {item.warning ? (
+                          <div className="mt-1 flex items-center justify-end gap-2">
+                            {item.warning ? (
+                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                            ) : item.change > 0 ? (
+                              <StatusBadge variant="warning" className="ipc-table-badge ipc-table-badge--status">Theo dõi</StatusBadge>
+                            ) : (
+                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                            )}
+                            {item.warning && (
                             <button
                               type="button"
                               className="whitespace-nowrap text-xs font-semibold text-[var(--ipc-danger)] underline underline-offset-2"
@@ -199,7 +190,8 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                             >
                               Xem đề xuất
                             </button>
-                          ) : '—'}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -252,38 +244,32 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
               <table className="ipc-data-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nguyên liệu</th>
-                    <th>Nhà cung cấp</th>
+                    <th>Nguyên liệu / Nhà cung cấp</th>
                     <th>Số lần nhập</th>
                     <th>Giá TB</th>
-                    <th>Giá thấp nhất</th>
-                    <th>Giá cao nhất</th>
+                    <th>Khoảng giá</th>
                     <th>Giá tham chiếu</th>
-                    <th>% biến động</th>
-                    <th>Đánh giá</th>
+                    <th>Biến động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {priceVarianceBySupplierRows.length === 0 ? (
-                    <EmptyRow colSpan={9} isError={priceVarianceBySupplierResult.isError} />
+                    <EmptyRow colSpan={6} isError={priceVarianceBySupplierResult.isError} />
                   ) : (
                     priceVarianceBySupplierRows.map((row) => (
                       <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td>{row.ingredientName}</td>
-                        <td>{row.supplierName}</td>
+                        <td><div className="font-medium text-slate-800">{row.ingredientName}</div><div className="text-xs text-slate-500">{row.supplierName}</div></td>
                         <td className="ipc-numeric-cell">{row.receiptCount}</td>
                         <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.minUnitPrice)}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.maxUnitPrice)}</td>
+                        <td className="ipc-numeric-cell"><div>{formatCurrency(row.minUnitPrice)}</div><div className="text-xs text-slate-500">đến {formatCurrency(row.maxUnitPrice)}</div></td>
                         <td className="ipc-numeric-cell">{formatCurrency(row.referencePrice)}</td>
-                        <td className="ipc-numeric-cell">{formatPercent(row.variancePercent)}</td>
-                        <td className="ipc-badge-cell">
+                        <td className="text-right"><div className="tabular-nums">{formatPercent(row.variancePercent)}</div><div className="mt-1 flex justify-end">
                           {row.isWarning ? (
                             <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
                           ) : (
                             <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
                           )}
-                        </td>
+                        </div></td>
                       </tr>
                     ))
                   )}

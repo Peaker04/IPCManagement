@@ -108,7 +108,6 @@ const viewOwnershipBindings: Record<string, import('./OperationalFrame').UiOwner
   'Chọn góc nhìn quản trị dữ liệu\0admin-statistics': { ownerId: 'uio-9', floorplanId: 'uif-9', regionId: 'uir-9' },
   'Chọn góc nhìn duyệt vận hành\0approval-history': { ownerId: 'uio-d', floorplanId: 'uif-d', regionId: 'uir-d' },
   'Chọn góc nhìn duyệt vận hành\0approval-queue': { ownerId: 'uio-e', floorplanId: 'uif-e', regionId: 'uir-e' },
-  'Chọn góc nhìn duyệt vận hành\0approval-role': { ownerId: 'uio-f', floorplanId: 'uif-f', regionId: 'uir-f' },
   'Chọn góc nhìn bếp trưởng\0chef-documents': { ownerId: 'uio-h', floorplanId: 'uif-h', regionId: 'uir-h' },
   'Chọn góc nhìn bếp trưởng\0chef-production': { ownerId: 'uio-i', floorplanId: 'uif-i', regionId: 'uir-i' },
   'Chọn góc nhìn thu mua\0purchasing-quotations': { ownerId: 'uio-o', floorplanId: 'uif-o', regionId: 'uir-o' },

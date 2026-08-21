@@ -74,7 +74,7 @@ export const writeAdminTabPreferences = (preferences: Record<AdminTabPreferenceK
 export const pageTabGroups = [
   { id: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch, nhu cầu, sản xuất và chi phí', tabs: [['schedule', 'Kế hoạch tuần'], ['demand', 'Nhu cầu'], ['production-plan', 'Kế hoạch sản xuất'], ['purchase-summary', 'Tổng hợp mua'], ['cost', 'Giá vốn'], ['dish-materials', 'Nguyên liệu món']] },
   { id: 'warehouse', label: 'Kho nguyên liệu', description: 'Luân chuyển, nhu cầu xuất và ngoại lệ', tabs: [['movement', 'Luân chuyển'], ['demand', 'Nhu cầu xuất'], ['exceptions', 'Ngoại lệ']] },
-  { id: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ, vai trò và lịch sử', tabs: [['queue', 'Cần duyệt'], ['role', 'Theo vai trò'], ['history', 'Lịch sử']] },
+  { id: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ và lịch sử phê duyệt', tabs: [['queue', 'Cần duyệt'], ['history', 'Lịch sử']] },
   { id: 'purchasing', label: 'Thu mua', description: 'Quy trình mua, mua bổ sung và báo giá', tabs: [['workflow', 'Xử lý thu mua'], ['supplemental', 'Mua bổ sung'], ['quotations', 'Báo giá nhà cung cấp']] },
   { id: 'chef', label: 'Bếp trưởng', description: 'Ca sản xuất và chứng từ bếp', tabs: [['production', 'Ca sản xuất'], ['documents', 'Chứng từ bếp']] },
   { id: 'reports', label: 'Báo cáo vận hành', description: 'Các nhóm báo cáo chính', tabs: [['price', 'Biến động giá'], ['demand', 'Nhu cầu nguyên liệu'], ['purchase', 'Kế hoạch thu mua'], ['stock', 'Tồn kho'], ['movement', 'Nhập/xuất kho'], ['kitchen', 'Xuất bếp'], ['usage', 'Sử dụng thực tế'], ['audit', 'Nhật ký thay đổi'], ['data-quality', 'Chất lượng dữ liệu']] },
