@@ -373,6 +373,15 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `artifacts/perf-probe-schedule-build.json` | `0C7C038562167C862356402F4DD965D98F9D3D66D2B742EFF7438082E95B2FCC` | Authenticated production-preview H.1 load evidence cho Weekly Menu schedule: route mount/settle, row geometry, CLS/CGR/scroll-growth và integrity machine gate. |
 | `artifacts/perf-probe-schedule-overflow-build.json` | `87F6621EA5E8373E649B91B5636A2FAA5210D1233F7A4630C4A2342F2C4F1907` | Overflow matrix bốn viewport sau khi loại control và semantic-only node không nhìn thấy; zero visual clipping FAIL, 1280px chỉ còn ellipsis WARN và scroll INFO. |
 
+## Source-of-truth performance documents — 20/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `docs/perf/step3-verification.md` | `8D73E2312E16590B35784A2FA6E44C2DE45A76C4A6770ADA7AD6FFB89532E444` | Báo cáo nghiệm thu H.1 25 tab, calibration và blocker list; source document, không tự promote các verdict cũ nếu runtime hiện hành mâu thuẫn. |
+| `docs/perf/baseline.md` | `AECBCD8ABF4518719911C35A61D0613345B4119E626CD05261B8CAD235EAC24C` | Baseline trước Wave 1, giữ làm before evidence; không dùng thay final runtime gate. |
+| `frontend/docs/perf/probe-h1-preview-report.json` | `C94401F857106E2A032215FDCF886099DE68ECA24C6E6B09F3EC162A1568509D` | Historical preview probe: schedule gradable, reports/admin N/A; retained for lineage only. |
+| `frontend/docs/perf/probe-h1-preview-report.md` | `6D65492AE5B818350F08AD3FED0529DEDB7E97B2B1C45830BEF1A2DB3A943A12` | Human-readable companion of the preview probe above. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |
