@@ -72,3 +72,30 @@ from about 246.92 KiB to **237.75 KiB** in the latest manifest closure. This is 
 real reduction without changing thresholds or cache identity. The shared `index`
 chunk grew, so migration must continue until the remaining barrel consumers are
 removed and the net route closure is verified.
+
+## Historical baseline and rejected barrel experiment (2026-08-21)
+
+The route-budget thresholds were introduced at `e1beedd1`. A clean build of that
+snapshot, using the same dependency install, emitted an entry of **97.00 KiB
+gzip** and a separate `select` shared chunk of **39.67 KiB gzip**. The current
+clean build emits an entry of about **141.5 KiB gzip**. CSS accounts for only
+about 2 KiB of the increase; the material change is the shared JavaScript
+closure.
+
+The current entry source map contains Base UI popover/floating-ui modules,
+`chefApi`, table-preference helpers and `ServiceRunBlockerPanel` that were not
+in the historical entry. An experiment changed the Advanced Settings route from
+the common barrel to direct component imports. It increased the entry to
+**147.48 KiB gzip** and was reverted. Import-path substitution alone is not a
+safe optimization for this graph.
+
+### Decision
+
+- Keep route-budget thresholds unchanged.
+- Do not add `manualChunks` or create a second RTK Query slice merely to make the
+  report pass; that would change the runtime/cache contract without proving a
+  smaller route closure.
+- The next implementation must isolate the shared UI/runtime seam itself (or
+  use a verified dynamic reducer/endpoint registration seam), then compare a
+  clean manifest and route closure. Accept a candidate only when the entry and
+  affected route closures both decrease and public/cache tests remain green.
