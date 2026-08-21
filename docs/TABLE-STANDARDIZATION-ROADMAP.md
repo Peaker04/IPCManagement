@@ -218,7 +218,7 @@ Full `npm --prefix frontend run test:unit` initially reported **152 passing test
 
 | ID | Evidence | Owner | Disposition |
 | --- | --- | --- | --- |
-| W8-REG-01 | `operationalStateActionRegistry.test.ts`: `AdvancedDisplaySettings.tsx` no longer contains the manifest fragment `defaultNavigationPreferences` in the declared range | Admin display settings + manifest owner | FIXED-WT — range `23-34`, focused 28/28; commit with owner dirty slice |
+| W8-REG-01 | `operationalStateActionRegistry.test.ts`: `AdvancedDisplaySettings.tsx` no longer contains the manifest fragment `defaultNavigationPreferences` in the declared range | Admin display settings + manifest owner | FIXED — commit `6b8b432b`; source range `23-34`, registry disposition and seven user interaction contracts committed; focused owner/registry suite 35/35 pass |
 | W8-REG-02 | `buttonPrimitiveConvergence.test.ts`: three AdvancedDisplaySettings native buttons and one ReportsPrice button disappeared from the declared exception set | UI primitive/exception inventory owner | FIXED-WT — exact locations reconciled, focused 2/2; commit with owner dirty slice |
 | W8-REG-03 | `formPrimitiveConvergence.test.ts`: AdminContracts checkbox line shifted by one line after dirty rewrite | Admin Contracts owner | FIXED-WT — exact locations reconciled, focused 2/2; commit with owner dirty slice |
 | W8-REG-04 | `presentationSurfaceInventory.test.ts`: switcher count/fingerprint changed from 9 to 7 | Presentation inventory owner | FIXED-WT — count-lock updated to 7, focused 5/5; commit with owner dirty slice |

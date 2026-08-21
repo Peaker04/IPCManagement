@@ -8,7 +8,7 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 
 | Candidate | Evidence consumer | Phân loại | Disposition |
 | --- | --- | --- | --- |
-| `src/components/common/KeepAliveTabPanel.tsx` | Được import bởi Weekly Menu, Warehouse, Purchasing, Approvals, Reports, Chef và Admin panels | production-wired | KEEP |
+| `src/components/common/KeepAliveTabPanel.tsx` | Được import bởi Weekly Menu, Warehouse, Purchasing, Approvals, Reports, Chef và Admin panels | production-wired | KEEP; tracked cùng barrel export ở `750e2221`, không còn missing source trên clean checkout |
 | `src/components/common/SkeletonTableRow.tsx` | Được export qua common barrel và render bởi `ReportsDataQualityPanel` | production-wired | KEEP |
 | `src/lib/useDebouncedValue.ts` | Được dùng bởi BOM, Employees và Inventory page models; có inventory purity contract | production-wired | KEEP |
 | `src/features/admin/components/AdvancedDisplaySettings.test.tsx` | Vitest discovery theo hậu tố `.test.tsx` | test entry | KEEP; không yêu cầu production import |
