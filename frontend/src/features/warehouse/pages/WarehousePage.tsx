@@ -1,4 +1,4 @@
-import { useDeferredValue, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useState } from 'react';
 import { ClipboardList, PackageOpen, ReceiptText, Search, Warehouse } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
@@ -43,9 +43,7 @@ import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialo
 import { WarehouseBatchPurchaseReceiptDialog } from '../WarehouseBatchPurchaseReceiptDialog';
 import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
 import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
-import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
-import { WarehouseDemandPanel } from '../WarehouseDemandPanel';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -55,6 +53,8 @@ import { addIsoDays } from '../warehouseDateRange';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { typography } from '@/lib/typography';
 
+const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
+const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -868,8 +868,9 @@ export default function WarehousePage() {
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
           <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
-          <WarehouseDemandPanel
-            demandSearch={demandSearch}
+          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <WarehouseDemandPanel
+              demandSearch={demandSearch}
             onDemandSearchChange={(value) => {
               setDemandSearch(value);
               setDemandPage(1);
@@ -885,8 +886,9 @@ export default function WarehousePage() {
             pageSize={demandPageResponse?.pageSize ?? 8}
             totalItems={demandPageResponse?.totalCount ?? 0}
             onPageChange={setDemandPage}
-            inboxItems={warehouseInbox}
-          />
+              inboxItems={warehouseInbox}
+            />
+          </Suspense>
         </KeepAliveTabPanel>
         {selectedPurchaseOrder && isBatchReceiptOpen && canReceivePurchases && (
           <WarehouseBatchPurchaseReceiptDialog
@@ -908,7 +910,9 @@ export default function WarehousePage() {
         )}
 
         <KeepAliveTabPanel id="warehouse-exceptions" active={activeView === 'exceptions'}>
-          <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
+          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
+          </Suspense>
         </KeepAliveTabPanel>
       </div>
     </OperationalFrame>
