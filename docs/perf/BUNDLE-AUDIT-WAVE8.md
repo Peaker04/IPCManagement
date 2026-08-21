@@ -235,6 +235,20 @@ Wave 14 gates:
 - [x] No route-budget, cache, or API-slice changes.
 - [x] Atomic commit: `79e90fa2`.
 
+## Wave 16 boundary cleanup — trim unused auth barrel hooks (2026-08-21)
+
+The auth feature barrel exported `useRevokeTokenMutation` and
+`useLogoutMutation`, but repository consumers use the underlying auth API
+module directly for those lifecycle operations. They were removed from the
+public feature barrel; the hooks and implementation remain intact.
+
+Wave 16 checklist:
+
+- [x] Source search confirmed no consumer of either barrel export.
+- [x] Build, lint and dependency-cruiser pass (`432 modules / 1606 dependencies`).
+- [x] Entry remains **98.25 KiB gzip**; no route/cache/API-slice policy changes.
+- [x] Atomic commit: `73448125`.
+
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
 
 The shared-barrel cleanup chain was rerun against the complete frontend unit
