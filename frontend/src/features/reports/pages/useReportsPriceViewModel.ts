@@ -4,8 +4,8 @@ import {
   useGetPriceVarianceByPeriodPageQuery,
   useGetPriceVarianceBySupplierPageQuery,
   useGetPriceVariancePageQuery,
-  type WorkflowReportQuery,
-} from '@/api/workflowApi';
+} from '@/features/reports/reportsApi';
+import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
 import {
   pricePageSizeOptions,
   readPageSize,
