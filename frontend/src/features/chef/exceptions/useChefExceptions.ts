@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useCreateInventoryReturnMutation, useCreateSupplementalMaterialRequestMutation, useGetInventoryReturnsQuery, type KitchenIssueRow } from '@/api/workflowApi'
+import { useCreateInventoryReturnMutation, useCreateSupplementalMaterialRequestMutation, useGetInventoryReturnsQuery } from '@/api/warehouseApi'
+import type { KitchenIssueRow } from '@/api/workflowApiTypes'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'

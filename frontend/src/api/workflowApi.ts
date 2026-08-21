@@ -3,7 +3,7 @@ import { workflowDocumentsApi } from '@/api/workflowDocumentsApi';
 import { dashboardApi } from '@/api/dashboardApi';
 import { reportsApi } from '@/features/reports/reportsApi';
 import { purchasingApi } from '@/api/purchasingApi';
-import { warehouseApi } from '@/features/warehouse/warehouseApi';
+import { warehouseApi } from '@/api/warehouseApi';
 import { chefApi } from '@/features/chef/chefApi';
 import { approvalsApi } from '@/features/approvals/approvalsApi';
 import { adminWorkflowApi } from '@/features/admin/adminWorkflowApi';
@@ -222,7 +222,7 @@ export {
   useGetReturnAllocationBalancesQuery,
   useCreateReturnAllocationDispositionMutation,
   useConfirmInventoryIssueReceiptMutation,
-} from '@/features/warehouse/warehouseApi';
+} from '@/api/warehouseApi';
 export {
   useGetDailyProductionPlanQuery,
   useSendDailyProductionPlanToKitchenMutation,

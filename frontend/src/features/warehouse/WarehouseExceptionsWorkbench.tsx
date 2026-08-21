@@ -31,7 +31,7 @@ import {
   useGetSupplementalMaterialRequestsQuery,
   useRejectSupplementalMaterialRequestMutation,
   useRouteSupplementalMaterialRequestToPurchasingMutation,
-} from '@/features/warehouse/warehouseApi';
+} from '@/api/warehouseApi';
 import type { SupplementalMaterialRequestResult } from '@/api/workflowApiTypes';
 import type { ReturnAllocationBalance } from './returnAllocationTypes';
 

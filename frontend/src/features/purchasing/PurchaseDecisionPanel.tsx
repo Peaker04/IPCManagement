@@ -29,7 +29,7 @@ import {
   useGetSupplierEvidenceQuery,
   useSubmitPurchaseRequestMutation,
 } from '@/api/purchasingApi';
-import { useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
+import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
 import { getPurchasingErrorMessage, type PurchasingStageId } from './purchasingModel';
 
 interface PurchaseDecisionPanelProps {

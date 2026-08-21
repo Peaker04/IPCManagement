@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { PurchaseOrderDto, WarehouseDto, WarehousePurchaseReceiptResult } from '@/api/workflowApiTypes';
-import { useRecordWarehousePurchaseReceiptMutation } from '@/features/warehouse/warehouseApi';
+import { useRecordWarehousePurchaseReceiptMutation } from '@/api/warehouseApi';
 
 interface Props { open: boolean; order: PurchaseOrderDto; warehouses: WarehouseDto[]; week?: string; onOpenChange: (open: boolean) => void; onSuccess: (result: WarehousePurchaseReceiptResult) => void; }
 const mutationMessage = (error: unknown) => error && typeof error === 'object' && 'data' in error ? String((error as { data?: { message?: unknown } }).data?.message ?? 'Chưa tạo được phiếu nhập theo đơn mua.') : 'Chưa tạo được phiếu nhập theo đơn mua.';

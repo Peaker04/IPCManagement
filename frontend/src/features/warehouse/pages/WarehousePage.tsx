@@ -31,7 +31,7 @@ import {
   useGetStockMovementPageQuery,
   useWorkflowOverview,
 } from '@/api/reportsApi';
-import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
+import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
 import { useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';

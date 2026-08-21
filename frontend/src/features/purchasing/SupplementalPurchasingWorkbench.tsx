@@ -6,7 +6,7 @@ import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { useGetPurchaseOrdersQuery, useGetPurchaseRequestsQuery } from '@/api/purchasingApi';
-import { useGetSupplementalMaterialRequestsQuery } from '@/features/warehouse/warehouseApi';
+import { useGetSupplementalMaterialRequestsQuery } from '@/api/warehouseApi';
 import type { PurchaseRequestWorkflowLine, PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from './PurchaseDecisionPanel';
 import type { PurchasingStageId } from './purchasingModel';
