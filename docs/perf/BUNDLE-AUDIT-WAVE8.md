@@ -138,3 +138,29 @@ metric, not entry size alone:
 These candidates are **not optimizations**. Thresholds and cache identity remain
 unchanged. The next candidate must remove a shared consumer from the complete
 manifest closure, not merely move bytes between entry and shared chunks.
+
+## Wave 10 accepted seam — lazy auth-only pages (2026-08-21)
+
+`LoginPage` and `ForbiddenPage` were eagerly imported by `AppRouter`, although
+neither is part of the normal protected operational entry. `LoginPage` also
+used the common UI barrel, which made the protected entry retain unrelated
+shared UI/API code. Both pages now load behind `Suspense`; the route registry
+source contract was extended to resolve lazy page owners, preserving explicit
+route ownership evidence.
+
+Measured clean build:
+
+- Entry: **98.22 KiB gzip** (down from 128.8 KiB after the timeout-dialog split).
+- Dashboard route closure: **235.12 KiB gzip**.
+- Coordination route closure: **238.11 KiB gzip**.
+- Approval-rules route closure: **247.73 KiB gzip**.
+
+Wave 10 checklist:
+
+- [x] One RTK Query slice and cache identity preserved.
+- [x] No route-budget threshold change.
+- [x] Build, lint, dependency-cruiser and workflow API boundary pass.
+- [x] Route ownership tests pass (`3 files / 12 tests`).
+- [ ] Full 158-file suite rerun after the source-registry parser change.
+- [ ] Stage only the lazy-auth changes; `AppRouter.tsx` and the registry test
+  contain unrelated working-tree edits.
