@@ -81,6 +81,9 @@ const resolvePageOwners = (routerText: string, loadersText: string) => {
   for (const match of routerText.matchAll(/import\s+(\w+Page)\s+from\s+'([^']+)'/g)) {
     owners.set(match[1], normalizeImportPath(match[2]))
   }
+  for (const match of routerText.matchAll(/const\s+(\w+Page)\s*=\s*lazy\(\(\)\s*=>\s*import\('([^']+)'\)/g)) {
+    owners.set(match[1], normalizeImportPath(match[2]))
+  }
   return owners
 }
 

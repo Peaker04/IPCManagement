@@ -1,12 +1,9 @@
-import { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '@/app/layout/MainLayout';
-import { SessionTimeoutModal } from '../features/auth/components/SessionTimeoutModal';
-import LoginPage from '../features/auth/pages/LoginPage';
-import ForbiddenPage from '../features/auth/pages/ForbiddenPage';
 import {
   AdminDataPage,
   ApprovalPage,
@@ -20,6 +17,12 @@ import {
   WarehousePage,
   WeeklyMenuPage,
 } from './routeLoaders';
+
+// The timeout dialog is only meaningful after the protected shell mounts.
+// Keep its Base UI dialog/floating-ui dependency out of the initial auth/router entry.
+const SessionTimeoutModal = lazy(() => import('../features/auth/components/SessionTimeoutModal').then(({ SessionTimeoutModal }) => ({ default: SessionTimeoutModal })));
+const LoginPage = lazy(() => import('../features/auth/pages/LoginPage'));
+const ForbiddenPage = lazy(() => import('../features/auth/pages/ForbiddenPage'));
 
 const routeFallback = (
   <section
@@ -43,15 +46,17 @@ const routeFallback = (
 export const AppRouter = () => {
   return (
     <BrowserRouter>
-      <SessionTimeoutModal />
+      <Suspense fallback={null}>
+        <SessionTimeoutModal />
+      </Suspense>
       <Routes>
         {/* Public Routes */}
-        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.LOGIN} element={<Suspense fallback={routeFallback}><LoginPage /></Suspense>} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
-            <Route path={ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
+            <Route path={ROUTES.FORBIDDEN} element={<Suspense fallback={routeFallback}><ForbiddenPage /></Suspense>} />
             <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={routeFallback}><DashboardPage /></Suspense>} />
             <Route path={ROUTES.WEEKLY_MENU} element={<RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><WeeklyMenuPage /></Suspense></RoleGuard>} />
             <Route path={ROUTES.REPORTS} element={<RoleGuard requiredPermissions={['report.read']}><Suspense fallback={routeFallback}><ReportsPage /></Suspense></RoleGuard>} />
