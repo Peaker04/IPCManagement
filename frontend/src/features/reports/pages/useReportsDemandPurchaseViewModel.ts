@@ -84,6 +84,8 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
         ['Tồn', (row) => row.currentStockQty],
         [uiCopy.reports.pending, (row) => row.pendingReceiptQty],
         ['Đề xuất mua', (row) => row.shortageQty],
+        ['Đơn giá dự kiến', (row) => row.estimatedUnitPrice],
+        ['Thành tiền dự kiến', (row) => row.estimatedAmount],
         ['Đơn vị', (row) => row.unitName],
         ['Nhà cung cấp', (row) => row.supplierName],
         ['Cảnh báo', (row) => row.warnings.join('; ')],

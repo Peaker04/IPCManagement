@@ -60,4 +60,9 @@ describe('Reports page-model ownership contract', () => {
     expect(facadeSource).toContain("label: 'Cảnh báo giá trên trang'");
     expect(facadeSource).toContain('`${priceModel.warningItems.length}/${priceModel.priceVarianceRows.length}`');
   });
+
+  it('makes report export scope explicit and preserves purchase-plan reconciliation fields', () => {
+    expect(demandPurchaseSource).toContain("['Đơn giá dự kiến', (row) => row.estimatedUnitPrice]");
+    expect(demandPurchaseSource).toContain("['Thành tiền dự kiến', (row) => row.estimatedAmount]");
+  });
 });
