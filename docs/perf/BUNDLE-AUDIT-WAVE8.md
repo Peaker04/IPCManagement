@@ -116,5 +116,5 @@ Wave 9 checklist:
 - [x] Production build passes.
 - [x] Lint, dependency-cruiser and workflow API boundary pass.
 - [x] Route contract tests pass (3 files / 12 tests).
-- [ ] Full unit suite: runner timed out after 64 seconds; rerun before wave close.
+- [x] Full unit suite: `158 files / 891 tests` passed in 214.30s.
 - [ ] Stage only the lazy-load hunk; `AppRouter.tsx` contains unrelated working-tree edits.
