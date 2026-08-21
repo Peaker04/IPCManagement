@@ -375,7 +375,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 ## Source-of-truth performance documents — 20/08/2026
 
-| `artifacts/perf-probe-wave7-all-load.json` | `64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739` | Full authenticated production-preview H.1 load matrix: 27 targets, integrity 0, 7 gradable, 20 N/A; six pass and `warehouse-movement` exposes a blocker where 8 rows/429px at t0 transition to 1 row/94px settled (CGR 0.6122). |
+| `artifacts/perf-probe-wave7-all-load.json` | `64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739` | Historical authenticated production-preview H.1 load matrix before Purchasing was added: 27 targets, integrity 0, 7 gradable, 20 N/A; six pass and `warehouse-movement` exposes a blocker where 8 rows/429px at t0 transition to 1 row/94px settled (CGR 0.6122). Current matrix is 30 targets. |
 | `artifacts/perf-probe-wave7-all-load.md` | `5E566FDE8CD3F8876A91B24A614810FD29D103B29CD5C703589DD74449CA26F3` | Human-readable companion for the complete Wave 7 load matrix and its N/A reasons. |
 | `artifacts/perf-probe-warehouse-geometry.json` | `583BF2A0A62374FFEE2B29F039FDBD371718719379BC8991E7760422938D53C8` | Targeted post-fix production-preview H.1 rerun: 8 rows and 429px at both t0/settled, deltaTop 0, CGR 0, growth 0, integrity 0. |
 | `artifacts/perf-probe-warehouse-geometry.md` | `0280FC7DD6C3CBD85E5F388AA03FDA5B1A7EEF0EDDA72DB701F3247E898222E3` | Human-readable companion for the warehouse geometry regression evidence. |
