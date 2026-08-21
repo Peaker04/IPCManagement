@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { DemandSummary, EmptyState, PaginationBar, RoleInbox, SectionPanel } from '@/components/common';
+import { DemandSummary, EmptyState, PaginationBar, SectionPanel } from '@/components/common';
+import { RoleInbox } from '@/components/common/RoleInbox';
 import { Input } from '@/components/ui/input';
 import { formatDateOnly } from '@/lib/formatters';
 import type { DemandLine, RoleInboxItem } from '@/types/workflow';

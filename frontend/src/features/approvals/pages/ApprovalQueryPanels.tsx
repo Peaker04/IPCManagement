@@ -1,7 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { Link } from "react-router-dom";
 import {
-  ApprovalQueue,
   CursorPaginationBar,
   DocumentRail,
   EmptyState,
@@ -10,6 +9,7 @@ import {
   QueryErrorAlert,
   StatusBadge,
 } from "@/components/common";
+import { ApprovalQueue } from '@/components/common/ApprovalQueue';
 import type {
   ApprovalInboxPage,
   PageNumberPage,

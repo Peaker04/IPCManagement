@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react';
 import { AlertTriangle, ClipboardList, Search, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
-  ExceptionLane,
   KeepAliveTabPanel,
   PaginationBar,
   SectionPanel,
   StatusBadge,
   TableViewport,
 } from '@/components/common';
+import { ExceptionLane } from '@/components/common/ExceptionLane';
 import { ROUTES } from '@/lib/routeConfig';
 import { formatCurrency, formatDateOnly, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';

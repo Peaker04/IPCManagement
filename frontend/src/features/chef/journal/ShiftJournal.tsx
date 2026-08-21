@@ -1,4 +1,5 @@
-import { EmptyState, SideRail } from '@/components/common'
+import { EmptyState } from '@/components/common'
+import { SideRail } from '@/components/common/SideRail'
 import type { ExcessMaterial } from '@/lib/types'
 
 type Props = { returns: ExcessMaterial[] }

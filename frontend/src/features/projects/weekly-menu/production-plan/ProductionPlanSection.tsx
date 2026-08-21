@@ -1,5 +1,6 @@
 import { CalendarDays, Scale } from 'lucide-react'
-import { EmptyState, InlineAlert, PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { PageStepper } from '@/components/common/PageStepper'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
 import { formatDateOnly, formatNumber } from '@/lib/formatters'
