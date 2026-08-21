@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Pencil, Power, Search, UserPlus, Users } from 'lucide-react';
-import { ConfirmDialog, FieldRow, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
+import { ConfirmDialog, FieldRow, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,12 +25,11 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
   const skipNextStatusConfirmation = useRef(false);
   return (
     <>
-      {canManageEmployees && effectiveActiveView === 'employees' && (
-        <div id="admin-employees-panel" role="tabpanel" aria-labelledby="admin-employees-tab" className="flex flex-col gap-4">
-          <AdminQueryBoundary queries={[
-            { label: 'danh sách nhân viên', view: queryViews.employees },
-            { label: 'vai trò nhân viên', view: queryViews.roles },
-          ]}>
+      <KeepAliveTabPanel id="admin-employees" active={Boolean(canManageEmployees && effectiveActiveView === 'employees')} className="flex flex-col gap-4">
+        <AdminQueryBoundary queries={[
+          { label: 'danh sách nhân viên', view: queryViews.employees },
+          { label: 'vai trò nhân viên', view: queryViews.roles },
+        ]}>
           <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
             <SectionPanel title={editingEmployeeId ? 'Cập nhật nhân viên' : 'Tạo tài khoản nhân viên'} icon={<UserPlus size={18} />}>
               <form ref={employeeFormRef} className="flex flex-col gap-4" onSubmit={(event) => {
@@ -146,12 +145,12 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                   <table className="ipc-data-table ipc-admin-employee-table text-sm">
                     <thead>
                       <tr>
-                        <th>Họ tên</th>
-                        <th>Tài khoản</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày tạo</th>
-                        <th>Thao tác</th>
+                        <th className="min-w-[150px]">Họ tên</th>
+                        <th className="w-[120px]">Tài khoản</th>
+                        <th className="w-[110px]">Vai trò</th>
+                        <th className="w-[150px] whitespace-nowrap">Trạng thái</th>
+                        <th className="w-[110px]">Ngày tạo</th>
+                        <th className="w-[130px] text-center">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -173,8 +172,8 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                                 {employee.roleName}
                               </span>
                             </td>
-                            <td>
-                              <StatusBadge variant={employee.isActive ? 'success' : 'warning'}>
+                            <td className="ipc-badge-cell whitespace-nowrap">
+                              <StatusBadge variant={employee.isActive ? 'success' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
                                 {employee.isActive ? 'Đang hoạt động' : 'Đã khóa'}
                               </StatusBadge>
                             </td>
@@ -225,30 +224,31 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
             </SectionPanel>
           </div>
           </AdminQueryBoundary>
-          <ConfirmDialog
-            open={statusTarget !== null}
-            title={statusTarget?.nextActive ? 'Mở lại tài khoản nhân viên?' : 'Khóa tài khoản nhân viên?'}
-            description={statusTarget
-              ? statusTarget.nextActive
-                ? `${statusTarget.employee.fullName} (${statusTarget.employee.username}) sẽ có thể đăng nhập lại theo vai trò hiện tại.`
-                : `${statusTarget.employee.fullName} (${statusTarget.employee.username}) sẽ không thể đăng nhập cho tới khi tài khoản được mở lại.`
-              : ''}
-            confirmLabel={statusTarget?.nextActive ? 'Mở tài khoản' : 'Khóa tài khoản'}
-            busy={isUpdatingStatus}
-            busyLabel="Đang cập nhật..."
-            onConfirm={() => {
-              const target = statusTarget;
-              setStatusTarget(null);
-              if (target?.source === 'row') void handleEmployeeStatusToggle(target.employee);
-              if (target?.source === 'form') {
-                skipNextStatusConfirmation.current = true;
-                employeeFormRef.current?.requestSubmit();
-              }
-            }}
-            onOpenChange={(open) => !open && setStatusTarget(null)}
-          />
-        </div>
-      )}
+          {statusTarget !== null && (
+            <ConfirmDialog
+              open={statusTarget !== null}
+              title={statusTarget?.nextActive ? 'Mở lại tài khoản nhân viên?' : 'Khóa tài khoản nhân viên?'}
+              description={statusTarget
+                ? statusTarget.nextActive
+                  ? `${statusTarget.employee.fullName} (${statusTarget.employee.username}) sẽ có thể đăng nhập lại theo vai trò hiện tại.`
+                  : `${statusTarget.employee.fullName} (${statusTarget.employee.username}) sẽ không thể đăng nhập cho tới khi tài khoản được mở lại.`
+                : ''}
+              confirmLabel={statusTarget?.nextActive ? 'Mở tài khoản' : 'Khóa tài khoản'}
+              busy={isUpdatingStatus}
+              busyLabel="Đang cập nhật..."
+              onConfirm={() => {
+                const target = statusTarget;
+                setStatusTarget(null);
+                if (target?.source === 'row') void handleEmployeeStatusToggle(target.employee);
+                if (target?.source === 'form') {
+                  skipNextStatusConfirmation.current = true;
+                  employeeFormRef.current?.requestSubmit();
+                }
+              }}
+              onOpenChange={(open) => !open && setStatusTarget(null)}
+            />
+          )}
+        </KeepAliveTabPanel>
 
 
     </>

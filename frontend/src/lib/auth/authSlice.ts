@@ -9,8 +9,8 @@ const storedAuth = readStoredAuthSnapshot();
 const initialState: AuthState = {
   user: storedAuth.user,
   token: storedAuth.token,
-  isAuthenticated: false,
-  isLoading: !!storedAuth.token,
+  isAuthenticated: Boolean(storedAuth.user && storedAuth.token),
+  isLoading: false,
 };
 
 const authSlice = createSlice({

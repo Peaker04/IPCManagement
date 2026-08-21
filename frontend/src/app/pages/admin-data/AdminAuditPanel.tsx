@@ -1,5 +1,5 @@
 import { History } from 'lucide-react';
-import { CursorPaginationBar, InlineAlert, SectionPanel, TableViewport } from '@/components/common';
+import { CursorPaginationBar, InlineAlert, KeepAliveTabPanel, SectionPanel, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -41,100 +41,100 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
   const currentUser = useAppSelector(selectCurrentUser);
   const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, isExportingAudit, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
-    <>
-      {effectiveActiveView === 'audit' && (
-        <SectionPanel title="Nhật ký thay đổi hệ thống" icon={<History size={18} />}>
-          <div id="admin-audit-panel" role="tabpanel" aria-labelledby="admin-audit-tab" className="flex flex-col gap-4">
-            {/* Bộ lọc Audit log */}
-            <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Người thực hiện</label>
-                <Input
-                  type="text"
-                  value={auditActor}
-                  onChange={(e) => { setAuditActor(e.target.value); setAuditCursors([]); }}
-                  placeholder="Họ tên / tài khoản..."
-                  className="w-48 text-xs"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Mảng nghiệp vụ</label>
-                <Select
-                  value={auditArea || ALL_AUDIT_AREAS_VALUE}
-                  onValueChange={(value) => {
-                    setAuditArea(!value || value === ALL_AUDIT_AREAS_VALUE ? '' : value);
-                    setAuditCursors([]);
-                  }}
-                  >
-                    <SelectTrigger className="w-40 text-xs">
-                    <SelectValue>{auditArea ? auditAreaLabels[auditArea] ?? 'Tất cả' : 'Tất cả'}</SelectValue>
-                    </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL_AUDIT_AREAS_VALUE}>Tất cả</SelectItem>
-                    <SelectItem value="Signoff">Hoàn thành ca</SelectItem>
-                    <SelectItem value="Coordination">Điều phối</SelectItem>
-                    <SelectItem value="MaterialRequest">Yêu cầu nguyên liệu</SelectItem>
-                    <SelectItem value="PurchaseRequest">Đề xuất mua hàng</SelectItem>
-                    <SelectItem value="InventoryReceipt">Nhập kho</SelectItem>
-                    <SelectItem value="InventoryIssue">Xuất kho</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Tên bảng/Thực thể</label>
-                <Input
-                  type="text"
-                  value={auditEntity}
-                  onChange={(e) => { setAuditEntity(e.target.value); setAuditCursors([]); }}
-                  placeholder="Ví dụ: Mealquantityplan..."
-                  className="w-44 text-xs"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Tên cột/Trường</label>
-                <Input
-                  type="text"
-                  value={auditField}
-                  onChange={(e) => { setAuditField(e.target.value); setAuditCursors([]); }}
-                  placeholder="Ví dụ: Status..."
-                  className="w-40 text-xs"
-                />
-              </div>
-
-              <div className="flex gap-2 items-end h-8 mt-4 ml-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={() => {
-                    setAuditActor('');
-                    setAuditArea('');
-                    setAuditEntity('');
-                    setAuditField('');
-                    setAuditCursors([]);
-                  }}
-                >
-                  Xóa bộ lọc
-                </Button>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="xs"
-                  onClick={handleExportAuditCsv}
-                  disabled={isExportingAudit}
-                  className="border-0 bg-green-600 text-white hover:bg-green-700"
-                >
-                  {isExportingAudit ? 'Đang xuất...' : 'Xuất CSV'}
-                </Button>
-              </div>
+    <KeepAliveTabPanel id="admin-audit" active={effectiveActiveView === 'audit'} className="flex flex-col gap-4">
+      <SectionPanel title="Nhật ký thay đổi hệ thống" icon={<History size={18} />}>
+        <div className="flex flex-col gap-4">
+          {/* Bộ lọc Audit log */}
+          <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Người thực hiện</label>
+              <Input
+                type="text"
+                value={auditActor}
+                onChange={(e) => { setAuditActor(e.target.value); setAuditCursors([]); }}
+                placeholder="Họ tên / tài khoản..."
+                className="w-48 text-xs"
+              />
             </div>
-            {exportError && <div role="alert"><InlineAlert title="Chưa thể tải file CSV" variant="danger">{exportError}</InlineAlert></div>}
 
-            <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
-              <TableViewport ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell" preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Mảng nghiệp vụ</label>
+              <Select
+                value={auditArea || ALL_AUDIT_AREAS_VALUE}
+                onValueChange={(value) => {
+                  setAuditArea(!value || value === ALL_AUDIT_AREAS_VALUE ? '' : value);
+                  setAuditCursors([]);
+                }}
+              >
+                <SelectTrigger className="w-40 text-xs">
+                  <SelectValue>{auditArea ? auditAreaLabels[auditArea] ?? 'Tất cả' : 'Tất cả'}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_AUDIT_AREAS_VALUE}>Tất cả</SelectItem>
+                  <SelectItem value="Signoff">Hoàn thành ca</SelectItem>
+                  <SelectItem value="Coordination">Điều phối</SelectItem>
+                  <SelectItem value="MaterialRequest">Yêu cầu nguyên liệu</SelectItem>
+                  <SelectItem value="PurchaseRequest">Đề xuất mua hàng</SelectItem>
+                  <SelectItem value="InventoryReceipt">Nhập kho</SelectItem>
+                  <SelectItem value="InventoryIssue">Xuất kho</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Tên bảng/Thực thể</label>
+              <Input
+                type="text"
+                value={auditEntity}
+                onChange={(e) => { setAuditEntity(e.target.value); setAuditCursors([]); }}
+                placeholder="Ví dụ: Mealquantityplan..."
+                className="w-44 text-xs"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Tên cột/Trường</label>
+              <Input
+                type="text"
+                value={auditField}
+                onChange={(e) => { setAuditField(e.target.value); setAuditCursors([]); }}
+                placeholder="Ví dụ: Status..."
+                className="w-40 text-xs"
+              />
+            </div>
+
+            <div className="flex gap-2 items-end h-8 mt-4 ml-auto">
+              <Button
+                data-inp-action="export-audit-csv"
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => {
+                  setAuditActor('');
+                  setAuditArea('');
+                  setAuditEntity('');
+                  setAuditField('');
+                  setAuditCursors([]);
+                }}
+              >
+                Xóa bộ lọc
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="xs"
+                onClick={handleExportAuditCsv}
+                disabled={isExportingAudit}
+                className="border-0 bg-green-600 text-white hover:bg-green-700"
+              >
+                {isExportingAudit ? 'Đang xuất...' : 'Xuất CSV'}
+              </Button>
+            </div>
+          </div>
+          {exportError && <div role="alert"><InlineAlert title="Chưa thể tải file CSV" variant="danger">{exportError}</InlineAlert></div>}
+
+          <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
+            <TableViewport ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell" preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}>
               {({ columns }) => <table className="ipc-data-table ipc-admin-audit-table text-xs">
                 <thead>
                   <tr>
@@ -157,8 +157,8 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 </tbody>
               </table>
               }
-              </TableViewport>
-              <CursorPaginationBar
+            </TableViewport>
+            <CursorPaginationBar
               page={auditCursors.length + 1}
               hasNext={auditResult.data?.hasNext ?? false}
               onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
@@ -169,13 +169,10 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 }
               }}
               ariaLabel="Phân trang nhật ký thay đổi"
-              />
-            </AdminQueryBoundary>
-          </div>
-        </SectionPanel>
-      )}
-
-
-    </>
+            />
+          </AdminQueryBoundary>
+        </div>
+      </SectionPanel>
+    </KeepAliveTabPanel>
   );
 }

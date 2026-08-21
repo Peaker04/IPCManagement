@@ -3,8 +3,8 @@ import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
   useGetCurrentStockPageQuery,
   useGetStockMovementPageQuery,
-  type ReportCursor,
-} from '@/api/workflowApi';
+} from '@/features/reports/reportsApi';
+import type { ReportCursor } from '@/api/workflowApiTypes';
 import type { AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 

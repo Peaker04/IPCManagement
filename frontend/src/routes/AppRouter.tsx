@@ -28,17 +28,23 @@ const routeFallback = (
   <section
     aria-busy="true"
     aria-live="polite"
-    className="min-h-[560px] overflow-hidden rounded-lg border border-slate-200 bg-white p-5"
+    className="ipc-operational-frame min-h-[580px]"
   >
     <span className="sr-only">Đang tải màn hình...</span>
-    <div aria-hidden="true" className="space-y-4 motion-reduce:animate-none">
-      <div className="h-10 w-full animate-pulse rounded bg-slate-100 motion-reduce:animate-none" />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="h-20 animate-pulse rounded bg-slate-100 motion-reduce:animate-none" />
-        <div className="h-20 animate-pulse rounded bg-slate-100 motion-reduce:animate-none" />
-        <div className="h-20 animate-pulse rounded bg-slate-100 motion-reduce:animate-none" />
+    <div aria-hidden="true" className="ipc-operational-head space-y-2 motion-reduce:animate-none">
+      <div className="h-12 w-full animate-pulse rounded-md border border-slate-200 bg-slate-50/80" />
+      <div className="h-9 w-full animate-pulse rounded-md border border-slate-200 bg-slate-50/60" />
+    </div>
+    <div aria-hidden="true" className="ipc-operational-body space-y-3 motion-reduce:animate-none">
+      <div className="h-10 w-72 animate-pulse rounded-md bg-slate-100" />
+      <div className="min-h-[380px] rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <div className="h-9 w-full animate-pulse rounded bg-slate-100" />
+        <div className="space-y-2">
+          {Array.from({ length: 7 }).map((_, index) => (
+            <div key={`route-fallback-row-${index}`} className="h-10 w-full animate-pulse rounded bg-slate-50" />
+          ))}
+        </div>
       </div>
-      <div className="h-[380px] animate-pulse rounded bg-slate-100 motion-reduce:animate-none" />
     </div>
   </section>
 );

@@ -13,7 +13,7 @@ vi.mock('@/app/hooks', () => ({
   useAppSelector: () => 'token-1',
 }));
 
-vi.mock('@/features/reports/reportsApi', () => ({
+vi.mock('@/api/reportsApi', () => ({
   useGetAuditChangePageQuery: () => ({
     data: { items: [], hasNext: false },
     currentData: { items: [], hasNext: false },

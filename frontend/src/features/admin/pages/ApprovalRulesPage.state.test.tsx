@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   deleteState: { isLoading: false },
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/admin/adminWorkflowApi', () => ({
   useGetApprovalRulesQuery: mocks.rules,
   useCreateApprovalRuleMutation: () => [mocks.createRule, { isLoading: false }],
   useUpdateApprovalRuleMutation: () => [mocks.updateRule, { isLoading: false }],

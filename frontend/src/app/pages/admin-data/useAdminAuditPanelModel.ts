@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
-import { useGetAuditChangePageQuery, type ReportCursor } from '@/api/workflowApi';
+import { useGetAuditChangePageQuery } from '@/features/reports/reportsApi';
+import type { ReportCursor } from '@/api/workflowApiTypes';
 import { getTodayInputValue, type AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 
