@@ -450,7 +450,10 @@
 }
 
 .ipc-reports-quality-table .ipc-quality-description-cell,
-.ipc-reports-quality-table .ipc-quality-action-guidance-cell {
+.ipc-reports-quality-table .ipc-quality-action-guidance-cell,
+.ipc-reports-quality-table .ipc-quality-owner-cell,
+.ipc-reports-quality-table .ipc-quality-entity-cell,
+.ipc-reports-quality-table .ipc-quality-entity-meta {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;

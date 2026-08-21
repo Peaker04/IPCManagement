@@ -102,11 +102,10 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                     {formatDataQualityRemediationStatus(row.remediationStatus)}
                   </StatusBadge>
                 </td>
-                <td>{row.owner}</td>
+                <td><span className="ipc-quality-owner-cell" title={row.owner}>{row.owner}</span></td>
                 <td>
-                  <div className="font-medium text-slate-800">{row.category}</div>
-                  <div className="font-medium text-slate-800">{row.entityLabel}</div>
-                  <div className={cn(typography.caption, 'text-slate-500')}>{row.entityName} / {row.entityCode}</div>
+                  <div className="ipc-quality-entity-cell font-medium text-slate-800" title={`${row.category} · ${row.entityLabel}`}>{row.category} · {row.entityLabel}</div>
+                  <span className={cn(typography.caption, 'ipc-quality-entity-meta text-slate-500')}>{row.entityName} / {row.entityCode}</span>
                 </td>
                 <td className="ipc-quality-description-cell text-left" title={row.message}>{row.message}</td>
                 <td className="ipc-quality-action-guidance-cell text-left" title={row.suggestedAction}>{row.suggestedAction}</td>
