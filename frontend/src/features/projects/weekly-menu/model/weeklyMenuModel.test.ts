@@ -35,6 +35,7 @@ describe('weekly menu pure model', () => {
 
   it('keeps local date parsing deterministic', () => {
     expect(formatImportDate('2026-07-20')).toBe('20/07/2026')
+    expect(formatImportDate('2026-07-20T23:30:00-07:00')).toBe('20/07/2026')
     expect(parseDisplayDateToIso('20/7/2026')).toBe('2026-07-20')
     expect(isValidWeekStartDate('2026-07-20')).toBe(true)
     expect(isValidWeekStartDate('2026-07-21')).toBe(false)
