@@ -995,6 +995,50 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task WeeklyMenuImportHistory_ShouldApplyInclusiveDateWindowAcrossYears()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using (var setupContext = fixture.CreateContext())
+        {
+            setupContext.Menuversions.AddRange(
+                new MenuVersion
+                {
+                    MenuVersionId = GuidHelper.NewId(), CustomerId = fixture.CustomerId,
+                    WeekStartDate = new DateOnly(2023, 1, 2), VersionNo = 1, Status = "PUBLISHED",
+                    CreatedBy = fixture.UserId, CreatedAt = new DateTime(2023, 1, 2, 8, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2023, 1, 2, 8, 0, 0, DateTimeKind.Utc)
+                },
+                new MenuVersion
+                {
+                    MenuVersionId = GuidHelper.NewId(), CustomerId = fixture.CustomerId,
+                    WeekStartDate = new DateOnly(2026, 6, 15), VersionNo = 2, Status = "PUBLISHED",
+                    CreatedBy = fixture.UserId, CreatedAt = new DateTime(2026, 6, 15, 8, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2026, 6, 15, 8, 0, 0, DateTimeKind.Utc)
+                },
+                new MenuVersion
+                {
+                    MenuVersionId = GuidHelper.NewId(), CustomerId = fixture.CustomerId,
+                    WeekStartDate = new DateOnly(2030, 1, 7), VersionNo = 3, Status = "PUBLISHED",
+                    CreatedBy = fixture.UserId, CreatedAt = new DateTime(2030, 1, 7, 8, 0, 0, DateTimeKind.Utc), UpdatedAt = new DateTime(2030, 1, 7, 8, 0, 0, DateTimeKind.Utc)
+                });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new WeeklyMenuImportHistoryService(
+            context,
+            new WeeklyMenuAuditActorResolver(context));
+        var result = await service.GetWeeklyMenuImportHistoryAsync(
+            fixture.CustomerIdString,
+            new DateOnly(2026, 6, 15),
+            new DateOnly(2030, 1, 7),
+            new PagedRequestDto { PageNumber = 1, PageSize = 10 });
+
+        result.TotalCount.Should().Be(2);
+        result.Items.Select(item => item.WeekStartDate)
+            .Should().Equal(new DateOnly(2030, 1, 7), new DateOnly(2026, 6, 15));
+    }
+
+    [Fact]
     public async Task MenuScheduleEffectiveRangeAudit_Should_JoinApiWeekTransitionActorAndCorrelation()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
