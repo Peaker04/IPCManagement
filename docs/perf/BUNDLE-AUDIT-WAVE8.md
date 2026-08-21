@@ -437,6 +437,27 @@ Wave 33 checklist:
 - [ ] Backend cleanup requires endpoint/DI integration evidence in a dedicated
   backend test wave.
 
+## Wave 35 backend evidence — integration baseline (2026-08-21)
+
+Backend test projects were executed against the current worktree with existing
+restore state:
+
+- Application tests: **49 passed**.
+- API tests: **947 passed, 1 skipped** (`WorkflowLifecycleE2ETests` lifecycle E2E).
+
+The suite proves the current DI registrations and endpoint surface compile and
+resolve under tests, but the single skipped end-to-end lifecycle means it does
+not prove that every registered service is runtime-reachable. No backend
+service was deleted on this incomplete evidence.
+
+Wave 35 checklist:
+
+- [x] Application and API test projects executed.
+- [x] DI/endpoint baseline is green.
+- [x] Skipped E2E explicitly recorded rather than treated as pass.
+- [ ] Project-wide backend dead-code removal remains unproven until runtime
+  reachability/coverage evidence exists.
+
 ## Wave 34 completion audit against the cleanup objective (2026-08-21)
 
 | Objective requirement | Evidence | Status |
