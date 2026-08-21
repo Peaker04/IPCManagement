@@ -16,6 +16,8 @@ Status: **IN PROGRESS — pagination implementation landed; runtime/data evidenc
 - [x] Audit and movement tables use canonical viewport and stable row keys.
 - [x] Admin audit filters reset cursor state.
 - [x] Import history has server-side date/customer/page boundaries.
+- [x] Backend API test suite (WorkflowGeneration filter) passes: 141 tests.
+- [x] Backend and frontend production builds pass after the contract change.
 - [ ] Query projection and response size are measured on a multi-year fixture.
 - [ ] DTO null/date/timezone semantics are covered by a regression test.
 - [ ] Detail/rollback action preserves list context after refetch.
