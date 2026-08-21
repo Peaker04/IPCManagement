@@ -205,3 +205,17 @@ Wave 12 gates:
 - [x] No route threshold or cache-policy change.
 - [x] Atomic commit: `efc8cfe2`.
 - [ ] Full unit rerun is reserved for the next grouped barrel wave; this export-only deletion is covered by compile/build and dependency closure gates.
+
+## Wave 13 accepted seam — remove unconsumed page/stat exports (2026-08-21)
+
+Source search showed `PageHeader`, `PageSection`, and `StatCard` only in their
+own declarations and the barrel; no feature, route, or test imports them. The
+three dead public exports were removed while their leaf files remain preserved.
+
+Wave 13 gates:
+
+- [x] TypeScript/Vite build pass; entry remains **98.25 KiB gzip**.
+- [x] ESLint pass.
+- [x] Dependency-cruiser pass: **432 modules / 1609 dependencies**.
+- [x] No route-budget, cache, or API-slice changes.
+- [x] Atomic commit: `78bff080`.
