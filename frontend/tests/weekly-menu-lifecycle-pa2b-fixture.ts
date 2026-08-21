@@ -369,7 +369,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:121-124',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32,53-60',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:34,109-118',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:34,109-119',
       'frontend/src/routes/AppRouter.tsx:60',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:150-187',
     ],

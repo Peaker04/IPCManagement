@@ -387,7 +387,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('global', 'src/components/common/tablePreferences.ts', 3, '3cc2d1c1522c5917547d4b99c20b2c49d6000a04b6bd0e68b8fca962ba690e46', 'justified-non-visibility-infrastructure', 'Validated account/table-scoped presentation preferences persist only column identity, visibility, and density; they do not determine business lifecycle or authorization.'),
   classified('global', 'src/lib/auth/authStorage.ts', 15, 'eecdbc6b9746bb1520543ac571c8e245effb475320afaaf54a85db842335da55', 'justified-non-visibility-infrastructure', 'Central auth persistence boundary; UI consumes the declared auth snapshot rather than storage directly.'),
 
-  classified('local', 'src/app/layout/MainLayout.tsx', 1, '5fc89ccda836561c0150484068d44ba2f23fe105867e5d843ed25979d71bf606', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
+  classified('local', 'src/app/layout/MainLayout.tsx', 1, '92926cd8a38ff74e4d471d2cba781d5d9f7e8ba81274237dd6a9f33c66ed4e98', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/app/pages/admin-data/AdminEmployeesPanel.tsx', 1, '3c348a80bce577d6e1f9a79007080e5209ef120ddbaa4de8787cb2cea81df32d', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/admin/components/AdvancedDisplaySettings.tsx', 3, 'fc196b512b589567444844939b309a8cc2617f8f078740d1d7509ba2f21c4e24', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/admin/pages/ApprovalRulesPage.tsx', 6, '1f75a441343f4e6405cebdcd4f57c3dbb2fcf087b3dfe36f446c01ecde6d4acd', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
@@ -401,7 +401,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('local', 'src/features/chef/pages/ChefDashboardPage.tsx', 1, '4ebeb627d77acf8a48693fe28a901791cf1080fa8adc1ba17c09fe0783422572', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/coordination/components/action-toolbar.tsx', 3, 'a7fa5b5b772febc6466ef13877ad1834a3dd3a82b7e44a3eb8a2b712a54ce776', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/coordination/components/order-table.tsx', 4, '3740a7476ff887db39c83be1dbf0f2bc72b42e1f2a4b2fa19d064485a4890ebf', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
-  classified('local', 'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx', 1, '76cffb519c71575fe4a5d27b199961fa667fbd18f454c9fe3443746e3e89ecd5', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
+  classified('local', 'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx', 1, '0773f47d331364e1caf1633dc4bdff79a07212b83bf41f532a32e7ab13c8817d', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/chef/production/ServiceRunSection.tsx', 3, 'e46f958c44241fae3197d2adc3a6cdcf6b0d6fe77a014f7126a0ed16c78ceee8', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx', 1, 'bdb779bb6d260360e8e6100882c18aa1d48c6ea409fc6bb6105619b974eb008e', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/purchasing/PurchaseDecisionPanel.tsx', 5, '731db69cff05a0f0448984b45457b8208081971ff627647026b2e08209b3ad93', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
@@ -412,7 +412,6 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('local', 'src/features/warehouse/WarehouseExceptionsWorkbench.tsx', 15, 'ea03037d203e1131abccd0b0615b01a6763414cf4850a039345a47434c0ea3bd', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx', 11, '79eeb0355401c57f62d8ce7989ed2e38dd7c5fba2ff6c3c8d02d6e34249a4888', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
 
-  classified('order', 'src/app/layout/MainLayout.tsx', 2, '5f9aa3c26cfb9a9c64d0c491519105bfe5f2a9e1ae3ea0860207830dc9660605', 'justified-non-visibility-infrastructure', asyncInteractionReason),
   classified('order', 'src/components/common/ToastProvider.tsx', 2, 'cffdd9c145fe4fbc55ca8d9d328bb1569f42017b698bee4b8a098a9a1e3c0f34', 'approved-ephemeral-interaction-feedback-input-state', asyncInteractionReason),
   classified('order', 'src/components/common/KeepAliveTabPanel.tsx', 1, 'd00871b1715f232be538aeb10a7ca74eb88a72bf4521b2b264e8e024a6b4706d', 'justified-non-visibility-infrastructure', asyncInteractionReason),
   classified('order', 'src/features/approvals/pages/ApprovalPage.tsx', 3, '288fac71c19b0f3f929410c4370f5efb6127d52783b1351bb5479ab40f82bd36', 'approved-ephemeral-interaction-feedback-input-state', asyncInteractionReason),
@@ -425,7 +424,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('order', 'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx', 1, 'bc331fc1ec95526266371b383c28585527965472f69a19517185da4bbac6918c', 'justified-non-visibility-infrastructure', asyncInteractionReason),
   classified('order', 'src/lib/useDebouncedValue.ts', 1, '45297b3ec8aa22d251d89eae10dcf7dd9c482d01868d8f47904ea90c7fe09047', 'justified-non-visibility-infrastructure', asyncInteractionReason),
 
-  classified('time', 'src/app/layout/MainLayout.tsx', 1, 'f1d29504909020a1fc272dd9148cb8500f7eaa8c964ff1e5f36a80db119b9210', 'declared-domain-query-state', domainClockReason),
+  classified('time', 'src/app/layout/MainLayout.tsx', 1, 'c0816e43929b70c26584f1265ea1daf96296bdb0690f078b5d313d18506c76b0', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/components/common/ApprovalQueue.tsx', 2, '711982a4eb0796e1731fb8f90983387377daf22665226f5c0f4d23378e538d28', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/components/ui/input.tsx', 2, '6886caa44dcea6e996112b3a77897eb6785db21e38c8ead92aa8dda2eb5c7ce4', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/components/common/ToastProvider.tsx', 1, 'f31d7afd495a37718e76f219d505f3415173b6f15f84400e5da43aadabf7a472', 'justified-non-visibility-infrastructure', infrastructureClockReason),

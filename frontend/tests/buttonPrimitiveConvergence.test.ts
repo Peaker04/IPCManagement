@@ -26,9 +26,9 @@ const commandBarExceptionLocations = [
 ]
 
 const adapterExceptionLocations = [
-  'src/app/layout/MainLayout.tsx:208',
-  'src/app/layout/MainLayout.tsx:273',
-  'src/app/layout/MainLayout.tsx:311',
+  'src/app/layout/MainLayout.tsx:150',
+  'src/app/layout/MainLayout.tsx:215',
+  'src/app/layout/MainLayout.tsx:254',
   'src/components/common/ApprovalQueue.tsx:75',
   'src/components/common/CursorPaginationBar.tsx:63',
   'src/components/common/CursorPaginationBar.tsx:80',

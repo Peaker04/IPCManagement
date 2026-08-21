@@ -158,27 +158,17 @@ export function MaterialDemandSection({
           </div>
           <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : inventoryStatus.pendingKitchenCount > 0 ? 'is-warning' : 'is-complete'}>
             <TriangleAlert size={18} aria-hidden="true" />
-            <dt>Phần còn phải xử lý</dt>
+            <dt>Tồn kho & vật tư</dt>
             <dd>{status.isDemandError
-              ? 'Chưa xác định được'
+              ? 'Chưa xác định'
               : inventoryStatus.shortageCount > 0
-                ? `Còn ${inventoryStatus.shortageCount} nguyên liệu chưa xuất`
+                ? `Thiếu ${inventoryStatus.shortageCount} nguyên liệu`
                 : inventoryStatus.pendingKitchenCount > 0
-                  ? `${inventoryStatus.pendingKitchenCount} nguyên liệu chờ Bếp nhận`
-                  : 'Đã hoàn tất vật tư'}</dd>
+                  ? `Chờ Bếp nhận (${inventoryStatus.pendingKitchenCount})`
+                  : 'Đủ hàng'}</dd>
           </div>
         </dl>
 
-        {presentation.missingBomRows.length > 0 && (
-          <InlineAlert title="Một số món từ tệp chưa có định lượng BOM" variant="warning">
-            Các món này vẫn được đưa vào KHSX theo tên trong tệp Excel, nhưng chưa thể tính nguyên liệu cho đến khi được gắn với món và định lượng trong danh mục.
-          </InlineAlert>
-        )}
-        {presentation.importDefaultRows.length > 0 && (
-          <InlineAlert title="Đang dùng số suất tạm từ tệp" variant="warning">
-            Tạm thời hệ thống dùng số suất trong tệp nhập để lập KHSX, tính nhu cầu và đề xuất mua. Khi số suất vận hành được chốt, hệ thống sẽ tự ưu tiên dữ liệu đó.
-          </InlineAlert>
-        )}
         {servingFeedback && <InlineAlert title={servingFeedback.title} variant={servingFeedback.variant}>{servingFeedback.message}</InlineAlert>}
         {state.feedback && <InlineAlert title={state.feedback.title} variant={state.feedback.variant}>{state.feedback.message}</InlineAlert>}
         {presentation.activeStaleness?.isStale && presentation.activeStaleness.canRegenerate !== false && (
@@ -245,7 +235,7 @@ export function MaterialDemandSection({
                         <span className="inline-flex flex-col items-center gap-0.5"><span>{formatNumber(row.portions)}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
                       )}
                     </td>
-                    <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}</td>
+                    <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-slate-700' : 'font-semibold text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa có'}</td>
                   </tr>
                     )
                   })}
@@ -301,26 +291,23 @@ export function MaterialDemandSection({
             isRetrying={demandView.isRetrying}
           />
         ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
-          <section className="ipc-demand-inventory-section">
+          <section className="ipc-demand-inventory-section" aria-label="Phạm vi ngày đang xem: tổng hợp nguyên liệu">
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <span className="text-xs font-medium text-slate-500">Phạm vi ngày đang xem: hoàn tất {inventoryStatus.enoughCount}/{inventoryStatus.totalCount}; chưa xuất {inventoryStatus.shortageCount}; chờ Bếp nhận {inventoryStatus.pendingKitchenCount}; cần tính lại {inventoryStatus.staleCount}</span>
-              </div>
+              <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>
             {status.isFetchingAggregate && !presentation.aggregatePage ? <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div> : (
               <>
-                {inventoryGroups.exceptionLines.length > 0 ? (
+                {inventoryGroups.exceptionLines.length > 0 && (
                   <div className="ipc-demand-exception-block">
                     <div><TriangleAlert size={17} aria-hidden="true" /><strong>{inventoryGroups.exceptionLines.length} nguyên liệu cần xử lý trước</strong><span>Thiếu hàng hoặc dữ liệu cần tính lại</span></div>
-                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Món ăn" renderAction={renderPurchaseAction} />
+                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Món sử dụng" renderAction={renderPurchaseAction} />
                   </div>
-                ) : <InlineAlert title="Không có thiếu hụt trong ngày" variant="info">Tất cả nguyên liệu ngày đang xem đã đủ theo dữ liệu tồn khả dụng.</InlineAlert>}
+                )}
                 {inventoryGroups.sufficientLines.length > 0 && (
-                  <details className="ipc-demand-sufficient-disclosure">
+                  <details className="ipc-demand-sufficient-disclosure" open={inventoryGroups.exceptionLines.length === 0}>
                     <summary><span>{inventoryGroups.sufficientLines.length} nguyên liệu đã đủ</span><span>Xem chi tiết <ChevronDown size={16} aria-hidden="true" /></span></summary>
-                    <DemandSummary lines={inventoryGroups.sufficientLines} sourceLabel="Món ăn" />
+                    <DemandSummary lines={inventoryGroups.sufficientLines} sourceLabel="Món sử dụng" />
                   </details>
                 )}
               </>
@@ -342,19 +329,21 @@ export function MaterialDemandSection({
           )}
         </section>
       </div>
-      <ConfirmDialog
-        open={isRegenerateConfirmOpen}
-        ariaLabel="Xác nhận tính lại nhu cầu"
-        title="Tính lại nhu cầu đã duyệt?"
-        description="Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?"
-        confirmLabel="Tiếp tục tính lại"
-        busy={regenerateConfirmationBusy}
-        busyLabel="Đang tính nhu cầu..."
-        onConfirm={handleConfirmRegenerate}
-        onOpenChange={(open) => {
-          if (!regenerateConfirmationBusy) setIsRegenerateConfirmOpen(open)
-        }}
-      />
+      {isRegenerateConfirmOpen && (
+        <ConfirmDialog
+          open={isRegenerateConfirmOpen}
+          ariaLabel="Xác nhận tính lại nhu cầu"
+          title="Tính lại nhu cầu đã duyệt?"
+          description="Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?"
+          confirmLabel="Tiếp tục tính lại"
+          busy={regenerateConfirmationBusy}
+          busyLabel="Đang tính nhu cầu..."
+          onConfirm={handleConfirmRegenerate}
+          onOpenChange={(open) => {
+            if (!regenerateConfirmationBusy) setIsRegenerateConfirmOpen(open)
+          }}
+        />
+      )}
     </SectionPanel>
   )
 }

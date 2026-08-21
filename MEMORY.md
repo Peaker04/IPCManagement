@@ -134,8 +134,8 @@ Giữ scope này chưa import để Kỳ tự chạy demo. Trước buổi demo 
 - Route-budget Wave 39 đã đóng tại code `171e00e6`: `SplitWorkbench` rời common barrel sang direct leaf import
   cho Chef/Approval/Warehouse; common **51,76 → 51,63 KiB gzip**, tổng mười route closure cải thiện **0,18 KiB**.
   `DocumentRail` bị loại vì prototype làm tổng closure xấu thêm khoảng **0,31 KiB** và đã được hoàn nguyên có
-  kiểm soát. Build/lint/depcruise và targeted **40/40** pass; full suite **155 file/886 test pass** nhưng vẫn có
-  đúng hai dirty-scope failure ở `MaterialDemandSection`, nên không khai full PASS. Route-budget vẫn RED 10/10,
+  kiểm soát. Build/lint/depcruise và targeted **40/40** pass; sau khi reconcile source-contract fixtures, full suite
+  **157 file/888 test pass**. Route-budget vẫn RED 10/10,
   threshold và RTK Query cache identity không đổi. Wave kế tiếp phải chọn seam nhỏ mới bằng source-aware evidence.
 
 - Phase 3 Wave 2 checkpoint ngày 14/08: cả hai table primitive (`.ipc-data-table` và shadcn `Table`) nay dùng
