@@ -8,11 +8,11 @@ const mocks = vi.hoisted(() => ({
   decisionPanel: vi.fn(),
 }));
 
-vi.mock('@/features/warehouse/warehouseApi', () => ({
+vi.mock('@/api/warehouseApi', () => ({
   useGetSupplementalMaterialRequestsQuery: mocks.getSupplementalRequests,
 }));
 
-vi.mock('@/features/purchasing/purchasingApi', () => ({
+vi.mock('@/api/purchasingApi', () => ({
   useGetPurchaseRequestsQuery: mocks.getPurchaseRequests,
   useGetPurchaseOrdersQuery: mocks.getPurchaseOrders,
 }));

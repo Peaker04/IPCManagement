@@ -19,7 +19,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
 
   return (
     <SectionPanel title="Quản lý báo giá nhà cung cấp">
-      <div id="purchasing-quotations-panel" role="tabpanel" aria-labelledby="purchasing-quotations-tab" className="mt-4 space-y-4">
+      <div className="mt-4 space-y-4">
         {workflow.isLookupForbidden ? (
           <InlineAlert title="Không có quyền xem danh mục thu mua" variant="danger">
             <span role="alert">Bạn không có quyền xem nguyên liệu hoặc nhà cung cấp phục vụ quản lý báo giá.</span>
@@ -42,7 +42,6 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           <Input
             type="search"
             aria-label="Tìm nguyên liệu"
-            placeholder="Tìm theo tên hoặc mã nguyên liệu"
             value={workflow.ingredientSearch}
             onChange={(event) => workflow.setIngredientSearch(event.target.value)}
           />
@@ -165,16 +164,18 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
             </form>
           </>
         )}
-        <ConfirmDialog
-          open={workflow.deactivateTargetId !== null}
-          title="Ngừng báo giá này?"
-          description={workflow.deactivateError
-            ? `Báo giá sẽ không còn được chọn cho các giao dịch mới. Chưa thể ngừng báo giá. ${workflow.deactivateError}`
-            : 'Báo giá sẽ không còn được chọn cho các giao dịch mới.'}
-          confirmLabel="Ngừng báo giá"
-          onConfirm={workflow.confirmDeactivate}
-          onOpenChange={(open) => !open && workflow.setDeactivateTargetId(null)}
-        />
+        {workflow.deactivateTargetId !== null && (
+          <ConfirmDialog
+            open={workflow.deactivateTargetId !== null}
+            title="Ngừng báo giá này?"
+            description={workflow.deactivateError
+              ? `Báo giá sẽ không còn được chọn cho các giao dịch mới. Chưa thể ngừng báo giá. ${workflow.deactivateError}`
+              : 'Báo giá sẽ không còn được chọn cho các giao dịch mới.'}
+            confirmLabel="Ngừng báo giá"
+            onConfirm={workflow.confirmDeactivate}
+            onOpenChange={(open) => !open && workflow.setDeactivateTargetId(null)}
+          />
+        )}
       </div>
     </SectionPanel>
   );

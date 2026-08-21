@@ -7,7 +7,7 @@ import {
   StatusBadge,
   TableViewport,
 } from '@/components/common';
-import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
+import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
 import { formatDateOnly } from '@/lib/formatters';
 import { PurchaseLineGroups } from './PurchaseLineGroups';

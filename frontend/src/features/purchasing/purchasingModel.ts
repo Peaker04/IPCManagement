@@ -5,7 +5,7 @@ import type {
   PurchaseWorkbenchServiceDate,
   PurchaseWorkflowStageCounts,
   WarehouseDto,
-} from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
 
 export type PurchasingStageId =
   | 'demand'

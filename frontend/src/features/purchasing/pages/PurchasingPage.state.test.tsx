@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),
 }));
 
-vi.mock('@/features/purchasing/purchasingApi', () => ({
+vi.mock('@/api/purchasingApi', () => ({
   useGetPurchaseWorkbenchQuery: mocks.getWorkbench,
   useGetServiceRunPageQuery: mocks.getServiceRunPage,
 }));

@@ -31,7 +31,7 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetIngredientsQuery: mocks.getIngredients,
 }))
 
-vi.mock('@/features/purchasing/purchasingApi', () => ({
+vi.mock('@/api/purchasingApi', () => ({
   useCancelPurchaseOrderMutation: () => [vi.fn(), { isLoading: false }],
   useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
   useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
@@ -49,13 +49,13 @@ vi.mock('@/features/purchasing/purchasingApi', () => ({
   useUpdateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
 }))
 
-vi.mock('@/features/reports/reportsApi', () => ({
+vi.mock('@/api/reportsApi', () => ({
   useGetMaterialRequestCandidatePageQuery: mocks.getCandidates,
   useGetPurchasePlanPageQuery: mocks.getPlan,
   useGetStockMovementPageQuery: mocks.getStockMovements,
 }))
 
-vi.mock('@/features/warehouse/warehouseApi', () => ({
+vi.mock('@/api/warehouseApi', () => ({
   useGetWarehouseSelectorQuery: mocks.getWarehouses,
   useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
 }))

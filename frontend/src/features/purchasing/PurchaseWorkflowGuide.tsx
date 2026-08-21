@@ -2,7 +2,7 @@ import { Check, CircleAlert, CircleDot } from 'lucide-react';
 import { StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { PurchaseWorkflowStageCounts } from '@/api/workflowApi';
+import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import {
   PURCHASING_STAGES,
   isPurchasingStage,
@@ -47,7 +47,7 @@ export function PurchaseWorkflowGuide({
                   isSelected
                     ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-900'
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
-                  isBlocked && 'cursor-not-allowed bg-slate-100 text-slate-500 hover:bg-slate-100',
+                  isBlocked && 'cursor-not-allowed bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200',
                 )}
                 aria-current={isCurrent ? 'step' : undefined}
                 aria-pressed={isSelected}
@@ -62,13 +62,13 @@ export function PurchaseWorkflowGuide({
                   {isCurrent ? <StatusBadge variant="warning">Hiện tại</StatusBadge> : null}
                 </span>
                 <span className="min-w-0 w-full flex-1">
-                  <span data-stage-label className="block text-[13px] leading-[1.35]">{stage.label}</span>
-                  <span className="mt-1 block text-caption font-normal leading-[1.4] text-slate-600">
+                  <span data-stage-label className={cn('block text-[13px] leading-[1.35]', isBlocked ? 'text-slate-700' : 'text-slate-900')}>{stage.label}</span>
+                  <span className="mt-1 block text-caption font-medium leading-[1.4] text-slate-600">
                     {isComplete ? 'Hoàn tất' : isCurrent ? 'Đang xử lý' : 'Chưa mở'}
                     {count > 0 ? `, ${count} ngày` : ''}
                   </span>
                   {isBlocked ? (
-                    <span id={`purchasing-stage-${stage.id}-reason`} className="mt-1 block text-caption font-normal leading-[1.4]">
+                    <span id={`purchasing-stage-${stage.id}-reason`} className="mt-1 block text-caption font-normal leading-[1.4] text-slate-600">
                       {stage.blockedReason}
                     </span>
                   ) : null}
