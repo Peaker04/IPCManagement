@@ -437,6 +437,21 @@ Wave 33 checklist:
 - [ ] Backend cleanup requires endpoint/DI integration evidence in a dedicated
   backend test wave.
 
+## Wave 34 completion audit against the cleanup objective (2026-08-21)
+
+| Objective requirement | Evidence | Status |
+| --- | --- | --- |
+| Work split into waves and closeout checklists | Waves 11–34 in this audit | Proven |
+| Follow-on effects handled before closing | Inventory baseline updated; build/lint/depcruise/full unit rerun | Proven for accepted changes |
+| Remove unused/dead code | Dead exports, Chef barrel, eight common leaf/test files removed | Proven for audited frontend scope |
+| Preserve unrelated work | Atomic staging, corrected staging incident, hygiene gate | Proven |
+| Do not hide failures by changing policy | Route thresholds/cache/API topology unchanged | Proven |
+| Remove all dead code project-wide | Backend runtime/DI and remaining feature scopes lack exhaustive endpoint evidence | Not proven |
+
+The cleanup objective is materially advanced but not globally complete: a
+project-wide claim would require backend endpoint/DI integration coverage and
+new product/runtime scope for the route-budget architecture debt.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
