@@ -24,7 +24,7 @@ Dependency-cruiser hiện quét `423` module và `1572` dependency, không có d
 ### Wave 4/5 cleanup recheck — 2026-08-21
 
 - Source scan trên `frontend/src`, `frontend/tests`, `frontend/package.json`, root `package.json`, `.github`, `tools` và `docs` không tìm thấy consumer cho hai script untracked `generate-status-tokens.mjs` và `measure-ultimate-baseline.mjs`. `generate-status-tokens.mjs` bị supersede bởi `statusTokenContract.test.ts` (test pass), còn `measure-ultimate-baseline.mjs` là file rỗng `0` bytes; `perf-probe.mjs` mới là probe canonical có ba mode và integrity gate.
-- Hai script không được xóa trong wave này vì nằm trong dirty scope của owner khác; giữ `REVIEW` và chuyển quyết định sang Wave 7/8.
+- Hai script đã được source/capability-scan và xoá sau khi chứng minh không có consumer; disposition chi tiết nằm ở CLN-01/CLN-02.
 - `KeepAliveTabPanel`, `useDebouncedValue` và `statusTokenContract.test.ts` đã có import/discovery consumer; disposition `KEEP` không thay đổi.
 
 ## Ledger consumer scan — 2026-08-21
