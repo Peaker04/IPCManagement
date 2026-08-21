@@ -47,6 +47,7 @@ const pageOwnerByRoute: Partial<Record<keyof typeof import('../src/lib/routeConf
   WAREHOUSE: { file: 'src/features/warehouse/pages/WarehousePage.tsx', symbol: 'WarehousePage' },
   ADMIN_DATA: { file: 'src/app/pages/AdminDataPage.tsx', symbol: 'AdminDataPage' },
   APPROVAL_RULES: { file: 'src/features/admin/pages/ApprovalRulesPage.tsx', symbol: 'ApprovalRulesPage' },
+  ADVANCED_SETTINGS: { file: 'src/features/admin/pages/AdvancedDisplaySettingsPage.tsx', symbol: 'AdvancedDisplaySettingsPage' },
 }
 
 const ownerId = (index: number) => `uio-${index.toString(36)}` as UiOpaqueOwnerId

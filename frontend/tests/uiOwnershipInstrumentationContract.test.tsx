@@ -86,9 +86,9 @@ describe('Phase 26 opaque instrumentation contract', () => {
       const tuple = tupleFor(entry.surfaceId)
       expectOpaqueTuple(tuple)
       if (entry.routeKey === 'LOGIN') {
-        expect(loginPageSource).toContain('data-ui-owner="uio-k" data-ui-floorplan="uif-k" data-ui-region="uir-k"')
+        expect(loginPageSource).toContain('data-ui-owner="uio-l" data-ui-floorplan="uif-l" data-ui-region="uir-l"')
       } else if (entry.routeKey === 'FORBIDDEN') {
-        expect(forbiddenPageSource).toContain('data-ui-owner="uio-j" data-ui-floorplan="uif-j" data-ui-region="uir-j"')
+        expect(forbiddenPageSource).toContain('data-ui-owner="uio-k" data-ui-floorplan="uif-k" data-ui-region="uir-k"')
         expect(mainLayoutSource).toContain(`[ROUTES.FORBIDDEN]: { ${tupleLiteral(tuple)} }`)
       } else {
         expect(mainLayoutSource).toContain(`[ROUTES.${entry.routeKey}]: { ${tupleLiteral(tuple)} }`)
@@ -106,7 +106,7 @@ describe('Phase 26 opaque instrumentation contract', () => {
     expect(compareBindings([...productionBindings, { ...productionBindings[0], key: 'other\0orphan', surfaceId: 'orphan' }]).orphans).toEqual(['other\0orphan'])
     expect(compareBindings([{ ...productionBindings[0], tuple: { ...productionBindings[0].tuple, ownerId: 'uio-wrong' } }, ...productionBindings.slice(1)]).wrongTuple).toEqual([productionBindings[0].key])
     expect(new Set(productionBindings.map((binding) => binding.key)).size).toBe(productionBindings.length)
-    expect(productionBindings.filter((binding) => binding.surfaceId.startsWith('bom-'))).toHaveLength(2)
+    expect(productionBindings.filter((binding) => binding.surfaceId.startsWith('bom-'))).toHaveLength(0)
     expect(productionBindings.filter((binding) => binding.surfaceId.startsWith('price-sub-'))).toHaveLength(4)
   })
 

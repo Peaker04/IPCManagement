@@ -284,18 +284,18 @@ export const MainLayout = () => {
 };
 
 const routeOwnership = {
-  [ROUTES.ADMIN_DATA]: { ownerId: 'uio-2', floorplanId: 'uif-2', regionId: 'uir-2' },
-  [ROUTES.APPROVAL_RULES]: { ownerId: 'uio-a', floorplanId: 'uif-a', regionId: 'uir-a' },
-  [ROUTES.ADVANCED_SETTINGS]: { ownerId: 'uio-a2', floorplanId: 'uif-a2', regionId: 'uir-a2' },
-  [ROUTES.APPROVALS]: { ownerId: 'uio-b', floorplanId: 'uif-b', regionId: 'uir-b' },
-  [ROUTES.CHEF_DASHBOARD]: { ownerId: 'uio-f', floorplanId: 'uif-f', regionId: 'uir-f' },
-  [ROUTES.DASHBOARD]: { ownerId: 'uio-i', floorplanId: 'uif-i', regionId: 'uir-i' },
-  [ROUTES.FORBIDDEN]: { ownerId: 'uio-j', floorplanId: 'uif-j', regionId: 'uir-j' },
-  [ROUTES.MEAL_ORDERS]: { ownerId: 'uio-l', floorplanId: 'uif-l', regionId: 'uir-l' },
-  [ROUTES.PURCHASING]: { ownerId: 'uio-m', floorplanId: 'uif-m', regionId: 'uir-m' },
-  [ROUTES.REPORTS]: { ownerId: 'uio-t', floorplanId: 'uif-t', regionId: 'uir-t' },
-  [ROUTES.WAREHOUSE]: { ownerId: 'uio-13', floorplanId: 'uif-13', regionId: 'uir-13' },
-  [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-17', floorplanId: 'uif-17', regionId: 'uir-17' },
+   [ROUTES.ADMIN_DATA]: { ownerId: 'uio-0', floorplanId: 'uif-0', regionId: 'uir-0' },
+   [ROUTES.ADVANCED_SETTINGS]: { ownerId: 'uio-8', floorplanId: 'uif-8', regionId: 'uir-8' },
+   [ROUTES.APPROVAL_RULES]: { ownerId: 'uio-9', floorplanId: 'uif-9', regionId: 'uir-9' },
+   [ROUTES.APPROVALS]: { ownerId: 'uio-a', floorplanId: 'uif-a', regionId: 'uir-a' },
+   [ROUTES.CHEF_DASHBOARD]: { ownerId: 'uio-d', floorplanId: 'uif-d', regionId: 'uir-d' },
+   [ROUTES.DASHBOARD]: { ownerId: 'uio-g', floorplanId: 'uif-g', regionId: 'uir-g' },
+   [ROUTES.FORBIDDEN]: { ownerId: 'uio-h', floorplanId: 'uif-h', regionId: 'uir-h' },
+   [ROUTES.MEAL_ORDERS]: { ownerId: 'uio-j', floorplanId: 'uif-j', regionId: 'uir-j' },
+   [ROUTES.PURCHASING]: { ownerId: 'uio-k', floorplanId: 'uif-k', regionId: 'uir-k' },
+   [ROUTES.REPORTS]: { ownerId: 'uio-s', floorplanId: 'uif-s', regionId: 'uir-s' },
+   [ROUTES.WAREHOUSE]: { ownerId: 'uio-12', floorplanId: 'uif-12', regionId: 'uir-12' },
+   [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-16', floorplanId: 'uif-16', regionId: 'uir-16' },
 } as const;
 
 const ownershipForRoute = (pathname: string) => routeOwnership[pathname as keyof typeof routeOwnership] ?? routeOwnership[ROUTES.DASHBOARD];

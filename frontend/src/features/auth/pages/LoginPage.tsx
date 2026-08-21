@@ -148,7 +148,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="ipc-auth-shell" data-ui-owner="uio-k" data-ui-floorplan="uif-k" data-ui-region="uir-k">
+    <div className="ipc-auth-shell" data-ui-owner="uio-l" data-ui-floorplan="uif-l" data-ui-region="uir-l">
       <div className="ipc-auth-card">
         <div className="ipc-auth-header">
           <span className="ipc-auth-mark">
