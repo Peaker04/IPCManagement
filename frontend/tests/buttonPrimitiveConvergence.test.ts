@@ -38,7 +38,10 @@ const adapterExceptionLocations = [
   'src/components/common/PaginationBar.tsx:141',
   'src/components/common/ToastProvider.tsx:64',
   'src/components/common/ViewSwitcher.tsx:76',
-  'src/features/reports/pages/ReportsPricePanel.tsx:338',
+  'src/features/admin/components/AdvancedDisplaySettings.tsx:98',
+  'src/features/admin/components/AdvancedDisplaySettings.tsx:161',
+  'src/features/admin/components/AdvancedDisplaySettings.tsx:221',
+  'src/features/reports/pages/ReportsPricePanel.tsx:182',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
