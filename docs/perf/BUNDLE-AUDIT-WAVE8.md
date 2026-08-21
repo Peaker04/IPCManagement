@@ -458,6 +458,22 @@ Wave 35 checklist:
 - [ ] Project-wide backend dead-code removal remains unproven until runtime
   reachability/coverage evidence exists.
 
+## Wave 36 skipped-E2E disposition — external MySQL lane required (2026-08-21)
+
+The skipped lifecycle test uses `RequiresMySqlFactAttribute` and intentionally
+requires `IPC_TEST_CONNECTION_STRING` pointing at a dedicated MySQL test
+database. Local runs without that variable skip; CI must provide it and cannot
+silently skip. Enabling it against an arbitrary or existing database would be
+a data-risk expansion outside this cleanup wave.
+
+Wave 36 checklist:
+
+- [x] Skip source and discovery behavior inspected.
+- [x] Skip is explicit infrastructure gating, not hidden test failure.
+- [x] No production/database mutation attempted without a dedicated test lane.
+- [ ] Lifecycle E2E remains pending until `IPC_TEST_CONNECTION_STRING` is
+  available for an isolated MySQL test database.
+
 ## Wave 34 completion audit against the cleanup objective (2026-08-21)
 
 | Objective requirement | Evidence | Status |
