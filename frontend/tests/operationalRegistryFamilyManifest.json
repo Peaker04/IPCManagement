@@ -171,8 +171,8 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
-          "frontend/src/features/reports/pages/ReportsPage.tsx:60-80",
-          "frontend/src/features/reports/pages/ReportsPage.tsx:161"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:60-85",
+          "frontend/src/features/reports/pages/ReportsPage.tsx:166"
         ]
       },
       "backendBacked": false,

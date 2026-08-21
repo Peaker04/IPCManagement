@@ -807,7 +807,7 @@ test.describe('UI measurement audit', () => {
         const lifecyclePanel = page.getByTestId('receipt-lifecycle-panel');
         await expect(lifecyclePanel).toBeVisible();
         await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'false');
-        await expect(page.getByText('Không tải được phiếu nhập lifecycle', { exact: true })).toBeVisible();
+        await expect(page.getByText('Không tải được phiếu nhập cần xử lý', { exact: true })).toBeVisible();
         await expectNoAuditIssues(
           `${viewport.name}-warehouse-receipt-error`,
           await collectLayoutIssues(page, 'warehouse-receipt-error', viewport.name),
@@ -986,28 +986,8 @@ test.describe('shared tabs Material and Fiori contract', () => {
 
       await navigateInApp(page, `${ROUTES.ADMIN_DATA}?view=bom-import`);
       await stabilize(page);
-      const bomTabs = page.getByRole('tablist', { name: 'Chọn dữ liệu BOM hiển thị' });
-      await expect(bomTabs).toBeVisible();
-      const bomMetrics = await bomTabs.evaluate((list) => {
-        const listRect = list.getBoundingClientRect();
-        const tabs = [...list.querySelectorAll<HTMLElement>('[role="tab"]')];
-        return {
-          overflow: list.scrollWidth - list.clientWidth,
-          listLeft: listRect.left,
-          listRight: listRect.right,
-          tabs: tabs.map((tab) => {
-            const rect = tab.getBoundingClientRect();
-            return { text: tab.textContent?.trim(), left: rect.left, right: rect.right, width: rect.width };
-          }),
-        };
-      });
-      expect(bomMetrics.overflow).toBeLessThanOrEqual(1);
-      expect(bomMetrics.tabs).toHaveLength(2);
-      expect(bomMetrics.tabs[0].text).toBe('BOM hiện tại');
-      expect(bomMetrics.tabs[1].text).toBe('Bản xem trước');
-      expect(bomMetrics.tabs[0].left).toBeGreaterThanOrEqual(bomMetrics.listLeft);
-      expect(bomMetrics.tabs[1].right).toBeLessThanOrEqual(bomMetrics.listRight);
-      expect(Math.abs(bomMetrics.tabs[0].right - bomMetrics.tabs[1].left)).toBeLessThanOrEqual(1);
+      await expect(page.getByRole('tablist', { name: 'Chọn dữ liệu BOM hiển thị' })).toHaveCount(0);
+      await expect(page.getByRole('status')).toContainText('BOM đang áp dụng');
     });
   }
 });

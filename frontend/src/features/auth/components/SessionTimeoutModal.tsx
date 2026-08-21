@@ -40,6 +40,8 @@ export const SessionTimeoutModal = () => {
     navigate(ROUTES.LOGIN, { replace: true, state: { from: location.pathname } });
   };
 
+  if (!isOpen) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (open ? setIsOpen(true) : goToLogin())}>
       <DialogContent aria-label="Phiên đăng nhập đã hết hạn" className="max-w-md border-amber-200 bg-white p-6 shadow-2xl">

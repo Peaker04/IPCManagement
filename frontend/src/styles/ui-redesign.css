@@ -157,11 +157,10 @@
 }
 
 .ipc-weekly-readiness-summary > div {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 1px var(--ipc-space-2);
-  align-items: baseline;
+  gap: 2px;
 }
 
 .ipc-weekly-readiness-summary span {
@@ -183,12 +182,11 @@
 
 .ipc-weekly-readiness-summary small {
   grid-column: 1 / -1;
-  overflow: hidden;
   color: var(--ipc-slate-600);
   font-size: 0.75rem;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .ipc-weekly-readiness.is-info .ipc-weekly-readiness-summary {
@@ -342,6 +340,9 @@
     line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    min-width: 1.5rem;
   }
 
   .ipc-redesign-shell .ipc-context-badge.is-success:not(.is-quiet) {

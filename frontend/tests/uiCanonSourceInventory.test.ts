@@ -89,7 +89,7 @@ describe('PB canon source inventory', () => {
     expect(findMethodCalls(production, 'toLocaleString').map(({ path, line }) => `${path}:${line}`)).toEqual([
       'src/features/projects/weekly-menu/model/formatters.ts:111',
       'src/features/projects/weekly-menu/model/formatters.ts:112',
-      'src/lib/formatters.ts:18',
+      'src/lib/formatters.ts:47',
     ])
     expect(findMethodCalls(fixture('const value = amount.toFixed(2)'), 'toFixed')).toHaveLength(1)
     expect(findMethodCalls(fixture("const value = amount.toLocaleString('vi-VN')"), 'toLocaleString')).toHaveLength(1)

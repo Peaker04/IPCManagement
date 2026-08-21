@@ -195,6 +195,9 @@
 .ipc-context-value {
   margin: 0;
   color: currentColor;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  min-width: 1.5rem;
 }
 
 @media (max-width: 767px) {
