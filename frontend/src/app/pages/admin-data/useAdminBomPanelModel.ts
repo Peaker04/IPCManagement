@@ -107,7 +107,7 @@ export function useAdminBomPanelModel(
 
   const handlePreviewBomImport = async () => {
     if (!bomImportFile) {
-      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn file Excel BOM trước khi preview.' });
+      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn file Excel BOM trước khi kiểm tra.' });
       return;
     }
 
@@ -123,17 +123,17 @@ export function useAdminBomPanelModel(
       setBomImportFeedback({
         type: result.canCommit ? 'success' : 'error',
         message: result.canCommit
-          ? `Preview hợp lệ: ${result.validRows}/${result.totalRows} dòng có thể commit.`
-          : `Preview còn ${result.errorRows} dòng lỗi, cần sửa trước khi commit.`,
+          ? `Kiểm tra hợp lệ: ${result.validRows}/${result.totalRows} dòng có thể nhập.`
+          : `Kết quả còn ${result.errorRows} dòng lỗi, cần sửa trước khi nhập.`,
       });
     } catch (error) {
-      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Preview import BOM thất bại.') });
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa kiểm tra được file BOM.') });
     }
   };
 
   const handleCommitBomImport = async () => {
     if (!bomImportFile || !bomImportPreview?.canCommit) {
-      setBomImportFeedback({ type: 'error', message: 'Chỉ commit khi preview đã hợp lệ.' });
+      setBomImportFeedback({ type: 'error', message: 'Chỉ nhập dữ liệu khi kết quả kiểm tra đã hợp lệ.' });
       return;
     }
 
@@ -148,10 +148,10 @@ export function useAdminBomPanelModel(
       setBomPanelMode('current');
       setBomImportFeedback({
         type: 'success',
-        message: `Đã import BOM: tạo ${result.createdRows}, cập nhật ${result.updatedRows}, archive ${result.archivedRows}.`,
+        message: `Đã nhập BOM: tạo ${result.createdRows}, cập nhật ${result.updatedRows}, ngừng áp dụng ${result.archivedRows}.`,
       });
     } catch (error) {
-      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Commit import BOM thất bại.') });
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa nhập được dữ liệu BOM.') });
     }
   };
 
@@ -244,7 +244,7 @@ export function useAdminBomPanelModel(
       }
       setIsBomDialogOpen(false);
       setBomPanelMode('current');
-      setBomImportFeedback({ type: 'success', message: editingBom ? 'Đã tạo version điều chỉnh cho dòng BOM.' : 'Đã thêm dòng BOM thủ công.' });
+      setBomImportFeedback({ type: 'success', message: editingBom ? 'Đã tạo phiên bản điều chỉnh cho dòng BOM.' : 'Đã thêm dòng BOM thủ công.' });
     } catch (error) {
       setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được dòng BOM.') });
     }

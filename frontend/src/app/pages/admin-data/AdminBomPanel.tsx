@@ -1,5 +1,5 @@
 import { Download, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
-import { ConfirmDialog, ContextStrip, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { ConfirmDialog, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -162,7 +162,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     type="button"
                     disabled={Boolean(commitBomImportState?.isLoading || !bomImportPreview?.canCommit)}
                     aria-describedby="bom-import-action-guidance"
-                    title={commitBomImportState?.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Preview còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
+                    title={commitBomImportState?.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Kết quả kiểm tra còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
                     onClick={() => void handleCommitBomImport()}
                   >
                     <Save size={15} />
@@ -188,15 +188,6 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
               </div>
 
               <div className="flex flex-col gap-3">
-                <ContextStrip
-                  items={[
-                    { label: 'Mức định lượng', value: `${formatNumber(bomImportTier / 1000)}k`, tone: 'info' },
-                    { label: 'Phạm vi', value: bomImportCustomerId ? 'Theo khách hàng' : 'Dùng chung', tone: bomImportCustomerId ? 'warning' : 'neutral' },
-                    { label: 'BOM hiện tại', value: `${(currentBomRows ?? []).length} dòng`, tone: (currentBomRows ?? []).length ? 'success' : 'neutral' },
-                    { label: 'Kết quả kiểm tra', value: bomImportPreview ? `${bomImportPreview.validRows}/${bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
-                  ]}
-                />
-
                 <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-xs font-semibold text-slate-600" role="status">
                     {bomPanelMode === 'preview' ? 'Đang xem kết quả kiểm tra file — nhập dữ liệu để áp dụng.' : 'BOM đang áp dụng'}
@@ -452,7 +443,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             <DialogFooter>
               <Button variant="outline" type="button" disabled={isSavingBom} onClick={() => setIsBomDialogOpen(false)}>Hủy</Button>
               <Button variant="default" type="submit" disabled={isSavingBom || isDishCatalogLoading || isIngredientCatalogLoading}>
-                <Save size={15} /> {isSavingBom ? 'Đang lưu...' : editingBom ? 'Lưu version mới' : 'Thêm dòng BOM'}
+                <Save size={15} /> {isSavingBom ? 'Đang lưu...' : editingBom ? 'Lưu phiên bản mới' : 'Thêm dòng BOM'}
               </Button>
             </DialogFooter>
           </form>

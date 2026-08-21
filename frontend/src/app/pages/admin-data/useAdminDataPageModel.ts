@@ -38,8 +38,9 @@ export function useAdminDataPageModel() {
   const adminContextItems = effectiveActiveView === 'bom-import'
     ? [
         { label: 'BOM đang hiển thị', value: bomQueryViews.dishCatalog.phase === 'ready' ? `${bomModel.currentBomRows.length} dòng` : '—', tone: 'neutral' as const },
-        { label: 'Đơn giá', value: `${bomModel.bomImportTier / 1000}k`, tone: 'info' as const },
-        { label: 'Preview', value: bomModel.bomImportPreview ? `${bomModel.bomImportPreview.rows?.length ?? 0} dòng` : 'Chưa kiểm tra', tone: bomModel.bomImportPreview ? 'warning' as const : 'neutral' as const },
+        { label: 'Mức định lượng', value: `${bomModel.bomImportTier / 1000}k`, tone: 'info' as const },
+        { label: 'Phạm vi', value: bomModel.bomImportCustomerId ? 'Theo khách hàng' : 'Dùng chung', tone: bomModel.bomImportCustomerId ? 'warning' as const : 'neutral' as const },
+        { label: 'Kết quả kiểm tra', value: bomModel.bomImportPreview ? `${bomModel.bomImportPreview.validRows}/${bomModel.bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomModel.bomImportPreview?.errorRows ? 'danger' as const : bomModel.bomImportPreview ? 'success' as const : 'neutral' as const },
       ]
     : effectiveActiveView === 'contracts'
       ? [

@@ -39,6 +39,14 @@ describe('AdminDataPage query ownership contract', () => {
     expect(bomSource.match(/<AdminQueryBoundary/g)).toHaveLength(2);
   });
 
+  it('keeps BOM summary facts single-owned and user-facing', () => {
+    expect(bomSource).not.toContain('<ContextStrip');
+    expect(modelSource).toContain('bomModel.bomImportPreview.totalRows');
+    for (const technicalCopy of ['trước khi preview', 'Preview hợp lệ', 'có thể commit', 'Chỉ commit', 'Commit import', 'Đã import BOM', 'archive ${', 'tạo version điều chỉnh']) {
+      expect(bomModelSource).not.toContain(technicalCopy);
+    }
+  });
+
   it('composes every panel model unconditionally through the compatibility facade', () => {
     expect(modelSource.match(/useAdmin(?:Bom|Contracts|Cleanup|Inventory|Statistics|Audit|Employees)PanelModel\(/g)).toHaveLength(7);
     expect(modelSource).toContain('export type AdminDataPageModel = ReturnType<typeof useAdminDataPageModel>');
