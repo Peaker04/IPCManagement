@@ -30,17 +30,34 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
     return <InlineAlert title="Chưa khởi tạo báo cáo" variant="info">{view.instruction}</InlineAlert>;
   }
   if (view.phase === 'loading') {
-    return <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">Dữ liệu đang được đồng bộ.</InlineAlert>;
+    return (
+      <div className="min-h-[560px] rounded-md border border-slate-200 bg-white p-4" role="status" aria-label="Đang tải dữ liệu báo cáo">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="ipc-table-skeleton-cell w-48 h-6" />
+          <div className="ipc-table-skeleton-cell w-28 h-6" />
+        </div>
+        <div className="space-y-2.5">
+          <div className="ipc-table-skeleton-cell h-9 w-full !bg-slate-100" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="ipc-table-skeleton-cell h-10 w-full" />
+          ))}
+        </div>
+        <div className="mt-4 flex items-center justify-between pt-2 border-t border-slate-100">
+          <div className="ipc-table-skeleton-cell w-32 h-5" />
+          <div className="ipc-table-skeleton-cell w-48 h-8" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className="relative">
       {view.isRefreshing && (
-        <InlineAlert title="Đang cập nhật báo cáo" variant="info">
-          Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
-        </InlineAlert>
+        <span className="pointer-events-none absolute right-3 top-2 z-10 rounded-sm bg-white/95 px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
+          Đang cập nhật...
+        </span>
       )}
       {children}
-    </>
+    </div>
   );
 }
