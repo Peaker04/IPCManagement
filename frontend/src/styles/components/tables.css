@@ -637,15 +637,3 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
-
-.ipc-table-skeleton-row {
-  height: 44px;
-}
-
-.ipc-table-skeleton-cell {
-  height: 18px;
-  background-color: var(--ipc-slate-200);
-  border-radius: var(--ipc-radius-sm);
-  animation: ipc-skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  display: block;
-}
