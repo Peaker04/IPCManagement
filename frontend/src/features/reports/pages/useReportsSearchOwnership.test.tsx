@@ -10,8 +10,7 @@ const mocks = vi.hoisted(() => ({
   priceByDishGroup: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
-  toNextReportCursor: vi.fn(),
+vi.mock('@/features/reports/reportsApi', () => ({
   useGetAuditChangePageQuery: mocks.audit,
   useGetDataQualityPageQuery: mocks.dataQuality,
   useGetPriceVariancePageQuery: mocks.price,
