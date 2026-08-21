@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
-import { useGetPurchaseWorkbenchQuery } from '@/features/purchasing/purchasingApi';
+import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
 import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { SupplementalPurchasingWorkbench } from '../SupplementalPurchasingWorkbench';

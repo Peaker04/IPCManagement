@@ -28,7 +28,7 @@ import {
   useCreatePurchaseRequestFromDemandMutation,
   useGetSupplierEvidenceQuery,
   useSubmitPurchaseRequestMutation,
-} from '@/features/purchasing/purchasingApi';
+} from '@/api/purchasingApi';
 import { useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
 import { getPurchasingErrorMessage, type PurchasingStageId } from './purchasingModel';
 

@@ -2,7 +2,7 @@ import { apiSlice } from '@/api/apiSlice';
 import { workflowDocumentsApi } from '@/api/workflowDocumentsApi';
 import { dashboardApi } from '@/api/dashboardApi';
 import { reportsApi } from '@/features/reports/reportsApi';
-import { purchasingApi } from '@/features/purchasing/purchasingApi';
+import { purchasingApi } from '@/api/purchasingApi';
 import { warehouseApi } from '@/features/warehouse/warehouseApi';
 import { chefApi } from '@/features/chef/chefApi';
 import { approvalsApi } from '@/features/approvals/approvalsApi';
@@ -197,7 +197,7 @@ export {
   useSubmitPurchaseRequestMutation,
   useGetPurchaseRequestsQuery,
   useGetPurchaseRequestsPageQuery,
-} from '@/features/purchasing/purchasingApi';
+} from '@/api/purchasingApi';
 export {
   useAcceptReceiptQualityMutation,
   useGetWarehousesQuery,

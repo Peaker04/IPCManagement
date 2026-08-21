@@ -32,7 +32,7 @@ import {
   useWorkflowOverview,
 } from '@/api/reportsApi';
 import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/features/warehouse/warehouseApi';
-import { useGetPurchaseOrdersPageQuery } from '@/features/purchasing/purchasingApi';
+import { useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
 import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';

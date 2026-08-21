@@ -18,7 +18,7 @@ import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/features/approvals/approvalsApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
-import { useGetPurchaseRequestsPageQuery } from '@/features/purchasing/purchasingApi';
+import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi';
 import type { ApprovalRecord } from '@/types/workflow';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
