@@ -56,11 +56,14 @@ Mỗi bảng phải được xử lý theo grain và mục đích nghiệp vụ,
 - [x] Source-aware ledger consumer scan records production/test consumers for shared movement, import-history, audit, receipt, role-inbox and import-job owners; no export-only ledger owner found.
 - [x] SQL interceptor regression proves the history page query contains a database `LIMIT`; query count remains constant per page.
 - [x] Probe bảng chất lượng xác nhận hàng `48→53px`, growth `0.0913`, không đổi ngưỡng.
-- [ ] Fixture nhiều năm chứng minh query/payload không tăng tuyến tính theo tổng lịch sử.
+- [x] Fixture nhiều năm chứng minh page-size 1 trả ít item/bytes hơn page-size 10 trên cùng retention history; SQL interceptor xác nhận server `LIMIT`.
+- [ ] Production database `EXPLAIN`/index evidence remains a Wave 6 cross-stack carry-over (`W3-CARRY-01`), not inferred from SQLite tests.
 - [ ] DTO null/date/timezone có regression.
 - [ ] Detail/rollback quay lại đúng filter/page/cursor sau refetch.
 - [ ] Mỗi ledger surface trong contract có retention và pagination disposition được kiểm chứng từ source.
-- [ ] Consumer scan cho shared movement/import components; export hoặc fixture cũ được giữ/xoá có bằng chứng.
+- [x] Consumer scan cho shared movement/import components; export hoặc fixture cũ được giữ/xoá có bằng chứng.
+
+Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like multi-year fixture cho import history và đối chiếu index `(customerId, weekStartDate, createdAt)`/sort order trước khi tối ưu DB.
 
 ## Wave 4 — Master/reference và master-detail
 

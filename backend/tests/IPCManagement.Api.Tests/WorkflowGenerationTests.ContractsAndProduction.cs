@@ -13,6 +13,7 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text.Json;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
@@ -1039,6 +1040,16 @@ public partial class WorkflowGenerationTests
         result.TotalCount.Should().Be(2);
         result.Items.Select(item => item.WeekStartDate)
             .Should().Equal(new DateOnly(2030, 1, 7), new DateOnly(2026, 6, 15));
+
+        var pageOne = await service.GetWeeklyMenuImportHistoryAsync(
+            fixture.CustomerIdString,
+            new DateOnly(2026, 6, 15),
+            new DateOnly(2030, 1, 7),
+            new PagedRequestDto { PageNumber = 1, PageSize = 1 });
+        pageOne.Items.Should().ContainSingle();
+        JsonSerializer.Serialize(pageOne.Items).Length
+            .Should().BeLessThan(JsonSerializer.Serialize(result.Items).Length,
+                "response bytes must follow the requested page, not the full retention history");
     }
 
     [Fact]
