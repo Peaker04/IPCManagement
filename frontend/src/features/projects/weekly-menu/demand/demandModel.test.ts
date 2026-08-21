@@ -136,6 +136,22 @@ describe('material demand model', () => {
     ])
   })
 
+  it('uses fallback plan dish sources when detail lines are empty', () => {
+    const aggregateLines = [
+      { ingredientId: 'ingredient-1', material: 'Chả cá', unit: 'Miếng', source: '1 dòng nhu cầu' },
+      { ingredientId: 'ingredient-2', material: 'Chuối', unit: 'Quả', source: '1 dòng nhu cầu' },
+    ] as DemandLine[]
+    const fallbackSources = {
+      'ingredient-1': { dishNames: ['Chả cá chiên', 'Bún chả cá'] },
+      'Chuối': { dishNames: ['Chuối tráng miệng'] },
+    }
+
+    expect(attachDemandDishSources(aggregateLines, [], '2026-08-10', fallbackSources).map((line) => line.source)).toEqual([
+      'Chả cá chiên, Bún chả cá',
+      'Chuối tráng miệng',
+    ])
+  })
+
   it('matches document lineage to the active day across ISO, compact, and Vietnamese dates', () => {
     const document = (id: string, value = '') => ({
       id,

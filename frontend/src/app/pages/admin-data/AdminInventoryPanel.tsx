@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react';
-import { SectionPanel, StockMovementTable } from '@/components/common';
+import { SectionPanel } from '@/components/common';
+import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { toNextReportCursor } from '@/api/workflowApi';
 import { Input } from '@/components/ui/input';
 import type { AdminDataPageModel } from './useAdminDataPageModel';

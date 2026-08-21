@@ -153,6 +153,7 @@ export const attachDemandDishSources = (
   aggregateLines: DemandLine[],
   detailLines: DemandLine[],
   serviceDate: string,
+  fallbackDishSources?: Record<string, { dishNames?: string[] } | string[] | undefined>,
 ) => {
   const sourcesByMaterial = new Map<string, Set<string>>()
 
@@ -163,10 +164,17 @@ export const attachDemandDishSources = (
     sourcesByMaterial.set(key, sources)
   })
 
-  return aggregateLines.map((line) => ({
-    ...line,
-    source: formatMaterialDishSource(Array.from(sourcesByMaterial.get(demandDishSourceKey(line, serviceDate)) ?? [])),
-  }))
+  return aggregateLines.map((line) => {
+    const detailSources = Array.from(sourcesByMaterial.get(demandDishSourceKey(line, serviceDate)) ?? [])
+    const fallbackEntry = fallbackDishSources?.[line.ingredientId ?? '']
+      ?? fallbackDishSources?.[line.material ?? '']
+    const fallbackSources = Array.isArray(fallbackEntry) ? fallbackEntry : (fallbackEntry?.dishNames ?? [])
+
+    return {
+      ...line,
+      source: formatMaterialDishSource(detailSources.length > 0 ? detailSources : fallbackSources),
+    }
+  })
 }
 
 const demandDocumentDateTokens = (serviceDate: string) => {
