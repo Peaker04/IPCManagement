@@ -37,4 +37,9 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).toContain('setCurrentStockPage(1)');
     expect(warehousePageSource).toContain('setStockMovementCursors([])');
   });
+
+  it('reserves the shared table geometry while asynchronous rows settle', () => {
+    expect(warehousePageSource).toContain('ipc-warehouse-table-shell min-h-[27rem]');
+    expect(warehousePageSource).toContain('className="min-h-[27rem]"');
+  });
 });

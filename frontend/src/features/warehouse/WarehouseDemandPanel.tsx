@@ -5,7 +5,6 @@ import { RoleInbox } from '@/components/common/RoleInbox';
 import { Input } from '@/components/ui/input';
 import { formatDateOnly } from '@/lib/formatters';
 import type { DemandLine, RoleInboxItem } from '@/types/workflow';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 type WarehouseDemandPanelProps = {
   demandSearch: string;
@@ -48,8 +47,7 @@ export function WarehouseDemandPanel({
 
   return (
     <SectionPanel title="Nhu cầu xuất theo từng ngày">
-      <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab">
-        <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+      <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <label htmlFor="warehouse-demand-search" className="grid gap-1 text-xs font-semibold text-slate-700">
             Tìm nguyên liệu trong nhu cầu xuất
             <Input
@@ -85,13 +83,12 @@ export function WarehouseDemandPanel({
               title={null}
               actionForItem={(item) => (
                 <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                  {formatWorkflowStatus(item.nextAction)}
+                  {item.nextAction}
                 </Link>
               )}
             />
           </div>
         )}
-      </div>
     </SectionPanel>
   );
 }

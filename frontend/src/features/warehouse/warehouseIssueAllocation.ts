@@ -2,7 +2,7 @@ import type {
   CreateInventoryIssueLineRequest,
   CurrentStockRow,
   KitchenIssueRow,
-} from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
 import type { DemandLine } from '@/types/workflow';
 import { formatDateOnly } from '@/lib/formatters';
 

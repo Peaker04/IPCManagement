@@ -449,40 +449,43 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
       )}
         </div>
       )}
-      <Dialog open={confirmationAction !== null} onOpenChange={closeConfirmationDialog}>
-        <DialogContent aria-label={confirmDialogCopy.title} className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-amber-600" />
-              {confirmDialogCopy.title}
-            </DialogTitle>
-            <DialogDescription>{confirmDialogCopy.description}</DialogDescription>
-          </DialogHeader>
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            <div className="font-semibold text-slate-800">Ca hiện tại: {currentShift}</div>
-            <div>Số dòng đơn: {orders.length}</div>
-          </div>
-          {confirmationError && (
-            <div role="alert">
-              <InlineAlert title={confirmationError.title} variant="danger">
-                {confirmationError.message}
-              </InlineAlert>
+      {confirmationAction !== null && (
+        <Dialog open={confirmationAction !== null} onOpenChange={closeConfirmationDialog}>
+          <DialogContent aria-label={confirmDialogCopy.title} className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="size-5 text-amber-600" />
+                {confirmDialogCopy.title}
+              </DialogTitle>
+              <DialogDescription>{confirmDialogCopy.description}</DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              <div className="font-semibold text-slate-800">Ca hiện tại: {currentShift}</div>
+              <div>Số dòng đơn: {orders.length}</div>
             </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={closeConfirmationDialog} disabled={isBusy}>
-              Hủy
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmedAction}
-              disabled={isBusy}
-            >
-              {isBusy ? 'Đang xử lí...' : confirmDialogCopy.action}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            {confirmationError && (
+              <div role="alert">
+                <InlineAlert title={confirmationError.title} variant="danger">
+                  {confirmationError.message}
+                </InlineAlert>
+              </div>
+            )}
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={closeConfirmationDialog} disabled={isBusy}>
+                Hủy
+              </Button>
+          <Button
+            data-inp-action="export-coordination"
+            type="button"
+                onClick={handleConfirmedAction}
+                disabled={isBusy}
+              >
+                {isBusy ? 'Đang xử lý...' : confirmDialogCopy.action}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

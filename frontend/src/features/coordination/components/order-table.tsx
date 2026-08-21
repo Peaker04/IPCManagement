@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { lockBodyScroll, unlockBodyScroll } from '@/components/ui/dialog'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/lib/reduxHooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
@@ -39,16 +40,27 @@ const preloadDishDetailDialog = () => {
 }
 
 function DishDetailLoadingOverlay({ customerName, onClose }: { customerName: string; onClose: () => void }) {
+  useEffect(() => {
+    lockBodyScroll()
+    return () => {
+      unlockBodyScroll()
+    }
+  }, [])
+
   if (typeof document === 'undefined') return null
 
   return createPortal(
     <>
       <div
         aria-hidden="true"
-        className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px]"
+        className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px] overscroll-contain"
+        style={{ overscrollBehavior: 'contain' }}
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 z-[1001] flex items-center justify-center p-4 overscroll-contain"
+        style={{ overscrollBehavior: 'contain' }}
+      >
         <div
           role="dialog"
           aria-modal="true"

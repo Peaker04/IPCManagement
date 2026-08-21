@@ -11,7 +11,7 @@ vi.mock('@/api/dashboardApi', () => ({
   useGetOperationalKpisQuery: mocks.getOperationalKpis,
 }))
 
-vi.mock('@/features/reports/reportsApi', () => ({
+vi.mock('@/api/reportsApi', () => ({
   useWorkflowOverview: mocks.workflowOverview,
 }))
 
