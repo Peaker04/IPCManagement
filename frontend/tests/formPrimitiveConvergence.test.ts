@@ -11,7 +11,7 @@ import {
 const production = readProductionSources()
 
 const checkboxExceptionLocations = [
-  'src/app/pages/admin-data/AdminContractsPanel.tsx:183',
+  'src/app/pages/admin-data/AdminContractsPanel.tsx:181',
   'src/app/pages/admin-data/AdminEmployeesPanel.tsx:108',
   'src/features/admin/pages/ApprovalRulesPage.tsx:417',
   'src/features/admin/pages/ApprovalRulesPage.tsx:516',
