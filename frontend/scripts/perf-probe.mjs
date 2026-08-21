@@ -64,6 +64,9 @@ const INTERACTIONS = [
   { id: 'modal-open', label: 'Thao tác 6 — Mở modal', selector: '[data-modal-trigger], [aria-haspopup="dialog"]', action: 'click' },
   { id: 'row-action', label: 'Thao tác 7 — Hành động hàng', selector: 'tbody tr button, tbody tr [role="button"], tbody tr a[href]', action: 'click' },
   { id: 'sidebar-toggle', label: 'Thao tác 8 — Sidebar toggle', selector: '[data-sidebar-toggle], nav button[aria-expanded][aria-controls]', action: 'click' },
+  { id: 'export-action', label: 'Thao tác 9 — Xuất dữ liệu', selector: 'button[data-inp-action^="export-"]', action: 'click' },
+  { id: 'workflow-submit', label: 'Thao tác 10 — Gửi quyết định', selector: 'button[data-inp-action$="submit-purchase-request"], button[data-inp-action="confirm-supplier"]', action: 'click' },
+  { id: 'approval-confirm', label: 'Thao tác 11 — Xác nhận phê duyệt', selector: 'button[data-inp-action="confirm-approval-decision"]', action: 'click' },
 ]
 const interactionFilter = process.env.PROBE_INTERACTIONS?.split(',').map((value) => value.trim()).filter(Boolean)
 const ACTIVE_INTERACTIONS = interactionFilter?.length
