@@ -12,16 +12,16 @@ const production = readProductionSources()
 
 const checkboxExceptionLocations = [
   'src/app/pages/admin-data/AdminContractsPanel.tsx:181',
-  'src/app/pages/admin-data/AdminEmployeesPanel.tsx:108',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:417',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:516',
+  'src/app/pages/admin-data/AdminEmployeesPanel.tsx:107',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:418',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:517',
   'src/features/chef/production/ServiceRunSection.tsx:161',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:404',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:411',
   'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:293',
 ]
 
 const fileExceptionLocations = [
-  'src/app/pages/admin-data/AdminBomPanel.tsx:127',
+  'src/app/pages/admin-data/AdminBomPanel.tsx:130',
   'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:81',
 ]
 
@@ -33,7 +33,7 @@ const pathExceptionLocations = [
   'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
   'src/features/chef/production/ServiceRunSection.tsx:156',
   'src/features/chef/production/ServiceRunSection.tsx:173',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:380',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:383',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
