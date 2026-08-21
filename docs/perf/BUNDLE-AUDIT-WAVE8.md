@@ -334,6 +334,23 @@ Wave 27 checklist:
 - [x] Full regression evidence: **158 files / 891 tests passed**.
 - [ ] Route-budget debt requires a separate product/runtime architecture wave.
 
+## Wave 28 architecture finding — API slice is a shell contract (2026-08-21)
+
+`apiSlice` is not merely a feature endpoint bundle: `store.ts` owns its reducer
+and middleware, while `MainLayout.tsx` dispatches its invalidation tags during
+cross-route lifecycle transitions. Route preloaders also rely on the same cache
+identity. Moving it behind route imports or creating per-route slices would
+break the shared cache contract and duplicate middleware state.
+
+Wave 28 checklist:
+
+- [x] Store, shell invalidation and route-preloader ownership traced.
+- [x] API-slice split rejected as an architectural violation, not a metric
+  workaround.
+- [x] No duplicate slice, threshold or cache-policy change.
+- [ ] Any future reduction must preserve one reducer/middleware/cache identity
+  while changing only the emitted loading boundary.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
