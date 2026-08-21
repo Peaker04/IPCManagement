@@ -21,6 +21,12 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 
 Dependency-cruiser hiện quét `423` module và `1572` dependency, không có dependency-rule violation. Hai module có cờ orphan đều là entrypoint hợp lệ nêu trên; kết quả này không chứng minh export/CSS/script không dùng.
 
+### Wave 4/5 cleanup recheck — 2026-08-21
+
+- Source scan trên `frontend/src`, `frontend/tests`, `frontend/package.json`, root `package.json`, `.github`, `tools` và `docs` không tìm thấy consumer cho hai script untracked `generate-status-tokens.mjs` và `measure-ultimate-baseline.mjs`.
+- Hai script không được xóa trong wave này vì nằm trong dirty scope của owner khác; giữ `REVIEW` và chuyển quyết định sang Wave 7/8.
+- `KeepAliveTabPanel`, `useDebouncedValue` và `statusTokenContract.test.ts` đã có import/discovery consumer; disposition `KEEP` không thay đổi.
+
 ## Ledger consumer scan — 2026-08-21
 
 Source-aware `rg` scan trên `frontend/src`, `frontend/tests`, `backend/src` và `backend/tests` xác nhận các shared ledger owners đều có consumer production và/hoặc contract test:
