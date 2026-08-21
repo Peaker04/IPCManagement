@@ -33,12 +33,12 @@ const exceptionIcons = {
 
 export function ExceptionLane({ title, items, empty, className }: ExceptionLaneProps) {
   return (
-    <aside className={cn('ipc-exception-lane', className)}>
+    <aside className={cn('ipc-exception-lane min-h-[145px] flex flex-col', className)}>
       {title && <div className="ipc-exception-lane-title">{title}</div>}
       {items.length === 0 ? (
         <EmptyState
           title={empty ?? 'Không có ngoại lệ đang mở.'}
-          className="ipc-exception-lane-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left"
+          className="ipc-exception-lane-empty min-h-[100px] !items-stretch !justify-start !p-3 !text-left"
         />
       ) : (
         <div className="ipc-exception-lane-list">

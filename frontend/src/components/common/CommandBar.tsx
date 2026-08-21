@@ -11,16 +11,29 @@ interface CommandBarProps {
   actionsClassName?: string;
 }
 
-export function CommandBar({ children, actions, className, leadingClassName, actionsClassName }: CommandBarProps) {
+/**
+ * CommandBar - Canonical action and status bar (Rule C1, C7, X1)
+ * Locks minimum height to prevent wrapping shifts and downstream table pushes.
+ */
+export function CommandBar({
+  children,
+  actions,
+  className,
+  leadingClassName,
+  actionsClassName,
+}: CommandBarProps) {
   // Extract children of fragment if it's a fragment
   let actionList = React.Children.toArray(actions);
-  if (actions && typeof actions === 'object' && 'type' in actions && (actions as { type?: unknown }).type === React.Fragment) {
+  if (
+    actions &&
+    typeof actions === 'object' &&
+    'type' in actions &&
+    (actions as { type?: unknown }).type === React.Fragment
+  ) {
     const actObj = actions as { props?: { children?: ReactNode } };
     actionList = React.Children.toArray(actObj.props?.children);
   }
 
-  // Split actions into primary and secondary
-  // We classify primary actions as those having primary, success or warning button classes.
   const primaryActions = actionList.filter((child) => {
     if (React.isValidElement(child)) {
       const props = child.props as { className?: string } | undefined;
@@ -42,18 +55,18 @@ export function CommandBar({ children, actions, className, leadingClassName, act
     <div
       className={cn(
         typography.body,
-        'ipc-command-bar flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between',
-        className,
+        'ipc-command-bar flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between',
+        className
       )}
     >
-      <div className={cn('ipc-command-bar-main flex flex-wrap items-center gap-4', leadingClassName)}>
+      <div className={cn('ipc-command-bar-main flex flex-wrap items-center gap-3', leadingClassName)}>
         {children}
       </div>
       {actions && (
         <div
           className={cn(
-            'ipc-command-bar-actions flex flex-wrap items-center justify-end gap-2',
-            actionsClassName,
+            'ipc-command-bar-actions flex shrink-0 flex-wrap items-center justify-end gap-2',
+            actionsClassName
           )}
         >
           {actionList.length > 3 ? (

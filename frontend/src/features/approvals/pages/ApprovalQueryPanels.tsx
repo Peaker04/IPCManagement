@@ -14,7 +14,7 @@ import type {
   ApprovalInboxPage,
   PageNumberPage,
   PurchaseRequestResult,
-} from "@/api/workflowApi";
+} from "@/api/workflowApiTypes";
 import type { QueryView } from "@/lib/queryView";
 import { formatWorkflowStatus } from "@/lib/workflowConfig";
 import type { ApprovalRecord, WorkflowDocument } from "@/types/workflow";
@@ -327,14 +327,14 @@ export function PurchaseRequestHistoryState({
     );
   }
 
-  const purchaseRequests = view.data.items;
+  const purchaseRequests = view.phase === "ready" && view.data?.items ? view.data.items : [];
 
   return (
     <>
       {view.isRefreshing && (
-        <InlineAlert title="Đang cập nhật đề xuất mua" variant="info">
-          Danh sách hiện tại vẫn được giữ trong khi đồng bộ bản mới.
-        </InlineAlert>
+        <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
+          Đang cập nhật...
+        </span>
       )}
       {purchaseRequests.length === 0 ? (
         <EmptyState
@@ -378,16 +378,16 @@ export function PurchaseRequestHistoryState({
                     ? `(${purchaseRequest.shiftName})`
                     : ""}
                 </span>
-                <span>{purchaseRequest.lines.length} dòng</span>
+                <span>{purchaseRequest.lines?.length ?? 0} dòng</span>
               </div>
             </Button>
           ))}
         </div>
       )}
       <PaginationBar
-        page={view.data.pageNumber ?? currentPage}
-        pageSize={view.data.pageSize ?? 8}
-        totalItems={view.data.totalCount ?? 0}
+        page={view.phase === "ready" && view.data?.pageNumber ? view.data.pageNumber : currentPage}
+        pageSize={view.phase === "ready" && view.data?.pageSize ? view.data.pageSize : 8}
+        totalItems={view.phase === "ready" && view.data?.totalCount ? view.data.totalCount : 0}
         onPageChange={onPageChange}
       />
     </>

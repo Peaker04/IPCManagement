@@ -58,8 +58,8 @@ export function OperationalFrame({
         </div>
       )}
 
-      <div className={cn('ipc-operational-body', rail && 'has-rail', contentClassName)}>
-        <div className="ipc-operational-primary">{children}</div>
+      <div className={cn('ipc-operational-body flex-1 min-h-0', rail && 'has-rail', contentClassName)}>
+        <div className="ipc-operational-primary flex-1 min-h-0 flex flex-col">{children}</div>
         {rail && <aside className="ipc-operational-rail">{rail}</aside>}
       </div>
     </section>

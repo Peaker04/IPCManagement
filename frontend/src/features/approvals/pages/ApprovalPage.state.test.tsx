@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   getMenuDecisions: vi.fn(),
 }));
 
-vi.mock('@/features/approvals/approvalsApi', () => ({
+vi.mock('@/api/approvalsApi', () => ({
   useGetApprovalRecordsQuery: mocks.getApprovals,
   useGetApprovalHistoryQuery: mocks.getHistory,
   useExecuteApprovalDecisionMutation: () => [mocks.executeDecision, { isLoading: false }],
@@ -22,7 +22,7 @@ vi.mock('@/api/workflowDocumentsApi', () => ({
   useGetWorkflowDocumentsQuery: mocks.getDocuments,
 }));
 
-vi.mock('@/features/purchasing/purchasingApi', () => ({
+vi.mock('@/api/purchasingApi', () => ({
   useGetPurchaseRequestsPageQuery: mocks.getPurchaseRequests,
 }));
 

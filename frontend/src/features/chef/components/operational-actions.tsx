@@ -69,7 +69,7 @@ export function OperationalActions({
 
         <Separator className="bg-slate-200 my-4" />
 
-        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition-all duration-300 hover:bg-slate-50">
+        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition-colors duration-300 hover:bg-slate-50">
           <div className="absolute top-0 bottom-0 left-0 w-1 bg-indigo-500" />
           <div className="flex items-center gap-2 mb-2.5">
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
@@ -92,24 +92,28 @@ export function OperationalActions({
         </div>
       </div>
 
-      <SupplementalRequestDialog
-        open={supplementalOpen}
-        onOpenChange={setSupplementalOpen}
-        materials={materials}
-        isSubmitting={isSubmittingSupplementalRequest}
-        onSubmit={async (data) => onSupplementalRequest ? onSupplementalRequest(data) : false}
-      />
+      {supplementalOpen && (
+        <SupplementalRequestDialog
+          open={supplementalOpen}
+          onOpenChange={setSupplementalOpen}
+          materials={materials}
+          isSubmitting={isSubmittingSupplementalRequest}
+          onSubmit={async (data) => onSupplementalRequest ? onSupplementalRequest(data) : false}
+        />
+      )}
 
       {/* Excess Material Return Dialog */}
-      <ExcessMaterialDialog
-        open={excessOpen}
-        onOpenChange={setExcessOpen}
-        materials={materials}
-        onSubmit={(data) => {
-          onExcessMaterialReturn?.(data)
-          setExcessOpen(false)
-        }}
-      />
+      {excessOpen && (
+        <ExcessMaterialDialog
+          open={excessOpen}
+          onOpenChange={setExcessOpen}
+          materials={materials}
+          onSubmit={(data) => {
+            onExcessMaterialReturn?.(data)
+            setExcessOpen(false)
+          }}
+        />
+      )}
     </SectionPanel>
   )
 }

@@ -26,11 +26,11 @@ const shortenStatus = (status: string) => {
   const normalized = status.trim().toLocaleLowerCase('vi-VN');
 
   if (!normalized) return 'Chưa rõ';
-  if (normalized.includes('tạo lại') || normalized.includes('sinh lại')) return 'Cần sinh lại';
-  if (normalized.includes('duyệt giá')) return 'Duyệt giá';
-  if (normalized.includes('thiếu')) return 'Thiếu hàng';
-  if (normalized.includes('bếp xác nhận')) return 'Chờ Bếp nhận';
-  if (normalized.includes('tồn kho đủ')) return 'Đủ hàng';
+  if (normalized.includes('tạo lại') || normalized.includes('sinh lại') || normalized.includes('lỗi thời')) return 'Cần sinh lại';
+  if (normalized.includes('duyệt giá') || normalized.includes('ngoại lệ')) return 'Duyệt giá';
+  if (normalized.includes('thiếu') || normalized.includes('chưa đủ')) return 'Thiếu hàng';
+  if (normalized.includes('bếp xác nhận') || normalized.includes('chờ bếp')) return 'Chờ Bếp nhận';
+  if (normalized.includes('tồn kho đủ') || normalized.includes('đủ') || normalized.includes('hoàn tất')) return 'Đủ hàng';
 
   return formatWorkflowStatus(status);
 };
@@ -39,13 +39,12 @@ const shortenNextAction = (action: string) => {
   const normalized = action.trim().toLocaleLowerCase('vi-VN');
 
   if (!normalized) return 'Chưa rõ';
-  if (normalized.includes('sinh lại')) return 'Sinh lại';
-  if (normalized.includes('tạo lại demand')) return 'Tạo lại nhu cầu';
+  if (normalized.includes('sinh lại') || normalized.includes('tạo lại')) return 'Sinh lại';
   if (normalized.includes('kiểm tra giá')) return 'Kiểm tra giá';
-  if (normalized.includes('chọn nhà cung cấp')) return 'Chọn nhà cung cấp';
+  if (normalized.includes('chọn nhà cung cấp')) return 'Chọn NCC';
   if (normalized.includes('đặt mua')) return 'Đặt mua';
   if (normalized.includes('đề xuất mua')) return 'Đề xuất mua';
-  if (normalized.includes('phiếu xuất kho')) return 'Xuất kho';
+  if (normalized.includes('phiếu xuất kho') || normalized.includes('xuất kho')) return 'Xuất kho';
   if (normalized.includes('không cần')) return 'Không cần';
 
   return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;

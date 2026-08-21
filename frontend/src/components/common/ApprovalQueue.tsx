@@ -229,7 +229,7 @@ export function ApprovalQueue({
                       <dt className="text-xs font-medium text-slate-500">
                         Ngày phục vụ
                       </dt>
-                      <dd className="font-semibold text-slate-800">
+                      <dd className="font-semibold text-slate-800 whitespace-nowrap">
                         {record.serviceDate ?? "Chưa có"}
                       </dd>
                     </div>
@@ -237,13 +237,13 @@ export function ApprovalQueue({
                       <dt className="text-xs font-medium text-slate-500">
                         Phạm vi
                       </dt>
-                      <dd className="font-semibold text-slate-800">
+                      <dd className="font-semibold text-slate-800 whitespace-nowrap">
                         {record.scope === "FULLDAY"
                           ? "Cả ngày (FULLDAY)"
                           : (record.scope ?? "Chưa có")}
                       </dd>
                     </div>
-                    <div>
+                    <div className="col-span-full">
                       <dt className="text-xs font-medium text-slate-500">
                         Chứng từ nguồn
                       </dt>
@@ -256,7 +256,7 @@ export function ApprovalQueue({
                         {record.sourceDocumentCode ?? "Chưa có"}
                       </dd>
                     </div>
-                    <div>
+                    <div className="col-span-full">
                       <dt className="text-xs font-medium text-slate-500">
                         Thiếu hụt
                       </dt>

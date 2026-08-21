@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { typography } from '@/lib/typography';
 import { QueryErrorAlert } from './QueryErrorAlert';
+import { Inbox, SearchX, ShieldAlert } from 'lucide-react';
 
 interface EmptyStateBaseProps {
   icon?: ReactNode;
@@ -12,17 +13,16 @@ interface EmptyStateBaseProps {
 }
 
 /**
- * `empty` = nghiệp vụ thật sự chưa có dữ liệu.
- * `error` = không tải được dữ liệu nên KHÔNG biết có dữ liệu hay không.
- *
- * Hai trạng thái này bắt buộc phải nhìn khác nhau: một danh sách rỗng vì lỗi
- * mạng mà hiển thị như "chưa có dữ liệu" sẽ khiến người dùng kết luận sai
- * nghiệp vụ (ví dụ: tuần này không cần mua nguyên liệu nào).
- * Nhánh `error` dùng lại `QueryErrorAlert` nên luôn có nút tải lại và
- * `role="alert"`; TypeScript bắt buộc truyền `onRetry`.
+ * EmptyState - Supports 4 distinct domain empty states (Rule E2):
+ * 1. `empty` / `uncreated`: Nghiệp vụ thật sự chưa tạo dữ liệu.
+ * 2. `filtered`: Dữ liệu có tồn tại nhưng bộ lọc / tìm kiếm hiện tại không khớp.
+ * 3. `error`: Lỗi mạng hoặc server (không thể kết luận rỗng, bắt buộc có nút thử lại).
+ * 4. `forbidden`: Người dùng không có quyền truy cập dữ liệu này.
  */
+export type EmptyStateVariant = 'empty' | 'uncreated' | 'filtered' | 'error' | 'forbidden';
+
 type EmptyStateProps =
-  | (EmptyStateBaseProps & { variant?: 'empty'; onRetry?: never; isRetrying?: never })
+  | (EmptyStateBaseProps & { variant?: 'empty' | 'uncreated' | 'filtered' | 'forbidden'; onRetry?: never; isRetrying?: never })
   | (EmptyStateBaseProps & { variant: 'error'; onRetry: () => unknown; isRetrying?: boolean });
 
 export function EmptyState({
@@ -38,22 +38,38 @@ export function EmptyState({
   if (variant === 'error') {
     return (
       <QueryErrorAlert title={title} onRetry={onRetry!} isRetrying={isRetrying} className={className}>
-        {description ?? 'Không tải được dữ liệu nên chưa thể kết luận danh sách này đang rỗng. Hãy tải lại trước khi ra quyết định.'}
+        {description ?? 'Không tải được dữ liệu nên chưa thể kết luận danh sách này đang rỗng. Hãy thử lại.'}
         {action}
       </QueryErrorAlert>
     );
   }
 
+  const defaultIcons: Record<string, ReactNode> = {
+    empty: <Inbox className="h-6 w-6 text-slate-400" />,
+    uncreated: <Inbox className="h-6 w-6 text-slate-400" />,
+    filtered: <SearchX className="h-6 w-6 text-slate-400" />,
+    forbidden: <ShieldAlert className="h-6 w-6 text-amber-500" />,
+  };
+
+  const renderedIcon = icon ?? defaultIcons[variant];
+
   return (
-    <div className={cn('ipc-empty-state', className)}>
-      {icon && (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm bg-slate-100 text-slate-400">
-          {icon}
+    <div
+      className={cn('ipc-empty-state flex flex-col items-center justify-center p-8 text-center min-h-[200px]', className)}
+      data-empty-variant={variant}
+    >
+      {renderedIcon && (
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100/80 text-slate-500">
+          {renderedIcon}
         </div>
       )}
-      <p className={cn(typography.body, 'font-semibold text-slate-600')}>{title}</p>
-      {description && <p className={cn(typography.caption, 'mt-1.5 max-w-[36ch] leading-relaxed text-slate-400')}>{description}</p>}
-      {action && <div className="mt-3">{action}</div>}
+      <p className={cn(typography.body, 'font-semibold text-slate-700')}>{title}</p>
+      {description && (
+        <p className={cn(typography.caption, 'mt-1.5 max-w-[40ch] leading-relaxed text-slate-500 text-xs')}>
+          {description}
+        </p>
+      )}
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }

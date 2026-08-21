@@ -2,8 +2,8 @@
 
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
-import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '@/types/coordination'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
@@ -102,14 +102,13 @@ export default function ChefDashboardPage() {
           activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
           onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}
         />
-        <div className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none" aria-busy={isViewPending} aria-live="polite">
-        {isViewPending && (
-          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
-            Đang cập nhật
-          </span>
-        )}
-        {isProductionView && (
-          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab" className="space-y-4">
+        <div className="relative min-h-[420px]" aria-busy={isViewPending} aria-live="polite">
+          {isViewPending && (
+            <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200">
+              Đang cập nhật
+            </span>
+          )}
+          <KeepAliveTabPanel id="chef-production" active={isProductionView} className="space-y-4">
             <ChefQueryBoundary preserveFallback stabilizeInitialLoad queries={[
               { label: 'danh mục món và BOM', view: production.queryViews.catalog },
               { label: 'kế hoạch sản xuất trong ngày', view: production.queryViews.dailyPlan },
@@ -117,36 +116,35 @@ export default function ChefDashboardPage() {
               { label: 'nguyên liệu có thể thao tác trong ca', view: receipts.actionQueryView },
               { label: 'phiếu trả kho của ca', view: exceptions.queryView },
             ]}>
-            <ChefHeader productionPlan={production.productionPlan} />
-            <ChefProductionSection
-              lines={production.dailyPlanLines}
-              isSending={production.isSendingDailyPlan}
-              isLoading={production.status.isDailyPlanLoading}
-              isError={production.status.isDailyPlanError}
-              totalPlans={production.dailyPlan?.totalPlans ?? 0}
-              sentPlans={production.dailyPlan?.sentPlans ?? 0}
-              onReceivePlan={production.receiveDailyPlan}
-            />
-            <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
-            <KitchenReceiptSection
-              productionPlan={production.productionPlan}
-              returns={exceptions.activeReturns}
-              isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
-              onSupplementalRequest={exceptions.requestSupplemental}
-              onExcessMaterialReturn={exceptions.recordReturn}
-              onMaterialSignoff={signOffMaterial}
-              receiptPage={receipts.page}
-              receiptPageSize={receipts.pageSize}
-              receiptTotalCount={receipts.totalCount}
-              receiptTotalSignedCount={receipts.totalSignedCount}
-              receiptActionRowCount={receipts.actionRowCount}
-              onReceiptPageChange={receipts.setPage}
-            />
+              <ChefHeader productionPlan={production.productionPlan} />
+              <ChefProductionSection
+                lines={production.dailyPlanLines}
+                isSending={production.isSendingDailyPlan}
+                isLoading={production.status.isDailyPlanLoading}
+                isError={production.status.isDailyPlanError}
+                totalPlans={production.dailyPlan?.totalPlans ?? 0}
+                sentPlans={production.dailyPlan?.sentPlans ?? 0}
+                onReceivePlan={production.receiveDailyPlan}
+              />
+              <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
+              <KitchenReceiptSection
+                productionPlan={production.productionPlan}
+                returns={exceptions.activeReturns}
+                isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
+                onSupplementalRequest={exceptions.requestSupplemental}
+                onExcessMaterialReturn={exceptions.recordReturn}
+                onMaterialSignoff={signOffMaterial}
+                receiptPage={receipts.page}
+                receiptPageSize={receipts.pageSize}
+                receiptTotalCount={receipts.totalCount}
+                receiptTotalSignedCount={receipts.totalSignedCount}
+                receiptActionRowCount={receipts.actionRowCount}
+                onReceiptPageChange={receipts.setPage}
+              />
             </ChefQueryBoundary>
-          </div>
-        )}
-        {!isProductionView && (
-          <div id="chef-documents-panel" role="tabpanel" aria-labelledby="chef-documents-tab">
+          </KeepAliveTabPanel>
+
+          <KeepAliveTabPanel id="chef-documents" active={!isProductionView}>
             <ChefQueryBoundary queries={[
               { label: 'chứng từ bếp', view: journal.queryViews.documents },
               { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
@@ -156,8 +154,7 @@ export default function ChefDashboardPage() {
                 documents={journal.returnDocuments}
               />
             </ChefQueryBoundary>
-          </div>
-        )}
+          </KeepAliveTabPanel>
         </div>
         {statusMessages.length > 0 && (
           <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>

@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { KitchenIssueRow } from '@/api/workflowApi'
+import type { KitchenIssueRow } from '@/api/workflowApiTypes'
 import type { ProductionPlan } from '@/lib/types'
 import type { ChefMaterial } from './chefDashboardTypes'
 import type { ChefShiftScope } from './production/useChefProductionPlan'
@@ -27,14 +27,21 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetDishesCatalogQuery: mocks.getCatalog,
 }))
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/api/warehouseApi', () => ({
   useConfirmInventoryIssueReceiptMutation: () => [mocks.confirmReceipt, { isLoading: false }],
   useCreateInventoryReturnMutation: () => [mocks.createReturn, { isLoading: false }],
   useCreateSupplementalMaterialRequestMutation: () => [mocks.createSupplemental, { isLoading: false }],
   useGetInventoryReturnsQuery: mocks.getInventoryReturns,
+}))
+
+vi.mock('@/api/reportsApi', () => ({
   useGetDailyProductionPlanQuery: mocks.getDailyPlan,
   useGetKitchenIssuesPageQuery: mocks.getKitchenIssues,
   useGetKitchenIssuesQuery: mocks.getKitchenIssueActions,
+}))
+
+vi.mock('@/api/chefApi', () => ({
+  useGetDailyProductionPlanQuery: mocks.getDailyPlan,
   useSendDailyProductionPlanToKitchenMutation: () => [mocks.sendDailyPlan, { isLoading: false }],
 }))
 

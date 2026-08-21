@@ -13,6 +13,7 @@ vi.mock('@/components/common', () => ({
   CommandBar: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   ContextStrip: () => null,
   InlineAlert: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  KeepAliveTabPanel: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   OperationalFrame: ({ command, context, children }: { command?: ReactNode; context?: ReactNode; children?: ReactNode }) => <>{command}{context}{children}</>,
   ViewSwitcher: () => null,
 }))

@@ -60,8 +60,8 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
     <SectionPanel
       title="Checklist nhận nguyên liệu"
       description={pageLabel
-        ? `${pageLabel}. Mỗi nguyên liệu một dòng tổng; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.`
-        : 'Mỗi nguyên liệu một dòng tổng; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.'}
+        ? `${pageLabel}. Mỗi nguyên liệu một dòng tổng trong ngày/ca; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.`
+        : 'Mỗi nguyên liệu một dòng tổng trong ngày/ca; mở dòng tổng để kiểm đếm và xác nhận từng phiếu xuất nguồn.'}
       badge={
         <span className="text-sm text-slate-500 font-medium">
           Đã nhận: {totalSignedCount ?? signedCount}/{totalSourceCount ?? materials.length} dòng nguồn
