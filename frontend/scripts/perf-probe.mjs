@@ -41,7 +41,7 @@ const ROUTES = [
   { id: 'admin-data', path: '/admin-data', tabs: ['admin-bom-import', 'admin-contracts', 'admin-cleanup', 'admin-inventory', 'admin-statistics', 'admin-employees', 'admin-audit'] },
   { id: 'warehouse', path: '/warehouse', tabs: ['warehouse-movement', 'warehouse-demand', 'warehouse-exceptions'] },
   { id: 'chef', path: '/chef-dashboard', tabs: ['chef-production', 'chef-documents'] },
-  { id: 'approvals', path: '/approvals', tabs: ['approval-queue', 'approval-role', 'approval-history'] },
+  { id: 'approvals', path: '/approvals', tabs: ['approval-queue', 'approval-history'] },
   { id: 'approval-rules', path: '/admin/rules', tabs: [] },
 ]
 
