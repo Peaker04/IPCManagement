@@ -1,8 +1,6 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { HeaderInfo } from '../components/header-info'
 import { OrderStatusBanner } from '../components/order-status-banner'
-import { OrderTable } from '../components/order-table'
-import { ActionToolbar } from '../components/action-toolbar'
 import { useAppDispatch } from '@/lib/reduxHooks'
 import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { syncOrdersForShift } from '../coordinationSlice'
@@ -13,6 +11,11 @@ import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
+
+const ActionToolbar = lazy(() => import('../components/action-toolbar').then(({ ActionToolbar: component }) => ({ default: component })))
+const OrderTable = lazy(() => import('../components/order-table').then(({ OrderTable: component }) => ({ default: component })))
+
+const capabilityFallback = <div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 export default function CoordinationPage() {
   const dispatch = useAppDispatch()
@@ -102,15 +105,19 @@ export default function CoordinationPage() {
           ]}
         >
           <OrderStatusBanner status={orderStatus} />
-          <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
+          <Suspense fallback={capabilityFallback}>
+            <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
+          </Suspense>
 
           <div className="min-h-0">
-            <OrderTable
-              orders={filteredOrders}
-              canEditForecast={canEditForecast}
-              canRequestAdjustment={canRequestAdjustment}
-              useFinalServings={useFinalServings}
-            />
+            <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+              <OrderTable
+                orders={filteredOrders}
+                canEditForecast={canEditForecast}
+                canRequestAdjustment={canRequestAdjustment}
+                useFinalServings={useFinalServings}
+              />
+            </Suspense>
           </div>
         </QueryViewBoundary>
       </SectionPanel>
