@@ -4,6 +4,7 @@ import {
   ContextStrip,
   PaginationBar,
   SectionPanel,
+  SkeletonTableRow,
   StatusBadge,
   TableViewport,
 } from '@/components/common';
@@ -80,7 +81,9 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
               <th>Thao tác</th>
             </tr>
           </thead>
-          <tbody>
+          {dataQualityResult.isLoading && dataQualityRows.length === 0 ? (
+            <SkeletonTableRow columns={7} rowCount={8} />
+          ) : <tbody>
             {dataQualityRows.length === 0
               ? dataQualitySearch.trim()
                 ? <tr><td colSpan={7} className="py-8 text-center text-slate-500">Không tìm thấy vấn đề dữ liệu phù hợp.</td></tr>
@@ -118,7 +121,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                 </td>
               </tr>
             ))}
-          </tbody>
+          </tbody>}
         </table>
       </TableViewport>
       <PaginationBar

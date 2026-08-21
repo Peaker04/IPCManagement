@@ -435,20 +435,27 @@
   table-layout: fixed;
 }
 
-.ipc-reports-quality-table th:nth-child(1) { width: 10%; }
-.ipc-reports-quality-table th:nth-child(2) { width: 13%; }
-.ipc-reports-quality-table th:nth-child(3) { width: 13%; }
-.ipc-reports-quality-table th:nth-child(4) { width: 10%; }
-.ipc-reports-quality-table th:nth-child(5) { width: 12%; }
-.ipc-reports-quality-table th:nth-child(6) { width: 14%; }
-.ipc-reports-quality-table th:nth-child(7) { width: 13%; }
-.ipc-reports-quality-table th:nth-child(8) { width: 13%; }
-.ipc-reports-quality-table th:nth-child(9) { width: 8%; }
+.ipc-reports-quality-table th:nth-child(1) { width: 11%; }
+.ipc-reports-quality-table th:nth-child(2) { width: 18%; }
+.ipc-reports-quality-table th:nth-child(3) { width: 12%; }
+.ipc-reports-quality-table th:nth-child(4) { width: 12%; }
+.ipc-reports-quality-table th:nth-child(5) { width: 17%; }
+.ipc-reports-quality-table th:nth-child(6) { width: 20%; }
+.ipc-reports-quality-table th:nth-child(7) { width: 10%; }
 
 .ipc-reports-quality-table td {
   white-space: normal;
   overflow-wrap: break-word;
   vertical-align: top;
+}
+
+.ipc-reports-quality-table .ipc-quality-description-cell,
+.ipc-reports-quality-table .ipc-quality-action-guidance-cell {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  line-height: 1.45;
 }
 
 .ipc-bom-current-table {
