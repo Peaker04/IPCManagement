@@ -155,6 +155,12 @@ Wave này chỉ sửa cross-stack khi evidence ở Wave 3–5 chứng minh vấn
 
 Chạy production build dưới H.1 cho toàn bộ route/tab/table contract, không chỉ ba route mẫu.
 
+### Wave 7 open findings
+
+| ID | Owner | Evidence hiện có | Điều kiện đóng |
+| --- | --- | --- | --- |
+| W7-RUNTIME-01 | Runtime/FE | `node frontend/scripts/perf-probe.mjs --check` pass: 9 routes, 27 targets, 8 interactions; production build/lint pass. Không có runtime phục vụ ở `3037/3020/3036` tại lần kiểm tra gần nhất. | Chạy `--load`, `--inp`, `--overflow` trên bundle production đang phục vụ, headed Chrome, đúng 5 desktop viewport trong `MEMORY.md`; lưu JSON/MD, request/console/page errors và integrity pass. |
+
 ### Checklist đóng Wave 7
 
 - [ ] Mỗi contract có ít nhất loading và ready measurement; empty/error cho owner conditional.
