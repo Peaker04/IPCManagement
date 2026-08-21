@@ -462,7 +462,7 @@
 }
 
 .ipc-reports-quality-table tbody td {
-  height: 146px;
+  padding-bottom: 80px;
 }
 
 .ipc-bom-current-table {
