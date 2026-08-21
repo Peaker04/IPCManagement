@@ -371,8 +371,13 @@ public partial class WorkflowGenerationTests
     private sealed class SelectCommandCounter : DbCommandInterceptor
     {
         public int SelectCount { get; private set; }
+        public List<string> SelectCommands { get; } = [];
 
-        public void Reset() => SelectCount = 0;
+        public void Reset()
+        {
+            SelectCount = 0;
+            SelectCommands.Clear();
+        }
 
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
             DbCommand command,
@@ -383,6 +388,7 @@ public partial class WorkflowGenerationTests
             if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
             {
                 SelectCount++;
+                SelectCommands.Add(command.CommandText);
             }
 
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);

@@ -21,6 +21,21 @@ Quy tắc xoá: `docs/TABLE-STANDARDIZATION-ROADMAP.md` Wave 8.
 
 Dependency-cruiser hiện quét `423` module và `1572` dependency, không có dependency-rule violation. Hai module có cờ orphan đều là entrypoint hợp lệ nêu trên; kết quả này không chứng minh export/CSS/script không dùng.
 
+## Ledger consumer scan — 2026-08-21
+
+Source-aware `rg` scan trên `frontend/src`, `frontend/tests`, `backend/src` và `backend/tests` xác nhận các shared ledger owners đều có consumer production và/hoặc contract test:
+
+| Owner | Consumer evidence | Disposition |
+| --- | --- | --- |
+| `StockMovementTable` | Warehouse, Admin Inventory, Chef journal, Reports, common tests/barrel | KEEP; shared consumer-dependent |
+| `WeeklyMenuImportHistory` | Import dialog/hook/API, route preloader, backend controller/service/contract tests | KEEP; Wave 3 owner |
+| `AdminAuditPanel` | AdminDataPage, model, feedback/state/typography contracts | KEEP |
+| `WarehouseReceiptLifecyclePanel` | WarehousePage, UI audit, query-boundary and component tests | KEEP |
+| `RoleInbox` | Dashboard, Warehouse Demand, Reports overview/API and common tests/barrel | KEEP |
+| `WeeklyMenuImportJobs` | Import dialog and confirmation/source/typography/quantity tests | KEEP |
+
+Không phát hiện ledger owner nào chỉ còn export mà không có consumer. Dynamic registry/style consumers vẫn thuộc Wave 8 sweep; candidate script dispositions không thay đổi.
+
 ## Checklist áp dụng trong mọi wave
 
 - [ ] Liệt kê file/symbol/style/script bị thay thế.

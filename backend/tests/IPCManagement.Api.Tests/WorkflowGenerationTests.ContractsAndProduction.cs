@@ -992,6 +992,9 @@ public partial class WorkflowGenerationTests
         result.Items.Single().CanRollback.Should().BeFalse();
         queryCounter.SelectCount.Should().BeLessThanOrEqualTo(4,
             "history page, schedule eligibility and quantity-link checks must be batched per page");
+        queryCounter.SelectCommands.Should().Contain(command =>
+            command.Contains("LIMIT", StringComparison.OrdinalIgnoreCase),
+            "the history list must be bounded at the database page boundary");
     }
 
     [Fact]
