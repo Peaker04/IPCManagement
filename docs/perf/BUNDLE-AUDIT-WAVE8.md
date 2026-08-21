@@ -307,6 +307,28 @@ Wave 20 checklist:
 - [x] No threshold, manualChunks, cache identity, or API-slice changes.
 - [ ] Route closure reduction remains the next implementation wave; it requires
   per-route ownership analysis rather than further barrel-only cleanup.
+
+## Wave 21 ownership analysis — shared floor identified (2026-08-21)
+
+Manifest decomposition shows the dominant closure is shared, not a single
+feature barrel:
+
+- Entry `index-DdwtW-w5.js`: **95.0 KiB gzip** on every measured route.
+- `common-CT-5WFXE.js`: **54.3 KiB gzip** on every route.
+- `apiSlice-P-ROsRIJ.js`: **24.5 KiB gzip** on every route.
+
+That shared floor is already about **173.8 KiB gzip** before a route's own page,
+dialog, selector, or API chunks. Therefore dashboard/coordination/approval
+budgets cannot be reached by more leaf-export deletion alone; the next wave
+must analyze entry/runtime ownership and shared API loading boundaries. No
+manual chunk or threshold change is justified by this evidence.
+
+Wave 21 checklist:
+
+- [x] Per-route manifest closure decomposed into top contributing assets.
+- [x] Shared floor and route-specific ownership recorded.
+- [x] No policy, threshold, or cache identity changes.
+- [ ] Design a runtime-safe entry/API split with before/after closure evidence.
 - [x] No route-budget, cache, API-slice, or threshold changes.
 
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
