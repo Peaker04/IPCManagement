@@ -123,8 +123,9 @@ Carry-over `W3-CARRY-01`: Wave 6 phải chạy `EXPLAIN` trên production-like m
 
 - [x] Ma trận `fact → KPI/table/detail` không có duplicate không chủ đích.
 - [x] Purchase-plan aggregate totals remain full-scope when the UI page is limited; backend regression covers `PageSize = 1` with `TotalCount = 2`.
-- [ ] Aggregate không double-count và không trộn day/week/snapshot/source-line grain.
+- [x] Aggregate không double-count và không trộn day/week/source-line grain; backend regression khóa day/week grouping và unique `(period, ingredient, unit)`.
 - [ ] Unit/currency/date format thống nhất FE và export.
+- [ ] Export phải nêu rõ page-scope hay full-filter-scope và không bỏ các aggregate field cần đối chiếu (`estimatedAmount`).
 - [ ] Mọi technical tab/view còn lại đã giữ hoặc loại bằng phân tích nghiệp vụ.
 - [ ] Report query/cache key đổi góc nhìn không trả stale data.
 
