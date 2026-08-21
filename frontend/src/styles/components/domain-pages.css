@@ -458,6 +458,10 @@
   line-height: 1.45;
 }
 
+.ipc-reports-quality-table tbody td {
+  height: 146px;
+}
+
 .ipc-bom-current-table {
   width: 100%;
   min-width: 600px;
