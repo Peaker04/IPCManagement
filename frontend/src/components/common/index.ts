@@ -1,4 +1,3 @@
-export { DataTableShell } from './DataTableShell';
 export { PaginatedTableFrame } from './PaginatedTableFrame';
 export { TableViewport } from './TableViewport';
 export { CommandBar } from './CommandBar';
@@ -16,8 +15,6 @@ export { SectionPanel } from './SectionPanel';
 export { SideRail } from './SideRail';
 export { SplitWorkbench } from './SplitWorkbench';
 export { StatusBadge } from './StatusBadge';
-export { Toolbar } from './Toolbar';
-export { WorkQueue } from './WorkQueue';
 export { RoleInbox } from './RoleInbox';
 export { ApprovalQueue } from './ApprovalQueue';
 export { DemandSummary } from './DemandSummary';
