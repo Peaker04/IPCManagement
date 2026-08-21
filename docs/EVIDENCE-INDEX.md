@@ -366,6 +366,13 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 | `.artifacts/shipyard-live/ipcmanagement-baseline-runtime/advanced-settings-admin-1440x900.png` | `D5297E3DB6B7C093595D144826B36109D4AE1C3ED0546BEE0596D0001C9AD104` | Admin headed check: liên kết `Thiết lập nâng cao` nằm ngay trên thẻ tài khoản, click mở `/admin/advanced-settings`; role `quanly` không thấy liên kết và direct route chuyển `/403`. |
 | `.artifacts/shipyard-live/ipcmanagement-baseline-runtime/advanced-settings-all-pages-1440x900.png` | `DC729F95D16E78A429FF01D4026859E27D9931BA96F5529B82543AFCC40C5FDD` | Admin headed check cho registry 9 nhóm tab: mặc định tất cả accordion đóng, mỗi dòng hiển thị count; flow Thu mua ẩn `Mua bổ sung` làm tab biến mất trên trang thật rồi `Hiện tất cả` khôi phục preference. |
 
+## Table standardization Wave 7 schedule probe — 21/08/2026
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `artifacts/perf-probe-schedule-build.json` | `0C7C038562167C862356402F4DD965D98F9D3D66D2B742EFF7438082E95B2FCC` | Authenticated production-preview H.1 load evidence cho Weekly Menu schedule: route mount/settle, row geometry, CLS/CGR/scroll-growth và integrity machine gate. |
+| `artifacts/perf-probe-schedule-overflow-build.json` | `87F6621EA5E8373E649B91B5636A2FAA5210D1233F7A4630C4A2342F2C4F1907` | Overflow matrix bốn viewport sau khi loại control và semantic-only node không nhìn thấy; zero visual clipping FAIL, 1280px chỉ còn ellipsis WARN và scroll INFO. |
+
 ## Attempt cũ, không authoritative
 
 | Artifact | SHA-256 | Lý do loại |
