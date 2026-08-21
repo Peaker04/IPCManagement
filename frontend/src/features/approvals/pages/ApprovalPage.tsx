@@ -16,7 +16,9 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
-import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetWorkflowDocumentsQuery, useGetPurchaseRequestsPageQuery, useGetApprovalHistoryQuery } from '@/api/workflowApi';
+import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/features/approvals/approvalsApi';
+import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
+import { useGetPurchaseRequestsPageQuery } from '@/features/purchasing/purchasingApi';
 import type { ApprovalRecord } from '@/types/workflow';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -513,6 +515,7 @@ export default function ApprovalPage() {
 
             <DialogFooter className="gap-2">
               <Button
+                data-inp-action="confirm-approval-decision"
                 type="button"
                 variant="outline"
                 onClick={closeDecisionModal}
