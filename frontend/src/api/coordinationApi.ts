@@ -41,9 +41,22 @@ type WeeklyMenuTemplateQuery = LowerCamelQuery<
 type CommittedWeeklyMenuQuery = LowerCamelQuery<
   NonNullable<paths['/api/coordination/weekly-menu']['get']['parameters']['query']>
 >
-type WeeklyMenuImportHistoryQuery = LowerCamelQuery<
-  NonNullable<paths['/api/coordination/weekly-menu/import-history']['get']['parameters']['query']>
->
+export type WeeklyMenuImportHistoryPage = {
+  items: WeeklyMenuImportHistoryItem[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+};
+type WeeklyMenuImportHistoryQuery = {
+  customerId?: string;
+  fromDate?: string;
+  toDate?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
 type ProductionPlanQuery = LowerCamelQuery<
   NonNullable<paths['/api/production-plans/filter']['get']['parameters']['query']>
 >
@@ -408,12 +421,12 @@ breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult
       }),
       invalidatesTags: ['Coordination', workflowCacheTags.productionPlans],
     }),
-    getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, WeeklyMenuImportHistoryQuery | void>({
+    getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryPage>, WeeklyMenuImportHistoryQuery | void>({
       query: (params) => {
-        const customerId = params?.customerId;
+        const { customerId, fromDate, toDate, pageNumber = 1, pageSize = 10 } = params ?? {};
         return {
           url: '/coordination/weekly-menu/import-history',
-          params: customerId ? { customerId } : undefined,
+          params: { customerId, fromDate, toDate, pageNumber, pageSize },
         };
       },
       providesTags: ['Coordination'],

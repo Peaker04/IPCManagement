@@ -1,6 +1,7 @@
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
@@ -81,8 +82,11 @@ internal interface IWeeklyMenuImportPersistence
 
 public interface IWeeklyMenuImportHistoryService
 {
-    Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+    Task<PagedResponseDto<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
         string? customerId,
+        DateOnly? fromDate,
+        DateOnly? toDate,
+        PagedRequestDto request,
         CancellationToken cancellationToken = default);
 
     Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(

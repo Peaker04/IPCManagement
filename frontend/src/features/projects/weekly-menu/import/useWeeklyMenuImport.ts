@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useRef } from 'react'
+import { useMemo, useReducer, useRef, useState } from 'react'
 import type { CreateCustomerContractRequest } from '@/types/coordination'
 import {
   useCommitWeeklyMenuImportBatchMutation,
@@ -51,14 +51,15 @@ export const useWeeklyMenuImport = ({
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
-  const historyQuery = useGetWeeklyMenuImportHistoryQuery()
+  const [historyPage, setHistoryPage] = useState(1)
+  const historyQuery = useGetWeeklyMenuImportHistoryQuery({ pageNumber: historyPage, pageSize: 10 }, { skip: !state.isOpen })
   const historyView = toLabeledQueryView(historyQuery, 'lịch sử import thực đơn tuần', {
     instruction: 'Mở hộp thoại import để tải lịch sử import thực đơn tuần.',
   })
   const historyData = historyView.phase === 'ready'
     ? historyView.data
     : historyView.phase === 'error' ? historyQuery.currentData ?? historyQuery.data : undefined
-  const history = useMemo(() => historyData?.data ?? [], [historyData?.data])
+  const history = useMemo(() => historyData?.data?.items ?? [], [historyData?.data?.items])
   const selectedCustomer = customers.find((item) => item.customerId === state.draftCustomerId)
   const selectedJob = state.jobs.find((job) => job.jobId === state.selectedJobId) ?? state.jobs[0]
   const presentation = useMemo(
@@ -238,7 +239,7 @@ export const useWeeklyMenuImport = ({
   }
 
   return {
-    state, customers, history, historyDataState: historyView, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
+    state, customers, history, historyPage, setHistoryPage, historyPageInfo: historyData?.data, historyDataState: historyView, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
     wizardStep: getImportWizardStep(state.jobs), hiddenFeedbackByDetail,
     status: {
       isCustomerLoading,

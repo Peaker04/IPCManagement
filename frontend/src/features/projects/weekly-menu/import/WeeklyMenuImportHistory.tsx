@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
@@ -10,7 +10,7 @@ import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { matchesWeeklyMenuImportHistorySearch } from './weeklyMenuImportHistorySearch'
 
 export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
-  const { history, status, actions } = workflow
+  const { history, historyPage, historyPageInfo, setHistoryPage, status, actions } = workflow
   const [search, setSearch] = useState('')
   const filteredHistory = useMemo(() => {
     return history.filter((item) => matchesWeeklyMenuImportHistorySearch(item, search))
@@ -76,6 +76,14 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
           </table>
         </TableViewport>
       </QueryViewBoundary>
+      <PaginationBar
+        page={historyPage}
+        pageSize={historyPageInfo?.pageSize ?? 10}
+        totalItems={historyPageInfo?.totalCount ?? history.length}
+        itemLabel="phiên import"
+        isPending={workflow.historyDataState.phase === 'uninitialized'}
+        onPageChange={setHistoryPage}
+      />
     </SectionPanel>
   )
 }

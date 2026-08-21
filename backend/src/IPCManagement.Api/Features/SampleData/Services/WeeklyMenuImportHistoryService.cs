@@ -3,6 +3,7 @@ using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Shared.Contracts;
 
 using IPCManagement.Api.Exceptions;
 
@@ -12,8 +13,11 @@ internal sealed class WeeklyMenuImportHistoryService(
     IpcManagementContext context,
     WeeklyMenuAuditActorResolver actorResolver) : IWeeklyMenuImportHistoryService
 {
-    public async Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+    public async Task<PagedResponseDto<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
         string? customerId,
+        DateOnly? fromDate,
+        DateOnly? toDate,
+        PagedRequestDto request,
         CancellationToken cancellationToken = default)
     {
         var query = context.Menuversions
@@ -27,9 +31,15 @@ internal sealed class WeeklyMenuImportHistoryService(
             query = query.Where(version => version.CustomerId.SequenceEqual(customerBytes));
         }
 
+        if (fromDate.HasValue) query = query.Where(version => version.WeekStartDate >= fromDate.Value);
+        if (toDate.HasValue) query = query.Where(version => version.WeekStartDate <= toDate.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
         var versions = await query
             .OrderByDescending(version => version.CreatedAt)
-            .Take(100)
+            .ThenByDescending(version => version.MenuVersionId)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync(cancellationToken);
         var userNamesById = await context.Users
             .AsNoTracking()
@@ -66,7 +76,11 @@ internal sealed class WeeklyMenuImportHistoryService(
             });
         }
 
-        return items;
+        return PagedResponseDto<WeeklyMenuImportHistoryItemDto>.Create(
+            items,
+            totalCount,
+            request.PageNumber,
+            request.PageSize);
     }
 
     public async Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(

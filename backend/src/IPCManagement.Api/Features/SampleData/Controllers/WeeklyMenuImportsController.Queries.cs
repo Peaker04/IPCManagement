@@ -3,6 +3,7 @@ using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.SampleData.Controllers;
 
@@ -61,13 +62,16 @@ public sealed partial class WeeklyMenuImportsController
     }
 
     [HttpGet("weekly-menu/import-history")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<WeeklyMenuImportHistoryItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWeeklyMenuImportHistoryAsync(
         [FromQuery] string? customerId,
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        [FromQuery] PagedRequestDto request,
         CancellationToken cancellationToken)
     {
-        var history = await _historyService.GetWeeklyMenuImportHistoryAsync(customerId, cancellationToken);
-        return Ok(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>.SuccessResult(history));
+        var history = await _historyService.GetWeeklyMenuImportHistoryAsync(customerId, fromDate, toDate, request, cancellationToken);
+        return Ok(ApiResponse<PagedResponseDto<WeeklyMenuImportHistoryItemDto>>.SuccessResult(history));
     }
 
     [HttpGet("customers/{customerId}/import-mapping")]
