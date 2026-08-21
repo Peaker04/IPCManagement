@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
-import { useGetServiceRunPageQuery } from '@/api/workflowApi'
+import { useGetServiceRunPageQuery } from '@/api/chefApi'
 import { EmptyState } from './EmptyState'
 import { SectionPanel } from './SectionPanel'
 import { StatusBadge } from './StatusBadge'

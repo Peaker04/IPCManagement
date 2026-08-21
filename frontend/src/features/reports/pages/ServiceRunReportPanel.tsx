@@ -1,13 +1,13 @@
 import { ClipboardList } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { EmptyState, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { useGetServiceRunAdjustmentsQuery, useGetServiceRunPageQuery } from '@/api/workflowApi';
+import { useGetServiceRunPageQuery, useGetServiceRunAdjustmentsQuery } from '@/api/chefApi';
 import { formatServiceRunBlocker, getServiceRunStatusPresentation } from '@/lib/workflowConfig';
 import { readStoredAuthSnapshot } from '@/lib/auth/authStorage';
+import { formatCurrency } from '@/lib/formatters';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
 
 type Props = { dateFrom: string; dateTo: string; shiftName: string };
-const formatCurrency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
 
 const serviceRunPreferenceConfig: TablePreferenceConfig = {
   tableId: 'service-run-report',

@@ -4,7 +4,7 @@ import { dashboardApi } from '@/api/dashboardApi';
 import { reportsApi } from '@/features/reports/reportsApi';
 import { purchasingApi } from '@/api/purchasingApi';
 import { warehouseApi } from '@/api/warehouseApi';
-import { chefApi } from '@/features/chef/chefApi';
+import { chefApi } from '@/api/chefApi';
 import { approvalsApi } from '@/features/approvals/approvalsApi';
 import { adminWorkflowApi } from '@/features/admin/adminWorkflowApi';
 
@@ -239,7 +239,7 @@ export {
     useApproveServiceRunVarianceWaiverMutation,
     useGetServiceRunAdjustmentsQuery,
     useCreateServiceRunAdjustmentMutation,
-} from '@/features/chef/chefApi';
+} from '@/api/chefApi';
 export {
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
