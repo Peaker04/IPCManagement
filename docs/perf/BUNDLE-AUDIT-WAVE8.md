@@ -329,6 +329,24 @@ Wave 21 checklist:
 - [x] Shared floor and route-specific ownership recorded.
 - [x] No policy, threshold, or cache identity changes.
 - [ ] Design a runtime-safe entry/API split with before/after closure evidence.
+
+## Wave 22 boundary design — dialog/select shared pull-in (2026-08-21)
+
+Source tracing shows the shared `dialog` chunk is pulled by `ConfirmDialog`,
+which is exported by the common barrel and consumed across operational routes.
+`select` is route-owned and appears in feature/page modules rather than the
+common barrel. Therefore the next safe experiment is a lazy, route-owned
+confirmation seam (or an explicit lightweight confirmation primitive), not a
+global `manualChunks` rule or API-slice duplication. This wave records the
+design boundary without speculative code movement.
+
+Wave 22 checklist:
+
+- [x] Dialog/select import ownership traced to concrete source files.
+- [x] Shared versus route-owned pull-in distinguished.
+- [x] No threshold, cache, or API policy change.
+- [ ] Prototype confirmation seam and compare route closure plus interaction
+  behavior before accepting a runtime split.
 - [x] No route-budget, cache, API-slice, or threshold changes.
 
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
