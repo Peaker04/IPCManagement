@@ -52,6 +52,7 @@ Mỗi bảng phải được xử lý theo grain và mục đích nghiệp vụ,
 - [x] FE history query truyền active customer scope và reset page khi customer đổi; focused hook regression pass.
 - [x] Backend history date window regression covers inclusive `DateOnly` bounds across 2023→2030 and deterministic newest-first ordering.
 - [x] OpenAPI marks `weekStartDate` as `format: date`; FE date formatter uses the date prefix without timezone conversion, with a timestamp regression.
+- [x] Rollback hook regression proves the current history page remains selected after the mutation; customer scope/page reset remains limited to an actual scope change.
 - [x] Probe bảng chất lượng xác nhận hàng `48→53px`, growth `0.0913`, không đổi ngưỡng.
 - [ ] Fixture nhiều năm chứng minh query/payload không tăng tuyến tính theo tổng lịch sử.
 - [ ] DTO null/date/timezone có regression.

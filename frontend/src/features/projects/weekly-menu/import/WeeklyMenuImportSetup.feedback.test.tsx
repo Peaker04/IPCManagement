@@ -186,6 +186,7 @@ describe('Weekly Menu Import setup feedback', () => {
     const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
     act(() => {
       result.current.actions.open()
+      result.current.setHistoryPage(3)
       result.current.actions.requestRollback('menu-version-1', 'ANV · tuần 27/07/2026')
     })
 
@@ -194,5 +195,6 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(screen.getByRole('dialog', { name: 'Xác nhận hủy phiên import' })).toHaveTextContent('ANV · tuần 27/07/2026')
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))
     expect(mocks.rollbackImport).toHaveBeenCalledWith('menu-version-1')
+    expect(result.current.historyPage).toBe(3)
   })
 })
