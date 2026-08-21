@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { useGetOperationalKpisQuery } from '@/api/dashboardApi';
 import {
   useGetIngredientDemandAggregatePageQuery,
-  useGetOperationalKpisQuery,
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
-} from '@/api/workflowApi';
+} from '@/features/reports/reportsApi';
 import type { AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CommandBar, EmptyState, OperationalFrame, StatusBadge } from '@/components/common';
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { Button } from '@/components/ui/button';
-import { useGetOperationalKpisQuery } from '@/features/dashboard/dashboardApi';
+import { useGetOperationalKpisQuery } from '@/api/dashboardApi';
 import { useWorkflowOverview } from '@/features/reports/reportsApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';

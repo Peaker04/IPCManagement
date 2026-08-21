@@ -1,6 +1,6 @@
 import { apiSlice } from '@/api/apiSlice';
 import { workflowDocumentsApi } from '@/api/workflowDocumentsApi';
-import { dashboardApi } from '@/features/dashboard/dashboardApi';
+import { dashboardApi } from '@/api/dashboardApi';
 import { reportsApi } from '@/features/reports/reportsApi';
 import { purchasingApi } from '@/features/purchasing/purchasingApi';
 import { warehouseApi } from '@/features/warehouse/warehouseApi';
