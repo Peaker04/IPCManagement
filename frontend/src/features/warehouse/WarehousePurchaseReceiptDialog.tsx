@@ -17,8 +17,8 @@ import type {
   PurchaseOrderLineDto,
   WarehouseDto,
   WarehousePurchaseReceiptResult,
-} from '@/api/workflowApi';
-import { useRecordWarehousePurchaseReceiptMutation } from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
+import { useRecordWarehousePurchaseReceiptMutation } from '@/features/warehouse/warehouseApi';
 
 interface WarehousePurchaseReceiptDialogProps {
   open: boolean;
