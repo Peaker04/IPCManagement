@@ -347,6 +347,23 @@ Wave 22 checklist:
 - [x] No threshold, cache, or API policy change.
 - [ ] Prototype confirmation seam and compare route closure plus interaction
   behavior before accepting a runtime split.
+
+## Wave 23 experiment disposition — confirmation seam not accepted (2026-08-21)
+
+`ConfirmDialog` has eight runtime consumers across admin, weekly-menu and
+purchasing surfaces. Replacing the synchronous barrel export with a lazy
+component would require a `Suspense` boundary at every consumer (including
+non-route tests) and would alter confirmation timing/focus behavior. The
+current app-level boundary cannot guarantee those leaf consumers are mounted
+under Suspense, so the experiment is rejected without a controlled wrapper.
+
+Wave 23 checklist:
+
+- [x] Consumer count and route spread measured.
+- [x] Interaction/focus and test boundary risk identified.
+- [x] No speculative lazy change merged.
+- [ ] If pursued later, introduce an explicit `LazyConfirmDialog` wrapper with
+  its own fallback/focus tests before changing the shared contract.
 - [x] No route-budget, cache, API-slice, or threshold changes.
 
 ## Wave 15 closure — full regression after barrel cleanup (2026-08-21)
