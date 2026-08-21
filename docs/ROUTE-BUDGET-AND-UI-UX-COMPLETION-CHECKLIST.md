@@ -185,12 +185,12 @@ Mỗi finding phải ghi đủ:
 ## Gate 7 — Regression và closeout
 
 - [ ] Focused tests của từng changed seam pass.
-- [ ] Full frontend unit suite pass với worker phù hợp.
-- [ ] Frontend build pass.
-- [ ] Frontend lint pass.
-- [ ] Dependency-cruiser pass.
+- [x] Full frontend unit suite pass với worker phù hợp: `157 files / 888 tests PASS` với `--maxWorkers=4` sau Coordination pilot.
+- [x] Frontend build pass sau Coordination pilot.
+- [x] Frontend lint pass sau Coordination pilot.
+- [x] Dependency-cruiser pass: `425 modules / 1601 dependencies / 0 violations`.
 - [ ] Backend build/test pass nếu UI flow phụ thuộc contract backend.
-- [ ] Route-budget checker pass trên clean build.
+- [ ] Route-budget checker pass trên clean build; hiện vẫn RED `10/10`, Coordination đã giảm `5.31 KiB` nhưng còn `227.28 / 196.00 KiB`.
 - [ ] UI measurement suite pass hoặc mọi ngoại lệ có verdict rõ ràng.
 - [ ] `git diff --check` pass.
 - [ ] Secret/stub scan pass.
