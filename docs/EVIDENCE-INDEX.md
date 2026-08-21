@@ -375,6 +375,9 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 ## Source-of-truth performance documents — 20/08/2026
 
+| `artifacts/perf-probe-wave7-all-load.json` | `64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739` | Full authenticated production-preview H.1 load matrix: 27 targets, integrity 0, 7 gradable, 20 N/A; six pass and `warehouse-movement` exposes a blocker where 8 rows/429px at t0 transition to 1 row/94px settled (CGR 0.6122). |
+| `artifacts/perf-probe-wave7-all-load.md` | `5E566FDE8CD3F8876A91B24A614810FD29D103B29CD5C703589DD74449CA26F3` | Human-readable companion for the complete Wave 7 load matrix and its N/A reasons. |
+
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
 | `docs/perf/step3-verification.md` | `8D73E2312E16590B35784A2FA6E44C2DE45A76C4A6770ADA7AD6FFB89532E444` | Báo cáo nghiệm thu H.1 25 tab, calibration và blocker list; source document, không tự promote các verdict cũ nếu runtime hiện hành mâu thuẫn. |
