@@ -7,8 +7,11 @@ const mocks = vi.hoisted(() => ({
   workflowOverview: vi.fn(),
 }))
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/dashboard/dashboardApi', () => ({
   useGetOperationalKpisQuery: mocks.getOperationalKpis,
+}))
+
+vi.mock('@/features/reports/reportsApi', () => ({
   useWorkflowOverview: mocks.workflowOverview,
 }))
 
