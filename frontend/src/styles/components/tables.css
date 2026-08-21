@@ -177,44 +177,35 @@
 
 .ipc-admin-quality-table {
   width: 100%;
-  min-width: 1180px;
+  min-width: 960px;
   table-layout: fixed;
 }
 
 .ipc-admin-quality-table th:nth-child(1) {
-  width: 10%;
+  min-width: 180px;
 }
 
 .ipc-admin-quality-table th:nth-child(2) {
-  width: 7%;
+  min-width: 120px;
+  white-space: nowrap;
 }
 
 .ipc-admin-quality-table th:nth-child(3) {
-  width: 8%;
+  min-width: 140px;
+  white-space: nowrap;
 }
 
 .ipc-admin-quality-table th:nth-child(4) {
-  width: 9%;
+  min-width: 120px;
+  white-space: nowrap;
 }
 
 .ipc-admin-quality-table th:nth-child(5) {
-  width: 9%;
+  min-width: 180px;
 }
 
 .ipc-admin-quality-table th:nth-child(6) {
-  width: 12%;
-}
-
-.ipc-admin-quality-table th:nth-child(7) {
-  width: 17%;
-}
-
-.ipc-admin-quality-table th:nth-child(8) {
-  width: 18%;
-}
-
-.ipc-admin-quality-table th:nth-child(9) {
-  width: 14%;
+  min-width: 260px;
 }
 
 .ipc-admin-quality-table td {
@@ -230,23 +221,22 @@
 
 .ipc-admin-quality-table .ipc-row-action-cell .ipc-table-action-control,
 .ipc-admin-quality-table .ipc-row-action-cell .ipc-table-action-control.ipc-button {
-  width: 8.5rem;
-  min-width: 8.5rem;
-  max-width: 8.5rem;
+  width: auto;
+  min-width: 9.5rem;
+  max-width: 100%;
 }
 
 .ipc-admin-quality-table .ipc-quality-description-cell,
 .ipc-admin-quality-table .ipc-quality-action-guidance-cell {
-  line-height: 1.35;
+  line-height: 1.45;
   overflow-wrap: break-word;
 }
 
 .ipc-quality-description-cell,
 .ipc-quality-guidance-copy {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  display: block;
+  overflow: visible;
+  line-height: 1.45;
 }
 
 .ipc-quality-action-guidance-cell .ipc-table-action-control {
@@ -471,6 +461,8 @@
   min-width: 0;
   white-space: normal;
   word-break: normal;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .ipc-cost-table-shell {
@@ -542,6 +534,7 @@
 
 .ipc-order-action-buttons button {
   min-height: 36px;
+
   max-width: min(100%, 14.5rem);
   white-space: normal;
   overflow-wrap: anywhere;
@@ -638,4 +631,21 @@
 .ipc-auth-hint {
   color: var(--ipc-slate-500);
   font-size: 0.75rem;
+}
+
+@keyframes ipc-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.ipc-table-skeleton-row {
+  height: 44px;
+}
+
+.ipc-table-skeleton-cell {
+  height: 18px;
+  background-color: var(--ipc-slate-200);
+  border-radius: var(--ipc-radius-sm);
+  animation: ipc-skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  display: block;
 }
