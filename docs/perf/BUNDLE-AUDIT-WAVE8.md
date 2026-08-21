@@ -420,6 +420,23 @@ Wave 32 checklist:
 - [x] No unjustified deletion merged.
 - [x] Existing full-suite baseline remains the acceptance gate.
 
+## Wave 33 backend inventory — DI registrations are live contracts (2026-08-21)
+
+Backend static search confirms the service/repository surface is explicitly
+registered in `DependencyInjection.cs` (`AddScoped`, `AddSingleton`) and the
+EF model uses assembly configuration discovery. A no-reference search cannot
+classify these classes as dead because controllers, handlers and runtime DI
+resolution are the consumers. No backend deletion was made without a runtime
+registration/endpoint proof.
+
+Wave 33 checklist:
+
+- [x] DI registration boundary inspected.
+- [x] Assembly-discovery risk recorded.
+- [x] No speculative backend service deletion.
+- [ ] Backend cleanup requires endpoint/DI integration evidence in a dedicated
+  backend test wave.
+
 ## Wave 20 route-budget audit — boundary debt recorded (2026-08-21)
 
 The unchanged route-budget gate was rerun against the current clean build. It
