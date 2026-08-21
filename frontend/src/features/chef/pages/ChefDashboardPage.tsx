@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeferredValue, useMemo, useState } from 'react'
+import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
 import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
@@ -9,7 +9,6 @@ import type { ShiftType } from '@/types/coordination'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
 import { ChefHeader } from '../components/chef-header'
-import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
 import { useChefJournal } from '../journal/useChefJournal'
 import { ChefProductionSection } from '../production/ChefProductionSection'
 import { ServiceRunSection } from '../production/ServiceRunSection'
@@ -21,6 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'
 import { visibleTabIds } from '@/lib/navigationPreferences'
+
+const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection').then(({ ChefDocumentsSection: component }) => ({ default: component })))
+const chefCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 export default function ChefDashboardPage() {
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
@@ -149,10 +151,12 @@ export default function ChefDashboardPage() {
               { label: 'chứng từ bếp', view: journal.queryViews.documents },
               { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
             ]}>
-              <ChefDocumentsSection
-                movements={journal.kitchenMovements}
-                documents={journal.returnDocuments}
-              />
+              <Suspense fallback={chefCapabilityFallback}>
+                <ChefDocumentsSection
+                  movements={journal.kitchenMovements}
+                  documents={journal.returnDocuments}
+                />
+              </Suspense>
             </ChefQueryBoundary>
           </KeepAliveTabPanel>
         </div>

@@ -82,7 +82,7 @@ Mỗi finding phải ghi đủ:
 - [ ] Admin Data capability island pass — pilot evidence: `AdminStatisticsPanel` lazy-load; `268.72 → 267.89 KiB` (`-0.83 KiB`), focused `6/6`, headed `5/5` viewport pass; threshold `259.00 KiB` chưa đạt.
 - [ ] Dashboard capability island pass.
 - [ ] Reports capability island pass — pilot evidence: `ServiceRunReportPanel` và `LegacyLineageDispositionPanel` lazy-load; `263.29 → 259.55 KiB` (`-3.74 KiB`), focused `21/21`, headed `5/5` viewport pass; threshold `252.00 KiB` chưa đạt.
-- [ ] Chef capability island pass.
+- [ ] Chef capability island pass — pilot evidence: `ChefDocumentsSection` lazy-load; `271.51 → 269.92 KiB` (`-1.59 KiB`), focused `10/10`, headed `5/5` viewport pass; threshold `263.00 KiB` chưa đạt.
 - [ ] Weekly Menu capability island pass.
 - [ ] Purchasing capability island pass.
 - [ ] Approval Rules/Advanced Settings capability island pass.
