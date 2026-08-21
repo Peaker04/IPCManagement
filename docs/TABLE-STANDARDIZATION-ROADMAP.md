@@ -214,7 +214,7 @@ Cleanup diễn ra trong từng wave; Wave 8 là sweep cuối, không phải nơi
 
 ### Wave 8 regression findings — 2026-08-21
 
-Full `npm --prefix frontend run test:unit` initially reported **152 passing test files / 8 failing tests**. After reconciling the source-range, primitive exception, presentation fingerprint, and state-purity contracts in the working tree, the latest run reports **157 passing test files / 3 failing tests**; all remaining failures are `W8-REG-05` ownership instrumentation mismatches. These are carry-over findings, not a pass signal:
+Full `npm --prefix frontend run test:unit` initially reported **152 passing test files / 8 failing tests**. After reconciling the source-range, primitive exception, presentation fingerprint, state-purity, and ownership contracts in the working tree, the latest run reports **158 passing test files / 890 passing tests**. These are the recorded carry-over dispositions:
 
 | ID | Evidence | Owner | Disposition |
 | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ Full `npm --prefix frontend run test:unit` initially reported **152 passing test
 | W8-REG-02 | `buttonPrimitiveConvergence.test.ts`: three AdvancedDisplaySettings native buttons and one ReportsPrice button disappeared from the declared exception set | UI primitive/exception inventory owner | FIXED-WT — exact locations reconciled, focused 2/2; commit with owner dirty slice |
 | W8-REG-03 | `formPrimitiveConvergence.test.ts`: AdminContracts checkbox line shifted by one line after dirty rewrite | Admin Contracts owner | FIXED-WT — exact locations reconciled, focused 2/2; commit with owner dirty slice |
 | W8-REG-04 | `presentationSurfaceInventory.test.ts`: switcher count/fingerprint changed from 9 to 7 | Presentation inventory owner | FIXED-WT — count-lock updated to 7, focused 5/5; commit with owner dirty slice |
-| W8-REG-05 | `uiOwnershipInstrumentationContract.test.tsx`: MainLayout route tuple IDs, tab bindings and Warehouse tab tuple disagree with current source | UI ownership instrumentation owner | OPEN — reconcile registry/source/test in one atomic change |
+| W8-REG-05 | `uiOwnershipInstrumentationContract.test.tsx`: MainLayout route tuple IDs, tab bindings and Warehouse tab tuple disagree with current source | UI ownership instrumentation owner | FIXED-WT — route/tab matrix regenerated in Vitest context, MainLayout/ViewSwitcher bindings reconciled, stale `bom-*` assertion removed; focused 12/12 and full 158/890 pass |
 | W8-REG-06 | `uiStatePurityContract.test.ts`: unclassified local state in AdvancedDisplaySettings and WarehouseReceiptLifecyclePanel | State-purity owner | FIXED-WT — current fingerprints classified, focused 9/9; commit with owner dirty slice |
 
 Wave 8 cannot close until every row above is `FIXED` or has a documented, approved disposition and the full suite is green.
