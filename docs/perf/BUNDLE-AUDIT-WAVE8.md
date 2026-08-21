@@ -219,3 +219,18 @@ Wave 13 gates:
 - [x] Dependency-cruiser pass: **432 modules / 1609 dependencies**.
 - [x] No route-budget, cache, or API-slice changes.
 - [x] Atomic commit: `78bff080`.
+
+## Wave 14 accepted seam — remove dead table utility exports (2026-08-21)
+
+`DataTableShell`, `Toolbar`, and `WorkQueue` were present only in their leaf
+declarations/tests and the common barrel. No application runtime consumer
+imports any of them, so their barrel exports were removed without deleting
+the leaf files.
+
+Wave 14 gates:
+
+- [x] TypeScript/Vite build pass; entry remains **98.25 KiB gzip**.
+- [x] ESLint pass.
+- [x] Dependency-cruiser pass: **432 modules / 1606 dependencies**.
+- [x] No route-budget, cache, or API-slice changes.
+- [x] Atomic commit: `79e90fa2`.
