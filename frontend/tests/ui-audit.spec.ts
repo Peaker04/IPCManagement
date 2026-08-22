@@ -3,6 +3,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
+import { collectWarehouseEvidence } from './warehouseEvidenceCollector';
+import { currentStockRows, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
 
 type AuditIssue = {
   rule: string;
@@ -142,6 +144,7 @@ function buildDataQualityIssues(count = 8) {
 async function stubAuditApi(page: Page, options?: {
   dataQualityIssues?: ReturnType<typeof buildDataQualityIssues>;
   profile?: AuditUser;
+  warehouseReady?: boolean;
 }) {
   const dataQualityIssues = options?.dataQualityIssues ?? [];
   const profile = options?.profile ?? {
@@ -237,9 +240,20 @@ async function stubAuditApi(page: Page, options?: {
       }
 
       if (endpoint === 'current-stock/page') {
+        const items = options?.warehouseReady ? currentStockRows : [];
         await fulfillJson(route, {
-          items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+          items, totalCount: items.length, pageNumber: 1, pageSize: 8, totalPages: items.length ? 1 : 0, hasPrev: false, hasNext: false,
         });
+        return;
+      }
+
+      if (endpoint === 'stock-movements/page' && options?.warehouseReady) {
+        await fulfillJson(route, { items: stockMovementRows, limit: 8, hasNext: false, nextCursorDate: null, nextCursorId: null, nextCursorOffset: null });
+        return;
+      }
+
+      if (endpoint === 'workflow-documents' && options?.warehouseReady) {
+        await fulfillJson(route, warehouseDocuments);
         return;
       }
 
@@ -635,6 +649,26 @@ async function expectNoAuditIssues(testName: string, issues: AuditIssue[], inter
   expect(issues).toEqual([]);
   expect(incompleteRecords).toEqual([]);
 }
+
+test.describe('Warehouse Data Workspace contract tracer', () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  test('captures one complete ready record through the existing audit runner', async ({ page }) => {
+    await stubAuditApi(page, { profile: warehouseKeeperActor, warehouseReady: true });
+    const signals = observePage(page);
+    await login(page, warehouseKeeperActor);
+    await page.goto(ROUTES.WAREHOUSE);
+    await expect(page.getByRole('tab', { name: 'Luân chuyển' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('region', { name: 'Bảng tồn kho hiện tại trong kho' })).toBeVisible();
+    await expect(page.getByText('PN-P27-001')).toBeVisible();
+    await stabilize(page);
+    const { record, path } = await collectWarehouseEvidence(page, signals);
+    await test.info().attach('warehouse-data-workspace-record', { path, contentType: 'application/json' });
+    expect(record.nonGetRequests).toEqual([]);
+    expect(record.consoleErrors).toEqual([]);
+    expect(record.pageErrors).toEqual([]);
+  });
+});
 
 test.describe('UI measurement audit', () => {
   for (const viewport of measurementViewports) {
