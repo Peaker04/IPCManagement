@@ -239,6 +239,19 @@
   gap: var(--ipc-space-3);
 }
 
+/* phase27-baseline-responsive-wide-rail-stacked: Warehouse-only opt-in. */
+@media (min-width: 1366px) {
+  .ipc-split-workbench--wide-detail-rail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+    align-items: start;
+  }
+
+  .ipc-split-workbench--wide-detail-rail .ipc-split-detail-strip-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Chi tiết ô thực đơn (WeeklyMenu) vẫn dùng dạng cột bên phải */
 
 .ipc-split-detail {

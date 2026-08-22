@@ -683,6 +683,37 @@ test.describe('Warehouse Data Workspace contract baseline', () => {
   });
 });
 
+test.describe('Warehouse Data Workspace responsive contract', () => {
+  test('keeps one primary-to-rail DOM order and transforms at the measured adjacent viewports', async ({ browser }) => {
+    for (const expected of [
+      { width: 1366, height: 768, relation: 'side-by-side' },
+      { width: 1365, height: 900, relation: 'stacked' },
+    ] as const) {
+      const context = await browser.newContext({ viewport: { width: expected.width, height: expected.height } });
+      const page = await context.newPage();
+      await stubAuditApi(page, { profile: warehouseKeeperActor, warehouseScenario: 'ready' });
+      await login(page, warehouseKeeperActor);
+      await page.goto(ROUTES.WAREHOUSE);
+      await expect(page.getByRole('tab', { name: 'Luân chuyển' })).toHaveAttribute('aria-selected', 'true');
+      const workbench = page.locator('.ipc-split-workbench--wide-detail-rail');
+      await expect(workbench).toHaveCount(1);
+      const relation = await workbench.evaluate((node) => {
+        const [primary, rail] = Array.from(node.children) as HTMLElement[];
+        const primaryBox = primary.getBoundingClientRect();
+        const railBox = rail.getBoundingClientRect();
+        return {
+          order: [primary.className, rail.className],
+          relation: railBox.x >= primaryBox.right - 0.5 ? 'side-by-side' : railBox.y >= primaryBox.bottom - 0.5 ? 'stacked' : 'overlap',
+        };
+      });
+      expect(relation.order).toEqual(['ipc-split-primary', 'ipc-split-detail-strip']);
+      expect(relation.relation).toBe(expected.relation);
+      await expect(page.getByRole('complementary', { name: 'Phiếu kho' })).toHaveCount(1);
+      await context.close();
+    }
+  });
+});
+
 test.describe('Warehouse Data Workspace deterministic baseline', () => {
   test('evaluates the complete machine evidence before writing the bounded selection', async ({ browser }) => {
     const baseline = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', 'baseline');

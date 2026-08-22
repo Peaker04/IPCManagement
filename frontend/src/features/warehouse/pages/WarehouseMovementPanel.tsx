@@ -67,6 +67,7 @@ export function WarehouseMovementPanel({
 
   return (
     <SplitWorkbench
+      wideDetailRail
       detailLabel="Phiếu kho"
       detail={(
         <DocumentRail
