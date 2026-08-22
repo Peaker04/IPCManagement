@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "reviewerRunId": "a2b863cc-a405-4cba-abfd-1ab53e089fe2",
+  "reviewerWorkflowChild": "phase-27-fresh-rereview",
+  "reviewerArtifactId": "a2b863cc-a405-4cba-abfd-1ab53e089fe2",
+  "wrapperDisposition": "detached-wrapper-output-captured",
+  "wrapperDispositionEffect": "none-on-json-findings",
+  "packetCategories": {
+    "contract": {
+      "path": ".planning/phases/27-warehouse-data-workspace-contract-pilot/27-UI-SPEC.md",
+      "sha256": "2e00bd85ef4441558ca0cb02cc79140d270bc5986f215b7c1ee1e8c3770b688f"
+    },
+    "selectionManifest": {
+      "path": "frontend/test-results/warehouse-data-workspace/after/selection-manifest.json",
+      "sha256": "1b36dc73c3e5a7ea998d88372f74b1c971b7c2dd52e77b252ba462a48fe13372"
+    },
+    "newEvidence": [
+      {
+        "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+        "selectionReasons": [
+          "wide ready capture required by D-17",
+          "context for deterministic responsive finding"
+        ],
+        "record": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json",
+          "sha256": "75281fdf0fcd99da62ec1c7a2df7c24e0ed12b4fcad60adeefac6d2122476044"
+        },
+        "screenshot": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/ready-1920x1080.png",
+          "sha256": "96efb436ac29f5d9798a0093f342bd5c19f6651980a0c165108811c210d82ae9"
+        }
+      },
+      {
+        "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+        "selectionReasons": [
+          "transition-wide ready capture required by D-17",
+          "adjacent canonical breakpoint evidence"
+        ],
+        "record": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/record.json",
+          "sha256": "b1f0b647431b98ab921bd7e846063d43a94e2ce63ea7921f36679617557d8af3"
+        },
+        "screenshot": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/ready-1366x768.png",
+          "sha256": "f75a5f696045719baec67a8a03929770cd54263e44387084e8679f99a7f5f75c"
+        }
+      },
+      {
+        "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+        "selectionReasons": [
+          "transition-narrow ready capture required by D-17",
+          "adjacent canonical breakpoint evidence"
+        ],
+        "record": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/record.json",
+          "sha256": "ba25e209037a4ad1070d429cdaf445328f24f35410a60cbdb743b2c73a69d091"
+        },
+        "screenshot": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/ready-1365x900.png",
+          "sha256": "f8d7628be95f82e3273de1fc1b2305a8de493082cbdf4e427fea38b34e3f54cd"
+        }
+      },
+      {
+        "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+        "selectionReasons": [
+          "narrow ready capture required by D-17"
+        ],
+        "record": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1280x900/record.json",
+          "sha256": "68e47a4d72ed2754fe9d494a736154a39a4cd3319b5e2f64d72dc53525f310cb"
+        },
+        "screenshot": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/ready/1280x900/ready-1280x900.png",
+          "sha256": "fb8ce6f5a76c9443ecb73472029c7fd3b0dab45af5d7c7b0a777059698051a39"
+        }
+      },
+      {
+        "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+        "selectionReasons": [
+          "narrow mixed-empty capture required by D-17",
+          "independent region ownership context"
+        ],
+        "record": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/mixed-empty/1280x900/record.json",
+          "sha256": "894d2d6a98e06d9f81c0ac367e3fab5457c192bd7f89a3d50a343f428d584e6f"
+        },
+        "screenshot": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/mixed-empty/1280x900/mixed-empty-1280x900.png",
+          "sha256": "46ad2b55c292b3c8643bda7a25464f3e2ccb0c8f868fdda5479f78369ed448df"
+        }
+      },
+      {
+        "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1440x900",
+        "selectionReasons": [
+          "representative route-forbidden capture required by D-17"
+        ],
+        "record": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/record.json",
+          "sha256": "c5c562aea7b940a90fef95f2953648cb611e323634dd038a9a654289eede315d"
+        },
+        "screenshot": {
+          "path": "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/route-forbidden-1440x900.png",
+          "sha256": "0b658ff75ad4f6d51068f4167db7ed260c530ed2b6870e9dfebd374e179d3583"
+        }
+      }
+    ],
+    "oldFindingIds": [
+      "phase27-baseline-responsive-wide-rail-stacked",
+      "phase27-baseline-operational-data-presented-as-technical-placeholders",
+      "phase27-baseline-forbidden-duplicate-h1"
+    ],
+    "expectedOutcomes": [
+      {
+        "id": "phase27-baseline-responsive-wide-rail-stacked",
+        "expected": "At the selected 1920x1080 and 1366x768 wide viewports, the dataset workspace and document rail are displayed side by side."
+      },
+      {
+        "id": "phase27-baseline-operational-data-presented-as-technical-placeholders",
+        "expected": "The primary snapshot and supporting movement history present valid, meaningful warehouse, ingredient, document, and quantity values that let the user understand current stock and the movements explaining it."
+      },
+      {
+        "id": "phase27-baseline-forbidden-duplicate-h1",
+        "expected": "The selected forbidden route has exactly one page-level H1."
+      }
+    ]
+  },
+  "deniedFields": [
+    "implementationRationale",
+    "sourceDiff",
+    "solutionDetails",
+    "planSummaries",
+    "implementerExplanation",
+    "unselectedEvidence",
+    "implementationAdvice",
+    "productionWrites"
+  ],
+  "attestation": {
+    "freshContext": true,
+    "readOnlyReviewer": true,
+    "jsonOnlyOutput": true,
+    "baselineReviewerResumedOrForked": false,
+    "reviewerOutputCopiedUnchanged": true
+  }
+}

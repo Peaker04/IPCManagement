@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "phase": 27,
+  "plan": "27-04",
+  "scope": "Warehouse Data Workspace pilot only",
+  "reviewerRunId": "a2b863cc-a405-4cba-abfd-1ab53e089fe2",
+  "reviewerWorkflowChild": "phase-27-fresh-rereview",
+  "reviewOutputPath": "frontend/test-results/warehouse-data-workspace/after/ai-rereview.json",
+  "reviewOutputSha256": "e55e64a935aa18d6f4b920796d836bb22c86aba9fbec872d00798929da0da5a5",
+  "allowedVerdicts": [
+    "RESOLVED",
+    "STILL_FAILING",
+    "REGRESSED",
+    "NEEDS_EVIDENCE",
+    "UNRESOLVED"
+  ],
+  "failClosed": true,
+  "phaseVerdict": "HALTED",
+  "closeoutAuthorized": false,
+  "promotionAuthorized": false,
+  "counts": {
+    "RESOLVED": 1,
+    "STILL_FAILING": 2,
+    "REGRESSED": 0,
+    "NEEDS_EVIDENCE": 0,
+    "UNRESOLVED": 0
+  },
+  "oldFindingReconciliation": [
+    {
+      "findingId": "phase27-baseline-responsive-wide-rail-stacked",
+      "baselineVerdict": "FAIL",
+      "expected": "At the selected 1920x1080 and 1366x768 wide viewports, the dataset workspace and document rail are displayed side by side.",
+      "rereviewVerdict": "RESOLVED",
+      "severity": "high",
+      "ownerLevel": "layout",
+      "status": "closed",
+      "evidence": [
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: dataset workspace box x=264,width=1252 and document rail box x=1532,width=352 at the same y=1111.140625.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/record.json: dataset workspace box x=264,width=698 and document rail box x=978,width=352 at the same y=1111.140625.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/ready-1920x1080.png and frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/ready-1366x768.png show the rail beside the dataset stack.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/record.json shows the adjacent narrow viewport stacking the rail below at y=2284.0625."
+      ]
+    },
+    {
+      "findingId": "phase27-baseline-operational-data-presented-as-technical-placeholders",
+      "baselineVerdict": "FAIL",
+      "expected": "The primary snapshot and supporting movement history present valid, meaningful warehouse, ingredient, document, and quantity values that let the user understand current stock and the movements explaining it.",
+      "rereviewVerdict": "STILL_FAILING",
+      "severity": "high",
+      "ownerLevel": "shared-component",
+      "status": "blocking",
+      "evidence": [
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: every current-stock row still exposes warehouse-phase27-main and ingredient-phase27-1 through ingredient-phase27-8 as primary cell labels.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/record.json, frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/record.json and frontend/test-results/warehouse-data-workspace/after/captures/ready/1280x900/record.json contain the same technical current-stock labels.",
+        "The selected ready screenshots visibly show these technical identifiers in the current-stock table.",
+        "The selected records show movement rows now contain meaningful documents, ingredients and numeric quantities, but that does not satisfy the expected outcome for both primary snapshot and supporting history."
+      ]
+    },
+    {
+      "findingId": "phase27-baseline-forbidden-duplicate-h1",
+      "baselineVerdict": "FAIL",
+      "expected": "The selected forbidden route has exactly one page-level H1.",
+      "rereviewVerdict": "STILL_FAILING",
+      "severity": "medium",
+      "ownerLevel": "route",
+      "status": "blocking",
+      "evidence": [
+        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/record.json: document.h1Count remains 2 and headingLevels is [2,1,1].",
+        "The selected ARIA snapshot identifies level-1 headings Hệ thống Quản lý Bếp ăn and Không đủ quyền truy cập.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/route-forbidden-1440x900.png visibly presents both headings."
+      ]
+    }
+  ],
+  "newRegressionIds": [],
+  "blockers": [
+    "phase27-baseline-operational-data-presented-as-technical-placeholders",
+    "phase27-baseline-forbidden-duplicate-h1"
+  ],
+  "nextAuthorizedPlanningDecision": "Re-plan a bounded corrective slice for the two STILL_FAILING findings; do not repair production or promote Admin Data/Purchasing under Plan 27-04."
+}

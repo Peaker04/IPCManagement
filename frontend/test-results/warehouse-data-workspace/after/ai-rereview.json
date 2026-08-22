@@ -1,0 +1,48 @@
+{
+  "findings": [
+    {
+      "id": "phase27-baseline-responsive-wide-rail-stacked",
+      "verdict": "RESOLVED",
+      "evidence": [
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: dataset workspace box x=264,width=1252 and document rail box x=1532,width=352 at the same y=1111.140625.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/record.json: dataset workspace box x=264,width=698 and document rail box x=978,width=352 at the same y=1111.140625.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/ready-1920x1080.png and frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/ready-1366x768.png show the rail beside the dataset stack.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/record.json shows the adjacent narrow viewport stacking the rail below at y=2284.0625."
+      ],
+      "expected": "At selected 1920x1080 and 1366x768 wide viewports, the dataset workspace and document rail are displayed side by side.",
+      "actual": "Both selected wide viewports place the rail beside the dataset stack, while the adjacent 1365x900 viewport stacks it below.",
+      "severity": "high",
+      "ownerLevel": "layout",
+      "confidence": 0.99
+    },
+    {
+      "id": "phase27-baseline-operational-data-presented-as-technical-placeholders",
+      "verdict": "STILL_FAILING",
+      "evidence": [
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: every current-stock row still exposes warehouse-phase27-main and ingredient-phase27-1 through ingredient-phase27-8 as primary cell labels.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/record.json, frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/record.json and frontend/test-results/warehouse-data-workspace/after/captures/ready/1280x900/record.json contain the same technical current-stock labels.",
+        "The selected ready screenshots visibly show these technical identifiers in the current-stock table.",
+        "The selected records show movement rows now contain meaningful documents, ingredients and numeric quantities, but that does not satisfy the expected outcome for both primary snapshot and supporting history."
+      ],
+      "expected": "The primary snapshot and supporting movement history present valid, meaningful warehouse, ingredient, document and quantity values that let the user understand current stock and the movements explaining it.",
+      "actual": "Movement history now presents meaningful values, but the primary current-stock dataset still promotes fixture-style warehouse and ingredient identifiers as its row content.",
+      "severity": "high",
+      "ownerLevel": "shared-component",
+      "confidence": 0.99
+    },
+    {
+      "id": "phase27-baseline-forbidden-duplicate-h1",
+      "verdict": "STILL_FAILING",
+      "evidence": [
+        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/record.json: document.h1Count remains 2 and headingLevels is [2,1,1].",
+        "The selected ARIA snapshot identifies level-1 headings Hệ thống Quản lý Bếp ăn and Không đủ quyền truy cập.",
+        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/route-forbidden-1440x900.png visibly presents both headings."
+      ],
+      "expected": "The selected forbidden route has exactly one page-level H1.",
+      "actual": "The selected forbidden route still contains two level-1 headings: the shell title and the access-denied heading.",
+      "severity": "medium",
+      "ownerLevel": "route",
+      "confidence": 0.99
+    }
+  ]
+}
