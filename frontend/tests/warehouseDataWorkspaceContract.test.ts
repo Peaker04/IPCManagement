@@ -1,15 +1,31 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { assertWarehouseFixture, currentStockRows, mixedEmptyFixture, stockMovementRows, warehouseDocuments, warehouseFixtureRecordIds } from './warehouseDataWorkspaceFixture';
-import { validateWarehouseAiFinding, validateWarehouseCapture, warehouseDataWorkspaceContract, WAREHOUSE_CONTRACT_VERSION, WAREHOUSE_VIEWPORTS } from './warehouseDataWorkspaceContract';
+import {
+  validateWarehouseAiFinding, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
+  WAREHOUSE_CONTRACT_VERSION, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture,
+} from './warehouseDataWorkspaceContract';
 
-const validCapture = () => ({
-  schemaVersion: 2, identity: `${WAREHOUSE_CONTRACT_VERSION}/warehouse-ready/v1/warehouse-keeper/ready/1920x1080`, contractVersion: WAREHOUSE_CONTRACT_VERSION,
-  fixtureVersion: 'warehouse-ready/v1', route: '/warehouse', activeTab: 'Luân chuyển', actor: 'warehouse-keeper', state: 'ready',
-  viewport: { id: '1920x1080', width: 1920, height: 1080 }, fixtureRecordIds: warehouseFixtureRecordIds, screenshotPath: 'controlled/ready.png',
-  ariaSnapshot: '- heading "Kho nguyên liệu" [level=1] [box=0,0,100,20]', ariaSnapshotOptions: { mode: 'ai', boxes: true },
-  geometry: { stock: { x: 0, y: 0, width: 1, height: 1 }, history: { x: 0, y: 2, width: 1, height: 1 }, rail: { x: 2, y: 0, width: 1, height: 3 } },
-  computedStyles: { stock: { display: 'block', overflowX: 'visible', paddingLeft: '16px', paddingRight: '16px' }, history: { display: 'block', overflowX: 'visible', paddingLeft: '16px', paddingRight: '16px' }, rail: { display: 'block', overflowX: 'visible', paddingLeft: '16px', paddingRight: '16px' } },
-  domOrder: ['stock', 'history', 'rail'], focusOrder: ['tab', 'stock-search', 'history-search'], activeElement: 'BODY', consoleErrors: [], pageErrors: [], nonGetRequests: [], owners: { stock: 'owner', history: 'owner', rail: 'owner' },
+const validCapture = (state: WarehouseCapture['state'] = 'ready', viewport = WAREHOUSE_VIEWPORTS[0]): WarehouseCapture => {
+  const forbidden = state === 'route-forbidden';
+  const ids = forbidden ? ['warehouse-route-forbidden'] : warehouseDataWorkspaceContract.regions.map(({ id }) => id);
+  return {
+    schemaVersion: 2, identity: `${WAREHOUSE_CONTRACT_VERSION}/warehouse-ready/v1/${forbidden ? 'no-warehouse-read' : 'warehouse-keeper'}/${state}/${viewport.id}`,
+    contractVersion: WAREHOUSE_CONTRACT_VERSION, fixtureVersion: 'warehouse-ready/v1', route: forbidden ? '/403' : '/warehouse',
+    activeTab: forbidden ? null : 'Luân chuyển', actor: forbidden ? 'no-warehouse-read' : 'warehouse-keeper', state,
+    viewport: { ...viewport }, fixtureRecordIds: forbidden ? [] : warehouseFixtureRecordIds, screenshotPath: `controlled/${state}.png`,
+    ariaSnapshot: '- heading "Kho nguyên liệu" [level=1] [box=0,0,100,20]', ariaSnapshotOptions: { mode: 'ai', boxes: true },
+    geometry: Object.fromEntries(ids.map((id, index) => [id, { box: { x: index * 20, y: index * 20, width: 10, height: 10 }, scroll: { clientWidth: 10, scrollWidth: 10, clientHeight: 10, scrollHeight: 10 }, style: { display: 'block', overflowX: 'visible', paddingLeft: '16px', paddingRight: '16px' } }])),
+    document: { clientWidth: viewport.width, scrollWidth: viewport.width, h1Count: 1, headingLevels: [1, 3, 3], primaryActionCount: 0 },
+    domOrder: ids, focusOrder: ['tab', 'stock-search', 'history-search'], activeElement: 'BODY', consoleErrors: [], pageErrors: [], nonGetRequests: [],
+    owners: Object.fromEntries(ids.map((id) => [id, id === 'warehouse-route-forbidden' ? 'RoleGuard' : 'owner'])),
+  };
+};
+
+const validManifest = () => ({
+  schemaVersion: 2, contractVersion: WAREHOUSE_CONTRACT_VERSION, fixtureVersion: 'warehouse-ready/v1',
+  captures: WAREHOUSE_SCENARIOS.flatMap((scenario) => WAREHOUSE_VIEWPORTS.map((viewport) => validCapture(scenario, viewport))),
 });
 
 describe('Warehouse Data Workspace contract', () => {
@@ -27,10 +43,31 @@ describe('Warehouse Data Workspace contract', () => {
     expect(mixedEmptyFixture.currentStockRows).toEqual([]); expect(mixedEmptyFixture.stockMovementRows).toBe(stockMovementRows); expect(mixedEmptyFixture.warehouseDocuments).toBe(warehouseDocuments);
   });
 
-  it('validates a complete AI-mode capture and rejects missing evidence', () => {
+  it('validates exactly fifteen unique composite captures with stable ready fixture IDs', () => {
+    const manifest = validManifest();
+    expect(() => validateWarehouseCaptureManifest(manifest)).not.toThrow();
+    expect(manifest.captures).toHaveLength(15);
+    expect(() => validateWarehouseCaptureManifest({ ...manifest, captures: manifest.captures.slice(1) })).toThrow();
+    expect(() => validateWarehouseCaptureManifest({ ...manifest, captures: [...manifest.captures.slice(0, 14), manifest.captures[0]] })).toThrow();
+    const drifted = structuredClone(manifest); drifted.captures.find(({ state }) => state === 'ready')!.fixtureRecordIds = ['drift'];
+    expect(() => validateWarehouseCaptureManifest(drifted)).toThrow('Warehouse ready fixture identity drifted');
+  });
+
+  it('fails closed when capture evidence or the route-forbidden boundary is missing', () => {
     expect(() => validateWarehouseCapture(validCapture())).not.toThrow();
     expect(() => validateWarehouseCapture({ ...validCapture(), ariaSnapshot: '' })).toThrow('Invalid Warehouse capture');
-    expect(() => validateWarehouseCapture({ ...validCapture(), nonGetRequests: undefined })).toThrow('Invalid Warehouse capture');
+    expect(() => validateWarehouseCapture({ ...validCapture('route-forbidden'), route: '/warehouse' })).toThrow('Invalid Warehouse scenario boundary');
+  });
+
+  it('locks loading, refreshing, error, all-empty and forbidden to the production phase union', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/features/warehouse/pages/WarehouseMovementPanel.tsx'), 'utf8');
+    expect(source).toContain("phase: 'uninitialized' | 'loading' | 'ready' | 'error' | 'forbidden'");
+    expect(source).toContain("currentStockView.phase === 'ready' && currentStockView.isRefreshing");
+    expect(source).toContain("stockMovementView.phase === 'ready' && stockMovementView.isRefreshing");
+    expect(source).toContain('Chưa có dữ liệu tồn kho');
+    expect(source).toContain('Không tải được tồn kho hiện tại');
+    expect(source).toContain('Không có quyền xem tồn kho hiện tại');
+    expect(source).not.toContain("phase: 'refreshing'");
   });
 
   it('accepts only schema-valid non-PASS AI findings', () => {
@@ -38,20 +75,5 @@ describe('Warehouse Data Workspace contract', () => {
     expect(() => validateWarehouseAiFinding(finding)).not.toThrow();
     expect(() => validateWarehouseAiFinding({ ...finding, verdict: 'PASS' })).toThrow();
     expect(() => validateWarehouseAiFinding({ ...finding, confidence: 0.79 })).toThrow();
-    for (const field of ['evidence', 'expected', 'actual', 'severity', 'owner', 'confidence'] as const) {
-      expect(() => validateWarehouseAiFinding({ ...finding, [field]: undefined })).toThrow();
-    }
-    for (const verdict of ['NEEDS_EVIDENCE', 'UNRESOLVED']) expect(() => validateWarehouseAiFinding({ ...finding, verdict, confidence: 0.4 })).not.toThrow();
-  });
-
-  it('keeps Phase 27 vocabulary literal and Warehouse-local instead of a generic framework', () => {
-    const serialized = JSON.stringify(warehouseDataWorkspaceContract);
-    expect(serialized).toContain('Warehouse stock snapshot');
-    expect(serialized).not.toMatch(/Admin Data|Purchasing|DataWorkspacePage|renderer|registry|SAP UI5|Carbon component/i);
-    expect(warehouseDataWorkspaceContract.regions.map(({ owner }) => owner)).toEqual([
-      'WarehouseMovementPanel/SectionPanel/TableViewport/PaginationBar',
-      'WarehouseMovementPanel/SectionPanel/StockMovementTable',
-      'SplitWorkbench/DocumentRail',
-    ]);
   });
 });

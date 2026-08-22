@@ -3,8 +3,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
-import { collectWarehouseEvidence } from './warehouseEvidenceCollector';
-import { currentStockRows, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
+import { collectWarehouseEvidence, writeWarehouseCaptureManifest } from './warehouseEvidenceCollector';
+import { currentStockRows, mixedEmptyFixture, noWarehouseReadActor, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
+import { WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseScenario } from './warehouseDataWorkspaceContract';
 
 type AuditIssue = {
   rule: string;
@@ -144,7 +145,7 @@ function buildDataQualityIssues(count = 8) {
 async function stubAuditApi(page: Page, options?: {
   dataQualityIssues?: ReturnType<typeof buildDataQualityIssues>;
   profile?: AuditUser;
-  warehouseReady?: boolean;
+  warehouseScenario?: Exclude<WarehouseScenario, 'route-forbidden'>;
 }) {
   const dataQualityIssues = options?.dataQualityIssues ?? [];
   const profile = options?.profile ?? {
@@ -240,19 +241,19 @@ async function stubAuditApi(page: Page, options?: {
       }
 
       if (endpoint === 'current-stock/page') {
-        const items = options?.warehouseReady ? currentStockRows : [];
+        const items = options?.warehouseScenario === 'ready' ? currentStockRows : options?.warehouseScenario === 'mixed-empty' ? mixedEmptyFixture.currentStockRows : [];
         await fulfillJson(route, {
           items, totalCount: items.length, pageNumber: 1, pageSize: 8, totalPages: items.length ? 1 : 0, hasPrev: false, hasNext: false,
         });
         return;
       }
 
-      if (endpoint === 'stock-movements/page' && options?.warehouseReady) {
+      if (endpoint === 'stock-movements/page' && options?.warehouseScenario) {
         await fulfillJson(route, { items: stockMovementRows, limit: 8, hasNext: false, nextCursorDate: null, nextCursorId: null, nextCursorOffset: null });
         return;
       }
 
-      if (endpoint === 'workflow-documents' && options?.warehouseReady) {
+      if (endpoint === 'workflow-documents' && options?.warehouseScenario) {
         await fulfillJson(route, warehouseDocuments);
         return;
       }
@@ -650,23 +651,39 @@ async function expectNoAuditIssues(testName: string, issues: AuditIssue[], inter
   expect(incompleteRecords).toEqual([]);
 }
 
-test.describe('Warehouse Data Workspace contract tracer', () => {
-  test.use({ viewport: { width: 1920, height: 1080 } });
-
-  test('captures one complete ready record through the existing audit runner', async ({ page }) => {
-    await stubAuditApi(page, { profile: warehouseKeeperActor, warehouseReady: true });
-    const signals = observePage(page);
-    await login(page, warehouseKeeperActor);
-    await page.goto(ROUTES.WAREHOUSE);
-    await expect(page.getByRole('tab', { name: 'Luân chuyển' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('region', { name: 'Bảng tồn kho hiện tại trong kho' })).toBeVisible();
-    await expect(page.getByText('PN-P27-001')).toBeVisible();
-    await stabilize(page);
-    const { record, path } = await collectWarehouseEvidence(page, signals);
-    await test.info().attach('warehouse-data-workspace-record', { path, contentType: 'application/json' });
-    expect(record.nonGetRequests).toEqual([]);
-    expect(record.consoleErrors).toEqual([]);
-    expect(record.pageErrors).toEqual([]);
+test.describe('Warehouse Data Workspace contract baseline', () => {
+  test('captures the immutable three-state by five-viewport matrix', async ({ browser }) => {
+    const captures = [];
+    for (const scenario of WAREHOUSE_SCENARIOS) for (const viewport of WAREHOUSE_VIEWPORTS) {
+      const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
+      const page = await context.newPage();
+      const actor = scenario === 'route-forbidden' ? noWarehouseReadActor : warehouseKeeperActor;
+      await stubAuditApi(page, { profile: actor, warehouseScenario: scenario === 'route-forbidden' ? undefined : scenario });
+      const signals = observePage(page);
+      await login(page, actor);
+      await page.goto(ROUTES.WAREHOUSE);
+      if (scenario === 'route-forbidden') {
+        await expect(page).toHaveURL(ROUTES.FORBIDDEN);
+        await expect(page.getByRole('heading', { name: 'Không đủ quyền truy cập' })).toBeVisible();
+      } else {
+        await expect(page.getByRole('tab', { name: 'Luân chuyển' })).toHaveAttribute('aria-selected', 'true');
+        await expect(page.getByRole('region', { name: 'Bảng tồn kho hiện tại trong kho' })).toBeVisible();
+        await expect(page.getByText('PN-P27-001')).toBeVisible();
+        if (scenario === 'mixed-empty') {
+          await expect(page.getByText('Chưa có dữ liệu tồn kho')).toBeVisible();
+          await expect(page.getByText('PX-P27-001').first()).toBeVisible();
+        }
+      }
+      await stabilize(page);
+      const { record, path } = await collectWarehouseEvidence(page, signals, scenario, viewport);
+      captures.push(record);
+      await test.info().attach(`warehouse-${scenario}-${viewport.id}`, { path, contentType: 'application/json' });
+      await context.close();
+    }
+    const { manifest, path } = await writeWarehouseCaptureManifest(captures);
+    await test.info().attach('warehouse-data-workspace-manifest', { path, contentType: 'application/json' });
+    expect(manifest.captures).toHaveLength(15);
+    expect(new Set(manifest.captures.map(({ identity }) => identity)).size).toBe(15);
   });
 });
 

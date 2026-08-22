@@ -8,6 +8,9 @@ export const WAREHOUSE_VIEWPORTS = [
   { id: '1365x900', width: 1365, height: 900 },
   { id: '1280x900', width: 1280, height: 900 },
 ] as const;
+export const WAREHOUSE_SCENARIOS = ['ready', 'mixed-empty', 'route-forbidden'] as const;
+export type WarehouseScenario = typeof WAREHOUSE_SCENARIOS[number];
+export type WarehouseViewport = typeof WAREHOUSE_VIEWPORTS[number];
 
 export const warehouseDataWorkspaceContract = {
   archetype: 'Data Workspace',
@@ -21,7 +24,7 @@ export const warehouseDataWorkspaceContract = {
     { id: 'warehouse-document-rail', name: 'Phiếu kho', role: 'tab-document-rail', owner: 'SplitWorkbench/DocumentRail' },
   ],
   domAndFocusOrder: ['warehouse-current-stock', 'warehouse-movement-history', 'warehouse-document-rail'],
-  responsiveRelations: ['side-by-side', 'stacked'] as const,
+  responsiveExpected: { '1920x1080': 'side-by-side', '1440x900': 'side-by-side', '1366x768': 'side-by-side', '1365x900': 'stacked', '1280x900': 'stacked' },
   spacing: { primaryToHistory: 16, workspaceToRail: 16, stackedRail: 16, regionPaddingBase: 16, regionPaddingSm: 20, tolerance: 0.5 },
   primaryActionCount: 0,
 } as const;
@@ -30,22 +33,27 @@ export type WarehouseVerdict = 'PASS' | 'FAIL' | 'NEEDS_EVIDENCE' | 'UNRESOLVED'
 export type WarehouseFindingVerdict = Exclude<WarehouseVerdict, 'PASS'>;
 export type WarehouseOwnerLevel = 'token' | 'primitive' | 'shared-component' | 'layout' | 'route';
 export type WarehouseBox = { x: number; y: number; width: number; height: number };
+export type WarehouseRegionProbe = {
+  box: WarehouseBox;
+  scroll: { clientWidth: number; scrollWidth: number; clientHeight: number; scrollHeight: number };
+  style: { display: string; overflowX: string; paddingLeft: string; paddingRight: string };
+};
 export type WarehouseCapture = {
   schemaVersion: 2;
   identity: string;
   contractVersion: typeof WAREHOUSE_CONTRACT_VERSION;
   fixtureVersion: string;
-  route: typeof WAREHOUSE_ROUTE;
-  activeTab: typeof WAREHOUSE_ACTIVE_TAB;
-  actor: 'warehouse-keeper';
-  state: 'ready';
-  viewport: { id: '1920x1080'; width: 1920; height: 1080 };
+  route: '/warehouse' | '/403';
+  activeTab: typeof WAREHOUSE_ACTIVE_TAB | null;
+  actor: 'warehouse-keeper' | 'no-warehouse-read';
+  state: WarehouseScenario;
+  viewport: { id: string; width: number; height: number };
   fixtureRecordIds: string[];
   screenshotPath: string;
   ariaSnapshot: string;
   ariaSnapshotOptions: { mode: 'ai'; boxes: true };
-  geometry: Record<string, WarehouseBox>;
-  computedStyles: Record<string, { display: string; overflowX: string; paddingLeft: string; paddingRight: string }>;
+  geometry: Record<string, WarehouseRegionProbe>;
+  document: { clientWidth: number; scrollWidth: number; h1Count: number; headingLevels: number[]; primaryActionCount: number };
   domOrder: string[];
   focusOrder: string[];
   activeElement: string;
@@ -54,34 +62,47 @@ export type WarehouseCapture = {
   nonGetRequests: string[];
   owners: Record<string, string>;
 };
+export type WarehouseCaptureManifest = { schemaVersion: 2; contractVersion: typeof WAREHOUSE_CONTRACT_VERSION; fixtureVersion: string; captures: WarehouseCapture[] };
 
 export type WarehouseAiFinding = {
-  id: string;
-  verdict: WarehouseFindingVerdict;
-  evidence: string[];
-  expected: string;
-  actual: string;
-  severity: 'blocker' | 'high' | 'medium' | 'low';
-  owner: { level: WarehouseOwnerLevel; source?: string };
-  confidence: number;
+  id: string; verdict: WarehouseFindingVerdict; evidence: string[]; expected: string; actual: string;
+  severity: 'blocker' | 'high' | 'medium' | 'low'; owner: { level: WarehouseOwnerLevel; source?: string }; confidence: number;
 };
 
 export function validateWarehouseCapture(value: unknown): asserts value is WarehouseCapture {
   const record = value as Partial<WarehouseCapture>;
-  const requiredObjects = record.geometry && Object.keys(record.geometry).length === 3 && record.computedStyles && Object.keys(record.computedStyles).length === 3;
-  if (record.schemaVersion !== 2 || record.contractVersion !== WAREHOUSE_CONTRACT_VERSION || record.fixtureVersion == null ||
-      record.route !== WAREHOUSE_ROUTE || record.activeTab !== WAREHOUSE_ACTIVE_TAB || record.actor !== 'warehouse-keeper' ||
-      record.state !== 'ready' || record.viewport?.id !== '1920x1080' || !record.screenshotPath || !record.ariaSnapshot ||
-      record.ariaSnapshotOptions?.mode !== 'ai' || record.ariaSnapshotOptions.boxes !== true || !requiredObjects ||
-      !record.fixtureRecordIds?.length || record.domOrder?.length !== 3 || !record.focusOrder?.length || !record.activeElement ||
+  const viewport = WAREHOUSE_VIEWPORTS.find(({ id }) => id === record.viewport?.id);
+  const scenario = WAREHOUSE_SCENARIOS.includes(record.state as WarehouseScenario);
+  const forbidden = record.state === 'route-forbidden';
+  const expectedProbeCount = forbidden ? 1 : 3;
+  if (record.schemaVersion !== 2 || record.contractVersion !== WAREHOUSE_CONTRACT_VERSION || !record.fixtureVersion || !scenario || !viewport ||
+      record.viewport?.width !== viewport.width || record.viewport.height !== viewport.height || !record.identity || !record.screenshotPath || !record.ariaSnapshot ||
+      record.ariaSnapshotOptions?.mode !== 'ai' || record.ariaSnapshotOptions.boxes !== true || Object.keys(record.geometry ?? {}).length !== expectedProbeCount ||
+      !record.document || !Array.isArray(record.fixtureRecordIds) || !Array.isArray(record.domOrder) || !Array.isArray(record.focusOrder) || !record.activeElement ||
       !Array.isArray(record.consoleErrors) || !Array.isArray(record.pageErrors) || !Array.isArray(record.nonGetRequests) ||
-      !record.owners || Object.keys(record.owners).length !== 3) throw new Error('Invalid Warehouse capture');
+      Object.keys(record.owners ?? {}).length !== expectedProbeCount) throw new Error('Invalid Warehouse capture');
+  if (forbidden ? record.route !== '/403' || record.actor !== 'no-warehouse-read' || record.activeTab !== null || record.fixtureRecordIds.length !== 0
+    : record.route !== WAREHOUSE_ROUTE || record.actor !== 'warehouse-keeper' || record.activeTab !== WAREHOUSE_ACTIVE_TAB || record.fixtureRecordIds.length === 0) {
+    throw new Error('Invalid Warehouse scenario boundary');
+  }
+}
+
+export function validateWarehouseCaptureManifest(value: unknown): asserts value is WarehouseCaptureManifest {
+  const manifest = value as Partial<WarehouseCaptureManifest>;
+  if (manifest.schemaVersion !== 2 || manifest.contractVersion !== WAREHOUSE_CONTRACT_VERSION || !manifest.fixtureVersion || manifest.captures?.length !== 15) throw new Error('Invalid Warehouse manifest');
+  manifest.captures.forEach(validateWarehouseCapture);
+  const identities = manifest.captures.map(({ identity }) => identity);
+  if (new Set(identities).size !== 15) throw new Error('Warehouse manifest identities are not unique');
+  for (const scenario of WAREHOUSE_SCENARIOS) for (const viewport of WAREHOUSE_VIEWPORTS) {
+    if (!manifest.captures.some((capture) => capture.state === scenario && capture.viewport.id === viewport.id)) throw new Error('Warehouse manifest matrix is incomplete');
+  }
+  const readyIds = manifest.captures.filter(({ state }) => state === 'ready').map(({ fixtureRecordIds }) => JSON.stringify(fixtureRecordIds));
+  if (new Set(readyIds).size !== 1) throw new Error('Warehouse ready fixture identity drifted');
 }
 
 export function validateWarehouseAiFinding(value: unknown): asserts value is WarehouseAiFinding {
   const finding = value as Partial<WarehouseAiFinding>;
   if (!finding.id || finding.verdict === 'PASS' as WarehouseFindingVerdict || !['FAIL', 'NEEDS_EVIDENCE', 'UNRESOLVED'].includes(finding.verdict ?? '') ||
       !finding.evidence?.length || !finding.expected || !finding.actual || !finding.severity || !finding.owner?.level ||
-      typeof finding.confidence !== 'number' || finding.confidence < 0 || finding.confidence > 1 ||
-      finding.verdict === 'FAIL' && finding.confidence < 0.8) throw new Error('Invalid Warehouse AI finding');
+      typeof finding.confidence !== 'number' || finding.confidence < 0 || finding.confidence > 1 || finding.verdict === 'FAIL' && finding.confidence < 0.8) throw new Error('Invalid Warehouse AI finding');
 }

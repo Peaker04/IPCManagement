@@ -4,6 +4,11 @@ export const warehouseKeeperActor = {
   role: 'warehouse', roleCode: 'WAREHOUSE', roleName: 'Thủ kho', isAdminFullAccess: false,
   permissions: ['warehouse.read'],
 } as const;
+export const noWarehouseReadActor = {
+  userId: 'no-warehouse-read-phase27', username: 'no-warehouse-read-phase27', fullName: 'Thu mua kiểm thử Phase 27',
+  role: 'procurement', roleCode: 'PROCUREMENT', roleName: 'Thu mua', isAdminFullAccess: false,
+  permissions: ['purchase.read'],
+} as const;
 
 export const currentStockRows = Array.from({ length: 8 }, (_, index) => ({
   id: `stock-phase27-${index + 1}`, warehouseId: 'warehouse-phase27-main', warehouse: index === 7 ? 'Kho nguyên liệu sản xuất trung tâm' : 'Kho chính',
@@ -28,4 +33,5 @@ export function assertWarehouseFixture() {
   if (currentStockRows.some((row) => row.currentQty < 0) || stockMovementRows.some((row) => row.quantity <= 0)) throw new Error('Warehouse fixture contains invalid quantity');
 }
 
+export const readyFixture = { currentStockRows, stockMovementRows, warehouseDocuments } as const;
 export const mixedEmptyFixture = { currentStockRows: [], stockMovementRows, warehouseDocuments } as const;
