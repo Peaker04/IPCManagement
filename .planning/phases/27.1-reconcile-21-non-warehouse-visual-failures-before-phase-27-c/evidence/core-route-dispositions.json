@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-03",
+  "validatorAuthority": "27.1-03R",
+  "waveBaseCommit": "ee5aa663059611f42df92602544425c2ad1d1323",
+  "identitySet": "core-login-dashboard",
+  "rows": [
+    {
+      "identity": "dashboard-desktop",
+      "displayOrdinal": 1,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png",
+      "cause": "two deterministic packets matched current Dashboard rendering while the frozen baseline differed",
+      "beforeSha256": ["4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f", "4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f"],
+      "afterSha256": ["4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f", "4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f"],
+      "oldSnapshotSha256": "8fc1946a8abe319dde67d5a3b4b831601dd419c7d6d2c663a63c9bd58fbb7306",
+      "newSnapshotSha256": "4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f"
+    },
+    {
+      "identity": "login-mobile",
+      "displayOrdinal": 9,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png",
+      "cause": "two deterministic packets matched current Login rendering while the frozen baseline differed",
+      "beforeSha256": ["567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5", "567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5"],
+      "afterSha256": ["567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5", "567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5"],
+      "oldSnapshotSha256": "a460d759c196b3425baae9ebc943d94eb854edefeaa2692dd8e2849bd1d1fa05",
+      "newSnapshotSha256": "567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5"
+    },
+    {
+      "identity": "dashboard-mobile",
+      "displayOrdinal": 10,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png",
+      "cause": "two deterministic packets matched current Dashboard rendering while the frozen baseline differed",
+      "beforeSha256": ["6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e", "6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e"],
+      "afterSha256": ["6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e", "6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e"],
+      "oldSnapshotSha256": "f45dd1c3f9d24041b4e63899b5f464f08e794d25a19aff50e2d7f73920f08d96",
+      "newSnapshotSha256": "6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e"
+    }
+  ],
+  "locks": {"productionChanged": false, "fixtureChanged": false, "harnessChanged": false},
+  "gitReconciliation": {
+    "phaseBaseCommit": "c52c80f8186b985d07619a7ad0ed7abc0572675c",
+    "waveBaseCommit": "ee5aa663059611f42df92602544425c2ad1d1323",
+    "waveAuthorizedPaths": [
+      "frontend/tests/coreRouteVisualRegression.test.ts",
+      "frontend/tests/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png",
+      ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/core-route-dispositions.json"
+    ]
+  }
+}
