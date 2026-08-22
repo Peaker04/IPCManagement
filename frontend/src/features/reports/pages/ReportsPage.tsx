@@ -3,7 +3,6 @@ import {
   ArrowLeftRight,
   Database,
   Download,
-  Filter,
   PackageCheck,
   RotateCcw,
   Search,
@@ -17,7 +16,6 @@ import {
   CommandBar,
   ContextStrip,
   CursorPaginationBar,
-  FieldRow,
   KeepAliveTabPanel,
   OperationalFrame,
   PaginationBar,
@@ -25,7 +23,6 @@ import {
   SectionPanel,
   StatusBadge,
 } from '@/components/common';
-import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/routeConfig';
 import { useHasPermission } from '@/lib/useHasPermission';
@@ -39,20 +36,19 @@ import {
   standardPageSizeOptions,
   useReportsPageModel,
 } from './useReportsPageModel';
+import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ReportsNavigation } from './ReportsNavigation';
-import { ReportsDataQualityPanel } from './ReportsDataQualityPanel';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
-import { ReportsPricePanel } from './ReportsPricePanel';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatReconciliationDisposition } from '@/lib/workflowConfig';
 
+const ReportsPricePanel = lazy(() => import('./ReportsPricePanel').then(({ ReportsPricePanel: component }) => ({ default: component })))
+const ReportsDataQualityPanel = lazy(() => import('./ReportsDataQualityPanel').then(({ ReportsDataQualityPanel: component }) => ({ default: component })))
+const ReportsFilters = lazy(() => import('./ReportsFilters').then(({ ReportsFilters: component }) => ({ default: component })))
 const ServiceRunReportPanel = lazy(() => import('./ServiceRunReportPanel').then(({ ServiceRunReportPanel: component }) => ({ default: component })))
 const LegacyLineageDispositionPanel = lazy(() => import('../LegacyLineageDispositionPanel').then(({ LegacyLineageDispositionPanel: component }) => ({ default: component })))
 const reportCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
-
-const EMPTY_SHIFT_SELECT_VALUE = '__all-shifts__';
 
 const reconciliationTone = (disposition: string) => {
   if (disposition === 'MATCHED') return 'success' as const;
@@ -98,61 +94,9 @@ const ReportsPage = () => {
             </>
           }
         >
-          <FieldRow label="Từ ngày" htmlFor="report-filter-from">
-            <Input
-              id="report-filter-from"
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-              className="h-8 text-xs"
-            />
-          </FieldRow>
-          <FieldRow label="Đến ngày" htmlFor="report-filter-to">
-            <Input
-              id="report-filter-to"
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-              className="h-8 text-xs"
-            />
-          </FieldRow>
-          {activeView !== 'stock' && activeView !== 'data-quality' && (
-            <FieldRow label="Ca" htmlFor="report-filter-shift">
-              <Select
-                value={shiftName || EMPTY_SHIFT_SELECT_VALUE}
-                onValueChange={(value) => setShiftName(!value || value === EMPTY_SHIFT_SELECT_VALUE ? '' : value)}
-              >
-                <SelectTrigger id="report-filter-shift" className="h-8 min-w-[130px] text-xs">
-                  <SelectValue placeholder="Tất cả ca" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={EMPTY_SHIFT_SELECT_VALUE}>Tất cả ca</SelectItem>
-                  <SelectItem value="Ca sáng">Ca sáng</SelectItem>
-                  <SelectItem value="Ca trưa">Ca trưa</SelectItem>
-                  <SelectItem value="Ca chiều">Ca chiều</SelectItem>
-                  <SelectItem value="Ca tối">Ca tối</SelectItem>
-                  <SelectItem value="Ca đêm">Ca đêm</SelectItem>
-                </SelectContent>
-              </Select>
-            </FieldRow>
-          )}
-          {activeView === 'audit' && (
-            <FieldRow label="Sắp xếp" htmlFor="report-filter-sort">
-              <Select
-                value={sortDirection}
-                onValueChange={(value) => setSortDirection(value as 'asc' | 'desc')}
-              >
-                <SelectTrigger id="report-filter-sort" className="h-8 min-w-[150px] text-xs">
-                  <Filter size={14} className="mr-1 text-slate-400" />
-                  <SelectValue placeholder="Mới nhất trước" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc">Mới nhất trước</SelectItem>
-                  <SelectItem value="asc">Cũ nhất trước</SelectItem>
-                </SelectContent>
-              </Select>
-            </FieldRow>
-          )}
+          <Suspense fallback={<div aria-hidden="true" className="min-h-8 w-[32rem] rounded-md bg-slate-50" />}>
+            <ReportsFilters activeView={activeView} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} sortDirection={sortDirection} onDateFromChange={setDateFrom} onDateToChange={setDateTo} onShiftNameChange={setShiftName} onSortDirectionChange={setSortDirection} />
+          </Suspense>
         </CommandBar>
       }
       context={
@@ -161,8 +105,8 @@ const ReportsPage = () => {
     >
       <ReportsNavigation model={model} />
 
-      <KeepAliveTabPanel id="reports-price" active={activeView === 'price'}>
-        <ReportsPricePanel model={model} />
+      <KeepAliveTabPanel id="reports-price" active={activeView === 'price'} fallback={reportCapabilityFallback}>
+        <Suspense fallback={reportCapabilityFallback}><ReportsPricePanel model={model} /></Suspense>
       </KeepAliveTabPanel>
 
       <KeepAliveTabPanel id="reports-demand" active={activeView === 'demand'}>
@@ -567,8 +511,8 @@ const ReportsPage = () => {
         </ReportQueryBoundary>
       </KeepAliveTabPanel>
 
-      <KeepAliveTabPanel id="reports-data-quality" active={activeView === 'data-quality'}>
-        <ReportsDataQualityPanel model={model} />
+      <KeepAliveTabPanel id="reports-data-quality" active={activeView === 'data-quality'} fallback={reportCapabilityFallback}>
+        <Suspense fallback={reportCapabilityFallback}><ReportsDataQualityPanel model={model} /></Suspense>
       </KeepAliveTabPanel>
     </OperationalFrame>
   );

@@ -39,9 +39,6 @@ import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
-import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialog';
-import { WarehouseBatchPurchaseReceiptDialog } from '../WarehouseBatchPurchaseReceiptDialog';
-import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
 import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
@@ -50,9 +47,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { addIsoDays } from '../warehouseDateRange';
-import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { typography } from '@/lib/typography';
 
+const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
+const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
+const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
+const WarehouseReceiptLifecyclePanel = lazy(() => import('../WarehouseReceiptLifecyclePanel').then(({ WarehouseReceiptLifecyclePanel: component }) => ({ default: component })))
 const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
@@ -545,7 +545,7 @@ export default function WarehousePage() {
       )}
 
       {selectedPurchaseOrder && selectedReceiptLine && canReceivePurchases && (
-        <WarehousePurchaseReceiptDialog
+        <Suspense fallback={null}><WarehousePurchaseReceiptDialog
           key={`${selectedPurchaseOrder.purchaseOrderId}-${selectedReceiptLine.purchaseOrderLineId}`}
           open
           order={selectedPurchaseOrder}
@@ -564,7 +564,7 @@ export default function WarehousePage() {
               variant: 'info',
             });
           }}
-        />
+        /></Suspense>
       )}
 
       {warehouseFeedback && (
@@ -677,7 +677,7 @@ export default function WarehousePage() {
         )}
       </SectionPanel>
 
-      <WarehouseReceiptLifecyclePanel />
+      <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehouseReceiptLifecyclePanel /></Suspense>
 
       <ViewSwitcher
         compact
@@ -867,7 +867,7 @@ export default function WarehousePage() {
           </KeepAliveTabPanel>
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
-          <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
+          <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" /></Suspense>
           <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
             <WarehouseDemandPanel
               demandSearch={demandSearch}
@@ -891,7 +891,7 @@ export default function WarehousePage() {
           </Suspense>
         </KeepAliveTabPanel>
         {selectedPurchaseOrder && isBatchReceiptOpen && canReceivePurchases && (
-          <WarehouseBatchPurchaseReceiptDialog
+          <Suspense fallback={null}><WarehouseBatchPurchaseReceiptDialog
             open
             order={selectedPurchaseOrder}
             warehouses={receiptWarehouses}
@@ -906,7 +906,7 @@ export default function WarehousePage() {
                 variant: 'info',
               });
             }}
-          />
+          /></Suspense>
         )}
 
         <KeepAliveTabPanel id="warehouse-exceptions" active={activeView === 'exceptions'}>

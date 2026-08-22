@@ -185,7 +185,7 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
     });
   });
 
-  it('shows price tabs to Thu mua but keeps the audit log admin-only', () => {
+  it('shows price tabs to Thu mua but keeps the audit log admin-only', async () => {
     renderReportsPage('thumua');
 
     PURCHASE_ACCESS_TABS.forEach((label) => {
@@ -193,15 +193,15 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
     });
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
     // PurchaseAccess cũng mở 3 cách phân tích tổng hợp của price-variance/*.
-    expect(screen.getByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
   });
 
-  it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', () => {
+  it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', async () => {
     renderReportsPage('thukho');
 
     // receipt-price-variance dùng PurchaseOrderReadAccess nên Thủ kho vẫn xem được dòng nhập.
     expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Kế hoạch thu mua' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
   });
@@ -228,10 +228,10 @@ describe('ReportsPage falls back when the URL points at a forbidden tab', () => 
     expect(mocks.purchasePlanPage).toHaveBeenCalledWith(expect.anything(), { skip: true });
   });
 
-  it('keeps Thủ kho on the allowed price sub tab when the URL asks for a PurchaseAccess aggregate', () => {
+  it('keeps Thủ kho on the allowed price sub tab when the URL asks for a PurchaseAccess aggregate', async () => {
     renderReportsPage('thukho', '/reports?view=price&subview=supplier');
 
-    expect(screen.getByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(mocks.priceVarianceBySupplierPage).toHaveBeenCalledWith(expect.anything(), { skip: true });
     expect(mocks.priceVariancePage).toHaveBeenCalledWith(expect.anything(), { skip: false });
   });
@@ -368,7 +368,7 @@ describe('ReportsPage query state boundary', () => {
     expect(table.querySelectorAll('.ipc-reports-audit-value')).toHaveLength(3);
   });
 
-  it('keeps stale price rows visible while refreshing', () => {
+  it('keeps stale price rows visible while refreshing', async () => {
     mocks.priceVariancePage.mockReturnValue(readyResult({
       items: [{
         id: 'price-1',
@@ -393,7 +393,7 @@ describe('ReportsPage query state boundary', () => {
 
     renderReportsPage('admin');
 
-    expect(screen.getAllByText('Gạo tẻ').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Gạo tẻ')).length).toBeGreaterThan(0);
     expect(screen.getByText('PN-20260729-01')).toBeInTheDocument();
     expect(screen.getByText('29/07/2026')).toBeInTheDocument();
     expect(screen.getByText('120 kg')).toBeInTheDocument();
@@ -404,7 +404,7 @@ describe('ReportsPage query state boundary', () => {
     const user = userEvent.setup();
     renderReportsPage('admin');
 
-    const shift = screen.getByRole('combobox', { name: 'Ca' });
+    const shift = await screen.findByRole('combobox', { name: 'Ca' });
     await user.click(shift);
     await user.click(await screen.findByRole('option', { name: 'Ca sáng' }));
 

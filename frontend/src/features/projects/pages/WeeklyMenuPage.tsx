@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
@@ -35,9 +35,7 @@ import {
 } from '../weekly-menu/model/scope';
 import type { WeeklyMenuView } from '../weekly-menu/model/types';
 import { useWeeklyMenuImport } from '../weekly-menu/import/useWeeklyMenuImport';
-import { WeeklyMenuImportDialog } from '../weekly-menu/import/WeeklyMenuImportDialog';
 import { useWeeklyScheduleEditor } from '../weekly-menu/schedule/useWeeklyScheduleEditor';
-import { WeeklyScheduleEditorDialog } from '../weekly-menu/schedule/WeeklyScheduleEditorDialog';
 import type { WeeklyScheduleFeedback } from '../weekly-menu/schedule/types';
 import { useWeeklyProductionPlan } from '../weekly-menu/production-plan/useWeeklyProductionPlan';
 import { useMaterialDemand } from '../weekly-menu/demand/useMaterialDemand';
@@ -47,10 +45,13 @@ import { useDishMaterials } from '../weekly-menu/dish-materials/useDishMaterials
 import { buildWeeklyPlanRows } from '../weekly-menu/cost/weeklyPlanRowsModel';
 import { WeeklyMenuCommandBar, WeeklyMenuPricingContext } from '../weekly-menu/shell/WeeklyMenuCommandBar';
 import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
-import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
+
+const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
+const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
+const WeeklyScheduleEditorDialog = lazy(() => import('../weekly-menu/schedule/WeeklyScheduleEditorDialog').then(({ WeeklyScheduleEditorDialog: component }) => ({ default: component })))
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
@@ -475,7 +476,7 @@ const WeeklyMenuPage = () => {
       context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
-        <WeeklyMenuReadiness readiness={readiness} />
+        <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><WeeklyMenuReadiness readiness={readiness} /></Suspense>
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
@@ -526,9 +527,9 @@ const WeeklyMenuPage = () => {
           />
         </div>
 
-        {importWorkflow.state.isOpen && <WeeklyMenuImportDialog workflow={importWorkflow} />}
+        {importWorkflow.state.isOpen && <Suspense fallback={null}><WeeklyMenuImportDialog workflow={importWorkflow} /></Suspense>}
 
-        {scheduleWorkflow.state.isEditorOpen && <WeeklyScheduleEditorDialog workflow={scheduleWorkflow} />}
+        {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
       </QueryViewBoundary>
     </OperationalFrame>
   );

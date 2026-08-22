@@ -1,5 +1,4 @@
-import { lazy } from 'react';
-import { WeeklyScheduleSection } from '../schedule/WeeklyScheduleSection';
+import { lazy, Suspense } from 'react';
 import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix';
 import type { WeeklyMenuView } from '../model/types';
 import type { WeeklyMenuScope, WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../schedule/types';
@@ -16,6 +15,7 @@ import {
   loadPurchaseSummarySection,
 } from './weeklyMenuViewPreload';
 
+const WeeklyScheduleSection = lazy(() => import('../schedule/WeeklyScheduleSection').then(({ WeeklyScheduleSection: component }) => ({ default: component })));
 const MenuCostSection = lazy(loadMenuCostSection);
 const PurchaseSummarySection = lazy(loadPurchaseSummarySection);
 const DishMaterialsSection = lazy(loadDishMaterialsSection);
@@ -58,7 +58,7 @@ export function WeeklyMenuViewContent({
   dishMaterialsWorkflow,
 }: WeeklyMenuViewContentProps) {
   if (activeView === 'schedule') {
-    return <div {...panelProps('schedule')}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={hasCommittedWeek} rows={committedRows} dishNamesById={dishNamesById} /></div>;
+    return <div {...panelProps('schedule')}><Suspense fallback={<div aria-busy="true" className="min-h-[480px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={hasCommittedWeek} rows={committedRows} dishNamesById={dishNamesById} /></Suspense></div>;
   }
   if (activeView === 'production-plan') {
     return <div {...panelProps('production-plan')}><ProductionPlanSection workflow={productionPlanWorkflow} /></div>;

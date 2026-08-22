@@ -78,12 +78,12 @@ Mỗi finding phải ghi đủ:
 
 ### Rollout còn lại
 
-- [ ] Warehouse capability island pass — pilot evidence: `WarehouseDemandPanel` + `WarehouseExceptionsWorkbench` lazy-load; `274.00 → 266.15 KiB` (`-7.85 KiB`), `10/10` focused tests, headed `5/5` viewport pass; threshold `257.00 KiB` chưa đạt.
-- [ ] Admin Data capability island pass — pilot evidence: `AdminStatisticsPanel` lazy-load; `268.72 → 267.89 KiB` (`-0.83 KiB`), focused `6/6`, headed `5/5` viewport pass; threshold `259.00 KiB` chưa đạt.
+- [x] Warehouse capability island PASS — demand/exceptions/receipt lifecycle/receipt dialogs/blocker lazy-load; route `255.71 / 257.00 KiB`, headed matrix `35/35`.
+- [x] Admin Data capability island PASS — panel imports are gated by first activation and visited panels remain mounted; route `199.00 / 259.00 KiB`, state regression `6/6`, headed matrix `35/35`.
 - [x] Dashboard capability island pass — shared TablePreferences seam đưa route về `190.50 / 199.00 KiB`.
-- [ ] Reports capability island pass — pilot evidence: `ServiceRunReportPanel` và `LegacyLineageDispositionPanel` lazy-load; `263.29 → 259.55 KiB` (`-3.74 KiB`), focused `21/21`, headed `5/5` viewport pass; threshold `252.00 KiB` chưa đạt.
+- [x] Reports capability island PASS — filters, price, data-quality, service-run và legacy-lineage capabilities lazy-load; route `239.36 / 252.00 KiB`, permission/state regressions `19/19`.
 - [x] Chef capability island PASS — shift/production/service-run/receipt/documents capabilities lazy-load; route `200.23 / 263.00 KiB`, focused `10/10`, headed `5/5`, full `157/888`.
-- [ ] Weekly Menu capability island pass.
+- [x] Weekly Menu capability island PASS — readiness, import/editor dialogs and route-owned sections lazy-load; route `274.55 / 275.00 KiB`, focused weekly/report regressions `140/140`.
 - [x] Purchasing capability island PASS — supplemental, quotation và workflow guide lazy-load; route `254.91 / 255.00 KiB`, focused/page regressions pass.
 - [x] Approval Rules/Advanced Settings capability island pass — Approval Rules `238.83 / 241.00 KiB`; Advanced Settings vẫn route lazy riêng ngoài budget matrix.
 - [ ] Tất cả route đạt threshold hiện hành trong cùng một clean build. Shared TablePreferences seam đã giảm `common` từ `51.75 → 9.91 KiB`; Dashboard, Purchasing và Approval Rules hiện PASS, còn 7 route RED.
@@ -190,7 +190,7 @@ Mỗi finding phải ghi đủ:
 - [x] Frontend lint pass sau Coordination pilot.
 - [x] Dependency-cruiser pass: `425 modules / 1601 dependencies / 0 violations`.
 - [ ] Backend build/test pass nếu UI flow phụ thuộc contract backend.
-- [ ] Route-budget checker pass trên clean build; hiện vẫn RED `10/10`, Coordination đã giảm `5.31 KiB` nhưng còn `227.28 / 196.00 KiB`.
+- [x] Route-budget checker PASS `10/10` trên clean production build; thresholds và accounting không đổi.
 - [x] UI measurement suite pass: headed matrix `35/35 PASS` sau shared TablePreferences seam.
 - [x] `git diff --check` pass.
 - [ ] Secret/stub scan pass.

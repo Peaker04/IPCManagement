@@ -10,7 +10,6 @@ import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
 import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
-import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
 import {
   getPurchasingErrorMessage,
@@ -20,6 +19,7 @@ import {
   type PurchasingStageId,
 } from '../purchasingModel';
 
+const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const PurchaseWorkflowGuide = lazy(() => import('../PurchaseWorkflowGuide').then(({ PurchaseWorkflowGuide: component }) => ({ default: component })))
 const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
 const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection').then(({ SupplierQuotationSection: component }) => ({ default: component })))
@@ -276,7 +276,7 @@ export default function PurchasingPage() {
           <KeepAliveTabPanel id="purchasing-workflow" active={activeView === 'workflow'} className="space-y-4">
             {workbenchView.phase === 'ready' ? (
               <>
-                <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
+                <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" /></Suspense>
                 <Suspense fallback={<div aria-hidden="true" className="min-h-24 rounded-md bg-slate-50" />}>
                   <PurchaseWorkflowGuide
                     currentStage={activeDate?.currentStage}

@@ -1,35 +1,40 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Database, PackageCheck, SlidersHorizontal, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { CommandBar, ContextStrip, OperationalFrame, ViewSwitcher } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { AdminAuditPanel } from './admin-data/AdminAuditPanel';
-import { AdminBomPanel } from './admin-data/AdminBomPanel';
-import { AdminCleanupPanel } from './admin-data/AdminCleanupPanel';
-import { AdminContractsPanel } from './admin-data/AdminContractsPanel';
-import { AdminEmployeesPanel } from './admin-data/AdminEmployeesPanel';
-import { AdminInventoryPanel } from './admin-data/AdminInventoryPanel';
 import { useAdminDataPageModel } from './admin-data/useAdminDataPageModel';
 import type { AdminView } from './admin-data/adminDataPageTypes';
 
+const AdminAuditPanel = lazy(() => import('./admin-data/AdminAuditPanel').then(({ AdminAuditPanel: component }) => ({ default: component })))
+const AdminBomPanel = lazy(() => import('./admin-data/AdminBomPanel').then(({ AdminBomPanel: component }) => ({ default: component })))
+const AdminCleanupPanel = lazy(() => import('./admin-data/AdminCleanupPanel').then(({ AdminCleanupPanel: component }) => ({ default: component })))
+const AdminContractsPanel = lazy(() => import('./admin-data/AdminContractsPanel').then(({ AdminContractsPanel: component }) => ({ default: component })))
+const AdminEmployeesPanel = lazy(() => import('./admin-data/AdminEmployeesPanel').then(({ AdminEmployeesPanel: component }) => ({ default: component })))
+const AdminInventoryPanel = lazy(() => import('./admin-data/AdminInventoryPanel').then(({ AdminInventoryPanel: component }) => ({ default: component })))
 const AdminStatisticsPanel = lazy(() => import('./admin-data/AdminStatisticsPanel').then(({ AdminStatisticsPanel: component }) => ({ default: component })))
 const AdminPanelFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 export default function AdminDataPage() {
   const model = useAdminDataPageModel();
   const { adminContextItems, adminTabs, canManageEmployees, effectiveActiveView, isViewPending, setActiveView, startViewTransition } = model;
+  const [visitedViews, setVisitedViews] = useState<ReadonlySet<AdminView>>(() => new Set([effectiveActiveView]));
+  const activateView = (view: AdminView) => {
+    setVisitedViews((current) => current.has(view) ? current : new Set(current).add(view));
+    startViewTransition(() => setActiveView(view));
+  };
 return (
     <OperationalFrame
       command={
         <CommandBar
           actions={
             <>
-              <button className="ipc-button ipc-button-primary" type="button" onClick={() => setActiveView('bom-import')}>
+              <button className="ipc-button ipc-button-primary" type="button" onClick={() => activateView('bom-import')}>
                 <PackageCheck size={16} />
                 BOM theo đơn giá
               </button>
               {canManageEmployees && (
-                <button className="ipc-button ipc-button-ghost" type="button" onClick={() => setActiveView('employees')}>
+                <button className="ipc-button ipc-button-ghost" type="button" onClick={() => activateView('employees')}>
                   <Users size={16} />
                   Nhân viên
                 </button>
@@ -60,20 +65,20 @@ return (
         ariaLabel="Chọn góc nhìn quản trị dữ liệu"
         tabs={adminTabs}
         activeTab={`admin-${effectiveActiveView}`}
-        onTabChange={(id) => startViewTransition(() => setActiveView(id.replace('admin-', '') as AdminView))}
+        onTabChange={(id) => activateView(id.replace('admin-', '') as AdminView)}
       />
 
       {isViewPending ? <span className="sr-only" role="status">Đang chuyển vùng dữ liệu quản trị.</span> : null}
 
-      <AdminBomPanel model={model} />
-      <AdminContractsPanel model={model} />
-      <AdminCleanupPanel model={model} />
-      <AdminInventoryPanel model={model} />
       <Suspense fallback={AdminPanelFallback}>
-        <AdminStatisticsPanel model={model} />
+        {visitedViews.has('bom-import') && <AdminBomPanel model={model} />}
+        {visitedViews.has('contracts') && <AdminContractsPanel model={model} />}
+        {visitedViews.has('cleanup') && <AdminCleanupPanel model={model} />}
+        {visitedViews.has('inventory') && <AdminInventoryPanel model={model} />}
+        {visitedViews.has('statistics') && <AdminStatisticsPanel model={model} />}
+        {visitedViews.has('employees') && <AdminEmployeesPanel model={model} />}
+        {visitedViews.has('audit') && <AdminAuditPanel model={model} />}
       </Suspense>
-      <AdminEmployeesPanel model={model} />
-      <AdminAuditPanel model={model} />
     </OperationalFrame>
   );
 }
