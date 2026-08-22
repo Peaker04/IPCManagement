@@ -1,9 +1,10 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { assertWarehouseFixture, currentStockRows, mixedEmptyFixture, stockMovementRows, warehouseDocuments, warehouseFixtureRecordIds } from './warehouseDataWorkspaceFixture';
 import {
-  validateWarehouseAiFinding, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
+  validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
   WAREHOUSE_CONTRACT_VERSION, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture,
 } from './warehouseDataWorkspaceContract';
 import { buildWarehouseSelectionManifest, classifyRailRelation, evaluateWarehouseManifest, splitWorkbenchConsumerInventory } from './warehouseDeterministicRules';
@@ -114,9 +115,35 @@ describe('Warehouse Data Workspace contract', () => {
   });
 
   it('accepts only schema-valid non-PASS AI findings', () => {
-    const finding = { id: 'WH-001', verdict: 'FAIL', evidence: ['capture/ready'], expected: 'rail side by side', actual: 'rail stacked', severity: 'high', owner: { level: 'layout' }, confidence: 0.8 };
+    const finding = { id: 'WH-001', verdict: 'FAIL', evidence: ['capture/ready'], expected: 'rail side by side', actual: 'rail stacked', severity: 'high', ownerLevel: 'layout', confidence: 0.8 };
     expect(() => validateWarehouseAiFinding(finding)).not.toThrow();
     expect(() => validateWarehouseAiFinding({ ...finding, verdict: 'PASS' })).toThrow();
     expect(() => validateWarehouseAiFinding({ ...finding, confidence: 0.79 })).toThrow();
+    expect(() => validateWarehouseAiFinding({ ...finding, autoFix: 'change CSS' })).toThrow();
+  });
+
+  it('attests the exact fresh reviewer packet and keeps its three FAILs as the authorization queue', () => {
+    const base = resolve(process.cwd(), 'test-results/warehouse-data-workspace/baseline');
+    const input = JSON.parse(readFileSync(resolve(base, 'ai-review-input.json'), 'utf8'));
+    const output = JSON.parse(readFileSync(resolve(base, 'ai-findings.json'), 'utf8'));
+    expect(() => validateWarehouseAiReviewInput(input)).not.toThrow();
+    expect(input).toMatchObject({
+      reviewerRunId: 'e6804529-8bd5-48a6-9246-fc667e0ac803', reviewerWorkflowChild: 'phase-27-baseline-review',
+      wrapperDisposition: 'rejected', wrapperDispositionEffect: 'none-on-json-findings',
+    });
+    const sha256 = (path: string) => createHash('sha256').update(readFileSync(resolve(process.cwd(), '..', path))).digest('hex');
+    for (const item of input.suppliedItems) expect(sha256(item.path)).toBe(item.sha256);
+    for (const item of input.selectedEvidence) {
+      expect(sha256(item.recordPath)).toBe(item.recordSha256);
+      expect(sha256(item.screenshotPath)).toBe(item.screenshotSha256);
+    }
+    expect(output.findings).toHaveLength(3);
+    output.findings.forEach(validateWarehouseAiFinding);
+    expect(output.findings.map(({ verdict }: { verdict: string }) => verdict)).toEqual(['FAIL', 'FAIL', 'FAIL']);
+    expect(output.findings.map(({ id }: { id: string }) => id)).toEqual([
+      'phase27-baseline-responsive-wide-rail-stacked',
+      'phase27-baseline-operational-data-presented-as-technical-placeholders',
+      'phase27-baseline-forbidden-duplicate-h1',
+    ]);
   });
 });

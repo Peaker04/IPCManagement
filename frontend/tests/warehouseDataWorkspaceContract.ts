@@ -66,7 +66,20 @@ export type WarehouseCaptureManifest = { schemaVersion: 2; contractVersion: type
 
 export type WarehouseAiFinding = {
   id: string; verdict: WarehouseFindingVerdict; evidence: string[]; expected: string; actual: string;
-  severity: 'blocker' | 'high' | 'medium' | 'low'; owner: { level: WarehouseOwnerLevel; source?: string }; confidence: number;
+  severity: 'blocker' | 'high' | 'medium' | 'low'; ownerLevel: WarehouseOwnerLevel; confidence: number;
+};
+
+export type WarehouseAiReviewInput = {
+  schemaVersion: 1;
+  reviewerRunId: string;
+  reviewerWorkflowChild: string;
+  reviewerArtifactId: string;
+  wrapperDisposition: 'rejected';
+  wrapperDispositionEffect: 'none-on-json-findings';
+  suppliedItems: { path: string; sha256: string; purpose: string }[];
+  selectedEvidence: { captureIdentity: string; reasons: string[]; recordPath: string; recordSha256: string; screenshotPath: string; screenshotSha256: string }[];
+  allowedDimensions: readonly ['hierarchy', 'grouping', 'visual-balance', 'information-architecture'];
+  deniedFields: string[];
 };
 
 export function validateWarehouseCapture(value: unknown): asserts value is WarehouseCapture {
@@ -102,7 +115,24 @@ export function validateWarehouseCaptureManifest(value: unknown): asserts value 
 
 export function validateWarehouseAiFinding(value: unknown): asserts value is WarehouseAiFinding {
   const finding = value as Partial<WarehouseAiFinding>;
-  if (!finding.id || finding.verdict === 'PASS' as WarehouseFindingVerdict || !['FAIL', 'NEEDS_EVIDENCE', 'UNRESOLVED'].includes(finding.verdict ?? '') ||
-      !finding.evidence?.length || !finding.expected || !finding.actual || !finding.severity || !finding.owner?.level ||
+  const keys = Object.keys(finding).sort();
+  const expectedKeys = ['actual', 'confidence', 'evidence', 'expected', 'id', 'ownerLevel', 'severity', 'verdict'];
+  if (JSON.stringify(keys) !== JSON.stringify(expectedKeys) || !finding.id || finding.verdict === 'PASS' as WarehouseFindingVerdict ||
+      !['FAIL', 'NEEDS_EVIDENCE', 'UNRESOLVED'].includes(finding.verdict ?? '') || !finding.evidence?.length || !finding.expected || !finding.actual ||
+      !['blocker', 'high', 'medium', 'low'].includes(finding.severity ?? '') || !['token', 'primitive', 'shared-component', 'layout', 'route'].includes(finding.ownerLevel ?? '') ||
       typeof finding.confidence !== 'number' || finding.confidence < 0 || finding.confidence > 1 || finding.verdict === 'FAIL' && finding.confidence < 0.8) throw new Error('Invalid Warehouse AI finding');
+}
+
+export function validateWarehouseAiReviewInput(value: unknown): asserts value is WarehouseAiReviewInput {
+  const input = value as Partial<WarehouseAiReviewInput>;
+  const denied = ['diff', 'implementation rationale', 'auto-fix', 'unselected captures'];
+  if (input.schemaVersion !== 1 || !input.reviewerRunId || !input.reviewerWorkflowChild || !input.reviewerArtifactId ||
+      input.wrapperDisposition !== 'rejected' || input.wrapperDispositionEffect !== 'none-on-json-findings' || !input.suppliedItems?.length ||
+      !input.selectedEvidence?.length || JSON.stringify(input.allowedDimensions) !== JSON.stringify(['hierarchy', 'grouping', 'visual-balance', 'information-architecture']) ||
+      !denied.every((field) => input.deniedFields?.includes(field))) throw new Error('Invalid Warehouse AI review input');
+  if (input.suppliedItems.some(({ path, sha256 }) => !path || !/^[a-f0-9]{64}$/.test(sha256)) ||
+      input.selectedEvidence.some(({ captureIdentity, reasons, recordPath, recordSha256, screenshotPath, screenshotSha256 }) =>
+        !captureIdentity || !reasons.length || !recordPath || !screenshotPath || !/^[a-f0-9]{64}$/.test(recordSha256) || !/^[a-f0-9]{64}$/.test(screenshotSha256))) {
+    throw new Error('Invalid Warehouse AI review input evidence');
+  }
 }

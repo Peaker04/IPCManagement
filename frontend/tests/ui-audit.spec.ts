@@ -5,7 +5,7 @@ import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 import { collectWarehouseEvidence, writeWarehouseCaptureManifest } from './warehouseEvidenceCollector';
 import { currentStockRows, mixedEmptyFixture, noWarehouseReadActor, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
-import { validateWarehouseCaptureManifest, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCaptureManifest, type WarehouseScenario } from './warehouseDataWorkspaceContract';
+import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCaptureManifest, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCaptureManifest, type WarehouseScenario } from './warehouseDataWorkspaceContract';
 import { buildWarehouseSelectionManifest, evaluateWarehouseManifest } from './warehouseDeterministicRules';
 
 type AuditIssue = {
@@ -699,6 +699,18 @@ test.describe('Warehouse Data Workspace deterministic baseline', () => {
     expect(report.findings.filter(({ verdict }) => verdict !== 'PASS').every(({ selector, metric, owner }) => selector && metric && owner.source)).toBe(true);
     expect(selection.selected).toHaveLength(6);
     expect(selection.selected.every(({ reasons, recordPath }) => reasons.length > 0 && readFileSync(resolve(baseline, recordPath)).length > 0)).toBe(true);
+  });
+});
+
+test.describe('Warehouse Data Workspace AI selection contract', () => {
+  test('validates the attested bounded reviewer packet and authorization queue', () => {
+    const baseline = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', 'baseline');
+    const input = JSON.parse(readFileSync(resolve(baseline, 'ai-review-input.json'), 'utf8'));
+    const output = JSON.parse(readFileSync(resolve(baseline, 'ai-findings.json'), 'utf8'));
+    expect(() => validateWarehouseAiReviewInput(input)).not.toThrow();
+    expect(output.findings).toHaveLength(3);
+    output.findings.forEach(validateWarehouseAiFinding);
+    expect(output.findings.every(({ verdict }: { verdict: string }) => verdict === 'FAIL')).toBe(true);
   });
 });
 
