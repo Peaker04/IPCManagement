@@ -10,7 +10,7 @@ using System.Collections.Concurrent;
 using System.Data;
 using System.Text.Json;
 using IPCManagement.Api.Infrastructure.Lifecycle;
-
+using static IPCManagement.Api.Features.Inventory.Services.SupplementalMaterialRequestRules;
 namespace IPCManagement.Api.Features.Inventory.Services;
 
 public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRequestService
@@ -130,7 +130,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         }
 
         SemaphoreSlim? inMemoryLock = null;
-        if (IsInMemory())
+        if (IsInMemory(_context))
         {
             inMemoryLock = InMemoryIssueLineLocks.GetOrAdd(
                 Convert.ToHexString(issueLineId),
@@ -193,7 +193,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                     };
 
                     _context.Supplementalmaterialrequests.Add(entity);
-                    AddAudit(entity, actorId, "Create", null, PendingStatus, "Bếp gửi yêu cầu cấp nguyên liệu bổ sung tới kho.");
+                    AddAudit(_context, entity, actorId, "Create", null, PendingStatus, "Bếp gửi yêu cầu cấp nguyên liệu bổ sung tới kho.");
                     await _context.SaveChangesAsync();
                     var result = await MapAsync(entity, source);
                     result.ConcurrencyVersion = 1;
@@ -212,7 +212,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         {
             // The generated unique column is the cross-process concurrency fence.
             // A concurrent winner is the idempotent result for this source line.
-            if (!IsInMemory())
+            if (!IsInMemory(_context))
             {
                 _context.ChangeTracker.Clear();
             }
@@ -256,7 +256,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         return await _transactionRunner.ExecuteAsync(
             async _ =>
             {
-                var entity = await LoadTrackedAsync(id);
+                var entity = await LoadTrackedAsync(_context, id);
                 EnsureWarehouseScope(entity, scopedWarehouseId);
                 EnsureActionable(entity);
 
@@ -314,7 +314,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 var totalFulfilled = DecimalPolicy.RoundQuantity(current.FulfilledQty + requestedQuantity);
                 var oldStatus = entity.Status;
                 entity.Status = totalFulfilled >= entity.RequestedQty ? IssuedStatus : PartialStatus;
-                AddAudit(
+                AddAudit(_context,
                     entity,
                     actorId,
                     FulfillmentIssueAuditField,
@@ -358,7 +358,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         return await _transactionRunner.ExecuteAsync(
             async _ =>
             {
-                var entity = await LoadTrackedAsync(id);
+                var entity = await LoadTrackedAsync(_context, id);
                 EnsureWarehouseScope(entity, scopedWarehouseId);
                 EnsureActionable(entity);
 
@@ -426,7 +426,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
                 var oldStatus = entity.Status;
                 entity.Status = NeedsPurchaseStatus;
-                AddAudit(
+                AddAudit(_context,
                     entity,
                     actorId,
                     PurchaseRequestAuditField,
@@ -457,7 +457,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string? scopedWarehouseId = null)
     {
         var actorId = ParseActor(actorUserId);
-        var entity = await LoadTrackedAsync(id);
+        var entity = await LoadTrackedAsync(_context, id);
         EnsureWarehouseScope(entity, scopedWarehouseId);
         EnsureActionable(entity);
 
@@ -475,7 +475,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         var oldStatus = entity.Status;
         entity.Status = RejectedStatus;
-        AddAudit(entity, actorId, "Reject", oldStatus, RejectedStatus, reason);
+        AddAudit(_context, entity, actorId, "Reject", oldStatus, RejectedStatus, reason);
         await _context.SaveChangesAsync();
         return await MapAsync(entity);
     }
@@ -531,7 +531,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             .Select(entry => entry.Entity)
             .FirstOrDefault(item => item.PlanLineId.SequenceEqual(materialLine.PlanLineId));
         var sourceShift = trackedPlanLine?.ShiftName;
-        if (sourceShift is null && !IsInMemory())
+        if (sourceShift is null && !IsInMemory(_context))
         {
             sourceShift = await _context.Productionplanlines.AsNoTracking()
                 .Where(item => item.PlanLineId == materialLine.PlanLineId)
@@ -545,7 +545,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private async Task<InventoryIssueLine> LoadSourceIssueLineForCreateAsync(byte[] issueLineId)
     {
         InventoryIssueLine? source;
-        if (IsInMemory())
+        if (IsInMemory(_context))
         {
             source = await _context.Inventoryissuelines.FindAsync(issueLineId);
         }
@@ -579,7 +579,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
     private async Task<SupplementalMaterialRequest?> FindOpenByIssueLineAsync(byte[] issueLineId)
     {
-        var candidates = IsInMemory()
+        var candidates = IsInMemory(_context)
             ? (await _context.Supplementalmaterialrequests.ToListAsync())
                 .Where(item => item.IssueLineId.SequenceEqual(issueLineId))
                 .OrderByDescending(item => item.RequestedAt)
@@ -595,96 +595,5 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         });
     }
 
-    private async Task<SupplementalMaterialRequest> LoadTrackedAsync(string id)
-    {
-        var requestId = GuidHelper.ParseGuidString(id)
-            ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
-        return await _context.Supplementalmaterialrequests
-            .FirstOrDefaultAsync(item => item.RequestId == requestId)
-            ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu cấp nguyên liệu bổ sung.");
-    }
-
-    private void AddAudit(
-        SupplementalMaterialRequest entity,
-        byte[] actorId,
-        string fieldName,
-        string? oldValue,
-        string? newValue,
-        string reason)
-        => _context.Auditlogs.Add(new AuditLog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = DateTime.UtcNow,
-            ChangedBy = actorId,
-            BusinessArea = "SupplementalMaterial",
-            EntityName = nameof(SupplementalMaterialRequest),
-            EntityId = entity.RequestId,
-            FieldName = fieldName,
-            OldValue = oldValue,
-            NewValue = newValue,
-            Reason = reason,
-        });
-
-    private static void EnsureActionable(SupplementalMaterialRequest entity)
-    {
-        var status = NormalizeStatus(entity.Status);
-        if (status is RejectedStatus or FulfilledStatus)
-        {
-            throw new BusinessRuleException("Yêu cầu bổ sung đã ở trạng thái kết thúc và không thể thao tác thêm.");
-        }
-    }
-
-    private static void EnsureWarehouseScope(SupplementalMaterialRequest entity, string? scopedWarehouseId)
-        => EnsureWarehouseScope(entity.WarehouseId, scopedWarehouseId);
-
-    private static void EnsureWarehouseScope(byte[] warehouseId, string? scopedWarehouseId)
-    {
-        if (scopedWarehouseId is null)
-        {
-            return;
-        }
-        var scopedWarehouse = GuidHelper.ParseGuidString(scopedWarehouseId);
-        if (scopedWarehouse is null || !warehouseId.SequenceEqual(scopedWarehouse))
-        {
-            throw new UnauthorizedAccessException("Không có quyền xử lý yêu cầu của kho khác.");
-        }
-    }
-
-    private static byte[] ParseActor(string actorUserId)
-        => GuidHelper.ParseGuidString(actorUserId)
-            ?? throw new ArgumentException("Người thao tác không hợp lệ.");
-
-    private static string RequireCommandId(string? commandId)
-        => !string.IsNullOrWhiteSpace(commandId) && commandId.Trim().Length <= 100
-            ? commandId.Trim()
-            : throw new ArgumentException("Mã thao tác không hợp lệ.");
-
-    private static SupplementalMaterialRequestDto DeserializeResponse(string responseJson)
-        => JsonSerializer.Deserialize<SupplementalMaterialRequestDto>(responseJson)
-            ?? throw new InvalidOperationException("Không thể đọc lại kết quả yêu cầu bổ sung.");
-
-    private static string NormalizeStatus(string? status)
-        => string.Equals(status, "PENDING", StringComparison.OrdinalIgnoreCase)
-            ? PendingStatus
-            : status?.Trim().ToUpperInvariant() ?? PendingStatus;
-
-    private bool IsInMemory()
-        => string.Equals(
-            _context.Database.ProviderName,
-            "Microsoft.EntityFrameworkCore.InMemory",
-            StringComparison.Ordinal);
-
-    private static bool IsOpenIssueLineUniqueViolation(DbUpdateException exception)
-    {
-        for (var inner = exception.InnerException; inner is not null; inner = inner.InnerException)
-        {
-            if (inner.Message.Contains(OpenIssueLineUniqueIndex, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
 }

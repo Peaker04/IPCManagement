@@ -1,5 +1,14 @@
 import type { components } from '@/shared/api/contracts/schema';
-import type { PageNumberPage } from './workflowApiTypes';
+
+interface ReportPage<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
 
 export interface PriceVarianceRow {
   id: string;
@@ -131,7 +140,7 @@ export interface DataQualityReport {
 }
 
 export interface DataQualityPageReport extends DataQualityReport {
-  page: PageNumberPage<DataQualityIssueRow>;
+  page: ReportPage<DataQualityIssueRow>;
 }
 
 export type DataQualityIssueRemediationRequest = components['schemas']['DataQualityIssueRemediationRequest'];

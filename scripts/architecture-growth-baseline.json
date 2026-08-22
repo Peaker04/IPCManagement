@@ -50,16 +50,6 @@
       ],
       "lines": 615,
       "level": "WARNING"
-    },
-    {
-      "id": "service:PurchaseOrderService",
-      "kind": "service",
-      "name": "PurchaseOrderService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseOrderService.cs"
-      ],
-      "lines": 604,
-      "level": "WARNING"
     }
   ]
 }

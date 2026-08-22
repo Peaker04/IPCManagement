@@ -6,6 +6,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using static IPCManagement.Api.Features.Inventory.Services.InventoryReturnRules;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 using IPCManagement.Api.Infrastructure.Lifecycle;
@@ -407,7 +408,7 @@ public class InventoryReturnService : IInventoryReturnService
         string? userId,
         CancellationToken cancellationToken = default)
     {
-        EnsureAllocationContext();
+        EnsureAllocationContext(_context);
         var sourceLines = await LoadScopedSourceLinesAsync(query, cancellationToken);
         var customers = (await _context!.Customers.AsNoTracking().ToListAsync(cancellationToken))
             .ToDictionary(item => Convert.ToHexString(item.CustomerId));
@@ -476,7 +477,7 @@ public class InventoryReturnService : IInventoryReturnService
         string? userId,
         CancellationToken cancellationToken = default)
     {
-        EnsureAllocationContext();
+        EnsureAllocationContext(_context);
         var actorId = GuidHelper.ParseGuidString(userId) ?? throw new UnauthorizedAccessException("Không xác định được người thực hiện disposition.");
         if (!await IsAdminAsync(userId, cancellationToken)) throw new UnauthorizedAccessException("Chỉ Admin được điều phối excess giữa khách hàng.");
         var sourceId = ParseRequiredId(request.SourceIssueLineId, "SourceIssueLineId không hợp lệ.");
@@ -518,23 +519,6 @@ public class InventoryReturnService : IInventoryReturnService
             return result;
         }, async token => await recorder.FindExistingCommandAsync(commandId, aggregateType, sourceId, token) is not null,
         IsolationLevel.Serializable, cancellationToken);
-    }
-
-    private static void ValidateReturnQuantity(
-        InventoryIssueLine sourceLine,
-        decimal alreadyAccounted,
-        decimal accountedQuantity)
-    {
-        if (!DecimalPolicy.GreaterThanQuantity(accountedQuantity, 0))
-        {
-            throw new BusinessRuleException("Số lượng trả/hao hụt phải lớn hơn 0.");
-        }
-
-        if (DecimalPolicy.GreaterThanQuantity(alreadyAccounted + accountedQuantity, sourceLine.IssuedQty))
-        {
-            throw new BusinessRuleException(
-                $"Số lượng trả/hao hụt vượt quá số lượng đã xuất. Đã xuất: {sourceLine.IssuedQty}, đã ghi nhận: {alreadyAccounted}, ghi thêm: {accountedQuantity}.");
-        }
     }
 
     private async Task EnsureReturnBalanceAfterAdjustmentAsync(
@@ -610,61 +594,5 @@ public class InventoryReturnService : IInventoryReturnService
         return AuthorizationPolicies.IsAdminRole(roleName);
     }
 
-    private static void EnsureCompatibleCrossCustomerScope(SourceLineScope source, SourceLineScope destination)
-    {
-        if (source.PlanLine.CustomerId.SequenceEqual(destination.PlanLine.CustomerId))
-            throw new BusinessRuleException("Disposition cross-customer phải chọn dòng đích của khách hàng khác.");
-        if (!source.Line.IngredientId.SequenceEqual(destination.Line.IngredientId) || !source.Line.UnitId.SequenceEqual(destination.Line.UnitId))
-            throw new BusinessRuleException("Dòng nguồn và dòng đích phải khớp exact ingredient và unit; tên nguyên liệu không đủ.");
-        if (source.Issue.ReceivedAt is null || destination.Issue.ReceivedAt is null)
-            throw new BusinessRuleException("Cả hai dòng nguồn phải được Bếp xác nhận trước disposition.");
-    }
 
-    private static InventoryAllocationDispositionDto MapDisposition(InventoryAllocationDisposition item) => new()
-    {
-        AllocationDispositionId = GuidHelper.ToGuidString(item.AllocationDispositionId),
-        SourceIssueLineId = GuidHelper.ToGuidString(item.SourceIssueLineId),
-        DestinationSourceLineId = GuidHelper.ToGuidString(item.DestinationIssueLineId),
-        Quantity = item.Quantity,
-        Reason = item.Reason,
-        CreatedBy = GuidHelper.ToGuidString(item.CreatedBy),
-        CreatedAt = item.CreatedAt,
-        Version = item.Version,
-        CorrelationId = item.CorrelationId,
-        CausationId = item.CausationId,
-    };
-
-    private static InventoryAllocationDispositionDto DeserializeDisposition(string responseJson)
-        => JsonSerializer.Deserialize<InventoryAllocationDispositionDto>(responseJson)
-            ?? throw new InvalidOperationException("Không thể đọc lại kết quả allocation disposition.");
-
-    private static string BuildDecisionId(string sourceIssueLineId) => $"return-allocation:{sourceIssueLineId}";
-    private static byte[] ParseRequiredId(string? value, string message) => GuidHelper.ParseGuidString(value) ?? throw new ArgumentException(message);
-    private static string RequireText(string? value, string message, int maximumLength)
-        => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maximumLength ? value.Trim() : throw new ArgumentException(message);
-    private void EnsureAllocationContext()
-    {
-        if (_context is null) throw new InvalidOperationException("Allocation disposition requires the inventory data context.");
-    }
-
-    private sealed record SourceLineScope(
-        InventoryIssueLine Line,
-        InventoryIssue Issue,
-        MaterialRequestLine Material,
-        ProductionPlanLine PlanLine,
-        ProductionPlan Plan);
-
-    private static string NormalizeReturnType(string? returnType)
-    {
-        var normalized = string.IsNullOrWhiteSpace(returnType)
-            ? ReturnTypeReturn
-            : returnType.Trim().ToUpperInvariant();
-
-        return normalized is ReturnTypeReturn or ReturnTypeWaste
-            ? normalized
-            : throw new ArgumentException("Loại ghi nhận phải là RETURN hoặc WASTE.");
-    }
-
-    private static string ResolveReturnCodePrefix(string returnType)
-        => returnType == ReturnTypeWaste ? "WST" : "RET";
 }

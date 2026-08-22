@@ -1,12 +1,10 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
-import { ClipboardList, PackageOpen, ReceiptText, Search, Warehouse } from 'lucide-react';
+import { PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
 import {
   CommandBar,
   ContextStrip,
-  DocumentRail,
-  EmptyState,
   InlineAlert,
   KeepAliveTabPanel,
   OperationalFrame,
@@ -17,8 +15,6 @@ import {
   TableViewport,
   ViewSwitcher,
 } from '@/components/common';
-import { SplitWorkbench } from '@/components/common/SplitWorkbench';
-import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ROUTES } from '@/lib/routeConfig';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
@@ -35,7 +31,7 @@ import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@
 import { useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
-import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
+import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
@@ -45,10 +41,10 @@ import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { addIsoDays } from '../warehouseDateRange';
 import { typography } from '@/lib/typography';
-
+import { WarehouseMovementPanel } from './WarehouseMovementPanel';
+import { getWarehouseMutationErrorMessage } from '../warehouseError';
 const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
@@ -56,17 +52,6 @@ const WarehouseReceiptLifecyclePanel = lazy(() => import('../WarehouseReceiptLif
 const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
-const getMutationErrorMessage = (error: unknown, fallback: string) => {
-  if (error && typeof error === 'object' && 'data' in error) {
-    const data = (error as { data?: { message?: unknown } }).data;
-    if (data && typeof data === 'object' && 'message' in data) {
-      return String(data.message);
-    }
-  }
-
-  return fallback;
-};
-
 export default function WarehousePage() {
   const [searchParams] = useSearchParams();
   const canReceivePurchases = useHasRole(['dieuphoi']);
@@ -317,7 +302,7 @@ export default function WarehousePage() {
     } catch (error) {
       setWarehouseFeedback({
         title: 'Chưa tạo được phiếu xuất kho',
-        message: getMutationErrorMessage(error, 'Kiểm tra tồn kho, demand còn lại hoặc quyền thủ kho rồi thử lại.'),
+        message: getWarehouseMutationErrorMessage(error, 'Kiểm tra tồn kho, demand còn lại hoặc quyền thủ kho rồi thử lại.'),
         variant: 'danger',
       });
       setSelectedView('exceptions');
@@ -698,173 +683,29 @@ export default function WarehousePage() {
           </span>
         )}
         <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
-          <SplitWorkbench
-              detailLabel="Phiếu kho"
-              detail={
-                <DocumentRail
-                  documents={warehouseDocuments}
-                  title={null}
-                  actionForDocument={(document) => (
-                    <Link className="ipc-button ipc-button-ghost" to={document.route}>
-                      Mở phiếu
-                    </Link>
-                  )}
-                />
-              }
-            >
-              <div className="flex flex-col gap-4">
-                <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-                  <label htmlFor="warehouse-current-stock-search" className="mb-3 grid gap-1 text-xs font-semibold text-slate-700">
-                    Tìm trong snapshot tồn kho hiện tại
-                    <span className="relative block">
-                      <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                      <Input
-                        id="warehouse-current-stock-search"
-                        type="search"
-                        value={currentStockSearch}
-                        onChange={(event) => {
-                          setCurrentStockSearch(event.target.value);
-                          setCurrentStockPage(1);
-                        }}
-                        placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị"
-                        className="h-9 pl-9"
-                      />
-                    </span>
-                  </label>
-                  {currentStockView.phase === 'forbidden' && (
-                    <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">
-                      {currentStockView.message}
-                    </InlineAlert>
-                  )}
-                  {currentStockView.phase === 'error' && (
-                    <EmptyState
-                      variant="error"
-                      className="mb-3"
-                      title="Không tải được tồn kho hiện tại"
-                      description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì kho hết hàng. Hãy tải lại trước khi lập phiếu xuất hoặc kết luận thiếu hàng."
-                      onRetry={currentStockView.retry}
-                      isRetrying={currentStockView.isRetrying}
-                    />
-                  )}
-                  {currentStockView.phase === 'ready' && currentStockView.isRefreshing && (
-                    <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
-                      Đang cập nhật...
-                    </span>
-                  )}
-                  <TableViewport className="ipc-warehouse-table-shell min-h-[27rem]" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
-                    <table className="ipc-data-table">
-                      <thead>
-                        <tr>
-                          <th>Kho</th>
-                          <th>Nguyên liệu</th>
-                          <th>Số lượng</th>
-                          <th>Cập nhật</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentStockView.phase === 'loading' ? (
-                          Array.from({ length: 8 }).map((_, i) => (
-                            <tr key={`stock-skel-${i}`}>
-                              <td colSpan={4} className="p-2">
-                                <div className="ipc-table-skeleton-cell h-8 w-full" />
-                              </td>
-                            </tr>
-                          ))
-                        ) : currentStockRows.length === 0 ? (
-                          <tr>
-                            <td colSpan={4} className="py-6 text-center text-slate-500">
-                              {currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}
-                            </td>
-                          </tr>
-                        ) : (
-                          currentStockRows.map((row) => (
-                            <tr key={row.id}>
-                              <td>{row.warehouse}</td>
-                              <td>{row.ingredient}</td>
-                              <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
-                              <td>{formatDateTime(row.lastUpdated)}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </TableViewport>
-                  <PaginationBar
-                    page={currentStockPageResponse?.pageNumber ?? currentStockPage}
-                    pageSize={currentStockPageResponse?.pageSize ?? 8}
-                    totalItems={currentStockPageResponse?.totalCount ?? 0}
-                    onPageChange={setCurrentStockPage}
-                  />
-                </SectionPanel>
-
-                <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-                  <label htmlFor="warehouse-stock-movement-search" className="mb-3 grid gap-1 text-xs font-semibold text-slate-700">
-                    Tìm bút toán theo chứng từ nguồn
-                    <span className="relative block">
-                      <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                      <Input
-                        id="warehouse-stock-movement-search"
-                        type="search"
-                        value={stockMovementSearch}
-                        onChange={(event) => {
-                          setStockMovementSearch(event.target.value);
-                          setStockMovementCursors([]);
-                        }}
-                        placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú"
-                        className="h-9 pl-9"
-                      />
-                    </span>
-                  </label>
-                  {stockMovementView.phase === 'forbidden' && (
-                    <InlineAlert title="Không có quyền xem sổ luân chuyển kho" variant="danger" className="mb-3">
-                      {stockMovementView.message}
-                    </InlineAlert>
-                  )}
-                  {stockMovementView.phase === 'error' && (
-                    <EmptyState
-                      variant="error"
-                      className="mb-3"
-                      title="Không tải được sổ luân chuyển kho"
-                      description="Không có dòng luân chuyển nào hiển thị vì lỗi tải dữ liệu. Đừng coi đây là bằng chứng kho chưa phát sinh nhập, xuất hay trả hàng."
-                      onRetry={stockMovementView.retry}
-                      isRetrying={stockMovementView.isRetrying}
-                    />
-                  )}
-                  {stockMovementView.phase === 'ready' && stockMovementView.isRefreshing && (
-                    <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
-                      Đang cập nhật...
-                    </span>
-                  )}
-                  {stockMovementView.phase === 'loading' ? (
-                    <div className="min-h-[380px] space-y-3 p-4" role="status" aria-label="Đang tải sổ luân chuyển kho">
-                      <div className="ipc-table-skeleton-cell h-8 w-full !bg-slate-100" />
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="ipc-table-skeleton-cell h-9 w-full" />
-                      ))}
-                    </div>
-                  ) : stockMovementView.phase === 'uninitialized' ? (
-                    <InlineAlert title="Chưa tải sổ luân chuyển" variant="info">
-                      {stockMovementView.instruction}
-                    </InlineAlert>
-                  ) : stockMovementView.phase === 'ready' ? (
-                    <StockMovementTable
-                      className="min-h-[27rem]"
-                      movements={stockMovementPage?.items ?? EMPTY_QUERY_ROWS}
-                      cursorPagination={{
-                        page: stockMovementCursors.length + 1,
-                        hasNext: stockMovementPage?.hasNext ?? false,
-                        onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
-                        onNext: () => {
-                          const nextCursor = toNextReportCursor(stockMovementPage);
-                          if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
-                        },
-                      }}
-                    />
-                  ) : null}
-                </SectionPanel>
-              </div>
-            </SplitWorkbench>
-          </KeepAliveTabPanel>
+          <WarehouseMovementPanel
+            documents={warehouseDocuments}
+            currentStockSearch={currentStockSearch}
+            onCurrentStockSearchChange={(value) => { setCurrentStockSearch(value); setCurrentStockPage(1); }}
+            currentStockView={currentStockView}
+            currentStockRows={currentStockRows}
+            currentStockPage={currentStockPageResponse?.pageNumber ?? currentStockPage}
+            currentStockPageSize={currentStockPageResponse?.pageSize ?? 8}
+            currentStockTotalItems={currentStockPageResponse?.totalCount ?? 0}
+            onCurrentStockPageChange={setCurrentStockPage}
+            stockMovementSearch={stockMovementSearch}
+            onStockMovementSearchChange={(value) => { setStockMovementSearch(value); setStockMovementCursors([]); }}
+            stockMovementView={stockMovementView}
+            stockMovements={stockMovementPage?.items ?? EMPTY_QUERY_ROWS}
+            stockMovementPage={stockMovementCursors.length + 1}
+            stockMovementHasNext={stockMovementPage?.hasNext ?? false}
+            onStockMovementPrevious={() => setStockMovementCursors((current) => current.slice(0, -1))}
+            onStockMovementNext={() => {
+              const nextCursor = toNextReportCursor(stockMovementPage);
+              if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
+            }}
+          />
+        </KeepAliveTabPanel>
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
           <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" /></Suspense>

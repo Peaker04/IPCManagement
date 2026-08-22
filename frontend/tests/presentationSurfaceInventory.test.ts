@@ -40,11 +40,11 @@ describe('project-wide presentation surface inventory', () => {
       switchers: items.reduce((sum, item) => sum + item.switchers, 0),
       fingerprint: fingerprint(items),
     }).toEqual({
-      owners: 54,
+      owners: 55,
       tables: 50,
       dialogs: 34,
       switchers: 7,
-      fingerprint: 'de082a0e00a124c2048419dbc3e72177982c0ced2879f9759293f61d2c6855c4',
+      fingerprint: '68642fb8ca56fb439f0dd44bade109258a7c84eeb8f7b12711b5a036c0a3d1c3',
     })
   })
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import warehousePageSource from './WarehousePage.tsx?raw';
+import warehouseMovementPanelSource from './WarehouseMovementPanel.tsx?raw';
 
 describe('WarehousePage permission contract', () => {
   it('uses the normalized dieuphoi role for receipt draft creation', () => {
@@ -39,7 +40,7 @@ describe('WarehousePage permission contract', () => {
   });
 
   it('reserves the shared table geometry while asynchronous rows settle', () => {
-    expect(warehousePageSource).toContain('ipc-warehouse-table-shell min-h-[27rem]');
-    expect(warehousePageSource).toContain('className="min-h-[27rem]"');
+    expect(warehouseMovementPanelSource).toContain('ipc-warehouse-table-shell min-h-[27rem]');
+    expect(warehouseMovementPanelSource).toContain('className="min-h-[27rem]"');
   });
 });
