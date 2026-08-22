@@ -51,10 +51,10 @@ Mỗi finding phải ghi đủ:
 
 - [ ] Định nghĩa route shell/capability boundary bằng source hiện hành.
 - [ ] Mỗi capability có `load`, fallback, error boundary và owner rõ ràng.
-- [ ] Capability chỉ lazy-load phần thực sự route-owned; không lazy hóa primitive nhỏ máy móc.
+- [x] Capability chỉ lazy-load phần thực sự route-owned; shared `TableViewport` chỉ lazy-load control tùy chỉnh khi bảng opt-in preferences, không lazy hóa primitive bảng/query.
 - [ ] Preload chỉ chạy sau intent hoặc theo route policy đã đo.
 - [ ] Endpoint được inject trước prefetch/query hook sử dụng endpoint đó.
-- [ ] Không có import vòng hoặc duplicate runtime/API trong manifest.
+- [x] Không có import vòng hoặc duplicate runtime/API trong manifest; dependency-cruiser `425 modules / 1601 dependencies / 0 violations`.
 
 ### Pilot: Coordination
 
@@ -86,7 +86,7 @@ Mỗi finding phải ghi đủ:
 - [ ] Weekly Menu capability island pass.
 - [ ] Purchasing capability island pass — pilot evidence: `SupplementalPurchasingWorkbench` và `SupplierQuotationSection` lazy-load; `259.50 → 258.68 KiB` (`-0.82 KiB`), focused `13/13`, headed `5/5` viewport pass; threshold `255.00 KiB` chưa đạt.
 - [ ] Approval Rules/Advanced Settings capability island pass.
-- [ ] Tất cả route đạt threshold hiện hành trong cùng một clean build.
+- [ ] Tất cả route đạt threshold hiện hành trong cùng một clean build. Shared TablePreferences seam đã giảm `common` từ `51.75 → 9.91 KiB`; Dashboard, Purchasing và Approval Rules hiện PASS, còn 7 route RED.
 
 ## Gate 2 — Controlled lazy confirmation seam
 
@@ -184,15 +184,15 @@ Mỗi finding phải ghi đủ:
 
 ## Gate 7 — Regression và closeout
 
-- [ ] Focused tests của từng changed seam pass.
+- [x] Focused tests của từng changed seam pass; shared TableViewport/table contracts `15/15`, full frontend `157/888`.
 - [x] Full frontend unit suite pass với worker phù hợp: `157 files / 888 tests PASS` với `--maxWorkers=4` sau Coordination pilot.
 - [x] Frontend build pass sau Coordination pilot.
 - [x] Frontend lint pass sau Coordination pilot.
 - [x] Dependency-cruiser pass: `425 modules / 1601 dependencies / 0 violations`.
 - [ ] Backend build/test pass nếu UI flow phụ thuộc contract backend.
 - [ ] Route-budget checker pass trên clean build; hiện vẫn RED `10/10`, Coordination đã giảm `5.31 KiB` nhưng còn `227.28 / 196.00 KiB`.
-- [ ] UI measurement suite pass hoặc mọi ngoại lệ có verdict rõ ràng.
-- [ ] `git diff --check` pass.
+- [x] UI measurement suite pass: headed matrix `35/35 PASS` sau shared TablePreferences seam.
+- [x] `git diff --check` pass.
 - [ ] Secret/stub scan pass.
 - [ ] Không còn staged/untracked artifact ngoài scope.
 - [ ] Cập nhật `MEMORY.md` chỉ với trạng thái hiện hành/gate hiện tại.
@@ -218,7 +218,7 @@ Checklist chỉ được đóng khi:
 - [x] Quyết định kiến trúc: Route-owned capability islands + controlled lazy confirmation seam.
 - [x] Quyết định UI/UX: evidence-first audit bằng DOM/runtime/interaction, không dùng screenshot đơn lẻ.
 - [ ] Gate 0 — baseline mới cho checklist này (đã hoàn tất build/manifest/viewport; còn thiếu source-owner inventory project-wide).
-- [ ] Gate 1 — capability island implementation (Coordination pilot đã chứng minh giảm `5.31 KiB`, chưa đạt threshold và chưa rollout).
+- [ ] Gate 1 — capability island implementation (shared TablePreferences seam đã đưa 3/10 route về PASS; còn 7 route cần giảm tiếp).
 - [ ] Gate 2 — controlled lazy confirmation seam; Approval capability pilot đã pass nhưng confirmation dialog chưa được tách vì cần focus/keyboard/mutation contract riêng.
 - [ ] Gate 3 — project-wide UI/UX inventory.
 - [ ] Gate 4 — copy/vocabulary audit.

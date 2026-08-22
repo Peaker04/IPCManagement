@@ -107,7 +107,7 @@ describe('TableViewport', () => {
 
     const region = screen.getByRole('region', { name: 'Bảng có tùy chỉnh' });
     const toolbar = screen.getByRole('toolbar', { name: 'Tùy chỉnh bảng' });
-    const trigger = within(toolbar).getByRole('button', { name: 'Tùy chỉnh bảng' });
+    const trigger = await within(toolbar).findByRole('button', { name: 'Tùy chỉnh bảng' }, { timeout: 5000 });
     expect(region).not.toContainElement(trigger);
     expect(region).toContainElement(screen.getByRole('table'));
     expect(region).toHaveClass('overflow-auto');
@@ -149,7 +149,7 @@ describe('TableViewport', () => {
     );
     const region = screen.getByRole('region', { name: 'Bảng sắp xếp' });
 
-    await user.click(screen.getByRole('button', { name: 'Tùy chỉnh bảng' }));
+    await user.click(await screen.findByRole('button', { name: 'Tùy chỉnh bảng' }, { timeout: 5000 }));
     const upStatus = screen.getByRole('button', { name: 'Đưa Trạng thái lên' });
     const downCost = screen.getByRole('button', { name: 'Đưa Chi phí xuống' });
     expect(screen.queryByRole('button', { name: 'Đưa Định danh lên' })).not.toBeInTheDocument();
@@ -174,7 +174,7 @@ describe('TableViewport', () => {
     const reloadedRegion = screen.getByRole('region', { name: 'Bảng sắp xếp đã tải lại' });
     expect(within(reloadedRegion).queryByText('Chi phí')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Tùy chỉnh bảng' }));
+    await user.click(await screen.findByRole('button', { name: 'Tùy chỉnh bảng' }, { timeout: 5000 }));
     await user.click(screen.getByRole('button', { name: 'Khôi phục mặc định' }));
     expect(within(reloadedRegion).getByText('Chi phí')).toBeInTheDocument();
     expect(within(reloadedRegion).getByText((_, element) => element?.getAttribute('data-columns') === 'identity,status,cost')).toBeInTheDocument();
