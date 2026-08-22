@@ -31,8 +31,9 @@ export async function collectWarehouseEvidence(
   const probes = await page.evaluate((items) => {
     const allRegions = Array.from(document.querySelectorAll<HTMLElement>('section,aside,[role="region"],main'));
     const headings = Array.from(document.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6'));
-    const find = (name: string) => headings.find((node) => node.textContent?.trim() === name)?.closest<HTMLElement>('section,aside,main')
-      ?? allRegions.find((node) => node.getAttribute('aria-label') === name || node.textContent?.includes(name));
+    const find = (name: string) => allRegions.find((node) => node.getAttribute('aria-label') === name)
+      ?? headings.find((node) => node.textContent?.trim() === name)?.closest<HTMLElement>('section,aside,main')
+      ?? allRegions.find((node) => node.textContent?.includes(name));
     return items.map(({ id, name }) => {
       const node = find(name);
       if (!node) throw new Error(`Missing Warehouse evidence owner: ${name}`);
@@ -49,7 +50,7 @@ export async function collectWarehouseEvidence(
     clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
     h1Count: document.querySelectorAll('h1').length,
     headingLevels: Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).map((node) => Number(node.tagName.slice(1))),
-    primaryActionCount: document.querySelectorAll('[data-variant="primary"],.ipc-button-primary').length,
+    primaryActionCount: document.querySelector('.ipc-split-primary')?.querySelectorAll('[data-variant="primary"],.ipc-button-primary').length ?? 0,
   }));
   const activeElement = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') || document.activeElement?.textContent?.trim() || document.activeElement?.tagName || 'BODY');
   const geometry = Object.fromEntries(probes);

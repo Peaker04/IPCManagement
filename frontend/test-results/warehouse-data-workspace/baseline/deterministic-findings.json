@@ -1,0 +1,2312 @@
+{
+  "schemaVersion": 1,
+  "stage": "deterministic-before-ai",
+  "verdict": "FAIL",
+  "findings": [
+    {
+      "id": "WH-REGIONS-ready-1920x1080",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-ready-1920x1080",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-ready-1920x1080",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-ready-1920x1080",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-ready-1920x1080",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-ready-1920x1080",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1620,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1620,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1620,
+          "height": 212.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-ready-1920x1080",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-ready-1920x1080",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "FAIL",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "side-by-side",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1620,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1620,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1620,
+          "height": 212.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-ready-1920x1080",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-ready-1920x1080",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-ready-1920x1080",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1620,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1620,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-ready-1440x900",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-ready-1440x900",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-ready-1440x900",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-ready-1440x900",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-ready-1440x900",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-ready-1440x900",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1140,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1140,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1140,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-ready-1440x900",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-ready-1440x900",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "FAIL",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "side-by-side",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1140,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1140,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1140,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-ready-1440x900",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-ready-1440x900",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-ready-1440x900",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1140,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1140,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-ready-1366x768",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-ready-1366x768",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-ready-1366x768",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-ready-1366x768",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-ready-1366x768",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-ready-1366x768",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1066,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1066,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1066,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-ready-1366x768",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-ready-1366x768",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "FAIL",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "side-by-side",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1066,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1066,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1066,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-ready-1366x768",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-ready-1366x768",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-ready-1366x768",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1066,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1066,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-ready-1365x900",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-ready-1365x900",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-ready-1365x900",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-ready-1365x900",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-ready-1365x900",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-ready-1365x900",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1065,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1065,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1065,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-ready-1365x900",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-ready-1365x900",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "stacked",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1065,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1065,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 1065,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-ready-1365x900",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-ready-1365x900",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-ready-1365x900",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1065,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 1065,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-ready-1280x900",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-ready-1280x900",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-ready-1280x900",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-ready-1280x900",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-ready-1280x900",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-ready-1280x900",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 980,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 980,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 980,
+          "height": 251.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-ready-1280x900",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-ready-1280x900",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "stacked",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 980,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 980,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 2270.234375,
+          "width": 980,
+          "height": 251.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-ready-1280x900",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-ready-1280x900",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-ready-1280x900",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 980,
+          "height": 534.546875
+        },
+        "history": {
+          "x": 264,
+          "y": 1661.6875,
+          "width": 980,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-mixed-empty-1920x1080",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-mixed-empty-1920x1080",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-mixed-empty-1920x1080",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-mixed-empty-1920x1080",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-mixed-empty-1920x1080",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-mixed-empty-1920x1080",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1620,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1620,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1620,
+          "height": 212.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-mixed-empty-1920x1080",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-mixed-empty-1920x1080",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "FAIL",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "side-by-side",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1620,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1620,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1620,
+          "height": 212.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-mixed-empty-1920x1080",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-mixed-empty-1920x1080",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-mixed-empty-1920x1080",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1620,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1620,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-mixed-empty-1440x900",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-mixed-empty-1440x900",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-mixed-empty-1440x900",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-mixed-empty-1440x900",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-mixed-empty-1440x900",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-mixed-empty-1440x900",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1140,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1140,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1140,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-mixed-empty-1440x900",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-mixed-empty-1440x900",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "FAIL",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "side-by-side",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1140,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1140,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1140,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-mixed-empty-1440x900",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-mixed-empty-1440x900",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-mixed-empty-1440x900",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1140,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1140,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-mixed-empty-1366x768",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-mixed-empty-1366x768",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-mixed-empty-1366x768",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-mixed-empty-1366x768",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-mixed-empty-1366x768",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-mixed-empty-1366x768",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1066,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1066,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1066,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-mixed-empty-1366x768",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-mixed-empty-1366x768",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "FAIL",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "side-by-side",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1066,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1066,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1066,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-mixed-empty-1366x768",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-mixed-empty-1366x768",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-mixed-empty-1366x768",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1066,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1066,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-mixed-empty-1365x900",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-mixed-empty-1365x900",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-mixed-empty-1365x900",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-mixed-empty-1365x900",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-mixed-empty-1365x900",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-mixed-empty-1365x900",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1065,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1065,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1065,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-mixed-empty-1365x900",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-mixed-empty-1365x900",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "stacked",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1065,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1065,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 1065,
+          "height": 232.09375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-mixed-empty-1365x900",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-mixed-empty-1365x900",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-mixed-empty-1365x900",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 1065,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 1065,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-REGIONS-mixed-empty-1280x900",
+      "ruleId": "D12-REGIONS-OWNERSHIP",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "required named region/owner count",
+      "expected": "3/3 regions with explicit owners",
+      "actual": "3/3",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-H1-mixed-empty-1280x900",
+      "ruleId": "D12-SEMANTIC-H1",
+      "verdict": "PASS",
+      "selector": "h1",
+      "metric": "H1 count",
+      "expected": "1",
+      "actual": "1",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "MainLayout/OperationalFrame"
+      }
+    },
+    {
+      "id": "WH-HEADINGS-mixed-empty-1280x900",
+      "ruleId": "D12-HEADING-ORDER",
+      "verdict": "PASS",
+      "selector": "h1,h2,h3",
+      "metric": "declared heading levels",
+      "expected": "shell H1 and declared H3 dataset headings",
+      "actual": "2,1,4,3,4,3,3,3",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel/SectionPanel"
+      }
+    },
+    {
+      "id": "WH-OVERFLOW-mixed-empty-1280x900",
+      "ruleId": "D12-DOCUMENT-OVERFLOW",
+      "verdict": "PASS",
+      "selector": "html",
+      "metric": "scrollWidth-clientWidth",
+      "expected": "<= 0.5px",
+      "actual": "-10px",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-CLIPPING-mixed-empty-1280x900",
+      "ruleId": "D12-REGION-CLIPPING",
+      "verdict": "PASS",
+      "selector": "[aria-label=\"Phiếu kho\"], section:has(h3)",
+      "metric": "region scroll overflow",
+      "expected": "no contracted region clipping",
+      "actual": "none",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-OVERLAP-mixed-empty-1280x900",
+      "ruleId": "D12-REGION-OVERLAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "pairwise bounding-box overlap",
+      "expected": "none",
+      "actual": "none",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 980,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 980,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 980,
+          "height": 251.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-DOM-ORDER-mixed-empty-1280x900",
+      "ruleId": "D12-DOM-FOCUS-ORDER",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench",
+      "metric": "DOM order and focusable sequence",
+      "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
+      "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
+      "severity": "high",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-RESPONSIVE-mixed-empty-1280x900",
+      "ruleId": "D05-RESPONSIVE-RELATION",
+      "verdict": "PASS",
+      "selector": ".ipc-split-workbench > .ipc-split-primary, .ipc-split-workbench > aside",
+      "metric": "workspace/rail bounding-box relation",
+      "expected": "stacked",
+      "actual": "stacked",
+      "severity": "blocker",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 980,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 980,
+          "height": 592.546875
+        },
+        "rail": {
+          "x": 264,
+          "y": 1943.6875,
+          "width": 980,
+          "height": 251.59375
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "layout",
+        "source": "SplitWorkbench/DocumentRail"
+      }
+    },
+    {
+      "id": "WH-ACTIONS-mixed-empty-1280x900",
+      "ruleId": "D12-PRIMARY-ACTIONS",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary [data-variant=\"primary\"], .ipc-split-primary .ipc-button-primary",
+      "metric": "competing primary action count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "medium",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-RUNTIME-mixed-empty-1280x900",
+      "ruleId": "D12-RUNTIME",
+      "verdict": "PASS",
+      "selector": "page/runtime",
+      "metric": "console + page + non-GET count",
+      "expected": "0",
+      "actual": "0",
+      "severity": "blocker",
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehousePage"
+      }
+    },
+    {
+      "id": "WH-SPACING-PRIMARY-HISTORY-mixed-empty-1280x900",
+      "ruleId": "D15-PRIMARY-HISTORY-GAP",
+      "verdict": "PASS",
+      "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
+      "metric": "history.top-current.bottom",
+      "expected": "16px ±0.5px",
+      "actual": "16px",
+      "severity": "medium",
+      "boxes": {
+        "current": {
+          "x": 264,
+          "y": 1111.140625,
+          "width": 980,
+          "height": 208
+        },
+        "history": {
+          "x": 264,
+          "y": 1335.140625,
+          "width": 980,
+          "height": 592.546875
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "owner": {
+        "level": "shared-component",
+        "source": "WarehouseMovementPanel"
+      }
+    },
+    {
+      "id": "WH-ROUTE-FORBIDDEN-1920x1080",
+      "ruleId": "D08-ROUTE-FORBIDDEN",
+      "verdict": "PASS",
+      "selector": "main:has(h1:has-text(\"Không đủ quyền truy cập\"))",
+      "metric": "route boundary and named owner",
+      "expected": "/403 with one named forbidden owner",
+      "actual": "/403; owner=RoleGuard",
+      "severity": "blocker",
+      "boxes": {
+        "forbidden": {
+          "x": 738,
+          "y": 72.59375,
+          "width": 672,
+          "height": 150
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
+      "owner": {
+        "level": "route",
+        "source": "RoleGuard"
+      }
+    },
+    {
+      "id": "WH-ROUTE-FORBIDDEN-1440x900",
+      "ruleId": "D08-ROUTE-FORBIDDEN",
+      "verdict": "PASS",
+      "selector": "main:has(h1:has-text(\"Không đủ quyền truy cập\"))",
+      "metric": "route boundary and named owner",
+      "expected": "/403 with one named forbidden owner",
+      "actual": "/403; owner=RoleGuard",
+      "severity": "blocker",
+      "boxes": {
+        "forbidden": {
+          "x": 498,
+          "y": 72.59375,
+          "width": 672,
+          "height": 150
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1440x900",
+      "owner": {
+        "level": "route",
+        "source": "RoleGuard"
+      }
+    },
+    {
+      "id": "WH-ROUTE-FORBIDDEN-1366x768",
+      "ruleId": "D08-ROUTE-FORBIDDEN",
+      "verdict": "PASS",
+      "selector": "main:has(h1:has-text(\"Không đủ quyền truy cập\"))",
+      "metric": "route boundary and named owner",
+      "expected": "/403 with one named forbidden owner",
+      "actual": "/403; owner=RoleGuard",
+      "severity": "blocker",
+      "boxes": {
+        "forbidden": {
+          "x": 461,
+          "y": 72.59375,
+          "width": 672,
+          "height": 150
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1366x768",
+      "owner": {
+        "level": "route",
+        "source": "RoleGuard"
+      }
+    },
+    {
+      "id": "WH-ROUTE-FORBIDDEN-1365x900",
+      "ruleId": "D08-ROUTE-FORBIDDEN",
+      "verdict": "PASS",
+      "selector": "main:has(h1:has-text(\"Không đủ quyền truy cập\"))",
+      "metric": "route boundary and named owner",
+      "expected": "/403 with one named forbidden owner",
+      "actual": "/403; owner=RoleGuard",
+      "severity": "blocker",
+      "boxes": {
+        "forbidden": {
+          "x": 460.5,
+          "y": 72.59375,
+          "width": 672,
+          "height": 150
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1365x900",
+      "owner": {
+        "level": "route",
+        "source": "RoleGuard"
+      }
+    },
+    {
+      "id": "WH-ROUTE-FORBIDDEN-1280x900",
+      "ruleId": "D08-ROUTE-FORBIDDEN",
+      "verdict": "PASS",
+      "selector": "main:has(h1:has-text(\"Không đủ quyền truy cập\"))",
+      "metric": "route boundary and named owner",
+      "expected": "/403 with one named forbidden owner",
+      "actual": "/403; owner=RoleGuard",
+      "severity": "blocker",
+      "boxes": {
+        "forbidden": {
+          "x": 418,
+          "y": 72.59375,
+          "width": 672,
+          "height": 150
+        }
+      },
+      "captureIdentity": "warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1280x900",
+      "owner": {
+        "level": "route",
+        "source": "RoleGuard"
+      }
+    }
+  ]
+}

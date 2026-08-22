@@ -81,20 +81,20 @@
     },
     "warehouse-document-rail": {
       "box": {
-        "x": 248,
-        "y": 56.59375,
-        "width": 1662,
-        "height": 2115.6875
+        "x": 264,
+        "y": 1943.6875,
+        "width": 1620,
+        "height": 212.59375
       },
       "scroll": {
-        "clientWidth": 1652,
-        "scrollWidth": 1652,
-        "clientHeight": 2116,
-        "scrollHeight": 2116
+        "clientWidth": 1618,
+        "scrollWidth": 1618,
+        "clientHeight": 211,
+        "scrollHeight": 211
       },
       "style": {
         "display": "block",
-        "overflowX": "hidden",
+        "overflowX": "visible",
         "paddingLeft": "16px",
         "paddingRight": "16px"
       }
@@ -114,7 +114,7 @@
       3,
       3
     ],
-    "primaryActionCount": 2
+    "primaryActionCount": 0
   },
   "domOrder": [
     "warehouse-current-stock",

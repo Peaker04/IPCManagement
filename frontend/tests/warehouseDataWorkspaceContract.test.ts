@@ -6,6 +6,7 @@ import {
   validateWarehouseAiFinding, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
   WAREHOUSE_CONTRACT_VERSION, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture,
 } from './warehouseDataWorkspaceContract';
+import { buildWarehouseSelectionManifest, classifyRailRelation, evaluateWarehouseManifest, splitWorkbenchConsumerInventory } from './warehouseDeterministicRules';
 
 const validCapture = (state: WarehouseCapture['state'] = 'ready', viewport = WAREHOUSE_VIEWPORTS[0]): WarehouseCapture => {
   const forbidden = state === 'route-forbidden';
@@ -19,7 +20,7 @@ const validCapture = (state: WarehouseCapture['state'] = 'ready', viewport = WAR
     geometry: Object.fromEntries(ids.map((id, index) => [id, { box: { x: index * 20, y: index * 20, width: 10, height: 10 }, scroll: { clientWidth: 10, scrollWidth: 10, clientHeight: 10, scrollHeight: 10 }, style: { display: 'block', overflowX: 'visible', paddingLeft: '16px', paddingRight: '16px' } }])),
     document: { clientWidth: viewport.width, scrollWidth: viewport.width, h1Count: 1, headingLevels: [1, 3, 3], primaryActionCount: 0 },
     domOrder: ids, focusOrder: ['tab', 'stock-search', 'history-search'], activeElement: 'BODY', consoleErrors: [], pageErrors: [], nonGetRequests: [],
-    owners: Object.fromEntries(ids.map((id) => [id, id === 'warehouse-route-forbidden' ? 'RoleGuard' : 'owner'])),
+    owners: Object.fromEntries(ids.map((id) => [id, id === 'warehouse-route-forbidden' ? 'RoleGuard' : id === 'warehouse-document-rail' ? 'SplitWorkbench/DocumentRail' : 'WarehouseMovementPanel/SectionPanel'])),
   };
 };
 
@@ -68,6 +69,48 @@ describe('Warehouse Data Workspace contract', () => {
     expect(source).toContain('Không tải được tồn kho hiện tại');
     expect(source).toContain('Không có quyền xem tồn kho hiện tại');
     expect(source).not.toContain("phase: 'refreshing'");
+  });
+
+  it('evaluates known evidence before AI and preserves the expected wide responsive failure', () => {
+    const manifest = validManifest();
+    const wide = manifest.captures.find(({ state, viewport }) => state === 'ready' && viewport.id === '1920x1080')!;
+    wide.geometry['warehouse-current-stock'].box = { x: 0, y: 0, width: 100, height: 100 };
+    wide.geometry['warehouse-movement-history'].box = { x: 0, y: 116, width: 100, height: 100 };
+    wide.geometry['warehouse-document-rail'].box = { x: 0, y: 232, width: 100, height: 50 };
+    expect(classifyRailRelation(wide)).toBe('stacked');
+    const report = evaluateWarehouseManifest(manifest);
+    const responsive = report.findings.find(({ id }) => id === 'WH-RESPONSIVE-ready-1920x1080');
+    expect(responsive).toMatchObject({ verdict: 'FAIL', expected: 'side-by-side', actual: 'stacked', selector: expect.any(String), owner: { level: 'layout', source: 'SplitWorkbench/DocumentRail' } });
+    expect(responsive?.boxes).toBeDefined();
+    expect(report.verdict).toBe('FAIL');
+  });
+
+  it('fails closed when deterministic evidence is missing', () => {
+    const manifest = validManifest();
+    const capture = manifest.captures[0];
+    delete capture.geometry['warehouse-document-rail'];
+    const report = evaluateWarehouseManifest(manifest);
+    expect(report.findings.find(({ id }) => id === 'WH-REGIONS-ready-1920x1080')?.verdict).toBe('FAIL');
+    expect(report.findings.find(({ id }) => id === 'WH-RESPONSIVE-ready-1920x1080')?.verdict).toBe('NEEDS_EVIDENCE');
+  });
+
+  it('inventories every direct SplitWorkbench consumer without changing shared production', () => {
+    expect(splitWorkbenchConsumerInventory.reduce((total, { instances }) => total + instances, 0)).toBe(4);
+    for (const { source, instances } of splitWorkbenchConsumerInventory) {
+      const text = readFileSync(resolve(process.cwd(), '..', source), 'utf8');
+      expect((text.match(/<SplitWorkbench/g) ?? []).length).toBe(instances);
+    }
+  });
+
+  it('selects only the reasoned bounded machine-evidence packet after deterministic evaluation', () => {
+    const manifest = validManifest(); const report = evaluateWarehouseManifest(manifest);
+    const selection = buildWarehouseSelectionManifest(manifest, report);
+    expect(selection.generatedAfter).toBe('deterministic-before-ai');
+    expect(selection.selected.map(({ state, viewport }) => `${state}/${viewport}`)).toEqual([
+      'ready/1920x1080', 'ready/1366x768', 'ready/1365x900', 'ready/1280x900', 'mixed-empty/1280x900', 'route-forbidden/1440x900',
+    ]);
+    expect(selection.selected.every(({ reasons }) => reasons.length > 0)).toBe(true);
+    expect(selection.excluded).toHaveLength(9);
   });
 
   it('accepts only schema-valid non-PASS AI findings', () => {
