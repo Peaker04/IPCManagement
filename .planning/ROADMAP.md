@@ -52,7 +52,7 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 
 ## Phase 27.1: Non-Warehouse visual reconciliation
 
-**Status:** PLANNED — executed immutable Plan 01, protocol-invalid historical Plan 01C, authoritative reseal Plan 01R, additive focused-launcher Plan 01F, then Plans 02–07 across 10 serialized waves
+**Status:** PLANNED — executed immutable Plan 01, protocol-invalid historical Plan 01C, authoritative reseal Plan 01R, additive focused-launcher Plan 01F, topology-validator correction Plan 01V, then Plans 02–07 across 11 serialized waves
 
 **Goal:** Explain, classify and resolve all 21 non-Warehouse failures in `frontend/tests/visual-routes.spec.ts` without laundering production regressions, weakening the visual oracle or broad-updating baselines.
 
@@ -68,17 +68,18 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 4. The complete unchanged broad visual suite passes twice consecutively, followed by full frontend unit, lint, dependency-cruiser, production build and hygiene gates.
 5. Phase 27 final verification is rerun only after Phase 27.1 closes with zero unresolved item.
 
-**Plans:** 10 plans
+**Plans:** 11 plans
 
 Plans:
 
 - [x] 27.1-01-PLAN.md — Immutable original source root and deterministic inventory of all 21 failures (wave 1).
 - [x] 27.1-01C-PLAN.md — Immutable historical correction provenance, explicitly `SUPERSEDED_PROTOCOL_INVALID` and non-authoritative (wave 2).
-- [ ] 27.1-01R-PLAN.md — Additive authoritative reseal with seven byte/blob pins and exact adjacent payload/marker commits (wave 3; depends on 01C).
-- [ ] 27.1-01F-PLAN.md — Additive executable focused-only browser adapter with child-launch trace and sealed direct-CLI/config bytes (wave 4; depends on 01R).
-- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing readiness using four-root 01F focused authority (wave 5; depends on 01F).
-- [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes (wave 6).
-- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 7).
-- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines (wave 8).
-- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock (wave 9).
-- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout (wave 10).
+- [x] 27.1-01R-PLAN.md — Additive authoritative reseal with seven byte/blob pins and exact adjacent payload/marker commits (wave 3; depends on 01C).
+- [x] 27.1-01F-PLAN.md — Additive executable focused-only browser adapter with child-launch trace and sealed direct-CLI/config bytes (wave 4; depends on 01R).
+- [ ] 27.1-01V-PLAN.md — Correct downstream topology validation with explicit historical commits, exact payload membership, and 01F entry-HEAD proof (wave 5; depends on 01F).
+- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing readiness using 01V topology-validator and 01F focused authority (wave 6; depends on 01V).
+- [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes (wave 7).
+- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 8).
+- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines (wave 9).
+- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock (wave 10).
+- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout (wave 11).
