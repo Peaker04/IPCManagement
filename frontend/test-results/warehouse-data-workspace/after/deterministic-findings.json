@@ -12,7 +12,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -27,7 +27,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -42,7 +42,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -57,7 +57,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -72,7 +72,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -90,24 +90,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1252,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 1251.2000732421875,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 1252,
-          "height": 606.375
+          "y": 1657.6875,
+          "width": 1251.2000732421875,
+          "height": 603.2374877929688
         },
         "rail": {
-          "x": 1532,
-          "y": 1111.140625,
+          "x": 1531.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -122,7 +122,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -140,24 +140,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1252,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 1251.2000732421875,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 1252,
-          "height": 606.375
+          "y": 1657.6875,
+          "width": 1251.2000732421875,
+          "height": 603.2374877929688
         },
         "rail": {
-          "x": 1532,
-          "y": 1111.140625,
+          "x": 1531.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -172,7 +172,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -187,7 +187,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -205,18 +205,18 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1252,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 1251.2000732421875,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 1252,
-          "height": 606.375
+          "y": 1657.6875,
+          "width": 1251.2000732421875,
+          "height": 603.2374877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -231,7 +231,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -246,7 +246,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -261,7 +261,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -276,7 +276,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -291,7 +291,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -309,24 +309,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 772,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 771.2000122070312,
+          "height": 541.1375122070312
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 772,
-          "height": 690
+          "y": 1665.487548828125,
+          "width": 771.2000122070312,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 1052,
-          "y": 1111.140625,
+          "x": 1051.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -341,7 +341,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -359,24 +359,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 772,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 771.2000122070312,
+          "height": 541.1375122070312
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 772,
-          "height": 690
+          "y": 1665.487548828125,
+          "width": 771.2000122070312,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 1052,
-          "y": 1111.140625,
+          "x": 1051.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -391,7 +391,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -406,7 +406,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -419,23 +419,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.00006103515625px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 772,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 771.2000122070312,
+          "height": 541.1375122070312
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 772,
-          "height": 690
+          "y": 1665.487548828125,
+          "width": 771.2000122070312,
+          "height": 688.9874877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -450,7 +450,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -465,7 +465,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -480,7 +480,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -495,7 +495,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -510,7 +510,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -528,24 +528,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 698,
-          "height": 567.296875
+          "y": 1108.3499755859375,
+          "width": 697.6000366210938,
+          "height": 541.1375122070312
         },
         "history": {
           "x": 264,
-          "y": 1694.4375,
-          "width": 698,
-          "height": 690
+          "y": 1665.487548828125,
+          "width": 697.6000366210938,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 978,
-          "y": 1111.140625,
+          "x": 977.6000366210938,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -560,7 +560,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -578,24 +578,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 698,
-          "height": 567.296875
+          "y": 1108.3499755859375,
+          "width": 697.6000366210938,
+          "height": 541.1375122070312
         },
         "history": {
           "x": 264,
-          "y": 1694.4375,
-          "width": 698,
-          "height": 690
+          "y": 1665.487548828125,
+          "width": 697.6000366210938,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 978,
-          "y": 1111.140625,
+          "x": 977.6000366210938,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -610,7 +610,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -625,7 +625,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -638,23 +638,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.00006103515625px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 698,
-          "height": 567.296875
+          "y": 1108.3499755859375,
+          "width": 697.6000366210938,
+          "height": 541.1375122070312
         },
         "history": {
           "x": 264,
-          "y": 1694.4375,
-          "width": 698,
-          "height": 690
+          "y": 1665.487548828125,
+          "width": 697.6000366210938,
+          "height": 688.9874877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -669,7 +669,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -684,7 +684,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -699,7 +699,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -712,9 +712,9 @@
       "selector": "html",
       "metric": "scrollWidth-clientWidth",
       "expected": "<= 0.5px",
-      "actual": "-10px",
+      "actual": "-11px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -729,7 +729,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -747,24 +747,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1065,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 1064.800048828125,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 1065,
-          "height": 606.375
+          "y": 1657.6875,
+          "width": 1064.800048828125,
+          "height": 603.2374877929688
         },
         "rail": {
           "x": 264,
-          "y": 2284.0625,
-          "width": 1065,
-          "height": 232.09375
+          "y": 2276.925048828125,
+          "width": 1064.800048828125,
+          "height": 230.10000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -779,7 +779,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -797,24 +797,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1065,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 1064.800048828125,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 1065,
-          "height": 606.375
+          "y": 1657.6875,
+          "width": 1064.800048828125,
+          "height": 603.2374877929688
         },
         "rail": {
           "x": 264,
-          "y": 2284.0625,
-          "width": 1065,
-          "height": 232.09375
+          "y": 2276.925048828125,
+          "width": 1064.800048828125,
+          "height": 230.10000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -829,7 +829,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -844,7 +844,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -862,18 +862,18 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1065,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 1064.800048828125,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 1065,
-          "height": 606.375
+          "y": 1657.6875,
+          "width": 1064.800048828125,
+          "height": 603.2374877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -888,7 +888,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -903,7 +903,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -918,7 +918,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -933,7 +933,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -948,7 +948,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -966,24 +966,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 980,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 979.2000122070312,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 980,
-          "height": 625.296875
+          "y": 1657.6875,
+          "width": 979.2000122070312,
+          "height": 622.1375122070312
         },
         "rail": {
           "x": 264,
-          "y": 2302.984375,
-          "width": 980,
-          "height": 251.59375
+          "y": 2295.824951171875,
+          "width": 979.2000122070312,
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -998,7 +998,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1016,24 +1016,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 980,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 979.2000122070312,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 980,
-          "height": 625.296875
+          "y": 1657.6875,
+          "width": 979.2000122070312,
+          "height": 622.1375122070312
         },
         "rail": {
           "x": 264,
-          "y": 2302.984375,
-          "width": 980,
-          "height": 251.59375
+          "y": 2295.824951171875,
+          "width": 979.2000122070312,
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1048,7 +1048,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1063,7 +1063,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -1081,18 +1081,18 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 980,
-          "height": 534.546875
+          "y": 1108.3499755859375,
+          "width": 979.2000122070312,
+          "height": 533.3375244140625
         },
         "history": {
           "x": 264,
-          "y": 1661.6875,
-          "width": 980,
-          "height": 625.296875
+          "y": 1657.6875,
+          "width": 979.2000122070312,
+          "height": 622.1375122070312
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1107,7 +1107,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1122,7 +1122,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -1137,7 +1137,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -1152,7 +1152,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1167,7 +1167,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1185,24 +1185,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1252,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 1251.2000732421875,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 1252,
-          "height": 606.375
+          "y": 1331.737548828125,
+          "width": 1251.2000732421875,
+          "height": 603.2374877929688
         },
         "rail": {
-          "x": 1532,
-          "y": 1111.140625,
+          "x": 1531.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1217,7 +1217,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1235,24 +1235,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1252,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 1251.2000732421875,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 1252,
-          "height": 606.375
+          "y": 1331.737548828125,
+          "width": 1251.2000732421875,
+          "height": 603.2374877929688
         },
         "rail": {
-          "x": 1532,
-          "y": 1111.140625,
+          "x": 1531.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1267,7 +1267,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1282,7 +1282,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -1295,23 +1295,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.000076293945312px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1252,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 1251.2000732421875,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 1252,
-          "height": 606.375
+          "y": 1331.737548828125,
+          "width": 1251.2000732421875,
+          "height": 603.2374877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1326,7 +1326,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1341,7 +1341,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -1356,7 +1356,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -1371,7 +1371,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1386,7 +1386,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1404,24 +1404,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 772,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 771.2000122070312,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 772,
-          "height": 690
+          "y": 1331.737548828125,
+          "width": 771.2000122070312,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 1052,
-          "y": 1111.140625,
+          "x": 1051.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1436,7 +1436,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1454,24 +1454,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 772,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 771.2000122070312,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 772,
-          "height": 690
+          "y": 1331.737548828125,
+          "width": 771.2000122070312,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 1052,
-          "y": 1111.140625,
+          "x": 1051.2000732421875,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1486,7 +1486,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1501,7 +1501,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -1514,23 +1514,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.000076293945312px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 772,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 771.2000122070312,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 772,
-          "height": 690
+          "y": 1331.737548828125,
+          "width": 771.2000122070312,
+          "height": 688.9874877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1545,7 +1545,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1560,7 +1560,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -1575,7 +1575,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -1590,7 +1590,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1605,7 +1605,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1623,24 +1623,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 698,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 697.6000366210938,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 698,
-          "height": 690
+          "y": 1331.737548828125,
+          "width": 697.6000366210938,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 978,
-          "y": 1111.140625,
+          "x": 977.6000366210938,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1655,7 +1655,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1673,24 +1673,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 698,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 697.6000366210938,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 698,
-          "height": 690
+          "y": 1331.737548828125,
+          "width": 697.6000366210938,
+          "height": 688.9874877929688
         },
         "rail": {
-          "x": 978,
-          "y": 1111.140625,
+          "x": 977.6000366210938,
+          "y": 1108.3499755859375,
           "width": 352,
-          "height": 251.59375
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1705,7 +1705,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1720,7 +1720,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -1733,23 +1733,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.000076293945312px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 698,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 697.6000366210938,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 698,
-          "height": 690
+          "y": 1331.737548828125,
+          "width": 697.6000366210938,
+          "height": 688.9874877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1764,7 +1764,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1779,7 +1779,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -1794,7 +1794,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -1807,9 +1807,9 @@
       "selector": "html",
       "metric": "scrollWidth-clientWidth",
       "expected": "<= 0.5px",
-      "actual": "-10px",
+      "actual": "-11px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1824,7 +1824,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1842,24 +1842,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1065,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 1064.800048828125,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 1065,
-          "height": 606.375
+          "y": 1331.737548828125,
+          "width": 1064.800048828125,
+          "height": 603.2374877929688
         },
         "rail": {
           "x": 264,
-          "y": 1957.515625,
-          "width": 1065,
-          "height": 232.09375
+          "y": 1950.9749755859375,
+          "width": 1064.800048828125,
+          "height": 230.10000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1874,7 +1874,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1892,24 +1892,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1065,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 1064.800048828125,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 1065,
-          "height": 606.375
+          "y": 1331.737548828125,
+          "width": 1064.800048828125,
+          "height": 603.2374877929688
         },
         "rail": {
           "x": 264,
-          "y": 1957.515625,
-          "width": 1065,
-          "height": 232.09375
+          "y": 1950.9749755859375,
+          "width": 1064.800048828125,
+          "height": 230.10000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1924,7 +1924,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1939,7 +1939,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -1952,23 +1952,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.000076293945312px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 1065,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 1064.800048828125,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 1065,
-          "height": 606.375
+          "y": 1331.737548828125,
+          "width": 1064.800048828125,
+          "height": 603.2374877929688
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -1983,7 +1983,7 @@
       "expected": "3/3 regions with explicit owners",
       "actual": "3/3",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -1998,7 +1998,7 @@
       "expected": "1",
       "actual": "1",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "MainLayout/OperationalFrame"
@@ -2013,7 +2013,7 @@
       "expected": "shell H1 and declared H3 dataset headings",
       "actual": "2,1,4,3,4,3,3,3",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel/SectionPanel"
@@ -2028,7 +2028,7 @@
       "expected": "<= 0.5px",
       "actual": "-10px",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -2043,7 +2043,7 @@
       "expected": "no contracted region clipping",
       "actual": "none",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -2061,24 +2061,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 980,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 979.2000122070312,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 980,
-          "height": 625.296875
+          "y": 1331.737548828125,
+          "width": 979.2000122070312,
+          "height": 622.1375122070312
         },
         "rail": {
           "x": 264,
-          "y": 1976.4375,
-          "width": 980,
-          "height": 251.59375
+          "y": 1969.875,
+          "width": 979.2000122070312,
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -2093,7 +2093,7 @@
       "expected": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail",
       "actual": "warehouse-current-stock>warehouse-movement-history>warehouse-document-rail; focusables=28",
       "severity": "high",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -2111,24 +2111,24 @@
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 980,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 979.2000122070312,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 980,
-          "height": 625.296875
+          "y": 1331.737548828125,
+          "width": 979.2000122070312,
+          "height": 622.1375122070312
         },
         "rail": {
           "x": 264,
-          "y": 1976.4375,
-          "width": 980,
-          "height": 251.59375
+          "y": 1969.875,
+          "width": 979.2000122070312,
+          "height": 249.60000610351562
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "layout",
         "source": "SplitWorkbench/DocumentRail"
@@ -2143,7 +2143,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "medium",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -2158,7 +2158,7 @@
       "expected": "0",
       "actual": "0",
       "severity": "blocker",
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehousePage"
@@ -2171,23 +2171,23 @@
       "selector": ".ipc-split-primary > .flex.flex-col.gap-4",
       "metric": "history.top-current.bottom",
       "expected": "16px ±0.5px",
-      "actual": "16px",
+      "actual": "16.000076293945312px",
       "severity": "medium",
       "boxes": {
         "current": {
           "x": 264,
-          "y": 1111.140625,
-          "width": 980,
-          "height": 208
+          "y": 1108.3499755859375,
+          "width": 979.2000122070312,
+          "height": 207.3874969482422
         },
         "history": {
           "x": 264,
-          "y": 1335.140625,
-          "width": 980,
-          "height": 625.296875
+          "y": 1331.737548828125,
+          "width": 979.2000122070312,
+          "height": 622.1375122070312
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "owner": {
         "level": "shared-component",
         "source": "WarehouseMovementPanel"
@@ -2204,13 +2204,13 @@
       "severity": "blocker",
       "boxes": {
         "forbidden": {
-          "x": 738,
-          "y": 72.59375,
+          "x": 737.6000366210938,
+          "y": 72.4000015258789,
           "width": 672,
-          "height": 150
+          "height": 149.58750915527344
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
       "owner": {
         "level": "route",
         "source": "RoleGuard"
@@ -2227,13 +2227,13 @@
       "severity": "blocker",
       "boxes": {
         "forbidden": {
-          "x": 498,
-          "y": 72.59375,
+          "x": 497.6000061035156,
+          "y": 72.4000015258789,
           "width": 672,
-          "height": 150
+          "height": 149.58750915527344
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1440x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1440x900",
       "owner": {
         "level": "route",
         "source": "RoleGuard"
@@ -2250,13 +2250,13 @@
       "severity": "blocker",
       "boxes": {
         "forbidden": {
-          "x": 461,
-          "y": 72.59375,
+          "x": 460.8000183105469,
+          "y": 72.4000015258789,
           "width": 672,
-          "height": 150
+          "height": 149.58750915527344
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1366x768",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1366x768",
       "owner": {
         "level": "route",
         "source": "RoleGuard"
@@ -2273,13 +2273,13 @@
       "severity": "blocker",
       "boxes": {
         "forbidden": {
-          "x": 460.5,
-          "y": 72.59375,
+          "x": 460.3999938964844,
+          "y": 72.4000015258789,
           "width": 672,
-          "height": 150
+          "height": 149.58750915527344
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1365x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1365x900",
       "owner": {
         "level": "route",
         "source": "RoleGuard"
@@ -2296,13 +2296,13 @@
       "severity": "blocker",
       "boxes": {
         "forbidden": {
-          "x": 418,
-          "y": 72.59375,
+          "x": 417.6000061035156,
+          "y": 72.4000015258789,
           "width": 672,
-          "height": 150
+          "height": 149.58750915527344
         }
       },
-      "captureIdentity": "phase27-after-20260822T131341Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1280x900",
+      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1280x900",
       "owner": {
         "level": "route",
         "source": "RoleGuard"

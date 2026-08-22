@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { mapStockMovement } from '@/api/reportMappers';
+import { mapCurrentStock } from '@/api/reportsApiMappers';
 import { assertWarehouseFixture, currentStockRows, mixedEmptyFixture, stockMovementRows, warehouseDocuments, warehouseFixtureRecordIds } from './warehouseDataWorkspaceFixture';
 import {
   validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
@@ -44,6 +45,10 @@ describe('Warehouse Data Workspace contract', () => {
   it('keeps the representative fixture domain-valid and mixed-empty isolated', () => {
     expect(assertWarehouseFixture).not.toThrow(); expect(currentStockRows).toHaveLength(8); expect(stockMovementRows).toHaveLength(8); expect(warehouseDocuments.length).toBeGreaterThan(1);
     expect(mixedEmptyFixture.currentStockRows).toEqual([]); expect(mixedEmptyFixture.stockMovementRows).toBe(stockMovementRows); expect(mixedEmptyFixture.warehouseDocuments).toBe(warehouseDocuments);
+    const mappedCurrentStock = currentStockRows.map(mapCurrentStock);
+    expect(mappedCurrentStock.every((row, index) => row.warehouse.length > 0 && row.warehouse !== currentStockRows[index].warehouseId
+      && row.ingredient.length > 0 && row.ingredient !== currentStockRows[index].ingredientId
+      && row.unit.length > 0 && Number.isFinite(row.currentQty) && Boolean(row.lastUpdated))).toBe(true);
     const mappedMovements = stockMovementRows.map(mapStockMovement);
     expect(mappedMovements.every(({ material, documentNo, quantity }) => material.length > 0 && documentNo.startsWith('PX-P27-') && Number.isFinite(quantity))).toBe(true);
   });

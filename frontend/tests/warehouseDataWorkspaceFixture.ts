@@ -11,9 +11,9 @@ export const noWarehouseReadActor = {
 } as const;
 
 export const currentStockRows = Array.from({ length: 8 }, (_, index) => ({
-  id: `stock-phase27-${index + 1}`, warehouseId: 'warehouse-phase27-main', warehouse: index === 7 ? 'Kho nguyên liệu sản xuất trung tâm' : 'Kho chính',
-  ingredientId: `ingredient-phase27-${index + 1}`, ingredient: index === 6 ? 'Nấm mèo khô loại một đã sơ chế' : ['Gạo tẻ', 'Dầu ăn', 'Cá nục', 'Đu đủ xanh'][index % 4],
-  currentQty: index === 0 ? 0.125 : 1250 + index * 17.5, unit: 'kg', lastUpdated: `2026-08-${String(10 + index).padStart(2, '0')}T08:30:00Z`,
+  id: `stock-phase27-${index + 1}`, warehouseId: 'warehouse-phase27-main', warehouseName: index === 7 ? 'Kho nguyên liệu sản xuất trung tâm' : 'Kho chính',
+  ingredientId: `ingredient-phase27-${index + 1}`, ingredientName: index === 6 ? 'Nấm mèo khô loại một đã sơ chế' : ['Gạo tẻ', 'Dầu ăn', 'Cá nục', 'Đu đủ xanh'][index % 4],
+  currentQty: index === 0 ? 0.125 : 1250 + index * 17.5, unitId: 'unit-kg', unitName: 'kg', lastUpdated: `2026-08-${String(10 + index).padStart(2, '0')}T08:30:00Z`,
 }));
 export const stockMovementRows = Array.from({ length: 8 }, (_, index) => {
   const isIssue = index % 2 === 1;
@@ -25,7 +25,7 @@ export const stockMovementRows = Array.from({ length: 8 }, (_, index) => {
     warehouseId: 'warehouse-phase27-main',
     warehouseName: 'Kho chính',
     ingredientId: currentStockRows[index].ingredientId,
-    ingredientName: currentStockRows[index].ingredient,
+    ingredientName: currentStockRows[index].ingredientName,
     unitId: 'unit-kg',
     unitName: 'kg',
     quantityIn: isIssue ? 0 : quantity,

@@ -5,7 +5,7 @@ import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 import { collectWarehouseEvidence, writeWarehouseCaptureManifest } from './warehouseEvidenceCollector';
 import { currentStockRows, mixedEmptyFixture, noWarehouseReadActor, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
-import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCaptureManifest, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCaptureManifest, type WarehouseScenario } from './warehouseDataWorkspaceContract';
+import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCaptureManifest, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture, type WarehouseCaptureManifest, type WarehouseScenario } from './warehouseDataWorkspaceContract';
 import { buildWarehouseSelectionManifest, evaluateWarehouseManifest } from './warehouseDeterministicRules';
 
 type AuditIssue = {
@@ -652,7 +652,7 @@ async function expectNoAuditIssues(testName: string, issues: AuditIssue[], inter
   expect(incompleteRecords).toEqual([]);
 }
 
-const WAREHOUSE_AFTER_RUN_ID = 'phase27-after-20260822T131341Z';
+const WAREHOUSE_AFTER_RUN_ID = 'phase27-after-20260822T204000Z';
 
 async function captureWarehouseBaseline(
   browser: Browser,
@@ -707,6 +707,14 @@ test.describe('Warehouse Data Workspace contract fresh post-refactor evidence', 
     expect(selection.selected).toHaveLength(6);
     expect(selection.selected.some(({ state }) => state === 'route-forbidden')).toBe(true);
     expect(selection.selected.every(({ captureIdentity }) => captureIdentity.startsWith(`${WAREHOUSE_AFTER_RUN_ID}/`))).toBe(true);
+    const selectedReady = selection.selected.find(({ state }) => state === 'ready');
+    expect(selectedReady).toBeDefined();
+    const selectedReadyRecord = JSON.parse(readFileSync(resolve(after, selectedReady!.recordPath), 'utf8')) as WarehouseCapture;
+    expect(selectedReadyRecord.ariaSnapshot).toContain('Kho chính');
+    expect(selectedReadyRecord.ariaSnapshot).toContain('Gạo tẻ');
+    expect(selectedReadyRecord.ariaSnapshot).toContain('kg');
+    expect(selectedReadyRecord.ariaSnapshot).not.toContain('warehouse-phase27-main');
+    expect(selectedReadyRecord.ariaSnapshot).not.toMatch(/ingredient-phase27-\d+/);
   });
 });
 
