@@ -1,10 +1,6 @@
 {
   "schemaVersion": 1,
   "validatorVersion": "27.1-01C",
-  "originalMatrix": {
-    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/row-class-path-matrix.json",
-    "sha256": "15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2"
-  },
   "entries": [
     {
       "project": "chromium",
@@ -765,5 +761,9 @@
         "snapshotName": "purchasing-phase09-390x844-expected.png"
       }
     ]
+  },
+  "originalMatrix": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/row-class-path-matrix.json",
+    "sha256": "15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2"
   }
 }

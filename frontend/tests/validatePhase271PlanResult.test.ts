@@ -20,6 +20,7 @@ const marker = {
 };
 const mutate = <T>(value: T): T => structuredClone(value);
 
+// Terminal validation remains independent of the browser/source-suite lane.
 describe('Phase 27.1 Plan 01C result validator', () => {
   it('accepts the closed mapping-only READY_TO_SEAL result', () => expect(() => validateCorrectionResult(result)).not.toThrow());
   it('rejects source rerun, relabeled plan, blockers and unknown fields', () => {

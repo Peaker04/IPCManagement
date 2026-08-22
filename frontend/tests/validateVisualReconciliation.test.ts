@@ -15,6 +15,7 @@ function rejects(mutator: (candidate: AuthorizationMatrix) => void, message?: Re
   expect(() => assertAuthorizationMatrix(candidate, inventory.failures)).toThrow(message);
 }
 
+// These are pure source-inspection tests and never launch Playwright.
 describe('Phase 27.1 corrected authorization matrix', () => {
   it('accepts exact 21 identity closure and its disjoint named partition', () => {
     expect(() => assertAuthorizationMatrix(matrix, inventory.failures)).not.toThrow();

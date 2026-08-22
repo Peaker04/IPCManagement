@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sha256 } from './validateVisualReconciliation';
+import { sha256 } from './validateVisualReconciliation.ts';
 
 const RESULT_KEYS = ['schemaVersion', 'phase', 'planId', 'status', 'summary', 'mappingDeltaOnly', 'originalLineage', 'correctedMatrix', 'validator', 'sourceSuiteRerun', 'blockers'] as const;
 const MARKER_KEYS = ['schemaVersion', 'phase', 'planId', 'status', 'summary', 'payloadResult', 'payloadCommit', 'originalLineage', 'correctedMatrix', 'validator'] as const;

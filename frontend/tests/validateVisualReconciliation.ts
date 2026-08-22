@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// This version is the downstream authorization pin; ordinals never participate in it.
 export const VALIDATOR_VERSION = '27.1-01C' as const;
 export const IDENTITY_FIELDS = ['project', 'normalizedSpecPath', 'canonicalTitle', 'snapshotName'] as const;
 export const METADATA_FIELDS = ['route', 'fixtureState', 'actor'] as const;
