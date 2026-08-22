@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "identity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
+  "identity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
   "contractVersion": "warehouse-data-workspace/v1",
   "fixtureVersion": "warehouse-ready/v1",
   "route": "/403",
@@ -14,7 +14,7 @@
   },
   "fixtureRecordIds": [],
   "screenshotPath": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\frontend\\test-results\\warehouse-data-workspace\\after\\captures\\route-forbidden\\1920x1080\\route-forbidden-1920x1080.png",
-  "ariaSnapshot": "- generic [ref=e3] [box=0,0,1910,1080]:\n  - link \"Bỏ qua điều hướng\" [ref=e4] [cursor=pointer] [box=12,-40,144,37]:\n    - /url: \"#ipc-main-content\"\n  - complementary [ref=e5] [box=0,0,248,1080]:\n    - generic [ref=e6] [box=0,0,247,72]:\n      - img [ref=e8] [box=23,26,21,21]\n      - generic [ref=e10] [box=58,16,114,41]:\n        - heading \"IPC System\" [level=2] [ref=e11] [box=58,16,114,24]\n        - generic [ref=e12] [box=58,40,114,17]: Điều hành bếp ăn\n    - navigation \"Điều hướng chính\" [ref=e13] [box=0,72,247,882]:\n      - link \"Tổng quan\" [ref=e14] [cursor=pointer] [box=10,86,227,38]:\n        - /url: /\n        - img [ref=e16] [box=21,96,18,18]\n        - generic [ref=e21] [box=47,96,69,17]: Tổng quan\n      - link \"Thu mua\" [ref=e22] [cursor=pointer] [box=10,128,227,38]:\n        - /url: /purchasing\n        - img [ref=e24] [box=21,138,18,18]\n        - generic [ref=e28] [box=47,138,56,17]: Thu mua\n    - generic [ref=e29] [box=0,953,247,127]:\n      - generic \"Tài khoản đang đăng nhập\" [ref=e30] [box=10,966,227,56]:\n        - generic [ref=e31] [box=19,977,34,34]: T\n        - generic [ref=e32] [box=61,975,168,38]:\n          - generic [ref=e33] [box=61,975,168,21]: Thu mua kiểm thử Phase 27\n          - generic [ref=e34] [box=61,996,168,17]: Nhân viên\n      - button \"Đăng xuất\" [ref=e35] [cursor=pointer] [box=10,1030,227,38]:\n        - img [ref=e36] [box=77,1041,16,16]\n        - generic [ref=e39] [box=101,1039,69,21]: Đăng xuất\n  - generic [ref=e40] [box=248,0,1662,1080]:\n    - banner [ref=e41] [box=248,0,1662,56]:\n      - generic [ref=e42] [box=264,9,190,38]:\n        - generic [ref=e43] [box=264,9,190,16]:\n          - link \"Tổng quan\" [ref=e44] [cursor=pointer] [box=264,9,63,16]:\n            - /url: /\n          - generic [ref=e45] [box=331,9,5,16]: /\n          - generic [ref=e46] [box=339,9,56,16]: Vận hành\n        - heading \"Hệ thống Quản lý Bếp ăn\" [level=1] [ref=e47] [box=264,27,190,20]\n      - generic \"Ngữ cảnh vận hành\" [ref=e48] [box=1487,13,407,30]:\n        - generic [ref=e49] [box=1487,13,102,30]:\n          - img [ref=e50] [box=1496,20,16,16]\n          - generic [ref=e52] [box=1519,19,61,18]: 22/8/2026\n        - generic [ref=e53] [box=1597,13,164,30]:\n          - img [ref=e54] [box=1606,20,16,16]\n          - generic [ref=e57] [box=1629,19,123,18]: Ca trưa · Điều phối ca\n        - generic [ref=e60] [box=1793,19,92,18]: Đang hoạt động\n    - main [ref=e61] [box=248,56,1662,1024]:\n      - generic [ref=e63] [box=738,73,670,148]:\n        - img [ref=e65] [box=750,85,24,24]\n        - generic [ref=e67] [box=806,73,602,148]:\n          - paragraph [ref=e68] [box=806,73,602,16]: \"403\"\n          - heading \"Không đủ quyền truy cập\" [level=1] [ref=e69] [box=806,89,602,28]\n          - paragraph [ref=e70] [box=806,117,602,48]: Tài khoản hiện tại chưa được cấp quyền vào phân hệ này. Vui lòng quay về màn tổng quan hoặc liên hệ quản trị nếu cần mở quyền.\n          - link \"Về tổng quan\" [ref=e71] [cursor=pointer] [box=806,185,140,36]:\n            - /url: /\n            - img [ref=e72] [box=819,195,16,16]\n            - text: Về tổng quan",
+  "ariaSnapshot": "- generic [ref=e3] [box=0,0,1910,1080]:\n  - link \"Bỏ qua điều hướng\" [ref=e4] [cursor=pointer] [box=12,-40,144,38]:\n    - /url: \"#ipc-main-content\"\n  - complementary [ref=e5] [box=0,0,248,1080]:\n    - generic [ref=e6] [box=0,0,247,72]:\n      - img [ref=e8] [box=23,26,21,21]\n      - generic [ref=e10] [box=58,16,114,41]:\n        - heading \"IPC System\" [level=2] [ref=e11] [box=58,16,114,24]\n        - generic [ref=e12] [box=58,40,114,17]: Điều hành bếp ăn\n    - navigation \"Điều hướng chính\" [ref=e13] [box=0,72,247,881]:\n      - link \"Tổng quan\" [ref=e14] [cursor=pointer] [box=10,86,227,38]:\n        - /url: /\n        - img [ref=e16] [box=21,96,18,18]\n        - generic [ref=e21] [box=47,96,69,17]: Tổng quan\n      - link \"Thu mua\" [ref=e22] [cursor=pointer] [box=10,128,227,38]:\n        - /url: /purchasing\n        - img [ref=e24] [box=21,138,18,18]\n        - generic [ref=e28] [box=47,138,56,17]: Thu mua\n    - generic [ref=e29] [box=0,953,247,127]:\n      - generic \"Tài khoản đang đăng nhập\" [ref=e30] [box=10,966,227,56]:\n        - generic [ref=e31] [box=19,977,34,34]: T\n        - generic [ref=e32] [box=61,975,167,38]:\n          - generic [ref=e33] [box=61,975,167,21]: Thu mua kiểm thử Phase 27\n          - generic [ref=e34] [box=61,996,167,17]: Nhân viên\n      - button \"Đăng xuất\" [ref=e35] [cursor=pointer] [box=10,1030,227,38]:\n        - img [ref=e36] [box=77,1041,16,16]\n        - generic [ref=e39] [box=101,1039,69,21]: Đăng xuất\n  - generic [ref=e40] [box=248,0,1662,1080]:\n    - banner [ref=e41] [box=248,0,1662,57]:\n      - generic [ref=e42] [box=264,9,190,38]:\n        - generic [ref=e43] [box=264,9,190,16]:\n          - link \"Tổng quan\" [ref=e44] [cursor=pointer] [box=264,9,63,16]:\n            - /url: /\n          - generic [ref=e45] [box=331,9,5,16]: /\n          - generic [ref=e46] [box=339,9,56,16]: Vận hành\n        - heading \"Hệ thống Quản lý Bếp ăn\" [level=1] [ref=e47] [box=264,27,190,20]\n      - generic \"Ngữ cảnh vận hành\" [ref=e48] [box=1486,13,408,30]:\n        - generic [ref=e49] [box=1486,13,102,30]:\n          - img [ref=e50] [box=1495,20,16,16]\n          - generic [ref=e52] [box=1518,19,61,18]: 22/8/2026\n        - generic [ref=e53] [box=1596,13,164,30]:\n          - img [ref=e54] [box=1605,20,16,16]\n          - generic [ref=e57] [box=1628,19,123,18]: Ca trưa · Điều phối ca\n        - generic [ref=e60] [box=1793,19,92,18]: Đang hoạt động\n    - main [ref=e61] [box=248,57,1662,1023]:\n      - generic [ref=e63] [box=739,74,670,148]:\n        - img [ref=e65] [box=751,86,24,24]\n        - generic [ref=e67] [box=807,74,602,148]:\n          - paragraph [ref=e68] [box=807,74,602,16]: \"403\"\n          - heading \"Không đủ quyền truy cập\" [level=2] [ref=e69] [box=807,90,602,28]\n          - paragraph [ref=e70] [box=807,118,602,48]: Tài khoản hiện tại chưa được cấp quyền vào phân hệ này. Vui lòng quay về màn tổng quan hoặc liên hệ quản trị nếu cần mở quyền.\n          - link \"Về tổng quan\" [ref=e71] [cursor=pointer] [box=807,186,140,36]:\n            - /url: /\n            - img [ref=e72] [box=820,196,16,16]\n            - text: Về tổng quan",
   "ariaSnapshotOptions": {
     "mode": "ai",
     "boxes": true
@@ -22,10 +22,10 @@
   "geometry": {
     "warehouse-route-forbidden": {
       "box": {
-        "x": 737.6000366210938,
-        "y": 72.4000015258789,
+        "x": 738,
+        "y": 72.59375,
         "width": 672,
-        "height": 149.58750915527344
+        "height": 150
       },
       "scroll": {
         "clientWidth": 670,
@@ -44,11 +44,11 @@
   "document": {
     "clientWidth": 1920,
     "scrollWidth": 1910,
-    "h1Count": 2,
+    "h1Count": 1,
     "headingLevels": [
       2,
       1,
-      1
+      2
     ],
     "primaryActionCount": 0
   },

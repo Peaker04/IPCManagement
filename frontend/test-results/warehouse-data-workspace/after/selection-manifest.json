@@ -5,7 +5,7 @@
   "deterministicVerdict": "PASS",
   "selected": [
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1920x1080",
       "state": "ready",
       "viewport": "1920x1080",
       "recordPath": "captures/ready/1920x1080/record.json",
@@ -16,7 +16,7 @@
       ]
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1366x768",
       "state": "ready",
       "viewport": "1366x768",
       "recordPath": "captures/ready/1366x768/record.json",
@@ -27,7 +27,7 @@
       ]
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1365x900",
       "state": "ready",
       "viewport": "1365x900",
       "recordPath": "captures/ready/1365x900/record.json",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1280x900",
       "state": "ready",
       "viewport": "1280x900",
       "recordPath": "captures/ready/1280x900/record.json",
@@ -48,7 +48,7 @@
       ]
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1280x900",
       "state": "mixed-empty",
       "viewport": "1280x900",
       "recordPath": "captures/mixed-empty/1280x900/record.json",
@@ -59,7 +59,7 @@
       ]
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1440x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1440x900",
       "state": "route-forbidden",
       "viewport": "1440x900",
       "recordPath": "captures/route-forbidden/1440x900/record.json",
@@ -71,39 +71,39 @@
   ],
   "excluded": [
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/ready/1440x900",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1920x1080",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1440x900",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1366x768",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/warehouse-keeper/mixed-empty/1365x900",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1920x1080",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1366x768",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1366x768",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1365x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1365x900",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     },
     {
-      "captureIdentity": "phase27-after-20260822T204000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1280x900",
+      "captureIdentity": "phase27-h1-after-20260822T205000Z/warehouse-data-workspace/v1/warehouse-ready/v1/no-warehouse-read/route-forbidden/1280x900",
       "reason": "not required by bounded D-17 selection and not near an additional measured threshold"
     }
   ]

@@ -12,7 +12,7 @@ const ForbiddenPage = () => {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-rose-700">403</p>
-          <h1 className="mt-1 text-xl font-semibold text-slate-900">Không đủ quyền truy cập</h1>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">Không đủ quyền truy cập</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Tài khoản hiện tại chưa được cấp quyền vào phân hệ này. Vui lòng quay về màn tổng quan hoặc liên hệ quản trị nếu cần mở quyền.
           </p>

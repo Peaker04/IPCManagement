@@ -7,7 +7,9 @@ import { describe, expect, it } from 'vitest';
 import { apiSlice } from '../api/apiSlice';
 import { coordinationReducer } from '../features/coordination';
 import authReducer from '../features/auth/authSlice';
+import ForbiddenPage from '../features/auth/pages/ForbiddenPage';
 import type { User } from '../features/auth/authTypes';
+import { ROUTES } from '../lib/routeConfig';
 import { ActionGuard } from './ActionGuard';
 import { RoleGuard } from './RoleGuard';
 
@@ -62,6 +64,18 @@ const renderWithStore = (
     </Provider>,
   );
 };
+
+describe('ForbiddenPage presentation', () => {
+  it('keeps access-denied content nested below the shell page heading', () => {
+    renderWithStore(<ForbiddenPage />);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Không đủ quyền truy cập' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByText('403')).toBeInTheDocument();
+    expect(screen.getByText(/Tài khoản hiện tại chưa được cấp quyền vào phân hệ này/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Về tổng quan' })).toHaveAttribute('href', ROUTES.DASHBOARD);
+  });
+});
 
 describe('RoleGuard permission decisions', () => {
   it('renders nothing while user is missing', () => {

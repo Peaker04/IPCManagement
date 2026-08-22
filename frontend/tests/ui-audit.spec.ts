@@ -652,7 +652,7 @@ async function expectNoAuditIssues(testName: string, issues: AuditIssue[], inter
   expect(incompleteRecords).toEqual([]);
 }
 
-const WAREHOUSE_AFTER_RUN_ID = 'phase27-after-20260822T204000Z';
+const WAREHOUSE_AFTER_RUN_ID = 'phase27-h1-after-20260822T205000Z';
 
 async function captureWarehouseBaseline(
   browser: Browser,
@@ -707,6 +707,9 @@ test.describe('Warehouse Data Workspace contract fresh post-refactor evidence', 
     expect(selection.selected).toHaveLength(6);
     expect(selection.selected.some(({ state }) => state === 'route-forbidden')).toBe(true);
     expect(selection.selected.every(({ captureIdentity }) => captureIdentity.startsWith(`${WAREHOUSE_AFTER_RUN_ID}/`))).toBe(true);
+    const forbiddenRecord = manifest.captures.find(({ state, viewport }) => state === 'route-forbidden' && viewport.id === '1440x900');
+    expect(forbiddenRecord?.document.h1Count).toBe(1);
+    expect(forbiddenRecord?.document.headingLevels).toContain(2);
     const selectedReady = selection.selected.find(({ state }) => state === 'ready');
     expect(selectedReady).toBeDefined();
     const selectedReadyRecord = JSON.parse(readFileSync(resolve(after, selectedReady!.recordPath), 'utf8')) as WarehouseCapture;
