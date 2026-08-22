@@ -8,7 +8,7 @@ function fixture(id:Phase271PlanId){ const s=PLAN_SCHEMAS[id], count=id==='27.1-
  if(id==='27.1-03R'){const manifest={path:'.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json',sha256:hash};Object.assign(result,{manifest,predecessor:'27.1-02'});Object.assign(marker,{manifest,validatorPins:Array.from({length:4},(_,i)=>({path:`v${i}`,sha256:hash,gitBlobId:commit}))});}
  return {result,marker}; }
 describe('closed Phase 27.1 plan schemas',()=>{
- it('pins the general validator version',()=>expect(GENERAL_VALIDATOR_VERSION).toBe('27.1-03R'));
+ it('pins the general validator version and closed seven-row table',()=>{expect(GENERAL_VALIDATOR_VERSION).toBe('27.1-03R');expect(Object.keys(PLAN_SCHEMAS)).toHaveLength(7);});
  it.each(Object.keys(PLAN_SCHEMAS) as Phase271PlanId[])('%s accepts only its exact row',id=>{const {result,marker}=fixture(id);expect(()=>validatePhase271PlanResult(id,result)).not.toThrow();expect(()=>validatePhase271PlanMarker(id,marker)).not.toThrow();});
  it.each(['27.1-01','27.1-03X','27.1-070','27.1-08'])('rejects arbitrary/same-prefix ID %s',id=>expect(()=>validatePhase271PlanResult(id,{})).toThrow(/allowlisted/));
  it('rejects cross-row schema borrowing',()=>{const a=fixture('27.1-03R');expect(()=>validatePhase271PlanResult('27.1-03',a.result)).toThrow();expect(()=>validatePhase271PlanMarker('27.1-03',a.marker)).toThrow();});

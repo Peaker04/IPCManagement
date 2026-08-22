@@ -74,7 +74,7 @@ describe('Phase 27.1 corrected authorization matrix', () => {
 });
 
 describe('Phase 27.1 generic downstream authorization', () => {
-  it('pins the sole general authority',()=>expect(GENERAL_VALIDATOR_AUTHORITY).toBe('27.1-03R'));
+  it('pins the sole general authority and all four closed classes',()=>{expect(GENERAL_VALIDATOR_AUTHORITY).toBe('27.1-03R');expect(Object.keys(matrix.entries[0].permittedPaths)).toHaveLength(4);});
   it.each(['core-login-dashboard','core-meal-weekly','secondary-reports-approvals-admin','purchasing-phase09','all-21'])('resolves closed identity union %s', (selection) => {
     const names=resolveIdentitySetNames(matrix,selection); const identities=names.flatMap(name=>matrix.identitySets[name]);
     expect(new Set(identities.map(x=>JSON.stringify(x))).size).toBe(identities.length);
