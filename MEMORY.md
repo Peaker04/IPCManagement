@@ -25,11 +25,10 @@ workbook:
 # Memory hiện hành
 
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
-lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 đã closeout; runtime phục vụ Kỳ kiểm thử lại
-đang mở với FE `3036` PID 34048 và BE `8036` PID 28544 trên exact `ipc_lane7`. Readiness HTTP 200:
-database/migrations Healthy, tổng trạng thái Degraded chỉ vì lifecycle outbox relay cố ý tắt. Chỉ teardown
-hai PID mới này khi Kỳ yêu cầu. PID API 3580 là process ngoài run và vẫn được giữ. Runtime warehouse development `3020/8020` nếu còn
-mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
+lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 và route-budget/UI completion đã closeout.
+Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được teardown đúng owner; remaining listener
+count là `0`. Các PID/runtime khác nếu còn mở nằm ngoài run này và không bị chạm. Runtime warehouse development
+`3020/8020` nếu còn mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
 ## Memory ngắn cho phiên tiếp theo
 
@@ -119,8 +118,6 @@ Giữ scope này chưa import để Kỳ tự chạy demo. Trước buổi demo 
 - Wave 8 static gate hiện xanh: lint pass; dependency-cruiser **423 modules / 1573 dependencies / 0 violations**; production build **2289 modules**; `git diff --check`, secret/stub scan pass; zero untracked file. W8-REG-01/02/03/05 đã `FIXED`; Wave chưa đóng vì W8-REG-04/06 vẫn `FIXED-WT`, route/permission literal reconciliation và Wave 7 runtime rerun sau cleanup chưa hoàn tất.
 - Wave 7 shared fallback blocker W7-RUNTIME-02 đã commit ở `8ee26bff`: `QueryViewBoundary` giữ default `inline`, Weekly Menu opt-in `overlay`, focused boundary/Weekly Menu 25/25 pass; schedule runtime trước đó đã có `deltaTop=0`. Năm preserve-fallback consumer còn lại vẫn phải đi qua full runtime matrix trước khi đóng Wave 7.
 - Wave 4 slices đã commit: `30de2bc8` single-owner BOM summary + user-facing import copy; `a2e436a0` phân trang master phiếu nhập theo `totalCount`, reset detail khi đổi trang; `11e4621e` đưa tên khách hàng lên trước mã và thay copy `version`. Focused contracts/lint pass. Wave 4 chưa đóng: còn phải disposition đầy đủ natural label/stable ID/effective range, edit-focus return và cleanup consumer.
-
-- Route-budget capability rollout hiện PASS `10/10` trên clean production build, không đổi threshold/manualChunks/API slice. Giá trị hiện hành (KiB gzip): Dashboard `190.59/199`, Weekly Menu `274.55/275`, Reports `239.36/252`, Coordination `174.20/196`, Chef `200.25/263`, Approval `193.44/202`, Purchasing `254.21/255`, Warehouse `255.71/257`, Admin Data `199.00/259`, Approval Rules `239.98/241`. Contract áp dụng là active-first + preserve visited: Admin gate dynamic panel import theo lần kích hoạt đầu; Reports/Weekly Menu/Warehouse lazy route-owned capabilities. Full frontend `158 file / 897 test`, lint, dependency-cruiser `430 modules / 1625 dependencies`, headed UI measurement `35/35` và control-surface `25/25` pass. Approval controlled decision seam có dedicated `7/7` close/loading/error/dirty-state regression; approval document rail giữ reserved geometry ổn định giữa loading và settled. UI measurement harness nay fail-closed nếu bất kỳ interaction record là `GAP`/`NEEDS_EVIDENCE` (không còn verdict PASS giả). Gate này phát hiện tab Purchasing supplemental active nhưng blank khi fixture trả empty; owner giờ render explicit empty state và URL reconciliation dùng current search params để không clobber `view`. Headed Chrome `35/35` PASS sau sửa.
 
 - UI Phase 3 `Project-wide Human UI and Refresh Stability` đã mở trong workstream
   `dashboard-ui-rules-conformance`. Wave 1 commit `c9147a00` khóa inventory test-owned hiện hành:

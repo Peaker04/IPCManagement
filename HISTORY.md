@@ -1717,3 +1717,18 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Runtime owned PID 32448/32588 và port 8036/3036 đã teardown; PID 3580 ngoài run được giữ nguyên.
 - Artifact authoritative/hash nằm duy nhất trong `docs/EVIDENCE-INDEX.md`; execution summary ở
   `.planning/workstreams/lifecycle-standardization/phases/05-service-run-integration/05-04-SUMMARY.md`.
+
+## 2026-08-22 · Route-budget và project-wide UI/UX completion closeout
+
+- Đóng route-owned capability rollout và controlled Approval confirmation seam với route-budget `10/10` trên
+  threshold/accounting cũ, một RTK Query API slice và active-first + preserve-visited tab contract.
+- Project-wide route/state, copy/vocabulary và 50-table/action evidence được reconcile từ canonical matrix,
+  current source contracts và headed Chrome persistent-profile. Purchasing command action slot được giữ ổn định,
+  đưa max CLS năm viewport từ `0.100308` xuống `0.093447`; SPA cold/warm navigation 20/20 có CLS 0, zero long task.
+- Full backend gate phát hiện predicate `DecimalPolicy.LessThanQuantity` không thể dịch trong EF SQL KPI; predicate
+  persisted scale-6 được đổi sang SQL comparison trực tiếp. Focused KPI 5/5 rồi solution Application 49/49 và API
+  947 pass + 1 intentional skip.
+- Frontend 158 file/897 test, headed UI 35/35, controls 25/25, lint, build, dependency graph, route budget,
+  secret/stub scan và diff hygiene pass. Runtime closeout 3040/8040 trên `ipc_lane7` đã teardown đúng owner.
+- Artifact authoritative/hash nằm duy nhất trong `docs/EVIDENCE-INDEX.md`; checklist canonical đã đóng Gate 0–6,
+  Gate 7 chỉ còn xác nhận remote/CI sau push.

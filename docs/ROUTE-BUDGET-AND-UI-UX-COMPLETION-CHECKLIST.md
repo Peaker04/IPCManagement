@@ -107,80 +107,80 @@ Mỗi finding phải ghi đủ:
 
 ### Route/state matrix
 
-- [ ] Dashboard: first-load/loading/ready/empty/error/refresh/action.
-- [ ] Weekly Menu: toàn bộ tab, import, demand, production, purchasing, schedule.
-- [ ] Coordination: order list, filter, detail, action, error, empty.
-- [ ] Approval: queue, detail, decision dialog, mutation states.
-- [ ] Purchasing: workflow, supplemental, quotation, service date, error/empty.
-- [ ] Warehouse: stock, demand, receipt, exception, permission, long content.
-- [ ] Chef: production, receipt, documents, excess material, action states.
-- [ ] Reports: tất cả report tabs, filters, tables, detail/warning actions.
-- [ ] Admin Data: BOM, contracts, cleanup, inventory, statistics, audit, employees.
-- [ ] Approval Rules và Advanced Settings: list, form, confirmation, permission.
-- [ ] Mỗi route/state được đo tại đủ 5 viewport hoặc có disposition `NEEDS_EVIDENCE`.
+- [x] Dashboard: first-load/loading/ready/empty/error/refresh/action.
+- [x] Weekly Menu: toàn bộ tab, import, demand, production, purchasing, schedule.
+- [x] Coordination: order list, filter, detail, action, error, empty.
+- [x] Approval: queue, detail, decision dialog, mutation states.
+- [x] Purchasing: workflow, supplemental, quotation, service date, error/empty.
+- [x] Warehouse: stock, demand, receipt, exception, permission, long content.
+- [x] Chef: production, receipt, documents, excess material, action states.
+- [x] Reports: tất cả report tabs, filters, tables, detail/warning actions.
+- [x] Admin Data: BOM, contracts, cleanup, inventory, statistics, audit, employees.
+- [x] Approval Rules và Advanced Settings: list, form, confirmation, permission.
+- [x] Canonical `50 state × 5 viewport` artifact, current headed `35/35` state gate và focused state regressions cùng chứng minh closure; không còn disposition `NEEDS_EVIDENCE` trong scope.
 
 ### Layout và interaction
 
 - [x] Headed protected-route matrix không ghi nhận overlap khi idle trên đủ 5 desktop viewport.
-- [ ] Không có overlap sau filter, pagination, tab switch, refetch, modal open/close.
+- [x] Canonical 190 tab interaction, pagination/control gate và current modal/refetch regressions không ghi nhận overlap sau filter, pagination, tab switch, refetch hoặc modal lifecycle.
 - [x] Headed `35/35` và control-surface `25/25` xác nhận không có horizontal overflow ngoài table viewport được phép cuộn.
-- [ ] Focus không bị sticky header/footer/table/action column che.
+- [x] Headed tab/dialog/table-action focus geometry và pagination focus recovery xác nhận focus không bị sticky header/footer/table/action column che.
 - [x] Reports warning action và tab/dialog controls có keyboard path, focus/return regression trong control-surface gate.
 - [x] Headed control-surface gate đo toàn bộ control nhìn thấy trên protected-route defaults: accessible name đầy đủ và bounding box tối thiểu `24×24` CSS px.
 - [x] Approval document rail giữ stable reserved geometry giữa loading và settled; Weekly grouped table giữ chiều cao qua pagination.
 - [x] UI measurement fixture khóa riêng Warehouse loading/empty/error/permission và không đánh đồng state.
-- [ ] Refresh giữ dữ liệu cũ, không trắng màn hình và không reload document.
-- [ ] Mutation không để response cũ ghi đè trạng thái mới.
-- [ ] Tab ẩn, modal mở, input focus và multi-select đều pause refresh đúng contract.
-- [ ] CLS sau thao tác `≤ 0.1` và mọi long task vượt ngưỡng có owner hoặc disposition.
+- [x] Shared query boundaries và route regressions giữ dữ liệu cũ khi refresh; source inventory khóa zero `location.reload`/`navigate(0)`.
+- [x] RTK Query cache/request-deduplication và mutation regressions khóa late response không ghi đè state mới.
+- [x] `NOT_APPLICABLE` cho polling pause: production source không có polling interval nền; tab/modal/input/multi-select chỉ refetch theo query invalidation hoặc explicit action, và visited hidden panels không phát write.
+- [x] Purchasing sau sửa đạt max CLS `0.093447`; current SPA cold/warm navigation `20/20` có CLS `0`, zero long task. Cold document-navigation task Vite `50–71ms` được trace/disposition trong closeout manifest, không phải post-action INP.
 
 ## Gate 4 — Copy, vocabulary và semantic display
 
-- [ ] Quét toàn bộ visible text và accessible name trên tất cả route/tab.
-- [ ] Không còn enum/backend value/technical jargon lộ ra user surface.
-- [ ] Label/action dùng thuật ngữ trong `docs/GLOSSARY.md`.
-- [ ] Câu dài được rút gọn nhưng giữ nguyên nghĩa nghiệp vụ.
-- [ ] Empty/error message trả lời: đây là gì, vì sao trống/lỗi, bước tiếp theo.
-- [ ] Tên hiển thị đứng trước mã; mã kỹ thuật không đứng một mình.
+- [x] Headed hidden-copy scan quét 9 application route và toàn bộ visible tab hai lượt; current accessible-name gate pass.
+- [x] Technical-copy scan sau fix có zero enum/backend value/jargon trên user surface; import field key chỉ còn trong file-contract schema.
+- [x] Label/action đã đối chiếu glossary và formatter/status vocabulary contracts.
+- [x] Copy regression khóa câu rút gọn tại đúng owner mà không đổi nghĩa nghiệp vụ.
+- [x] Empty/error owners và explicit Purchasing supplemental empty state nêu đối tượng, nguyên nhân và bước tiếp theo/retry khi có.
+- [x] Source/copy contracts khóa tên hiển thị trước mã tại các work-object table; mã không đứng một mình làm primary label.
 - [x] Formatter convergence khóa số lượng, tiền và ngày qua formatter tập trung; focused source contracts PASS.
 - [x] Status token contract khóa vocabulary/tone tập trung và text label; không dựa riêng vào màu.
 - [x] Headed control-surface scan xác nhận mọi visible button/action có accessible name không rỗng; dialog/tab names có focused regression.
 - [x] Copy/source regression khóa nhãn approval, report export, approval rules và Weekly Menu import đã reconcile.
-- [ ] Đã kiểm tra copy trong modal, table, tooltip, toast, error và mobile width.
+- [x] Modal/table/action/error copy được kiểm tra bằng hidden-copy scan, safe-dialog/data-quality five-viewport gate và mobile control suite.
 
 ## Gate 5 — Table và cột xử lý
 
 - [x] Source inventory count-lock `50` table trên `54` presentation owner, không đếm lặp runtime instance.
-- [ ] Header căn cùng chiều với dữ liệu.
-- [ ] Text căn trái; số định lượng căn phải; không căn giữa tùy tiện.
+- [x] Shared table CSS và headed table geometry giữ header cùng alignment role với dữ liệu.
+- [x] Shared contract căn text trái, numeric role phải; centered cells chỉ dành cho explicit status/action owner.
 - [x] Typography/table contracts khóa `tabular-nums` cho numeric presentation owners.
-- [ ] Status cell có min-width/height ổn định và không wrap sai.
-- [ ] Cột định danh giữ được tên trước mã.
-- [ ] Cột xử lý có width theo action label dài nhất.
-- [ ] Action label ngắn, mô tả động từ cụ thể và không bị cắt mất nghĩa.
-- [ ] Khi thiếu chiều rộng, action dùng nhóm/overflow có keyboard path, không đè lên cột khác.
-- [ ] Hover, focus, disabled, loading và success state của action đều được đo.
+- [x] StatusBadge/table contracts giữ stable min-height/tone/text và không wrap sai trong stress fixtures.
+- [x] Identifier-column source contracts giữ tên trước mã và frozen identifier owner khi opt-in.
+- [x] Shared action-cell contract dùng fit-content/min-width; Data Quality long-label stress pass đủ 5 viewport.
+- [x] Hidden-copy và control gates xác nhận action dùng động từ cụ thể, accessible name đầy đủ và không clip.
+- [x] Wide-table owners cuộn cục bộ; action giữ nowrap/keyboard path và không đè cột khác.
+- [x] Primitive/action fixture và headed controls cover hover/focus/disabled/loading/success states.
 - [x] Control-surface gate xác nhận Reports/Purchasing/Warehouse/Weekly Menu wide table cuộn trong owner viewport, không thoát ra document.
-- [ ] Bảng dài dùng server pagination hoặc virtualization đúng contract.
-- [ ] Filter chip, clear-all, result count và pagination không làm xê dịch layout bất ngờ.
-- [ ] Bằng chứng DOM chứng minh không overlap ở nội dung ngắn và dài.
+- [x] Pagination contracts phân biệt local/page-number/cursor; stock/movement/report/chef long lists lọc server-side trước pagination.
+- [x] Pagination visual/control gate khóa result range, tools, pending state và focus recovery không làm layout xê dịch bất ngờ.
+- [x] Canonical state matrix cùng Data Quality/receipt long-content DOM evidence chứng minh zero overlap cho nội dung ngắn và dài.
 
 ## Gate 6 — Browser evidence thật
 
-- [ ] Dùng Chrome headed, persistent profile riêng do run tạo.
-- [ ] Vào URL ứng dụng thật, không chỉ mở tab trắng hoặc kiểm tra API riêng.
-- [ ] Mỗi run có run-id mới và manifest riêng.
+- [x] Current closeout dùng Google Chrome headed với persistent profile riêng dưới run directory.
+- [x] Browser đi trực tiếp vào runtime thật `3040/8040` trên exact `ipc_lane7`; readiness/database/migrations được kiểm tra trước run.
+- [x] Mỗi probe dùng run-id/profile/manifest riêng; failed navigation attempt được giữ riêng và không dùng làm gate.
 - [x] Measurement/control harness lấy locator mới sau từng navigation, tab activation và DOM transition.
-- [ ] Lưu screenshot cuối run cho reviewer.
+- [x] Current closeout lưu screenshot final theo viewport và 20 screenshot cold/warm navigation cho reviewer.
 - [x] Mỗi viewport ghi DOM/geometry interaction JSON authoritative.
-- [ ] Lưu request sau action và response status.
+- [x] Current live manifest lưu `645` API response sau action; navigation final lưu request status theo từng cold/warm action; mutation lifecycle artifact lưu response riêng.
 - [x] Interaction record lưu console/page error, failed/non-read request; expected 503 fixture được assert riêng trước khi bắt đầu zero-error record.
 - [x] Interaction record và control gate lưu focus/keyboard evidence cho modal, warning action và tabs.
-- [ ] Lưu CLS/long-task/performance record khi gate liên quan.
+- [x] Performance records lưu CLS, long task, action interval và CDP attribution; final current SPA navigation có CLS `0`, zero long task.
 - [x] Harness fail-closed khi interaction record có `GAP`/`NEEDS_EVIDENCE`; purchasing supplemental blank-tab đã được phát hiện từ JSON và sửa bằng explicit empty state.
 - [x] Verdict lấy từ DOM/geometry/request/focus records; screenshot không được dùng riêng làm oracle.
-- [ ] Không teardown process không do run hiện tại tạo.
-- [ ] Đăng ký hash artifact trong `docs/EVIDENCE-INDEX.md`.
+- [x] Teardown record chỉ dừng listeners `3040/8040` do closeout run tạo; remaining listener count `0` và không chạm runtime khác.
+- [x] Closeout manifest/hash được đăng ký trong `docs/EVIDENCE-INDEX.md`; manifest tự hash toàn bộ evidence dependency.
 
 ## Gate 7 — Regression và closeout
 
@@ -189,16 +189,16 @@ Mỗi finding phải ghi đủ:
 - [x] Frontend build pass sau Coordination pilot.
 - [x] Frontend lint pass sau Coordination pilot.
 - [x] Dependency-cruiser pass: `425 modules / 1601 dependencies / 0 violations`.
-- [ ] Backend build/test pass nếu UI flow phụ thuộc contract backend.
+- [x] Backend Release solution test pass: Application `49/49`; API `947 pass + 1 intentional skip`. Full gate đã bắt và sửa predicate KPI không dịch được sang SQL.
 - [x] Route-budget checker PASS `10/10` trên clean production build; thresholds và accounting không đổi.
 - [x] UI measurement suite pass: headed matrix `35/35 PASS` sau shared TablePreferences seam.
 - [x] `git diff --check` pass.
-- [ ] Secret/stub scan pass.
-- [ ] Không còn staged/untracked artifact ngoài scope.
-- [ ] Cập nhật `MEMORY.md` chỉ với trạng thái hiện hành/gate hiện tại.
-- [ ] Append việc đã đóng sang `HISTORY.md`.
-- [ ] Cập nhật `docs/EVIDENCE-INDEX.md` cho artifact mới.
-- [ ] Review final diff theo từng commit atomic.
+- [x] Secret/stub scan tracked source/docs và current evidence text PASS; generated binaries/profile bị loại khỏi oracle có chủ đích.
+- [x] Declared-scope inspection xác nhận không staged/untracked artifact ngoài scope trước commit.
+- [x] `MEMORY.md` chỉ giữ gate/state hiện hành sau closeout.
+- [x] Việc route-budget/UI completion đã được append sang `HISTORY.md`.
+- [x] `docs/EVIDENCE-INDEX.md` đăng ký closeout manifest authoritative và hash.
+- [x] Final diff được review theo atomic production/harness/docs scope trước commit.
 - [ ] Xác nhận branch/remote/CI sau push.
 
 ## Definition of Done
@@ -220,8 +220,8 @@ Checklist chỉ được đóng khi:
 - [x] Gate 0 — baseline, clean manifest, viewport matrix và project-wide source-owner inventory hoàn tất.
 - [x] Gate 1 — capability island implementation; clean build route-budget `10/10 PASS`.
 - [x] Gate 2 — controlled lazy confirmation seam; keyboard/loading/error/dirty-state regressions và consumer disposition hoàn tất.
-- [ ] Gate 3 — project-wide UI/UX inventory.
-- [ ] Gate 4 — copy/vocabulary audit.
-- [ ] Gate 5 — table/action-column audit.
-- [ ] Gate 6 — headed browser evidence.
-- [ ] Gate 7 — regression và closeout.
+- [x] Gate 3 — project-wide UI/UX inventory.
+- [x] Gate 4 — copy/vocabulary audit.
+- [x] Gate 5 — table/action-column audit.
+- [x] Gate 6 — headed browser evidence.
+- [ ] Gate 7 — regression và closeout; chỉ còn remote/CI confirmation sau push.

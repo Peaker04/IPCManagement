@@ -29,7 +29,7 @@ const screenshotsRoot = path.join(root, 'screenshots');
 const apiRoot = path.join(root, 'api');
 const browserRoot = path.join(root, 'browser');
 const performanceRoot = path.join(root, 'performance');
-const profile = path.resolve('.artifacts/browser-use-visual-audit');
+const profile = path.resolve(process.env.IPC_VISUAL_PROFILE ?? path.join(root, 'chrome-profile'));
 const chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const requestedViewports = new Set((process.env.IPC_VISUAL_VIEWPORTS ?? '').split(',').map((value) => value.trim()).filter(Boolean));
 const allViewports = [
