@@ -48,6 +48,25 @@ describe('project-wide presentation surface inventory', () => {
     })
   })
 
+  it('count-locks route, drawer and action owners without runtime-instance duplication', () => {
+    const files = productionTsxFiles()
+    const sourceCounts = (pattern: RegExp) => files.map((file) => ({
+      path: path.relative(frontendRoot, file).replaceAll('\\', '/'),
+      count: [...fs.readFileSync(file, 'utf8').matchAll(pattern)].length,
+    })).filter(({ count }) => count > 0)
+    const actions = sourceCounts(/<(?:Button|button)(?:\s|>)/g)
+    const drawers = sourceCounts(/<(?:DrawerContent|SheetContent)(?:\s|>)/g)
+    const router = fs.readFileSync(path.join(sourceRoot, 'routes/AppRouter.tsx'), 'utf8')
+    expect({
+      routeOwners: 1,
+      routes: [...router.matchAll(/<Route path=/g)].length,
+      actionOwners: actions.length,
+      actions: actions.reduce((sum, item) => sum + item.count, 0),
+      drawerOwners: drawers.length,
+      drawers: drawers.reduce((sum, item) => sum + item.count, 0),
+    }).toEqual({ routeOwners: 1, routes: 14, actionOwners: 64, actions: 224, drawerOwners: 0, drawers: 0 })
+  })
+
   it('keeps document reload out of production UI', () => {
     const offenders = productionTsxFiles().filter((file) => /(?:location\.reload|navigate\(\s*0\s*\))/.test(fs.readFileSync(file, 'utf8')))
     expect(offenders).toEqual([])

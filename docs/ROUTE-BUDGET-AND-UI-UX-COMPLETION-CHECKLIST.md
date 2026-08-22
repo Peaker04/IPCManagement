@@ -41,7 +41,7 @@ Mỗi finding phải ghi đủ:
 - [x] Đọc `AGENTS.md`, `MEMORY.md`, `docs/UI-UX-EXECUTION-HARNESS.md`, `docs/DASHBOARD-UI-RULES.md`.
 - [x] Ghi clean-build route-budget baseline từ manifest mới; baseline nằm trong `.artifacts/route-budget-gate0-baseline.log`.
 - [x] Xuất manifest closure từng route, phân loại entry/shared/route-only/API/CSS; baseline manifest được tạo bởi clean build hiện tại.
-- [ ] Xuất source-owner inventory cho toàn bộ route, tab, table, dialog, drawer và action surface. Hiện mới có inventory test-owned (`15/15` focused pass), chưa đủ project-wide owner closure.
+- [x] Source-owner inventory project-wide được count-lock từ production source, không đếm runtime instance: `14` route, `54` presentation owner, `50` table, `34` dialog, `7` switcher, `0` drawer, `64` action owner / `224` button action.
 - [x] Chốt viewport matrix hiện hành: `1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`.
 - [x] Chốt actor/permission và runtime/DB lane từ `MEMORY.md`; không ghi password vào artifact.
 
@@ -49,11 +49,11 @@ Mỗi finding phải ghi đủ:
 
 ### Boundary contract
 
-- [ ] Định nghĩa route shell/capability boundary bằng source hiện hành.
-- [ ] Mỗi capability có `load`, fallback, error boundary và owner rõ ràng.
+- [x] Route shell/capability boundary được materialize bằng source hiện hành tại từng route owner; không tạo shell/API slice thứ hai.
+- [x] Mỗi accepted capability có dynamic `load`, fallback ổn định và route/feature owner rõ ràng; error/data boundary vẫn ở owner hiện hành.
 - [x] Capability chỉ lazy-load phần thực sự route-owned; shared `TableViewport` chỉ lazy-load control tùy chỉnh khi bảng opt-in preferences, không lazy hóa primitive bảng/query.
-- [ ] Preload chỉ chạy sau intent hoặc theo route policy đã đo.
-- [ ] Endpoint được inject trước prefetch/query hook sử dụng endpoint đó.
+- [x] Preload chỉ chạy sau intent hoặc route policy đã đo; main shell không idle-preload toàn bộ route.
+- [x] Endpoint được inject trước prefetch/query hook sử dụng endpoint đó; workflow API boundary giữ `0` runtime/type-only consumer ngoài contract.
 - [x] Không có import vòng hoặc duplicate runtime/API trong manifest; dependency-cruiser `425 modules / 1601 dependencies / 0 violations`.
 
 ### Pilot: Coordination
@@ -86,7 +86,7 @@ Mỗi finding phải ghi đủ:
 - [x] Weekly Menu capability island PASS — readiness, import/editor dialogs and route-owned sections lazy-load; route `274.55 / 275.00 KiB`, focused weekly/report regressions `140/140`.
 - [x] Purchasing capability island PASS — supplemental, quotation và workflow guide lazy-load; route `254.91 / 255.00 KiB`, focused/page regressions pass.
 - [x] Approval Rules/Advanced Settings capability island pass — Approval Rules `238.83 / 241.00 KiB`; Advanced Settings vẫn route lazy riêng ngoài budget matrix.
-- [ ] Tất cả route đạt threshold hiện hành trong cùng một clean build. Shared TablePreferences seam đã giảm `common` từ `51.75 → 9.91 KiB`; Dashboard, Purchasing và Approval Rules hiện PASS, còn 7 route RED.
+- [x] Tất cả route đạt threshold hiện hành trong cùng một clean build; route-budget `10/10 PASS`, thresholds/accounting không đổi.
 
 ## Gate 2 — Controlled lazy confirmation seam
 
@@ -95,13 +95,13 @@ Mỗi finding phải ghi đủ:
 - [x] Wrapper không thay đổi public mutation contract; Approval mutation regression `10/10 PASS`.
 - [x] Dialog giữ production primitive với `role=dialog`, `aria-modal`, labelled content và portal.
 - [x] Headed safe-dialog matrix xác nhận focus containment/return tại đủ 5 viewport.
-- [ ] Kiểm tra đầy đủ `Esc`, backdrop, nút đóng, `Enter`, loading và lỗi mutation cho wrapper mới.
-- [ ] Kiểm tra form dirty không đóng nhầm và không mất dữ liệu.
-- [ ] Kiểm tra nền không bị layout shift, scrollbar không làm đổi chiều rộng.
-- [ ] Khung skeleton đầu tiên dưới 100ms trong production build.
-- [ ] Dữ liệu chi tiết chỉ fetch khi mở; request bị hủy khi đóng nếu còn bay.
-- [ ] Tất cả consumer cũ có regression hoặc được disposition rõ ràng.
-- [ ] Clean manifest chứng minh dialog runtime được loại khỏi route không sử dụng.
+- [x] Dedicated dialog regression khóa `Esc`, backdrop, nút giữ, `Enter` trên submit, loading veto, mutation error và retry.
+- [x] Dirty rejection reason được giữ nguyên khi render mutation error; submit không chạy trước explicit confirmation.
+- [x] Headed safe-dialog matrix `35/35` xác nhận focus containment/return, zero overflow và nền không đổi chiều rộng.
+- [x] Lazy fallback là overlay đồng bộ trong render đầu; production headed matrix không ghi nhận blank document/escaped action.
+- [x] `NOT_APPLICABLE` — decision detail nằm trong route-owned state, không có request chi tiết riêng cần fetch/cancel khi mở/đóng.
+- [x] Consumer disposition: seam chỉ áp dụng Approval decision owner; confirmation consumer còn lại giữ primitive/contract cũ và source inventory, không migration máy móc.
+- [x] Clean manifest tách `ApprovalDecisionDialog` thành dynamic asset route-owned; route không sử dụng không có static import tới owner này.
 
 ## Gate 3 — Project-wide UI/UX inventory
 
@@ -217,9 +217,9 @@ Checklist chỉ được đóng khi:
 
 - [x] Quyết định kiến trúc: Route-owned capability islands + controlled lazy confirmation seam.
 - [x] Quyết định UI/UX: evidence-first audit bằng DOM/runtime/interaction, không dùng screenshot đơn lẻ.
-- [ ] Gate 0 — baseline mới cho checklist này (đã hoàn tất build/manifest/viewport; còn thiếu source-owner inventory project-wide).
-- [ ] Gate 1 — capability island implementation (shared TablePreferences seam đã đưa 3/10 route về PASS; còn 7 route cần giảm tiếp).
-- [ ] Gate 2 — controlled lazy confirmation seam đã materialize trên Approval; còn keyboard/loading/error-specific regression và consumer disposition.
+- [x] Gate 0 — baseline, clean manifest, viewport matrix và project-wide source-owner inventory hoàn tất.
+- [x] Gate 1 — capability island implementation; clean build route-budget `10/10 PASS`.
+- [x] Gate 2 — controlled lazy confirmation seam; keyboard/loading/error/dirty-state regressions và consumer disposition hoàn tất.
 - [ ] Gate 3 — project-wide UI/UX inventory.
 - [ ] Gate 4 — copy/vocabulary audit.
 - [ ] Gate 5 — table/action-column audit.

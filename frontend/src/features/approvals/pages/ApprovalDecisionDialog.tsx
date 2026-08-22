@@ -19,16 +19,9 @@ type ApprovalDecisionDialogProps = {
 
 export function ApprovalDecisionDialog({ open, status, reason, error, isDeciding, copy, onReasonChange, onClose, onSubmit, onRetry }: ApprovalDecisionDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose() }}>
-      <DialogContent
-        aria-label={copy.title}
-        className="max-w-md"
-        onKeyDown={(event) => {
-          if (event.key !== 'Escape') return
-          event.preventDefault()
-          onClose()
-        }}
-      >
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose() }} onCloseRequest={() => !isDeciding}>
+      <DialogContent aria-label={copy.title} className="max-w-md">
+        <form onSubmit={(event) => { event.preventDefault(); if (!isDeciding && (status === 'Approve' || reason.trim())) onSubmit() }}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
@@ -58,10 +51,11 @@ export function ApprovalDecisionDialog({ open, status, reason, error, isDeciding
           <Button data-inp-action="confirm-approval-decision" type="button" variant="outline" onClick={onClose} disabled={isDeciding} autoFocus>
             {copy.safeLabel}
           </Button>
-          <Button type="button" variant={status === 'Reject' ? 'destructive' : 'default'} onClick={onSubmit} disabled={isDeciding || (status === 'Reject' && !reason.trim())}>
+          <Button type="submit" variant={status === 'Reject' ? 'destructive' : 'default'} disabled={isDeciding || (status === 'Reject' && !reason.trim())}>
             {isDeciding ? 'Đang xử lý...' : copy.submitLabel}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
