@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: executing
-stopped_at: Completed 27-02-PLAN.md
-last_updated: "2026-08-22T13:01:46.958Z"
+stopped_at: Completed 27-03-PLAN.md with scoped duplicate-H1 closeout blocker
+last_updated: "2026-08-22T13:10:57.009Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 current_phase_name: warehouse-data-workspace-contract-pilot
-last_activity: 2026-08-22 — Completed immutable Warehouse baseline and attested three-FAIL AI authorization queue
+last_activity: 2026-08-22 — Completed Warehouse responsive rail and corrected the evidence fixture mapper owner
 ---
 
 # Project State
@@ -25,20 +25,20 @@ See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
 ## Current Status
 
-- Phase 27 Plans 27-01 and 27-02 are complete (2/4).
-- The immutable 15-capture Warehouse baseline and deterministic-before-AI gate are established.
-- The genuine fresh reviewer produced three accepted FAIL authorization inputs; this is intentionally not a product-contract PASS.
-- Plan 27-03 may modify production only where an accepted finding ID authorizes the lowest owner.
+- Phase 27 Plans 27-01 through 27-03 are complete (3/4).
+- Warehouse alone opts into the measured 1366px SplitWorkbench rail; Approval and Chef defaults remain unchanged.
+- The technical-placeholder finding was corrected at the shape-invalid evidence fixture, not masked in production.
+- The duplicate forbidden-route H1 remains a fail-closed closeout blocker because its shared RoleGuard/shell owner is outside Plan 27-03 scope.
 - Admin Data and Purchasing remain locked behind the ordered Warehouse gates.
 
 ## Session Continuity
 
-**Last session:** 2026-08-22T13:01:46.948Z
-**Stopped at:** Completed 27-02-PLAN.md
+**Last session:** 2026-08-22T13:10:56.999Z
+**Stopped at:** Completed 27-03-PLAN.md with scoped duplicate-H1 closeout blocker
 **Resume file:** None
 
-Resume from `.planning/phases/27-warehouse-data-workspace-contract-pilot/27-03-PLAN.md`.
-Next workflow: execute Plan 27-03 using only the accepted baseline authorization queue.
+Resume from `.planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md`.
+Next workflow: resolve the scoped duplicate-H1 authorization blocker before Plan 27-04 closeout evidence.
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Next workflow: execute Plan 27-03 using only the accepted baseline authorization
 |------|----------|-------|-------|
 | Phase 27 P01 | 8m | 2 tasks | 5 files |
 | Phase 27 P02 | 20min | 3 tasks | 25 files |
+| Phase 27 P03 | 12min | 2 tasks | 8 files |
 
 ## Decisions
 
@@ -53,3 +54,9 @@ Next workflow: execute Plan 27-03 using only the accepted baseline authorization
 - [Phase ?]: Use the existing audit route/login/runtime-signal seam and installed Playwright AI ARIA snapshot API.
 - [Phase ?]: The genuine Phase 27 baseline reviewer is e6804529-8bd5-48a6-9246-fc667e0ac803 / phase-27-baseline-review; wrapper rejection does not invalidate its unchanged JSON findings.
 - [Phase ?]: The three accepted AI FAIL findings are Plan 27-03 authorization inputs, not a closeout PASS.
+- [Phase ?]: Phase 27 Plan 03: Warehouse alone uses the measured SplitWorkbench wide-rail opt-in; shared defaults remain unchanged.
+- [Phase ?]: Phase 27 Plan 03: technical placeholder output was corrected at the evidence DTO fixture, not production presentation.
+
+### Blockers
+
+- Phase 27 closeout: phase27-baseline-forbidden-duplicate-h1 is owned by shared RoleGuard/forbidden shell outside Plan 27-03 WarehouseMovementPanel scope; explicit authorization is required before any shared route/shell edit.
