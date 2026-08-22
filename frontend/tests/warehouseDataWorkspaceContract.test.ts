@@ -98,6 +98,15 @@ describe('Warehouse Data Workspace contract', () => {
     expect(report.findings.find(({ id }) => id === 'WH-RESPONSIVE-ready-1920x1080')?.verdict).toBe('NEEDS_EVIDENCE');
   });
 
+  it('does not misclassify visible rail content extent as clipping', () => {
+    const manifest = validManifest();
+    const rail = manifest.captures[0].geometry['warehouse-document-rail'];
+    rail.scroll.scrollWidth = rail.scroll.clientWidth + 100;
+    rail.style.overflowX = 'visible';
+    const report = evaluateWarehouseManifest(manifest);
+    expect(report.findings.find(({ id }) => id === 'WH-CLIPPING-ready-1920x1080')?.verdict).toBe('PASS');
+  });
+
   it('inventories every direct SplitWorkbench consumer without changing shared production', () => {
     expect(splitWorkbenchConsumerInventory.reduce((total, { instances }) => total + instances, 0)).toBe(4);
     for (const { source, instances } of splitWorkbenchConsumerInventory) {

@@ -16,13 +16,16 @@ const forbiddenDefinition = { id: 'warehouse-route-forbidden', name: 'Không đ�
 
 export type WarehouseRuntimeSignals = { consoleErrors: string[]; pageErrors: string[]; nonReadRequests: string[] };
 
+export type WarehouseEvidenceRun = { directory: 'baseline' | 'after'; runId?: string };
+
 export async function collectWarehouseEvidence(
   page: Page,
   signals: WarehouseRuntimeSignals,
   scenario: WarehouseScenario,
   viewport: WarehouseViewport,
+  run: WarehouseEvidenceRun = { directory: 'baseline' },
 ): Promise<{ record: WarehouseCapture; path: string }> {
-  const artifactDirectory = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', 'baseline', 'captures', scenario, viewport.id);
+  const artifactDirectory = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', run.directory, 'captures', scenario, viewport.id);
   await mkdir(artifactDirectory, { recursive: true });
   const screenshotPath = resolve(artifactDirectory, `${scenario}-${viewport.id}.png`);
   await page.screenshot({ path: screenshotPath, fullPage: true, animations: 'disabled' });
@@ -59,7 +62,7 @@ export async function collectWarehouseEvidence(
   const route = scenario === 'route-forbidden' ? '/403' : '/warehouse';
   const record: WarehouseCapture = {
     schemaVersion: 2,
-    identity: `${WAREHOUSE_CONTRACT_VERSION}/${WAREHOUSE_FIXTURE_VERSION}/${actor}/${scenario}/${viewport.id}`,
+    identity: `${run.runId ? `${run.runId}/` : ''}${WAREHOUSE_CONTRACT_VERSION}/${WAREHOUSE_FIXTURE_VERSION}/${actor}/${scenario}/${viewport.id}`,
     contractVersion: WAREHOUSE_CONTRACT_VERSION, fixtureVersion: WAREHOUSE_FIXTURE_VERSION, route,
     activeTab: scenario === 'route-forbidden' ? null : WAREHOUSE_ACTIVE_TAB, actor, state: scenario,
     viewport: { ...viewport }, fixtureRecordIds: scenario === 'route-forbidden' ? [] : [...warehouseFixtureRecordIds],
@@ -74,11 +77,11 @@ export async function collectWarehouseEvidence(
   return { record, path };
 }
 
-export async function writeWarehouseCaptureManifest(captures: WarehouseCapture[]) {
+export async function writeWarehouseCaptureManifest(captures: WarehouseCapture[], run: WarehouseEvidenceRun = { directory: 'baseline' }) {
   const manifest: WarehouseCaptureManifest = { schemaVersion: 2, contractVersion: WAREHOUSE_CONTRACT_VERSION, fixtureVersion: WAREHOUSE_FIXTURE_VERSION, captures };
   validateWarehouseCaptureManifest(manifest);
-  const path = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', 'baseline', 'manifest.json');
-  await mkdir(resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', 'baseline'), { recursive: true });
+  const path = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', run.directory, 'manifest.json');
+  await mkdir(resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', run.directory), { recursive: true });
   const temporary = `${path}.tmp`; await writeFile(temporary, JSON.stringify(manifest, null, 2)); await rename(temporary, path);
   return { manifest, path };
 }

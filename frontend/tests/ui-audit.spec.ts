@@ -652,7 +652,12 @@ async function expectNoAuditIssues(testName: string, issues: AuditIssue[], inter
   expect(incompleteRecords).toEqual([]);
 }
 
-async function captureWarehouseBaseline(browser: Browser) {
+const WAREHOUSE_AFTER_RUN_ID = 'phase27-after-20260822T131341Z';
+
+async function captureWarehouseBaseline(
+  browser: Browser,
+  run: { directory: 'baseline' | 'after'; runId?: string } = { directory: 'baseline' },
+) {
   const captures = [];
   for (const scenario of WAREHOUSE_SCENARIOS) for (const viewport of WAREHOUSE_VIEWPORTS) {
     const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
@@ -668,10 +673,10 @@ async function captureWarehouseBaseline(browser: Browser) {
       if (scenario === 'mixed-empty') { await expect(page.getByText('Chưa có dữ liệu tồn kho')).toBeVisible(); await expect(page.getByText('PX-P27-001').first()).toBeVisible(); }
     }
     await stabilize(page);
-    const { record, path } = await collectWarehouseEvidence(page, signals, scenario, viewport); captures.push(record);
+    const { record, path } = await collectWarehouseEvidence(page, signals, scenario, viewport, run); captures.push(record);
     await test.info().attach(`warehouse-${scenario}-${viewport.id}`, { path, contentType: 'application/json' }); await context.close();
   }
-  const output = await writeWarehouseCaptureManifest(captures);
+  const output = await writeWarehouseCaptureManifest(captures, run);
   await test.info().attach('warehouse-data-workspace-manifest', { path: output.path, contentType: 'application/json' });
   return output;
 }
@@ -680,6 +685,28 @@ test.describe('Warehouse Data Workspace contract baseline', () => {
   test('captures the immutable three-state by five-viewport matrix', async ({ browser }) => {
     const { manifest } = await captureWarehouseBaseline(browser);
     expect(manifest.captures).toHaveLength(15); expect(new Set(manifest.captures.map(({ identity }) => identity)).size).toBe(15);
+  });
+});
+
+test.describe('Warehouse Data Workspace contract fresh post-refactor evidence', () => {
+  test('captures fresh identities and runs deterministic rules before selection', async ({ browser }) => {
+    const run = { directory: 'after', runId: WAREHOUSE_AFTER_RUN_ID } as const;
+    const { manifest } = await captureWarehouseBaseline(browser, run);
+    expect(manifest.captures).toHaveLength(15);
+    expect(manifest.captures.every(({ identity }) => identity.startsWith(`${WAREHOUSE_AFTER_RUN_ID}/`))).toBe(true);
+
+    const report = evaluateWarehouseManifest(manifest);
+    const after = resolve(process.cwd(), 'test-results', 'warehouse-data-workspace', 'after');
+    writeFileSync(resolve(after, 'deterministic-findings.json'), JSON.stringify(report, null, 2));
+    expect(report.stage).toBe('deterministic-before-ai');
+    expect(report.verdict).toBe('PASS');
+    expect(report.findings.every(({ verdict }) => verdict === 'PASS')).toBe(true);
+    const selection = buildWarehouseSelectionManifest(manifest, report);
+    writeFileSync(resolve(after, 'selection-manifest.json'), JSON.stringify(selection, null, 2));
+    expect(selection.deterministicVerdict).toBe('PASS');
+    expect(selection.selected).toHaveLength(6);
+    expect(selection.selected.some(({ state }) => state === 'route-forbidden')).toBe(true);
+    expect(selection.selected.every(({ captureIdentity }) => captureIdentity.startsWith(`${WAREHOUSE_AFTER_RUN_ID}/`))).toBe(true);
   });
 });
 
