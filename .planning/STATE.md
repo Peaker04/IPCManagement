@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: executing
-stopped_at: "Phase 27 Plan 27-04 halted: 2 STILL_FAILING findings"
-last_updated: "2026-08-22T20:42:00.000Z"
+stopped_at: Phase 27 Plan 27-04 halted at Task 3 visual gate (6/10 failed)
+last_updated: "2026-08-22T13:58:39.863Z"
 progress:
   total_phases: 1
   completed_phases: 0
@@ -33,8 +33,8 @@ See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
 ## Session Continuity
 
-**Last session:** 2026-08-22T13:27:44.715Z
-**Stopped at:** Phase 27 Plan 27-04 halted: 2 STILL_FAILING findings
+**Last session:** 2026-08-22T13:58:39.850Z
+**Stopped at:** Phase 27 Plan 27-04 halted at Task 3 visual gate (6/10 failed)
 **Resume file:** .planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md
 
 Resume from `.planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md`.
@@ -60,3 +60,4 @@ Next workflow: resolve the scoped duplicate-H1 authorization blocker before Plan
 ### Blockers
 
 - Phase 27 closeout: phase27-baseline-forbidden-duplicate-h1 is owned by shared RoleGuard/forbidden shell outside Plan 27-03 WarehouseMovementPanel scope; explicit authorization is required before any shared route/shell edit.
+- Phase 27 Plan 27-04 closeout: warehouse visual suite failed 6/10 after cross-route measurements passed 35/35; baselines were not updated and remaining validation gates were not run.
