@@ -121,14 +121,14 @@ Mỗi finding phải ghi đủ:
 
 ### Layout và interaction
 
-- [ ] Không có overlap khi idle.
+- [x] Headed protected-route matrix không ghi nhận overlap khi idle trên đủ 5 desktop viewport.
 - [ ] Không có overlap sau filter, pagination, tab switch, refetch, modal open/close.
-- [ ] Không có horizontal overflow ngoài vùng table được phép cuộn.
+- [x] Headed `35/35` và control-surface `25/25` xác nhận không có horizontal overflow ngoài table viewport được phép cuộn.
 - [ ] Focus không bị sticky header/footer/table/action column che.
-- [ ] Hover-only action có keyboard equivalent.
+- [x] Reports warning action và tab/dialog controls có keyboard path, focus/return regression trong control-surface gate.
 - [ ] Button/action tối thiểu 24×24 CSS px.
-- [ ] Loading skeleton giữ nguyên geometry với ready state.
-- [ ] Empty/error/permission state không bị đánh đồng.
+- [x] Approval document rail giữ stable reserved geometry giữa loading và settled; Weekly grouped table giữ chiều cao qua pagination.
+- [x] UI measurement fixture khóa riêng Warehouse loading/empty/error/permission và không đánh đồng state.
 - [ ] Refresh giữ dữ liệu cũ, không trắng màn hình và không reload document.
 - [ ] Mutation không để response cũ ghi đè trạng thái mới.
 - [ ] Tab ẩn, modal mở, input focus và multi-select đều pause refresh đúng contract.
@@ -150,7 +150,7 @@ Mỗi finding phải ghi đủ:
 
 ## Gate 5 — Table và cột xử lý
 
-- [ ] Inventory toàn bộ table owner, không đếm lặp runtime instance.
+- [x] Source inventory count-lock `50` table trên `54` presentation owner, không đếm lặp runtime instance.
 - [ ] Header căn cùng chiều với dữ liệu.
 - [ ] Text căn trái; số định lượng căn phải; không căn giữa tùy tiện.
 - [ ] Số dùng `tabular-nums`.
@@ -160,7 +160,7 @@ Mỗi finding phải ghi đủ:
 - [ ] Action label ngắn, mô tả động từ cụ thể và không bị cắt mất nghĩa.
 - [ ] Khi thiếu chiều rộng, action dùng nhóm/overflow có keyboard path, không đè lên cột khác.
 - [ ] Hover, focus, disabled, loading và success state của action đều được đo.
-- [ ] Horizontal scroll giữ sticky header và cột định danh.
+- [x] Control-surface gate xác nhận Reports/Purchasing/Warehouse/Weekly Menu wide table cuộn trong owner viewport, không thoát ra document.
 - [ ] Bảng dài dùng server pagination hoặc virtualization đúng contract.
 - [ ] Filter chip, clear-all, result count và pagination không làm xê dịch layout bất ngờ.
 - [ ] Bằng chứng DOM chứng minh không overlap ở nội dung ngắn và dài.

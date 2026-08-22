@@ -321,7 +321,7 @@ export default function ApprovalPage() {
           </Suspense>
           <SplitWorkbench
             detailLabel="Chứng từ"
-            detailClassName="flex-1 min-h-0"
+            detailClassName="min-h-[16rem]"
             detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
           >
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>

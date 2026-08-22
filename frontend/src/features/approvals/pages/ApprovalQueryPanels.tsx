@@ -235,6 +235,7 @@ export function WorkflowDocumentsState({
       <InlineAlert
         title="Không có quyền xem chứng từ workflow"
         variant="danger"
+        className="min-h-[11.5rem]"
       >
         <span role="alert">{view.message}</span>
       </InlineAlert>
@@ -244,6 +245,7 @@ export function WorkflowDocumentsState({
     return (
       <QueryErrorAlert
         title="Không tải được chứng từ workflow"
+        className="min-h-[11.5rem]"
         isRetrying={view.isRetrying}
         onRetry={view.retry}
       >
@@ -253,14 +255,14 @@ export function WorkflowDocumentsState({
   }
   if (view.phase === "loading") {
     return (
-      <InlineAlert title="Đang tải chứng từ workflow" variant="info">
+      <InlineAlert title="Đang tải chứng từ workflow" variant="info" className="min-h-[11.5rem]">
         Danh sách chứng từ đang được đồng bộ.
       </InlineAlert>
     );
   }
   if (view.phase === "uninitialized") {
     return (
-      <InlineAlert title="Chưa khởi tạo chứng từ workflow" variant="info">
+      <InlineAlert title="Chưa khởi tạo chứng từ workflow" variant="info" className="min-h-[11.5rem]">
         {view.instruction}
       </InlineAlert>
     );
@@ -270,6 +272,7 @@ export function WorkflowDocumentsState({
     <DocumentRail
       documents={documents}
       title={null}
+      className="min-h-[11.5rem]"
       actionForDocument={(document) => (
         <Link className="ipc-button ipc-button-ghost" to={document.route}>
           Mở chứng từ

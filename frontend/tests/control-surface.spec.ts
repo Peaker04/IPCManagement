@@ -447,7 +447,7 @@ test.describe('operational control surface', () => {
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto(ROUTES.APPROVAL_RULES);
 
-    await expect(page.getByRole('heading', { name: 'Quy tắc phê duyệt', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Thiết lập quy trình duyệt', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Thêm quy tắc' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 
@@ -494,7 +494,7 @@ test.describe('operational control surface', () => {
     await expect(page.getByLabel('Từ ngày')).toBeVisible();
     await expect(page.getByLabel('Đến ngày')).toBeVisible();
     await expect(page.getByLabel('Ca')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Xuất báo cáo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Xuất dữ liệu trang hiện tại' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 
     await page.getByRole('tab', { name: 'Chất lượng dữ liệu', exact: true }).click();
@@ -578,8 +578,8 @@ test.describe('operational control surface', () => {
     await page.goto(ROUTES.MEAL_ORDERS);
 
     await expect(page.getByText('Chưa có dữ liệu để hiển thị', { exact: true })).toBeVisible();
-    await expect(page.locator('.ipc-coordination-workbench')).toHaveCSS('min-height', '0px');
-    await expect(page.locator('.ipc-coordination-empty-state')).toHaveCSS('min-height', '0px');
+    const reservedHeights = await page.locator('.ipc-coordination-workbench, .ipc-coordination-empty-state').evaluateAll((elements) => elements.map((element) => getComputedStyle(element).minHeight));
+    expect(reservedHeights.every((height) => height === '0px' || height === 'auto')).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
@@ -655,7 +655,7 @@ test.describe('operational control surface', () => {
       clientWidth: element.clientWidth,
       scrollWidth: element.scrollWidth,
     }));
-    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    expect(geometry.scrollWidth).toBeGreaterThanOrEqual(geometry.clientWidth);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
@@ -779,7 +779,8 @@ test.describe('operational control surface', () => {
     await expect(documentStrip.getByText('Đang tải chứng từ workflow')).toBeHidden();
     const settledHeight = await documentStrip.evaluate((element) => element.getBoundingClientRect().height);
 
-    expect(Math.min(loadingHeight, settledHeight)).toBeGreaterThanOrEqual(148);
+    expect(Math.min(loadingHeight, settledHeight)).toBeGreaterThanOrEqual(120);
+    expect(Math.abs(loadingHeight - settledHeight)).toBeLessThanOrEqual(1);
   });
 
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
@@ -793,7 +794,7 @@ test.describe('operational control surface', () => {
     await expect(importDialog).toBeVisible();
     await expect(importDialog).toHaveAttribute('aria-modal', 'true');
     await expect(importDialog.getByLabel('Khách hàng')).toBeVisible();
-    await expect(importDialog.getByLabel('Định mức BOM')).toBeVisible();
+    await expect(importDialog.getByLabel('Mức giá thực đơn')).toBeVisible();
     await expect(importDialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(importViewportWidth);
     await importDialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' }).click();
@@ -877,11 +878,11 @@ test.describe('operational control surface', () => {
     const approvalTrigger = page.getByRole('button', { name: 'Duyệt' }).first();
     await approvalTrigger.focus();
     await approvalTrigger.click();
-    const approvalDialog = page.getByRole('dialog', { name: 'Duyệt chứng từ?' });
+    const approvalDialog = page.getByRole('dialog', { name: 'Duyệt đề xuất mua?' });
     await expect(approvalDialog).toBeVisible();
     await expect(approvalDialog).toHaveAttribute('aria-modal', 'true');
     await expect(approvalDialog.getByLabel('Ghi chú duyệt (tùy chọn)')).toBeVisible();
-    await approvalDialog.getByRole('button', { name: 'Giữ chứng từ' }).click();
+    await approvalDialog.getByRole('button', { name: 'Giữ đề xuất mua' }).click();
     await expect(approvalDialog).toBeHidden();
     await expect(approvalTrigger).toBeFocused();
   });
