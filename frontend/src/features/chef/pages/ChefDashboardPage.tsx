@@ -1,10 +1,9 @@
 'use client'
 
 import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
-import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { ShieldAlert, ShieldCheck } from 'lucide-react'
 import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
-import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '@/types/coordination'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
@@ -16,11 +15,11 @@ import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '.
 import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'
 import { visibleTabIds } from '@/lib/navigationPreferences'
 
+const ChefShiftControls = lazy(() => import('./ChefShiftControls').then(({ ChefShiftControls: component }) => ({ default: component })))
 const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection').then(({ ChefDocumentsSection: component }) => ({ default: component })))
 const chefCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
@@ -83,7 +82,7 @@ export default function ChefDashboardPage() {
 
   return (
     <OperationalFrame
-      command={<CommandBar><ShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></CommandBar>}
+      command={<CommandBar><Suspense fallback={<div aria-hidden="true" className="min-h-8 w-72 rounded-md bg-slate-50" />}><ChefShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></Suspense></CommandBar>}
       context={(
         <>
           <ContextStrip items={[
@@ -167,41 +166,6 @@ export default function ChefDashboardPage() {
         )}
       </div>
     </OperationalFrame>
-  )
-}
-
-type ShiftControlsProps = {
-  activeDay: string
-  activeShift: ShiftType
-  onDayChange: (day: string) => void
-  onShiftChange: (shift: ShiftType) => void
-}
-
-function ShiftControls({ activeDay, activeShift, onDayChange, onShiftChange }: ShiftControlsProps) {
-  const activeDayLabel = DAYS_OF_WEEK.find((day) => day.key === activeDay)?.label ?? activeDay
-
-  return (
-    <div className={cn(typography.body, 'flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4')}>
-      <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
-      <div className="flex items-center gap-2">
-        <Select value={activeDay} onValueChange={(value) => { if (value !== null) onDayChange(value) }}>
-          <SelectTrigger aria-label="Chọn ngày sản xuất" className="min-h-8 w-28 cursor-pointer rounded-md border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
-            <SelectValue>{activeDayLabel}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {DAYS_OF_WEEK.map((day) => <SelectItem key={day.key} value={day.key}>{day.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={activeShift} onValueChange={(value) => { if (value !== null) onShiftChange(value as ShiftType) }}>
-          <SelectTrigger aria-label="Chọn ca sản xuất" className="min-h-8 w-28 cursor-pointer rounded-md border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
-            <SelectValue>{activeShift}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {SHIFTS.map((shift) => <SelectItem key={shift} value={shift}>{shift}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
   )
 }
 

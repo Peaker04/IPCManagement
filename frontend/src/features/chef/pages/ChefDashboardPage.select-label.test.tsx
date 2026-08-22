@@ -39,7 +39,7 @@ import ChefDashboardPage from './ChefDashboardPage'
 const ready = { phase: 'ready' as const, data: [], isRefreshing: false, truncation: null }
 
 describe('ChefDashboardPage select labels', () => {
-  it('shows display shift labels and never the MORNING API enum in the closed trigger', () => {
+  it('shows display shift labels and never the MORNING API enum in the closed trigger', async () => {
     mocks.receipts.mockReturnValue({
       hasAdditionalPages: false, queryView: ready, rows: [], pendingCount: 0, page: 1, pageSize: 100,
       totalCount: 0, allReceived: false, isConfirming: false, signedMaterials: [], signOff: vi.fn(), setPage: vi.fn(),
@@ -55,7 +55,7 @@ describe('ChefDashboardPage select labels', () => {
 
     render(<ChefDashboardPage />)
 
-    expect(screen.getByRole('combobox', { name: 'Chọn ca sản xuất' })).toHaveTextContent('Ca Sáng')
+    expect(await screen.findByRole('combobox', { name: 'Chọn ca sản xuất' })).toHaveTextContent('Ca Sáng')
     expect(screen.getByRole('combobox', { name: 'Chọn ca sản xuất' })).not.toHaveTextContent('MORNING')
     expect(screen.getByText('Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.')).toBeInTheDocument()
   })
