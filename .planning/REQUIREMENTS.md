@@ -6,18 +6,18 @@
 
 ## Contract architecture
 
-- [ ] **UIC-01:** Every route selected for migration has one declared page archetype, work object, grain, required semantic regions, component owners and responsive invariants.
-- [ ] **UIC-02:** The evidence collector records the same route/state/actor/viewport with screenshot, AI-mode ARIA snapshot with boxes, geometry, approved computed styles and console errors; trace/network evidence is added when the finding requires it.
-- [ ] **UIC-03:** Deterministic rules run before AI and fail on machine-decidable semantic, layout, component-region, responsive and accessibility violations.
-- [ ] **UIC-04:** Every AI finding is schema-valid and includes evidence, expected, actual, severity, component owner, confidence and a non-PASS verdict; qualitative taste without those fields is rejected.
-- [ ] **UIC-05:** The implementation foundation remains shadcn/Base UI. SAP Fiori and Carbon patterns may be adopted only after conversion to IPCManagement tokens, existing-owner component contracts, page archetypes or Playwright rules.
+- [x] **UIC-01:** Every route selected for migration has one declared page archetype, work object, grain, required semantic regions, component owners and responsive invariants.
+- [x] **UIC-02:** The evidence collector records the same route/state/actor/viewport with screenshot, AI-mode ARIA snapshot with boxes, geometry, approved computed styles and console errors; trace/network evidence is added when the finding requires it.
+- [x] **UIC-03:** Deterministic rules run before AI and fail on machine-decidable semantic, layout, component-region, responsive and accessibility violations.
+- [x] **UIC-04:** Every AI finding is schema-valid and includes evidence, expected, actual, severity, component owner, confidence and a non-PASS verdict; qualitative taste without those fields is rejected.
+- [x] **UIC-05:** The implementation foundation remains shadcn/Base UI. SAP Fiori and Carbon patterns may be adopted only after conversion to IPCManagement tokens, existing-owner component contracts, page archetypes or Playwright rules.
 
 ## Warehouse Data Workspace pilot
 
-- [ ] **WHP-01:** Warehouse has a minimal Data Workspace contract derived from its current route, states, actors and owners; the pilot introduces no generic page renderer, UI DSL or speculative framework.
-- [ ] **WHP-02:** Warehouse baseline evidence is captured before production refactoring and every authorized change traces to a deterministic or schema-valid AI finding.
-- [ ] **WHP-03:** Warehouse refactoring preserves business behavior, API/cache contracts, permissions and current visual identity unless a finding proves that a shared visual rule must change.
-- [ ] **WHP-04:** The pilot closes with build → structural contract → accessibility → screenshot evidence → responsive contract → AI review, followed by fresh before/after reconciliation.
+- [x] **WHP-01:** Warehouse has a minimal Data Workspace contract derived from its current route, states, actors and owners; the pilot introduces no generic page renderer, UI DSL or speculative framework.
+- [x] **WHP-02:** Warehouse baseline evidence is captured before production refactoring and every authorized change traces to a deterministic or schema-valid AI finding.
+- [x] **WHP-03:** Warehouse refactoring preserves business behavior, API/cache contracts, permissions and current visual identity unless a finding proves that a shared visual rule must change.
+- [x] **WHP-04:** The pilot closes with build → structural contract → accessibility → screenshot evidence → responsive contract → AI review, followed by fresh before/after reconciliation.
 
 ## Promotion gates
 
@@ -38,7 +38,7 @@
 
 | Requirement | Phase | Status |
 |---|---:|---|
-| UIC-01..05 | 27 | Pending |
-| WHP-01..04 | 27 | Pending |
+| UIC-01..05 | 27 | Complete |
+| WHP-01..04 | 27 | Complete |
 | VAL-01..02 | Deferred until Warehouse closeout | Locked |
 | VAL-03 | Open research gate | Locked |

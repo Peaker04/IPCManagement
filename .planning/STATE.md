@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: executing
-stopped_at: Phase 27 Plan 27-04 halted at Task 3 visual gate (6/10 failed)
-last_updated: "2026-08-22T13:58:39.863Z"
+status: complete
+stopped_at: Completed Phase 27 Plan 27-04
+last_updated: "2026-08-22T14:30:00.000Z"
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 100
 current_phase_name: warehouse-data-workspace-contract-pilot
 last_activity: 2026-08-22 — Corrected Phase 27 current-stock fixture DTO labels and regenerated fresh headed evidence
 ---
@@ -25,20 +25,19 @@ See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
 ## Current Status
 
-- Phase 27 Plans 27-01 through 27-03 are complete (3/4).
+- Phase 27 is complete (4/4 plans) with bounded Warehouse-only verification.
 - Warehouse alone opts into the measured 1366px SplitWorkbench rail; Approval and Chef defaults remain unchanged.
-- The current-stock technical-placeholder evidence was corrected at the shape-invalid fixture DTO seam; fresh run `phase27-after-20260822T204000Z` renders human-readable primary labels while stable IDs remain internal.
-- The duplicate forbidden-route H1 remains a fail-closed closeout blocker because its shared RoleGuard/shell owner is outside this quick correction scope.
-- Admin Data and Purchasing remain locked behind the ordered Warehouse gates.
+- Visual harness time is fixed to local noon on `PHASE09_DATE`; current MainLayout collapsed/expanded breakpoints are machine-proven without production edits.
+- Exactly six Warehouse baselines are accepted; two consecutive unchanged visual runs passed 10/10 and the full ordered frontend gate is green.
+- Admin Data requires an explicit promotion decision; Purchasing remains research-locked.
 
 ## Session Continuity
 
-**Last session:** 2026-08-22T13:58:39.850Z
-**Stopped at:** Phase 27 Plan 27-04 halted at Task 3 visual gate (6/10 failed)
-**Resume file:** .planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md
+**Last session:** 2026-08-22T14:30:00.000Z
+**Stopped at:** Completed Phase 27 Plan 27-04
+**Resume file:** None
 
-Resume from `.planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md`.
-Next workflow: resolve the scoped duplicate-H1 authorization blocker before Plan 27-04 closeout evidence.
+Next workflow: explicit Admin Data validation promotion decision; no promotion is automatic.
 
 ## Performance Metrics
 
@@ -47,6 +46,7 @@ Next workflow: resolve the scoped duplicate-H1 authorization blocker before Plan
 | Phase 27 P01 | 8m | 2 tasks | 5 files |
 | Phase 27 P02 | 20min | 3 tasks | 25 files |
 | Phase 27 P03 | 12min | 2 tasks | 8 files |
+| Phase 27 P04 | 9min | 3 tasks | 10 files |
 
 ## Decisions
 
@@ -59,5 +59,4 @@ Next workflow: resolve the scoped duplicate-H1 authorization blocker before Plan
 
 ### Blockers
 
-- Phase 27 closeout: phase27-baseline-forbidden-duplicate-h1 is owned by shared RoleGuard/forbidden shell outside Plan 27-03 WarehouseMovementPanel scope; explicit authorization is required before any shared route/shell edit.
-- Phase 27 Plan 27-04 closeout: warehouse visual suite failed 6/10 after cross-route measurements passed 35/35; baselines were not updated and remaining validation gates were not run.
+None for Phase 27. Admin Data and Purchasing remain governance-locked pending their explicit follow-on decisions.

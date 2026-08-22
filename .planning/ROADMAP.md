@@ -2,13 +2,13 @@
 
 ## Phase overview
 
-- [ ] **Phase 27: Warehouse Data Workspace contract pilot** — prove the contract architecture with the smallest useful collector, deterministic rules and evidence-backed Warehouse vertical slice.
+- [x] **Phase 27: Warehouse Data Workspace contract pilot** — prove the contract architecture with the smallest useful collector, deterministic rules and evidence-backed Warehouse vertical slice.
 
 Admin Data is the mandatory validation gate after Phase 27, but is not authorized for implementation yet. Purchasing remains research-locked until Admin Data validation is complete.
 
 ## Phase 27: Warehouse Data Workspace contract pilot
 
-**Status:** READY FOR DISCUSSION/PLANNING
+**Status:** COMPLETE — verified 2026-08-22 (4/4 plans)
 
 **Goal:** Prove that IPCManagement can express, collect, evaluate and remediate a Data Workspace UI contract without introducing a broad UI framework or changing business behavior.
 
