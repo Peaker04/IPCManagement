@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-01F",
+  "status": "COMPLETE",
+  "scope": "focused-only",
+  "payloadCommit": "73b011aaed2d21622d1d52a8e6cedbecf30b8894",
+  "payloadMembers": [
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01F-SUMMARY.md",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-01F-focused-launcher-manifest.json",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-01F-focused-launcher.json",
+    "frontend/playwright.phase271-focused.config.ts",
+    "frontend/tests/runPhase271FocusedPlaywright.test.ts",
+    "frontend/tests/runPhase271FocusedPlaywright.ts"
+  ],
+  "roots": [
+    { "planId": "27.1-01", "commit": "c52c80f8186b985d07619a7ad0ed7abc0572675c", "disposition": "IMMUTABLE_SOURCE" },
+    { "planId": "27.1-01C", "commit": "ae129eaab0dde192f3dca17c7504b7b9aaef5d17", "disposition": "SUPERSEDED_PROTOCOL_INVALID" },
+    { "planId": "27.1-01R", "commit": "fb93fd12", "disposition": "AUTHORITATIVE_RESEAL" },
+    { "planId": "27.1-01F", "commit": "73b011aaed2d21622d1d52a8e6cedbecf30b8894", "disposition": "FOCUSED_ONLY_AUTHORITY" }
+  ],
+  "artifactPins": {
+    "adapter": { "sha256": "a73b2a5fbd82863f45ebfabe6fa42159034b909bebacc02f2c1591aab25996bc", "gitBlobId": "9651535bd485a4eef9d8383797bc1c432fe2ea34" },
+    "test": { "sha256": "8e39a81d5be09245fbdc368b2782ade744d1153b542ee80e603262168d92f292", "gitBlobId": "a2693c078c903c47f064445d4e3d0d785d408911" },
+    "config": { "sha256": "581e145ed9003a95a23d60a547f10ea22a020a8b16084a94b32186f55337d7d1", "gitBlobId": "6620b366a0699225ac3b8dd25009cbc97e7f21e9" },
+    "playwrightCliSha256": "79e23e6a249176295b8490567daa7717448a75866d6ea6f6b296ff3d23305c69",
+    "viteCliSha256": "fa03478846d229651a3c6aa64833ba2c6cbf580a798b92bd8f47c7480bafb5d8"
+  },
+  "childLaunchTraceContract": ["vite-spawn", "vite-health", "playwright-spawn", "playwright-close:0", "vite-teardown"],
+  "authorizes": ["explicit-one-spec-focused-subset-runs"],
+  "denies": ["canonical-source-recovery", "canonical-broad-discovery", "complete-two-spec-runs", "plan-07-final-runs"],
+  "browserRuns": 0,
+  "blockers": []
+}
