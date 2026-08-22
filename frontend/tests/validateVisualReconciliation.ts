@@ -119,9 +119,37 @@ export function assertAuthorizationMatrix(matrix: unknown, sourceIdentities: unk
 }
 
 export type ReadinessDisposition = { schemaVersion: number; phase: string; planId: string; validatorAuthority: string; waveBaseCommit: string; roots: Array<{ type: string; path: string; sha256: string; commit: string }>; identitySets: Record<string, Array<{ identity: string; disposition: string; owner: string; beforeSha256: string[]; afterSha256: string[]; semanticOwner: string }>>; locks: { adminData: string; purchasingRollout: string; snapshotsChanged: boolean; productionChanged: boolean }; gitReconciliation: { phaseBaseCommit: string; waveBaseCommit: string; waveAuthorizedPaths: string[] } };
+export type ClassAwareDisposition = { identity: string; disposition: string; owner: string; beforeSha256: string[]; afterSha256: string[]; oldSnapshotSha256?: string; newSnapshotSha256?: string };
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 const outputLines = (value: string) => value.split(/\r?\n/).filter(Boolean);
-export function validateDownstreamReadiness(cwd: string, matrix: AuthorizationMatrix, dispositions: ReadinessDisposition, recovery: any) {
+function validEqualPacket(packet: unknown): packet is string[] { return Array.isArray(packet) && packet.length === 2 && packet[0] === packet[1] && packet.every((hash) => typeof hash === 'string' && /^[a-f0-9]{64}$/.test(hash)); }
+const CORE_SNAPSHOT_HASHES:Record<string,{old:string;new:string}>={
+  'dashboard-desktop':{old:'8fc1946a8abe319dde67d5a3b4b831601dd419c7d6d2c663a63c9bd58fbb7306',new:'4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f'},
+  'login-mobile':{old:'a460d759c196b3425baae9ebc943d94eb854edefeaa2692dd8e2849bd1d1fa05',new:'567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5'},
+  'dashboard-mobile':{old:'f45dd1c3f9d24041b4e63899b5f464f08e794d25a19aff50e2d7f73920f08d96',new:'6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e'},
+};
+function authorizeClassAwarePath(cwd:string,matrix:AuthorizationMatrix,row:ClassAwareDisposition,path:string) {
+  const identities=matrix.identitySets['core-login-dashboard'];
+  const identity=identities.find(item=>item.snapshotName.startsWith(row.identity));
+  if(!identity) throw new Error(`class-aware identity substitution: ${row.identity}`);
+  const entry=matrix.entries.find(item=>identityKey(item)===identityKey(identity))!;
+  const permitted=entry.permittedPaths[row.disposition];
+  if(!permitted?.includes(path)||row.owner!==path) throw new Error(`class-aware class/path authorization rejected: ${path}`);
+  if(!validEqualPacket(row.beforeSha256)||!validEqualPacket(row.afterSha256)) throw new Error('class-aware two equal packets required');
+  if(row.disposition==='stale-baseline') {
+    const hashes=CORE_SNAPSHOT_HASHES[row.identity];
+    if(!hashes||permitted.length!==1||row.oldSnapshotSha256!==hashes.old||row.newSnapshotSha256!==hashes.new||row.newSnapshotSha256!==row.beforeSha256[0]||row.newSnapshotSha256!==row.afterSha256[0]) throw new Error('stale-baseline hash evidence mismatch');
+    if(sha256(readFileSync(resolve(cwd,path)))!==row.newSnapshotSha256) throw new Error('current snapshot hash mismatch');
+  } else if(row.disposition!=='production-regression'||!path.startsWith('frontend/src/')) throw new Error('production owner requires production-regression class');
+}
+export function validateClassAwareAccounting(cwd:string,matrix:AuthorizationMatrix,rows:ClassAwareDisposition[],paths:string[]) {
+  const sensitive=[...new Set(paths.filter(path=>path.includes('-snapshots/')||path.startsWith('frontend/src/')))];
+  const authorized=new Set<string>();
+  for(const path of sensitive){ const matches=rows.filter(row=>row.owner===path); if(matches.length!==1) throw new Error(`unauthorized Git accounting member: ${path}`); authorizeClassAwarePath(cwd,matrix,matches[0],path); authorized.add(path); }
+  for(const row of rows) if((row.owner.includes('-snapshots/')||row.owner.startsWith('frontend/src/'))&&!sensitive.includes(row.owner)) continue;
+  return [...authorized];
+}
+export function validateDownstreamReadiness(cwd: string, matrix: AuthorizationMatrix, dispositions: ReadinessDisposition, recovery: any, classAwareRows:ClassAwareDisposition[] = []) {
   const selected = ['readiness-chef', 'readiness-purchasing'];
   if (dispositions.schemaVersion !== 1 || dispositions.phase !== '27.1' || dispositions.planId !== '27.1-02' || dispositions.validatorAuthority !== '27.1-01W') throw new Error('disposition identity mismatch');
   if (dispositions.waveBaseCommit !== '47d13805196fd9ab51d0f08c5de44db7fa26a71b' || dispositions.gitReconciliation.waveBaseCommit !== dispositions.waveBaseCommit || dispositions.gitReconciliation.phaseBaseCommit !== 'c52c80f8186b985d07619a7ad0ed7abc0572675c') throw new Error('phase/wave base mismatch');
@@ -151,9 +179,8 @@ export function validateDownstreamReadiness(cwd: string, matrix: AuthorizationMa
   const wave = outputLines(git(cwd, 'diff', '--name-only', `${dispositions.waveBaseCommit}..HEAD`));
   const dirty = outputLines(git(cwd, 'status', '--porcelain')).map((line) => line.slice(3));
   const all = [...new Set([...cumulative, ...wave, ...dirty])];
-  const forbidden = all.filter((path) => path.includes('-snapshots/') || path.startsWith('frontend/src/'));
-  if (forbidden.length) throw new Error(`unauthorized Git accounting member: ${forbidden.join(',')}`);
-  return { selectedIdentitySets: selected, cumulativePaths: cumulative, wavePaths: wave, dirtyPaths: dirty };
+  const authorizedClassAwarePaths=validateClassAwareAccounting(cwd,matrix,classAwareRows,all);
+  return { selectedIdentitySets: selected, cumulativePaths: cumulative, wavePaths: wave, dirtyPaths: dirty, authorizedClassAwarePaths };
 }
 
 export function assertAuthorizedPath(matrix: AuthorizationMatrix, identity: Identity, metadata: Pick<AuthorizationEntry, 'route' | 'fixtureState' | 'actor' | 'viewport'>, disposition: string, path: string) {
