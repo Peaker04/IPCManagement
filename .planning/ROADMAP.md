@@ -52,7 +52,7 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 
 ## Phase 27.1: Non-Warehouse visual reconciliation
 
-**Status:** PLANNED — 7 plans across 7 serialized waves
+**Status:** PLANNED — executed Plan 01 plus 7 remaining plans across 8 serialized waves
 
 **Goal:** Explain, classify and resolve all 21 non-Warehouse failures in `frontend/tests/visual-routes.spec.ts` without laundering production regressions, weakening the visual oracle or broad-updating baselines.
 
@@ -68,12 +68,13 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 4. The complete unchanged broad visual suite passes twice consecutively, followed by full frontend unit, lint, dependency-cruiser, production build and hygiene gates.
 5. Phase 27 final verification is rerun only after Phase 27.1 closes with zero unresolved item.
 
-**Plans:** 7 plans
+**Plans:** 8 plans
 
 Plans:
 
-- [ ] 27.1-01-PLAN.md — Tracer-first preservation and deterministic inventory of all 21 failures.
-- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing broad readiness failures at the proven owner.
+- [x] 27.1-01-PLAN.md — Historical executed source preservation and deterministic inventory of all 21 failures; original evidence remains immutable.
+- [ ] 27.1-01C-PLAN.md — Additive exact-identity authorization correction, centralized validator semantics, and dual-lineage marker.
+- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing broad readiness failures at the proven owner using the pinned correction validator.
 - [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes.
 - [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows.
 - [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines.
