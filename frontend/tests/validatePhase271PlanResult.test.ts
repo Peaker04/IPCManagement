@@ -1,43 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { validateCorrectionMarker, validateCorrectionResult } from './validatePhase271PlanResult';
-
-const hash = 'a'.repeat(64);
-const originalLineage = {
-  marker: { path: '.planning/phases/x/evidence/terminal-markers/27.1-01.json', sha256: 'b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02' },
-  markerCommit: 'c52c80f8186b985d07619a7ad0ed7abc0572675c',
-  matrix: { path: '.planning/phases/x/evidence/row-class-path-matrix.json', sha256: '15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2' },
-};
-const result = {
-  schemaVersion: 1, phase: '27.1', planId: '27.1-01C', status: 'READY_TO_SEAL',
-  summary: { path: '.planning/phases/x/27.1-01C-SUMMARY.md', sha256: hash }, mappingDeltaOnly: true,
-  originalLineage, correctedMatrix: { path: '.planning/phases/x/evidence/corrected-authorization-matrix.json', sha256: hash },
-  validator: { path: 'frontend/tests/validateVisualReconciliation.ts', sha256: hash, version: '27.1-01C' }, sourceSuiteRerun: false, blockers: [],
-};
-const marker = {
-  schemaVersion: 1, phase: '27.1', planId: '27.1-01C', status: 'COMPLETE', summary: result.summary,
-  payloadResult: { path: '.planning/phases/x/evidence/corrected-authorization-result.json', sha256: hash }, payloadCommit: 'b'.repeat(40),
-  originalLineage, correctedMatrix: result.correctedMatrix, validator: result.validator,
-};
-const mutate = <T>(value: T): T => structuredClone(value);
-
-// Terminal validation remains independent of the browser/source-suite lane.
-describe('Phase 27.1 Plan 01C result validator', () => {
-  it('accepts the closed mapping-only READY_TO_SEAL result', () => expect(() => validateCorrectionResult(result)).not.toThrow());
-  it('rejects source rerun, relabeled plan, blockers and unknown fields', () => {
-    for (const candidate of [
-      Object.assign(mutate(result), { sourceSuiteRerun: true }),
-      Object.assign(mutate(result), { planId: '27.1-01' }),
-      Object.assign(mutate(result), { blockers: ['drift'] }),
-      Object.assign(mutate(result), { commits: [] }),
-    ]) expect(() => validateCorrectionResult(candidate)).toThrow();
-  });
-  it('accepts COMPLETE correction marker with dual lineage and payload commit', () => expect(() => validateCorrectionMarker(marker)).not.toThrow());
-  it('rejects wrong old hash, lineage commit, validator pin and marker schema', () => {
-    const cases = [mutate(marker), mutate(marker), mutate(marker), mutate(marker)];
-    cases[0].originalLineage.marker.sha256 = hash;
-    cases[1].originalLineage.markerCommit = 'd'.repeat(40);
-    cases[2].validator.version = '27.1-01B';
-    (cases[3] as unknown as Record<string, unknown>).markerCommit = 'self-reference-forbidden';
-    for (const candidate of cases) expect(() => validateCorrectionMarker(candidate)).toThrow();
-  });
+import { PLAN_SCHEMAS, validatePhase271PlanMarker, validatePhase271PlanResult, type Phase271PlanId } from './validatePhase271PlanResult';
+const hash='a'.repeat(64), commit='b'.repeat(40), root=(n:number)=>({type:`ROOT_${n}`,path:`marker-${n}.json`,sha256:String(n%10).repeat(64),commit:(n%9+1).toString().repeat(40)});
+const clone=<T>(v:T):T=>structuredClone(v);
+function fixture(id:Phase271PlanId){ const s=PLAN_SCHEMAS[id], count=id==='27.1-02'?7:8; const common={schemaVersion:1,phase:'27.1',planId:id,summary:{path:s.summaryPath,sha256:hash},authorityRoots:Array.from({length:count},(_,i)=>root(i)),validationHashes:{matrix:hash},blockers:[]}; const result:any={...common,status:'READY_TO_SEAL',tests:{files:2,tests:20,status:'PASS'},browserRun:false,productionChanged:false,snapshotsChanged:false}; const marker:any={...common,status:'COMPLETE',authority:'CLOSED',payloadCommit:commit,payloadResult:{path:s.resultPath,sha256:hash}};
+ if(id==='27.1-02'){Object.assign(result,{waveBaseCommit:commit,currentHead:commit,partialCommit:commit,partialDisposition:'PRESERVED'});Object.assign(marker,{waveBaseCommit:commit,partialCommit:commit,partialDisposition:'PRESERVED',orderedCommits:[]});}
+ else marker.dependencies=[{planId:s.predecessor,marker:`marker-${s.predecessor}.json`,sha256:hash,commit}];
+ if(id==='27.1-03R'){const manifest={path:'.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json',sha256:hash};Object.assign(result,{manifest,predecessor:'27.1-02'});Object.assign(marker,{manifest,validatorPins:Array.from({length:4},(_,i)=>({path:`v${i}`,sha256:hash,gitBlobId:commit}))});}
+ return {result,marker}; }
+describe('closed Phase 27.1 plan schemas',()=>{
+ it.each(Object.keys(PLAN_SCHEMAS) as Phase271PlanId[])('%s accepts only its exact row',id=>{const {result,marker}=fixture(id);expect(()=>validatePhase271PlanResult(id,result)).not.toThrow();expect(()=>validatePhase271PlanMarker(id,marker)).not.toThrow();});
+ it.each(['27.1-01','27.1-03X','27.1-070','27.1-08'])('rejects arbitrary/same-prefix ID %s',id=>expect(()=>validatePhase271PlanResult(id,{})).toThrow(/allowlisted/));
+ it('rejects cross-row schema borrowing',()=>{const a=fixture('27.1-03R');expect(()=>validatePhase271PlanResult('27.1-03',a.result)).toThrow();expect(()=>validatePhase271PlanMarker('27.1-03',a.marker)).toThrow();});
+ it('rejects unknown/missing/substituted payload, summary, roots, hashes, pins, dependencies and commits',()=>{const base=fixture('27.1-03R');const cases:any[]=[]; let x:any;
+  x=clone(base.result);x.extra=true;cases.push(()=>validatePhase271PlanResult('27.1-03R',x)); x=clone(base.result);delete x.summary;cases.push(()=>validatePhase271PlanResult('27.1-03R',x)); x=clone(base.result);x.summary.path='wrong';cases.push(()=>validatePhase271PlanResult('27.1-03R',x)); x=clone(base.result);x.authorityRoots.pop();cases.push(()=>validatePhase271PlanResult('27.1-03R',x)); x=clone(base.result);x.validationHashes.matrix='bad';cases.push(()=>validatePhase271PlanResult('27.1-03R',x)); x=clone(base.marker);x.validatorPins.pop();cases.push(()=>validatePhase271PlanMarker('27.1-03R',x)); x=clone(base.marker);x.dependencies[0].planId='27.1-01';cases.push(()=>validatePhase271PlanMarker('27.1-03R',x)); x=clone(base.marker);x.payloadCommit='bad';cases.push(()=>validatePhase271PlanMarker('27.1-03R',x)); for(const run of cases)expect(run).toThrow(); });
+ it('rejects duplicate/collapsed roots and dependencies',()=>{let x:any=fixture('27.1-03').marker;x.authorityRoots[1]=clone(x.authorityRoots[0]);expect(()=>validatePhase271PlanMarker('27.1-03',x)).toThrow(/collapse/);x=fixture('27.1-03').marker;x.dependencies.push(clone(x.dependencies[0]));expect(()=>validatePhase271PlanMarker('27.1-03',x)).toThrow(/exact dependency/);});
 });

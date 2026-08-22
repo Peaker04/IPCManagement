@@ -1,68 +1,33 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sha256 } from './validateVisualReconciliation.ts';
 
-const RESULT_KEYS = ['schemaVersion', 'phase', 'planId', 'status', 'summary', 'mappingDeltaOnly', 'originalLineage', 'correctedMatrix', 'validator', 'sourceSuiteRerun', 'blockers'] as const;
-const MARKER_KEYS = ['schemaVersion', 'phase', 'planId', 'status', 'summary', 'payloadResult', 'payloadCommit', 'originalLineage', 'correctedMatrix', 'validator'] as const;
+const PHASE_DIR = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c';
+const PLAN_IDS = ['27.1-02', '27.1-03R', '27.1-03', '27.1-04', '27.1-05', '27.1-06', '27.1-07'] as const;
+export type Phase271PlanId = typeof PLAN_IDS[number];
+type Schema = { resultPath: string; summaryPath: string; markerPath: string; resultKeys: readonly string[]; markerKeys: readonly string[]; predecessor?: Phase271PlanId };
+const COMMON_RESULT = ['schemaVersion','phase','planId','status','summary','authorityRoots','validationHashes','tests','browserRun','productionChanged','snapshotsChanged','blockers'] as const;
+const COMMON_MARKER = ['schemaVersion','phase','planId','status','authority','payloadCommit','summary','payloadResult','authorityRoots','dependencies','validationHashes','blockers'] as const;
+const schema = (id: Phase271PlanId, predecessor?: Phase271PlanId): Schema => ({
+  resultPath: `${PHASE_DIR}/evidence/plan-results/${id}.json`, summaryPath: `${PHASE_DIR}/${id}-SUMMARY.md`, markerPath: `${PHASE_DIR}/evidence/terminal-markers/${id}.json`, resultKeys: COMMON_RESULT, markerKeys: COMMON_MARKER, predecessor,
+});
+export const PLAN_SCHEMAS: Readonly<Record<Phase271PlanId, Schema>> = Object.freeze({
+  '27.1-02': { ...schema('27.1-02'), resultKeys: ['schemaVersion','phase','planId','status','waveBaseCommit','currentHead','partialCommit','partialDisposition','summary','authorityRoots','validationHashes','tests','browserRun','productionChanged','snapshotsChanged','blockers'], markerKeys: ['schemaVersion','phase','planId','status','authority','waveBaseCommit','payloadCommit','summary','payloadResult','partialCommit','partialDisposition','authorityRoots','orderedCommits','validationHashes','blockers'] },
+  '27.1-03R': { ...schema('27.1-03R','27.1-02'), resultPath: `${PHASE_DIR}/evidence/plan-results/27.1-03R.json`, markerPath: `${PHASE_DIR}/evidence/terminal-markers/27.1-03R-general-validator.json`, resultKeys: [...COMMON_RESULT,'manifest','predecessor'], markerKeys: [...COMMON_MARKER,'manifest','validatorPins'] },
+  '27.1-03': schema('27.1-03','27.1-02'), '27.1-04': schema('27.1-04','27.1-03'), '27.1-05': schema('27.1-05','27.1-04'), '27.1-06': schema('27.1-06','27.1-05'), '27.1-07': schema('27.1-07','27.1-06'),
+});
 
-function closed(value: unknown, keys: readonly string[], label: string): asserts value is Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`);
-  const actual = Object.keys(value);
-  const extras = actual.filter((key) => !keys.includes(key));
-  const missing = keys.filter((key) => !actual.includes(key));
-  if (extras.length || missing.length) throw new Error(`${label} schema mismatch; extra=${extras.join(',')} missing=${missing.join(',')}`);
-}
-function artifact(value: unknown, label: string): asserts value is { path: string; sha256: string } {
-  closed(value, ['path', 'sha256'], label);
-  if (typeof value.path !== 'string' || typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new Error(`${label} is invalid`);
-}
-function lineage(value: unknown) {
-  closed(value, ['marker', 'markerCommit', 'matrix'], 'originalLineage');
-  artifact(value.marker, 'original marker'); artifact(value.matrix, 'original matrix');
-  if (value.markerCommit !== 'c52c80f8186b985d07619a7ad0ed7abc0572675c') throw new Error('original marker commit mismatch');
-  if (value.marker.sha256 !== 'b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02') throw new Error('original marker hash mismatch');
-  if (value.matrix.sha256 !== '15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2') throw new Error('old matrix hash mismatch');
-}
-
-export function validateCorrectionResult(value: unknown) {
-  closed(value, RESULT_KEYS, 'result');
-  if (value.schemaVersion !== 1 || value.phase !== '27.1' || value.planId !== '27.1-01C' || value.status !== 'READY_TO_SEAL') throw new Error('result identity/status mismatch');
-  if (value.mappingDeltaOnly !== true || value.sourceSuiteRerun !== false) throw new Error('correction must be mapping-only with no source rerun');
-  artifact(value.summary, 'summary'); lineage(value.originalLineage); artifact(value.correctedMatrix, 'correctedMatrix');
-  closed(value.validator, ['path', 'sha256', 'version'], 'validator');
-  if ((value.validator as Record<string, unknown>).version !== '27.1-01C' || typeof (value.validator as Record<string, unknown>).path !== 'string' || !/^[a-f0-9]{64}$/.test(String((value.validator as Record<string, unknown>).sha256))) throw new Error('validator pin is invalid');
-  if (!Array.isArray(value.blockers) || value.blockers.length) throw new Error('result blockers must be empty');
-}
-
-export function validateCorrectionMarker(value: unknown) {
-  closed(value, MARKER_KEYS, 'marker');
-  if (value.schemaVersion !== 1 || value.phase !== '27.1' || value.planId !== '27.1-01C' || value.status !== 'COMPLETE') throw new Error('marker identity/status mismatch');
-  artifact(value.summary, 'summary'); artifact(value.payloadResult, 'payloadResult'); lineage(value.originalLineage); artifact(value.correctedMatrix, 'correctedMatrix');
-  closed(value.validator, ['path', 'sha256', 'version'], 'validator');
-  if ((value.validator as Record<string, unknown>).version !== '27.1-01C') throw new Error('validator version mismatch');
-  if (typeof value.payloadCommit !== 'string' || !/^[a-f0-9]{40}$/.test(value.payloadCommit)) throw new Error('payload commit is invalid');
-}
-
-function git(...args: string[]) { return execFileSync('git', args, { encoding: 'utf8' }).trim(); }
-function main() {
-  const args = process.argv.slice(2); const arg = (name: string) => args[args.indexOf(name) + 1];
-  if (arg('--plan') !== '27.1-01C' || arg('--require') !== 'COMPLETE') throw new Error('exact correction plan and COMPLETE status required');
-  const phaseDir = resolve('.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c');
-  const markerPath = resolve(phaseDir, arg('--marker')); const marker = JSON.parse(readFileSync(markerPath, 'utf8')); validateCorrectionMarker(marker);
-  const originalPath = resolve(phaseDir, arg('--require-original-lineage'));
-  if (sha256(readFileSync(originalPath)) !== arg('--original-marker-sha256')) throw new Error('original marker bytes drifted');
-  if (marker.originalLineage.markerCommit !== arg('--original-marker-commit') || marker.originalLineage.matrix.sha256 !== arg('--old-matrix-sha256')) throw new Error('CLI lineage pin mismatch');
-  for (const required of ['--require-correction-matrix-hash', '--require-validator-hash', '--require-payload-commit', '--require-marker-only-commit']) if (!args.includes(required)) throw new Error(`${required} is required`);
-  for (const item of [marker.summary, marker.payloadResult, marker.correctedMatrix, marker.validator]) {
-    if (sha256(readFileSync(resolve(item.path))) !== item.sha256) throw new Error(`artifact hash mismatch: ${item.path}`);
-  }
-  const payloadPaths = git('diff-tree', '--no-commit-id', '--name-only', '-r', marker.payloadCommit).split(/\r?\n/).filter(Boolean);
-  if (!payloadPaths.includes(marker.summary.path) || !payloadPaths.includes(marker.payloadResult.path) || !payloadPaths.includes(marker.correctedMatrix.path) || !payloadPaths.includes(marker.validator.path)) throw new Error('payload commit is incomplete');
-  const markerRepoPath = markerPath.replaceAll('\\', '/').replace(resolve('.').replaceAll('\\', '/'), '').replace(/^[/\\]/, '');
-  const headPaths = git('diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD').split(/\r?\n/).filter(Boolean);
-  if (headPaths.length !== 1 || headPaths[0] !== markerRepoPath) throw new Error('HEAD is not the marker-only correction commit');
-  console.log(`PASS 27.1-01C COMPLETE: dual lineage, old/new hashes, reachable payload, and marker-only HEAD verified`);
-}
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) main();
+function object(value: unknown, label: string): asserts value is Record<string, any> { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} must be an object`); }
+function closed(value: unknown, keys: readonly string[], label: string): asserts value is Record<string, any> { object(value,label); const actual=Object.keys(value); const extra=actual.filter(k=>!keys.includes(k)); const missing=keys.filter(k=>!actual.includes(k)); if(extra.length||missing.length) throw new Error(`${label} schema mismatch; extra=${extra} missing=${missing}`); }
+function artifact(value: unknown, path: string, label: string) { closed(value,['path','sha256'],label); if(value.path!==path || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new Error(`${label} pin mismatch`); }
+function roots(value: unknown, count: number) { if(!Array.isArray(value)||value.length!==count) throw new Error(`exact ${count} authority roots required`); const types=new Set<string>(), paths=new Set<string>(), commits=new Set<string>(); for(const [i,r] of value.entries()){ object(r,`root ${i}`); for(const k of ['type','path','sha256','commit']) if(typeof r[k]!=='string'||!r[k]) throw new Error(`root ${i}.${k} required`); if(!/^[a-f0-9]{64}$/.test(r.sha256)||!/^[a-f0-9]{40}$/.test(r.commit)) throw new Error('root pin invalid'); types.add(r.type);paths.add(r.path);commits.add(r.commit); } if(types.size!==count||paths.size!==count||commits.size!==count) throw new Error('authority roots collapse/duplicate'); }
+function dependencies(value: unknown, predecessor?: string){ if(!predecessor){ if(value!==undefined) throw new Error('unexpected dependencies'); return; } if(!Array.isArray(value)||value.length!==1) throw new Error('exact dependency required'); const d=value[0]; closed(d,['planId','marker','sha256','commit'], 'dependency'); if(d.planId!==predecessor||!/^[a-f0-9]{64}$/.test(d.sha256)||!/^[a-f0-9]{40}$/.test(d.commit)) throw new Error('dependency mismatch'); }
+export function validatePhase271PlanResult(planId: string, value: unknown){ const s=(PLAN_SCHEMAS as Record<string,Schema>)[planId]; if(!s) throw new Error('plan ID is not allowlisted'); closed(value,s.resultKeys,'result'); if(value.planId!==planId||value.phase!=='27.1'||value.schemaVersion!==1||value.status!=='READY_TO_SEAL') throw new Error('result identity/status mismatch'); artifact(value.summary,s.summaryPath,'summary'); roots(value.authorityRoots,planId==='27.1-02'?7:8); if(!value.validationHashes||typeof value.validationHashes!=='object'||Array.isArray(value.validationHashes)||!Object.values(value.validationHashes).every(v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v))) throw new Error('validation hashes invalid'); if(!Array.isArray(value.blockers)||value.blockers.length) throw new Error('blockers must be empty'); if(planId==='27.1-03R'){ artifact(value.manifest,`${PHASE_DIR}/evidence/attestations/27.1-03R-general-validator-manifest.json`,'manifest'); if(value.predecessor!=='27.1-02') throw new Error('predecessor mismatch'); } }
+export function validatePhase271PlanMarker(planId:string,value:unknown){ const s=(PLAN_SCHEMAS as Record<string,Schema>)[planId]; if(!s) throw new Error('plan ID is not allowlisted'); closed(value,s.markerKeys,'marker'); if(value.planId!==planId||value.phase!=='27.1'||value.schemaVersion!==1||value.status!=='COMPLETE'||!/^[a-f0-9]{40}$/.test(value.payloadCommit)) throw new Error('marker identity/status/commit mismatch'); artifact(value.summary,s.summaryPath,'summary'); artifact(value.payloadResult,s.resultPath,'payload result'); roots(value.authorityRoots,planId==='27.1-02'?7:8); if(planId!=='27.1-02') dependencies(value.dependencies,s.predecessor); if(planId==='27.1-03R'){ artifact(value.manifest,`${PHASE_DIR}/evidence/attestations/27.1-03R-general-validator-manifest.json`,'manifest'); if(!Array.isArray(value.validatorPins)||value.validatorPins.length!==4) throw new Error('exact four validator pins required'); } }
+const git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8'}).trim();
+function verifyArtifact(item:any){ if(sha256(readFileSync(resolve(item.path)))!==item.sha256) throw new Error(`artifact hash mismatch: ${item.path}`); }
+export function validateCommittedPlan(planId:Phase271PlanId, marker:any){ const s=PLAN_SCHEMAS[planId]; validatePhase271PlanMarker(planId,marker); verifyArtifact(marker.summary);verifyArtifact(marker.payloadResult); const result=JSON.parse(readFileSync(resolve(marker.payloadResult.path),'utf8'));validatePhase271PlanResult(planId,result); const markerCommit=git('log','-n','1','--format=%H','--',s.markerPath); const markerMembers=git('diff-tree','--no-commit-id','--name-only','-r',markerCommit).split(/\r?\n/).filter(Boolean); if(markerMembers.length!==1||markerMembers[0]!==s.markerPath) throw new Error('marker commit is not marker-only'); if(git('rev-parse',`${markerCommit}^`)!==marker.payloadCommit) throw new Error('marker is not immediate payload child'); if(git('merge-base',marker.payloadCommit,markerCommit)!==marker.payloadCommit) throw new Error('merge ancestry rejected'); const payloadMembers=git('diff-tree','--no-commit-id','--name-only','-r',marker.payloadCommit).split(/\r?\n/).filter(Boolean); for(const p of [s.summaryPath,s.resultPath]) if(!payloadMembers.includes(p)) throw new Error(`payload missing ${p}`); if(s.predecessor){ const d=marker.dependencies[0]; const expected=git('log','-n','1','--format=%H','--',d.marker); if(expected!==d.commit||sha256(readFileSync(resolve(d.marker)))!==d.sha256) throw new Error('dependency pin mismatch'); } return {markerCommit,payloadCommit:marker.payloadCommit}; }
+function main(){ const args=process.argv.slice(2), val=(n:string)=>args[args.indexOf(n)+1]; const id=val('--plan') as Phase271PlanId; if(!(id in PLAN_SCHEMAS)||val('--require')!=='COMPLETE') throw new Error('closed plan and COMPLETE required'); const marker=JSON.parse(readFileSync(resolve(PLAN_SCHEMAS[id].markerPath),'utf8')); const out=validateCommittedPlan(id,marker); console.log(`PASS ${id} COMPLETE payload=${out.payloadCommit} marker=${out.markerCommit}`); }
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])) main();

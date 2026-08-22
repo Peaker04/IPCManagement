@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, validateDownstreamReadiness, type AuthorizationMatrix, type ReadinessDisposition } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, resolveIdentitySetNames, resolveRecoveryAuthority, validateDownstreamReadiness, type AuthorizationMatrix, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -70,6 +70,36 @@ describe('Phase 27.1 corrected authorization matrix', () => {
     rejects((candidate) => { candidate.identitySets['readiness-chef'].push(clone(candidate.identitySets['readiness-purchasing'][0])); }, /disjoint/);
     rejects((candidate) => { candidate.identitySets['readiness-chef'].pop(); }, /exact union/);
     rejects((candidate) => { (candidate as unknown as Record<string, unknown>).ordinalAuthority = true; }, /unknown field/);
+  });
+});
+
+describe('Phase 27.1 generic downstream authorization', () => {
+  it.each(['core-login-dashboard','core-meal-weekly','secondary-reports-approvals-admin','purchasing-phase09','all-21'])('resolves closed identity union %s', (selection) => {
+    const names=resolveIdentitySetNames(matrix,selection); const identities=names.flatMap(name=>matrix.identitySets[name]);
+    expect(new Set(identities.map(x=>JSON.stringify(x))).size).toBe(identities.length);
+    if(selection==='all-21') expect(identities).toHaveLength(21);
+  });
+  it('rejects unknown, duplicate and broad identity unions',()=>{
+    for(const selection of ['core-login-dashboard,core-login-dashboard','core-*','', 'readiness-chef,unknown']) expect(()=>resolveIdentitySetNames(matrix,selection)).toThrow();
+  });
+  it.each(['production-regression','fixture-drift','harness-nondeterminism','stale-baseline'])('authorizes only exact selected row path for %s',(disposition)=>{
+    const identity=matrix.identitySets['core-login-dashboard'][0], entry=matrix.entries.find(x=>JSON.stringify(x).includes(identity.snapshotName))!;
+    const path=entry.permittedPaths[disposition][0]; expect(exactAuthorizedPaths(matrix,'core-login-dashboard',[{identity,disposition,path}])).toEqual([path]);
+    expect(()=>exactAuthorizedPaths(matrix,'core-login-dashboard',[{identity,disposition,path:path+'/'}])).toThrow();
+  });
+  it('rejects cross-set borrowing, class mismatch and duplicate accounting',()=>{
+    const identity=matrix.identitySets['core-login-dashboard'][0], entry=matrix.entries.find(x=>x.snapshotName===identity.snapshotName)!;
+    const prod=entry.permittedPaths['production-regression'][0], snapshot=entry.permittedPaths['stale-baseline'][0];
+    expect(()=>exactAuthorizedPaths(matrix,'core-meal-weekly',[{identity,disposition:'production-regression',path:prod}])).toThrow(/cross-identity/);
+    expect(()=>exactAuthorizedPaths(matrix,'core-login-dashboard',[{identity,disposition:'production-regression',path:snapshot}])).toThrow(/class/);
+    expect(()=>exactAuthorizedPaths(matrix,'core-login-dashboard',[{identity,disposition:'production-regression',path:prod},{identity,disposition:'production-regression',path:prod}])).toThrow(/duplicate/);
+  });
+  it('rejects broad prefixes/globs and production/snapshot class laundering in matrix schema',()=>{
+    for(const [kind,path] of [['production-regression','frontend/src/'],['production-regression','frontend/src/**/*.tsx'],['production-regression','frontend/tests/visual-routes.spec.ts'],['stale-baseline','frontend/src/x.tsx']] as const){const m=clone(matrix);m.entries[0].permittedPaths[kind]=[path];expect(()=>assertAuthorizationMatrix(m,inventory.failures)).toThrow();}
+  });
+  it('resolves only the closed recovery marker and rejects wrong paths/content',()=>{
+    const cwd=resolve(import.meta.dirname,'../..'); expect(resolveRecoveryAuthority(cwd)).toMatchObject({path:expect.stringContaining('27.1-02R-validator-recovery.json'),partialCommit:'235fbd499e0fb5e2f247ea0efa0bb92ea58eff32'});
+    expect(()=>resolveRecoveryAuthority(cwd,'other.json')).toThrow(/not allowlisted/);
   });
 });
 

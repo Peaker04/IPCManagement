@@ -82,8 +82,16 @@ export function assertAuthorizationMatrix(matrix: unknown, sourceIdentities: unk
     if (!entry.viewport || typeof entry.viewport !== 'object' || (entry.viewport as Viewport).width <= 0 || (entry.viewport as Viewport).height <= 0) throw new Error(`entries[${index}].viewport is invalid`);
     if (entry.displayOrdinal !== undefined && (!Number.isInteger(entry.displayOrdinal) || (entry.displayOrdinal as number) < 1)) throw new Error('displayOrdinal is display metadata only and must be a positive integer');
     if (!entry.permittedPaths || typeof entry.permittedPaths !== 'object') throw new Error('permittedPaths is required');
-    for (const [kind, paths] of Object.entries(entry.permittedPaths as object)) {
-      if (!['production-regression', 'fixture-drift', 'harness-nondeterminism', 'stale-baseline'].includes(kind) || !Array.isArray(paths) || paths.length === 0 || paths.some((path) => typeof path !== 'string' || !path.startsWith('frontend/'))) throw new Error(`invalid permitted paths for ${kind}`);
+    const permitted = entry.permittedPaths as Record<string, string[]>;
+    const classes = ['production-regression', 'fixture-drift', 'harness-nondeterminism', 'stale-baseline'];
+    assertClosedKeys(permitted, classes, `entries[${index}].permittedPaths`);
+    for (const [kind, paths] of Object.entries(permitted)) {
+      if (!classes.includes(kind) || !Array.isArray(paths) || paths.length === 0 || new Set(paths).size !== paths.length || paths.some((path) => typeof path !== 'string' || !path.startsWith('frontend/'))) throw new Error(`invalid permitted paths for ${kind}`);
+      if (paths.some((path) => path.includes('*') || path.endsWith('/'))) throw new Error('directory and wildcard authorization rejected');
+      if (kind === 'production-regression' && paths.some((path) => !path.startsWith('frontend/src/'))) throw new Error('production class must name exact frontend/src owners');
+      if (kind === 'stale-baseline' && (paths.length !== 1 || paths.some((path) => !path.includes('-snapshots/') || !path.endsWith('.png')))) throw new Error('stale class must name one exact snapshot');
+      if (kind === 'fixture-drift' && paths.some((path) => !['frontend/tests/visual-routes.spec.ts','frontend/tests/phase9-test-fixture.ts'].includes(path))) throw new Error('fixture class path rejected');
+      if (kind === 'harness-nondeterminism' && paths.some((path) => !['frontend/tests/visual-routes.spec.ts','frontend/tests/visualReconciliationEvidence.ts'].includes(path))) throw new Error('harness class path rejected');
     }
     const key = identityKey(identity);
     const sourceIndex = sourceKeys.indexOf(key);
@@ -155,6 +163,37 @@ export function assertAuthorizedPath(matrix: AuthorizationMatrix, identity: Iden
   if (!entry.permittedPaths[disposition]?.includes(path)) throw new Error(`owner borrowing or class laundering rejected: ${path}`);
 }
 
+export const DOWNSTREAM_IDENTITY_SETS = Object.freeze({
+  '27.1-03': ['core-login-dashboard'],
+  '27.1-04': ['core-meal-weekly'],
+  '27.1-05': ['secondary-reports-approvals-admin'],
+  '27.1-06': ['purchasing-phase09'],
+  '27.1-07': ['all-21'],
+} as const);
+const GENERAL_MARKER = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-03R-general-validator.json';
+const RECOVERY_MARKER = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02R-validator-recovery.json';
+const VALIDATOR_PATHS = ['frontend/tests/validatePhase271PlanResult.ts','frontend/tests/validatePhase271PlanResult.test.ts','frontend/tests/validateVisualReconciliation.ts','frontend/tests/validateVisualReconciliation.test.ts'] as const;
+export function resolveIdentitySetNames(matrix: AuthorizationMatrix, selection: string): string[] {
+  if (selection === 'all-21') return Object.keys(matrix.identitySets);
+  const names = selection.split(',').filter(Boolean);
+  if (!names.length || new Set(names).size !== names.length || names.some((name) => !(name in matrix.identitySets))) throw new Error('identity-set selection is not a closed exact union');
+  return names;
+}
+export function exactAuthorizedPaths(matrix: AuthorizationMatrix, selection: string, dispositions: Array<{ identity: Identity; disposition: string; path: string }>): string[] {
+  const selected = new Set(resolveIdentitySetNames(matrix, selection).flatMap((name) => matrix.identitySets[name].map(identityKey)));
+  const seen = new Set<string>();
+  for (const row of dispositions) {
+    const key = identityKey(row.identity); if (!selected.has(key)) throw new Error('cross-identity borrowing rejected');
+    const entry = matrix.entries.find((item) => identityKey(item) === key)!;
+    if (!entry.permittedPaths[row.disposition]?.includes(row.path)) throw new Error('class/path authorization rejected');
+    const accounting = `${key}|${row.disposition}|${row.path}`; if (seen.has(accounting)) throw new Error('duplicate accounting rejected'); seen.add(accounting);
+  }
+  return [...new Set(dispositions.map((row) => row.path))];
+}
+function markerCommit(cwd:string,path:string, marker:any){ const commit=git(cwd,'log','-n','1','--format=%H','--',path); const members=outputLines(git(cwd,'diff-tree','--no-commit-id','--name-only','-r',commit)); if(members.length!==1||members[0]!==path) throw new Error('authority marker commit is not marker-only'); if(marker.payloadCommit&&git(cwd,'rev-parse',`${commit}^`)!==marker.payloadCommit) throw new Error('authority marker is not immediate payload child'); return commit; }
+export function resolveGeneralValidatorAuthority(cwd:string,path=GENERAL_MARKER){ if(path!==GENERAL_MARKER) throw new Error('general marker path is not allowlisted'); const marker=JSON.parse(readFileSync(resolve(cwd,path),'utf8')); if(marker.planId!=='27.1-03R'||marker.status!=='COMPLETE'||!Array.isArray(marker.validatorPins)||marker.validatorPins.length!==4) throw new Error('general marker content mismatch'); const commit=markerCommit(cwd,path,marker), hash=sha256(readFileSync(resolve(cwd,path))); for(const p of VALIDATOR_PATHS){ const pin=marker.validatorPins.find((x:any)=>x.path===p); if(!pin||sha256(execFileSync('git',['show',`${marker.payloadCommit}:${p}`],{cwd}))!==pin.sha256||git(cwd,'rev-parse',`${marker.payloadCommit}:${p}`)!==pin.gitBlobId) throw new Error('general validator pin mismatch'); } return {path,sha256:hash,commit,validatorPins:marker.validatorPins,roots:marker.authorityRoots}; }
+export function resolveRecoveryAuthority(cwd:string,path=RECOVERY_MARKER){ if(path!==RECOVERY_MARKER) throw new Error('recovery marker path is not allowlisted'); const marker=JSON.parse(readFileSync(resolve(cwd,path),'utf8')); if(marker.planId!=='27.1-02R'||marker.status!=='COMPLETE'||marker.partialCommit!=='235fbd499e0fb5e2f247ea0efa0bb92ea58eff32') throw new Error('recovery marker content mismatch'); const commit=markerCommit(cwd,path,marker); return {path,sha256:sha256(readFileSync(resolve(cwd,path))),commit,partialCommit:marker.partialCommit,validatorPins:marker.validatorPins}; }
+function assertExactFlags(args:string[], allowed:Set<string>){ for(const flag of args.filter(x=>x.startsWith('--'))) if(!allowed.has(flag)) throw new Error(`unknown CLI input ${flag}`); }
 function main() {
   const args = process.argv.slice(2); const value = (flag: string) => args[args.indexOf(flag) + 1];
   if (args.includes('--source-inspection-only')) {
@@ -167,7 +206,20 @@ function main() {
     if (missingPaths.length) throw new Error(`permitted owner path does not exist: ${missingPaths.join(', ')}`);
     console.log(`PASS ${VALIDATOR_VERSION}: exact 21 identity closure, disjoint six-set partition, metadata equality, and lowest-owner paths verified (source inspection only)`); return;
   }
-  if (value('--mode') !== 'downstream-readiness') throw new Error('closed mode required');
+  const mode=value('--mode');
+  if(mode==='pre-work-entry'){
+    const allowed=new Set(['--mode','--predecessor-plan','--validator-authority','--general-validator-values-from','--require-complete','--require-exact-marker-hash-commit','--require-four-validator-test-pins','--require-eight-distinct-roots','--require-exact-predecessor','--identity-manifest','--identity-sets','--resolve-selected-classes','--reject-legacy-entry-authority','--emit-entry-context-json']); assertExactFlags(args,allowed);
+    const predecessor=value('--predecessor-plan'), selection=value('--identity-sets'); if(!['27.1-02','27.1-03','27.1-04','27.1-05','27.1-06'].includes(predecessor)||value('--validator-authority')!=='27.1-03R') throw new Error('closed predecessor/authority required');
+    const cwd=git(process.cwd(),'rev-parse','--show-toplevel'), general=resolveGeneralValidatorAuthority(cwd,resolve('.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c',value('--general-validator-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,''));
+    if(general.roots?.length!==8||new Set(general.roots.map((r:any)=>r.type)).size!==8) throw new Error('eight distinct roots required');
+    const matrix=JSON.parse(readFileSync(resolve(cwd,'.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c',value('--identity-manifest')),'utf8')); const inventory=JSON.parse(readFileSync(resolve(cwd,'.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/failure-inventory.json'),'utf8')); assertAuthorizationMatrix(matrix,inventory.failures); const sets=resolveIdentitySetNames(matrix,selection);
+    console.log(JSON.stringify({mode:'pre-work-entry',predecessorPlan:predecessor,generalValidator:general,selectedIdentitySets:sets,classes:['production-regression','fixture-drift','harness-nondeterminism','stale-baseline']})); return;
+  }
+  if(mode==='downstream-reconciliation'){
+    const forbidden=['--recovery-marker-sha256','--recovery-marker-commit','--general-validator-sha256','--general-validator-commit']; if(forbidden.some(f=>args.includes(f))) throw new Error('raw authority tokens rejected');
+    const cwd=git(process.cwd(),'rev-parse','--show-toplevel'); resolveGeneralValidatorAuthority(cwd,resolve('.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c',value('--general-validator-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,'')); resolveRecoveryAuthority(cwd,resolve('.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c',value('--recovery-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,'')); console.log('PASS downstream-reconciliation sealed general/recovery authorities resolved'); return;
+  }
+  if (mode !== 'downstream-readiness') throw new Error('closed mode required');
   const allowed = new Set(['--mode','--identity-manifest','--dispositions','--identity-sets','--require-two-packets','--require-corrected-non-stale','--recompute-invariants','--verify-snapshot-guards','--enforce-purchasing-lock','--phase-base-commit-from','--wave-base-commit','--cumulative-git-accounting','--wave-git-accounting','--partial-commit','--recovery-authority']);
   for (const arg of args.filter((arg) => arg.startsWith('--'))) if (!allowed.has(arg)) throw new Error(`unknown CLI input ${arg}`);
   for (const flag of ['--require-two-packets','--require-corrected-non-stale','--recompute-invariants','--verify-snapshot-guards','--enforce-purchasing-lock','--cumulative-git-accounting','--wave-git-accounting']) if (!args.includes(flag)) throw new Error(`${flag} required`);
