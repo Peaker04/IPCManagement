@@ -60,7 +60,7 @@ function main() {
   }
   const payloadPaths = git('diff-tree', '--no-commit-id', '--name-only', '-r', marker.payloadCommit).split(/\r?\n/).filter(Boolean);
   if (!payloadPaths.includes(marker.summary.path) || !payloadPaths.includes(marker.payloadResult.path) || !payloadPaths.includes(marker.correctedMatrix.path) || !payloadPaths.includes(marker.validator.path)) throw new Error('payload commit is incomplete');
-  const markerRepoPath = markerPath.replace(resolve('.').replaceAll('\\', '/'), '').replace(/^[/\\]/, '').replaceAll('\\', '/');
+  const markerRepoPath = markerPath.replaceAll('\\', '/').replace(resolve('.').replaceAll('\\', '/'), '').replace(/^[/\\]/, '');
   const headPaths = git('diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD').split(/\r?\n/).filter(Boolean);
   if (headPaths.length !== 1 || headPaths[0] !== markerRepoPath) throw new Error('HEAD is not the marker-only correction commit');
   console.log(`PASS 27.1-01C COMPLETE: dual lineage, old/new hashes, reachable payload, and marker-only HEAD verified`);
