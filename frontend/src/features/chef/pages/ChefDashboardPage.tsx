@@ -9,10 +9,7 @@ import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate
 import { useChefExceptions } from '../exceptions/useChefExceptions'
 import { ChefHeader } from '../components/chef-header'
 import { useChefJournal } from '../journal/useChefJournal'
-import { ChefProductionSection } from '../production/ChefProductionSection'
-import { ServiceRunSection } from '../production/ServiceRunSection'
 import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '../production/useChefProductionPlan'
-import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
 import { typography } from '@/lib/typography'
@@ -20,6 +17,9 @@ import { cn } from '@/lib/utils'
 import { visibleTabIds } from '@/lib/navigationPreferences'
 
 const ChefShiftControls = lazy(() => import('./ChefShiftControls').then(({ ChefShiftControls: component }) => ({ default: component })))
+const ChefProductionSection = lazy(() => import('../production/ChefProductionSection').then(({ ChefProductionSection: component }) => ({ default: component })))
+const ServiceRunSection = lazy(() => import('../production/ServiceRunSection').then(({ ServiceRunSection: component }) => ({ default: component })))
+const KitchenReceiptSection = lazy(() => import('../receipts/KitchenReceiptSection').then(({ KitchenReceiptSection: component }) => ({ default: component })))
 const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection').then(({ ChefDocumentsSection: component }) => ({ default: component })))
 const chefCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
@@ -118,17 +118,22 @@ export default function ChefDashboardPage() {
               { label: 'phiếu trả kho của ca', view: exceptions.queryView },
             ]}>
               <ChefHeader productionPlan={production.productionPlan} />
-              <ChefProductionSection
+              <Suspense fallback={chefCapabilityFallback}>
+                <ChefProductionSection
                 lines={production.dailyPlanLines}
                 isSending={production.isSendingDailyPlan}
                 isLoading={production.status.isDailyPlanLoading}
                 isError={production.status.isDailyPlanError}
                 totalPlans={production.dailyPlan?.totalPlans ?? 0}
                 sentPlans={production.dailyPlan?.sentPlans ?? 0}
-                onReceivePlan={production.receiveDailyPlan}
-              />
-              <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
-              <KitchenReceiptSection
+                  onReceivePlan={production.receiveDailyPlan}
+                />
+              </Suspense>
+              <Suspense fallback={chefCapabilityFallback}>
+                <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
+              </Suspense>
+              <Suspense fallback={chefCapabilityFallback}>
+                <KitchenReceiptSection
                 productionPlan={production.productionPlan}
                 returns={exceptions.activeReturns}
                 isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
@@ -140,8 +145,9 @@ export default function ChefDashboardPage() {
                 receiptTotalCount={receipts.totalCount}
                 receiptTotalSignedCount={receipts.totalSignedCount}
                 receiptActionRowCount={receipts.actionRowCount}
-                onReceiptPageChange={receipts.setPage}
-              />
+                  onReceiptPageChange={receipts.setPage}
+                />
+              </Suspense>
             </ChefQueryBoundary>
           </KeepAliveTabPanel>
 
