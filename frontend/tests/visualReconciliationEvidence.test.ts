@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import fixture from './fixtures/phase271-attempt-v2-sanitized-result.json'
 import golden from './fixtures/phase271-golden-21-identities.json'
@@ -31,5 +33,13 @@ describe('Phase 27.1 exact structured classifier',()=>{
   it('rejects missing visual and diagnostic attachments',()=>{
     reject(rows=>rows.find(x=>x.status==='failed')!.attachments=rows.find(x=>x.status==='failed')!.attachments.filter(x=>!x.name.endsWith('-diff.png')))
     reject(rows=>rows.find(x=>x.status==='failed')!.attachments=rows.find(x=>x.status==='failed')!.attachments.filter(x=>x.name!=='trace'))
+  })
+  it('waits for named Chef and Purchasing semantic owners instead of a timing heuristic',()=>{
+    const source=readFileSync(resolve('tests/visual-routes.spec.ts'),'utf8')
+    expect(source).toContain("routeName === 'chef-dashboard'")
+    expect(source).toContain("getByRole('heading', { name: 'Kế hoạch điều phối trong ngày' })")
+    expect(source).toContain("routeName === 'purchasing'")
+    expect(source).toContain("getByText('Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.')")
+    expect(source).not.toContain('await page.waitForTimeout(500)')
   })
 })

@@ -48,8 +48,15 @@ async function stubVisualApi(page: Page) {
     });
 
   await page.route('**/*', async (route) => {
-    if (new URL(route.request().url()).pathname.startsWith('/api/')) {
-      await fulfill(route, []);
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname.startsWith('/api/')) {
+      if (requestUrl.pathname === '/api/inventory-returns' || requestUrl.pathname === '/api/supplemental-material-requests') {
+        await fulfill(route, { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 });
+      } else if (requestUrl.pathname === '/api/workflow-reports/kitchen-issues/page') {
+        await fulfill(route, { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0 });
+      } else {
+        await fulfill(route, []);
+      }
       return;
     }
 
@@ -245,8 +252,15 @@ async function login(page: Page) {
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
 }
 
-async function stabilizeVisuals(page: Page) {
+async function stabilizeVisuals(page: Page, routeName?: string) {
   await page.waitForLoadState('networkidle');
+  if (routeName === 'chef-dashboard') {
+    await expect(page.getByRole('heading', { name: 'Kế hoạch điều phối trong ngày' })).toBeVisible();
+  }
+  if (routeName === 'purchasing') {
+    await expect(page.getByText('Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' })).toBeVisible();
+  }
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -258,7 +272,6 @@ async function stabilizeVisuals(page: Page) {
       }
     `,
   });
-  await page.waitForTimeout(500);
 }
 
 test.describe('visual routes', () => {
@@ -282,7 +295,7 @@ test.describe('visual routes', () => {
             await expect(page.locator('.ipc-header-context')).toContainText(phase09HeaderDate);
           }
 
-          await stabilizeVisuals(page);
+          await stabilizeVisuals(page, route.name);
           await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`, {
             fullPage: true,
           });
