@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveIdentitySetNames, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveIdentitySetNames, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, validateSnapshotRecoveryManifest, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -145,6 +145,11 @@ describe('Phase 27.1 downstream readiness closure', () => {
     ['packet missing',(rows:any[])=>{rows[0].beforeSha256.pop();}],
     ['packet unequal',(rows:any[])=>{rows[0].afterSha256[1]='0'.repeat(64);}],
   ])('rejects class-aware %s mismatch',(_label,mutate)=>{const rows=clone(core.rows); mutate(rows); expect(()=>validateClassAwareAccounting(cwd,matrix,rows,[rows[0].owner])).toThrow();});
+  it('validates exact preserved ancestry/member/blob/hash/disposition/packet/identity/matrix closure',()=>{
+    const manifest=load<any>('attestations/27.1-03S-snapshot-recovery-manifest.json');
+    expect(validateSnapshotRecoveryManifest(cwd,manifest,matrix,core.rows).orderedCommits).toHaveLength(3);
+    for(const mutate of [(m:any)=>{m.orderedCommits.reverse();},(m:any)=>{m.commits[0].disposition='REVERTED';},(m:any)=>{m.commits[1].members.pop();},(m:any)=>{m.commits[2].members[0].sha256='0'.repeat(64);},(m:any)=>{m.snapshotBindings[0].identity='weekly-menu-desktop';}]){const candidate=clone(manifest);mutate(candidate);expect(()=>validateSnapshotRecoveryManifest(cwd,candidate,matrix,core.rows)).toThrow();}
+  });
   it('rejects extra snapshots, broad paths, and production class laundering',()=>{
     expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png'])).toThrow(/unauthorized/);
     const dashboard=matrix.entries.find(x=>x.snapshotName==='dashboard-desktop-expected.png')!;
