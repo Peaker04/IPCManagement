@@ -52,7 +52,7 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 
 ## Phase 27.1: Non-Warehouse visual reconciliation
 
-**Status:** PLANNED — executed immutable Plan 01, protocol-invalid historical Plan 01C, authoritative reseal Plan 01R, additive focused-launcher Plan 01F, topology-validator correction Plan 01V, then Plans 02–07 across 11 serialized waves
+**Status:** PLANNED — executed immutable Plan 01, protocol-invalid historical Plan 01C, authoritative reseal Plan 01R, additive focused-launcher Plan 01F, immutable protocol-invalid Plan 01V marker commit `8502ce701a4070f7be449681ffecbffc36b20056`, authoritative topology correction Plan 01W, then Plans 02–07 across 12 serialized waves
 
 **Goal:** Explain, classify and resolve all 21 non-Warehouse failures in `frontend/tests/visual-routes.spec.ts` without laundering production regressions, weakening the visual oracle or broad-updating baselines.
 
@@ -68,7 +68,7 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 4. The complete unchanged broad visual suite passes twice consecutively, followed by full frontend unit, lint, dependency-cruiser, production build and hygiene gates.
 5. Phase 27 final verification is rerun only after Phase 27.1 closes with zero unresolved item.
 
-**Plans:** 11 plans
+**Plans:** 12 plans
 
 Plans:
 
@@ -76,10 +76,11 @@ Plans:
 - [x] 27.1-01C-PLAN.md — Immutable historical correction provenance, explicitly `SUPERSEDED_PROTOCOL_INVALID` and non-authoritative (wave 2).
 - [x] 27.1-01R-PLAN.md — Additive authoritative reseal with seven byte/blob pins and exact adjacent payload/marker commits (wave 3; depends on 01C).
 - [x] 27.1-01F-PLAN.md — Additive executable focused-only browser adapter with child-launch trace and sealed direct-CLI/config bytes (wave 4; depends on 01R).
-- [ ] 27.1-01V-PLAN.md — Freeze immutable operational base `06f920e0` plus dynamic clean planningHead and exact planning-only delta/hash; seal direct planningHead→payload→marker lineage for downstream historical attestation (wave 5; depends on 01F).
-- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing readiness using 01V topology-validator and 01F focused authority (wave 6; depends on 01V).
-- [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes (wave 7).
-- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 8).
-- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines (wave 9).
-- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock (wave 10).
-- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout (wave 11).
+- [ ] 27.1-01V-PLAN.md — Immutable historical marker commit `8502ce701a4070f7be449681ffecbffc36b20056`, classified `SUPERSEDED_PROTOCOL_INVALID`; its plan/evidence bytes are frozen and it grants no authority (wave 5; depends on 01F).
+- [ ] 27.1-01W-PLAN.md — Sole topology-validator authority: historical seal validation without live HEAD/self claims, explicit self-reference/predecessor tests, then exact payload followed immediately by marker-only commit (wave 6; depends on immutable invalid 01V).
+- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing readiness using 01W topology-validator and 01F focused authority (wave 7; depends on 01W).
+- [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes (wave 8).
+- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 9).
+- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines (wave 10).
+- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock (wave 11).
+- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout (wave 12).
