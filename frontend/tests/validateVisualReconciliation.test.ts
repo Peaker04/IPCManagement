@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveIdentitySetNames, resolveRecoveryAuthority, validateDownstreamReadiness, type AuthorizationMatrix, type ReadinessDisposition } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveIdentitySetNames, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -108,7 +108,8 @@ describe('Phase 27.1 downstream readiness closure', () => {
   const cwd = resolve(import.meta.dirname, '../..');
   const dispositions = load<ReadinessDisposition>('readiness-dispositions.json');
   const recovery = load<any>('attestations/27.1-02R-validator-recovery-manifest.json');
-  const validate = (d = dispositions, r = recovery, m = matrix) => validateDownstreamReadiness(cwd, m, d, r);
+  const core = load<{rows:ClassAwareDisposition[]}>('core-route-dispositions.json');
+  const validate = (d = dispositions, r = recovery, m = matrix, rows=core.rows) => validateDownstreamReadiness(cwd, m, d, r, rows);
   it('recomputes identities, packets, locks, recovery pins, and Git sets', () => expect(validate()).toMatchObject({ selectedIdentitySets: ['readiness-chef', 'readiness-purchasing'] }));
   it.each([
     ['identity substitution', (d: any) => { d.identitySets['readiness-chef'][0].identity = 'purchasing-desktop'; }],
@@ -129,5 +130,27 @@ describe('Phase 27.1 downstream readiness closure', () => {
   it('rejects matrix class/path borrowing', () => {
     const m = clone(matrix); m.entries.find((x) => x.snapshotName === 'chef-dashboard-desktop-expected.png')!.permittedPaths['fixture-drift'] = ['frontend/tests/other.ts'];
     expect(() => validate(dispositions, recovery, m)).toThrow(/class\/path/);
+  });
+  it('accepts exactly the three committed core snapshots and deduplicates cumulative/wave overlap',()=>{
+    const paths=core.rows.map(row=>row.owner);
+    expect(validateClassAwareAccounting(cwd,matrix,core.rows,[...paths,...paths])).toEqual(paths);
+    expect(validate().authorizedClassAwarePaths).toEqual(expect.arrayContaining(paths));
+  });
+  it.each([
+    ['path',(rows:any[])=>{rows[0].owner='frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png';}],
+    ['identity',(rows:any[])=>{rows[0].identity='weekly-menu-desktop';}],
+    ['class',(rows:any[])=>{rows[0].disposition='production-regression';}],
+    ['old hash',(rows:any[])=>{rows[0].oldSnapshotSha256='0'.repeat(64);}],
+    ['new hash',(rows:any[])=>{rows[0].newSnapshotSha256='0'.repeat(64);}],
+    ['packet missing',(rows:any[])=>{rows[0].beforeSha256.pop();}],
+    ['packet unequal',(rows:any[])=>{rows[0].afterSha256[1]='0'.repeat(64);}],
+  ])('rejects class-aware %s mismatch',(_label,mutate)=>{const rows=clone(core.rows); mutate(rows); expect(()=>validateClassAwareAccounting(cwd,matrix,rows,[rows[0].owner])).toThrow();});
+  it('rejects extra snapshots, broad paths, and production class laundering',()=>{
+    expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png'])).toThrow(/unauthorized/);
+    const dashboard=matrix.entries.find(x=>x.snapshotName==='dashboard-desktop-expected.png')!;
+    const production={...clone(core.rows[0]),disposition:'production-regression',owner:dashboard.permittedPaths['production-regression'][0]};
+    expect(()=>validateClassAwareAccounting(cwd,matrix,[production],[production.owner])).not.toThrow();
+    production.disposition='fixture-drift'; expect(()=>validateClassAwareAccounting(cwd,matrix,[production],[production.owner])).toThrow();
+    expect(()=>validateClassAwareAccounting(cwd,matrix,[],['frontend/src/'])).toThrow(/unauthorized/);
   });
 });
