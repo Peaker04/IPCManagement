@@ -11,17 +11,19 @@ namespace IPCManagement.Api.Tests;
 public sealed class ServiceRunsControllerContractTests
 {
     [Fact]
-    public void Controller_Should_KeepPublishedRoutesAndPoliciesAcrossPartialFiles()
+    public void Controllers_Should_KeepPublishedRoutesAndPoliciesAcrossOwners()
     {
-        var controllerType = typeof(ServiceRunsController);
+        var controllerTypes = new[] { typeof(ServiceRunsController), typeof(ServiceRunVarianceDeclarationsController) };
+        foreach (var controllerType in controllerTypes)
+        {
+            controllerType.GetCustomAttribute<RouteAttribute>()!.Template.Should().Be("api/service-runs");
+            controllerType.GetCustomAttributes<AuthorizeAttribute>()
+                .Where(attribute => attribute.Policy is null)
+                .Should().ContainSingle();
+        }
 
-        controllerType.GetCustomAttribute<RouteAttribute>()!.Template.Should().Be("api/service-runs");
-        controllerType.GetCustomAttributes<AuthorizeAttribute>()
-            .Where(attribute => attribute.Policy is null)
-            .Should().ContainSingle();
-
-        var actions = controllerType
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+        var actions = controllerTypes
+            .SelectMany(controllerType => controllerType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             .Select(method => new
             {
                 Method = method,
@@ -54,11 +56,11 @@ public sealed class ServiceRunsControllerContractTests
 
     private static readonly ActionContract[] ExpectedActions =
     [
-        new(nameof(ServiceRunsController.ApproveVarianceWaiverAsync), "POST", "{id}/variance/declarations/{declarationId}/waive", AdminPolicy),
+        new(nameof(ServiceRunVarianceDeclarationsController.ApproveVarianceWaiverAsync), "POST", "{id}/variance/declarations/{declarationId}/waive", AdminPolicy),
         new(nameof(ServiceRunsController.CloseAsync), "POST", "{id}/close", CoordinationPolicies),
         new(nameof(ServiceRunsController.ConfirmServiceAsync), "POST", "{id}/service-confirmation", ProductionPolicy),
         new(nameof(ServiceRunsController.CreateAdjustmentAsync), "POST", "{id}/adjustments", CoordinationPolicies),
-        new(nameof(ServiceRunsController.DeclareVarianceAsync), "POST", "{id}/variance/declarations", ProductionPolicy),
+        new(nameof(ServiceRunVarianceDeclarationsController.DeclareVarianceAsync), "POST", "{id}/variance/declarations", ProductionPolicy),
         new(nameof(ServiceRunsController.GetAdjustmentsAsync), "GET", "{id}/adjustments", ProductionPolicy),
         new(nameof(ServiceRunsController.GetAsync), "GET", "{id}", ProductionPolicy),
         new(nameof(ServiceRunsController.GetByPlanAsync), "GET", "by-plan", ProductionPolicy),
