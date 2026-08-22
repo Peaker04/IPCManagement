@@ -5,13 +5,13 @@
   "status": "COMPLETE",
   "summary": {
     "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01C-SUMMARY.md",
-    "sha256": "0e0566805627e71ab09c0238afd6ea9252b71714327b3b8cb98792b6148195e2"
+    "sha256": "c68d694c9c522d080f65fc9280c01dac6db7df94518c977be859447b721e8c81"
   },
   "payloadResult": {
     "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/corrected-authorization-result.json",
-    "sha256": "33d88c6c14124f9bd3497fd807e3ece50aadb4d33819a1c7ca6ba850365e55ef"
+    "sha256": "0c2ef7d5076d443cb9bf4a6ecc434aab0399528abe3ab55821d0cdb45df64186"
   },
-  "payloadCommit": "6a107d1a9657c7a7bf3f12b6c43240aa9447a598",
+  "payloadCommit": "1180a1292608d2a56dd5d056485e844d2426b6f5",
   "originalLineage": {
     "marker": {
       "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json",
@@ -25,11 +25,11 @@
   },
   "correctedMatrix": {
     "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/corrected-authorization-matrix.json",
-    "sha256": "64e4bdcf5d45b77f884db997108d86e16cb2901703281ad09d471dc82471bcb3"
+    "sha256": "f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407"
   },
   "validator": {
     "path": "frontend/tests/validateVisualReconciliation.ts",
-    "sha256": "711b9b22c8e68ca77bda05ebbf77a6cd894dac3bb4068dd7e0fb46cd147fca36",
+    "sha256": "9dc2feb3faec754d9899e3bb285969b44cb737dd452589c4fc186846ee831175",
     "version": "27.1-01C"
   }
 }
