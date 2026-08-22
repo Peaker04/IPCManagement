@@ -10,6 +10,7 @@ namespace IPCManagement.Api.Features.Planning.Controllers;
 
 [ApiController]
 [Route("api/service-runs")]
+[Tags("ServiceRuns")]
 [Authorize]
 public sealed class ServiceRunVarianceDeclarationsController(
     IServiceRunService serviceRunService,

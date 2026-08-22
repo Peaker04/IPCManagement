@@ -2919,6 +2919,13 @@ export interface paths {
             readonly parameters: {
                 readonly query?: {
                     readonly customerId?: string;
+                    readonly fromDate?: string;
+                    readonly PageNumber?: number;
+                    readonly PageSize?: number;
+                    readonly SearchKeyword?: string;
+                    readonly SortBy?: string;
+                    readonly SortDesc?: boolean;
+                    readonly toDate?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -2932,9 +2939,9 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content: {
-                        readonly "application/json": components["schemas"]["WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"];
-                        readonly "text/json": components["schemas"]["WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"];
-                        readonly "text/plain": components["schemas"]["WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse"];
+                        readonly "application/json": components["schemas"]["WeeklyMenuImportHistoryItemDtoPagedResponseDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["WeeklyMenuImportHistoryItemDtoPagedResponseDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["WeeklyMenuImportHistoryItemDtoPagedResponseDtoApiResponse"];
                     };
                 };
             };
@@ -15766,8 +15773,21 @@ export interface components {
             /** Format: date */
             readonly weekStartDate: string;
         };
-        readonly WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse: {
-            readonly data?: readonly components["schemas"]["WeeklyMenuImportHistoryItemDto"][] | null;
+        readonly WeeklyMenuImportHistoryItemDtoPagedResponseDto: {
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["WeeklyMenuImportHistoryItemDto"][];
+            /** Format: int32 */
+            readonly pageNumber: number;
+            /** Format: int32 */
+            readonly pageSize: number;
+            /** Format: int32 */
+            readonly totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+        };
+        readonly WeeklyMenuImportHistoryItemDtoPagedResponseDtoApiResponse: {
+            readonly data?: components["schemas"]["WeeklyMenuImportHistoryItemDtoPagedResponseDto"];
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
