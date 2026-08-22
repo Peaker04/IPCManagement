@@ -60,8 +60,8 @@ export function validateTopologyDocument(value: unknown, status: 'READY_TO_SEAL'
   closed(value.planningDelta, ['base','head','commits'], 'planningDelta');
   if (value.planningDelta.head !== value.planningHead || planningDeltaSha256(value.planningDelta as PlanningDelta) !== value.planningDeltaSha256) throw new Error('planning delta pins mismatch');
   if (!Array.isArray(value.historicalCommits) || value.historicalCommits.length !== 5 || value.historicalCommits.some((x) => !validCommit(x)) || new Set(value.historicalCommits).size !== 5) throw new Error('five distinct predecessor roots required');
-  if (!Array.isArray(value.artifactPins) || value.artifactPins.length !== PAYLOAD_PATHS.length) throw new Error('exact artifact pins required');
-  exact((value.artifactPins as Pin[]).map((pin) => pin.path).sort(), PAYLOAD_PATHS, 'artifact pins');
+  if (!Array.isArray(value.artifactPins) || value.artifactPins.length !== 2) throw new Error('exact validator pins required');
+  exact((value.artifactPins as Pin[]).map((pin) => pin.path).sort(), ['frontend/tests/validatePhase271Reseal.test.ts','frontend/tests/validatePhase271Reseal.ts'], 'validator pins');
   exact(value.payloadMembers as string[], PAYLOAD_PATHS, 'payload members');
   if (status === 'COMPLETE' && !validCommit(value.payloadCommit)) throw new Error('payload commit invalid');
 }

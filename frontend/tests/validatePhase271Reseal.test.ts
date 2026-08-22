@@ -27,7 +27,7 @@ function fixture() {
   const planning = commit(cwd, 'planning predecessor');
   for (const path of PAYLOAD_PATHS) put(cwd, path, `${path}\n`);
   const payload = commit(cwd, 'payload');
-  const pins = PAYLOAD_PATHS.map((path) => ({ path, sha256: sha(cwd, path), gitBlobId: git(cwd, 'hash-object', path) }));
+  const pins = PAYLOAD_PATHS.filter((path) => path.startsWith('frontend/')).map((path) => ({ path, sha256: sha(cwd, path), gitBlobId: git(cwd, 'hash-object', path) }));
   const planningDelta = { base: roots[3], head: planning, commits: [{ commit: planning, parent: roots[5], paths: [{ status: 'M' as const, path: '.planning/ROADMAP.md' }] }] };
   const manifest = { schemaVersion: 1 as const, phase: '27.1' as const, planId: '27.1-01W' as const, status: 'READY_TO_SEAL' as const, authority: 'SOLE_TOPOLOGY_AUTHORITY' as const, invalid01VStatus: 'SUPERSEDED_PROTOCOL_INVALID' as const, planningHead: planning, planningDelta, planningDeltaSha256: planningDeltaSha256(planningDelta), historicalCommits: roots.slice(0, 5), artifactPins: pins, payloadMembers: PAYLOAD_PATHS, blockers: [] as [] };
   put(cwd, MARKER_PATH, JSON.stringify({ ...manifest, status: 'COMPLETE', payloadCommit: payload }));
