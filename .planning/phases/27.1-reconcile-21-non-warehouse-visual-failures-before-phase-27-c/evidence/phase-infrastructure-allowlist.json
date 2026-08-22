@@ -1,0 +1,813 @@
+{
+  "schemaVersion": 1,
+  "immutable": true,
+  "phaseBaseCommit": "289ff0bab40d07c94ab2cb0df8b1f073ab160e51",
+  "prePhaseState": {
+    "index": [],
+    "worktree": [],
+    "untracked": []
+  },
+  "paths": [
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-01/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "8fc1946a8abe319dde67d5a3b4b831601dd419c7d6d2c663a63c9bd58fbb7306"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-01/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-01/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "bc068964793e39f35bc589784f12faacb8a72638f641fb03440a6c5e9ea11af9"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-01/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "7cc8e81647ab1c6d90187591b255ea6a79857c3877f1559d254aa621e609587d"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-01/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "fee816d51bcb8ac0ae97291679d056c995e412b48b4a4cda71875fd5b0dddf99"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-02/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "5492ee5a568f6fa2831c779712d1be49b1f0b30f57e0c7395416be6c30e2c2c6"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-02/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "dbbdbf1a3cf77a716f62c9b5648512b91daade9b19c7bf5622c369a3b6ebd551"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-02/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "929e067db06348e161ebb785484ebc42033b7acb86c594a2e10103ca4224d185"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-02/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "bca261b511ee6de4d075e4dfb290eb01422f7703cd976acb426e10feeee85f94"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-02/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "36333348e43a64955a3708e3e53872b20cfbff761ac8b32160930559722c9304"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-03/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "0f8552172289e837a55f7b57ca2668e4efc532063857ef80f2d3ecf44773d302"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-03/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "fe55a622a2d21f81635d0b7e14ff46742baac2f9292ef2b54373ccf11f3552a0"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-03/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "db6912f9de39199cfd5846007120967d49c55c7a0c57d41b565516ce2c89fd82"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-03/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a9cc45b644cd36077c3235bc8850c71530beed24eeaddd13eb5747a6bb3707f9"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-03/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "582144f4c5207909b8c504de05ffcb17bbee3cd6b60abfb52aacbbb62e067849"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-04/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "7b6c90a960247cd560b294c7c0c995159876efcd8c1cf4eeef9b82ab97860be2"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-04/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "e9997cb06768dbfec834732b9691258eabc827fad263369166818010af4c57df"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-04/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "426353ed657c88605af179af2aa26b423b7aecef05553dcb2350e390bfe49bcc"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-04/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "310bb0cbbd72fa5fe71d519469faac49e27b9e17a2a13f1881fce7bc9ddb7501"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-04/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "cd37fa4522cbf6296362d11a3a4fe763820de5791117329c9f40c9fc92ba9dab"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-05/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "4f8c8e3fed5011819d13edd2fec87647e215caec5f88837714a14497a0130cd5"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-05/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-05/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "d7088e45f44589a9f0e1ac5259c3c312a80e671059b258b43b738696eb2a7833"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-05/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "5075f04b8485672dd7c478ec0e01244dce73e5afd6f872b37ab067a25837d1e9"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-05/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "1954a5c228348091ede02193861d5e895a0e768c64fd5a8c794c4723255ddf90"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-06/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "d238ac299cb39882d51ef416d822ef199777747d3b076908fe01b37181c5234a"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-06/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-06/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "e58ee26098a06361748cf3510afabf617aaf0dac677779140bbc1914a77790fa"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-06/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "cabe2e9f21af3c7efaf5a17ffe6dbeeec1733c40bdd39d750b1a5edee4c5e7cb"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-06/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "8d95dc59880a491cafc7da57cf5edaa4d974a1afe42703e9780732bc5e6186ad"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-07/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "879fab2faecf0fca0586553544ed57604e1870634fac49f69ff54cf4ea7113d6"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-07/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "e9997cb06768dbfec834732b9691258eabc827fad263369166818010af4c57df"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-07/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "9c0ebe60982a8d6a23135cb41636e12dc78ff9723fb811f86eb686827b4bf063"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-07/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "fcaab6b4a4dfa3acc74092a6649d23ec616735557e3d760d07c6e4538d9e3861"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-07/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "b6eacda3eb38338221f691693bb904f6c194f5b572f4ff9b3a20962a07204eba"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-08/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "26aa1622b72f05bfa29f1c2d30317a4cb6d4b3640c9acdcbec58ac53fcd05364"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-08/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-08/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "4fc7ca2c1ce6a7af93d7c122be8696a6ba24fda799548f4d3d77d73e6bf33dea"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-08/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "0963c57cb454eedfd8e01465e641ec880ec3960284a0f70b5a19c3246cba07f6"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-08/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "fcb666832e5b0268fcefd2c877a2d027e64feabb9cfd7f7d7600675b47a9caf0"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-09/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a460d759c196b3425baae9ebc943d94eb854edefeaa2692dd8e2849bd1d1fa05"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-09/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-09/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "dcd52bdf1b576c2da9df8a87dfa5a58581d8afec1ced546878164151c76d31cd"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-09/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "47da8ca1ed42b61bf85ce7887bc77bf203e522346aff94bce88a0c0ca4b35707"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-09/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "7290e4e23904bfaac49c083f35a41a28eaee01eed8157d42fa5fe0e4b98b3f20"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-10/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "f45dd1c3f9d24041b4e63899b5f464f08e794d25a19aff50e2d7f73920f08d96"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-10/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-10/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "ca126ca331e0601b2d4d0177b90a3dc7e3c122acfdd5fb466b99e9c6ee391c6a"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-10/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "92be567efdb7e1a3ac917bbd2c417d70e6c2f7e7f662b7fc5405122aa7694a80"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-10/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "8e34c3dc92b8ee347932430e911afd6fa647e973299429daecbbe05b585bc077"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-11/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "8ad1c16ae8696ffebbc87d4114bb601e22fa2556ed10969ccede575629edb193"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-11/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "4dc25c2f04d9fd180e1b403393e61cb065b5d6777744cf457feeb1b1e830af71"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-11/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a6b17d1816fdbe3ef582cab298eebc68340a177076d7db04ce056e195c58c193"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-11/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "ccebd3cbee7329a5b455b92ccbdae185552975a84b59d06bcc958b26d2051b69"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-11/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "717b9db0b1cffde7bce3f6b5eedc44704cb2e2426d83509b36117839f272924a"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-12/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "2fe06c217b6c93802893193db90166bfbde41675cf4d0720e90531a94bcf67d9"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-12/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "9f8c220046598684d1640c7cd530d96c7d908ae78e0aa96395b389897c78bce2"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-12/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "f84dd0e8b18c29ccadf6093f57383e9c9607c71f417f33a874895bc70819756d"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-12/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "29358719821cd35971406354c7986887fc4a9edce48a43ece36a46152dd84873"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-12/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "f1a89ee9c08999998de9854c23e2f32938d67eeefb53fde8607ca7b87be18bad"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-13/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "ef231fc4d660c33197896018dd3e6e14d4cc40f6709f644ac17004ca015fc484"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-13/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "2e7b69000e7186940274c7c096035c1fc6b9c00e3eafbb7ff6bf12b2ae8e44be"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-13/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "abf0e67237f4932e14566a4dd4ae1f1d7ad7be8c242a4813c3def43e2972b4d6"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-13/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "f6e8c774bcefcb27b89b2ca56b35c8dea94e16ef5db12b045974b6bb0834e809"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-13/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "3c2624068e68fb2f3ea9f007389fa65ab9e827a02bb8dab91203b76615b5e93c"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-14/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "d30af949fd5bfb805e2e4d219a5fff5a8c4eb86e8912c2b8acecae16782aca49"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-14/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-14/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "b50af20c0af6d8dd10adb4546088f7101084d48e094488553e3fa344a3918c92"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-14/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "034a0809be01f7a0b72bd1d86f04823a705568b9061a0602bc1305e0bb9b911d"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-14/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "702093f2b134b41905b0a67fbee911c2112f989935ea071c21fe3a6bd1c32e06"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-15/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "3056b54b394220ed8e49cbffbb226dc41f33d344a1c24d13d6cc901cce273f31"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-15/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-15/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "e9c2caa9600ce7718d18dc1fa0c9e01b74301ce8ea04126d3ee67c975f014caf"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-15/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "dc60c95f6782b76bf78763dfa7ca18c485a662ed73487ed29791745b1d234d26"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-15/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "1ad03737c1485840a03f7a0bf459bad7932a193c36e11057222ab7ffd55e1931"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-16/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "bf43aa698c44b020ba50bb730e0e673cff3c83a102934d198aa1be220cd3f08e"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-16/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "2e7b69000e7186940274c7c096035c1fc6b9c00e3eafbb7ff6bf12b2ae8e44be"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-16/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a0291ff1dea74417032e0e00b0024315e95de8cf102ced98a684065f5501284e"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-16/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "8004501448570dd4aa754dc4c55a70c68e7e0bb29eddd2482e2ec926920966f1"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-16/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a6c6b443bc9252ab02aee0900c0e5aaa4eb8e6d7042cda9a7388e6954306885a"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-17/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "b4ba3a4411ab2bebdb4eab99c90532e961f30e21644359eeadffd6b39cc7f0c3"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-17/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-17/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "022cea9f93872b88b9269fbf1ff699a642d02710bd16d95996fe3108c5c64612"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-17/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "211ff4176368a1643be9c47c0e1d396adc30683efe29cf2a54052de8492574dc"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-17/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "dcc4498624eef8ae100d5661e5154a622743f19f9c0d43be38ccc8e3d1afea8b"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-18/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "18bfa648b59650860ef656929c8f8022a522d198501f7230565c68cc3c924508"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-18/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-18/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "69642d937c5d682e39e17c2244e99fd8f065b62459782f731757c54510c59760"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-18/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "b500bfc262e8aec4a2adbb5701d9b09408fec90d19976a6e1370a6adbd78d4ac"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-18/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a3deedcc0db8647d769a6d414e943f3cfe0b3b108944c0812067c46ceac5940f"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-19/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "31c6870978a5d030de98a02edd32cb14c7c998466f891af85eef35255791689a"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-19/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-19/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "4f539e189955ace5b30a035a3fc5854cd4401d31046c2de538b83e2fb81563de"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-19/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "f090cb4a2343d2e03602b49979d824e05086b4ee468de3f5d5ba741e933e7496"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-19/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "1d9d4dbc8bb9d3aad5ba1660f4b6995ef5194ca3afc46c6c16a2ae4e1ded43c5"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-20/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "30fe0dfd84ab7010fc5412b410c2d626641d3ab273a310ed7485f904cd2c7e99"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-20/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-20/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "b45fddd7b2f0f481b4c2471b8bb12d2d24aa341653583ac6bdbf3f3d3e33df05"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-20/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "6cc7e7c2317a46fff88b1a5398adf909f52671c4299dfef848c326075e2efd8c"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-20/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "0f4faa5397bf4d31c28252315599e1f67bb849cd9955a05e8a782790ce5167d1"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-21/expected.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "f88f7c3ed36efe99a56aed676e068b0517a1d4f823a5193378bb8db2303b9dce"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-21/actual.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-21/diff.png",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "a177170509914305fa18534daf6e3740683ed767892bcf32dab689aba6e13a36"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-21/error-context.md",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "145caa863987521f649cb8469e19eb380b021b9e28ff8fee53b37ca3bf7d8a1a"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packets/row-21/trace.zip",
+      "authorizationClass": "preserved-packet",
+      "freezeSha256": "20f636a608556b3137778d5c004f6713952f376186dec8afca113d27b8cfcd98"
+    },
+    {
+      "path": "frontend/tests/visualReconciliationEvidence.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "a7079be7a8a0950650ff4f7022d68c72837da3ef464b924c0b0be8d76fe3060a",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/visualReconciliationEvidence.test.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "acadd3f2c5a78f72ae50637d2154c7af1a97cd8627ffe34be7fca2018e2e4c50",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/runPhase271Playwright.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "de1ba06ac8c5829e977506ac9bf5dfa3a8cda198c44a1cd056b5433c9126008a",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/runPhase271Playwright.test.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "c25baa8899b709b2f506418b4100dc21f63c172ca67de014e750df87f4146429",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/createPhase271SourceRun.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "10708249828413fb5b60cbfa428693d6fd1be4fe7dae8f9572f385f7918f7722",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/validateVisualReconciliation.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "8680c841965665474477e232671661412379542d9265a48ebd4b2568251d9028",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/validateVisualReconciliation.test.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "36393843c6bf94779e06a3c43a38cd6a4849d36f8298e44c471213f3c42c0d14",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/fixtures/phase271-attempt-v2-sanitized-result.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "e2d838ee0fa60e7e03273a484af4fa7836dd7e472e19d17646b007975b90b11b",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/tests/fixtures/phase271-golden-21-identities.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "81e3c6a6b05aea9653254405e50e325677c3813c73d1561d37ab9a7144ce595d",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": "frontend/playwright.phase271-recovery.config.ts",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "581e145ed9003a95a23d60a547f10ea22a020a8b16084a94b32186f55337d7d1",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attempt-ledger.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "435f8b5435b2a2b237100dac9824623ba3b39cb2582d082861ed04f76ddc07b7",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/failure-inventory.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "c36d7633748e2ea0e3290aa94a59ff5f18369a09c3885894e1cd04718a91a39d",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/source-run-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "0b9b1a4d12dee534a2778d1432408c8ce1ee4791d41460dafb5987e5eb42c4bf",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/packet-member-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "aff6d93cc69b69661023f7a6a0c458850091bc69977eb641079a965333e9390e",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/phase-infrastructure-allowlist.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "immutable-self"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/row-class-path-matrix.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": "15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2",
+      "state": "present-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01-SUMMARY.md",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-01.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/post-pass-planning-transition.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": "frontend/test-results/warehouse-data-workspace/after/ai-rereview-attestation.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-02.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-03.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-03.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-04.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-04.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-05.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-05.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-06.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-06.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-07.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-07.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-1/visual-run-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-1/playwright-results.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-1/stdout.log",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-1/stderr.log",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-2/visual-run-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-2/playwright-results.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-2/stdout.log",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/run-2/stderr.log",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/unit-rung-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/lint-rung-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/depcruise-rung-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/build-rung-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-gate/hygiene-rung-manifest.json",
+      "authorizationClass": "phase-infrastructure",
+      "freezeSha256": null,
+      "state": "absent-at-freeze"
+    }
+  ]
+}

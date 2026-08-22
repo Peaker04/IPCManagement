@@ -1,0 +1,615 @@
+{
+  "schemaVersion": 1,
+  "immutable": true,
+  "rows": [
+    {
+      "row": 1,
+      "identity": {
+        "row": 1,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › dashboard visual baseline",
+        "snapshotName": "dashboard-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "DashboardPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "dashboard-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 2,
+      "identity": {
+        "row": 2,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › weekly-menu visual baseline",
+        "snapshotName": "weekly-menu-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "DashboardPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "weekly-menu-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 3,
+      "identity": {
+        "row": 3,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › meal-orders visual baseline",
+        "snapshotName": "meal-orders-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "WeeklyMenuPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "meal-orders-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 4,
+      "identity": {
+        "row": 4,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › chef-dashboard visual baseline",
+        "snapshotName": "chef-dashboard-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "WeeklyMenuPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "chef-dashboard-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 5,
+      "identity": {
+        "row": 5,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › reports visual baseline",
+        "snapshotName": "reports-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "CoordinationPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "reports-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 6,
+      "identity": {
+        "row": 6,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › approvals visual baseline",
+        "snapshotName": "approvals-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "CoordinationPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "approvals-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 7,
+      "identity": {
+        "row": 7,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › purchasing visual baseline",
+        "snapshotName": "purchasing-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "ChefDashboardPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "purchasing-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 8,
+      "identity": {
+        "row": 8,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › admin-data visual baseline",
+        "snapshotName": "admin-data-desktop-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "ChefDashboardPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "admin-data-desktop-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 9,
+      "identity": {
+        "row": 9,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › login visual baseline",
+        "snapshotName": "login-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "ReportsPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "login-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 10,
+      "identity": {
+        "row": 10,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › dashboard visual baseline",
+        "snapshotName": "dashboard-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "ReportsPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "dashboard-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 11,
+      "identity": {
+        "row": 11,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › weekly-menu visual baseline",
+        "snapshotName": "weekly-menu-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "ApprovalPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "weekly-menu-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 12,
+      "identity": {
+        "row": 12,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › meal-orders visual baseline",
+        "snapshotName": "meal-orders-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "ApprovalPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "meal-orders-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 13,
+      "identity": {
+        "row": 13,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › chef-dashboard visual baseline",
+        "snapshotName": "chef-dashboard-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "PurchasingPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "chef-dashboard-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 14,
+      "identity": {
+        "row": 14,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › reports visual baseline",
+        "snapshotName": "reports-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "PurchasingPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "reports-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 15,
+      "identity": {
+        "row": 15,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › approvals visual baseline",
+        "snapshotName": "approvals-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "AdminDataPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "approvals-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 16,
+      "identity": {
+        "row": 16,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › purchasing visual baseline",
+        "snapshotName": "purchasing-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "AdminDataPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "purchasing-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 17,
+      "identity": {
+        "row": 17,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › admin-data visual baseline",
+        "snapshotName": "admin-data-mobile-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "LoginPage.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/visual-routes.spec.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "admin-data-mobile-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 18,
+      "identity": {
+        "row": 18,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1365x900 › purchasing-phase09 visual baseline",
+        "snapshotName": "purchasing-phase09-1365x900-expected.png",
+        "viewport": {
+          "width": 1365,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "PurchaseWorkflowGuide.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/fixtures/phase9-test-fixture.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "purchasing-phase09-1365x900-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 19,
+      "identity": {
+        "row": 19,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1280x900 › purchasing-phase09 visual baseline",
+        "snapshotName": "purchasing-phase09-1280x900-expected.png",
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "PurchaseServiceDateWorkbench.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/fixtures/phase9-test-fixture.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "purchasing-phase09-1280x900-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 20,
+      "identity": {
+        "row": 20,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 768x1024 › purchasing-phase09 visual baseline",
+        "snapshotName": "purchasing-phase09-768x1024-expected.png",
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "PurchaseDecisionPanel.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/fixtures/phase9-test-fixture.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "purchasing-phase09-768x1024-expected.png"
+        ]
+      }
+    },
+    {
+      "row": 21,
+      "identity": {
+        "row": 21,
+        "project": "chromium",
+        "normalizedSpecPath": "tests/visual-routes.spec.ts",
+        "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 390x844 › purchasing-phase09 visual baseline",
+        "snapshotName": "purchasing-phase09-390x844-expected.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "permittedPaths": {
+        "production-regression": [
+          "PurchaseLineGroups.tsx"
+        ],
+        "fixture-drift": [
+          "frontend/tests/fixtures/phase9-test-fixture.ts"
+        ],
+        "harness-nondeterminism": [
+          "frontend/tests/visual-routes.spec.ts",
+          "frontend/tests/visualReconciliationEvidence.ts"
+        ],
+        "stale-baseline": [
+          "purchasing-phase09-390x844-expected.png"
+        ]
+      }
+    }
+  ]
+}
