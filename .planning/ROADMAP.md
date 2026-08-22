@@ -76,11 +76,12 @@ Plans:
 - [x] 27.1-01C-PLAN.md — Immutable historical correction provenance, explicitly `SUPERSEDED_PROTOCOL_INVALID` and non-authoritative (wave 2).
 - [x] 27.1-01R-PLAN.md — Additive authoritative reseal with seven byte/blob pins and exact adjacent payload/marker commits (wave 3; depends on 01C).
 - [x] 27.1-01F-PLAN.md — Additive executable focused-only browser adapter with child-launch trace and sealed direct-CLI/config bytes (wave 4; depends on 01R).
-- [ ] 27.1-01V-PLAN.md — Immutable historical marker commit `8502ce701a4070f7be449681ffecbffc36b20056`, classified `SUPERSEDED_PROTOCOL_INVALID`; its plan/evidence bytes are frozen and it grants no authority (wave 5; depends on 01F).
-- [ ] 27.1-01W-PLAN.md — Sole topology-validator authority: historical seal validation without live HEAD/self claims, explicit self-reference/predecessor tests, then exact payload followed immediately by marker-only commit (wave 6; depends on immutable invalid 01V).
-- [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing readiness using 01W topology-validator and 01F focused authority (wave 7; depends on 01W).
-- [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes (wave 8).
-- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 9).
-- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines (wave 10).
-- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock (wave 11).
-- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout (wave 12).
+- [x] 27.1-01V-PLAN.md — Immutable historical marker commit `8502ce701a4070f7be449681ffecbffc36b20056`, classified `SUPERSEDED_PROTOCOL_INVALID`; its plan/evidence bytes are frozen and it grants no authority (wave 5; depends on 01F).
+- [x] 27.1-01W-PLAN.md — Sole historical topology-validator authority sealed at marker `47d13805196fd9ab51d0f08c5de44db7fa26a71b` (wave 6; depends on immutable invalid 01V).
+- [ ] 27.1-02R-PLAN.md — Additive recovery prerequisite: validate partial Plan-02 commit `235fbd49…`, implement entry/authorized-descendant topology and downstream-readiness validator modes, then seal immediate marker-only recovery authority (wave 7; depends on 01W).
+- [ ] 27.1-02-PLAN.md — Resume and close Chef/Purchasing readiness only after COMPLETE 02R authority; preserve the validated partial task commit and use authorized-descendant closeout (wave 8; depends on 02R).
+- [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard after completed Plan 02 with immutable row/class scopes (wave 9).
+- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 10).
+- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines (wave 11).
+- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock (wave 12).
+- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout (wave 13).
