@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { mapStockMovement } from '@/api/reportMappers';
 import { assertWarehouseFixture, currentStockRows, mixedEmptyFixture, stockMovementRows, warehouseDocuments, warehouseFixtureRecordIds } from './warehouseDataWorkspaceFixture';
 import {
   validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
@@ -43,6 +44,8 @@ describe('Warehouse Data Workspace contract', () => {
   it('keeps the representative fixture domain-valid and mixed-empty isolated', () => {
     expect(assertWarehouseFixture).not.toThrow(); expect(currentStockRows).toHaveLength(8); expect(stockMovementRows).toHaveLength(8); expect(warehouseDocuments.length).toBeGreaterThan(1);
     expect(mixedEmptyFixture.currentStockRows).toEqual([]); expect(mixedEmptyFixture.stockMovementRows).toBe(stockMovementRows); expect(mixedEmptyFixture.warehouseDocuments).toBe(warehouseDocuments);
+    const mappedMovements = stockMovementRows.map(mapStockMovement);
+    expect(mappedMovements.every(({ material, documentNo, quantity }) => material.length > 0 && documentNo.startsWith('PX-P27-') && Number.isFinite(quantity))).toBe(true);
   });
 
   it('validates exactly fifteen unique composite captures with stable ready fixture IDs', () => {
