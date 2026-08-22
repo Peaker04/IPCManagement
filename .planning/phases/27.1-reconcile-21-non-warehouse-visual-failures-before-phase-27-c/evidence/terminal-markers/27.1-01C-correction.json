@@ -28,8 +28,8 @@
     "sha256": "f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407"
   },
   "validator": {
+    "version": "27.1-01C",
     "path": "frontend/tests/validateVisualReconciliation.ts",
-    "sha256": "9dc2feb3faec754d9899e3bb285969b44cb737dd452589c4fc186846ee831175",
-    "version": "27.1-01C"
+    "sha256": "9dc2feb3faec754d9899e3bb285969b44cb737dd452589c4fc186846ee831175"
   }
 }
