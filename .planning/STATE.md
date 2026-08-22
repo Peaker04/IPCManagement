@@ -4,7 +4,7 @@ milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: executing
 stopped_at: "Phase 27 Plan 27-04 halted: 2 STILL_FAILING findings"
-last_updated: "2026-08-22T13:27:44.724Z"
+last_updated: "2026-08-22T20:42:00.000Z"
 progress:
   total_phases: 1
   completed_phases: 0
@@ -12,7 +12,7 @@ progress:
   completed_plans: 3
   percent: 0
 current_phase_name: warehouse-data-workspace-contract-pilot
-last_activity: 2026-08-22 — Completed Warehouse responsive rail and corrected the evidence fixture mapper owner
+last_activity: 2026-08-22 — Corrected Phase 27 current-stock fixture DTO labels and regenerated fresh headed evidence
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
 - Phase 27 Plans 27-01 through 27-03 are complete (3/4).
 - Warehouse alone opts into the measured 1366px SplitWorkbench rail; Approval and Chef defaults remain unchanged.
-- The technical-placeholder finding was corrected at the shape-invalid evidence fixture, not masked in production.
-- The duplicate forbidden-route H1 remains a fail-closed closeout blocker because its shared RoleGuard/shell owner is outside Plan 27-03 scope.
+- The current-stock technical-placeholder evidence was corrected at the shape-invalid fixture DTO seam; fresh run `phase27-after-20260822T204000Z` renders human-readable primary labels while stable IDs remain internal.
+- The duplicate forbidden-route H1 remains a fail-closed closeout blocker because its shared RoleGuard/shell owner is outside this quick correction scope.
 - Admin Data and Purchasing remain locked behind the ordered Warehouse gates.
 
 ## Session Continuity
