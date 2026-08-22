@@ -304,15 +304,17 @@ jobs:
       - name: Luật phụ thuộc frontend (dependency-cruiser)
         run: npm run depcruise:fe
 
+      # Build trước để source-ownership contract quét đúng manifest và emitted assets
+      # của production bundle; dist không được commit vào repository.
+      - name: Build frontend
+        run: npm run build:fe
+
       # Vitest chạy một lượt cho toàn bộ src có thể vượt heap mặc định của Node,
       # nên giới hạn worker và nới heap cho từng worker.
       - name: Test frontend (unit)
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         run: npm run test:unit -w frontend -- --maxWorkers=2
-
-      - name: Build frontend
-        run: npm run build:fe
 
       - name: Check frontend route budgets
         run: npm run check:route-budgets -w frontend
