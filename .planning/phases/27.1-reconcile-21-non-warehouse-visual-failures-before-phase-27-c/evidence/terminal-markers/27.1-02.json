@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-02",
+  "status": "COMPLETE",
+  "authority": "PLAN_02_READINESS_CLOSEOUT",
+  "waveBaseCommit": "47d13805196fd9ab51d0f08c5de44db7fa26a71b",
+  "payloadCommit": "0ef6a7fdac776f356c2917708872edba071c9cd0",
+  "summary": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-02-SUMMARY.md",
+    "sha256": "7788a1a130aaac55b0588c004e3554384d41b408dde44f6be7804f754e2d24e1"
+  },
+  "payloadResult": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-02.json",
+    "sha256": "962823052a0c6ba5cd477ac4050550164763044748df66319f9642d73be69035"
+  },
+  "partialCommit": "235fbd499e0fb5e2f247ea0efa0bb92ea58eff32",
+  "partialDisposition": "PRESERVED_EXACT_AUTHORIZED_THREE_MEMBER_DELTA",
+  "authorityRoots": [
+    {"type":"ORIGINAL_01_SOURCE","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json","sha256":"b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02","commit":"c52c80f8186b985d07619a7ad0ed7abc0572675c"},
+    {"type":"INVALID_01C_PROVENANCE","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01C-correction.json","sha256":"22f1e4ff032acb6b87eb7148049be1a1707cda7bbfa1d82a61a1b80333c0d0e0","commit":"ae129eaab0dde192f3dca17c7504b7b9aaef5d17","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
+    {"type":"AUTHORITATIVE_01R_RESEAL","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01R-reseal.json","sha256":"ecb024f20d60ce8d3e6e80aab1afe6e7d7a6bdc40a5664527034cf6db3516951","commit":"fb93fd120d1f5ec81760070be67ed65429ae4c03"},
+    {"type":"FOCUSED_01F_AUTHORITY","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01F-focused-launcher.json","sha256":"5cccd2a3c68e396c3696543f09cbfc486a9a907917d2ba23a73a89b4261ba325","commit":"06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c"},
+    {"type":"INVALID_01V_PROVENANCE","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01V-topology-validator.json","sha256":"a6365b003ef01289c8e4f896a2d02623df407d3e8100e23b433982e072fa42fc","commit":"8502ce701a4070f7be449681ffecbffc36b20056","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
+    {"type":"SOLE_01W_TOPOLOGY_AUTHORITY","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01W-topology-validator.json","sha256":"e320de600790450c5a3129ea2f45497419966d1546a0ba220f5ae40c078e72c5","commit":"47d13805196fd9ab51d0f08c5de44db7fa26a71b"},
+    {"type":"VALIDATOR_02R_RECOVERY_AUTHORITY","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02R-validator-recovery.json","sha256":"4a5b52008c84f778a550bb5dd25af3a52346fdf01ac56a7704c6bc224344547a","commit":"2594b390e74b971675315d41e01ed844c4b4b2df"}
+  ],
+  "orderedCommits": [
+    {"commit":"235fbd499e0fb5e2f247ea0efa0bb92ea58eff32","parent":"47d13805196fd9ab51d0f08c5de44db7fa26a71b","class":"sealed-partial"},
+    {"commit":"8826abf1ef016d63144049377f4e537237c47d51","parent":"235fbd499e0fb5e2f247ea0efa0bb92ea58eff32","class":"recovery-02R-planning-validator-payload-marker"},
+    {"commit":"ab4b56ddcde3fbee035dda050853338d877f6de7","parent":"8826abf1ef016d63144049377f4e537237c47d51","class":"recovery-02R-planning-validator-payload-marker"},
+    {"commit":"2594b390e74b971675315d41e01ed844c4b4b2df","parent":"ab4b56ddcde3fbee035dda050853338d877f6de7","class":"recovery-02R-planning-validator-payload-marker"},
+    {"commit":"0ef6a7fdac776f356c2917708872edba071c9cd0","parent":"2594b390e74b971675315d41e01ed844c4b4b2df","class":"plan-02-resume-closeout"}
+  ],
+  "validationHashes": {
+    "readinessDispositions": "ceb55b11c04bfc1345f38abd64187bb4c1dac0155cec96707c9f559ff61af73c",
+    "rowClassPathMatrix": "15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2",
+    "infrastructureAllowlist": "b31358ab7a4420dda930faee02e28942fb8ed4eba917ba23f69d50402f44dcee",
+    "correctedAuthorizationMatrix": "f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407"
+  },
+  "blockers": []
+}
