@@ -64,7 +64,7 @@ Mỗi finding phải ghi đủ:
 - [x] Regression Coordination: `6 files / 50 tests PASS`; build và lint PASS.
 - [x] Headed browser test đủ 5 viewport cho protected-route overflow/action contract: `5/5 PASS`.
 - [x] Route closure giảm thật: `232.59 → 227.28 KiB` (`-5.31 KiB`); không route nào khác tăng quá mức baseline đo được.
-- [ ] Clean route-budget verification pass: Coordination còn `227.28 / 196.00 KiB`, pilot chứng minh hướng đúng nhưng chưa đạt threshold.
+- [x] Clean route-budget verification PASS: Coordination `174.11 / 196.00 KiB` sau lazy `HeaderInfo` và direct leaf imports.
 
 ### Pilot: Approval
 
@@ -74,28 +74,28 @@ Mỗi finding phải ghi đủ:
 - [x] Regression Approval: `18/18 PASS`; full frontend sau pilot `157 files / 888 tests PASS`.
 - [x] Headed browser protected-route/action matrix: `5/5 viewport PASS`; không overflow/action regression.
 - [x] Route closure giảm thật: `236.88 → 235.68 KiB` (`-1.20 KiB`); shared common floor không tăng.
-- [ ] Clean route-budget verification pass: Approval còn `235.68 / 202.00 KiB`; controlled seam hợp lệ nhưng chưa đạt threshold.
+- [x] Clean route-budget verification PASS: Approval `193.34 / 202.00 KiB` sau lazy search field và controlled decision dialog.
 
 ### Rollout còn lại
 
 - [ ] Warehouse capability island pass — pilot evidence: `WarehouseDemandPanel` + `WarehouseExceptionsWorkbench` lazy-load; `274.00 → 266.15 KiB` (`-7.85 KiB`), `10/10` focused tests, headed `5/5` viewport pass; threshold `257.00 KiB` chưa đạt.
 - [ ] Admin Data capability island pass — pilot evidence: `AdminStatisticsPanel` lazy-load; `268.72 → 267.89 KiB` (`-0.83 KiB`), focused `6/6`, headed `5/5` viewport pass; threshold `259.00 KiB` chưa đạt.
-- [ ] Dashboard capability island pass.
+- [x] Dashboard capability island pass — shared TablePreferences seam đưa route về `190.50 / 199.00 KiB`.
 - [ ] Reports capability island pass — pilot evidence: `ServiceRunReportPanel` và `LegacyLineageDispositionPanel` lazy-load; `263.29 → 259.55 KiB` (`-3.74 KiB`), focused `21/21`, headed `5/5` viewport pass; threshold `252.00 KiB` chưa đạt.
 - [ ] Chef capability island pass — pilot evidence: `ChefDocumentsSection` lazy-load; `271.51 → 269.92 KiB` (`-1.59 KiB`), focused `10/10`, headed `5/5` viewport pass; threshold `263.00 KiB` chưa đạt.
 - [ ] Weekly Menu capability island pass.
 - [ ] Purchasing capability island pass — pilot evidence: `SupplementalPurchasingWorkbench` và `SupplierQuotationSection` lazy-load; `259.50 → 258.68 KiB` (`-0.82 KiB`), focused `13/13`, headed `5/5` viewport pass; threshold `255.00 KiB` chưa đạt.
-- [ ] Approval Rules/Advanced Settings capability island pass.
+- [x] Approval Rules/Advanced Settings capability island pass — Approval Rules `238.83 / 241.00 KiB`; Advanced Settings vẫn route lazy riêng ngoài budget matrix.
 - [ ] Tất cả route đạt threshold hiện hành trong cùng một clean build. Shared TablePreferences seam đã giảm `common` từ `51.75 → 9.91 KiB`; Dashboard, Purchasing và Approval Rules hiện PASS, còn 7 route RED.
 
 ## Gate 2 — Controlled lazy confirmation seam
 
-- [ ] Xác định toàn bộ consumer của confirmation surface từ source inventory.
-- [ ] Tạo một wrapper lazy có fallback geometry ổn định.
-- [ ] Wrapper không thay đổi public mutation contract.
-- [ ] Dialog có `role=dialog`, `aria-modal`, `aria-labelledby`, portal và một instance cấp trang.
-- [ ] Có focus trap và focus restoration về trigger.
-- [ ] Kiểm tra `Esc`, backdrop, nút đóng, `Enter`, loading và lỗi mutation.
+- [x] Xác định toàn bộ consumer của confirmation surface từ source inventory; project inventory hiện `54 owners / 34 dialogs`.
+- [x] Tạo controlled lazy `ApprovalDecisionDialog` với overlay fallback và route-owned state.
+- [x] Wrapper không thay đổi public mutation contract; Approval mutation regression `10/10 PASS`.
+- [x] Dialog giữ production primitive với `role=dialog`, `aria-modal`, labelled content và portal.
+- [x] Headed safe-dialog matrix xác nhận focus containment/return tại đủ 5 viewport.
+- [ ] Kiểm tra đầy đủ `Esc`, backdrop, nút đóng, `Enter`, loading và lỗi mutation cho wrapper mới.
 - [ ] Kiểm tra form dirty không đóng nhầm và không mất dữ liệu.
 - [ ] Kiểm tra nền không bị layout shift, scrollbar không làm đổi chiều rộng.
 - [ ] Khung skeleton đầu tiên dưới 100ms trong production build.
@@ -219,7 +219,7 @@ Checklist chỉ được đóng khi:
 - [x] Quyết định UI/UX: evidence-first audit bằng DOM/runtime/interaction, không dùng screenshot đơn lẻ.
 - [ ] Gate 0 — baseline mới cho checklist này (đã hoàn tất build/manifest/viewport; còn thiếu source-owner inventory project-wide).
 - [ ] Gate 1 — capability island implementation (shared TablePreferences seam đã đưa 3/10 route về PASS; còn 7 route cần giảm tiếp).
-- [ ] Gate 2 — controlled lazy confirmation seam; Approval capability pilot đã pass nhưng confirmation dialog chưa được tách vì cần focus/keyboard/mutation contract riêng.
+- [ ] Gate 2 — controlled lazy confirmation seam đã materialize trên Approval; còn keyboard/loading/error-specific regression và consumer disposition.
 - [ ] Gate 3 — project-wide UI/UX inventory.
 - [ ] Gate 4 — copy/vocabulary audit.
 - [ ] Gate 5 — table/action-column audit.

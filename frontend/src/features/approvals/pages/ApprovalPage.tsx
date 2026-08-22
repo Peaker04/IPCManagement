@@ -1,18 +1,16 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  CommandBar,
-  ContextStrip,
-  EmptyState,
-  InlineAlert,
-  KeepAliveTabPanel,
-  OperationalFrame,
-  QueryErrorAlert,
-  SectionPanel,
-  useToast,
-  ViewSwitcher,
-} from '@/components/common';
+import { CommandBar } from '@/components/common/CommandBar';
+import { ContextStrip } from '@/components/common/ContextStrip';
+import { EmptyState } from '@/components/common/EmptyState';
+import { InlineAlert } from '@/components/common/InlineAlert';
+import { KeepAliveTabPanel } from '@/components/common/KeepAliveTabPanel';
+import { OperationalFrame } from '@/components/common/OperationalFrame';
+import { QueryErrorAlert } from '@/components/common/QueryErrorAlert';
+import { SectionPanel } from '@/components/common/SectionPanel';
+import { useToast } from '@/components/common/useToast';
+import { ViewSwitcher } from '@/components/common/ViewSwitcher';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
@@ -20,10 +18,7 @@ import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetA
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi';
 import type { ApprovalRecord } from '@/types/workflow';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatDateOnly, formatDateTime } from '@/lib/formatters';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
@@ -36,6 +31,8 @@ import {
 import { visibleTabIds } from '@/lib/navigationPreferences';
 
 const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
+const ApprovalSearchField = lazy(() => import('./ApprovalSearchField').then(({ ApprovalSearchField: component }) => ({ default: component })))
+const ApprovalDecisionDialog = lazy(() => import('./ApprovalDecisionDialog').then(({ ApprovalDecisionDialog: component }) => ({ default: component })))
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -331,16 +328,15 @@ export default function ApprovalPage() {
               <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                 <label htmlFor="approval-inbox-search" className="grid gap-1 text-xs font-semibold text-slate-700">
                   Tìm chứng từ hoặc nguyên liệu
-                  <Input
-                    id="approval-inbox-search"
-                    value={approvalSearch}
-                    onChange={(event) => {
-                      setApprovalSearch(event.target.value);
-                      setApprovalPagination({ scopeKey: '', cursors: [] });
-                    }}
-                    placeholder="Mã phiếu, nhà cung cấp, nguyên liệu..."
-                    className="h-9"
-                  />
+                  <Suspense fallback={<span aria-hidden="true" className="block h-9 rounded-md bg-slate-50" />}>
+                    <ApprovalSearchField
+                      value={approvalSearch}
+                      onChange={(value) => {
+                        setApprovalSearch(value);
+                        setApprovalPagination({ scopeKey: '', cursors: [] });
+                      }}
+                    />
+                  </Suspense>
                 </label>
                 <p className="text-xs text-slate-600 md:pb-2">Phạm vi: {approvalScopeLabel}</p>
               </div>
@@ -465,79 +461,21 @@ export default function ApprovalPage() {
         </KeepAliveTabPanel>
       </div>
 
-      {/* Confirmation Dialog for Approvals / Rejections */}
-      {decisionModal.isOpen && (
-        <Dialog
-          open={decisionModal.isOpen}
-          onOpenChange={(open) => {
-            if (!open) closeDecisionModal();
-          }}
-        >
-          <DialogContent
-            aria-label={modalCopy.title}
-            className="max-w-md"
-            onKeyDown={(event) => {
-              if (event.key !== 'Escape') return;
-              event.preventDefault();
-              closeDecisionModal();
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {modalCopy.title}
-              </DialogTitle>
-              <DialogDescription>
-                {modalCopy.description}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-2 py-2">
-              <label htmlFor="decision-reason" className="text-sm font-semibold text-slate-700">
-                {decisionModal.status === 'Approve' ? 'Ghi chú duyệt (tùy chọn)' : 'Lý do từ chối'}
-              </label>
-              <Textarea
-                id="decision-reason"
-                value={decisionModal.reason}
-                onChange={(e) => setDecisionModal((prev) => ({ ...prev, reason: e.target.value }))}
-                placeholder={decisionModal.status === 'Approve' ? 'Ví dụ: Đồng ý duyệt...' : 'Nhập lý do từ chối bắt buộc...'}
-                className="min-h-[100px] resize-none"
-                aria-invalid={Boolean(decisionError)}
-                aria-describedby={decisionError ? 'decision-error' : undefined}
-                disabled={isDeciding}
-              />
-            </div>
-
-            {decisionError && (
-              <div id="decision-error" role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                <p>{decisionError}</p>
-                <Button type="button" variant="outline" className="mt-2" onClick={() => void approvalQuery.refetch()} disabled={isDeciding}>
-                  Tải lại hàng đợi
-                </Button>
-              </div>
-            )}
-
-            <DialogFooter className="gap-2">
-              <Button
-                data-inp-action="confirm-approval-decision"
-                type="button"
-                variant="outline"
-                onClick={closeDecisionModal}
-                disabled={isDeciding}
-                autoFocus
-              >
-                {modalCopy.safeLabel}
-              </Button>
-              <Button
-                type="button"
-                variant={decisionModal.status === 'Reject' ? 'destructive' : 'default'}
-                onClick={handleDecisionSubmit}
-                disabled={isDeciding || (decisionModal.status === 'Reject' && !decisionModal.reason.trim())}
-              >
-                {isDeciding ? 'Đang xử lý...' : modalCopy.submitLabel}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {decisionModal.isOpen && decisionModal.status && (
+        <Suspense fallback={<div aria-hidden="true" className="fixed inset-0 z-50 bg-black/20" />}>
+          <ApprovalDecisionDialog
+            open
+            status={decisionModal.status}
+            reason={decisionModal.reason}
+            error={decisionError}
+            isDeciding={isDeciding}
+            copy={modalCopy}
+            onReasonChange={(reason) => setDecisionModal((previous) => ({ ...previous, reason }))}
+            onClose={closeDecisionModal}
+            onSubmit={() => void handleDecisionSubmit()}
+            onRetry={() => void approvalQuery.refetch()}
+          />
+        </Suspense>
       )}
     </OperationalFrame>
   );

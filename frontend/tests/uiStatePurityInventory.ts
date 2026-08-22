@@ -392,7 +392,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('local', 'src/features/admin/components/AdvancedDisplaySettings.tsx', 3, 'fc196b512b589567444844939b309a8cc2617f8f078740d1d7509ba2f21c4e24', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/admin/pages/ApprovalRulesPage.tsx', 6, '1f75a441343f4e6405cebdcd4f57c3dbb2fcf087b3dfe36f446c01ecde6d4acd', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/approvals/components/MenuAmendmentReconciliation.tsx', 3, '2410f3497bbf12453e1012a8c35521d0ed483416355c9f52a738e340bc2c2e92', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
-  classified('local', 'src/features/approvals/pages/ApprovalPage.tsx', 3, 'e4910eaf2afc8580c71490d1b67d2bfc5b0775222c47ca9590316fee600600b0', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
+  classified('local', 'src/features/approvals/pages/ApprovalPage.tsx', 2, '6b5c3c4f46d04352eb4f9959cf71eb830154c96cf2c37a66f602c8319f2ca464', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/auth/components/SessionTimeoutModal.tsx', 1, '7a8153bfae0bcee29551e5046a3399255b32b290ef8cad7e82d9d69ceadbf3df', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/auth/pages/LoginPage.tsx', 4, 'b235778b44160dd21aabff290f18c5dacb4c6d36465c4ce43b80f965591250c2', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
   classified('local', 'src/features/chef/components/excess-material-dialog.tsx', 1, '4f2c7df4e5bbb90e700ab0307acabad1e671597357eff0926136456d66adcfd0', 'approved-ephemeral-interaction-feedback-input-state', localInteractionReason),
@@ -414,7 +414,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
 
   classified('order', 'src/components/common/ToastProvider.tsx', 2, 'cffdd9c145fe4fbc55ca8d9d328bb1569f42017b698bee4b8a098a9a1e3c0f34', 'approved-ephemeral-interaction-feedback-input-state', asyncInteractionReason),
   classified('order', 'src/components/common/KeepAliveTabPanel.tsx', 1, 'd00871b1715f232be538aeb10a7ca74eb88a72bf4521b2b264e8e024a6b4706d', 'justified-non-visibility-infrastructure', asyncInteractionReason),
-  classified('order', 'src/features/approvals/pages/ApprovalPage.tsx', 3, '55760c367056170a07c8cf0ce8a76aca24c0f9d0dc809c83de47d1e3832e64a6', 'approved-ephemeral-interaction-feedback-input-state', asyncInteractionReason),
+  classified('order', 'src/features/approvals/pages/ApprovalPage.tsx', 3, '62295b5a33f5be4358d189760c626e8ce84d86a84cc9b7aa3564a6fe9d0e5343', 'approved-ephemeral-interaction-feedback-input-state', asyncInteractionReason),
   classified('order', 'src/features/auth/components/SessionTimeoutModal.tsx', 1, '4567480731768cf463ed196d936e391066a8f1e60ecbdd40aaa6277e8c318a9c', 'declared-domain-query-state', 'Declared session-expiry redirect timer.'),
   classified('order', 'src/features/coordination/components/hooks.ts', 1, 'd46bda4be9f660656a2277ec33b03cff1c40fb590f4284938ac8338d0a177711', 'declared-domain-query-state', 'Declared coordination countdown refresh interval.'),
   classified('order', 'src/features/projects/pages/WeeklyMenuPage.tsx', 2, 'fb5b8b05f51394a60803a40a3041fb3fdbaa5fcbe8def62f085527d3ed62117e', 'justified-non-visibility-infrastructure', asyncInteractionReason),

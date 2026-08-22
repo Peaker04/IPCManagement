@@ -195,7 +195,7 @@ describe('ApprovalPage query state boundary', () => {
     if (!row) throw new Error('Expected the PR approval row to be rendered.');
     fireEvent.click(within(row).getByRole('button', { name: 'Duyệt chứng từ' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Duyệt đề xuất mua?' });
+    const dialog = await screen.findByRole('dialog', { name: 'Duyệt đề xuất mua?' });
     expect(dialog).toBeInTheDocument();
     expect(mocks.executeDecision).not.toHaveBeenCalled();
 
@@ -226,7 +226,7 @@ describe('ApprovalPage query state boundary', () => {
     }));
     expect(screen.getAllByText('Phạm vi: Tuần từ 20/07/2026')[0]).toBeInTheDocument();
 
-    fireEvent.change(screen.getAllByLabelText('Tìm chứng từ hoặc nguyên liệu')[0], {
+    fireEvent.change((await screen.findAllByLabelText('Tìm chứng từ hoặc nguyên liệu'))[0], {
       target: { value: 'Bột nở' },
     });
     await waitFor(() => expect(mocks.getApprovals).toHaveBeenLastCalledWith(expect.objectContaining({
