@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, resolveIdentitySetNames, resolveRecoveryAuthority, validateDownstreamReadiness, type AuthorizationMatrix, type ReadinessDisposition } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveIdentitySetNames, resolveRecoveryAuthority, validateDownstreamReadiness, type AuthorizationMatrix, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -74,6 +74,7 @@ describe('Phase 27.1 corrected authorization matrix', () => {
 });
 
 describe('Phase 27.1 generic downstream authorization', () => {
+  it('pins the sole general authority',()=>expect(GENERAL_VALIDATOR_AUTHORITY).toBe('27.1-03R'));
   it.each(['core-login-dashboard','core-meal-weekly','secondary-reports-approvals-admin','purchasing-phase09','all-21'])('resolves closed identity union %s', (selection) => {
     const names=resolveIdentitySetNames(matrix,selection); const identities=names.flatMap(name=>matrix.identitySets[name]);
     expect(new Set(identities.map(x=>JSON.stringify(x))).size).toBe(identities.length);

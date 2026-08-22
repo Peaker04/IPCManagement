@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PLAN_SCHEMAS, validatePhase271PlanMarker, validatePhase271PlanResult, type Phase271PlanId } from './validatePhase271PlanResult';
+import { GENERAL_VALIDATOR_VERSION, PLAN_SCHEMAS, validatePhase271PlanMarker, validatePhase271PlanResult, type Phase271PlanId } from './validatePhase271PlanResult';
 const hash='a'.repeat(64), commit='b'.repeat(40), root=(n:number)=>({type:`ROOT_${n}`,path:`marker-${n}.json`,sha256:String(n%10).repeat(64),commit:(n%9+1).toString().repeat(40)});
 const clone=<T>(v:T):T=>structuredClone(v);
 function fixture(id:Phase271PlanId){ const s=PLAN_SCHEMAS[id], count=id==='27.1-02'?7:8; const common={schemaVersion:1,phase:'27.1',planId:id,summary:{path:s.summaryPath,sha256:hash},authorityRoots:Array.from({length:count},(_,i)=>root(i)),validationHashes:{matrix:hash},blockers:[]}; const result:any={...common,status:'READY_TO_SEAL',tests:{files:2,tests:20,status:'PASS'},browserRun:false,productionChanged:false,snapshotsChanged:false}; const marker:any={...common,status:'COMPLETE',authority:'CLOSED',payloadCommit:commit,payloadResult:{path:s.resultPath,sha256:hash}};
@@ -8,6 +8,7 @@ function fixture(id:Phase271PlanId){ const s=PLAN_SCHEMAS[id], count=id==='27.1-
  if(id==='27.1-03R'){const manifest={path:'.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json',sha256:hash};Object.assign(result,{manifest,predecessor:'27.1-02'});Object.assign(marker,{manifest,validatorPins:Array.from({length:4},(_,i)=>({path:`v${i}`,sha256:hash,gitBlobId:commit}))});}
  return {result,marker}; }
 describe('closed Phase 27.1 plan schemas',()=>{
+ it('pins the general validator version',()=>expect(GENERAL_VALIDATOR_VERSION).toBe('27.1-03R'));
  it.each(Object.keys(PLAN_SCHEMAS) as Phase271PlanId[])('%s accepts only its exact row',id=>{const {result,marker}=fixture(id);expect(()=>validatePhase271PlanResult(id,result)).not.toThrow();expect(()=>validatePhase271PlanMarker(id,marker)).not.toThrow();});
  it.each(['27.1-01','27.1-03X','27.1-070','27.1-08'])('rejects arbitrary/same-prefix ID %s',id=>expect(()=>validatePhase271PlanResult(id,{})).toThrow(/allowlisted/));
  it('rejects cross-row schema borrowing',()=>{const a=fixture('27.1-03R');expect(()=>validatePhase271PlanResult('27.1-03',a.result)).toThrow();expect(()=>validatePhase271PlanMarker('27.1-03',a.marker)).toThrow();});

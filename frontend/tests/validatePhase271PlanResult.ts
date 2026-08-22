@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sha256 } from './validateVisualReconciliation.ts';
 
+export const GENERAL_VALIDATOR_VERSION = '27.1-03R' as const;
 const PHASE_DIR = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c';
 const PLAN_IDS = ['27.1-02', '27.1-03R', '27.1-03', '27.1-04', '27.1-05', '27.1-06', '27.1-07'] as const;
 export type Phase271PlanId = typeof PLAN_IDS[number];

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-03R",
+  "authority": "GENERAL_DOWNSTREAM_VALIDATOR",
+  "validatorPins": [
+    {"path":"frontend/tests/validatePhase271PlanResult.ts","sha256":"a16e4c49cc351d0fb872aa92095b6f1317e9d76860b1bfdd3fb021f96720faf1","gitBlobId":"9073154164c378db74b779bad3fbf796fbbeed91"},
+    {"path":"frontend/tests/validatePhase271PlanResult.test.ts","sha256":"ace159a419ff8c156a9599bb0e705273e388a5ccd29db3dc02c7aeb87f7bd6a5","gitBlobId":"7d5848ddff1db4d36a90ae6a9d10c9bf59e06865"},
+    {"path":"frontend/tests/validateVisualReconciliation.ts","sha256":"62eedef3bf7a9791e4b5d4bf06defccc201c55fc9255e891c20f03b201141f8b","gitBlobId":"10e74f6630c480939cc62cdcc7ae9dbca6bc99ea"},
+    {"path":"frontend/tests/validateVisualReconciliation.test.ts","sha256":"89e11756f78c3b1c639577a77f7ed38156d09521fee418e8fb99206f37a627c2","gitBlobId":"ce07d1a4ab9aae8e05b5478930940afc08f0036f"}
+  ],
+  "correctedMatrix": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/corrected-authorization-matrix.json","sha256":"f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407","gitBlobId":"e6fb1d2e0ce166099677122be6b2382feea611a8"},
+  "predecessor": {"planId":"27.1-02","marker":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02.json","sha256":"d394df232b8263db151810403bddbdf616968fcc30427ca5b0086aaa198e2630","commit":"ee5aa663059611f42df92602544425c2ad1d1323"},
+  "inheritedRoots": ["ORIGINAL_01_SOURCE","INVALID_01C_PROVENANCE","AUTHORITATIVE_01R_RESEAL","FOCUSED_01F_AUTHORITY","INVALID_01V_PROVENANCE","SOLE_01W_TOPOLOGY_AUTHORITY","VALIDATOR_02R_RECOVERY_AUTHORITY"]
+}
