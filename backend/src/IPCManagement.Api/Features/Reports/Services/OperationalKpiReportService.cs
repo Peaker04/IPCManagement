@@ -44,7 +44,7 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
             .Where(pr => (pr.Status == "DRAFT" || pr.Status == "APPROVED") && pr.PurchaseForDate < today)
             .CountAsync(pr => pr.Purchaserequestlines.Any(line =>
                 line.PurchaseOrderLine == null ||
-                DecimalPolicy.LessThanQuantity(line.PurchaseOrderLine.ReceivedQty, line.PurchaseOrderLine.OrderedQty)));
+                line.PurchaseOrderLine.ReceivedQty < line.PurchaseOrderLine.OrderedQty));
 
         var lateReceiptCount = await _context.Purchaseorders
             .AsNoTracking()

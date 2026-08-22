@@ -197,9 +197,9 @@ export default function PurchasingPage() {
               >
                 {nextAction.label}
               </Button>
-            ) : isFetching && !workbench ? (
-              <span className="min-w-[10.25rem]" aria-hidden="true" />
-            ) : null}
+            ) : (
+              <span className="hidden min-w-[10.25rem] sm:inline-block" aria-hidden="true" />
+            )}
           </> : undefined}
         >
           {activeView === 'workflow' ? (
