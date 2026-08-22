@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: executing
-stopped_at: Completed 27-03-PLAN.md with scoped duplicate-H1 closeout blocker
-last_updated: "2026-08-22T13:10:57.009Z"
+stopped_at: "Phase 27 Plan 27-04 halted: 2 STILL_FAILING findings"
+last_updated: "2026-08-22T13:27:44.724Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
   completed_plans: 3
-  percent: 75
+  percent: 0
 current_phase_name: warehouse-data-workspace-contract-pilot
 last_activity: 2026-08-22 — Completed Warehouse responsive rail and corrected the evidence fixture mapper owner
 ---
@@ -33,9 +33,9 @@ See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
 ## Session Continuity
 
-**Last session:** 2026-08-22T13:10:56.999Z
-**Stopped at:** Completed 27-03-PLAN.md with scoped duplicate-H1 closeout blocker
-**Resume file:** None
+**Last session:** 2026-08-22T13:27:44.715Z
+**Stopped at:** Phase 27 Plan 27-04 halted: 2 STILL_FAILING findings
+**Resume file:** .planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md
 
 Resume from `.planning/phases/27-warehouse-data-workspace-contract-pilot/27-04-PLAN.md`.
 Next workflow: resolve the scoped duplicate-H1 authorization blocker before Plan 27-04 closeout evidence.
