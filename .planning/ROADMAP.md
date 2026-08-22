@@ -76,7 +76,7 @@ Plans:
 - [x] 27.1-01C-PLAN.md — Immutable historical correction provenance, explicitly `SUPERSEDED_PROTOCOL_INVALID` and non-authoritative (wave 2).
 - [x] 27.1-01R-PLAN.md — Additive authoritative reseal with seven byte/blob pins and exact adjacent payload/marker commits (wave 3; depends on 01C).
 - [x] 27.1-01F-PLAN.md — Additive executable focused-only browser adapter with child-launch trace and sealed direct-CLI/config bytes (wave 4; depends on 01R).
-- [ ] 27.1-01V-PLAN.md — Correct downstream topology validation with explicit historical commits, exact payload membership, and 01F entry-HEAD proof (wave 5; depends on 01F).
+- [ ] 27.1-01V-PLAN.md — Freeze immutable operational base `06f920e0` plus dynamic clean planningHead and exact planning-only delta/hash; seal direct planningHead→payload→marker lineage for downstream historical attestation (wave 5; depends on 01F).
 - [ ] 27.1-02-PLAN.md — Resolve Chef/Purchasing readiness using 01V topology-validator and 01F focused authority (wave 6; depends on 01V).
 - [ ] 27.1-03-PLAN.md — Reconcile Login and Dashboard with immutable row/class scopes (wave 7).
 - [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows (wave 8).
