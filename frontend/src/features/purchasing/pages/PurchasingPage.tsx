@@ -121,19 +121,17 @@ export default function PurchasingPage() {
     if (activeView !== 'workflow') return;
     if (!workbench && workbenchView.phase !== 'error') return;
 
-    const next = new URLSearchParams(searchParams);
-    next.set('week', routeState.week);
-    if (searchParams.has('date')) {
-      if (routeState.date) next.set('date', routeState.date);
-      else next.delete('date');
-    }
-    if (searchParams.has('stage')) {
-      next.set('stage', routeState.stage);
-    }
-    if (next.toString() !== searchParams.toString()) {
-      setSearchParams(next, { replace: true });
-    }
-  }, [activeView, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench, workbenchView.phase]);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('week', routeState.week);
+      if (current.has('date')) {
+        if (routeState.date) next.set('date', routeState.date);
+        else next.delete('date');
+      }
+      if (current.has('stage')) next.set('stage', routeState.stage);
+      return next.toString() === current.toString() ? current : next;
+    }, { replace: true });
+  }, [activeView, routeState.date, routeState.stage, routeState.week, setSearchParams, workbench, workbenchView.phase]);
 
   const changeView = (id: string) => {
     const view: PurchasingView = id === 'purchasing-quotations'

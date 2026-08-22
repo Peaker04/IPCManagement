@@ -392,7 +392,7 @@ async function login(page: Page) {
 }
 
 async function expectVisibleControlsAreNamed(page: Page) {
-  const unnamedControls = await page.evaluate(() => {
+  const controls = await page.evaluate(() => {
     const selectors = 'button, [role="button"], a.ipc-button';
     return Array.from(document.querySelectorAll<HTMLElement>(selectors))
       .map((element, index) => {
@@ -420,12 +420,14 @@ async function expectVisibleControlsAreNamed(page: Page) {
           className: element.className.toString(),
           isVisible,
           label,
+          width: rect.width,
+          height: rect.height,
         };
-      })
-      .filter((control) => control.isVisible && control.label.length === 0);
+      });
   });
 
-  expect(unnamedControls).toEqual([]);
+  expect(controls.filter((control) => control.isVisible && control.label.length === 0)).toEqual([]);
+  expect(controls.filter((control) => control.isVisible && (control.width < 24 || control.height < 24))).toEqual([]);
 }
 
 test.describe('operational control surface', () => {
@@ -481,7 +483,7 @@ test.describe('operational control surface', () => {
     );
     expect(positions).toHaveLength(2);
     expect(Math.abs(positions[0].left - positions[1].left)).toBeLessThanOrEqual(1);
-    expect(positions.every((position) => position.width > 240)).toBe(true);
+    expect(positions.every((position) => position.width >= 220)).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 

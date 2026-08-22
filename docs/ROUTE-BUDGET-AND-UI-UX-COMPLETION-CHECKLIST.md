@@ -126,7 +126,7 @@ Mỗi finding phải ghi đủ:
 - [x] Headed `35/35` và control-surface `25/25` xác nhận không có horizontal overflow ngoài table viewport được phép cuộn.
 - [ ] Focus không bị sticky header/footer/table/action column che.
 - [x] Reports warning action và tab/dialog controls có keyboard path, focus/return regression trong control-surface gate.
-- [ ] Button/action tối thiểu 24×24 CSS px.
+- [x] Headed control-surface gate đo toàn bộ control nhìn thấy trên protected-route defaults: accessible name đầy đủ và bounding box tối thiểu `24×24` CSS px.
 - [x] Approval document rail giữ stable reserved geometry giữa loading và settled; Weekly grouped table giữ chiều cao qua pagination.
 - [x] UI measurement fixture khóa riêng Warehouse loading/empty/error/permission và không đánh đồng state.
 - [ ] Refresh giữ dữ liệu cũ, không trắng màn hình và không reload document.
@@ -142,10 +142,10 @@ Mỗi finding phải ghi đủ:
 - [ ] Câu dài được rút gọn nhưng giữ nguyên nghĩa nghiệp vụ.
 - [ ] Empty/error message trả lời: đây là gì, vì sao trống/lỗi, bước tiếp theo.
 - [ ] Tên hiển thị đứng trước mã; mã kỹ thuật không đứng một mình.
-- [ ] Số, tiền, phần trăm, ngày giờ dùng formatter tập trung và có đơn vị.
-- [ ] Status dùng vocabulary và tone tập trung; không dùng màu là tín hiệu duy nhất.
-- [ ] Accessible name không bị rút gọn đến mức mất nghĩa.
-- [ ] Copy regression test khóa các nhãn đã sửa.
+- [x] Formatter convergence khóa số lượng, tiền và ngày qua formatter tập trung; focused source contracts PASS.
+- [x] Status token contract khóa vocabulary/tone tập trung và text label; không dựa riêng vào màu.
+- [x] Headed control-surface scan xác nhận mọi visible button/action có accessible name không rỗng; dialog/tab names có focused regression.
+- [x] Copy/source regression khóa nhãn approval, report export, approval rules và Weekly Menu import đã reconcile.
 - [ ] Đã kiểm tra copy trong modal, table, tooltip, toast, error và mobile width.
 
 ## Gate 5 — Table và cột xử lý
@@ -153,7 +153,7 @@ Mỗi finding phải ghi đủ:
 - [x] Source inventory count-lock `50` table trên `54` presentation owner, không đếm lặp runtime instance.
 - [ ] Header căn cùng chiều với dữ liệu.
 - [ ] Text căn trái; số định lượng căn phải; không căn giữa tùy tiện.
-- [ ] Số dùng `tabular-nums`.
+- [x] Typography/table contracts khóa `tabular-nums` cho numeric presentation owners.
 - [ ] Status cell có min-width/height ổn định và không wrap sai.
 - [ ] Cột định danh giữ được tên trước mã.
 - [ ] Cột xử lý có width theo action label dài nhất.
@@ -170,15 +170,15 @@ Mỗi finding phải ghi đủ:
 - [ ] Dùng Chrome headed, persistent profile riêng do run tạo.
 - [ ] Vào URL ứng dụng thật, không chỉ mở tab trắng hoặc kiểm tra API riêng.
 - [ ] Mỗi run có run-id mới và manifest riêng.
-- [ ] Sau mỗi navigation/DOM change lấy locator/snapshot mới.
+- [x] Measurement/control harness lấy locator mới sau từng navigation, tab activation và DOM transition.
 - [ ] Lưu screenshot cuối run cho reviewer.
-- [ ] Lưu DOM/geometry JSON authoritative.
+- [x] Mỗi viewport ghi DOM/geometry interaction JSON authoritative.
 - [ ] Lưu request sau action và response status.
-- [ ] Lưu console/page error và failed request.
-- [ ] Lưu focus/keyboard evidence cho modal, table action và tabs.
+- [x] Interaction record lưu console/page error, failed/non-read request; expected 503 fixture được assert riêng trước khi bắt đầu zero-error record.
+- [x] Interaction record và control gate lưu focus/keyboard evidence cho modal, warning action và tabs.
 - [ ] Lưu CLS/long-task/performance record khi gate liên quan.
-- [ ] Đọc toàn bộ JSON và đối chiếu với verdict trước khi báo cáo.
-- [ ] Không dùng screenshot riêng làm oracle PASS/FAIL.
+- [x] Harness fail-closed khi interaction record có `GAP`/`NEEDS_EVIDENCE`; purchasing supplemental blank-tab đã được phát hiện từ JSON và sửa bằng explicit empty state.
+- [x] Verdict lấy từ DOM/geometry/request/focus records; screenshot không được dùng riêng làm oracle.
 - [ ] Không teardown process không do run hiện tại tạo.
 - [ ] Đăng ký hash artifact trong `docs/EVIDENCE-INDEX.md`.
 

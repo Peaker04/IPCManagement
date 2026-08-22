@@ -143,7 +143,14 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
   if (isLoading) {
     return <InlineAlert title="Đang tải nhu cầu mua bổ sung" variant="info">Đang đồng bộ yêu cầu bếp và đề xuất mua liên kết.</InlineAlert>;
   }
-  if (supplementalItems.length === 0) return null;
+  if (supplementalItems.length === 0) {
+    return (
+      <EmptyState
+        title="Chưa có nhu cầu mua bổ sung cần xử lý"
+        description="Kho chưa chuyển yêu cầu thiếu hàng nào sang Thu mua, hoặc các yêu cầu hiện tại đã được xử lý hết."
+      />
+    );
+  }
 
   return (
     <SectionPanel

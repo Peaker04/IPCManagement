@@ -139,6 +139,15 @@ describe('SupplementalPurchasingWorkbench', () => {
     }));
   });
 
+  it('renders an explicit empty state instead of an active blank tab', () => {
+    mocks.getSupplementalRequests.mockReturnValue(readyQuery({ ...supplementalPage(0), items: [] }));
+
+    render(<SupplementalPurchasingWorkbench week="2026-07-20" />);
+
+    expect(screen.getByText('Chưa có nhu cầu mua bổ sung cần xử lý')).toBeInTheDocument();
+    expect(screen.getByText(/Kho chưa chuyển yêu cầu thiếu hàng nào/)).toBeInTheDocument();
+  });
+
   it('renders query-level forbidden without offering a retry', () => {
     mocks.getPurchaseRequests.mockReturnValue(failedQuery(403));
 

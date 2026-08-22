@@ -589,8 +589,15 @@ async function collectVisibleTabRecords(
 
       if (!panelId) continue;
       const panel = page.locator(`#${panelId}`);
-      if (!await panel.isVisible().catch(() => false)) {
-        await recordNeedsEvidence(tabId, 'tab-panel-unavailable-after-activation', 'tab-panel-unmounted');
+      try {
+        await expect(panel).toBeVisible({ timeout: 2_000 });
+      } catch {
+        const diagnostic = await page.evaluate(({ tabId: activeTabId, panelId: activePanelId }) => JSON.stringify({
+          href: window.location.href,
+          selected: document.getElementById(activeTabId)?.getAttribute('aria-selected'),
+          panel: document.getElementById(activePanelId)?.getAttribute('style') ?? 'missing',
+        }), { tabId, panelId });
+        await recordNeedsEvidence(tabId, 'tab-panel-unavailable-after-activation', diagnostic);
         continue;
       }
       const nestedTablists = panel.locator('[role="tablist"]');
@@ -613,11 +620,12 @@ async function collectVisibleTabRecords(
 }
 
 async function expectNoAuditIssues(testName: string, issues: AuditIssue[], interactionRecords: InteractionRecord[] = []) {
+  const incompleteRecords = interactionRecords.filter(({ outcome }) => outcome !== 'PASS');
   writeAuditReport(`ui-audit-${testName}`, issues, interactionRecords);
   await test.info().attach('ui-audit-report', {
     body: JSON.stringify({
       schemaVersion: 1,
-      verdict: issues.length === 0 ? 'PASS' : 'FAIL',
+      verdict: issues.length === 0 && incompleteRecords.length === 0 ? 'PASS' : incompleteRecords.length > 0 ? 'NEEDS_EVIDENCE' : 'FAIL',
       issueCount: issues.length,
       issues,
       interactionRecords,
@@ -625,6 +633,7 @@ async function expectNoAuditIssues(testName: string, issues: AuditIssue[], inter
     contentType: 'application/json',
   });
   expect(issues).toEqual([]);
+  expect(incompleteRecords).toEqual([]);
 }
 
 test.describe('UI measurement audit', () => {
@@ -801,13 +810,15 @@ test.describe('UI measurement audit', () => {
           });
         });
         await login(page);
+        const expectedFailure = page.waitForResponse((response) => response.url().includes('/api/inventory-receipts?') && response.status() === 503);
         await page.goto(ROUTES.WAREHOUSE);
 
-        const signals = observePage(page);
         const lifecyclePanel = page.getByTestId('receipt-lifecycle-panel');
         await expect(lifecyclePanel).toBeVisible();
         await expect(lifecyclePanel).toHaveAttribute('aria-busy', 'false');
         await expect(page.getByText('Không tải được phiếu nhập cần xử lý', { exact: true })).toBeVisible();
+        expect((await expectedFailure).status()).toBe(503);
+        const signals = observePage(page);
         await expectNoAuditIssues(
           `${viewport.name}-warehouse-receipt-error`,
           await collectLayoutIssues(page, 'warehouse-receipt-error', viewport.name),

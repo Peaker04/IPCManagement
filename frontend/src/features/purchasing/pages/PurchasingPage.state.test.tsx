@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -159,7 +159,7 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.getByRole('heading', { name: 'Mua bổ sung cho bếp' })).toBeInTheDocument();
   });
 
-  it('opens the supplemental tab without keeping the day workbench in the page', () => {
+  it('opens the supplemental tab without letting workflow URL reconciliation clobber the selected view', async () => {
     mocks.getWorkbench.mockReturnValue(queryResult({ data: workbench, currentData: workbench, isSuccess: true }));
     renderPage();
 
@@ -167,6 +167,7 @@ describe('PurchasingPage query state boundary', () => {
 
     expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
     expect(screen.getByTestId('service-date-workbench').closest('[hidden]')).not.toBeNull();
-    expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true'));
+    expect(document.getElementById('purchasing-supplemental-panel')).not.toHaveAttribute('hidden');
   });
 });
