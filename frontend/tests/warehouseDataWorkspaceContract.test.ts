@@ -38,6 +38,20 @@ describe('Warehouse Data Workspace contract', () => {
     expect(() => validateWarehouseAiFinding(finding)).not.toThrow();
     expect(() => validateWarehouseAiFinding({ ...finding, verdict: 'PASS' })).toThrow();
     expect(() => validateWarehouseAiFinding({ ...finding, confidence: 0.79 })).toThrow();
+    for (const field of ['evidence', 'expected', 'actual', 'severity', 'owner', 'confidence'] as const) {
+      expect(() => validateWarehouseAiFinding({ ...finding, [field]: undefined })).toThrow();
+    }
     for (const verdict of ['NEEDS_EVIDENCE', 'UNRESOLVED']) expect(() => validateWarehouseAiFinding({ ...finding, verdict, confidence: 0.4 })).not.toThrow();
+  });
+
+  it('keeps Phase 27 vocabulary literal and Warehouse-local instead of a generic framework', () => {
+    const serialized = JSON.stringify(warehouseDataWorkspaceContract);
+    expect(serialized).toContain('Warehouse stock snapshot');
+    expect(serialized).not.toMatch(/Admin Data|Purchasing|DataWorkspacePage|renderer|registry|SAP UI5|Carbon component/i);
+    expect(warehouseDataWorkspaceContract.regions.map(({ owner }) => owner)).toEqual([
+      'WarehouseMovementPanel/SectionPanel/TableViewport/PaginationBar',
+      'WarehouseMovementPanel/SectionPanel/StockMovementTable',
+      'SplitWorkbench/DocumentRail',
+    ]);
   });
 });
