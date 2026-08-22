@@ -285,20 +285,24 @@ public partial class PurchaseHistoryReconciliationTests
         command.CommandText = """
             SELECT payload
             FROM (
-                SELECT CONCAT_WS('|',
+                SELECT CONVERT(CONCAT_WS('|',
                     'R', HEX(receiptId), receiptCode, DATE_FORMAT(receiptDate, '%Y-%m-%d'),
                     HEX(warehouseId), HEX(supplierId), COALESCE(HEX(purchaseRequestId), '<NULL>'),
-                    HEX(createdBy), DATE_FORMAT(createdAt, '%Y-%m-%dT%H:%i:%s.%f')) AS payload,
-                    CONCAT('R|', HEX(receiptId)) AS sortKey
+                    HEX(createdBy), DATE_FORMAT(createdAt, '%Y-%m-%dT%H:%i:%s.%f')) USING utf8mb4)
+                        COLLATE utf8mb4_unicode_ci AS payload,
+                    CONVERT(CONCAT('R|', HEX(receiptId)) USING utf8mb4)
+                        COLLATE utf8mb4_unicode_ci AS sortKey
                 FROM inventoryreceipts
                 UNION ALL
-                SELECT CONCAT_WS('|',
+                SELECT CONVERT(CONCAT_WS('|',
                     'L', HEX(receiptLineId), HEX(receiptId), COALESCE(HEX(purchaseRequestLineId), '<NULL>'),
                     HEX(ingredientId), HEX(unitId), CAST(quantity AS CHAR), CAST(unitPrice AS CHAR),
                     COALESCE(CAST(amount AS CHAR), '<NULL>'), COALESCE(lotNumber, '<NULL>'),
                     COALESCE(DATE_FORMAT(manufactureDate, '%Y-%m-%d'), '<NULL>'),
-                    COALESCE(DATE_FORMAT(expiredDate, '%Y-%m-%d'), '<NULL>')) AS payload,
-                    CONCAT('L|', HEX(receiptLineId)) AS sortKey
+                    COALESCE(DATE_FORMAT(expiredDate, '%Y-%m-%d'), '<NULL>')) USING utf8mb4)
+                        COLLATE utf8mb4_unicode_ci AS payload,
+                    CONVERT(CONCAT('L|', HEX(receiptLineId)) USING utf8mb4)
+                        COLLATE utf8mb4_unicode_ci AS sortKey
                 FROM inventoryreceiptlines
             ) AS receiptHistory
             ORDER BY sortKey;
