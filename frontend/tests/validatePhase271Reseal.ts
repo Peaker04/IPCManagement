@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,6 +14,23 @@ export const PAYLOAD_PATHS = [
   'frontend/tests/validatePhase271Reseal.ts',
 ].sort();
 export const MARKER_PATH = `${PHASE_DIR}/evidence/terminal-markers/27.1-01W-topology-validator.json`;
+export const WAVE_BASE = '47d13805196fd9ab51d0f08c5de44db7fa26a71b';
+export const PARTIAL_COMMIT = '235fbd499e0fb5e2f247ea0efa0bb92ea58eff32';
+export const PARTIAL_PATHS = [
+  `${PHASE_DIR}/evidence/readiness-dispositions.json`,
+  'frontend/tests/visual-routes.spec.ts',
+  'frontend/tests/visualReconciliationEvidence.test.ts',
+].sort();
+export const RECOVERY_PAYLOAD_PATHS = [
+  `${PHASE_DIR}/27.1-02R-SUMMARY.md`,
+  `${PHASE_DIR}/evidence/attestations/27.1-02R-validator-recovery-manifest.json`,
+  `${PHASE_DIR}/evidence/plan-results/27.1-02R-validator-recovery.json`,
+  'frontend/tests/validatePhase271Reseal.test.ts',
+  'frontend/tests/validatePhase271Reseal.ts',
+  'frontend/tests/validateVisualReconciliation.test.ts',
+  'frontend/tests/validateVisualReconciliation.ts',
+].sort();
+export const RECOVERY_MARKER_PATH = `${PHASE_DIR}/evidence/terminal-markers/27.1-02R-validator-recovery.json`;
 
 export type PlanningDeltaEntry = { commit: string; parent: string; paths: Array<{ status: 'A' | 'M'; path: string }> };
 export type PlanningDelta = { base: string; head: string; commits: PlanningDeltaEntry[] };
@@ -87,6 +104,46 @@ export function validateSeal(request: SealRequest) {
   return { payloadCommit: request.payloadCommit, markerCommit: request.markerCommit };
 }
 
+export type HistoricalEntryRequest = { cwd: string; markerPath: string; markerSha256: string; waveBaseCommit: string; partialCommit: string; partialSoleParent: string };
+export function validateHistoricalEntry(request: HistoricalEntryRequest) {
+  if (request.waveBaseCommit !== WAVE_BASE || request.partialCommit !== PARTIAL_COMMIT || request.partialSoleParent !== WAVE_BASE) throw new Error('historical commit pin mismatch');
+  const markerBytes = readFileSync(resolve(request.cwd, request.markerPath));
+  if (sha256(markerBytes) !== request.markerSha256) throw new Error('01W marker hash mismatch');
+  const marker = JSON.parse(markerBytes.toString()) as TopologyDocument;
+  validateTopologyDocument(marker, 'COMPLETE');
+  if (runGit(request.cwd, 'rev-parse', `${WAVE_BASE}^{commit}`) !== WAVE_BASE || soleParent(request.cwd, PARTIAL_COMMIT) !== WAVE_BASE) throw new Error('partial sole-parent topology mismatch');
+  if ((marker as TopologyDocument).payloadCommit !== runGit(request.cwd, 'rev-parse', `${WAVE_BASE}^`)) throw new Error('01W marker commit topology mismatch');
+  return { waveBaseCommit: WAVE_BASE, partialCommit: PARTIAL_COMMIT };
+}
+
+export function validateRecoveryInspect(cwd: string, matrix: any) {
+  if (soleParent(cwd, PARTIAL_COMMIT) !== WAVE_BASE) throw new Error('partial sole-parent topology mismatch');
+  exact(commitPaths(cwd, PARTIAL_COMMIT), PARTIAL_PATHS, 'partial commit');
+  const dispositionPath = PARTIAL_PATHS[0];
+  const dispositionBytes = objectAt(cwd, PARTIAL_COMMIT, dispositionPath, true) as Buffer;
+  const dispositions = JSON.parse(dispositionBytes.toString());
+  const selected = ['readiness-chef', 'readiness-purchasing'];
+  exact(Object.keys(dispositions.identitySets).sort(), selected, 'partial identities');
+  for (const setName of selected) for (const row of dispositions.identitySets[setName]) {
+    const matrixIdentity = matrix.identitySets[setName].find((x: any) => x.snapshotName.startsWith(row.identity));
+    if (!matrixIdentity) throw new Error(`identity substitution: ${row.identity}`);
+    const entry = matrix.entries.find((x: any) => x.snapshotName === matrixIdentity.snapshotName);
+    if (row.disposition !== 'fixture-drift' || row.owner !== 'frontend/tests/visual-routes.spec.ts' || !entry.permittedPaths['fixture-drift'].includes(row.owner)) throw new Error('owner borrowing or class/path laundering');
+    if (!Array.isArray(row.beforeSha256) || !Array.isArray(row.afterSha256) || row.beforeSha256.length !== 2 || row.afterSha256.length !== 2 || row.beforeSha256[0] !== row.beforeSha256[1] || row.afterSha256[0] !== row.afterSha256[1] || row.beforeSha256[0] === row.afterSha256[0]) throw new Error('packet hashes invalid');
+  }
+  return { schemaVersion: 1, phase: '27.1', planId: '27.1-02R', status: 'AUTHORIZED_PARTIAL', waveBaseCommit: WAVE_BASE, partialCommit: PARTIAL_COMMIT, partialParent: WAVE_BASE, identitySets: selected, members: PARTIAL_PATHS.map((path) => { const bytes = objectAt(cwd, PARTIAL_COMMIT, path, true) as Buffer; return { path, sha256: sha256(bytes), gitBlobId: runGit(cwd, 'rev-parse', `${PARTIAL_COMMIT}:${path}`) }; }) };
+}
+
+export function validateCloseout(cwd: string, head: string) {
+  const actual = runGit(cwd, 'rev-parse', head);
+  if (runGit(cwd, 'merge-base', WAVE_BASE, actual) !== WAVE_BASE) throw new Error('HEAD is not descendant');
+  if (runGit(cwd, 'status', '--porcelain')) throw new Error('dirty state rejected');
+  const commits = lines(runGit(cwd, 'rev-list', '--reverse', `${WAVE_BASE}..${actual}`));
+  if (commits[0] !== PARTIAL_COMMIT) throw new Error('partial commit must be first descendant');
+  for (const commit of commits) if (soleParent(cwd, commit) === '') throw new Error('merge rejected');
+  return commits.map((commit) => ({ commit, parent: soleParent(cwd, commit), paths: commitPaths(cwd, commit), pathHashes: commitPaths(cwd, commit).map((path) => ({ path, sha256: sha256(objectAt(cwd, commit, path, true) as Buffer) })) }));
+}
+
 export function validateDownstream(cwd: string, expectedLiveHead: string) {
   if (!validCommit(expectedLiveHead)) throw new Error('--expected-live-head required');
   const actual = runGit(cwd, 'rev-parse', 'HEAD');
@@ -99,6 +156,18 @@ function phasePath(value: string) { return value.startsWith('.planning/') ? valu
 function main() {
   const cwd = runGit(process.cwd(), 'rev-parse', '--show-toplevel'); const args = argsMap(process.argv.slice(2)); const stage = required(args, '--stage');
   if (stage === 'downstream') { console.log(`PASS downstream live ${validateDownstream(cwd, required(args, '--expected-live-head'))}`); return; }
+  if (stage === 'historical-entry') {
+    if (!args.has('--no-live-head')) throw new Error('--no-live-head required');
+    const result = validateHistoricalEntry({ cwd, markerPath: required(args, '--topology-authority-marker'), markerSha256: required(args, '--topology-authority-marker-sha256'), waveBaseCommit: required(args, '--wave-base-commit'), partialCommit: required(args, '--partial-commit'), partialSoleParent: required(args, '--require-partial-sole-parent') });
+    console.log(`PASS historical-entry ${result.partialCommit}`); return;
+  }
+  if (stage === 'recovery-inspect') {
+    for (const flag of ['--require-exact-member-content','--reject-owner-borrowing']) if (!args.has(flag)) throw new Error(`${flag} required`);
+    const matrix = JSON.parse(readFileSync(resolve(cwd, required(args, '--identity-manifest')), 'utf8'));
+    const result = validateRecoveryInspect(cwd, matrix); writeFileSync(resolve(cwd, required(args, '--output')), `${JSON.stringify(result, null, 2)}\n`);
+    console.log(`PASS recovery-inspect ${result.partialCommit}`); return;
+  }
+  if (stage === 'closeout') { console.log(`PASS closeout ${JSON.stringify(validateCloseout(cwd, required(args, '--current-head')))}`); return; }
   if (stage !== 'seal-01w') throw new Error(`unknown stage ${stage}`);
   if (args.has('--expected-live-head')) throw new Error('--expected-live-head forbidden in seal mode');
   for (const flag of ['--require-six-distinct-roots','--require-exact-payload-members','--require-immediate-parent','--require-marker-only-commit']) if (!args.has(flag)) throw new Error(`${flag} required`);

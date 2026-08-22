@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   PAYLOAD_PATHS,
@@ -10,6 +10,12 @@ import {
   validateDownstream,
   validateSeal,
   validateTopologyDocument,
+  validateHistoricalEntry,
+  validateRecoveryInspect,
+  PARTIAL_COMMIT,
+  PARTIAL_PATHS,
+  WAVE_BASE,
+  sha256,
   type SealRequest,
 } from './validatePhase271Reseal';
 
@@ -96,5 +102,39 @@ describe('Phase 27.1 01W disjoint topology validator', () => {
     for (const field of ['expectedLiveHead', 'selfCommit', 'selfHash']) {
       expect(() => validateTopologyDocument({ ...manifest, [field]: 'x' }, 'READY_TO_SEAL')).toThrow(/schema|forbidden/);
     }
+  });
+});
+
+const projectRoot = resolve(import.meta.dirname, '../..');
+const phaseEvidence = join(projectRoot, '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
+
+describe('Phase 27.1 02R immutable partial recovery', () => {
+  const markerPath = join(phaseEvidence, 'terminal-markers/27.1-01W-topology-validator.json');
+  const matrixPath = join(phaseEvidence, 'corrected-authorization-matrix.json');
+  it('validates historical entry from pinned objects without consulting live HEAD', () => {
+    const markerSha256 = sha256(readFileSync(markerPath));
+    expect(() => validateHistoricalEntry({ cwd: projectRoot, markerPath, markerSha256, waveBaseCommit: WAVE_BASE, partialCommit: PARTIAL_COMMIT, partialSoleParent: WAVE_BASE })).not.toThrow();
+  });
+  it.each([
+    ['marker hash substitution', { markerSha256: '0'.repeat(64) }],
+    ['marker commit substitution', { waveBaseCommit: '0'.repeat(40) }],
+    ['partial hash substitution', { partialCommit: '1'.repeat(40) }],
+    ['partial parent substitution', { partialSoleParent: '2'.repeat(40) }],
+  ])('rejects %s', (_label, patch) => {
+    const markerSha256 = sha256(readFileSync(markerPath));
+    expect(() => validateHistoricalEntry({ cwd: projectRoot, markerPath, markerSha256, waveBaseCommit: WAVE_BASE, partialCommit: PARTIAL_COMMIT, partialSoleParent: WAVE_BASE, ...patch })).toThrow();
+  });
+  it('authorizes exactly the immutable three-member Chef/Purchasing delta', () => {
+    const matrix = JSON.parse(readFileSync(matrixPath, 'utf8'));
+    const result = validateRecoveryInspect(projectRoot, matrix);
+    expect(result.members.map((member) => member.path)).toEqual(PARTIAL_PATHS);
+    expect(result.members).toHaveLength(3);
+  });
+  it('rejects identity borrowing and class laundering', () => {
+    const matrix = JSON.parse(readFileSync(matrixPath, 'utf8'));
+    const borrowed = structuredClone(matrix); borrowed.identitySets['readiness-chef'] = borrowed.identitySets['readiness-purchasing'];
+    expect(() => validateRecoveryInspect(projectRoot, borrowed)).toThrow(/identity substitution/);
+    const laundered = structuredClone(matrix); laundered.entries.find((x: any) => x.snapshotName === 'chef-dashboard-desktop-expected.png').permittedPaths['fixture-drift'] = ['frontend/tests/other.ts'];
+    expect(() => validateRecoveryInspect(projectRoot, laundered)).toThrow(/borrowing|laundering/);
   });
 });

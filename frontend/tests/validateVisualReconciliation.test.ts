@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, type AuthorizationMatrix } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, validateDownstreamReadiness, type AuthorizationMatrix, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -70,5 +70,33 @@ describe('Phase 27.1 corrected authorization matrix', () => {
     rejects((candidate) => { candidate.identitySets['readiness-chef'].push(clone(candidate.identitySets['readiness-purchasing'][0])); }, /disjoint/);
     rejects((candidate) => { candidate.identitySets['readiness-chef'].pop(); }, /exact union/);
     rejects((candidate) => { (candidate as unknown as Record<string, unknown>).ordinalAuthority = true; }, /unknown field/);
+  });
+});
+
+describe('Phase 27.1 downstream readiness closure', () => {
+  const cwd = resolve(import.meta.dirname, '../..');
+  const dispositions = load<ReadinessDisposition>('readiness-dispositions.json');
+  const recovery = load<any>('attestations/27.1-02R-validator-recovery-manifest.json');
+  const validate = (d = dispositions, r = recovery, m = matrix) => validateDownstreamReadiness(cwd, m, d, r);
+  it('recomputes identities, packets, locks, recovery pins, and Git sets', () => expect(validate()).toMatchObject({ selectedIdentitySets: ['readiness-chef', 'readiness-purchasing'] }));
+  it.each([
+    ['identity substitution', (d: any) => { d.identitySets['readiness-chef'][0].identity = 'purchasing-desktop'; }],
+    ['wrong disposition', (d: any) => { d.identitySets['readiness-chef'][0].disposition = 'production-regression'; }],
+    ['missing packet', (d: any) => { d.identitySets['readiness-chef'][0].beforeSha256.pop(); }],
+    ['unequal packet', (d: any) => { d.identitySets['readiness-chef'][0].afterSha256[1] = '0'.repeat(64); }],
+    ['stale invariant', (d: any) => { d.identitySets['readiness-chef'][0].afterSha256 = [...d.identitySets['readiness-chef'][0].beforeSha256]; }],
+    ['snapshot change', (d: any) => { d.locks.snapshotsChanged = true; }],
+    ['Purchasing unlock', (d: any) => { d.locks.purchasingRollout = 'UNLOCKED'; }],
+    ['wrong phase base', (d: any) => { d.gitReconciliation.phaseBaseCommit = '0'.repeat(40); }],
+    ['wrong wave base', (d: any) => { d.waveBaseCommit = '0'.repeat(40); }],
+    ['collapsed recovery root', (d: any) => { d.roots[1].commit = d.roots[0].commit; }],
+  ])('rejects %s', (_label, mutate) => { const d = clone(dispositions); mutate(d); expect(() => validate(d)).toThrow(); });
+  it('rejects omitted and forged partial member accounting', () => {
+    const omitted = clone(recovery); omitted.members.pop(); expect(() => validate(dispositions, omitted)).toThrow(/authority/);
+    const forged = clone(recovery); forged.members[0].sha256 = '0'.repeat(64); expect(() => validate(dispositions, forged)).toThrow(/pin/);
+  });
+  it('rejects matrix class/path borrowing', () => {
+    const m = clone(matrix); m.entries.find((x) => x.snapshotName === 'chef-dashboard-desktop-expected.png')!.permittedPaths['fixture-drift'] = ['frontend/tests/other.ts'];
+    expect(() => validate(dispositions, recovery, m)).toThrow(/class\/path/);
   });
 });
