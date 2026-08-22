@@ -120,9 +120,13 @@ jobs:
           mysql -h 127.0.0.1 -uroot -p123456789 ipcmanagement_ci < ./.artifacts/ipc-schema.sql
           mysql -h 127.0.0.1 -uroot -p123456789 -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
 
+      # Phase42AggregateVerificationTests điều khiển Windows PowerShell và evidence local
+      # không được commit; local Windows full gate vẫn chạy lớp này. Linux CI loại đúng
+      # harness đó, không loại production/API/integration tests.
       - name: Test backend
         run: >
           npm run test:be --
+          --filter "FullyQualifiedName!~Phase42AggregateVerificationTests"
           --logger "trx"
           --results-directory "${{ github.workspace }}/.artifacts/test-results/backend"
 
