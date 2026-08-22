@@ -1,17 +1,20 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { HeaderInfo } from '../components/header-info'
 import { OrderStatusBanner } from '../components/order-status-banner'
 import { useAppDispatch } from '@/lib/reduxHooks'
 import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { syncOrdersForShift } from '../coordinationSlice'
 import { useGetCoordinationOrdersQuery, useGetMealQuantityPlansQuery } from '@/api/coordinationApi'
 import { toApiShiftName } from '../types'
-import { ContextStrip, OperationalFrame, QueryErrorAlert, SectionPanel } from '@/components/common'
+import { ContextStrip } from '@/components/common/ContextStrip'
+import { OperationalFrame } from '@/components/common/OperationalFrame'
+import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
+import { SectionPanel } from '@/components/common/SectionPanel'
 import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
+const HeaderInfo = lazy(() => import('../components/header-info').then(({ HeaderInfo: component }) => ({ default: component })))
 const ActionToolbar = lazy(() => import('../components/action-toolbar').then(({ ActionToolbar: component }) => ({ default: component })))
 const OrderTable = lazy(() => import('../components/order-table').then(({ OrderTable: component }) => ({ default: component })))
 
@@ -71,7 +74,11 @@ export default function CoordinationPage() {
 
   return (
     <OperationalFrame
-      command={<HeaderInfo status={orderStatus} />}
+      command={(
+        <Suspense fallback={<div aria-hidden="true" className="min-h-9 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <HeaderInfo status={orderStatus} />
+        </Suspense>
+      )}
       context={
         <ContextStrip
           items={[
