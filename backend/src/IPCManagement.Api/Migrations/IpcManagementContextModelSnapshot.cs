@@ -4770,7 +4770,8 @@ namespace IPCManagement.Api.Migrations
                     b.HasKey("ServiceRunDecisionItemId")
                         .HasName("PRIMARY");
 
-                    b.HasIndex(new[] { "PlanId", "ShiftName", "Reason" }, "ixServiceRunDecisionItemsPlanShiftReason");
+                    b.HasIndex(new[] { "PlanId", "ShiftName", "Reason" }, "ixServiceRunDecisionItemsPlanShiftReason")
+                        .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0, 255 });
 
                     b.ToTable("servicerundecisionitems", (string)null);
                 });

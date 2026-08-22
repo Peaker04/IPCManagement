@@ -98,7 +98,8 @@ internal sealed class ServiceRunDecisionItemConfiguration : IEntityTypeConfigura
     {
         entity.HasKey(item => item.ServiceRunDecisionItemId).HasName("PRIMARY");
         entity.ToTable("servicerundecisionitems");
-        entity.HasIndex(item => new { item.PlanId, item.ShiftName, item.Reason }, "ixServiceRunDecisionItemsPlanShiftReason");
+        entity.HasIndex(item => new { item.PlanId, item.ShiftName, item.Reason }, "ixServiceRunDecisionItemsPlanShiftReason")
+            .HasPrefixLength(0, 0, 255);
         entity.Property(item => item.ServiceRunDecisionItemId).HasMaxLength(16).IsFixedLength().HasColumnName("serviceRunDecisionItemId");
         entity.Property(item => item.PlanId).HasMaxLength(16).IsFixedLength().HasColumnName("planId");
         entity.Property(item => item.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
