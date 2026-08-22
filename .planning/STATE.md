@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: complete
-stopped_at: Completed Phase 27 Plan 27-04
-last_updated: "2026-08-22T14:30:00.000Z"
+stopped_at: Phase 27 blocked pending Phase 27.1 reconciliation
+last_updated: "2026-08-22T14:53:33.789Z"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
   total_plans: 4
   completed_plans: 4
-  percent: 100
-current_phase_name: warehouse-data-workspace-contract-pilot
+  percent: 50
+current_phase_name: non-warehouse-visual-reconciliation
 last_activity: 2026-08-22 — Corrected Phase 27 current-stock fixture DTO labels and regenerated fresh headed evidence
 ---
 
@@ -21,7 +21,7 @@ last_activity: 2026-08-22 — Corrected Phase 27 current-stock fixture DTO label
 
 See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 27 — warehouse-data-workspace-contract-pilot
+**Current focus:** Phase 27.1 — non-warehouse-visual-reconciliation
 
 ## Current Status
 
@@ -33,9 +33,9 @@ See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
 
 ## Session Continuity
 
-**Last session:** 2026-08-22T14:30:00.000Z
-**Stopped at:** Completed Phase 27 Plan 27-04
-**Resume file:** None
+**Last session:** 2026-08-22T14:53:33.777Z
+**Stopped at:** Phase 27 blocked pending Phase 27.1 reconciliation
+**Resume file:** .planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c
 
 Next workflow: explicit Admin Data validation promotion decision; no promotion is automatic.
 

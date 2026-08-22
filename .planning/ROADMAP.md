@@ -2,13 +2,14 @@
 
 ## Phase overview
 
-- [x] **Phase 27: Warehouse Data Workspace contract pilot** — prove the contract architecture with the smallest useful collector, deterministic rules and evidence-backed Warehouse vertical slice.
+- [ ] **Phase 27: Warehouse Data Workspace contract pilot** — implementation and Warehouse-only verification are green, but final approval is blocked by Phase 27.1 reconciliation of 21 non-Warehouse visual failures.
+- [ ] **Phase 27.1: Non-Warehouse visual reconciliation** — explain and resolve all 21 broad visual failures before Phase 27 may close.
 
 Admin Data is the mandatory validation gate after Phase 27, but is not authorized for implementation yet. Purchasing remains research-locked until Admin Data validation is complete.
 
 ## Phase 27: Warehouse Data Workspace contract pilot
 
-**Status:** COMPLETE — verified 2026-08-22 (4/4 plans)
+**Status:** BLOCKED — 4/4 implementation plans complete; final approval withdrawn pending Phase 27.1
 
 **Goal:** Prove that IPCManagement can express, collect, evaluate and remediate a Data Workspace UI contract without introducing a broad UI framework or changing business behavior.
 
@@ -40,6 +41,7 @@ Admin Data is the mandatory validation gate after Phase 27, but is not authorize
 - Stop promotion if a proposed shared abstraction has only one route consumer.
 - Stop closeout on any `FAIL`, `GAP`, `NEEDS_EVIDENCE` or `UNRESOLVED` item inside declared pilot scope.
 - Do not update snapshots, baselines or thresholds to convert a failure into PASS.
+- Phase 27 cannot close while Phase 27.1 contains any unexplained or unresolved broad visual failure.
 
 ## Locked follow-on order
 
@@ -47,3 +49,25 @@ Admin Data is the mandatory validation gate after Phase 27, but is not authorize
 2. **Purchasing adoption — RESEARCH LOCKED:** may begin only after Admin Data validation and closure of the open Data Workspace/Workflow-boundary question in `.planning/research/questions.md`.
 
 No production implementation outside Warehouse is authorized by this roadmap revision.
+
+## Phase 27.1: Non-Warehouse visual reconciliation
+
+**Status:** PLANNING
+
+**Goal:** Explain, classify and resolve all 21 non-Warehouse failures in `frontend/tests/visual-routes.spec.ts` without laundering production regressions, weakening the visual oracle or broad-updating baselines.
+
+**Requirements:** VREC-01, VREC-02, VREC-03, VREC-04
+
+**Depends on:** Phase 27 implementation and evidence through Plan 27-04; this phase gates Phase 27 final approval rather than Admin Data promotion.
+
+### Success criteria
+
+1. Every one of the 21 failures has expected/actual/diff, deterministic route/state/viewport identity and an owner-level disposition.
+2. Production defects are fixed at the lowest demonstrated owner; stale baselines are updated only after semantic/DOM/geometry evidence proves current behavior is intended.
+3. No screenshot threshold, viewport, assertion, route fixture or comparison logic is weakened to manufacture PASS.
+4. The complete unchanged broad visual suite passes twice consecutively, followed by full frontend unit, lint, dependency-cruiser, production build and hygiene gates.
+5. Phase 27 final verification is rerun only after Phase 27.1 closes with zero unresolved item.
+
+Plans:
+
+- [ ] TBD — research, plan and validate the reconciliation before execution.
