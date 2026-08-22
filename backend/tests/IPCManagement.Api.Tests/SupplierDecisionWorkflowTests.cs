@@ -148,9 +148,9 @@ public partial class SupplierDecisionWorkflowTests
             FROM INFORMATION_SCHEMA.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'purchaseorders'
-              AND INDEX_NAME = 'ixPurchaseOrdersRequestSupplier'
+              AND INDEX_NAME = 'ixPurchaseOrdersCompatibility'
               AND NON_UNIQUE = 0;
-            """)).Should().Be(2);
+            """)).Should().Be(5);
     }
 
     [Fact]
@@ -189,14 +189,26 @@ public partial class SupplierDecisionWorkflowTests
             "SELECT COUNT(*) FROM purchaselinesupplierdecisions;"))
             .Should().Be(0, "the migration must not fabricate quote/receipt confirmation evidence");
 
+        await ExecuteNonQueryAsync(
+            database,
+            """
+            UPDATE purchaseorders
+            SET proposedDeliveryDate = '2026-07-22',
+                receivingWarehouseId = (SELECT warehouseId FROM warehouses LIMIT 1),
+                purchasingTerms = 'NET_30'
+            LIMIT 1;
+            """);
         var duplicateInsert = async () => await ExecuteNonQueryAsync(
             database,
             """
             INSERT INTO purchaseorders
-                (purchaseOrderId, purchaseOrderCode, purchaseRequestId, supplierId, orderDate, status, createdBy, createdAt, updatedAt)
+                (purchaseOrderId, purchaseOrderCode, purchaseRequestId, supplierId, proposedDeliveryDate,
+                 receivingWarehouseId, purchasingTerms, orderDate, status, createdBy, createdAt, updatedAt)
             SELECT UUID_TO_BIN(UUID()), CONCAT(purchaseOrderCode, '-DUP'), purchaseRequestId, supplierId,
+                   proposedDeliveryDate, receivingWarehouseId, purchasingTerms,
                    orderDate, status, createdBy, createdAt, updatedAt
             FROM purchaseorders
+            WHERE proposedDeliveryDate IS NOT NULL
             LIMIT 1;
             """);
         (await SchemaObjectCountAsync(database, "SELECT COUNT(*) FROM purchaseorders;"))
