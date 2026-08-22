@@ -4,9 +4,9 @@
   "planId": "27.1-03R",
   "status": "COMPLETE",
   "authority": "GENERAL_DOWNSTREAM_VALIDATOR",
-  "payloadCommit": "07f8cc085d13f7fec7982c56e128d70e5a359ffb",
-  "summary": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-03R-SUMMARY.md","sha256":"c141adc255c732c05e52e72a0b64946cb2c0b43085098d983b4e980e32d41a80"},
-  "payloadResult": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-03R.json","sha256":"4267a879fdf8239dfb723b9a63e48b3a6916a8f3b323d718fb74b95b4aed497e"},
+  "payloadCommit": "1a46da4bd3d491d60008b8189e7a42f9aafc50ea",
+  "summary": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-03R-SUMMARY.md","sha256":"38bf021a6774c7866412a809470408e202d20ed6a62ccdbbe868297d0c433fac"},
+  "payloadResult": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-03R.json","sha256":"266fc5ecffaadae28115b82a0b38ca9bb9d9991d2f6f29b49529b1735f1706dc"},
   "authorityRoots": [
     {"type":"ORIGINAL_01_SOURCE","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json","sha256":"b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02","commit":"c52c80f8186b985d07619a7ad0ed7abc0572675c"},
     {"type":"INVALID_01C_PROVENANCE","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01C-correction.json","sha256":"22f1e4ff032acb6b87eb7148049be1a1707cda7bbfa1d82a61a1b80333c0d0e0","commit":"ae129eaab0dde192f3dca17c7504b7b9aaef5d17","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
@@ -15,16 +15,16 @@
     {"type":"INVALID_01V_PROVENANCE","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01V-topology-validator.json","sha256":"a6365b003ef01289c8e4f896a2d02623df407d3e8100e23b433982e072fa42fc","commit":"8502ce701a4070f7be449681ffecbffc36b20056","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
     {"type":"SOLE_01W_TOPOLOGY_AUTHORITY","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01W-topology-validator.json","sha256":"e320de600790450c5a3129ea2f45497419966d1546a0ba220f5ae40c078e72c5","commit":"47d13805196fd9ab51d0f08c5de44db7fa26a71b"},
     {"type":"VALIDATOR_02R_RECOVERY_AUTHORITY","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02R-validator-recovery.json","sha256":"4a5b52008c84f778a550bb5dd25af3a52346fdf01ac56a7704c6bc224344547a","commit":"2594b390e74b971675315d41e01ed844c4b4b2df"},
-    {"type":"GENERAL_03R_VALIDATOR_PAYLOAD","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json","sha256":"d24eb6511ff8f6cc102c297068a6005043494cd37594f9b181ee48381dbee8d9","commit":"dedab0ad94eb06a70648f9c9154b4d81bd040f27"}
+    {"type":"GENERAL_03R_VALIDATOR_PAYLOAD","path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json","sha256":"0159e28c81829291ebaa4acd231946fa34749158db4c1c97461bc80a8ebb78c3","commit":"dedab0ade5637b09247c88209980839c3d5c699d"}
   ],
   "dependencies": [{"planId":"27.1-02","marker":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02.json","sha256":"d394df232b8263db151810403bddbdf616968fcc30427ca5b0086aaa198e2630","commit":"ee5aa663059611f42df92602544425c2ad1d1323"}],
-  "validationHashes": {"correctedAuthorizationMatrix":"f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407","manifest":"d24eb6511ff8f6cc102c297068a6005043494cd37594f9b181ee48381dbee8d9"},
+  "validationHashes": {"correctedAuthorizationMatrix":"f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407","manifest":"0159e28c81829291ebaa4acd231946fa34749158db4c1c97461bc80a8ebb78c3"},
   "blockers": [],
-  "manifest": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json","sha256":"d24eb6511ff8f6cc102c297068a6005043494cd37594f9b181ee48381dbee8d9"},
+  "manifest": {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json","sha256":"0159e28c81829291ebaa4acd231946fa34749158db4c1c97461bc80a8ebb78c3"},
   "validatorPins": [
-    {"path":"frontend/tests/validatePhase271PlanResult.ts","sha256":"a16e4c49cc351d0fb872aa92095b6f1317e9d76860b1bfdd3fb021f96720faf1","gitBlobId":"9073154164c378db74b779bad3fbf796fbbeed91"},
-    {"path":"frontend/tests/validatePhase271PlanResult.test.ts","sha256":"ace159a419ff8c156a9599bb0e705273e388a5ccd29db3dc02c7aeb87f7bd6a5","gitBlobId":"7d5848ddff1db4d36a90ae6a9d10c9bf59e06865"},
-    {"path":"frontend/tests/validateVisualReconciliation.ts","sha256":"62eedef3bf7a9791e4b5d4bf06defccc201c55fc9255e891c20f03b201141f8b","gitBlobId":"10e74f6630c480939cc62cdcc7ae9dbca6bc99ea"},
-    {"path":"frontend/tests/validateVisualReconciliation.test.ts","sha256":"89e11756f78c3b1c639577a77f7ed38156d09521fee418e8fb99206f37a627c2","gitBlobId":"ce07d1a4ab9aae8e05b5478930940afc08f0036f"}
+    {"path":"frontend/tests/validatePhase271PlanResult.ts","sha256":"fb08974c1b64bfca0f1672043a6a97fdd33d221fb0c9015148b97a44cf277823","gitBlobId":"b0cff7097bb66b44932d7e2068811ab4f9ac3ea9"},
+    {"path":"frontend/tests/validatePhase271PlanResult.test.ts","sha256":"e64c129dfc7d1e07cec734438604a9853b2a8ceda8b3f0292dbd3f4cf17d4079","gitBlobId":"76da7e833192bd2d90b56d5c6326c25982bd2fda"},
+    {"path":"frontend/tests/validateVisualReconciliation.ts","sha256":"ef5747a998821d8b28e93a499a1563b45aeda52c3f0c8d6fd6ab618844470f99","gitBlobId":"00786e35f8bd60811734d47f85847d8fbae3663d"},
+    {"path":"frontend/tests/validateVisualReconciliation.test.ts","sha256":"0be06f4d3e6a0f4da9c0a4224a0e9c205804ff67014d0403f6e819d182d2308b","gitBlobId":"db9ac2a4224259219d05b13473ce3454fb8dbc00"}
   ]
 }
