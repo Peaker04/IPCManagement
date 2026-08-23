@@ -1732,3 +1732,11 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
   secret/stub scan và diff hygiene pass. Runtime closeout 3040/8040 trên `ipc_lane7` đã teardown đúng owner.
 - Artifact authoritative/hash nằm duy nhất trong `docs/EVIDENCE-INDEX.md`; checklist canonical đã đóng Gate 0–6,
   Gate 7 chỉ còn xác nhận remote/CI sau push.
+
+## 23/08/2026 — Phase 27 / 27.1 closed
+
+- Reconciled all 21 non-Warehouse visual identities and passed the complete canonical visual suite twice.
+- Fresh Warehouse evidence and independent review resolved all three historical findings; corrected localized movement status/action rendering in `StockMovementTable`.
+- Final gates passed: frontend 170 files / 1078 tests, lint, dependency-cruiser, production build and strict architecture hygiene.
+- Closed VREC-01..04 and WHP-04. Admin Data implementation and Purchasing rollout remain locked.
+- Plan 07 payload `a3ed9219d51602637cf1b8997f90ac1bf14f6502`; marker `6377e54f3c51b36734648551d72eb5c557bc5b96`.

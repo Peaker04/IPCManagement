@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-14
+updated: 2026-08-23
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -29,6 +29,14 @@ lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 và ro
 Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được teardown đúng owner; remaining listener
 count là `0`. Các PID/runtime khác nếu còn mở nằm ngoài run này và không bị chạm. Runtime warehouse development
 `3020/8020` nếu còn mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
+
+## Phase 27 / 27.1 closeout · 23/08/2026
+
+- Phase 27.1 đã COMPLETE: 21/21 visual identities resolved; canonical broad visual suite PASS hai lần liên tiếp.
+- Final frontend gate: 170 files / 1078 tests, lint, dependency-cruiser 435 modules / 1638 dependencies, production build 2293 modules và strict architecture hygiene đều PASS.
+- Fresh read-only reviewer run `b11cc10b-948b-433e-bff6-b9e73b15ab2` xác nhận 3/3 historical Warehouse findings RESOLVED sau correction tại `StockMovementTable`.
+- Plan 07 payload `a3ed9219d51602637cf1b8997f90ac1bf14f6502`; COMPLETE marker `6377e54f3c51b36734648551d72eb5c557bc5b96`.
+- Phase 27 và WHP-04 đã close. Admin Data implementation và Purchasing rollout vẫn LOCKED; không tự động promote.
 
 ## Memory ngắn cho phiên tiếp theo
 
