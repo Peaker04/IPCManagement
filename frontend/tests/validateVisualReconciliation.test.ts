@@ -149,7 +149,8 @@ describe('Phase 27.1 downstream readiness closure', () => {
   const recovery = load<any>('attestations/27.1-02R-validator-recovery-manifest.json');
   const core = load<{rows:ClassAwareDisposition[]}>('core-route-dispositions.json');
   const secondary = load<{rows:ClassAwareDisposition[]}>('secondary-route-dispositions.json');
-  const cumulativeRows = [...core.rows, ...secondary.rows];
+  const purchasing = load<{rows:ClassAwareDisposition[]}>('purchasing-phase09-dispositions.json');
+  const cumulativeRows = [...core.rows, ...secondary.rows, ...purchasing.rows];
   const validate = (d = dispositions, r = recovery, m = matrix, rows=cumulativeRows) => validateDownstreamReadiness(cwd, m, d, r, rows);
   it('recomputes identities, packets, locks, recovery pins, and Git sets', () => expect(validate()).toMatchObject({ selectedIdentitySets: ['readiness-chef', 'readiness-purchasing'] }));
   it.each([
