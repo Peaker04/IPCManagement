@@ -123,12 +123,14 @@ Plans:
 - Do not mix Fiori/Carbon component libraries into the existing shadcn/Base UI stack.
 - Do not broaden visual baselines or weaken thresholds to manufacture PASS.
 
-**Plans:** 5 plans
+**Plans:** 7 plans
 
 Plans:
 
 - [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact.
 - [ ] 28-02-PLAN.md — group the 1,453 sealed FAIL findings, remediate Login, all seven Dashboard contrast rows, and selector-proven shared seams (wave 2; PUX only).
 - [ ] 28-03-PLAN.md — correct Purchasing and dynamically reconciled lowest feature-owner groups with atomic family gates (wave 3; PUX only).
-- [ ] 28-04-PLAN.md — close Admin residuals, preserve two exact headed roots, and run schema-validated fresh blind review (wave 4; PUX only).
-- [ ] 28-05-PLAN.md — after 28-04, enforce exactly one configured active Warehouse, retain IDs/FKs/stock/audit/API authorization/cache contracts, fail closed on zero/multiple, and remove routine false choice (wave 5; SWH only).
+- [ ] 28-04-PLAN.md — close Admin residuals, preserve immutable attempt-scoped two-run evidence, and enforce hash-pinned exact-bijection blind review (wave 4; PUX only).
+- [ ] 28-05-PLAN.md — add the warehouse active marker/index and observation-only configured exact-cardinality resolver; startup halts without flag repair (wave 5; SWH-02/SWH-03 only).
+- [ ] 28-06-PLAN.md — convert the complete backend DTO/validator/write/filter/lineage/selector/auth trust surface and regenerate compatibility contracts (wave 6; SWH-02/SWH-03 only).
+- [ ] 28-07-PLAN.md — replace routine warehouse choice with passive context, enforce zero/one/multiple UI gates, and close full frontend regression/static/build evidence (wave 7; SWH-01/SWH-02/SWH-03 only).
