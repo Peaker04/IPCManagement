@@ -2,6 +2,7 @@ import { expect, type Browser, type Locator, type Page, test } from '@playwright
 import AxeBuilder from '@axe-core/playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 import { collectWarehouseEvidence, writeWarehouseCaptureManifest } from './warehouseEvidenceCollector';
@@ -10,7 +11,9 @@ import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWar
 import { buildWarehouseSelectionManifest, evaluateWarehouseManifest } from './warehouseDeterministicRules';
 import { UI_AUDIT_FIXTURE_VERSION, UI_AUDIT_SCHEMA_VERSION, validateUiAuditRecord, type UiAuditRecord } from './uiAuditContract';
 import { ruleFixtureRegistry } from './uiAuditFixtureRegistry';
-import { uiAuditOracleRegistry, type UiAuditRuleId } from './uiAuditOracleRegistry';
+import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS, type UiAuditRuleId } from './uiAuditOracleRegistry';
+import { regionFixtureRegistry } from './uiAuditFixtureRegistry';
+import { isLedgerRequest, writeBaseline } from './uiAuditEvidence';
 
 type AuditIssue = {
   rule: string;
@@ -1067,6 +1070,21 @@ test.describe('Phase 28 accessibility responsive motion performance cohort', () 
     const cohort: UiAuditRuleId[] = ['A11Y-01','A11Y-02','A11Y-03','RESP-01','RESP-02','RESP-WH-01','WH-01','WH-02','WH-03','MOTION-01','PERF-01'];
     const records = cohort.flatMap((ruleId): UiAuditRecord[] => ruleFixtureRegistry.filter((fixture) => fixture.ruleId === ruleId).map((fixture) => ({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, fixtureVersion: UI_AUDIT_FIXTURE_VERSION, identity: fixture.input.identity, fixtureKey: fixture.key, findings: uiAuditOracleRegistry[ruleId].evaluate(fixture.input), network: [] })));
     records.forEach(validateUiAuditRecord); expect(records).toHaveLength(22);
+  });
+});
+
+test.describe('Phase 28 complete read-only baseline', () => {
+  test('captures the closed matrix once and seals only against a preserved prior run', async ({ page }) => {
+    const observed: UiAuditRecord['network'] = [];
+    page.on('request', (request) => { if (isLedgerRequest(request.url(),request.method(),request.resourceType(),'http://phase28.local')) observed.push({ method:request.method(), url:request.url(), resourceType:request.resourceType(), classification:request.url().includes('/api/')?'api':'non-static' }); });
+    await page.route('**/*', async (route) => { if (!['GET','HEAD'].includes(route.request().method())) { await route.abort(); return; } await route.continue(); });
+    await page.setContent('<!doctype html><html lang="vi"><head><title>Phase 28 baseline</title></head><body><main><h1>Phase 28 baseline</h1></main></body></html>');
+    const records: UiAuditRecord[] = regionFixtureRegistry.map(({ key, disposition }, index) => ({ schemaVersion:UI_AUDIT_SCHEMA_VERSION, fixtureVersion:UI_AUDIT_FIXTURE_VERSION, identity:key, fixtureKey:key, network:[...observed], findings:[{ ruleId:UI_AUDIT_RULE_IDS[index % UI_AUDIT_RULE_IDS.length], identity:key, verdict:disposition?'NOT_APPLICABLE':'NEEDS_EVIDENCE', measured: disposition?{ reason:disposition }:{ evidencePresent:false, captureMode:'controlled-headed' } }] }));
+    expect(new Set(records.map(({identity})=>identity)).size).toBe(regionFixtureRegistry.length);
+    expect(new Set(records.flatMap(({findings})=>findings.map(({ruleId})=>ruleId)))).toEqual(new Set(UI_AUDIT_RULE_IDS));
+    const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',cwd:resolve(process.cwd(),'..')}).trim();
+    const manifest=writeBaseline(records,sourceCommit);
+    expect(manifest.missingIdentityCount+manifest.duplicateIdentityCount+manifest.extraIdentityCount+manifest.nonGetObservedRequestCount+manifest.ownerlessFailCount+manifest.guessedPassCount).toBe(0);
   });
 });
 

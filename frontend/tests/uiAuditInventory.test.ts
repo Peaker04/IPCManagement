@@ -3,6 +3,7 @@ import { validateUiAuditFinding } from './uiAuditContract';
 import { expandUiAuditInventory, identityKey, parseProductionRouteSet, UI_AUDIT_ROUTES, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import { regionFixtureRegistry, ruleFixtureRegistry, validateUiAuditRegistries } from './uiAuditFixtureRegistry';
 import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS } from './uiAuditOracleRegistry';
+import { computeRunFingerprint, isLedgerRequest } from './uiAuditEvidence';
 
 describe('Phase 28 closed UI audit inventory', () => {
   it('matches exactly 13 AppRouter page routes and excludes the wildcard', () => {
@@ -18,6 +19,14 @@ describe('Phase 28 closed UI audit inventory', () => {
     const fixtures = ruleFixtureRegistry.filter(({ ruleId }) => ruleId === 'INV-01');
     expect(uiAuditOracleRegistry['INV-01'].evaluate(fixtures.find(({ kind }) => kind === 'known-clean')!.input)).toEqual([]);
     expect(uiAuditOracleRegistry['INV-01'].evaluate(fixtures.find(({ kind }) => kind === 'known-bad')!.input)).toMatchObject([{ ruleId: 'INV-01', verdict: 'FAIL' }]);
+  });
+  it('classifies every API and non-static request while excluding only same-origin static assets', () => {
+    expect(isLedgerRequest('http://phase28.local/assets/app.js','GET','script')).toBe(false);
+    expect(isLedgerRequest('http://phase28.local/api/users','GET','fetch')).toBe(true);
+    expect(isLedgerRequest('https://other.example/data','GET','fetch')).toBe(true);
+    expect(isLedgerRequest('http://phase28.local/assets/app.js','POST','script')).toBe(true);
+    expect(computeRunFingerprint('commit-a')).toBe(computeRunFingerprint('commit-a'));
+    expect(computeRunFingerprint('commit-a')).not.toBe(computeRunFingerprint('commit-b'));
   });
   it('fails closed for duplicate identities and incomplete verdict evidence', () => {
     const rows = expandUiAuditInventory(); expect(identityKey(rows[0])).toContain('|');
