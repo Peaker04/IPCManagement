@@ -7,7 +7,9 @@ import {
   needsProductionQueryEvidence,
   PRODUCTION_QUERY_ROUTES,
   PRODUCTION_QUERY_STATES,
+  REPORTS_QUERY_DISPOSITION_REASONS,
   registerDashboardQueryIdentity,
+  registerReportsQueryIdentity,
   registerMealOrdersQueryIdentity,
   registerProductionQueryMeasurement,
   summarizeProductionQueryIdentities,
@@ -48,6 +50,22 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
         [DASHBOARD_QUERY_DISPOSITION_REASONS.staleErrorNotRendered]: 14,
       },
     });
+  });
+
+  it('registers all 245 Reports identities and explicitly dispositions unsafe production states', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/reports').map(registerReportsQueryIdentity);
+    expect(rows).toHaveLength(245);
+    expect(new Set(rows.map(identityKey)).size).toBe(245);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 245,
+      measuredIdentityCount: 175,
+      unsupportedIdentityCount: 70,
+      needsEvidenceReasons: {
+        [REPORTS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 35,
+        [REPORTS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 35,
+      },
+    });
+    expect(() => registerReportsQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-reports/);
   });
 
   it('registers all 49 Meal Orders identities and explicitly dispositions unsafe production states', () => {

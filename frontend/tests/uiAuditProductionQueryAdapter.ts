@@ -64,6 +64,23 @@ export function needsProductionQueryEvidence(identity: ProductionQueryIdentity, 
   return { ...identity, disposition: { kind: 'needs-evidence', reason: normalizedReason } };
 }
 
+export const REPORTS_QUERY_DISPOSITION_REASONS = {
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: ReportsPage exposes no read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: ReportsPage cannot safely trigger a failed refetch while retaining populated cache without cache manipulation',
+} as const;
+
+/** Reports-only Phase 28 disposition for its five registered, endpoint-owned regions. */
+export function registerReportsQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/reports') throw new Error(`reports adapter received non-reports identity ${identityKey(identity)}`);
+  if (identity.state === 'refreshing') {
+    return needsProductionQueryEvidence(identity, REPORTS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  }
+  if (identity.state === 'partial-error-stale') {
+    return needsProductionQueryEvidence(identity, REPORTS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
+  }
+  return registerProductionQueryMeasurement(identity);
+}
+
 export const MEAL_ORDERS_QUERY_DISPOSITION_REASONS = {
   refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: CoordinationPage exposes no read-only refresh trigger after populated data',
   staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: CoordinationPage cannot safely trigger a failed refetch while retaining populated cache without a mutation or production-only cache control',
