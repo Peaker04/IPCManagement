@@ -1,7 +1,8 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveIdentitySetNames, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, validateSnapshotRecoveryManifest, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveClassAwareAuthority, resolveIdentitySetNames, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, validateSnapshotRecoveryManifest, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -101,6 +102,40 @@ describe('Phase 27.1 generic downstream authorization', () => {
   it('resolves only the closed recovery marker and rejects wrong paths/content',()=>{
     const cwd=resolve(import.meta.dirname,'../..'); expect(resolveRecoveryAuthority(cwd)).toMatchObject({path:expect.stringContaining('27.1-02R-validator-recovery.json'),partialCommit:'235fbd499e0fb5e2f247ea0efa0bb92ea58eff32'});
     expect(()=>resolveRecoveryAuthority(cwd,'other.json')).toThrow(/not allowlisted/);
+  });
+});
+
+describe('Phase 27.1 pre-work entry closure', () => {
+  const cwd = resolve(import.meta.dirname, '../..');
+  const script = resolve(import.meta.dirname, 'validateVisualReconciliation.ts');
+  const canonical = [
+    '--mode', 'pre-work-entry', '--predecessor-plan', '27.1-02', '--validator-authority', '27.1-03R',
+    '--general-validator-values-from', 'evidence/terminal-markers/27.1-03R-general-validator.json',
+    '--class-aware-values-from', 'evidence/terminal-markers/27.1-03S-snapshot-recovery.json',
+    '--require-class-aware-complete', '--require-exact-class-aware-marker-hash-commit',
+    '--require-class-aware-validator-test-pins', '--require-three-preserved-plan03-commits',
+    '--require-complete', '--require-exact-marker-hash-commit', '--require-four-validator-test-pins',
+    '--require-nine-distinct-roots', '--require-exact-predecessor',
+    '--identity-manifest', 'evidence/corrected-authorization-matrix.json', '--identity-sets', 'core-login-dashboard',
+    '--resolve-selected-classes', '--reject-legacy-entry-authority', '--emit-entry-context-json',
+  ];
+  const run = (args: string[]) => execFileSync(process.execPath, [script, ...args], { cwd, encoding: 'utf8' });
+
+  it('accepts only the exact COMPLETE 03S class-aware authority', () => {
+    expect(run(canonical)).toContain('"classAwareValidator"');
+    expect(resolveClassAwareAuthority(cwd)).toMatchObject({ commit: expect.stringMatching(/^4aab947f/), payloadCommit: 'ef030acec72a893fafe9449947074edcaa020d05' });
+  });
+
+  it.each([
+    ['legacy general-only entry', (args: string[]) => args.filter((value, index) => !['--class-aware-values-from', '--require-class-aware-complete', '--require-exact-class-aware-marker-hash-commit', '--require-class-aware-validator-test-pins', '--require-three-preserved-plan03-commits', '--require-nine-distinct-roots'].includes(value) && args[index - 1] !== '--class-aware-values-from')],
+    ['substituted marker', (args: string[]) => args.map((value) => value === 'evidence/terminal-markers/27.1-03S-snapshot-recovery.json' ? 'evidence/terminal-markers/27.1-03R-general-validator.json' : value)],
+    ['missing required flag', (args: string[]) => args.filter((value) => value !== '--require-class-aware-validator-test-pins')],
+    ['wrong predecessor', (args: string[]) => args.map((value) => value === '27.1-02' ? '27.1-03' : value)],
+    ['wrong identity set', (args: string[]) => args.map((value) => value === 'core-login-dashboard' ? 'core-meal-weekly' : value)],
+    ['raw forged authority', (args: string[]) => [...args, '--class-aware-marker-commit', '4aab947f']],
+    ['unknown class-aware flag', (args: string[]) => [...args, '--class-aware-bypass']],
+  ])('rejects %s before output', (_label, mutate) => {
+    expect(() => run(mutate([...canonical]))).toThrow();
   });
 });
 
