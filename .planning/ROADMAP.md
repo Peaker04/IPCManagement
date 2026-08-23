@@ -123,14 +123,22 @@ Plans:
 - Do not mix Fiori/Carbon component libraries into the existing shadcn/Base UI stack.
 - Do not broaden visual baselines or weaken thresholds to manufacture PASS.
 
-**Plans:** 7 plans
+**Plans:** 15 plans
 
 Plans:
 
-- [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact.
-- [ ] 28-02-PLAN.md — group the 1,453 sealed FAIL findings, remediate Login, all seven Dashboard contrast rows, and selector-proven shared seams (wave 2; PUX only).
-- [ ] 28-03-PLAN.md — correct Purchasing and dynamically reconciled lowest feature-owner groups with atomic family gates (wave 3; PUX only).
-- [ ] 28-04-PLAN.md — close Admin residuals, preserve immutable attempt-scoped two-run evidence, and enforce hash-pinned exact-bijection blind review (wave 4; PUX only).
-- [ ] 28-05-PLAN.md — add the warehouse active marker/index and observation-only configured exact-cardinality resolver; startup halts without flag repair (wave 5; SWH-02/SWH-03 only).
-- [ ] 28-06-PLAN.md — convert the complete backend DTO/validator/write/filter/lineage/selector/auth trust surface and regenerate compatibility contracts (wave 6; SWH-02/SWH-03 only).
-- [ ] 28-07-PLAN.md — replace routine warehouse choice with passive context, enforce zero/one/multiple UI gates, and close full frontend regression/static/build evidence (wave 7; SWH-01/SWH-02/SWH-03 only).
+- [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact (wave 1).
+- [ ] 28-02-PLAN.md — group the 1,453 sealed FAIL findings, remediate Login/Dashboard/shared seams, and freeze bounded attribution (wave 2; PUX only).
+- [ ] 28-03-PLAN.md — execute the Purchasing tracer and emit an exact residual-key handoff (wave 3; PUX only).
+- [ ] 28-04-PLAN.md — close non-admin route-owner families and emit the exact admin residual handoff (wave 4; PUX only).
+- [ ] 28-05-PLAN.md — close Admin Data overflow plus Approval Rules/Advanced Settings exact owners (wave 5; PUX only).
+- [ ] 28-06-PLAN.md — produce immutable two-run headed remediation evidence and exact reconciliation (wave 6; PUX only).
+- [ ] 28-07-PLAN.md — enforce hash-pinned exact-bijection fresh blind review (wave 7; PUX only; blocking review checkpoint).
+- [ ] 28-08-PLAN.md — add the observation-only configured exact-cardinality resolver and startup gate (wave 8; SWH-02/SWH-03).
+- [ ] 28-09-PLAN.md — add the MySQL nullable singleton discriminator unique index and separately authorized activation runbook (wave 9; SWH-02/SWH-03).
+- [ ] 28-10-PLAN.md — freeze one exact trust-surface inventory and convert DTO/validator/filter compatibility (wave 10; SWH-02/SWH-03).
+- [ ] 28-11-PLAN.md — convert inventory writes, source lineage, supplemental policy, and filters (wave 11; SWH-02/SWH-03).
+- [ ] 28-12-PLAN.md — convert purchasing, imports, singleton selector, and authorization compatibility (wave 12; SWH-02/SWH-03).
+- [ ] 28-13-PLAN.md — regenerate contracts and require exact one-disposition impact-map closure (wave 13; SWH-02/SWH-03).
+- [ ] 28-14-PLAN.md — replace frontend selection with passive exact-cardinality context and fail-closed commands (wave 14; SWH-01/SWH-02/SWH-03).
+- [ ] 28-15-PLAN.md — execute exact-three regression plus full static/build/docs closeout (wave 15; SWH-01/SWH-02/SWH-03).
