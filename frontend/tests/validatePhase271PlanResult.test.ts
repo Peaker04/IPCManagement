@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it } from 'vitest';
 import { GENERAL_VALIDATOR_VERSION, PLAN_SCHEMAS, validatePhase271PlanMarker, validatePhase271PlanResult, type Phase271PlanId } from './validatePhase271PlanResult';
 const hash='a'.repeat(64), commit='b'.repeat(40), root=(n:number)=>{ const pin=(n+1).toString(16); return {type:`ROOT_${n}`,path:`marker-${n}.json`,sha256:pin.repeat(64),commit:pin.repeat(40)}; };

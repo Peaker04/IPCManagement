@@ -6,7 +6,6 @@ import {
   parseFocusedCliArgs,
   resolveFocusedCliPaths,
   runFocusedPlaywright,
-  validateFocusedInput,
   verifyFocusedSeal,
   type FocusedLauncherDependencies,
 } from './runPhase271FocusedPlaywright'

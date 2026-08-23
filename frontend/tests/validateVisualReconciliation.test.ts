@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -148,9 +149,8 @@ describe('Phase 27.1 downstream readiness closure', () => {
   const dispositions = load<ReadinessDisposition>('readiness-dispositions.json');
   const recovery = load<any>('attestations/27.1-02R-validator-recovery-manifest.json');
   const core = load<{rows:ClassAwareDisposition[]}>('core-route-dispositions.json');
-  const secondary = load<{rows:ClassAwareDisposition[]}>('secondary-route-dispositions.json');
-  const purchasing = load<{rows:ClassAwareDisposition[]}>('purchasing-phase09-dispositions.json');
-  const cumulativeRows = [...core.rows, ...secondary.rows, ...purchasing.rows];
+  const final = load<{rows:ClassAwareDisposition[]}>('final-reconciliation.json');
+  const cumulativeRows = final.rows;
   const validate = (d = dispositions, r = recovery, m = matrix, rows=cumulativeRows) => validateDownstreamReadiness(cwd, m, d, r, rows);
   it('recomputes identities, packets, locks, recovery pins, and Git sets', () => expect(validate()).toMatchObject({ selectedIdentitySets: ['readiness-chef', 'readiness-purchasing'] }));
   it.each([

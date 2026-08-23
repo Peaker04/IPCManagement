@@ -32,7 +32,7 @@ export const buildPlaywrightArgv=(cli:string,input:LauncherInput,mode:'preflight
   if(input.outputRoot)argv.push(`--output=${input.outputRoot}`)
   return argv
 }
-const waitForHealth=async(url:string,child:ChildProcess)=>{for(let i=0;i<120;i++){if(child.exitCode!==null)throw new Error(`Vite exited ${child.exitCode}`);try{const r=await fetch(url);if(r.ok)return}catch{}await new Promise(r=>setTimeout(r,250))}throw new Error('Vite health timeout')}
+const waitForHealth=async(url:string,child:ChildProcess)=>{for(let i=0;i<120;i++){if(child.exitCode!==null)throw new Error(`Vite exited ${child.exitCode}`);try{const r=await fetch(url);if(r.ok)return}catch{/* retry health check */}await new Promise(r=>setTimeout(r,250))}throw new Error('Vite health timeout')}
 export async function runPhase271Playwright(raw:unknown,mode:'preflight'|'source'|'focused'){
   const input=validateLauncherInput(raw),cwd=path.resolve('frontend'),cli=resolveCliPaths(cwd),env={...process.env,...input.env,VITE_ENABLE_MOCK_LOGIN:'true'}
   const viteArgv=[cli.vite.path,'--host','127.0.0.1','--port','5173','--strictPort']
