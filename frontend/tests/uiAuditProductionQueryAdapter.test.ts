@@ -12,7 +12,9 @@ import {
   registerReportsQueryIdentity,
   registerMealOrdersQueryIdentity,
   registerProductionQueryMeasurement,
+  registerWeeklyMenuQueryIdentity,
   summarizeProductionQueryIdentities,
+  WEEKLY_MENU_QUERY_DISPOSITION_REASONS,
   validateProductionQueryIdentities,
 } from './uiAuditProductionQueryAdapter';
 
@@ -32,6 +34,8 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       applicableIdentityCount: 637,
       measuredIdentityCount: 0,
       unsupportedIdentityCount: 637,
+      notApplicableIdentityCount: 0,
+      needsEvidenceIdentityCount: 637,
       needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 637 },
     });
   });
@@ -44,6 +48,8 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       applicableIdentityCount: 98,
       measuredIdentityCount: 63,
       unsupportedIdentityCount: 35,
+      notApplicableIdentityCount: 0,
+      needsEvidenceIdentityCount: 35,
       needsEvidenceReasons: {
         [DASHBOARD_QUERY_DISPOSITION_REASONS.noResultsWithoutFilter]: 7,
         [DASHBOARD_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 14,
@@ -60,12 +66,32 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       applicableIdentityCount: 245,
       measuredIdentityCount: 175,
       unsupportedIdentityCount: 70,
+      notApplicableIdentityCount: 0,
+      needsEvidenceIdentityCount: 70,
       needsEvidenceReasons: {
         [REPORTS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 35,
         [REPORTS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 35,
       },
     });
     expect(() => registerReportsQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-reports/);
+  });
+
+  it('registers all 245 Weekly Menu identities with measured, inapplicable and unsafe states separated', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/weekly-menu').map(registerWeeklyMenuQueryIdentity);
+    expect(rows).toHaveLength(245);
+    expect(new Set(rows.map(identityKey)).size).toBe(245);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 245,
+      measuredIdentityCount: 91,
+      unsupportedIdentityCount: 154,
+      notApplicableIdentityCount: 112,
+      needsEvidenceIdentityCount: 42,
+      needsEvidenceReasons: {
+        [WEEKLY_MENU_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 21,
+        [WEEKLY_MENU_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 21,
+      },
+    });
+    expect(() => registerWeeklyMenuQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-weekly-menu/);
   });
 
   it('registers all 49 Meal Orders identities and explicitly dispositions unsafe production states', () => {
@@ -76,6 +102,8 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       applicableIdentityCount: 49,
       measuredIdentityCount: 35,
       unsupportedIdentityCount: 14,
+      notApplicableIdentityCount: 0,
+      needsEvidenceIdentityCount: 14,
       needsEvidenceReasons: {
         [MEAL_ORDERS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 7,
         [MEAL_ORDERS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 7,

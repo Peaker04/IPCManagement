@@ -7,6 +7,7 @@ export type ProductionQueryRoute = (typeof PRODUCTION_QUERY_ROUTES)[number];
 export type ProductionQueryState = (typeof PRODUCTION_QUERY_STATES)[number];
 export type ProductionQueryDisposition =
   | { kind: 'measure'; interception: 'deferred-read' | 'populated-read' | 'refresh-read' | 'empty-read' | 'filtered-read' | 'failed-read' | 'stale-then-failed-read' }
+  | { kind: 'not-applicable'; reason: string }
   | { kind: 'needs-evidence'; reason: string };
 
 const actors: Record<ProductionQueryRoute, string> = {
@@ -64,6 +65,12 @@ export function needsProductionQueryEvidence(identity: ProductionQueryIdentity, 
   return { ...identity, disposition: { kind: 'needs-evidence', reason: normalizedReason } };
 }
 
+export function productionQueryNotApplicable(identity: ProductionQueryIdentity, reason: string): ProductionQueryIdentity {
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) throw new Error(`NOT_APPLICABLE requires an identity-local reason for ${identityKey(identity)}`);
+  return { ...identity, disposition: { kind: 'not-applicable', reason: normalizedReason } };
+}
+
 export const REPORTS_QUERY_DISPOSITION_REASONS = {
   refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: ReportsPage exposes no read-only refresh trigger after populated data',
   staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: ReportsPage cannot safely trigger a failed refetch while retaining populated cache without cache manipulation',
@@ -78,6 +85,27 @@ export function registerReportsQueryIdentity(identity: ProductionQueryIdentity):
   if (identity.state === 'partial-error-stale') {
     return needsProductionQueryEvidence(identity, REPORTS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
   }
+  return registerProductionQueryMeasurement(identity);
+}
+
+export const WEEKLY_MENU_QUERY_DISPOSITION_REASONS = {
+  scheduleNoResultsWithoutFilter: 'NOT_APPLICABLE: weekly-schedule has no result filter, so no-results cannot differ from truly-empty',
+  demandNoResultsWithoutFilter: 'NOT_APPLICABLE: weekly-demand has no result filter; day selection changes business scope rather than filtering one result set',
+  localCostProjection: 'NOT_APPLICABLE: weekly-cost is a client projection of the committed menu and catalog, not an independently owned query region',
+  localDishMaterialsProjection: 'NOT_APPLICABLE: weekly-dish-materials is a client projection of the catalog and selected dish, not an independently owned query region',
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: WeeklyMenuPage exposes no identity-local read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: WeeklyMenuPage cannot safely create a failed refetch with retained data without cache manipulation',
+} as const;
+
+/** Weekly Menu-only Phase 28 disposition for the five exact inventory regions. */
+export function registerWeeklyMenuQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/weekly-menu') throw new Error(`weekly-menu adapter received non-weekly-menu identity ${identityKey(identity)}`);
+  if (identity.regionId === 'weekly-cost') return productionQueryNotApplicable(identity, WEEKLY_MENU_QUERY_DISPOSITION_REASONS.localCostProjection);
+  if (identity.regionId === 'weekly-dish-materials') return productionQueryNotApplicable(identity, WEEKLY_MENU_QUERY_DISPOSITION_REASONS.localDishMaterialsProjection);
+  if (identity.state === 'no-results' && identity.regionId === 'weekly-schedule') return productionQueryNotApplicable(identity, WEEKLY_MENU_QUERY_DISPOSITION_REASONS.scheduleNoResultsWithoutFilter);
+  if (identity.state === 'no-results' && identity.regionId === 'weekly-demand') return productionQueryNotApplicable(identity, WEEKLY_MENU_QUERY_DISPOSITION_REASONS.demandNoResultsWithoutFilter);
+  if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, WEEKLY_MENU_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, WEEKLY_MENU_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
   return registerProductionQueryMeasurement(identity);
 }
 
@@ -121,11 +149,13 @@ export function registerDashboardQueryIdentity(identity: ProductionQueryIdentity
 
 export function summarizeProductionQueryIdentities(rows: readonly ProductionQueryIdentity[]) {
   const measuredIdentityCount = rows.filter(({ disposition }) => disposition.kind === 'measure').length;
+  const notApplicableIdentityCount = rows.filter(({ disposition }) => disposition.kind === 'not-applicable').length;
+  const needsEvidenceIdentityCount = rows.filter(({ disposition }) => disposition.kind === 'needs-evidence').length;
   const needsEvidenceReasons = rows.reduce<Record<string, number>>((totals, { disposition }) => {
     if (disposition.kind === 'needs-evidence') totals[disposition.reason] = (totals[disposition.reason] ?? 0) + 1;
     return totals;
   }, {});
-  return { applicableIdentityCount: rows.length, measuredIdentityCount, unsupportedIdentityCount: rows.length - measuredIdentityCount, needsEvidenceReasons };
+  return { applicableIdentityCount: rows.length, measuredIdentityCount, unsupportedIdentityCount: rows.length - measuredIdentityCount, notApplicableIdentityCount, needsEvidenceIdentityCount, needsEvidenceReasons };
 }
 
 export function validateProductionQueryIdentities(rows: readonly ProductionQueryIdentity[]) {
@@ -135,7 +165,7 @@ export function validateProductionQueryIdentities(rows: readonly ProductionQuery
   const keys = rows.map(identityKey);
   if (new Set(keys).size !== keys.length) throw new Error('production query matrix contains duplicate six-part identities');
   for (const row of rows) {
-    if (row.disposition.kind === 'needs-evidence' && !row.disposition.reason.trim()) throw new Error(`missing NEEDS_EVIDENCE reason for ${identityKey(row)}`);
+    if (row.disposition.kind !== 'measure' && !row.disposition.reason.trim()) throw new Error(`missing disposition reason for ${identityKey(row)}`);
     if (row.state.startsWith('mutation-')) throw new Error(`mutation state escaped read-only adapter: ${identityKey(row)}`);
   }
 }
