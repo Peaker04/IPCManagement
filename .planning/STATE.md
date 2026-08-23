@@ -2,61 +2,55 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: complete
-stopped_at: Phase 27 blocked pending Phase 27.1 reconciliation
-last_updated: "2026-08-22T14:53:33.789Z"
+status: active
+stopped_at: Phase 28 standards research and source inventory complete
+last_updated: "2026-08-23T04:10:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 50
-current_phase_name: non-warehouse-visual-reconciliation
-last_activity: 2026-08-22 — Corrected Phase 27 current-stock fixture DTO labels and regenerated fresh headed evidence
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 20
+  completed_plans: 20
+  percent: 67
+current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-presentation
+last_activity: 2026-08-23 — Opened Phase 28 from explicit project-wide promotion and captured standards/source research
 ---
 
 # Project State
 
 ## Project Reference
 
-See `.planning/PROJECT.md` and `.planning/ROADMAP.md`.
+See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 27.1 — non-warehouse-visual-reconciliation
+**Current focus:** Phase 28 — project-wide UI/UX contract rollout and single-warehouse presentation
 
 ## Current Status
 
-- Phase 27 is complete (4/4 plans) with bounded Warehouse-only verification.
-- Warehouse alone opts into the measured 1366px SplitWorkbench rail; Approval and Chef defaults remain unchanged.
-- Visual harness time is fixed to local noon on `PHASE09_DATE`; current MainLayout collapsed/expanded breakpoints are machine-proven without production edits.
-- Exactly six Warehouse baselines are accepted; two consecutive unchanged visual runs passed 10/10 and the full ordered frontend gate is green.
-- Admin Data requires an explicit promotion decision; Purchasing remains research-locked.
+- Phase 27 and Phase 27.1 are COMPLETE; their evidence architecture is the foundation, not the final project-wide UI outcome.
+- Kỳ explicitly authorized whole-web research, audit and evidence-backed presentation corrections on 23/08/2026.
+- Standards research and source inventory are captured in the Phase 28 directory.
+- No Phase 28 production edit is authorized until the deterministic audit contract and read-only baseline identify exact owners.
+- Business truth: one operational warehouse stores all materials. UI should remove false choice/repetition while retaining warehouse IDs and server enforcement.
 
 ## Session Continuity
 
-**Last session:** 2026-08-22T14:53:33.777Z
-**Stopped at:** Phase 27 blocked pending Phase 27.1 reconciliation
-**Resume file:** .planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c
+**Stopped at:** Phase 28 research/source inventory complete
+**Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: explicit Admin Data validation promotion decision; no promotion is automatic.
-
-## Performance Metrics
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 27 P01 | 8m | 2 tasks | 5 files |
-| Phase 27 P02 | 20min | 3 tasks | 25 files |
-| Phase 27 P03 | 12min | 2 tasks | 8 files |
-| Phase 27 P04 | 9min | 3 tasks | 10 files |
+Next workflow: create Phase 28 SPEC/CONTEXT/UI-SPEC, extend the existing measurement harness, then run a read-only whole-web baseline before implementation planning.
 
 ## Decisions
 
-- [Phase ?]: Keep schema-v1 UI audit reports unchanged and give Warehouse captures independent schemaVersion 2.
-- [Phase ?]: Use the existing audit route/login/runtime-signal seam and installed Playwright AI ARIA snapshot API.
-- [Phase ?]: The genuine Phase 27 baseline reviewer is e6804529-8bd5-48a6-9246-fc667e0ac803 / phase-27-baseline-review; wrapper rejection does not invalidate its unchanged JSON findings.
-- [Phase ?]: The three accepted AI FAIL findings are Plan 27-03 authorization inputs, not a closeout PASS.
-- [Phase ?]: Phase 27 Plan 03: Warehouse alone uses the measured SplitWorkbench wide-rail opt-in; shared defaults remain unchanged.
-- [Phase ?]: Phase 27 Plan 03: technical placeholder output was corrected at the evidence DTO fixture, not production presentation.
+- Phase 27 is a bounded pilot and evidence foundation; Phase 28 owns whole-web rollout.
+- Use existing shadcn/Base UI and shared owners; Fiori/Carbon/Polaris are references only.
+- Use one audit harness; deterministic rules precede fresh AI review.
+- Prefer token → primitive → formatter/hook → layout → page fixes.
+- Keep one operational warehouse passive in routine UI; never erase technical identity or authorization boundaries.
+
+### Roadmap Evolution
+
+- Phase 28 added: Project-wide UI/UX contract rollout and single-warehouse presentation.
 
 ### Blockers
 
-None for Phase 27. Admin Data and Purchasing remain governance-locked pending their explicit follow-on decisions.
+- Authoritative external links were identified but not live-fetched in the research runner; link validation remains required before freezing new normative wording.
+- Static source inventory is not yet an exhaustive AST census of every local JSX container and typography/spacing literal.

@@ -4,8 +4,9 @@
 
 - [x] **Phase 27: Warehouse Data Workspace contract pilot** — complete; fresh Warehouse verification and reviewer reconciliation pass.
 - [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
+- [ ] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
 
-Admin Data is the mandatory validation gate after Phase 27, but is not authorized for implementation yet. Purchasing remains research-locked until Admin Data validation is complete.
+Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
 ## Phase 27: Warehouse Data Workspace contract pilot
 
@@ -43,16 +44,13 @@ Admin Data is the mandatory validation gate after Phase 27, but is not authorize
 - Do not update snapshots, baselines or thresholds to convert a failure into PASS.
 - Phase 27 cannot close while Phase 27.1 contains any unexplained or unresolved broad visual failure.
 
-## Locked follow-on order
+## Follow-on promotion decision
 
-1. **Admin Data validation — LOCKED:** may begin only after Phase 27 verification and explicit promotion decision. Its purpose is to falsify Warehouse-specific assumptions.
-2. **Purchasing adoption — RESEARCH LOCKED:** may begin only after Admin Data validation and closure of the open Data Workspace/Workflow-boundary question in `.planning/research/questions.md`.
-
-No production implementation outside Warehouse is authorized by this roadmap revision.
+The prior Admin Data/Purchasing governance locks were released by Kỳ’s explicit whole-web promotion on 23/08/2026. Phase 28 may audit both routes and implement presentation corrections only when the whole-web baseline identifies an exact owner and acceptance oracle. This does not authorize business workflow, API, permission, cache, schema or data-grain changes.
 
 ## Phase 27.1: Non-Warehouse visual reconciliation
 
-**Status:** PLANNED — Plans 01 through 03S complete; pre-work recovery Plan 03T is the prerequisite for Plans 03–07 across 17 serialized waves
+**Status:** COMPLETE — all 16 plans and final repeated broad-suite verification pass
 
 **Goal:** Explain, classify and resolve all 21 non-Warehouse failures in `frontend/tests/visual-routes.spec.ts` without laundering production regressions, weakening the visual oracle or broad-updating baselines.
 
@@ -88,3 +86,44 @@ Plans:
 - [x] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines under 03T pre-work and 03S class-aware authority (wave 15).
 - [x] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock and sealed pre-work/class-aware authorities (wave 16).
 - [x] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout under ten-root pre-work authority (wave 17).
+
+## Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation
+
+**Status:** RESEARCHING — source inventory and standards brief captured; deterministic audit contract pending
+
+**Goal:** Use the Phase 27 evidence architecture to audit and remediate the whole web application’s information hierarchy, typography, spacing, cards/data containers, tables, responsive behavior and accessibility. Present the real single operational warehouse without false choices or repeated scope while preserving warehouse identity in API, authorization, audit and data-integrity contracts.
+
+**Requirements:** PUX-01, PUX-02, PUX-03, PUX-04, PUX-05, PUX-06, SWH-01, SWH-02, SWH-03
+
+**Depends on:** Phase 27 and Phase 27.1 COMPLETE
+
+### Required sequence
+
+1. Inventory every protected/public route, visible state, table, modal, card/container and shared primitive.
+2. Convert authoritative guidance into IPCManagement-local, machine-readable expected values; keep non-deterministic hierarchy/grouping findings in fresh read-only review.
+3. Extend the existing measurement harness instead of creating a second audit system.
+4. Run a read-only whole-web baseline and classify every finding by exact route/state/viewport and lowest owner.
+5. Implement at most three waves: foundation/tokens, shared UI seams, then route rollout and verification.
+6. Verify focused contracts, full unit/static/build gates, headed browser state coverage and fresh independent review.
+
+### Success criteria
+
+1. Every application route has a declared work object, information order, heading/region contract and responsive behavior.
+2. Typography and spacing use a finite local token scale; arbitrary route-local recipes are eliminated or explicitly justified.
+3. Every card/data container has one purpose and accessible name; nested/decorative containers are removed where evidence identifies them.
+4. Every operational table has semantic labeling, type-correct alignment, bounded overflow, deliberate column priority and complete loading/empty/error/stale behavior.
+5. The single operational warehouse is shown once as passive context; no false warehouse choice remains in routine UI, while IDs and server enforcement remain intact.
+6. No public API, permission, cache identity, database grain or business transition changes as a side effect of presentation rollout.
+
+### Stop conditions
+
+- Do not treat a screenshot or AI taste judgment as an implementation oracle.
+- Do not remove warehouse IDs or selectors unless runtime evidence proves exactly one authorized option and the server remains authoritative.
+- Do not mix Fiori/Carbon component libraries into the existing shadcn/Base UI stack.
+- Do not broaden visual baselines or weaken thresholds to manufacture PASS.
+
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD — complete specification, discussion, UI contract and audit before `/gsd-plan-phase 28`.

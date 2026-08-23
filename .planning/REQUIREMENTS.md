@@ -26,11 +26,20 @@
 - [x] **VREC-03:** Visual thresholds, viewport matrices, assertions, route fixtures and comparison logic remain unchanged unless a separately proven harness defect requires a stricter deterministic replacement.
 - [x] **VREC-04:** The complete broad visual suite passes twice consecutively before full frontend unit, lint, dependency-cruiser, production build and hygiene gates run green.
 
-## Promotion gates
+## Project-wide UI/UX rollout
 
-- [ ] **VAL-01:** Admin Data validates the Warehouse contract without a Warehouse-specific exception or a prebuilt broad framework.
-- [ ] **VAL-02:** A rule, token or shared component contract is promoted only when Warehouse and Admin Data demonstrate the same owner-level need.
-- [ ] **VAL-03:** Purchasing remains deferred until Admin Data validation is complete and the open Data Workspace-versus-Workflow research question is resolved.
+- [ ] **PUX-01:** Every public/protected route and selected state has an exact work object, information hierarchy, one-H1/region contract, actor, viewport and lowest owner recorded before production edits.
+- [ ] **PUX-02:** The existing Phase 27 measurement harness detects machine-decidable typography, spacing, container, table, responsive and accessibility failures from explicit local expected values; no parallel audit framework is introduced.
+- [ ] **PUX-03:** Typography and spacing converge on the existing semantic roles and local token scale; route-local literals or recipes require an evidence-backed exception.
+- [ ] **PUX-04:** Cards and data containers have one coherent purpose, accessible names and deliberate nesting; tables have semantic labels, type-correct alignment, bounded overflow, column priority and complete query states.
+- [ ] **PUX-05:** Findings are grouped and fixed by shared root cause in at most three implementation waves: foundation/tokens, shared seams, and route rollout/verification.
+- [ ] **PUX-06:** Full unit, lint, dependency, production build, architecture/hygiene, headed browser and fresh independent review gates pass without weaker visual thresholds or broad baseline updates.
+
+## Single operational warehouse presentation
+
+- [ ] **SWH-01:** Routine UI presents one operational warehouse as passive context once and removes false selection, repeated warehouse labels and meaningless warehouse columns/filters when runtime authorization exposes exactly one option.
+- [ ] **SWH-02:** Warehouse identity remains present in API payloads, authorization, audit events, deep links/exports where required, and database/data-grain contracts; client presentation never weakens server enforcement.
+- [ ] **SWH-03:** Harness coverage proves zero warehouse blocks safely, one warehouse removes false choice, and unexpected multiple authorized warehouses fail closed or expose an explicit selector rather than silently merging data.
 
 ## Out of scope for the Warehouse phase
 
@@ -49,5 +58,5 @@
 | WHP-01..03 | 27 | Complete |
 | WHP-04 | 27 | Complete |
 | VREC-01..04 | 27.1 | Complete |
-| VAL-01..02 | Deferred until Warehouse closeout | Locked |
-| VAL-03 | Open research gate | Locked |
+| PUX-01..06 | 28 | Researching |
+| SWH-01..03 | 28 | Researching |
