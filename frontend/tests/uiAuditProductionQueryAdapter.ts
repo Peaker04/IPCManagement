@@ -64,6 +64,23 @@ export function needsProductionQueryEvidence(identity: ProductionQueryIdentity, 
   return { ...identity, disposition: { kind: 'needs-evidence', reason: normalizedReason } };
 }
 
+export const MEAL_ORDERS_QUERY_DISPOSITION_REASONS = {
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: CoordinationPage exposes no read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: CoordinationPage cannot safely trigger a failed refetch while retaining populated cache without a mutation or production-only cache control',
+} as const;
+
+/** Meal Orders-only Phase 28 disposition. The five measurable states use the real CoordinationPage and OrderTable. */
+export function registerMealOrdersQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/meal-orders') throw new Error(`meal-orders adapter received non-meal-orders identity ${identityKey(identity)}`);
+  if (identity.state === 'refreshing') {
+    return needsProductionQueryEvidence(identity, MEAL_ORDERS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  }
+  if (identity.state === 'partial-error-stale') {
+    return needsProductionQueryEvidence(identity, MEAL_ORDERS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
+  }
+  return registerProductionQueryMeasurement(identity);
+}
+
 export const DASHBOARD_QUERY_DISPOSITION_REASONS = {
   noResultsWithoutFilter: 'NOT_APPLICABLE: dashboard-shift-status has no filter UI, so no-results cannot differ from truly-empty',
   refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: Dashboard exposes no read-only refresh trigger that can create an isFetching state from populated cache',

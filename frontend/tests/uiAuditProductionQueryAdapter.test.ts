@@ -3,10 +3,12 @@ import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import {
   DASHBOARD_QUERY_DISPOSITION_REASONS,
   expandProductionQueryIdentities,
+  MEAL_ORDERS_QUERY_DISPOSITION_REASONS,
   needsProductionQueryEvidence,
   PRODUCTION_QUERY_ROUTES,
   PRODUCTION_QUERY_STATES,
   registerDashboardQueryIdentity,
+  registerMealOrdersQueryIdentity,
   registerProductionQueryMeasurement,
   summarizeProductionQueryIdentities,
   validateProductionQueryIdentities,
@@ -46,6 +48,22 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
         [DASHBOARD_QUERY_DISPOSITION_REASONS.staleErrorNotRendered]: 14,
       },
     });
+  });
+
+  it('registers all 49 Meal Orders identities and explicitly dispositions unsafe production states', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/meal-orders').map(registerMealOrdersQueryIdentity);
+    expect(rows).toHaveLength(49);
+    expect(new Set(rows.map(identityKey)).size).toBe(49);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 49,
+      measuredIdentityCount: 35,
+      unsupportedIdentityCount: 14,
+      needsEvidenceReasons: {
+        [MEAL_ORDERS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 7,
+        [MEAL_ORDERS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 7,
+      },
+    });
+    expect(() => registerMealOrdersQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-meal-orders/);
   });
 
   it('keeps the adapter read-only and requires an explicit reason for an unmeasurable identity', () => {
