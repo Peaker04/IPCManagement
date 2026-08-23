@@ -2,18 +2,17 @@ import { expect, type Browser, type Locator, type Page, test } from '@playwright
 import AxeBuilder from '@axe-core/playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 import { collectWarehouseEvidence, writeWarehouseCaptureManifest } from './warehouseEvidenceCollector';
 import { currentStockRows, mixedEmptyFixture, noWarehouseReadActor, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
 import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCaptureManifest, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture, type WarehouseCaptureManifest, type WarehouseScenario } from './warehouseDataWorkspaceContract';
 import { buildWarehouseSelectionManifest, evaluateWarehouseManifest } from './warehouseDeterministicRules';
-import { UI_AUDIT_FIXTURE_VERSION, UI_AUDIT_SCHEMA_VERSION, validateUiAuditRecord, type UiAuditRecord } from './uiAuditContract';
+import { routeMeasuredFinding, UI_AUDIT_FIXTURE_VERSION, UI_AUDIT_SCHEMA_VERSION, validateUiAuditRecord, type UiAuditRecord } from './uiAuditContract';
 import { ruleFixtureRegistry } from './uiAuditFixtureRegistry';
-import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS, type UiAuditRuleId } from './uiAuditOracleRegistry';
-import { regionFixtureRegistry } from './uiAuditFixtureRegistry';
-import { isLedgerRequest, writeBaseline } from './uiAuditEvidence';
+import { uiAuditOracleRegistry, type UiAuditRuleId } from './uiAuditOracleRegistry';
+import { isLedgerRequest } from './uiAuditEvidence';
+import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 
 type AuditIssue = {
   rule: string;
@@ -1073,18 +1072,78 @@ test.describe('Phase 28 accessibility responsive motion performance cohort', () 
   });
 });
 
-test.describe('Phase 28 complete read-only baseline', () => {
-  test('captures the closed matrix once and seals only against a preserved prior run', async ({ page }) => {
+test.describe('Phase 28 login production-route baseline bridge', () => {
+  test('measures LoginPage populated state across the exact audit viewport matrix', async ({ page }) => {
     const observed: UiAuditRecord['network'] = [];
-    page.on('request', (request) => { if (isLedgerRequest(request.url(),request.method(),request.resourceType(),'http://phase28.local')) observed.push({ method:request.method(), url:request.url(), resourceType:request.resourceType(), classification:request.url().includes('/api/')?'api':'non-static' }); });
-    await page.route('**/*', async (route) => { if (!['GET','HEAD'].includes(route.request().method())) { await route.abort(); return; } await route.continue(); });
-    await page.setContent('<!doctype html><html lang="vi"><head><title>Phase 28 baseline</title></head><body><main><h1>Phase 28 baseline</h1></main></body></html>');
-    const records: UiAuditRecord[] = regionFixtureRegistry.map(({ key, disposition }, index) => ({ schemaVersion:UI_AUDIT_SCHEMA_VERSION, fixtureVersion:UI_AUDIT_FIXTURE_VERSION, identity:key, fixtureKey:key, network:[...observed], findings:[{ ruleId:UI_AUDIT_RULE_IDS[index % UI_AUDIT_RULE_IDS.length], identity:key, verdict:disposition?'NOT_APPLICABLE':'NEEDS_EVIDENCE', measured: disposition?{ reason:disposition }:{ evidencePresent:false, captureMode:'controlled-headed' } }] }));
-    expect(new Set(records.map(({identity})=>identity)).size).toBe(regionFixtureRegistry.length);
-    expect(new Set(records.flatMap(({findings})=>findings.map(({ruleId})=>ruleId)))).toEqual(new Set(UI_AUDIT_RULE_IDS));
-    const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',cwd:resolve(process.cwd(),'..')}).trim();
-    const manifest=writeBaseline(records,sourceCommit);
-    expect(manifest.missingIdentityCount+manifest.duplicateIdentityCount+manifest.extraIdentityCount+manifest.nonGetObservedRequestCount+manifest.ownerlessFailCount+manifest.guessedPassCount).toBe(0);
+    page.on('request', (request) => {
+      if (isLedgerRequest(request.url(), request.method(), request.resourceType(), 'http://127.0.0.1:5173')) {
+        observed.push({ method: request.method(), url: request.url(), resourceType: request.resourceType(), classification: request.url().includes('/api/') ? 'api' : 'non-static' });
+      }
+    });
+    await page.route('**/*', async (route) => {
+      if (!['GET', 'HEAD'].includes(route.request().method())) { await route.abort(); return; }
+      await route.continue();
+    });
+
+    const records: UiAuditRecord[] = [];
+    for (const viewport of UI_AUDIT_VIEWPORTS) {
+      const ledgerStart = observed.length;
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.context().clearCookies();
+      await page.goto(ROUTES.LOGIN);
+      await page.evaluate(() => { window.localStorage.clear(); window.sessionStorage.clear(); });
+      await page.reload();
+      const textZoomPercent = 'textZoomPercent' in viewport ? viewport.textZoomPercent : 100;
+      if (textZoomPercent !== 100) await page.addStyleTag({ content: `html { font-size: ${textZoomPercent}% !important; }` });
+
+      await expect(page).toHaveURL(ROUTES.LOGIN);
+      const routeOwner = page.locator('[data-ui-owner="uio-l"][data-ui-floorplan="uif-l"][data-ui-region="uir-l"]');
+      await expect(routeOwner).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'IPC Management System' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeVisible();
+
+      const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+      const metrics = await page.evaluate(() => {
+        const visibleControls = [...document.querySelectorAll<HTMLElement>('input,button,a[href]')].filter((element) => {
+          const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.height > 0;
+        });
+        const owner = document.querySelector<HTMLElement>('[data-ui-owner="uio-l"]')!;
+        const ownerRect = owner.getBoundingClientRect();
+        return {
+          h1Count: document.querySelectorAll('h1').length,
+          mainCount: document.querySelectorAll('main').length,
+          blankControlNames: visibleControls.filter((element) => !(element.getAttribute('aria-label') || element.textContent?.trim() || (element instanceof HTMLInputElement && document.querySelector(`label[for="${element.id}"]`)))).length,
+          primaryActionCount: [...document.querySelectorAll<HTMLButtonElement>('button[type="submit"]')].filter((element) => element.getBoundingClientRect().height > 0).length,
+          documentOverflowPx: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
+          ownerWithinViewport: ownerRect.left >= -1 && ownerRect.right <= window.innerWidth + 1,
+          visibleControlCount: visibleControls.length,
+        };
+      });
+      const seriousViolations = axe.violations.filter(({ impact }) => impact === 'serious' || impact === 'critical');
+      const identity = identityKey({ route: '/login', regionId: 'login-form', state: 'populated', actor: 'anonymous', viewport: viewport.id, lowestOwner: 'login-form' });
+      const finding = (ruleId: string, passed: boolean, measured: Record<string, unknown>, expected: string) => routeMeasuredFinding({
+        ruleId, identity, productionRouteMeasured: true, passed,
+        measured: { ...measured, captureMode: 'production-route', route: new URL(page.url()).pathname },
+        expected, actual: JSON.stringify(measured), lowestOwner: 'LoginPage',
+      });
+      const findings = [
+        finding('HIER-01', metrics.h1Count === 1 && metrics.mainCount === 1, { h1Count: metrics.h1Count, mainCount: metrics.mainCount }, 'exactly one h1 inside one main landmark'),
+        finding('HIER-02', metrics.blankControlNames === 0 && metrics.primaryActionCount === 1, { blankControlNames: metrics.blankControlNames, primaryActionCount: metrics.primaryActionCount }, 'named controls and exactly one primary action'),
+        finding('A11Y-01', seriousViolations.length === 0 && metrics.blankControlNames === 0, { seriousCount: seriousViolations.length, violationIds: seriousViolations.map(({ id }) => id), blankControlNames: metrics.blankControlNames }, 'zero serious/critical axe violations and zero unnamed controls'),
+        finding('RESP-01', metrics.documentOverflowPx <= 2 && metrics.ownerWithinViewport, { maximumDocumentOverflowPx: metrics.documentOverflowPx, ownerWithinViewport: metrics.ownerWithinViewport }, 'at most 2px document overflow and route owner within viewport'),
+        finding('RESP-02', metrics.documentOverflowPx <= 2 && metrics.visibleControlCount === 3, { textZoomPercent, clippedDocumentPx: metrics.documentOverflowPx, visibleControlCount: metrics.visibleControlCount }, 'all three controls remain available without document clipping'),
+      ];
+      const record: UiAuditRecord = { schemaVersion: UI_AUDIT_SCHEMA_VERSION, fixtureVersion: UI_AUDIT_FIXTURE_VERSION, identity, fixtureKey: identity, findings, network: observed.slice(ledgerStart) };
+      validateUiAuditRecord(record);
+      records.push(record);
+    }
+
+    expect(records).toHaveLength(7);
+    expect(new Set(records.map(({ identity }) => identity)).size).toBe(7);
+    expect(records.flatMap(({ network }) => network).filter(({ method }) => !['GET', 'HEAD'].includes(method))).toEqual([]);
+    const reportPath = resolve(process.cwd(), 'test-results', 'ui-audit-phase28-login-production-route.json');
+    mkdirSync(dirname(reportPath), { recursive: true });
+    writeFileSync(reportPath, `${JSON.stringify({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, scope: '/login|login-form|populated|anonymous', recordCount: records.length, records }, null, 2)}\n`);
   });
 });
 

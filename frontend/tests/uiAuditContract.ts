@@ -22,7 +22,25 @@ export function validateUiAuditFinding(value: unknown): asserts value is UiAudit
   const finding = value as Partial<UiAuditFinding>;
   if (!finding.ruleId || !finding.identity || !UI_AUDIT_VERDICTS.includes(finding.verdict as UiAuditVerdict) || !finding.measured || typeof finding.measured !== 'object') throw new Error('Invalid UI audit finding');
   if (finding.verdict === 'FAIL' && (!finding.expected || !finding.actual || !finding.severity || !finding.lowestOwner)) throw new Error('FAIL requires expected, actual, severity and lowestOwner');
-  if (finding.verdict === 'PASS' && Object.keys(finding.measured).length === 0) throw new Error('PASS requires measured fields');
+  if (finding.verdict === 'PASS' && finding.measured.productionRouteMeasured !== true) throw new Error('PASS requires productionRouteMeasured=true');
+}
+
+export function routeMeasuredFinding(input: {
+  ruleId: string;
+  identity: string;
+  productionRouteMeasured: boolean;
+  passed: boolean;
+  measured: Record<string, unknown>;
+  expected: string;
+  actual: string;
+  lowestOwner: string;
+}): UiAuditFinding {
+  const measured = { ...input.measured, productionRouteMeasured: input.productionRouteMeasured };
+  if (!input.productionRouteMeasured) {
+    return { ruleId: input.ruleId, identity: input.identity, verdict: 'NEEDS_EVIDENCE', measured };
+  }
+  if (input.passed) return { ruleId: input.ruleId, identity: input.identity, verdict: 'PASS', measured };
+  return { ruleId: input.ruleId, identity: input.identity, verdict: 'FAIL', measured, expected: input.expected, actual: input.actual, severity: 'high', lowestOwner: input.lowestOwner };
 }
 
 export function validateUiAuditRecord(value: unknown): asserts value is UiAuditRecord {

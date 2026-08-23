@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateUiAuditFinding } from './uiAuditContract';
+import { routeMeasuredFinding, validateUiAuditFinding } from './uiAuditContract';
 import { expandUiAuditInventory, identityKey, parseProductionRouteSet, UI_AUDIT_ROUTES, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import { regionFixtureRegistry, ruleFixtureRegistry, validateUiAuditRegistries } from './uiAuditFixtureRegistry';
 import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS } from './uiAuditOracleRegistry';
@@ -31,6 +31,11 @@ describe('Phase 28 closed UI audit inventory', () => {
   it('fails closed for duplicate identities and incomplete verdict evidence', () => {
     const rows = expandUiAuditInventory(); expect(identityKey(rows[0])).toContain('|');
     expect(() => validateUiAuditFinding({ ruleId: 'INV-01', identity: 'x', verdict: 'FAIL', measured: {} })).toThrow(/requires/);
-    expect(() => validateUiAuditFinding({ ruleId: 'INV-01', identity: 'x', verdict: 'PASS', measured: {} })).toThrow(/measured/);
+    expect(() => validateUiAuditFinding({ ruleId: 'INV-01', identity: 'x', verdict: 'PASS', measured: { productionRouteMeasured: false } })).toThrow(/productionRouteMeasured=true/);
+  });
+  it('requires a production route measurement before a clean result can become PASS', () => {
+    const common = { ruleId: 'A11Y-01', identity: '/login|login-form|populated|anonymous|1920x1080|login-form', passed: true, measured: { seriousCount: 0 }, expected: 'zero serious violations', actual: 'zero serious violations', lowestOwner: 'LoginPage' };
+    expect(routeMeasuredFinding({ ...common, productionRouteMeasured: true })).toMatchObject({ verdict: 'PASS', measured: { productionRouteMeasured: true } });
+    expect(routeMeasuredFinding({ ...common, productionRouteMeasured: false })).toMatchObject({ verdict: 'NEEDS_EVIDENCE', measured: { productionRouteMeasured: false } });
   });
 });

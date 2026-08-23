@@ -16,7 +16,7 @@
     "test:controls": "playwright test tests/control-surface.spec.ts",
     "test:ui-audit": "npm run test:ui-measurements",
     "test:ui-measurements": "playwright test tests/ui-audit.spec.ts --grep \"UI measurement audit\"",
-    "test:ui-baseline": "playwright test tests/ui-audit.spec.ts --grep \"Phase 28 complete read-only baseline\" --headed --workers=1 --output=test-results/playwright-phase28",
+    "test:ui-baseline": "playwright test tests/ui-audit.spec.ts --grep \"Phase 28 login production-route baseline bridge\" --headed --workers=1 --output=test-results/playwright-phase28",
     "test:performance": "playwright test tests/navigation-performance.spec.ts tests/cache-navigation.spec.ts",
     "test:smoke": "playwright test tests/route-smoke.spec.ts",
     "test:visual": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts",
