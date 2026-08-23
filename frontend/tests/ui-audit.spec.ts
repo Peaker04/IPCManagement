@@ -7,6 +7,9 @@ import { collectWarehouseEvidence, writeWarehouseCaptureManifest } from './wareh
 import { currentStockRows, mixedEmptyFixture, noWarehouseReadActor, stockMovementRows, warehouseDocuments, warehouseKeeperActor } from './warehouseDataWorkspaceFixture';
 import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCaptureManifest, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture, type WarehouseCaptureManifest, type WarehouseScenario } from './warehouseDataWorkspaceContract';
 import { buildWarehouseSelectionManifest, evaluateWarehouseManifest } from './warehouseDeterministicRules';
+import { UI_AUDIT_FIXTURE_VERSION, UI_AUDIT_SCHEMA_VERSION, validateUiAuditRecord, type UiAuditRecord } from './uiAuditContract';
+import { ruleFixtureRegistry } from './uiAuditFixtureRegistry';
+import { uiAuditOracleRegistry, type UiAuditRuleId } from './uiAuditOracleRegistry';
 
 type AuditIssue = {
   rule: string;
@@ -1028,6 +1031,17 @@ test.describe('UI measurement audit', () => {
       });
     });
   }
+});
+
+test.describe('Phase 28 hierarchy token container cohort', () => {
+  test('headed shared-registry fixture records are schema valid', async ({ page }) => {
+    await page.setContent('<main><h1>Phase 28 fixture</h1><section aria-label="Audit fixture"><button>Run</button></section></main>');
+    const cohort: UiAuditRuleId[] = ['HIER-01','HIER-02','TOK-SP-01','TOK-TY-01','TOK-CO-01','CONT-01','CONT-02','ORDER-01'];
+    const records = cohort.flatMap((ruleId): UiAuditRecord[] => ruleFixtureRegistry.filter((fixture) => fixture.ruleId === ruleId).map((fixture) => ({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, fixtureVersion: UI_AUDIT_FIXTURE_VERSION, identity: fixture.input.identity, fixtureKey: fixture.key, findings: uiAuditOracleRegistry[ruleId].evaluate(fixture.input), network: [] })));
+    records.forEach(validateUiAuditRecord);
+    expect(records).toHaveLength(16);
+    writeAuditReport('ui-audit-phase28-hierarchy-token-container', records.flatMap(({ findings }) => findings).map((finding) => ({ rule: finding.ruleId, route: 'fixture', viewport: 'controlled', selector: 'fixture', text: finding.actual ?? '', reason: finding.expected ?? '', width: 0, height: 0 })));
+  });
 });
 
 test.describe('shared tabs Material and Fiori contract', () => {

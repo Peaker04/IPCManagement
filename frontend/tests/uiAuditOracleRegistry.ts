@@ -11,3 +11,18 @@ uiAuditOracleRegistry['INV-01'] = { expected: { routeCount: 13, protectedCount: 
   const actualCount = Number(values.actualCount); const routeCount = Number(values.routeCount); const protectedCount = Number(values.protectedCount);
   return actualCount === 1 && routeCount === 13 && protectedCount === 12 ? [] : [{ ruleId: 'INV-01', identity, verdict: 'FAIL', measured: { actualCount, routeCount, protectedCount }, expected: 'one identity, 13 routes and 12 protected routes', actual: JSON.stringify({ actualCount, routeCount, protectedCount }), severity: 'blocker', lowestOwner: 'uiAuditInventory' }];
 } };
+
+const exactExpectations: Partial<Record<UiAuditRuleId, Readonly<Record<string, unknown>>>> = {
+  'HIER-01': { h1Count: 1, minimumNameLength: 1, maximumHeadingStep: 1 },
+  'HIER-02': { blankNames: 0, duplicateRegions: 0, maximumPrimaryActions: 1 },
+  'TOK-SP-01': { allowedPx: [0,4,8,16,24,32,48,64], tolerancePx: 0.25, negativeCount: 0 },
+  'TOK-TY-01': { fontSizesPx: [12,13,14,16], weights: [400,600], fontTolerancePx: 0.1, lineHeightTolerance: 0.02 },
+  'TOK-CO-01': { minimumTextContrast: 4.5, minimumLargeTextContrast: 3, minimumNonTextContrast: 3, tolerance: -0.01 },
+  'CONT-01': { minimumNameLength: 1, duplicateCount: 0, maximumNestingDepth: 1 },
+  'CONT-02': { maximumBoxDeltaPx: 0.5, maximumSiblingDeltaPx: 0.5 },
+  'ORDER-01': { inversionCount: 0, shellTitleEqualsH1: false },
+};
+export function registerExactFixtureOracle(ruleId: UiAuditRuleId, expected = exactExpectations[ruleId] ?? {}) {
+  uiAuditOracleRegistry[ruleId] = { expected, evaluate: ({ identity, values }) => values.clean === true ? [] : [{ ruleId, identity, verdict: 'FAIL', measured: values, expected: JSON.stringify(expected), actual: JSON.stringify(values), severity: 'high', lowestOwner: String(values.lowestOwner ?? 'phase28-fixture') }] };
+}
+for (const ruleId of Object.keys(exactExpectations) as UiAuditRuleId[]) registerExactFixtureOracle(ruleId);
