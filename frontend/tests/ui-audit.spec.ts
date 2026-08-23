@@ -1,4 +1,5 @@
 import { expect, type Browser, type Locator, type Page, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/lib/routeConfig';
@@ -1055,6 +1056,17 @@ test.describe('Phase 28 table query interaction cohort', () => {
     const cohort: UiAuditRuleId[] = ['TABLE-01','TABLE-02','TABLE-03','QUERY-01','QUERY-02','FILTER-01','SORT-01','COL-01','BADGE-01','PAGE-01','MUT-01','REFRESH-01'];
     const records = cohort.flatMap((ruleId): UiAuditRecord[] => ruleFixtureRegistry.filter((fixture) => fixture.ruleId === ruleId).map((fixture) => ({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, fixtureVersion: UI_AUDIT_FIXTURE_VERSION, identity: fixture.input.identity, fixtureKey: fixture.key, findings: uiAuditOracleRegistry[ruleId].evaluate(fixture.input), network: [] })));
     records.forEach(validateUiAuditRecord); expect(records).toHaveLength(24); expect(escaped).toEqual([]);
+  });
+});
+
+test.describe('Phase 28 accessibility responsive motion performance cohort', () => {
+  test('runs official axe and emits final paired cohort records', async ({ page }) => {
+    await page.setContent('<!doctype html><html lang="vi"><head><title>Phase 28 accessible fixture</title></head><body><main><h1>Accessible fixture</h1><button aria-label="Run audit">Run audit</button></main></body></html>');
+    const axe = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+    expect(axe.violations.filter(({ impact }) => impact === 'serious' || impact === 'critical')).toEqual([]);
+    const cohort: UiAuditRuleId[] = ['A11Y-01','A11Y-02','A11Y-03','RESP-01','RESP-02','RESP-WH-01','WH-01','WH-02','WH-03','MOTION-01','PERF-01'];
+    const records = cohort.flatMap((ruleId): UiAuditRecord[] => ruleFixtureRegistry.filter((fixture) => fixture.ruleId === ruleId).map((fixture) => ({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, fixtureVersion: UI_AUDIT_FIXTURE_VERSION, identity: fixture.input.identity, fixtureKey: fixture.key, findings: uiAuditOracleRegistry[ruleId].evaluate(fixture.input), network: [] })));
+    records.forEach(validateUiAuditRecord); expect(records).toHaveLength(22);
   });
 });
 

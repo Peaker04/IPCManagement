@@ -33,6 +33,17 @@ const exactExpectations: Partial<Record<UiAuditRuleId, Readonly<Record<string, u
   'PAGE-01': { paginationThreshold: 100, fetchAllRecords: false, directPageThreshold: 7 },
   'MUT-01': { duplicateSubmitCount: 0, maximumCls: 0.01, errorLiveCount: 1 },
   'REFRESH-01': { requestCountWhilePaused: 0, resumeRequestCount: 1, pausedLabelCount: 1 },
+  'A11Y-01': { seriousCount: 0, criticalCount: 0, unnamedCount: 0, labelMismatchCount: 0 },
+  'A11Y-02': { keyboardActivated: true, trap: false, minimumFocusVisiblePercent: 99, minimumFocusContrast: 3, minimumTargetPx: 24 },
+  'A11Y-03': { minimumDialogNameLength: 1, ariaModal: true, focusContained: true, backgroundInert: true, escapeClosed: true },
+  'RESP-01': { maximumDocumentOverflowPx: 2, overlapAreaPx2: 0, primaryVisible: true, essentialVisible: true },
+  'RESP-02': { textZoomPercent: 200, clippedCount: 0, unavailableActionCount: 0 },
+  'RESP-WH-01': { breakpointPx: 1366, at1366: 'side-by-side', at1365: 'stacked', overlapAreaPx2: 0 },
+  'WH-01': { selectorCount: 0, oneActivePassiveScopeCount: 1, zeroOrManyFailClosedMessageCount: 1 },
+  'WH-02': { responseStatusForTamperedId: 403, firstRowInferenceCount: 0, preserveWarehouseId: true },
+  'WH-03': { routineScopeOccurrenceCount: 1, confirmationScopeOccurrenceCount: 1, identityPreserved: true, historicalRewriteRequestCount: 0 },
+  'MOTION-01': { minimumDurationMs: 150, maximumDurationMs: 250, properties: ['transform','opacity'], maximumReducedDurationMs: 10, continuousCount: 0 },
+  'PERF-01': { maximumCls: 0.1, maximumInpMs: 200, maximumLcpMs: 2500, absentEvidenceVerdict: 'NEEDS_EVIDENCE' },
 };
 export function registerExactFixtureOracle(ruleId: UiAuditRuleId, expected = exactExpectations[ruleId] ?? {}) {
   uiAuditOracleRegistry[ruleId] = { expected, evaluate: ({ identity, values }) => values.clean === true ? [] : [{ ruleId, identity, verdict: 'FAIL', measured: values, expected: JSON.stringify(expected), actual: JSON.stringify(values), severity: 'high', lowestOwner: String(values.lowestOwner ?? 'phase28-fixture') }] };
