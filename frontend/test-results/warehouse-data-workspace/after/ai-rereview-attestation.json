@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "reviewerRunId": "b11cc10b-948b-433e-bff6-b9e73b15ab2a",
+  "context": "fresh",
+  "mode": "read-only",
+  "provider": "pi",
+  "input": {
+    "path": "frontend/test-results/warehouse-data-workspace/after/ai-rereview-input.json",
+    "sha256": "963f9978b8beed9e2b393411a0f716cb99bf0eaa3f2b2e2ca008b90221bfd017"
+  },
+  "output": {
+    "path": "frontend/test-results/warehouse-data-workspace/after/ai-rereview.json",
+    "sha256": "ed0cc08f203b34432e350db4df5828b917b772a16d02c9ebb48d1d7492c6d3ba"
+  },
+  "verdicts": {
+    "phase27-baseline-responsive-wide-rail-stacked": "RESOLVED",
+    "phase27-baseline-operational-data-presented-as-technical-placeholders": "RESOLVED",
+    "phase27-baseline-forbidden-duplicate-h1": "RESOLVED"
+  },
+  "status": "COMPLETE"
+}

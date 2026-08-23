@@ -426,5 +426,15 @@
       "name": "hygiene",
       "status": "COMPLETE"
     }
+  ],
+  "productionCorrections": [
+    {
+      "path": "frontend/src/components/common/StockMovementTable.tsx",
+      "class": "production-regression",
+      "oldSha256": "b27d3dd76397e2b1862c74b6834457725bdbeaa7b74622dc162e8551ff33acc0",
+      "newSha256": "3099b6090a95345f24684373db7039cc2a56f1cb5deb995bdb9d90bb02ffb051",
+      "test": "frontend/src/components/common/operationalTables.test.tsx",
+      "findingId": "phase27-baseline-operational-data-presented-as-technical-placeholders"
+    }
   ]
 }

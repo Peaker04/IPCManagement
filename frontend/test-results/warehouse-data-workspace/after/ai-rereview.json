@@ -3,78 +3,50 @@
     {
       "id": "phase27-baseline-responsive-wide-rail-stacked",
       "verdict": "RESOLVED",
-      "evidence": [
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: dataset regions occupy x=264,width=1252 while warehouse-document-rail occupies x=1532,width=352 at the same starting y=1111.140625.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/record.json: dataset regions occupy x=264,width=698 while warehouse-document-rail occupies x=978,width=352 at the same starting y=1111.140625.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1365x900/record.json: the rail is stacked below the datasets at x=264,y=2284.0625, confirming the adjacent 1366/1365 transformation.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/ready-1920x1080.png and frontend/test-results/warehouse-data-workspace/after/captures/ready/1366x768/ready-1366x768.png visually corroborate the side-by-side wide layout."
-      ],
-      "expected": "At the selected 1920x1080 and 1366x768 wide viewports, the dataset workspace and document rail are displayed side by side.",
-      "actual": "The rail is side by side with the dataset stack at 1920x1080 and 1366x768, then stacks below it at 1365x900 and 1280x900.",
-      "severity": "high",
-      "ownerLevel": "layout",
+      "evidence": "Ready captures show the document rail beside the dataset stack at 1920x1080 and 1366x768, then below it at 1365x900. Geometry records one rail, and DOM order remains current stock, movement history, document rail.",
+      "expected": "The rail is side-by-side in wide mode, stacks below at the recorded transition, exists once, and preserves reading order.",
+      "actual": "The adjacent 1366px and 1365px captures demonstrate the required side-to-stack transformation with one rail and stable DOM order.",
+      "severity": "blocking",
+      "ownerLevel": "SplitWorkbench/layout owner",
       "confidence": 0.99
     },
     {
       "id": "phase27-baseline-operational-data-presented-as-technical-placeholders",
       "verdict": "RESOLVED",
-      "evidence": [
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: stock rows contain meaningful labels including Kho chính, Gạo tẻ, Dầu ăn, Cá nục and Nấm mèo khô loại một đã sơ chế with valid formatted quantities.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json: movement rows contain document labels PX-P27-001 through PX-P27-008, movement types Nhập kho/Xuất kho, named ingredients and numeric quantities from 0,5 kg through 7,5 kg.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/mixed-empty/1280x900/record.json: populated supporting history retains named ingredients, meaningful document labels and numeric quantities while current stock is empty.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/ready/1280x900/ready-1280x900.png and frontend/test-results/warehouse-data-workspace/after/captures/mixed-empty/1280x900/mixed-empty-1280x900.png visually corroborate the meaningful operational presentation."
-      ],
-      "expected": "The primary snapshot and supporting movement history present valid, meaningful warehouse, ingredient, document and quantity values that explain current stock and its movements.",
-      "actual": "Selected ready and mixed-empty evidence presents domain-readable warehouse and ingredient names, recognizable document labels and valid localized quantities; blank ingredient cells and NaN quantities are absent.",
-      "severity": "high",
-      "ownerLevel": "shared-component",
-      "confidence": 0.99
+      "evidence": "Ready and mixed-empty captures present Vietnamese domain labels, localized quantities and dates, meaningful statuses, warehouse and ingredient names, and document descriptions. Technical record IDs remain evidence metadata rather than primary UI labels; operational document codes are presented in their proper domain context.",
+      "expected": "Operational data uses meaningful Vietnamese/domain presentation rather than raw enums, fixture IDs, or technical placeholders as primary labels.",
+      "actual": "The visible datasets and document rail use domain-valid names, values, statuses, descriptions, and localized formatting.",
+      "severity": "major",
+      "ownerLevel": "route/data-presentation owner",
+      "confidence": 0.95
     },
     {
       "id": "phase27-baseline-forbidden-duplicate-h1",
       "verdict": "RESOLVED",
-      "evidence": [
-        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/record.json: document.h1Count is 1 and headingLevels is [2,1,2].",
-        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/record.json: Hệ thống Quản lý Bếp ăn is level 1 and Không đủ quyền truy cập is level 2.",
-        "frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/route-forbidden-1440x900.png visually corroborates a single shell page heading with subordinate forbidden-state heading."
-      ],
-      "expected": "The selected forbidden route has exactly one page-level H1.",
-      "actual": "The forbidden route has one H1; the access-denied heading is now H2.",
-      "severity": "medium",
-      "ownerLevel": "route",
+      "evidence": "The route-forbidden 1440x900 record reports h1Count 1. Its accessibility snapshot contains one level-1 heading, \"Hệ thống Quản lý Bếp ăn\", while \"Không đủ quyền truy cập\" is level 2.",
+      "expected": "The forbidden route contains exactly one shell-owned H1 and does not introduce a second H1.",
+      "actual": "Exactly one H1 is present; forbidden feedback is an H2.",
+      "severity": "blocking",
+      "ownerLevel": "MainLayout/RoleGuard semantic owner",
       "confidence": 0.99
     }
   ],
   "acceptanceReport": {
     "criteriaSatisfied": [
-      {
-        "id": "criterion-1",
-        "status": "satisfied",
-        "evidence": "Three concrete rereview records include selected evidence paths, retained severity and observed outcomes."
-      }
+      "Wide-to-stacked rail transition is demonstrated at the adjacent 1366px and 1365px viewports.",
+      "Operational values are presented with meaningful domain copy and formatting.",
+      "Forbidden evidence contains exactly one H1."
     ],
     "changedFiles": [],
     "testsAddedOrUpdated": [],
-    "commandsRun": [
-      {
-        "command": "Read-only inspection of the specified contract, selection manifest, selected evidence and baseline findings",
-        "result": "not-run",
-        "summary": "No executable commands or tests were permitted or required for this blind evidence review."
-      }
-    ],
-    "validationOutput": [
-      "All three baseline finding IDs received a rereview verdict.",
-      "Review remained bounded to manifest-selected evidence."
-    ],
+    "commandsRun": [],
+    "validationOutput": "Read-only review of the supplied UI contract, screenshots, accessibility snapshots, geometry records, focus order, and runtime-error evidence. All three specified old findings are resolved.",
     "residualRisks": [
-      "Unselected states and viewports were not reviewed and cannot support conclusions beyond these old findings."
+      "No implementation or repository state was inspected.",
+      "Git staging status cannot be established from the supplied evidence."
     ],
-    "noStagedFiles": true,
-    "diffSummary": "Read-only review; no files changed.",
-    "reviewFindings": [
-      "high: frontend/test-results/warehouse-data-workspace/after/captures/ready/1920x1080/record.json - prior wide-layout finding is resolved.",
-      "high: frontend/test-results/warehouse-data-workspace/after/captures/mixed-empty/1280x900/record.json - prior placeholder-data finding is resolved.",
-      "medium: frontend/test-results/warehouse-data-workspace/after/captures/route-forbidden/1440x900/record.json - prior duplicate-H1 finding is resolved."
-    ]
+    "noStagedFiles": null,
+    "diffSummary": "Not inspected; this was an evidence-only review.",
+    "reviewFindings": "No remaining failure among the three requested findings."
   }
 }
