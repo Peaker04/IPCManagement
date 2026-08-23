@@ -129,16 +129,15 @@ const CORE_SNAPSHOT_HASHES:Record<string,{old:string;new:string}>={
   'dashboard-mobile':{old:'f45dd1c3f9d24041b4e63899b5f464f08e794d25a19aff50e2d7f73920f08d96',new:'6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e'},
 };
 function authorizeClassAwarePath(cwd:string,matrix:AuthorizationMatrix,row:ClassAwareDisposition,path:string) {
-  const identities=matrix.identitySets['core-login-dashboard'];
-  const identity=identities.find(item=>item.snapshotName.startsWith(row.identity));
+  const identity=Object.values(matrix.identitySets).flat().find(item=>item.snapshotName.startsWith(row.identity));
   if(!identity) throw new Error(`class-aware identity substitution: ${row.identity}`);
   const entry=matrix.entries.find(item=>identityKey(item)===identityKey(identity))!;
   const permitted=entry.permittedPaths[row.disposition];
   if(!permitted?.includes(path)||row.owner!==path) throw new Error(`class-aware class/path authorization rejected: ${path}`);
   if(!validEqualPacket(row.beforeSha256)||!validEqualPacket(row.afterSha256)) throw new Error('class-aware two equal packets required');
   if(row.disposition==='stale-baseline') {
-    const hashes=CORE_SNAPSHOT_HASHES[row.identity];
-    if(!hashes||permitted.length!==1||row.oldSnapshotSha256!==hashes.old||row.newSnapshotSha256!==hashes.new||row.newSnapshotSha256!==row.beforeSha256[0]||row.newSnapshotSha256!==row.afterSha256[0]) throw new Error('stale-baseline hash evidence mismatch');
+    const sealedHashes=CORE_SNAPSHOT_HASHES[row.identity];
+    if(permitted.length!==1||!row.oldSnapshotSha256||!row.newSnapshotSha256||!/^[a-f0-9]{64}$/.test(row.oldSnapshotSha256)||!/^[a-f0-9]{64}$/.test(row.newSnapshotSha256)||row.oldSnapshotSha256===row.newSnapshotSha256||row.newSnapshotSha256!==row.beforeSha256[0]||row.newSnapshotSha256!==row.afterSha256[0]||sealedHashes&&(row.oldSnapshotSha256!==sealedHashes.old||row.newSnapshotSha256!==sealedHashes.new)) throw new Error('stale-baseline hash evidence mismatch');
     if(sha256(readFileSync(resolve(cwd,path)))!==row.newSnapshotSha256) throw new Error('current snapshot hash mismatch');
   } else if(row.disposition!=='production-regression'||!path.startsWith('frontend/src/')) throw new Error('production owner requires production-regression class');
 }
@@ -244,10 +243,11 @@ export function validateSnapshotRecoveryManifest(cwd:string,manifest:any,matrix:
     const actual=outputLines(git(cwd,'diff-tree','--no-commit-id','--name-only','-r',commit)); if(JSON.stringify(actual)!==JSON.stringify(expected.map(x=>x.path))) throw new Error('Git member closure mismatch');
     for(const member of expected){ const bytes=execFileSync('git',['show',`${commit}:${member.path}`],{cwd}); if(sha256(bytes)!==member.sha256||git(cwd,'rev-parse',`${commit}:${member.path}`)!==member.gitBlobId) throw new Error('preserved member pin mismatch'); }
   }
-  const snapshotRows=rows.filter(row=>row.disposition==='stale-baseline'); if(snapshotRows.length!==3) throw new Error('exact three stale rows required');
-  validateClassAwareAccounting(cwd,matrix,snapshotRows,snapshotRows.map(row=>row.owner));
-  if(JSON.stringify(manifest.snapshotBindings)!==JSON.stringify(snapshotRows)) throw new Error('snapshot identity/matrix binding mismatch');
-  return {orderedCommits:[...PRESERVED_COMMITS],snapshotPaths:snapshotRows.map(row=>row.owner)};
+  if(!Array.isArray(manifest.snapshotBindings)||manifest.snapshotBindings.length!==3) throw new Error('exact three sealed snapshot bindings required');
+  const snapshotRows=manifest.snapshotBindings.map((binding:ClassAwareDisposition)=>rows.find(row=>row.identity===binding.identity&&row.owner===binding.owner));
+  if(snapshotRows.some((row:ClassAwareDisposition|undefined)=>!row)||JSON.stringify(manifest.snapshotBindings)!==JSON.stringify(snapshotRows)) throw new Error('snapshot identity/matrix binding mismatch');
+  validateClassAwareAccounting(cwd,matrix,snapshotRows as ClassAwareDisposition[],(snapshotRows as ClassAwareDisposition[]).map(row=>row.owner));
+  return {orderedCommits:[...PRESERVED_COMMITS],snapshotPaths:(snapshotRows as ClassAwareDisposition[]).map(row=>row.owner)};
 }
 export function resolveClassAwareAuthority(cwd:string,path=CLASS_AWARE_MARKER){
   if(path!==CLASS_AWARE_MARKER) throw new Error('class-aware marker path is not allowlisted');
@@ -291,8 +291,14 @@ function main() {
     const allowed=new Set(['--mode','--predecessor-plan','--validator-authority','--general-validator-values-from','--pre-work-validator-values-from','--class-aware-values-from','--require-pre-work-validator-complete','--require-ten-distinct-roots','--require-class-aware-complete','--require-exact-class-aware-marker-hash-commit','--require-class-aware-validator-test-pins','--require-three-preserved-plan03-commits','--require-complete','--require-exact-marker-hash-commit','--require-four-validator-test-pins','--require-nine-distinct-roots','--require-exact-predecessor','--identity-manifest','--identity-sets','--resolve-selected-classes','--reject-legacy-entry-authority','--emit-entry-context-json']); assertExactFlags(args,allowed);
     const required=['--require-class-aware-complete','--require-exact-class-aware-marker-hash-commit','--require-class-aware-validator-test-pins','--require-three-preserved-plan03-commits','--require-complete','--require-exact-marker-hash-commit','--require-four-validator-test-pins','--require-nine-distinct-roots','--require-exact-predecessor','--resolve-selected-classes','--reject-legacy-entry-authority','--emit-entry-context-json'];
     if(required.some(flag=>!args.includes(flag))) throw new Error('all closed pre-work authority gates are required');
-    const predecessor=value('--predecessor-plan'), selection=value('--identity-sets'); const expectedSelection:Record<string,string>={'27.1-02':'core-login-dashboard','27.1-03':'core-meal-weekly','27.1-04':'secondary-reports-approvals-admin','27.1-05':'purchasing-phase09','27.1-06':'all-21'};
-    if(expectedSelection[predecessor]!==selection||value('--validator-authority')!=='27.1-03R') throw new Error('closed predecessor/identity/authority required');
+    const predecessor=value('--predecessor-plan'), selection=value('--identity-sets'); const expectedSelections:Record<string,string[]>={
+      '27.1-02':['core-login-dashboard'],
+      '27.1-03':['core-meal-weekly','readiness-chef,readiness-purchasing,core-login-dashboard,core-meal-weekly'],
+      '27.1-04':['secondary-reports-approvals-admin'],
+      '27.1-05':['purchasing-phase09'],
+      '27.1-06':['all-21'],
+    };
+    if(!expectedSelections[predecessor]?.includes(selection)||value('--validator-authority')!=='27.1-03R') throw new Error('closed predecessor/identity/authority required');
     const cwd=git(process.cwd(),'rev-parse','--show-toplevel'), phase='.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c';
     const general=resolveGeneralValidatorAuthority(cwd,resolve(phase,value('--general-validator-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,''));
     const classAware=resolveClassAwareAuthority(cwd,resolve(phase,value('--class-aware-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,''));

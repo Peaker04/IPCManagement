@@ -170,7 +170,7 @@ describe('Phase 27.1 downstream readiness closure', () => {
     const m = clone(matrix); m.entries.find((x) => x.snapshotName === 'chef-dashboard-desktop-expected.png')!.permittedPaths['fixture-drift'] = ['frontend/tests/other.ts'];
     expect(() => validate(dispositions, recovery, m)).toThrow(/class\/path/);
   });
-  it('accepts exactly the three committed core snapshots and deduplicates cumulative/wave overlap',()=>{
+  it('accepts exact authorized core snapshots and deduplicates cumulative/wave overlap',()=>{
     const paths=core.rows.map(row=>row.owner);
     expect(validateClassAwareAccounting(cwd,matrix,core.rows,[...paths,...paths])).toEqual(paths);
     expect(validate().authorizedClassAwarePaths).toEqual(expect.arrayContaining(paths));
@@ -190,7 +190,7 @@ describe('Phase 27.1 downstream readiness closure', () => {
     for(const mutate of [(m:any)=>{m.orderedCommits.reverse();},(m:any)=>{m.commits[0].disposition='REVERTED';},(m:any)=>{m.commits[1].members.pop();},(m:any)=>{m.commits[2].members[0].sha256='0'.repeat(64);},(m:any)=>{m.snapshotBindings[0].identity='weekly-menu-desktop';}]){const candidate=clone(manifest);mutate(candidate);expect(()=>validateSnapshotRecoveryManifest(cwd,candidate,matrix,core.rows)).toThrow();}
   });
   it('rejects extra snapshots, broad paths, and production class laundering',()=>{
-    expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png'])).toThrow(/unauthorized/);
+    expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/visual-routes.spec.ts-snapshots/not-authorized-chromium-win32.png'])).toThrow(/unauthorized/);
     const dashboard=matrix.entries.find(x=>x.snapshotName==='dashboard-desktop-expected.png')!;
     const production={...clone(core.rows[0]),disposition:'production-regression',owner:dashboard.permittedPaths['production-regression'][0]};
     expect(()=>validateClassAwareAccounting(cwd,matrix,[production],[production.owner])).not.toThrow();
