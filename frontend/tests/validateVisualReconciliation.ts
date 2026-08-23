@@ -201,6 +201,7 @@ export const DOWNSTREAM_IDENTITY_SETS = Object.freeze({
 const GENERAL_MARKER = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-03R-general-validator.json';
 const RECOVERY_MARKER = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02R-validator-recovery.json';
 const CLASS_AWARE_MARKER = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-03S-snapshot-recovery.json';
+const PRE_WORK_MARKER = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-03T-pre-work-entry.json';
 const CLASS_AWARE_MARKER_COMMIT = '4aab947f3d93cb8d2a0b0068b97f4dd8245a79bc';
 const CLASS_AWARE_PAYLOAD_COMMIT = 'ef030acec72a893fafe9449947074edcaa020d05';
 const PRESERVED_COMMITS=['141da95a95611c7bb9f679a6aeafa93aba1b174b','3f2846265aaa2f848262635eeda4a7a5fccd311e','319ae15832a7ad1ba257ef6aa8e3b03d217206fb'] as const;
@@ -261,6 +262,17 @@ export function resolveClassAwareAuthority(cwd:string,path=CLASS_AWARE_MARKER){
   if(sha256(readFileSync(resolve(cwd,marker.manifest.path)))!==marker.manifest.sha256) throw new Error('class-aware manifest hash mismatch'); validateSnapshotRecoveryManifest(cwd,manifest,matrix,rows);
   return {path,sha256:sha256(markerBytes),commit,payloadCommit:marker.payloadCommit,validatorPins:marker.validatorPins,preservedCommits:marker.preservedCommits,roots:marker.authorityRoots};
 }
+export function resolvePreWorkValidatorAuthority(cwd:string,path=PRE_WORK_MARKER){
+  if(path!==PRE_WORK_MARKER) throw new Error('pre-work marker path is not allowlisted');
+  const marker=JSON.parse(readFileSync(resolve(cwd,path),'utf8')); const classAware=resolveClassAwareAuthority(cwd);
+  if(marker.planId!=='27.1-03T'||marker.status!=='COMPLETE'||marker.authority!=='PRE_WORK_ENTRY_VALIDATOR'||!Array.isArray(marker.validatorPins)||marker.validatorPins.length!==2||!Array.isArray(marker.authorityRoots)||marker.authorityRoots.length!==10||new Set(marker.authorityRoots.map((r:any)=>r.type)).size!==10) throw new Error('pre-work marker content mismatch');
+  if(marker.dependency?.planId!=='27.1-03S'||marker.dependency.path!==classAware.path||marker.dependency.sha256!==classAware.sha256||marker.dependency.commit!==classAware.commit||marker.dependency.payloadCommit!==classAware.payloadCommit) throw new Error('pre-work class-aware dependency mismatch');
+  if(JSON.stringify(marker.authorityRoots.slice(0,9))!==JSON.stringify(classAware.roots)||marker.authorityRoots[9]?.type!=='PRE_WORK_03T_VALIDATOR_PAYLOAD'||marker.authorityRoots[9]?.commit!==marker.payloadCommit) throw new Error('pre-work ten-root closure mismatch');
+  const commit=markerCommit(cwd,path,marker);
+  for(const pin of marker.validatorPins){if(!['frontend/tests/validateVisualReconciliation.ts','frontend/tests/validateVisualReconciliation.test.ts'].includes(pin.path)||sha256(execFileSync('git',['show',`${marker.payloadCommit}:${pin.path}`],{cwd}))!==pin.sha256||git(cwd,'rev-parse',`${marker.payloadCommit}:${pin.path}`)!==pin.gitBlobId) throw new Error('pre-work validator pin mismatch');}
+  for(const record of [marker.summary,marker.payloadResult]) if(!record?.path||sha256(execFileSync('git',['show',`${marker.payloadCommit}:${record.path}`],{cwd}))!==record.sha256) throw new Error('pre-work payload member hash mismatch');
+  return {path,sha256:sha256(readFileSync(resolve(cwd,path))),commit,payloadCommit:marker.payloadCommit,roots:marker.authorityRoots};
+}
 function assertExactFlags(args:string[], allowed:Set<string>){ for(const flag of args.filter(x=>x.startsWith('--'))) if(!allowed.has(flag)) throw new Error(`unknown CLI input ${flag}`); }
 function main() {
   const args = process.argv.slice(2); const value = (flag: string) => args[args.indexOf(flag) + 1];
@@ -276,7 +288,7 @@ function main() {
   }
   const mode=value('--mode');
   if(mode==='pre-work-entry'){
-    const allowed=new Set(['--mode','--predecessor-plan','--validator-authority','--general-validator-values-from','--class-aware-values-from','--require-class-aware-complete','--require-exact-class-aware-marker-hash-commit','--require-class-aware-validator-test-pins','--require-three-preserved-plan03-commits','--require-complete','--require-exact-marker-hash-commit','--require-four-validator-test-pins','--require-nine-distinct-roots','--require-exact-predecessor','--identity-manifest','--identity-sets','--resolve-selected-classes','--reject-legacy-entry-authority','--emit-entry-context-json']); assertExactFlags(args,allowed);
+    const allowed=new Set(['--mode','--predecessor-plan','--validator-authority','--general-validator-values-from','--pre-work-validator-values-from','--class-aware-values-from','--require-pre-work-validator-complete','--require-ten-distinct-roots','--require-class-aware-complete','--require-exact-class-aware-marker-hash-commit','--require-class-aware-validator-test-pins','--require-three-preserved-plan03-commits','--require-complete','--require-exact-marker-hash-commit','--require-four-validator-test-pins','--require-nine-distinct-roots','--require-exact-predecessor','--identity-manifest','--identity-sets','--resolve-selected-classes','--reject-legacy-entry-authority','--emit-entry-context-json']); assertExactFlags(args,allowed);
     const required=['--require-class-aware-complete','--require-exact-class-aware-marker-hash-commit','--require-class-aware-validator-test-pins','--require-three-preserved-plan03-commits','--require-complete','--require-exact-marker-hash-commit','--require-four-validator-test-pins','--require-nine-distinct-roots','--require-exact-predecessor','--resolve-selected-classes','--reject-legacy-entry-authority','--emit-entry-context-json'];
     if(required.some(flag=>!args.includes(flag))) throw new Error('all closed pre-work authority gates are required');
     const predecessor=value('--predecessor-plan'), selection=value('--identity-sets'); const expectedSelection:Record<string,string>={'27.1-02':'core-login-dashboard','27.1-03':'core-meal-weekly','27.1-04':'secondary-reports-approvals-admin','27.1-05':'purchasing-phase09','27.1-06':'all-21'};
@@ -284,9 +296,11 @@ function main() {
     const cwd=git(process.cwd(),'rev-parse','--show-toplevel'), phase='.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c';
     const general=resolveGeneralValidatorAuthority(cwd,resolve(phase,value('--general-validator-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,''));
     const classAware=resolveClassAwareAuthority(cwd,resolve(phase,value('--class-aware-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,''));
-    if(general.roots?.length!==8||classAware.roots.length!==9||new Set(classAware.roots.map((r:any)=>r.type)).size!==9) throw new Error('nine distinct roots required');
+    const preWork=args.includes('--pre-work-validator-values-from')?resolvePreWorkValidatorAuthority(cwd,resolve(phase,value('--pre-work-validator-values-from')).replaceAll('\\','/').replace(`${cwd.replaceAll('\\','/')}/`,'')):undefined;
+    if(preWork&&(!args.includes('--require-pre-work-validator-complete')||!args.includes('--require-ten-distinct-roots'))) throw new Error('pre-work validator gates required');
+    if(general.roots?.length!==8||classAware.roots.length!==9||new Set(classAware.roots.map((r:any)=>r.type)).size!==9||(preWork&&preWork.roots.length!==10)) throw new Error('distinct root closure required');
     const matrix=JSON.parse(readFileSync(resolve(cwd,phase,value('--identity-manifest')),'utf8')); const inventory=JSON.parse(readFileSync(resolve(cwd,phase,'evidence/failure-inventory.json'),'utf8')); assertAuthorizationMatrix(matrix,inventory.failures); const sets=resolveIdentitySetNames(matrix,selection);
-    console.log(JSON.stringify({mode:'pre-work-entry',predecessorPlan:predecessor,generalValidator:general,classAwareValidator:classAware,selectedIdentitySets:sets,classes:['production-regression','fixture-drift','harness-nondeterminism','stale-baseline']})); return;
+    console.log(JSON.stringify({mode:'pre-work-entry',predecessorPlan:predecessor,generalValidator:general,classAwareValidator:classAware,preWorkValidator:preWork,selectedIdentitySets:sets,classes:['production-regression','fixture-drift','harness-nondeterminism','stale-baseline']})); return;
   }
   if(mode==='snapshot-recovery-manifest'){
     const allowed=new Set(['--mode','--manifest','--ordered-commits','--require-exact-members','--verify-git-blobs','--verify-member-sha256','--require-disposition','--require-two-packets','--verify-identities','--verify-row-class-path-matrix']); assertExactFlags(args,allowed);

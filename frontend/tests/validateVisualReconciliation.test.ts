@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveClassAwareAuthority, resolveIdentitySetNames, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, validateSnapshotRecoveryManifest, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
+import { assertAuthorizationMatrix, assertAuthorizedPath, exactAuthorizedPaths, GENERAL_VALIDATOR_AUTHORITY, resolveClassAwareAuthority, resolveIdentitySetNames, resolvePreWorkValidatorAuthority, resolveRecoveryAuthority, validateClassAwareAccounting, validateDownstreamReadiness, validateSnapshotRecoveryManifest, type AuthorizationMatrix, type ClassAwareDisposition, type ReadinessDisposition } from './validateVisualReconciliation';
 
 const evidence = resolve('../.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence');
 const load = <T>(name: string): T => JSON.parse(readFileSync(resolve(evidence, name), 'utf8'));
@@ -124,6 +124,10 @@ describe('Phase 27.1 pre-work entry closure', () => {
   it('accepts only the exact COMPLETE 03S class-aware authority', () => {
     expect(run(canonical)).toContain('"classAwareValidator"');
     expect(resolveClassAwareAuthority(cwd)).toMatchObject({ commit: expect.stringMatching(/^4aab947f/), payloadCommit: 'ef030acec72a893fafe9449947074edcaa020d05' });
+  });
+
+  it('resolves the sealed tenth-root pre-work marker', () => {
+    expect(resolvePreWorkValidatorAuthority(cwd)).toMatchObject({ roots: expect.arrayContaining([expect.objectContaining({ type: 'PRE_WORK_03T_VALIDATOR_PAYLOAD' })]) });
   });
 
   it.each([
