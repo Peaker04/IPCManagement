@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-04",
+  "status": "READY_TO_SEAL",
+  "summary": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-04-SUMMARY.md",
+    "sha256": "123ccf13e76d00190904ce89beb28b27e5fd86846ffb0040a527c39b8bca2af8"
+  },
+  "authorityRoots": [
+    {
+      "type": "ORIGINAL_01_SOURCE",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json",
+      "sha256": "b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02",
+      "commit": "c52c80f8186b985d07619a7ad0ed7abc0572675c"
+    },
+    {
+      "type": "INVALID_01C_PROVENANCE",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01C-correction.json",
+      "sha256": "22f1e4ff032acb6b87eb7148049be1a1707cda7bbfa1d82a61a1b80333c0d0e0",
+      "commit": "ae129eaab0dde192f3dca17c7504b7b9aaef5d17",
+      "disposition": "SUPERSEDED_PROTOCOL_INVALID"
+    },
+    {
+      "type": "AUTHORITATIVE_01R_RESEAL",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01R-reseal.json",
+      "sha256": "ecb024f20d60ce8d3e6e80aab1afe6e7d7a6bdc40a5664527034cf6db3516951",
+      "commit": "fb93fd120d1f5ec81760070be67ed65429ae4c03"
+    },
+    {
+      "type": "FOCUSED_01F_AUTHORITY",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01F-focused-launcher.json",
+      "sha256": "5cccd2a3c68e396c3696543f09cbfc486a9a907917d2ba23a73a89b4261ba325",
+      "commit": "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c"
+    },
+    {
+      "type": "INVALID_01V_PROVENANCE",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01V-topology-validator.json",
+      "sha256": "a6365b003ef01289c8e4f896a2d02623df407d3e8100e23b433982e072fa42fc",
+      "commit": "8502ce701a4070f7be449681ffecbffc36b20056",
+      "disposition": "SUPERSEDED_PROTOCOL_INVALID"
+    },
+    {
+      "type": "SOLE_01W_TOPOLOGY_AUTHORITY",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01W-topology-validator.json",
+      "sha256": "e320de600790450c5a3129ea2f45497419966d1546a0ba220f5ae40c078e72c5",
+      "commit": "47d13805196fd9ab51d0f08c5de44db7fa26a71b"
+    },
+    {
+      "type": "VALIDATOR_02R_RECOVERY_AUTHORITY",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02R-validator-recovery.json",
+      "sha256": "4a5b52008c84f778a550bb5dd25af3a52346fdf01ac56a7704c6bc224344547a",
+      "commit": "2594b390e74b971675315d41e01ed844c4b4b2df"
+    },
+    {
+      "type": "GENERAL_03R_VALIDATOR_PAYLOAD",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json",
+      "sha256": "0159e28c81829291ebaa4acd231946fa34749158db4c1c97461bc80a8ebb78c3",
+      "commit": "dedab0ade5637b09247c88209980839c3d5c699d"
+    },
+    {
+      "type": "CLASS_AWARE_03S_PARTIAL_CHAIN",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03S-snapshot-recovery-manifest.json",
+      "sha256": "6f0eef6e88fb9af30da1805c8c448da888226ee800819fbd883b3915a405f9be",
+      "commit": "ef030acec72a893fafe9449947074edcaa020d05"
+    },
+    {
+      "type": "PRE_WORK_03T_VALIDATOR_PAYLOAD",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-03T.json",
+      "sha256": "9a9655a8d3b07068788cbad5d66909a83caa9460b50797d19eccba2aab4234da",
+      "commit": "a83c0785dbb707b9018ab7607d23418a3188de81"
+    }
+  ],
+  "validationHashes": {
+    "coreRouteDispositions": "b63214ebef4dafce9f5d2fb0cdecd62d268413159b598c50539b2593bf629abe",
+    "correctedAuthorizationMatrix": "f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407",
+    "infrastructureAllowlist": "b31358ab7a4420dda930faee02e28942fb8ed4eba917ba23f69d50402f44dcee",
+    "rowClassPathMatrix": "15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2"
+  },
+  "tests": {
+    "files": 3,
+    "tests": 70,
+    "status": "PASS"
+  },
+  "browserRun": true,
+  "browserPasses": {
+    "mealOrders": 2,
+    "weeklyMenu": 2
+  },
+  "productionChanged": false,
+  "snapshotsChanged": true,
+  "blockers": []
+}
