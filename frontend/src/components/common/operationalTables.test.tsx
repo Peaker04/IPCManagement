@@ -371,6 +371,22 @@ describe("StockMovementTable", () => {
     expect(screen.getByText("Thịt gà")).toBeInTheDocument();
   });
 
+  it("preserves meaningful localized movement status and next-action text", () => {
+    render(
+      <ToastProvider>
+        <StockMovementTable movements={[{
+          ...movements[0],
+          status: "Đã nhập kho",
+          nextAction: "Cập nhật tồn kho",
+        }]} />
+      </ToastProvider>,
+    );
+
+    expect(screen.getByText("Đã nhập kho")).toBeInTheDocument();
+    expect(screen.getByText("Cập nhật tồn kho")).toBeInTheDocument();
+    expect(screen.queryByText("Chưa cập nhật")).not.toBeInTheDocument();
+  });
+
   it("shows contextual feedback when clipboard access fails", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("clipboard denied"));
     Object.defineProperty(navigator, "clipboard", {

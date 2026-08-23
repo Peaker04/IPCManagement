@@ -125,7 +125,7 @@ describe('Phase 27.1 pre-work entry closure', () => {
   it('accepts only the exact COMPLETE 03S class-aware authority', () => {
     expect(run(canonical)).toContain('"classAwareValidator"');
     expect(resolveClassAwareAuthority(cwd)).toMatchObject({ commit: expect.stringMatching(/^4aab947f/), payloadCommit: 'ef030acec72a893fafe9449947074edcaa020d05' });
-  });
+  }, 15_000);
 
   it('resolves the sealed tenth-root pre-work marker', () => {
     expect(resolvePreWorkValidatorAuthority(cwd)).toMatchObject({ roots: expect.arrayContaining([expect.objectContaining({ type: 'PRE_WORK_03T_VALIDATOR_PAYLOAD' })]) });

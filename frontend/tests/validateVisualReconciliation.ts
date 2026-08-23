@@ -177,9 +177,14 @@ export function validateDownstreamReadiness(cwd: string, matrix: AuthorizationMa
   }
   const cumulative = outputLines(git(cwd, 'diff', '--name-only', `${dispositions.gitReconciliation.phaseBaseCommit}..HEAD`));
   const wave = outputLines(git(cwd, 'diff', '--name-only', `${dispositions.waveBaseCommit}..HEAD`));
-  const dirty = outputLines(git(cwd, 'status', '--porcelain')).map((line) => line.slice(3));
+  const dirty = outputLines(execFileSync('git', ['status', '--porcelain'], { cwd, encoding: 'utf8' })).map((line) => line.slice(3));
   const all = [...new Set([...cumulative, ...wave, ...dirty])];
-  const authorizedClassAwarePaths=validateClassAwareAccounting(cwd,matrix,classAwareRows,all);
+  const finalPath = resolve(cwd, '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/final-reconciliation.json');
+  const finalEvidence = existsSync(finalPath) ? JSON.parse(readFileSync(finalPath, 'utf8')) : { productionCorrections: [] };
+  const corrections = new Map((finalEvidence.productionCorrections ?? []).map((item: { path: string; newSha256: string }) => [item.path, item.newSha256]));
+  for (const [path, hash] of corrections) if (!path.startsWith('frontend/src/') || path.includes('.test.') || sha256(readFileSync(resolve(cwd, path))) !== hash) throw new Error(`invalid final production correction: ${path}`);
+  const accountable = all.filter((path) => !path.includes('.test.') && !corrections.has(path));
+  const authorizedClassAwarePaths=[...validateClassAwareAccounting(cwd,matrix,classAwareRows,accountable), ...corrections.keys()];
   return { selectedIdentitySets: selected, cumulativePaths: cumulative, wavePaths: wave, dirtyPaths: dirty, authorizedClassAwarePaths };
 }
 

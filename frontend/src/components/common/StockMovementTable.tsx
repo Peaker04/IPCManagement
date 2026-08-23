@@ -43,6 +43,11 @@ const typeClasses = {
   adjustment: 'bg-white text-slate-700 border-slate-200',
 };
 
+function displayWorkflowText(value: string): string {
+  const formatted = formatWorkflowStatus(value);
+  return formatted === 'Chưa cập nhật' && value.trim() ? value : formatted;
+}
+
 function shortenDocumentNo(docNo: string): string {
   if (!docNo) return '';
   const parts = docNo.split('-');
@@ -156,10 +161,10 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                 <td>{movement.owner}</td>
                 <td className="ipc-badge-cell">
                   <StatusBadge variant={movement.tone} className="ipc-table-badge ipc-table-badge--status">
-                    {formatWorkflowStatus(movement.status)}
+                    {displayWorkflowText(movement.status)}
                   </StatusBadge>
                 </td>
-                <td className="text-slate-600 text-[13px]">{formatWorkflowStatus(movement.nextAction)}</td>
+                <td className="text-slate-600 text-[13px]">{displayWorkflowText(movement.nextAction)}</td>
               </tr>
             ))}
           </tbody>
