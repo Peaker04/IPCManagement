@@ -22,6 +22,24 @@ export type UiAuditIdentity = { route: UiAuditRoute; regionId: string; state: st
 
 const staticRoutes = new Set<UiAuditRoute>(['/403']);
 const formRoutes = new Set<UiAuditRoute>(['/login','/admin/advanced-settings']);
+
+/** Canonical identity authorities shared by the inventory and production-route evidence adapters. */
+export const UI_AUDIT_ROUTE_AUTHORITIES: Record<UiAuditRoute, { actor: string; lowestOwner: string }> = {
+  '/': { actor: 'authenticated', lowestOwner: 'DashboardPage' },
+  '/weekly-menu': { actor: 'coordinator', lowestOwner: 'WeeklyMenuPage' },
+  '/reports': { actor: 'reporter', lowestOwner: 'ReportsPage' },
+  '/meal-orders': { actor: 'coordinator', lowestOwner: 'CoordinationPage' },
+  '/chef-dashboard': { actor: 'chef', lowestOwner: 'ChefDashboardPage' },
+  '/approvals': { actor: 'manager', lowestOwner: 'ApprovalPage' },
+  '/purchasing': { actor: 'purchasing', lowestOwner: 'PurchasingPage' },
+  '/warehouse': { actor: 'warehouse-keeper', lowestOwner: 'WarehousePage' },
+  '/admin-data': { actor: 'administrator', lowestOwner: 'AdminDataPage' },
+  '/admin/rules': { actor: 'administrator', lowestOwner: 'ApprovalRulesPage' },
+  '/admin/advanced-settings': { actor: 'administrator', lowestOwner: 'AdvancedDisplaySettings' },
+  '/login': { actor: 'anonymous', lowestOwner: 'login-form' },
+  '/403': { actor: 'authenticated-but-forbidden', lowestOwner: 'ForbiddenPage' },
+};
+
 export function expandUiAuditInventory(): UiAuditIdentity[] {
   const rows: UiAuditIdentity[] = [];
   for (const [route, regions] of Object.entries(REGION_INVENTORY) as [UiAuditRoute, readonly string[]][]) for (const regionId of regions) for (const state of CANONICAL_QUERY_STATES) for (const viewport of UI_AUDIT_VIEWPORTS) {
@@ -29,7 +47,8 @@ export function expandUiAuditInventory(): UiAuditIdentity[] {
     if (staticRoutes.has(route) && state !== 'populated') disposition = 'N/A(static denial region)';
     if (formRoutes.has(route) && !['populated','mutation-in-flight','mutation-failure'].includes(state)) disposition = 'N/A(local form has no collection query)';
     if (['/','/reports'].includes(route) && state.startsWith('mutation-')) disposition = 'N/A(read-only regions)';
-    rows.push({ route, regionId, state, actor: route === '/login' ? 'anonymous' : 'admin', viewport: viewport.id, lowestOwner: regionId, disposition });
+    const authority = UI_AUDIT_ROUTE_AUTHORITIES[route];
+    rows.push({ route, regionId, state, actor: authority.actor, viewport: viewport.id, lowestOwner: authority.lowestOwner, disposition });
   }
   return rows;
 }

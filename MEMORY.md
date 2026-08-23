@@ -30,6 +30,13 @@ Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được tea
 count là `0`. Các PID/runtime khác nếu còn mở nằm ngoài run này và không bị chạm. Runtime warehouse development
 `3020/8020` nếu còn mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
+## Phase 28 Plan 28-01 closeout · 23/08/2026
+
+- Baseline read-only đã SEALED trên đúng 2.142 six-part identity và 32 finding/identity; production measurement chỉ override structural fallback khi identity byte-exact.
+- Identity disposition: measured 903, N/A 469, NEEDS_EVIDENCE 770. Finding outcome: PASS 4.763, FAIL 1.453, N/A 15.120, NEEDS_EVIDENCE 47.208, UNRESOLVED 0.
+- Honest NEEDS_EVIDENCE được phép trong seal vì seal chứng minh closure/provenance, không tuyên bố mọi rule PASS. Các reason còn lại là identity-local mutation read-only, thiếu refresh trigger và stale-cache transition không thể tạo an toàn; zero generic placeholder.
+- Focused reconciliation/inventory/adapter 34/34, lint và production build 2.293 module PASS. Không đổi production/backend/DB/snapshot/threshold. Generated combined JSON/manifest giữ ignored trong `frontend/test-results/ui-audit-phase28-baseline/`; summary ở Plan 28-01.
+
 ## Phase 27 / 27.1 closeout · 23/08/2026
 
 - Phase 27.1 đã COMPLETE: 21/21 visual identities resolved; canonical broad visual suite PASS hai lần liên tiếp.

@@ -1740,3 +1740,10 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Final gates passed: frontend 170 files / 1078 tests, lint, dependency-cruiser, production build and strict architecture hygiene.
 - Closed VREC-01..04 and WHP-04. Admin Data implementation and Purchasing rollout remain locked.
 - Plan 07 payload `a3ed9219d51602637cf1b8997f90ac1bf14f6502`; marker `6377e54f3c51b36734648551d72eb5c557bc5b96`.
+
+## 23/08/2026 — Phase 28 Plan 28-01 baseline sealed
+
+- Corrected stale test-inventory actor/lowest-owner authorities at the source while preserving all 2,142 route/region/state/viewport members; production evidence identities are never rewritten during reconciliation.
+- Reconciled login, complementary protected ready routes, ten query-state artifacts and static/form routes into exactly 2,142 records × 32 findings. Production measurements override structural fallback only by exact six-part identity.
+- SEALED closure allows honest NEEDS_EVIDENCE under the read-only contract: identity totals measured 903, N/A 469, NEEDS_EVIDENCE 770; outcome totals PASS 4,763, FAIL 1,453, N/A 15,120, NEEDS_EVIDENCE 47,208, UNRESOLVED 0.
+- Fail-closed checks cover missing/duplicate/extra and mutated actor/owner identities, non-GET/HEAD, ownerless FAIL, guessed PASS, synthetic production measurement and generic placeholder reasons. Focused 34/34, lint and production build pass; no production/backend/DB/snapshot/threshold change.
