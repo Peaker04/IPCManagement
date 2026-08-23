@@ -103,8 +103,9 @@ Plans:
 2. Convert authoritative guidance into IPCManagement-local, machine-readable expected values; keep non-deterministic hierarchy/grouping findings in fresh read-only review.
 3. Extend the existing measurement harness instead of creating a second audit system.
 4. Run a read-only whole-web baseline and classify every finding by exact route/state/viewport and lowest owner.
-5. Implement at most three waves: foundation/tokens, shared UI seams, then route rollout and verification.
-6. Verify focused contracts, full unit/static/build gates, headed browser state coverage and fresh independent review.
+5. Implement at most three UI remediation waves: foundation/tokens, shared UI seams, then route rollout and verification.
+6. Verify focused contracts, full unit/static/build gates, two separately preserved headed browser runs and fresh independent review.
+7. Only after UI closeout, implement the separate one-active-warehouse invariant wave with retained IDs/FKs/stock/audit/API authorization/cache contracts and fail-closed zero/multiple behavior.
 
 ### Success criteria
 
@@ -122,11 +123,12 @@ Plans:
 - Do not mix Fiori/Carbon component libraries into the existing shadcn/Base UI stack.
 - Do not broaden visual baselines or weaken thresholds to manufacture PASS.
 
-**Plans:** 4 plans
+**Plans:** 5 plans
 
 Plans:
 
 - [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact.
-- [ ] 28-02-PLAN.md — group the 1,453 sealed FAIL findings and remediate Login plus selector-proven shared seams (wave 2).
-- [ ] 28-03-PLAN.md — correct Purchasing and remaining feature-owner hierarchy/accessibility groups (wave 3).
-- [ ] 28-04-PLAN.md — close Admin responsive/admin-route findings and run exact deterministic/browser/blind reconciliation (wave 4).
+- [ ] 28-02-PLAN.md — group the 1,453 sealed FAIL findings, remediate Login, all seven Dashboard contrast rows, and selector-proven shared seams (wave 2; PUX only).
+- [ ] 28-03-PLAN.md — correct Purchasing and dynamically reconciled lowest feature-owner groups with atomic family gates (wave 3; PUX only).
+- [ ] 28-04-PLAN.md — close Admin residuals, preserve two exact headed roots, and run schema-validated fresh blind review (wave 4; PUX only).
+- [ ] 28-05-PLAN.md — after 28-04, enforce exactly one configured active Warehouse, retain IDs/FKs/stock/audit/API authorization/cache contracts, fail closed on zero/multiple, and remove routine false choice (wave 5; SWH only).
