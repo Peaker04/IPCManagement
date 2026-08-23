@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import {
+  DASHBOARD_QUERY_DISPOSITION_REASONS,
   expandProductionQueryIdentities,
   needsProductionQueryEvidence,
   PRODUCTION_QUERY_ROUTES,
   PRODUCTION_QUERY_STATES,
+  registerDashboardQueryIdentity,
   registerProductionQueryMeasurement,
   summarizeProductionQueryIdentities,
   validateProductionQueryIdentities,
@@ -27,6 +29,22 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       measuredIdentityCount: 0,
       unsupportedIdentityCount: 637,
       needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 637 },
+    });
+  });
+
+  it('registers the exact 98 dashboard identities without pretending unreachable states exist', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/').map(registerDashboardQueryIdentity);
+    expect(rows).toHaveLength(98);
+    expect(new Set(rows.map(identityKey)).size).toBe(98);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 98,
+      measuredIdentityCount: 63,
+      unsupportedIdentityCount: 35,
+      needsEvidenceReasons: {
+        [DASHBOARD_QUERY_DISPOSITION_REASONS.noResultsWithoutFilter]: 7,
+        [DASHBOARD_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 14,
+        [DASHBOARD_QUERY_DISPOSITION_REASONS.staleErrorNotRendered]: 14,
+      },
     });
   });
 

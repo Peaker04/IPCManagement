@@ -64,6 +64,27 @@ export function needsProductionQueryEvidence(identity: ProductionQueryIdentity, 
   return { ...identity, disposition: { kind: 'needs-evidence', reason: normalizedReason } };
 }
 
+export const DASHBOARD_QUERY_DISPOSITION_REASONS = {
+  noResultsWithoutFilter: 'NOT_APPLICABLE: dashboard-shift-status has no filter UI, so no-results cannot differ from truly-empty',
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: Dashboard exposes no read-only refresh trigger that can create an isFetching state from populated cache',
+  staleErrorNotRendered: 'NEEDS_EVIDENCE: DashboardPage discards workflow data when isError, so production DOM exposes error-no-data rather than partial-error-stale',
+} as const;
+
+/** Dashboard-only Phase 28 disposition. Measurable rows still require production GET interception in Playwright. */
+export function registerDashboardQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/') throw new Error(`dashboard adapter received non-dashboard identity ${identityKey(identity)}`);
+  if (identity.state === 'no-results' && identity.regionId === 'dashboard-shift-status') {
+    return needsProductionQueryEvidence(identity, DASHBOARD_QUERY_DISPOSITION_REASONS.noResultsWithoutFilter);
+  }
+  if (identity.state === 'refreshing') {
+    return needsProductionQueryEvidence(identity, DASHBOARD_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  }
+  if (identity.state === 'partial-error-stale') {
+    return needsProductionQueryEvidence(identity, DASHBOARD_QUERY_DISPOSITION_REASONS.staleErrorNotRendered);
+  }
+  return registerProductionQueryMeasurement(identity);
+}
+
 export function summarizeProductionQueryIdentities(rows: readonly ProductionQueryIdentity[]) {
   const measuredIdentityCount = rows.filter(({ disposition }) => disposition.kind === 'measure').length;
   const needsEvidenceReasons = rows.reduce<Record<string, number>>((totals, { disposition }) => {
