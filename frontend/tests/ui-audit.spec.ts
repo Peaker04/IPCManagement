@@ -10,7 +10,7 @@ import { validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWar
 import { buildWarehouseSelectionManifest, evaluateWarehouseManifest } from './warehouseDeterministicRules';
 import { routeMeasuredFinding, UI_AUDIT_FIXTURE_VERSION, UI_AUDIT_SCHEMA_VERSION, validateUiAuditRecord, type UiAuditRecord } from './uiAuditContract';
 import { ruleFixtureRegistry } from './uiAuditFixtureRegistry';
-import { uiAuditOracleRegistry, type UiAuditRuleId } from './uiAuditOracleRegistry';
+import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS, type UiAuditRuleId } from './uiAuditOracleRegistry';
 import { isLedgerRequest } from './uiAuditEvidence';
 import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 
@@ -1265,6 +1265,80 @@ test.describe('shared tabs Material and Fiori contract', () => {
       await expect(page.getByRole('status')).toContainText('BOM đang áp dụng');
     });
   }
+});
+
+test.describe('Phase 28 protected production-route ready cohort', () => {
+  const actor = (name:string, permissions:string[], admin=false):AuditUser => ({ userId:`phase28-${name}`, username:`phase28-${name}`, fullName:`${name} Phase 28`, role:name, roleCode:name.toUpperCase(), roleName:name, isAdminFullAccess:admin, permissions });
+  const actors:Record<string,AuditUser> = {
+    authenticated:actor('authenticated',[]), coordinator:actor('coordinator',['coordination.read']), reporter:actor('reporter',['report.read']), chef:actor('chef',['production.read']),
+    approver:actor('approver',['purchase.request.approve']), purchaser:actor('purchaser',['purchase.read']), keeper:warehouseKeeperActor, administrator:actor('administrator',['*'],true),
+    'authenticated-but-forbidden':actor('authenticated-but-forbidden',[]),
+  };
+  const cases = [
+    [ROUTES.DASHBOARD,'dashboard-shift-status','ready','authenticated','DashboardPage','uio-g'],
+    [ROUTES.WEEKLY_MENU,'weekly-schedule','plan-ready','coordinator','WeeklyMenuPage','uio-16'],
+    [ROUTES.REPORTS,'report-demand','ready','reporter','ReportsPage','uio-s'],
+    [ROUTES.MEAL_ORDERS,'coordination-orders','ready','coordinator','CoordinationPage','uio-j'],
+    [ROUTES.CHEF_DASHBOARD,'chef-production','production-ready','chef','ChefDashboardPage','uio-d'],
+    [ROUTES.APPROVALS,'approval-queue','queue-ready','approver','ApprovalPage','uio-a'],
+    [ROUTES.PURCHASING,'purchase-workflow','workflow-ready','purchaser','PurchasingPage','uio-k'],
+    [ROUTES.WAREHOUSE,'warehouse-current-stock','ready','keeper','WarehousePage','uio-12'],
+    [ROUTES.ADMIN_DATA,'admin-entities','ready','administrator','AdminDataPage','uio-0'],
+    [ROUTES.APPROVAL_RULES,'approval-rules','ready','administrator','ApprovalRulesPage','uio-9'],
+    [ROUTES.ADVANCED_SETTINGS,'advanced-settings-form','ready','administrator','AdvancedDisplaySettingsPage','uio-8'],
+    [ROUTES.FORBIDDEN,'forbidden-panel','ready','authenticated-but-forbidden','ForbiddenPage','uio-h'],
+  ] as const;
+
+  test('records route and region identity only from matching production URLs', async ({ page }) => {
+    test.setTimeout(180_000);
+    const records: UiAuditRecord[] = [];
+    const observed:UiAuditRecord['network']=[];
+    page.on('request',request=>{if(isLedgerRequest(request.url(),request.method(),request.resourceType(),'http://127.0.0.1:5173')) observed.push({method:request.method(),url:request.url(),resourceType:request.resourceType(),classification:request.url().includes('/api/')?'api':'non-static'});});
+    await page.route('**/*', async (route) => { if (!['GET','HEAD'].includes(route.request().method())) await route.abort(); else await route.continue(); });
+    for (const viewport of UI_AUDIT_VIEWPORTS) for (const [path,regionId,state,actorName,owner,ownerId] of cases) {
+      const ledgerStart=observed.length;
+      await page.setViewportSize({ width:viewport.width, height:viewport.height });
+      await page.unroute('**/api/**');
+      const profile=actors[actorName];
+      await stubAuditApi(page, { profile, ...(path===ROUTES.WAREHOUSE?{warehouseScenario:'ready' as const}:{}) });
+      await login(page,profile);
+      await navigateInApp(page,path);
+      await expect(page).toHaveURL(url=>url.pathname===path);
+      const routeOwner=page.locator(`main[data-ui-owner="${ownerId}"]`); await expect(routeOwner).toBeVisible();
+      const zoom='textZoomPercent' in viewport?viewport.textZoomPercent:100;
+      const style=zoom===100?undefined:await page.addStyleTag({content:`html{font-size:${zoom}%!important}`});
+      await expect(page.locator('h1:visible')).toHaveCount(1);
+      const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
+      const metrics=await page.evaluate(() => {
+        const visible=(e:HTMLElement)=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0};
+        const controls=[...document.querySelectorAll<HTMLElement>('input,select,textarea,button,a[href]')].filter(visible);
+        const main=document.querySelector<HTMLElement>('main[data-ui-owner]')!; const rect=main.getBoundingClientRect();
+        return { route:location.pathname, h1Count:[...document.querySelectorAll<HTMLElement>('h1')].filter(visible).length, mainCount:[...document.querySelectorAll<HTMLElement>('main')].filter(visible).length,
+          blankControlNames:controls.filter(e=>!(e.getAttribute('aria-label')||e.getAttribute('aria-labelledby')||e.textContent?.trim()||(e instanceof HTMLInputElement&&(e.labels?.length??0)>0)||e.getAttribute('title'))).length,
+          overflowPx:Math.max(0,document.documentElement.scrollWidth-innerWidth), ownerWithinViewport:rect.left>=-1&&rect.right<=innerWidth+1 };
+      });
+      const serious=axe.violations.filter(v=>v.impact==='serious'||v.impact==='critical');
+      const identity=identityKey({route:path,regionId,state,actor:actorName,viewport:viewport.id,lowestOwner:owner});
+      const measured=(ruleId:string,pass:boolean,value:Record<string,unknown>,expected:string)=>routeMeasuredFinding({ruleId,identity,productionRouteMeasured:true,passed:pass,measured:{...value,captureMode:'production-route',route:metrics.route},expected,actual:JSON.stringify(value),lowestOwner:owner});
+      const findings=[
+        measured('HIER-01',metrics.h1Count===1&&metrics.mainCount===1,{h1Count:metrics.h1Count,mainCount:metrics.mainCount},'one h1 and one main'),
+        measured('HIER-02',metrics.blankControlNames===0,{blankControlNames:metrics.blankControlNames},'zero unnamed visible controls'),
+        measured('A11Y-01',serious.length===0&&metrics.blankControlNames===0,{seriousCount:serious.length,violationIds:serious.map(v=>v.id),blankControlNames:metrics.blankControlNames},'zero serious/critical axe violations and unnamed controls'),
+        measured('RESP-01',metrics.overflowPx<=2&&metrics.ownerWithinViewport,{maximumDocumentOverflowPx:metrics.overflowPx,ownerWithinViewport:metrics.ownerWithinViewport},'at most 2px overflow and owner within viewport'),
+        measured('RESP-02',metrics.overflowPx<=2,{textZoomPercent:zoom,clippedDocumentPx:metrics.overflowPx},'no document clipping'),
+      ];
+      const ids=new Set(findings.map(f=>f.ruleId));
+      findings.push(...UI_AUDIT_RULE_IDS.filter(id=>!ids.has(id)).map(ruleId=>({ruleId,identity,verdict:'NEEDS_EVIDENCE' as const,measured:{productionRouteMeasured:false,reason:'not safely measurable in ready-state DOM cohort'}})));
+      expect(metrics.route).toBe(path);
+      const record:UiAuditRecord={schemaVersion:UI_AUDIT_SCHEMA_VERSION,fixtureVersion:UI_AUDIT_FIXTURE_VERSION,identity,fixtureKey:identity,findings,network:observed.slice(ledgerStart)}; validateUiAuditRecord(record); records.push(record);
+      if(style) await style.evaluate(node=>node.remove());
+    }
+    expect(records).toHaveLength(84); expect(new Set(records.map(r=>r.identity)).size).toBe(84); expect(records.every(r=>r.identity.split('|').length===6)).toBe(true);
+    expect(records.flatMap(r=>r.network).filter(request=>!['GET','HEAD'].includes(request.method))).toEqual([]);
+    const all=records.flatMap(r=>r.findings); const verdictTotals=all.reduce<Record<string,number>>((a,f)=>({...a,[f.verdict]:(a[f.verdict]??0)+1}),{});
+    const reportPath=resolve(process.cwd(),'test-results','ui-audit-phase28-protected-production-routes.json'); mkdirSync(dirname(reportPath),{recursive:true});
+    writeFileSync(reportPath,`${JSON.stringify({schemaVersion:UI_AUDIT_SCHEMA_VERSION,routeCount:12,viewportCount:7,recordCount:records.length,measuredFindingCount:records.length*5,remainingNeedsEvidenceCount:records.length*(UI_AUDIT_RULE_IDS.length-5),verdictTotals,records},null,2)}\n`);
+  });
 });
 
 test.describe('Phase 09 accessibility and responsive seam', () => {
