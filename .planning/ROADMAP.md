@@ -52,7 +52,7 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 
 ## Phase 27.1: Non-Warehouse visual reconciliation
 
-**Status:** PLANNED — Plans 01 through 02 complete; additive general-validator Plan 03R is the prerequisite for Plans 03–07 across 14 serialized waves
+**Status:** PLANNED — Plans 01 through 03S complete; pre-work recovery Plan 03T is the prerequisite for Plans 03–07 across 17 serialized waves
 
 **Goal:** Explain, classify and resolve all 21 non-Warehouse failures in `frontend/tests/visual-routes.spec.ts` without laundering production regressions, weakening the visual oracle or broad-updating baselines.
 
@@ -68,7 +68,7 @@ No production implementation outside Warehouse is authorized by this roadmap rev
 4. The complete unchanged broad visual suite passes twice consecutively, followed by full frontend unit, lint, dependency-cruiser, production build and hygiene gates.
 5. Phase 27 final verification is rerun only after Phase 27.1 closes with zero unresolved item.
 
-**Plans:** 15 plans
+**Plans:** 16 plans
 
 Plans:
 
@@ -81,9 +81,10 @@ Plans:
 - [x] 27.1-02R-PLAN.md — Additive recovery prerequisite sealed downstream-readiness validator authority (wave 7; depends on 01W).
 - [x] 27.1-02-PLAN.md — Chef/Purchasing readiness closed from COMPLETE 02R authority (wave 8; depends on 02R).
 - [x] 27.1-03R-PLAN.md — Generalize both validators for arbitrary allowlisted Plans 02–07, every downstream identity/class union and exact cumulative/wave accounting; seal immediate marker-only authority without browser/production/snapshot work (wave 9; depends on completed 02).
-- [ ] 27.1-03S-PLAN.md — Recover partial Plan 03 by making Git accounting class-aware, pinning commits `141da95a`/`3f284626`/`319ae158`, and sealing the ninth root without browser/production/snapshot changes (wave 11; depends on 03R).
-- [ ] 27.1-03-PLAN.md — Resume Login/Dashboard closeout after COMPLETE 03S, accounting the three partial commits, 03S payload/marker and final Plan-03 payload/marker (wave 12; depends on 03S).
-- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows under ninth-root class-aware authority (wave 13).
-- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines under ninth-root class-aware authority (wave 14).
-- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock and ninth-root authority (wave 15).
-- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout under ninth-root authority (wave 16).
+- [x] 27.1-03S-PLAN.md — Recover partial Plan 03 by making Git accounting class-aware, pinning commits `141da95a`/`3f284626`/`319ae158`, and sealing the ninth root without browser/production/snapshot changes (wave 11; depends on 03R).
+- [ ] 27.1-03T-PLAN.md — Repair the pre-work-entry closed schema for exact 03S class-aware authority and seal the validator as a marker-only tenth root without browser/source/snapshot/production changes (wave 12; depends on 03S).
+- [ ] 27.1-03-PLAN.md — Resume Login/Dashboard closeout after COMPLETE 03T, consuming 03T pre-work pins/tenth root while retaining 03S class-aware downstream authority (wave 13; depends on 03T).
+- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows under 03T pre-work and 03S class-aware authority (wave 14).
+- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines under 03T pre-work and 03S class-aware authority (wave 15).
+- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock and sealed pre-work/class-aware authorities (wave 16).
+- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout under ten-root pre-work authority (wave 17).
