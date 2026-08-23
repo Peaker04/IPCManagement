@@ -2,14 +2,14 @@
 
 ## Phase overview
 
-- [ ] **Phase 27: Warehouse Data Workspace contract pilot** — implementation and Warehouse-only verification are green, but final approval is blocked by Phase 27.1 reconciliation of 21 non-Warehouse visual failures.
-- [ ] **Phase 27.1: Non-Warehouse visual reconciliation** — explain and resolve all 21 broad visual failures before Phase 27 may close.
+- [x] **Phase 27: Warehouse Data Workspace contract pilot** — complete; fresh Warehouse verification and reviewer reconciliation pass.
+- [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
 
 Admin Data is the mandatory validation gate after Phase 27, but is not authorized for implementation yet. Purchasing remains research-locked until Admin Data validation is complete.
 
 ## Phase 27: Warehouse Data Workspace contract pilot
 
-**Status:** BLOCKED — 4/4 implementation plans complete; final approval withdrawn pending Phase 27.1
+**Status:** COMPLETE — implementation, Phase 27.1 reconciliation and fresh final verification pass
 
 **Goal:** Prove that IPCManagement can express, collect, evaluate and remediate a Data Workspace UI contract without introducing a broad UI framework or changing business behavior.
 
@@ -82,9 +82,9 @@ Plans:
 - [x] 27.1-02-PLAN.md — Chef/Purchasing readiness closed from COMPLETE 02R authority (wave 8; depends on 02R).
 - [x] 27.1-03R-PLAN.md — Generalize both validators for arbitrary allowlisted Plans 02–07, every downstream identity/class union and exact cumulative/wave accounting; seal immediate marker-only authority without browser/production/snapshot work (wave 9; depends on completed 02).
 - [x] 27.1-03S-PLAN.md — Recover partial Plan 03 by making Git accounting class-aware, pinning commits `141da95a`/`3f284626`/`319ae158`, and sealing the ninth root without browser/production/snapshot changes (wave 11; depends on 03R).
-- [ ] 27.1-03T-PLAN.md — Repair the pre-work-entry closed schema for exact 03S class-aware authority and seal the validator as a marker-only tenth root without browser/source/snapshot/production changes (wave 12; depends on 03S).
-- [ ] 27.1-03-PLAN.md — Resume Login/Dashboard closeout after COMPLETE 03T, consuming 03T pre-work pins/tenth root while retaining 03S class-aware downstream authority (wave 13; depends on 03T).
-- [ ] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows under 03T pre-work and 03S class-aware authority (wave 14).
-- [ ] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines under 03T pre-work and 03S class-aware authority (wave 15).
-- [ ] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock and sealed pre-work/class-aware authorities (wave 16).
-- [ ] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout under ten-root pre-work authority (wave 17).
+- [x] 27.1-03T-PLAN.md — Repair the pre-work-entry closed schema for exact 03S class-aware authority and seal the validator as a marker-only tenth root without browser/source/snapshot/production changes (wave 12; depends on 03S).
+- [x] 27.1-03-PLAN.md — Resume Login/Dashboard closeout after COMPLETE 03T, consuming 03T pre-work pins/tenth root while retaining 03S class-aware downstream authority (wave 13; depends on 03T).
+- [x] 27.1-04-PLAN.md — Reconcile Meal Orders and Weekly Menu, then aggregate seven core rows under 03T pre-work and 03S class-aware authority (wave 14).
+- [x] 27.1-05-PLAN.md — Reconcile Reports, Approvals and locked Admin Data baselines under 03T pre-work and 03S class-aware authority (wave 15).
+- [x] 27.1-06-PLAN.md — Reconcile four Purchasing Phase-09 baselines under the research lock and sealed pre-work/class-aware authorities (wave 16).
+- [x] 27.1-07-PLAN.md — Two original-harness broad visual passes, fresh Phase 27 review, full gates and WHP-04 closeout under ten-root pre-work authority (wave 17).

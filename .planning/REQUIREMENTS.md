@@ -17,14 +17,14 @@
 - [x] **WHP-01:** Warehouse has a minimal Data Workspace contract derived from its current route, states, actors and owners; the pilot introduces no generic page renderer, UI DSL or speculative framework.
 - [x] **WHP-02:** Warehouse baseline evidence is captured before production refactoring and every authorized change traces to a deterministic or schema-valid AI finding.
 - [x] **WHP-03:** Warehouse refactoring preserves business behavior, API/cache contracts, permissions and current visual identity unless a finding proves that a shared visual rule must change.
-- [ ] **WHP-04:** The pilot closes with build → structural contract → accessibility → screenshot evidence → responsive contract → AI review, followed by fresh before/after reconciliation and zero unresolved broad visual failure from Phase 27.1.
+- [x] **WHP-04:** The pilot closes with build → structural contract → accessibility → screenshot evidence → responsive contract → AI review, followed by fresh before/after reconciliation and zero unresolved broad visual failure from Phase 27.1.
 
 ## Non-Warehouse visual reconciliation
 
-- [ ] **VREC-01:** All 21 non-Warehouse failures have reproducible route/state/viewport identities, expected/actual/diff evidence and owner-level dispositions.
-- [ ] **VREC-02:** Every production regression is fixed at its lowest demonstrated owner; baseline changes require semantic/DOM/geometry proof and never rely on screenshots alone.
-- [ ] **VREC-03:** Visual thresholds, viewport matrices, assertions, route fixtures and comparison logic remain unchanged unless a separately proven harness defect requires a stricter deterministic replacement.
-- [ ] **VREC-04:** The complete broad visual suite passes twice consecutively before full frontend unit, lint, dependency-cruiser, production build and hygiene gates run green.
+- [x] **VREC-01:** All 21 non-Warehouse failures have reproducible route/state/viewport identities, expected/actual/diff evidence and owner-level dispositions.
+- [x] **VREC-02:** Every production regression is fixed at its lowest demonstrated owner; baseline changes require semantic/DOM/geometry proof and never rely on screenshots alone.
+- [x] **VREC-03:** Visual thresholds, viewport matrices, assertions, route fixtures and comparison logic remain unchanged unless a separately proven harness defect requires a stricter deterministic replacement.
+- [x] **VREC-04:** The complete broad visual suite passes twice consecutively before full frontend unit, lint, dependency-cruiser, production build and hygiene gates run green.
 
 ## Promotion gates
 
@@ -47,7 +47,7 @@
 |---|---:|---|
 | UIC-01..05 | 27 | Complete |
 | WHP-01..03 | 27 | Complete |
-| WHP-04 | 27 | Blocked by Phase 27.1 |
-| VREC-01..04 | 27.1 | Planned |
+| WHP-04 | 27 | Complete |
+| VREC-01..04 | 27.1 | Complete |
 | VAL-01..02 | Deferred until Warehouse closeout | Locked |
 | VAL-03 | Open research gate | Locked |
