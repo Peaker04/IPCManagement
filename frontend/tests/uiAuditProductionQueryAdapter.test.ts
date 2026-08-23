@@ -19,30 +19,32 @@ import {
   registerProductionQueryMeasurement,
   registerPurchasingQueryIdentity,
   registerWeeklyMenuQueryIdentity,
+  registerWarehouseQueryIdentity,
   summarizeProductionQueryIdentities,
   WEEKLY_MENU_QUERY_DISPOSITION_REASONS,
+  WAREHOUSE_QUERY_DISPOSITION_REASONS,
   validateProductionQueryIdentities,
 } from './uiAuditProductionQueryAdapter';
 
 describe('Phase 28 production-route non-mutation query adapter', () => {
-  it('closes the exact seven-route, twenty-two-region, seven-state, seven-viewport matrix', () => {
+  it('closes the exact eight-route, twenty-six-region, seven-state, seven-viewport matrix', () => {
     const rows = expandProductionQueryIdentities();
     expect(() => validateProductionQueryIdentities(rows)).not.toThrow();
-    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing']);
+    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse']);
     expect(PRODUCTION_QUERY_STATES).toEqual([
       'initial-loading', 'populated', 'refreshing', 'truly-empty', 'no-results', 'error-no-data', 'partial-error-stale',
     ]);
     expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
-    expect(rows).toHaveLength(22 * 7 * 7);
+    expect(rows).toHaveLength(26 * 7 * 7);
     expect(new Set(rows.map(identityKey)).size).toBe(rows.length);
     expect(rows.every(({ actor, lowestOwner }) => Boolean(actor) && Boolean(lowestOwner))).toBe(true);
     expect(summarizeProductionQueryIdentities(rows)).toEqual({
-      applicableIdentityCount: 1078,
+      applicableIdentityCount: 1274,
       measuredIdentityCount: 0,
-      unsupportedIdentityCount: 1078,
+      unsupportedIdentityCount: 1274,
       notApplicableIdentityCount: 0,
-      needsEvidenceIdentityCount: 1078,
-      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 1078 },
+      needsEvidenceIdentityCount: 1274,
+      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 1274 },
     });
   });
 
@@ -170,6 +172,24 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       },
     });
     expect(() => registerPurchasingQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-purchasing/);
+  });
+
+  it('registers all 196 Warehouse identities with active-first production dispositions', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/warehouse').map(registerWarehouseQueryIdentity);
+    expect(rows).toHaveLength(196);
+    expect(new Set(rows.map(identityKey)).size).toBe(196);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 196,
+      measuredIdentityCount: 112,
+      unsupportedIdentityCount: 84,
+      notApplicableIdentityCount: 28,
+      needsEvidenceIdentityCount: 56,
+      needsEvidenceReasons: {
+        [WAREHOUSE_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 28,
+        [WAREHOUSE_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 28,
+      },
+    });
+    expect(() => registerWarehouseQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-warehouse/);
   });
 
   it('keeps the adapter read-only and requires an explicit reason for an unmeasurable identity', () => {
