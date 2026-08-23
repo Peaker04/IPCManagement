@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import {
+  ADMIN_DATA_QUERY_DISPOSITION_REASONS,
   APPROVALS_QUERY_DISPOSITION_REASONS,
   CHEF_DASHBOARD_QUERY_DISPOSITION_REASONS,
   DASHBOARD_QUERY_DISPOSITION_REASONS,
@@ -11,6 +12,7 @@ import {
   PRODUCTION_QUERY_STATES,
   PURCHASING_QUERY_DISPOSITION_REASONS,
   REPORTS_QUERY_DISPOSITION_REASONS,
+  registerAdminDataQueryIdentity,
   registerApprovalsQueryIdentity,
   registerChefDashboardQueryIdentity,
   registerDashboardQueryIdentity,
@@ -27,24 +29,24 @@ import {
 } from './uiAuditProductionQueryAdapter';
 
 describe('Phase 28 production-route non-mutation query adapter', () => {
-  it('closes the exact eight-route, twenty-six-region, seven-state, seven-viewport matrix', () => {
+  it('closes the exact nine-route, thirty-region, seven-state, seven-viewport matrix', () => {
     const rows = expandProductionQueryIdentities();
     expect(() => validateProductionQueryIdentities(rows)).not.toThrow();
-    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse']);
+    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data']);
     expect(PRODUCTION_QUERY_STATES).toEqual([
       'initial-loading', 'populated', 'refreshing', 'truly-empty', 'no-results', 'error-no-data', 'partial-error-stale',
     ]);
     expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
-    expect(rows).toHaveLength(26 * 7 * 7);
+    expect(rows).toHaveLength(30 * 7 * 7);
     expect(new Set(rows.map(identityKey)).size).toBe(rows.length);
     expect(rows.every(({ actor, lowestOwner }) => Boolean(actor) && Boolean(lowestOwner))).toBe(true);
     expect(summarizeProductionQueryIdentities(rows)).toEqual({
-      applicableIdentityCount: 1274,
+      applicableIdentityCount: 1470,
       measuredIdentityCount: 0,
-      unsupportedIdentityCount: 1274,
+      unsupportedIdentityCount: 1470,
       notApplicableIdentityCount: 0,
-      needsEvidenceIdentityCount: 1274,
-      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 1274 },
+      needsEvidenceIdentityCount: 1470,
+      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 1470 },
     });
   });
 
@@ -190,6 +192,24 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       },
     });
     expect(() => registerWarehouseQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-warehouse/);
+  });
+
+  it('registers all 196 Admin Data identities with active-first production dispositions', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/admin-data').map(registerAdminDataQueryIdentity);
+    expect(rows).toHaveLength(196);
+    expect(new Set(rows.map(identityKey)).size).toBe(196);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 196,
+      measuredIdentityCount: 112,
+      unsupportedIdentityCount: 84,
+      notApplicableIdentityCount: 28,
+      needsEvidenceIdentityCount: 56,
+      needsEvidenceReasons: {
+        [ADMIN_DATA_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 28,
+        [ADMIN_DATA_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 28,
+      },
+    });
+    expect(() => registerAdminDataQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-admin-data/);
   });
 
   it('keeps the adapter read-only and requires an explicit reason for an unmeasurable identity', () => {

@@ -1,6 +1,6 @@
 import { CANONICAL_QUERY_STATES, REGION_INVENTORY, UI_AUDIT_VIEWPORTS, identityKey, type UiAuditIdentity } from './uiAuditInventory';
 
-export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse'] as const;
+export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data'] as const;
 export const PRODUCTION_QUERY_STATES = CANONICAL_QUERY_STATES.filter((state) => !state.startsWith('mutation-'));
 
 export type ProductionQueryRoute = (typeof PRODUCTION_QUERY_ROUTES)[number];
@@ -19,6 +19,7 @@ const actors: Record<ProductionQueryRoute, string> = {
   '/approvals': 'manager',
   '/purchasing': 'purchasing',
   '/warehouse': 'warehouse-keeper',
+  '/admin-data': 'administrator',
 };
 
 const owners: Record<ProductionQueryRoute, string> = {
@@ -30,6 +31,7 @@ const owners: Record<ProductionQueryRoute, string> = {
   '/approvals': 'ApprovalPage',
   '/purchasing': 'PurchasingPage',
   '/warehouse': 'WarehousePage',
+  '/admin-data': 'AdminDataPage',
 };
 
 const interceptions: Record<ProductionQueryState, Extract<ProductionQueryDisposition, { kind: 'measure' }>['interception']> = {
@@ -209,6 +211,21 @@ export function registerWarehouseQueryIdentity(identity: ProductionQueryIdentity
   if (identity.state === 'no-results') return productionQueryNotApplicable(identity, WAREHOUSE_QUERY_DISPOSITION_REASONS.noResultsWithoutRegionFilter);
   if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, WAREHOUSE_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
   if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, WAREHOUSE_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
+  return registerProductionQueryMeasurement(identity);
+}
+
+export const ADMIN_DATA_QUERY_DISPOSITION_REASONS = {
+  noResultsWithoutRegionFilter: 'NOT_APPLICABLE: the registered Admin Data GET regions expose no distinct result-filter state owned by the intercepted request',
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: AdminDataPage exposes no identity-local read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: AdminDataPage cannot safely trigger a failed refetch with retained data without a mutation or RTK cache manipulation',
+} as const;
+
+/** Admin Data-only Phase 28 disposition for its four exact production-owned GET regions. */
+export function registerAdminDataQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/admin-data') throw new Error(`admin-data adapter received non-admin-data identity ${identityKey(identity)}`);
+  if (identity.state === 'no-results') return productionQueryNotApplicable(identity, ADMIN_DATA_QUERY_DISPOSITION_REASONS.noResultsWithoutRegionFilter);
+  if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, ADMIN_DATA_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, ADMIN_DATA_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
   return registerProductionQueryMeasurement(identity);
 }
 
