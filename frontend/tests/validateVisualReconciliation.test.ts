@@ -148,7 +148,9 @@ describe('Phase 27.1 downstream readiness closure', () => {
   const dispositions = load<ReadinessDisposition>('readiness-dispositions.json');
   const recovery = load<any>('attestations/27.1-02R-validator-recovery-manifest.json');
   const core = load<{rows:ClassAwareDisposition[]}>('core-route-dispositions.json');
-  const validate = (d = dispositions, r = recovery, m = matrix, rows=core.rows) => validateDownstreamReadiness(cwd, m, d, r, rows);
+  const secondary = load<{rows:ClassAwareDisposition[]}>('secondary-route-dispositions.json');
+  const cumulativeRows = [...core.rows, ...secondary.rows];
+  const validate = (d = dispositions, r = recovery, m = matrix, rows=cumulativeRows) => validateDownstreamReadiness(cwd, m, d, r, rows);
   it('recomputes identities, packets, locks, recovery pins, and Git sets', () => expect(validate()).toMatchObject({ selectedIdentitySets: ['readiness-chef', 'readiness-purchasing'] }));
   it.each([
     ['identity substitution', (d: any) => { d.identitySets['readiness-chef'][0].identity = 'purchasing-desktop'; }],
@@ -170,9 +172,9 @@ describe('Phase 27.1 downstream readiness closure', () => {
     const m = clone(matrix); m.entries.find((x) => x.snapshotName === 'chef-dashboard-desktop-expected.png')!.permittedPaths['fixture-drift'] = ['frontend/tests/other.ts'];
     expect(() => validate(dispositions, recovery, m)).toThrow(/class\/path/);
   });
-  it('accepts exact authorized core snapshots and deduplicates cumulative/wave overlap',()=>{
-    const paths=core.rows.map(row=>row.owner);
-    expect(validateClassAwareAccounting(cwd,matrix,core.rows,[...paths,...paths])).toEqual(paths);
+  it('accepts exact authorized cumulative snapshots and deduplicates overlap',()=>{
+    const paths=cumulativeRows.map(row=>row.owner);
+    expect(validateClassAwareAccounting(cwd,matrix,cumulativeRows,[...paths,...paths])).toEqual(paths);
     expect(validate().authorizedClassAwarePaths).toEqual(expect.arrayContaining(paths));
   });
   it.each([
