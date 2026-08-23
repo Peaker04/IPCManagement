@@ -83,10 +83,6 @@
     "status": "PASS"
   },
   "browserRun": true,
-  "browserPasses": {
-    "mealOrders": 2,
-    "weeklyMenu": 2
-  },
   "productionChanged": false,
   "snapshotsChanged": true,
   "blockers": []
