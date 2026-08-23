@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import {
+  APPROVALS_QUERY_DISPOSITION_REASONS,
   CHEF_DASHBOARD_QUERY_DISPOSITION_REASONS,
   DASHBOARD_QUERY_DISPOSITION_REASONS,
   expandProductionQueryIdentities,
@@ -9,6 +10,7 @@ import {
   PRODUCTION_QUERY_ROUTES,
   PRODUCTION_QUERY_STATES,
   REPORTS_QUERY_DISPOSITION_REASONS,
+  registerApprovalsQueryIdentity,
   registerChefDashboardQueryIdentity,
   registerDashboardQueryIdentity,
   registerReportsQueryIdentity,
@@ -21,24 +23,24 @@ import {
 } from './uiAuditProductionQueryAdapter';
 
 describe('Phase 28 production-route non-mutation query adapter', () => {
-  it('closes the exact five-route, sixteen-region, seven-state, seven-viewport matrix', () => {
+  it('closes the exact six-route, nineteen-region, seven-state, seven-viewport matrix', () => {
     const rows = expandProductionQueryIdentities();
     expect(() => validateProductionQueryIdentities(rows)).not.toThrow();
-    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard']);
+    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals']);
     expect(PRODUCTION_QUERY_STATES).toEqual([
       'initial-loading', 'populated', 'refreshing', 'truly-empty', 'no-results', 'error-no-data', 'partial-error-stale',
     ]);
     expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
-    expect(rows).toHaveLength(16 * 7 * 7);
+    expect(rows).toHaveLength(19 * 7 * 7);
     expect(new Set(rows.map(identityKey)).size).toBe(rows.length);
     expect(rows.every(({ actor, lowestOwner }) => Boolean(actor) && Boolean(lowestOwner))).toBe(true);
     expect(summarizeProductionQueryIdentities(rows)).toEqual({
-      applicableIdentityCount: 784,
+      applicableIdentityCount: 931,
       measuredIdentityCount: 0,
-      unsupportedIdentityCount: 784,
+      unsupportedIdentityCount: 931,
       notApplicableIdentityCount: 0,
-      needsEvidenceIdentityCount: 784,
-      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 784 },
+      needsEvidenceIdentityCount: 931,
+      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 931 },
     });
   });
 
@@ -130,6 +132,24 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       },
     });
     expect(() => registerChefDashboardQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-chef/);
+  });
+
+  it('registers all 147 Approvals identities with query-owner-local dispositions', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/approvals').map(registerApprovalsQueryIdentity);
+    expect(rows).toHaveLength(147);
+    expect(new Set(rows.map(identityKey)).size).toBe(147);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 147,
+      measuredIdentityCount: 91,
+      unsupportedIdentityCount: 56,
+      notApplicableIdentityCount: 14,
+      needsEvidenceIdentityCount: 42,
+      needsEvidenceReasons: {
+        [APPROVALS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 21,
+        [APPROVALS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 21,
+      },
+    });
+    expect(() => registerApprovalsQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-approvals/);
   });
 
   it('keeps the adapter read-only and requires an explicit reason for an unmeasurable identity', () => {

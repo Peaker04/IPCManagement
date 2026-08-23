@@ -1,6 +1,6 @@
 import { CANONICAL_QUERY_STATES, REGION_INVENTORY, UI_AUDIT_VIEWPORTS, identityKey, type UiAuditIdentity } from './uiAuditInventory';
 
-export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard'] as const;
+export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals'] as const;
 export const PRODUCTION_QUERY_STATES = CANONICAL_QUERY_STATES.filter((state) => !state.startsWith('mutation-'));
 
 export type ProductionQueryRoute = (typeof PRODUCTION_QUERY_ROUTES)[number];
@@ -16,6 +16,7 @@ const actors: Record<ProductionQueryRoute, string> = {
   '/reports': 'reporter',
   '/meal-orders': 'coordinator',
   '/chef-dashboard': 'chef',
+  '/approvals': 'manager',
 };
 
 const owners: Record<ProductionQueryRoute, string> = {
@@ -24,6 +25,7 @@ const owners: Record<ProductionQueryRoute, string> = {
   '/reports': 'ReportsPage',
   '/meal-orders': 'CoordinationPage',
   '/chef-dashboard': 'ChefDashboardPage',
+  '/approvals': 'ApprovalPage',
 };
 
 const interceptions: Record<ProductionQueryState, Extract<ProductionQueryDisposition, { kind: 'measure' }>['interception']> = {
@@ -149,6 +151,27 @@ export function registerChefDashboardQueryIdentity(identity: ProductionQueryIden
   return registerProductionQueryMeasurement(identity);
 }
 
+export const APPROVALS_QUERY_DISPOSITION_REASONS = {
+  historyNoResultsWithoutFilter: 'NOT_APPLICABLE: approval-history has no result filter, so no-results cannot differ from truly-empty',
+  purchaseRequestsNoResultsWithoutFilter: 'NOT_APPLICABLE: approval-purchase-requests has no result filter, so no-results cannot differ from truly-empty',
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: ApprovalPage exposes no identity-local read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: ApprovalPage cannot safely trigger a failed refetch with retained data without a mutation or RTK cache manipulation',
+} as const;
+
+/** Approvals-only Phase 28 disposition for the three exact ApprovalPage query regions. */
+export function registerApprovalsQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/approvals') throw new Error(`approvals adapter received non-approvals identity ${identityKey(identity)}`);
+  if (identity.state === 'no-results' && identity.regionId === 'approval-history') {
+    return productionQueryNotApplicable(identity, APPROVALS_QUERY_DISPOSITION_REASONS.historyNoResultsWithoutFilter);
+  }
+  if (identity.state === 'no-results' && identity.regionId === 'approval-purchase-requests') {
+    return productionQueryNotApplicable(identity, APPROVALS_QUERY_DISPOSITION_REASONS.purchaseRequestsNoResultsWithoutFilter);
+  }
+  if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, APPROVALS_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, APPROVALS_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
+  return registerProductionQueryMeasurement(identity);
+}
+
 export const DASHBOARD_QUERY_DISPOSITION_REASONS = {
   noResultsWithoutFilter: 'NOT_APPLICABLE: dashboard-shift-status has no filter UI, so no-results cannot differ from truly-empty',
   refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: Dashboard exposes no read-only refresh trigger that can create an isFetching state from populated cache',
@@ -182,7 +205,7 @@ export function summarizeProductionQueryIdentities(rows: readonly ProductionQuer
 }
 
 export function validateProductionQueryIdentities(rows: readonly ProductionQueryIdentity[]) {
-  const expected = REGION_INVENTORY['/'].length + REGION_INVENTORY['/weekly-menu'].length + REGION_INVENTORY['/reports'].length + REGION_INVENTORY['/meal-orders'].length + REGION_INVENTORY['/chef-dashboard'].length;
+  const expected = REGION_INVENTORY['/'].length + REGION_INVENTORY['/weekly-menu'].length + REGION_INVENTORY['/reports'].length + REGION_INVENTORY['/meal-orders'].length + REGION_INVENTORY['/chef-dashboard'].length + REGION_INVENTORY['/approvals'].length;
   const expectedCount = expected * PRODUCTION_QUERY_STATES.length * UI_AUDIT_VIEWPORTS.length;
   if (rows.length !== expectedCount) throw new Error(`production query matrix has ${rows.length} rows; expected ${expectedCount}`);
   const keys = rows.map(identityKey);

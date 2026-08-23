@@ -18,6 +18,7 @@
     "test:ui-measurements": "playwright test tests/ui-audit.spec.ts --grep \"UI measurement audit\"",
     "test:ui-baseline": "playwright test tests/ui-audit.spec.ts --grep \"Phase 28 (login production-route baseline bridge|protected production-route ready cohort)\" --headed --workers=1 --output=test-results/playwright-phase28",
     "test:ui-dashboard-query": "playwright test tests/dashboard-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-dashboard-query",
+    "test:ui-approvals-query": "playwright test tests/approvals-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-approvals-query",
     "test:ui-chef-dashboard-query": "playwright test tests/chef-dashboard-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-chef-dashboard-query",
     "test:ui-meal-orders-query": "playwright test tests/meal-orders-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-meal-orders-query",
     "test:ui-reports-query": "playwright test tests/reports-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-reports-query",
