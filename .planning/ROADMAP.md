@@ -122,8 +122,11 @@ Plans:
 - Do not mix Fiori/Carbon component libraries into the existing shadcn/Base UI stack.
 - Do not broaden visual baselines or weaken thresholds to manufacture PASS.
 
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
 
-- [ ] TBD — complete specification, discussion, UI contract and audit before `/gsd-plan-phase 28`.
+- [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact.
+- [ ] 28-02-PLAN.md — group the 1,453 sealed FAIL findings and remediate Login plus selector-proven shared seams (wave 2).
+- [ ] 28-03-PLAN.md — correct Purchasing and remaining feature-owner hierarchy/accessibility groups (wave 3).
+- [ ] 28-04-PLAN.md — close Admin responsive/admin-route findings and run exact deterministic/browser/blind reconciliation (wave 4).
