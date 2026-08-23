@@ -4,14 +4,14 @@
   "planId": "27.1-04",
   "status": "COMPLETE",
   "authority": "PLAN_04_CORE_MEAL_WEEKLY_CLOSEOUT",
-  "payloadCommit": "8f3928897eb1298b51e79fd7cbb60192aa5dc9f3",
+  "payloadCommit": "bc466abbb226017ef6848733bfe0805723130ddb",
   "summary": {
     "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-04-SUMMARY.md",
     "sha256": "123ccf13e76d00190904ce89beb28b27e5fd86846ffb0040a527c39b8bca2af8"
   },
   "payloadResult": {
     "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-04.json",
-    "sha256": "99321a6726dc98f15d4febfd02b7a6fbebce2a846e0fed7036767b7179b7ad07"
+    "sha256": "c8ee2ccd21ab93300184dd0ede84b7e28f8aa3837ea64e04bacbfa33b257f93a"
   },
   "authorityRoots": [
     {
