@@ -1,6 +1,6 @@
 import { CANONICAL_QUERY_STATES, REGION_INVENTORY, UI_AUDIT_VIEWPORTS, identityKey, type UiAuditIdentity } from './uiAuditInventory';
 
-export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals'] as const;
+export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing'] as const;
 export const PRODUCTION_QUERY_STATES = CANONICAL_QUERY_STATES.filter((state) => !state.startsWith('mutation-'));
 
 export type ProductionQueryRoute = (typeof PRODUCTION_QUERY_ROUTES)[number];
@@ -17,6 +17,7 @@ const actors: Record<ProductionQueryRoute, string> = {
   '/meal-orders': 'coordinator',
   '/chef-dashboard': 'chef',
   '/approvals': 'manager',
+  '/purchasing': 'purchasing',
 };
 
 const owners: Record<ProductionQueryRoute, string> = {
@@ -26,6 +27,7 @@ const owners: Record<ProductionQueryRoute, string> = {
   '/meal-orders': 'CoordinationPage',
   '/chef-dashboard': 'ChefDashboardPage',
   '/approvals': 'ApprovalPage',
+  '/purchasing': 'PurchasingPage',
 };
 
 const interceptions: Record<ProductionQueryState, Extract<ProductionQueryDisposition, { kind: 'measure' }>['interception']> = {
@@ -172,6 +174,27 @@ export function registerApprovalsQueryIdentity(identity: ProductionQueryIdentity
   return registerProductionQueryMeasurement(identity);
 }
 
+export const PURCHASING_QUERY_DISPOSITION_REASONS = {
+  workflowNoResultsWithoutFilter: 'NOT_APPLICABLE: purchase-workflow has no result filter, so no-results cannot differ from truly-empty',
+  supplementalNoResultsWithoutFilter: 'NOT_APPLICABLE: purchase-supplemental has no result filter, so no-results cannot differ from truly-empty',
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: PurchasingPage exposes no identity-local read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: PurchasingPage cannot safely trigger a failed refetch with retained data without a mutation or RTK cache manipulation',
+} as const;
+
+/** Purchasing-only Phase 28 disposition for its three registered production-route regions. */
+export function registerPurchasingQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/purchasing') throw new Error(`purchasing adapter received non-purchasing identity ${identityKey(identity)}`);
+  if (identity.state === 'no-results' && identity.regionId === 'purchase-workflow') {
+    return productionQueryNotApplicable(identity, PURCHASING_QUERY_DISPOSITION_REASONS.workflowNoResultsWithoutFilter);
+  }
+  if (identity.state === 'no-results' && identity.regionId === 'purchase-supplemental') {
+    return productionQueryNotApplicable(identity, PURCHASING_QUERY_DISPOSITION_REASONS.supplementalNoResultsWithoutFilter);
+  }
+  if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, PURCHASING_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, PURCHASING_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
+  return registerProductionQueryMeasurement(identity);
+}
+
 export const DASHBOARD_QUERY_DISPOSITION_REASONS = {
   noResultsWithoutFilter: 'NOT_APPLICABLE: dashboard-shift-status has no filter UI, so no-results cannot differ from truly-empty',
   refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: Dashboard exposes no read-only refresh trigger that can create an isFetching state from populated cache',
@@ -205,7 +228,7 @@ export function summarizeProductionQueryIdentities(rows: readonly ProductionQuer
 }
 
 export function validateProductionQueryIdentities(rows: readonly ProductionQueryIdentity[]) {
-  const expected = REGION_INVENTORY['/'].length + REGION_INVENTORY['/weekly-menu'].length + REGION_INVENTORY['/reports'].length + REGION_INVENTORY['/meal-orders'].length + REGION_INVENTORY['/chef-dashboard'].length + REGION_INVENTORY['/approvals'].length;
+  const expected = REGION_INVENTORY['/'].length + REGION_INVENTORY['/weekly-menu'].length + REGION_INVENTORY['/reports'].length + REGION_INVENTORY['/meal-orders'].length + REGION_INVENTORY['/chef-dashboard'].length + REGION_INVENTORY['/approvals'].length + REGION_INVENTORY['/purchasing'].length;
   const expectedCount = expected * PRODUCTION_QUERY_STATES.length * UI_AUDIT_VIEWPORTS.length;
   if (rows.length !== expectedCount) throw new Error(`production query matrix has ${rows.length} rows; expected ${expectedCount}`);
   const keys = rows.map(identityKey);

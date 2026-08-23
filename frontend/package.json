@@ -21,6 +21,7 @@
     "test:ui-approvals-query": "playwright test tests/approvals-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-approvals-query",
     "test:ui-chef-dashboard-query": "playwright test tests/chef-dashboard-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-chef-dashboard-query",
     "test:ui-meal-orders-query": "playwright test tests/meal-orders-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-meal-orders-query",
+    "test:ui-purchasing-query": "playwright test tests/purchasing-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-purchasing-query",
     "test:ui-reports-query": "playwright test tests/reports-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-reports-query",
     "test:ui-weekly-menu-query": "playwright test tests/weekly-menu-production-query.spec.ts --headed --workers=1 --output=test-results/playwright-phase28-weekly-menu-query",
     "test:performance": "playwright test tests/navigation-performance.spec.ts tests/cache-navigation.spec.ts",
