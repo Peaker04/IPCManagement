@@ -21,6 +21,18 @@ const exactExpectations: Partial<Record<UiAuditRuleId, Readonly<Record<string, u
   'CONT-01': { minimumNameLength: 1, duplicateCount: 0, maximumNestingDepth: 1 },
   'CONT-02': { maximumBoxDeltaPx: 0.5, maximumSiblingDeltaPx: 0.5 },
   'ORDER-01': { inversionCount: 0, shellTitleEqualsH1: false },
+  'TABLE-01': { elementName: 'table', theadCount: 1, missingScopeCount: 0, duplicateRoleCount: 0 },
+  'TABLE-02': { textAlign: 'left', numericAlign: 'right', fontVariant: 'tabular-nums', centeredOperationalCount: 0 },
+  'TABLE-03': { maximumDocumentOverflowPx: 2, focusable: true, rowHeightsPx: [40,48,56], tolerancePx: 0.5 },
+  'QUERY-01': { stateMarkerCount: 1, minimumSkeletonCount: 1, emptyCopyCountDuringLoading: 0, maximumScrollDeltaPx: 1 },
+  'QUERY-02': { loadingReadyHeightDeltaPx: 8, refreshingReadyHeightDeltaPx: 2, staleLabel: 'Dữ liệu có thể đã cũ' },
+  'FILTER-01': { liveRegionCount: 1, clearCountWhenActive: 1, clearCountWhenInactive: 0 },
+  'SORT-01': { activeSortCount: 1, inactiveAriaSort: 'none', rawPrimaryKeyDefault: false },
+  'COL-01': { priorities: ['essential','secondary','detail'], unregisteredColumns: 0, disclosureCount: 1 },
+  'BADGE-01': { maximumBadgeCount: 2, registryHit: true },
+  'PAGE-01': { paginationThreshold: 100, fetchAllRecords: false, directPageThreshold: 7 },
+  'MUT-01': { duplicateSubmitCount: 0, maximumCls: 0.01, errorLiveCount: 1 },
+  'REFRESH-01': { requestCountWhilePaused: 0, resumeRequestCount: 1, pausedLabelCount: 1 },
 };
 export function registerExactFixtureOracle(ruleId: UiAuditRuleId, expected = exactExpectations[ruleId] ?? {}) {
   uiAuditOracleRegistry[ruleId] = { expected, evaluate: ({ identity, values }) => values.clean === true ? [] : [{ ruleId, identity, verdict: 'FAIL', measured: values, expected: JSON.stringify(expected), actual: JSON.stringify(values), severity: 'high', lowestOwner: String(values.lowestOwner ?? 'phase28-fixture') }] };

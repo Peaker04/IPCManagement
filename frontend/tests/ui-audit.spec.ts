@@ -1044,6 +1044,20 @@ test.describe('Phase 28 hierarchy token container cohort', () => {
   });
 });
 
+test.describe('Phase 28 table query interaction cohort', () => {
+  test('intercepts mutation-like traffic and emits paired records', async ({ page }) => {
+    const escaped: string[] = [];
+    await page.route('**/*', async (route) => {
+      if (!['GET','HEAD'].includes(route.request().method())) { escaped.push(`${route.request().method()} ${route.request().url()}`); await route.abort(); return; }
+      await route.continue();
+    });
+    await page.setContent('<main><h1>Table fixture</h1><table aria-label="Rows"><thead><tr><th scope="col">Name</th></tr></thead><tbody><tr><td>A</td></tr></tbody></table></main>');
+    const cohort: UiAuditRuleId[] = ['TABLE-01','TABLE-02','TABLE-03','QUERY-01','QUERY-02','FILTER-01','SORT-01','COL-01','BADGE-01','PAGE-01','MUT-01','REFRESH-01'];
+    const records = cohort.flatMap((ruleId): UiAuditRecord[] => ruleFixtureRegistry.filter((fixture) => fixture.ruleId === ruleId).map((fixture) => ({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, fixtureVersion: UI_AUDIT_FIXTURE_VERSION, identity: fixture.input.identity, fixtureKey: fixture.key, findings: uiAuditOracleRegistry[ruleId].evaluate(fixture.input), network: [] })));
+    records.forEach(validateUiAuditRecord); expect(records).toHaveLength(24); expect(escaped).toEqual([]);
+  });
+});
+
 test.describe('shared tabs Material and Fiori contract', () => {
   for (const viewport of [
     { name: 's-390', width: 390, height: 844, minimumHeight: 44 },
