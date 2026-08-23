@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { identityKey, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
 import {
   ADMIN_DATA_QUERY_DISPOSITION_REASONS,
+  APPROVAL_RULES_QUERY_DISPOSITION_REASONS,
   APPROVALS_QUERY_DISPOSITION_REASONS,
   CHEF_DASHBOARD_QUERY_DISPOSITION_REASONS,
   DASHBOARD_QUERY_DISPOSITION_REASONS,
@@ -13,6 +14,7 @@ import {
   PURCHASING_QUERY_DISPOSITION_REASONS,
   REPORTS_QUERY_DISPOSITION_REASONS,
   registerAdminDataQueryIdentity,
+  registerApprovalRulesQueryIdentity,
   registerApprovalsQueryIdentity,
   registerChefDashboardQueryIdentity,
   registerDashboardQueryIdentity,
@@ -29,24 +31,24 @@ import {
 } from './uiAuditProductionQueryAdapter';
 
 describe('Phase 28 production-route non-mutation query adapter', () => {
-  it('closes the exact nine-route, thirty-region, seven-state, seven-viewport matrix', () => {
+  it('closes the exact ten-route, thirty-one-region, seven-state, seven-viewport matrix', () => {
     const rows = expandProductionQueryIdentities();
     expect(() => validateProductionQueryIdentities(rows)).not.toThrow();
-    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data']);
+    expect(PRODUCTION_QUERY_ROUTES).toEqual(['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data', '/admin/rules']);
     expect(PRODUCTION_QUERY_STATES).toEqual([
       'initial-loading', 'populated', 'refreshing', 'truly-empty', 'no-results', 'error-no-data', 'partial-error-stale',
     ]);
     expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
-    expect(rows).toHaveLength(30 * 7 * 7);
+    expect(rows).toHaveLength(31 * 7 * 7);
     expect(new Set(rows.map(identityKey)).size).toBe(rows.length);
     expect(rows.every(({ actor, lowestOwner }) => Boolean(actor) && Boolean(lowestOwner))).toBe(true);
     expect(summarizeProductionQueryIdentities(rows)).toEqual({
-      applicableIdentityCount: 1470,
+      applicableIdentityCount: 1519,
       measuredIdentityCount: 0,
-      unsupportedIdentityCount: 1470,
+      unsupportedIdentityCount: 1519,
       notApplicableIdentityCount: 0,
-      needsEvidenceIdentityCount: 1470,
-      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 1470 },
+      needsEvidenceIdentityCount: 1519,
+      needsEvidenceReasons: { 'production-state-adapter-not-yet-implemented': 1519 },
     });
   });
 
@@ -210,6 +212,24 @@ describe('Phase 28 production-route non-mutation query adapter', () => {
       },
     });
     expect(() => registerAdminDataQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-admin-data/);
+  });
+
+  it('registers the exact 49 Approval Rules identities with honest production dispositions', () => {
+    const rows = expandProductionQueryIdentities().filter(({ route }) => route === '/admin/rules').map(registerApprovalRulesQueryIdentity);
+    expect(rows).toHaveLength(49);
+    expect(new Set(rows.map(identityKey)).size).toBe(49);
+    expect(summarizeProductionQueryIdentities(rows)).toEqual({
+      applicableIdentityCount: 49,
+      measuredIdentityCount: 28,
+      unsupportedIdentityCount: 21,
+      notApplicableIdentityCount: 7,
+      needsEvidenceIdentityCount: 14,
+      needsEvidenceReasons: {
+        [APPROVAL_RULES_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger]: 7,
+        [APPROVAL_RULES_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger]: 7,
+      },
+    });
+    expect(() => registerApprovalRulesQueryIdentity(expandProductionQueryIdentities()[0])).toThrow(/non-approval-rules/);
   });
 
   it('keeps the adapter read-only and requires an explicit reason for an unmeasurable identity', () => {

@@ -1,6 +1,6 @@
 import { CANONICAL_QUERY_STATES, REGION_INVENTORY, UI_AUDIT_VIEWPORTS, identityKey, type UiAuditIdentity } from './uiAuditInventory';
 
-export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data'] as const;
+export const PRODUCTION_QUERY_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data', '/admin/rules'] as const;
 export const PRODUCTION_QUERY_STATES = CANONICAL_QUERY_STATES.filter((state) => !state.startsWith('mutation-'));
 
 export type ProductionQueryRoute = (typeof PRODUCTION_QUERY_ROUTES)[number];
@@ -20,6 +20,7 @@ const actors: Record<ProductionQueryRoute, string> = {
   '/purchasing': 'purchasing',
   '/warehouse': 'warehouse-keeper',
   '/admin-data': 'administrator',
+  '/admin/rules': 'administrator',
 };
 
 const owners: Record<ProductionQueryRoute, string> = {
@@ -32,6 +33,7 @@ const owners: Record<ProductionQueryRoute, string> = {
   '/purchasing': 'PurchasingPage',
   '/warehouse': 'WarehousePage',
   '/admin-data': 'AdminDataPage',
+  '/admin/rules': 'ApprovalRulesPage',
 };
 
 const interceptions: Record<ProductionQueryState, Extract<ProductionQueryDisposition, { kind: 'measure' }>['interception']> = {
@@ -226,6 +228,21 @@ export function registerAdminDataQueryIdentity(identity: ProductionQueryIdentity
   if (identity.state === 'no-results') return productionQueryNotApplicable(identity, ADMIN_DATA_QUERY_DISPOSITION_REASONS.noResultsWithoutRegionFilter);
   if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, ADMIN_DATA_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
   if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, ADMIN_DATA_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
+  return registerProductionQueryMeasurement(identity);
+}
+
+export const APPROVAL_RULES_QUERY_DISPOSITION_REASONS = {
+  noResultsWithoutFilter: 'NOT_APPLICABLE: ApprovalRulesPage exposes no distinct client result filter, so no-results cannot differ from truly-empty',
+  refreshingWithoutReadTrigger: 'NEEDS_EVIDENCE: ApprovalRulesPage exposes no identity-local read-only refresh trigger after populated data',
+  staleErrorWithoutReadTrigger: 'NEEDS_EVIDENCE: ApprovalRulesPage cannot safely trigger a failed refetch with retained data without a mutation or RTK cache manipulation',
+} as const;
+
+/** Approval Rules-only Phase 28 disposition for its exact production-owned GET region. */
+export function registerApprovalRulesQueryIdentity(identity: ProductionQueryIdentity): ProductionQueryIdentity {
+  if (identity.route !== '/admin/rules') throw new Error(`approval-rules adapter received non-approval-rules identity ${identityKey(identity)}`);
+  if (identity.state === 'no-results') return productionQueryNotApplicable(identity, APPROVAL_RULES_QUERY_DISPOSITION_REASONS.noResultsWithoutFilter);
+  if (identity.state === 'refreshing') return needsProductionQueryEvidence(identity, APPROVAL_RULES_QUERY_DISPOSITION_REASONS.refreshingWithoutReadTrigger);
+  if (identity.state === 'partial-error-stale') return needsProductionQueryEvidence(identity, APPROVAL_RULES_QUERY_DISPOSITION_REASONS.staleErrorWithoutReadTrigger);
   return registerProductionQueryMeasurement(identity);
 }
 
