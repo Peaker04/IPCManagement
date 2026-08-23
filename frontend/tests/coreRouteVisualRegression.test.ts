@@ -18,15 +18,19 @@ type Row = {
   newSnapshotSha256: string
 }
 
-describe('Phase 27.1 core Login/Dashboard reconciliation', () => {
+describe('Phase 27.1 core route reconciliation', () => {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8')) as { identitySet: string; rows: Row[] }
 
-  it('closes the exact three identities through their stale-baseline snapshot paths', () => {
-    expect(evidence.identitySet).toBe('core-login-dashboard')
+  it('closes the exact seven identities through their stale-baseline snapshot paths', () => {
+    expect(evidence.identitySet).toBe('core-meal-weekly')
     expect(evidence.rows.map(row => row.identity).sort()).toEqual([
       'dashboard-desktop',
       'dashboard-mobile',
       'login-mobile',
+      'meal-orders-desktop',
+      'meal-orders-mobile',
+      'weekly-menu-desktop',
+      'weekly-menu-mobile',
     ])
     for (const row of evidence.rows) {
       expect(row.disposition).toBe('stale-baseline')
