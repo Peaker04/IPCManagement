@@ -134,7 +134,7 @@ Plans:
 - [x] 28-03-PLAN.md — execute the Purchasing tracer and emit an exact residual-key handoff (wave 4; PUX only).
 - [x] 28-04-PLAN.md — close non-admin route-owner families and emit the exact admin residual handoff (wave 5; PUX only).
 - [x] 28-05-PLAN.md — close Admin Data overflow plus Approval Rules/Advanced Settings exact owners (wave 6; PUX only).
-- [ ] 28-06-PLAN.md — produce immutable two-run headed remediation evidence outside Playwright cleanup and exact reconciliation (wave 7; PUX only).
+- [x] 28-06-PLAN.md — produce immutable two-run headed remediation evidence outside Playwright cleanup and exact reconciliation (wave 7; PUX only).
 - [ ] 28-07-PLAN.md — enforce hash-pinned exact-bijection fresh blind review outside Playwright cleanup (wave 8; PUX only; blocking review checkpoint).
 - [ ] 28-08-PLAN.md — add the observation-only configured exact-cardinality resolver and startup gate (wave 9; SWH-02/SWH-03).
 - [ ] 28-09-PLAN.md — add the MySQL nullable singleton discriminator unique index and separately authorized activation runbook (wave 10; SWH-02/SWH-03).
