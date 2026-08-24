@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "phase28-baseline-recovery-authority/v1",
+  "status": "LOST_NO_BACKUP",
+  "deletionCause": "PLAYWRIGHT_CONFIGURED_OUTPUT_CLEANUP",
+  "userConfirmation": "no backup",
+  "restored": false,
+  "byteEqualityToLostArtifacts": false,
+  "historicalExpectedArtifacts": {
+    "manifest.json": {
+      "sha256": "a0dcb1d2ea24a6ff562510d6f1dc1af3204480f1607e870ea2fa3214ac648c51",
+      "status": "LOST_NO_BACKUP"
+    },
+    "canonical-combined.json": {
+      "sha256": "b72c9a17e783c11ce49d6ec5e232afd5d6be5440abac95972fb6711c7ae05a5a",
+      "status": "LOST_NO_BACKUP"
+    }
+  },
+  "immutableHistoricalAuthority": {
+    "planPath": ".planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-01-PLAN.md",
+    "planSha256": "eef897ba23cb5be8ac3ee019c11acd9ebf9ce8ad3e1850f5f7b769cdc426200d",
+    "summaryPath": ".planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-01-SUMMARY.md",
+    "summarySha256": "fd7e45d65c1b503c121d0cba14bfee597181f4c7edd235c3b2341fa233a9d342"
+  },
+  "recoveryContract": {
+    "parent": ".artifacts/phase28-ui-audit/baseline-recovery",
+    "attemptPattern": "attempt-N",
+    "configuredPlaywrightOutput": "frontend/test-results",
+    "requireAbsentAttemptRoot": true,
+    "requireAtomicCreation": true,
+    "allowedNetworkMethods": ["GET", "HEAD"],
+    "requiredIdentityParts": 6,
+    "requiredRuleCount": 32,
+    "requiredIdentityCount": 2142,
+    "requiredFindingCount": 68544,
+    "rejectPassWithoutFreshEvidence": true
+  },
+  "selectedRecovery": null,
+  "redExecution": {
+    "commit": "a8a4a9dc",
+    "status": "RED_RECONCILED_NOT_COMPLETE"
+  }
+}
