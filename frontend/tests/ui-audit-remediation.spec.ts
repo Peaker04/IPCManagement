@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { resolve } from 'node:path';
 import { reconcilePhase28BaselineFromDisk } from './uiAuditBaselineReconciliation';
 
 test('phase 28 remediation / full D5+R2 identity matrix', async ({ page }) => {

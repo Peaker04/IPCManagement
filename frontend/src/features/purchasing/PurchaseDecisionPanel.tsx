@@ -30,7 +30,8 @@ import {
   useSubmitPurchaseRequestMutation,
 } from '@/api/purchasingApi';
 import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
-import { getPurchasingErrorMessage, resolveOperationalWarehouseContext, type PurchasingStageId } from './purchasingModel';
+import { getPurchasingErrorMessage, type PurchasingStageId } from './purchasingModel';
+import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext';
 
 interface PurchaseDecisionPanelProps {
   week: string;

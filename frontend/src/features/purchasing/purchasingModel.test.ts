@@ -13,9 +13,9 @@ import {
   mapPurchasePlanLines,
   mapPurchaseRequestLines,
   resolveNextPurchasingAction,
-  resolveOperationalWarehouseContext,
   resolvePurchasingRouteState,
 } from './purchasingModel';
+import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext';
 
 const makePurchaseRequest = (status: string, id: string): PurchaseRequestResult => ({
   purchaseRequestId: id,

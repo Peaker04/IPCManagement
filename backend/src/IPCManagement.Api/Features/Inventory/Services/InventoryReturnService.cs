@@ -13,14 +13,11 @@ using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Security;
 using System.Data;
 using System.Text.Json;
-
 namespace IPCManagement.Api.Features.Inventory.Services;
-
 public class InventoryReturnService : IInventoryReturnService
 {
     private const string ReturnTypeReturn = "RETURN";
     private const string ReturnTypeWaste = "WASTE";
-
     private readonly IInventoryReturnRepository _returnRepository;
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -28,7 +25,6 @@ public class InventoryReturnService : IInventoryReturnService
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
-
     public InventoryReturnService(
         IInventoryReturnRepository returnRepository,
         IInventoryIssueRepository issueRepository,
@@ -46,24 +42,20 @@ public class InventoryReturnService : IInventoryReturnService
         _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
     }
-
     public async Task<PagedResponseDto<InventoryReturnDto>> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
-        request.WarehouseId = GuidHelper.ToGuidString(await ResolveCanonicalWarehouseFilterAsync(request.WarehouseId));
+        request.WarehouseId = GuidHelper.ToGuidString(await ResolveCanonicalWarehouseAsync(_operationalWarehouseResolver, request.WarehouseId, authorizationScope: true));
         var (items, totalCount) = await _returnRepository.GetPagedAsync(request);
-
         return PagedResponseDto<InventoryReturnDto>.Create(
             items.Select(inventoryReturn => InventoryMapper.MapReturn(inventoryReturn, includeLines: true)),
             totalCount,
             request.PageNumber,
             request.PageSize);
     }
-
     public async Task<InventoryReturnDto?> GetByIdAsync(string id)
     {
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;
-
         var inventoryReturn = await _returnRepository.GetByIdWithLinesAsync(bytes);
         return inventoryReturn is null
             ? null
@@ -80,13 +72,10 @@ public class InventoryReturnService : IInventoryReturnService
         const string aggregateType = "InventoryReturn";
         var recorder = _context is null ? null : new LifecycleTransitionRecorder(_context);
 
-        var canonicalWarehouseId = await _operationalWarehouseResolver.ResolveAsync();
-        var warehouseBytes = dto.WarehouseId is null
-            ? canonicalWarehouseId
-            : GuidHelper.ParseGuidString(dto.WarehouseId)
-                ?? throw new ArgumentException("WarehouseId không hợp lệ.");
-        if (!warehouseBytes.AsSpan().SequenceEqual(canonicalWarehouseId))
-            throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        var canonicalWarehouseId = await ResolveCanonicalWarehouseAsync(
+            _operationalWarehouseResolver,
+            dto.WarehouseId);
+        var warehouseBytes = canonicalWarehouseId;
         var issueBytes = GuidHelper.ParseGuidString(dto.IssueId)
             ?? throw new ArgumentException("IssueId không hợp lệ.");
 
@@ -604,15 +593,6 @@ public class InventoryReturnService : IInventoryReturnService
     }
 
 
-    private async Task<byte[]> ResolveCanonicalWarehouseFilterAsync(string? suppliedWarehouseId)
-    {
-        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
-        if (suppliedWarehouseId is null) return canonicalId;
-        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
-            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
-        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
-            throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
-        return canonicalId;
-    }
+
 
 }

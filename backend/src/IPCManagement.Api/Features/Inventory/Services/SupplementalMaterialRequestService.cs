@@ -56,7 +56,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var query = _context.Supplementalmaterialrequests.AsNoTracking().AsQueryable();
 
-        var warehouseId = await ResolveCanonicalScopeAsync(request.WarehouseId, scopedWarehouseId);
+        var warehouseId = await SupplementalMaterialRequestQueryPolicy.ResolveCanonicalScopeAsync(_operationalWarehouseResolver, request.WarehouseId, scopedWarehouseId);
         query = query.Where(item => item.WarehouseId == warehouseId);
 
         if (!string.IsNullOrWhiteSpace(request.Status))
@@ -100,7 +100,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             return null;
         }
 
-        await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
+        await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
         return await MapAsync(entity);
     }
 
@@ -158,7 +158,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                         throw new BusinessRuleException("Bếp cần xác nhận đã nhận phiếu xuất trước khi yêu cầu bổ sung.");
                     }
 
-                    await EnsureCanonicalWarehouseAsync(source.Issue.WarehouseId, scopedWarehouseId);
+                    await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, source.Issue.WarehouseId, scopedWarehouseId);
 
                     // One issue line owns one active deficit. Returning the existing
                     // exception is deliberate idempotency; merging quantities would
@@ -250,7 +250,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             async _ =>
             {
                 var entity = await LoadTrackedAsync(_context, id);
-                await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
+                await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
@@ -352,7 +352,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             async _ =>
             {
                 var entity = await LoadTrackedAsync(_context, id);
-                await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
+                await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
@@ -451,7 +451,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     {
         var actorId = ParseActor(actorUserId);
         var entity = await LoadTrackedAsync(_context, id);
-        await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
+        await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
         EnsureActionable(entity);
 
         var reason = request.Reason?.Trim();
@@ -589,24 +589,6 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     }
 
 
-    private async Task<byte[]> ResolveCanonicalScopeAsync(params string?[] suppliedIds)
-    {
-        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
-        foreach (var supplied in suppliedIds.Where(value => value is not null))
-        {
-            var suppliedId = GuidHelper.ParseGuidString(supplied)
-                ?? throw new UnauthorizedAccessException("Phạm vi kho của người dùng không hợp lệ.");
-            if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
-                throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
-        }
-        return canonicalId;
-    }
 
-    private async Task EnsureCanonicalWarehouseAsync(byte[] sourceWarehouseId, string? scopedWarehouseId)
-    {
-        var canonicalId = await ResolveCanonicalScopeAsync(scopedWarehouseId);
-        if (!sourceWarehouseId.AsSpan().SequenceEqual(canonicalId))
-            throw new BusinessRuleException("Chứng từ nguồn không thuộc kho vận hành của hệ thống.");
-    }
 
 }

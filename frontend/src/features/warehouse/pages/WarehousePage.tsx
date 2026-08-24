@@ -36,7 +36,7 @@ import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
-import { resolveOperationalWarehouseContext } from '@/features/purchasing/purchasingModel';
+import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';

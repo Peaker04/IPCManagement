@@ -59,6 +59,24 @@ internal static class InventoryReturnRules
         => JsonSerializer.Deserialize<InventoryAllocationDispositionDto>(responseJson)
             ?? throw new InvalidOperationException("Không thể đọc lại kết quả allocation disposition.");
 
+    internal static async Task<byte[]> ResolveCanonicalWarehouseAsync(
+        IOperationalWarehouseResolver resolver,
+        string? suppliedWarehouseId,
+        bool authorizationScope = false)
+    {
+        var canonicalId = await resolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+        {
+            if (authorizationScope)
+                throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
+            throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        }
+        return canonicalId;
+    }
+
     internal static string BuildDecisionId(string sourceIssueLineId) => $"return-allocation:{sourceIssueLineId}";
     internal static byte[] ParseRequiredId(string? value, string message) => GuidHelper.ParseGuidString(value) ?? throw new ArgumentException(message);
     internal static string RequireText(string? value, string message, int maximumLength)
