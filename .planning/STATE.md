@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-08-PLAN.md
-last_updated: "2026-08-24T16:13:25.870Z"
+stopped_at: Completed 28-09-PLAN.md
+last_updated: "2026-08-24T16:22:30.206Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 37
-  completed_plans: 30
-  percent: 81
+  completed_plans: 31
+  percent: 84
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Completed Plan 28-08 observation-only operational warehouse resolver and pre-traffic startup gate
+last_activity: 2026-08-24 — Completed Plan 28-09 additive MySQL operational warehouse singleton schema and authorization-gated runbook
 ---
 
 # Project State
@@ -33,13 +33,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T16:13:25.848Z
+**Last session:** 2026-08-24T16:22:30.183Z
 **Resume file:** None
 
-**Stopped at:** Completed 28-08-PLAN.md
+**Stopped at:** Completed 28-09-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: continue Phase 28 at Plan 28-09; add only the locked additive MySQL singleton schema and keep activation separately authorized.
+Next workflow: continue Phase 28 at Plan 28-10; keep migration application and warehouse activation separately authorized.
 
 ## Decisions
 
@@ -66,6 +66,8 @@ Next workflow: continue Phase 28 at Plan 28-09; add only the locked additive MyS
 - [Phase 28]: Blind-review attempts 1 and 2 remain immutable failed history; attempt-3 alone is selected with fresh isolated reviewer provenance.
 - [Phase 28]: Operational singleton resolution observes at most two active rows and requires exact configured byte identity without fallback or repair.
 - [Phase 28]: Plan 28-08 startup observation remains separate from Plan 28-09 additive schema and separately authorized activation.
+- [Phase 28]: OperationalSingletonKey is a non-writable MySQL-generated nullable discriminator with a normal unique index.
+- [Phase 28]: Migration application and operational warehouse activation remain separately operator-authorized checkpoints.
 
 ### Roadmap Evolution
 
@@ -87,3 +89,4 @@ Next workflow: continue Phase 28 at Plan 28-09; add only the locked additive MyS
 | Phase 28 P06 | 7h | 2 tasks | 10 files |
 | Phase 28 P07 | 32min | 2 tasks | 8 files |
 | Phase 28 P08 | 9min | 2 tasks | 8 files |
+| Phase 28 P09 | 8min | 2 tasks | 8 files |

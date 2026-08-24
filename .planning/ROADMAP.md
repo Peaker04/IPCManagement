@@ -137,7 +137,7 @@ Plans:
 - [x] 28-06-PLAN.md — produce immutable two-run headed remediation evidence outside Playwright cleanup and exact reconciliation (wave 7; PUX only).
 - [x] 28-07-PLAN.md — enforce hash-pinned exact-bijection fresh blind review outside Playwright cleanup (wave 8; PUX only; blocking review checkpoint).
 - [x] 28-08-PLAN.md — add the observation-only configured exact-cardinality resolver and startup gate (wave 9; SWH-02/SWH-03).
-- [ ] 28-09-PLAN.md — add the MySQL nullable singleton discriminator unique index and separately authorized activation runbook (wave 10; SWH-02/SWH-03).
+- [x] 28-09-PLAN.md — add the MySQL nullable singleton discriminator unique index and separately authorized activation runbook (wave 10; SWH-02/SWH-03).
 - [ ] 28-10-PLAN.md — freeze one exact trust-surface inventory and convert DTO/validator/filter compatibility (wave 11; SWH-02/SWH-03).
 - [ ] 28-11-PLAN.md — convert inventory writes, source lineage, supplemental policy, and filters (wave 12; SWH-02/SWH-03).
 - [ ] 28-12-PLAN.md — convert purchasing, imports, singleton selector, and authorization compatibility (wave 13; SWH-02/SWH-03).
