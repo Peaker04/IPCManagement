@@ -50,6 +50,7 @@ public class InventoryIssueService : IInventoryIssueService
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request)
     {
+        request.WarehouseId = GuidHelper.ToGuidString(await ResolveCanonicalWarehouseFilterAsync(request.WarehouseId));
         var (items, totalCount) = await _issueRepository.GetPagedAsync(request);
 
         return PagedResponseDto<InventoryIssueDto>.Create(
@@ -464,6 +465,17 @@ public class InventoryIssueService : IInventoryIssueService
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
         if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
             throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        return canonicalId;
+    }
+
+    private async Task<byte[]> ResolveCanonicalWarehouseFilterAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
         return canonicalId;
     }
 

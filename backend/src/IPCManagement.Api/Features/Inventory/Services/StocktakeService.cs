@@ -78,6 +78,7 @@ public class StocktakeService : IStocktakeService
 
     public async Task<PagedResponseDto<StocktakeDto>> GetPagedAsync(StocktakeFilterRequestDto request)
     {
+        request.WarehouseId = GuidHelper.ToGuidString(await ResolveCanonicalWarehouseFilterAsync(request.WarehouseId));
         var (items, totalCount) = await _stocktakeRepo.GetPagedAsync(request);
         return PagedResponseDto<StocktakeDto>.Create(
             items.Select(i => MapStocktake(i, false)),
@@ -417,4 +418,15 @@ public class StocktakeService : IStocktakeService
 
         return await GetByIdAsync(id) ?? throw new InvalidOperationException("Lỗi sau khi từ chối.");
     }
+    private async Task<byte[]> ResolveCanonicalWarehouseFilterAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
+        return canonicalId;
+    }
+
 }

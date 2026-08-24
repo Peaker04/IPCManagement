@@ -49,6 +49,7 @@ public class InventoryReturnService : IInventoryReturnService
 
     public async Task<PagedResponseDto<InventoryReturnDto>> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
+        request.WarehouseId = GuidHelper.ToGuidString(await ResolveCanonicalWarehouseFilterAsync(request.WarehouseId));
         var (items, totalCount) = await _returnRepository.GetPagedAsync(request);
 
         return PagedResponseDto<InventoryReturnDto>.Create(
@@ -602,5 +603,16 @@ public class InventoryReturnService : IInventoryReturnService
         return AuthorizationPolicies.IsAdminRole(roleName);
     }
 
+
+    private async Task<byte[]> ResolveCanonicalWarehouseFilterAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
+        return canonicalId;
+    }
 
 }

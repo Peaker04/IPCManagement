@@ -185,7 +185,7 @@ public sealed class SupplementalMaterialRequestServiceTests
     {
         await using var context = CreateContext();
         var rice = SeedReceivedIssueLine(context, DateTime.UtcNow, ingredientCode: "GAO", ingredientName: "Gạo");
-        var salt = SeedReceivedIssueLine(context, DateTime.UtcNow, ingredientCode: "MUOI", ingredientName: "Muối");
+        var salt = SeedReceivedIssueLine(context, DateTime.UtcNow, ingredientCode: "MUOI", ingredientName: "Muối", warehouseId: rice.WarehouseId);
         await context.SaveChangesAsync();
         var service = CreateService(context);
         await service.CreateAsync(
@@ -405,11 +405,16 @@ public sealed class SupplementalMaterialRequestServiceTests
     {
         var unitOfWork = Substitute.For<IUnitOfWork>();
         unitOfWork.SaveChangesAsync().Returns(_ => context.SaveChangesAsync());
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            context.Inventoryissues.Local.Select(item => item.WarehouseId).FirstOrDefault() ??
+            context.Supplementalmaterialrequests.Local.Select(item => item.WarehouseId).First());
         return new SupplementalMaterialRequestService(
             context,
             unitOfWork,
             stockLedgerService ?? Substitute.For<IStockLedgerService>(),
-            transactionRunner ?? new EfTransactionRunner(context));
+            transactionRunner ?? new EfTransactionRunner(context),
+            resolver);
     }
 
     private sealed class DuplicateOpenIssueLineTransactionRunner : IEfTransactionRunner
@@ -439,13 +444,14 @@ public sealed class SupplementalMaterialRequestServiceTests
         DateTime? receivedAt,
         DateOnly? issueDate = null,
         string ingredientCode = "GAO",
-        string ingredientName = "Gạo")
+        string ingredientName = "Gạo",
+        byte[]? warehouseId = null)
     {
         var issueId = GuidHelper.NewId();
         var issueLineId = GuidHelper.NewId();
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
-        var warehouseId = GuidHelper.NewId();
+        warehouseId ??= GuidHelper.NewId();
         var userId = GuidHelper.NewId();
         var materialRequestId = GuidHelper.NewId();
         var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = ingredientCode, IngredientName = ingredientName, UnitId = unitId, WarehouseId = warehouseId, IsActive = true };

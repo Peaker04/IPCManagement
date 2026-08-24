@@ -32,17 +32,20 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public SupplementalMaterialRequestService(
         IpcManagementContext context,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
-        IEfTransactionRunner transactionRunner)
+        IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _context = context;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public async Task<PagedResponseDto<SupplementalMaterialRequestDto>> GetPagedAsync(
@@ -53,18 +56,8 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var query = _context.Supplementalmaterialrequests.AsNoTracking().AsQueryable();
 
-        var requestedWarehouseId = GuidHelper.ParseGuidString(request.WarehouseId);
-        var scopeId = GuidHelper.ParseGuidString(scopedWarehouseId);
-        if (scopedWarehouseId is not null && scopeId is null)
-        {
-            throw new UnauthorizedAccessException("Phạm vi kho của người dùng không hợp lệ.");
-        }
-
-        var warehouseId = scopeId ?? requestedWarehouseId;
-        if (warehouseId is not null)
-        {
-            query = query.Where(item => item.WarehouseId == warehouseId);
-        }
+        var warehouseId = await ResolveCanonicalScopeAsync(request.WarehouseId, scopedWarehouseId);
+        query = query.Where(item => item.WarehouseId == warehouseId);
 
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
@@ -107,7 +100,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             return null;
         }
 
-        EnsureWarehouseScope(entity, scopedWarehouseId);
+        await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
         return await MapAsync(entity);
     }
 
@@ -165,7 +158,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                         throw new BusinessRuleException("Bếp cần xác nhận đã nhận phiếu xuất trước khi yêu cầu bổ sung.");
                     }
 
-                    EnsureWarehouseScope(source.Issue.WarehouseId, scopedWarehouseId);
+                    await EnsureCanonicalWarehouseAsync(source.Issue.WarehouseId, scopedWarehouseId);
 
                     // One issue line owns one active deficit. Returning the existing
                     // exception is deliberate idempotency; merging quantities would
@@ -257,7 +250,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             async _ =>
             {
                 var entity = await LoadTrackedAsync(_context, id);
-                EnsureWarehouseScope(entity, scopedWarehouseId);
+                await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
@@ -359,7 +352,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             async _ =>
             {
                 var entity = await LoadTrackedAsync(_context, id);
-                EnsureWarehouseScope(entity, scopedWarehouseId);
+                await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
@@ -458,7 +451,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     {
         var actorId = ParseActor(actorUserId);
         var entity = await LoadTrackedAsync(_context, id);
-        EnsureWarehouseScope(entity, scopedWarehouseId);
+        await EnsureCanonicalWarehouseAsync(entity.WarehouseId, scopedWarehouseId);
         EnsureActionable(entity);
 
         var reason = request.Reason?.Trim();
@@ -595,5 +588,25 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         });
     }
 
+
+    private async Task<byte[]> ResolveCanonicalScopeAsync(params string?[] suppliedIds)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        foreach (var supplied in suppliedIds.Where(value => value is not null))
+        {
+            var suppliedId = GuidHelper.ParseGuidString(supplied)
+                ?? throw new UnauthorizedAccessException("Phạm vi kho của người dùng không hợp lệ.");
+            if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+                throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
+        }
+        return canonicalId;
+    }
+
+    private async Task EnsureCanonicalWarehouseAsync(byte[] sourceWarehouseId, string? scopedWarehouseId)
+    {
+        var canonicalId = await ResolveCanonicalScopeAsync(scopedWarehouseId);
+        if (!sourceWarehouseId.AsSpan().SequenceEqual(canonicalId))
+            throw new BusinessRuleException("Chứng từ nguồn không thuộc kho vận hành của hệ thống.");
+    }
 
 }
