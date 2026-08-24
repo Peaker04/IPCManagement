@@ -317,7 +317,11 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
         </KeepAliveTabPanel>
 
       {isBomDialogOpen && <Dialog open onOpenChange={setIsBomDialogOpen}>
-        <DialogContent aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'} className="max-w-2xl">
+        <DialogContent
+          aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'}
+          className="max-w-2xl"
+          style={{ width: 'calc(100vw - 2rem)', maxWidth: 'calc(100vw - 2rem)' }}
+        >
           <DialogHeader>
             <DialogTitle>{editingBom ? 'Chỉnh nhanh dòng BOM' : 'Thêm dòng BOM thủ công'}</DialogTitle>
             <DialogDescription>
