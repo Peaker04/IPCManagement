@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-07-PLAN.md
-last_updated: "2026-08-24T16:02:20.115Z"
+stopped_at: Completed 28-08-PLAN.md
+last_updated: "2026-08-24T16:13:25.870Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 37
-  completed_plans: 29
-  percent: 78
+  completed_plans: 30
+  percent: 81
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Completed Plan 28-07 hash-pinned fresh blind review with exact nonzero bijection
+last_activity: 2026-08-24 — Completed Plan 28-08 observation-only operational warehouse resolver and pre-traffic startup gate
 ---
 
 # Project State
@@ -33,13 +33,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T16:02:20.093Z
+**Last session:** 2026-08-24T16:13:25.848Z
 **Resume file:** None
 
-**Stopped at:** Completed 28-07-PLAN.md
+**Stopped at:** Completed 28-08-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: continue Phase 28 at Plan 28-08 from selected blind-review attempt-3; preserve deterministic authority, raw Admin provenance, and honest NEEDS_EVIDENCE.
+Next workflow: continue Phase 28 at Plan 28-09; add only the locked additive MySQL singleton schema and keep activation separately authorized.
 
 ## Decisions
 
@@ -64,6 +64,8 @@ Next workflow: continue Phase 28 at Plan 28-08 from selected blind-review attemp
 - [Phase 28]: Require byte-exact two-run equality after schema-defined network ordering and endpoint-observed readiness.
 - [Phase 28]: Plan 28-07 qualitative review cannot manufacture PASS from deterministic-only evidence; all 2,142 identities remain NEEDS_EVIDENCE pending separately authorized visual evidence.
 - [Phase 28]: Blind-review attempts 1 and 2 remain immutable failed history; attempt-3 alone is selected with fresh isolated reviewer provenance.
+- [Phase 28]: Operational singleton resolution observes at most two active rows and requires exact configured byte identity without fallback or repair.
+- [Phase 28]: Plan 28-08 startup observation remains separate from Plan 28-09 additive schema and separately authorized activation.
 
 ### Roadmap Evolution
 
@@ -84,3 +86,4 @@ Next workflow: continue Phase 28 at Plan 28-08 from selected blind-review attemp
 | Phase 28 P05 | 1h | 2 tasks | 7 files |
 | Phase 28 P06 | 7h | 2 tasks | 10 files |
 | Phase 28 P07 | 32min | 2 tasks | 8 files |
+| Phase 28 P08 | 9min | 2 tasks | 8 files |
