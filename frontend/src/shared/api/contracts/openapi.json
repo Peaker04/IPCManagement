@@ -19743,7 +19743,6 @@
           "proposedDeliveryDate",
           "proposedUnitPrice",
           "purchasingTerms",
-          "receivingWarehouseId",
           "supplierId"
         ],
         "type": "object",
@@ -19765,7 +19764,8 @@
             "type": "string"
           },
           "receivingWarehouseId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "purchasingTerms": {
             "type": "string"
@@ -20298,8 +20298,7 @@
           "ingredientName",
           "isFreshDaily",
           "referencePrice",
-          "unitId",
-          "warehouseId"
+          "unitId"
         ],
         "type": "object",
         "properties": {
@@ -20326,8 +20325,8 @@
             "type": "string"
           },
           "warehouseId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -20426,8 +20425,7 @@
           "expectedVersion",
           "issueDate",
           "lines",
-          "materialRequestId",
-          "warehouseId"
+          "materialRequestId"
         ],
         "type": "object",
         "properties": {
@@ -20460,8 +20458,8 @@
             "nullable": true
           },
           "warehouseId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "materialRequestId": {
             "minLength": 1,
@@ -20527,8 +20525,7 @@
           "lines",
           "purchaseRequestId",
           "receiptDate",
-          "supplierId",
-          "warehouseId"
+          "supplierId"
         ],
         "type": "object",
         "properties": {
@@ -20545,8 +20542,8 @@
             "type": "string"
           },
           "warehouseId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "lines": {
             "minItems": 1,
@@ -20605,8 +20602,7 @@
         "required": [
           "lines",
           "receiptDate",
-          "supplierId",
-          "warehouseId"
+          "supplierId"
         ],
         "type": "object",
         "properties": {
@@ -20619,8 +20615,8 @@
             "type": "string"
           },
           "warehouseId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "purchaseRequestId": {
             "type": "string",
@@ -20669,8 +20665,7 @@
           "issueId",
           "lines",
           "returnDate",
-          "returnType",
-          "warehouseId"
+          "returnType"
         ],
         "type": "object",
         "properties": {
@@ -20701,8 +20696,8 @@
             "type": "string"
           },
           "warehouseId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "issueId": {
             "minLength": 1,
@@ -20937,14 +20932,13 @@
       },
       "CreateStocktakeRequest": {
         "required": [
-          "ingredientIds",
-          "warehouseId"
+          "ingredientIds"
         ],
         "type": "object",
         "properties": {
           "warehouseId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "notes": {
             "type": "string",
@@ -31817,8 +31811,7 @@
           "idempotencyKey",
           "lines",
           "purchaseOrderId",
-          "receiptDate",
-          "warehouseId"
+          "receiptDate"
         ],
         "type": "object",
         "properties": {
@@ -31834,8 +31827,8 @@
           },
           "warehouseId": {
             "maxLength": 36,
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "receiptDate": {
             "type": "string",
@@ -35911,6 +35904,7 @@
           "inventoryissues",
           "inventoryreceipts",
           "inventoryreturns",
+          "isOperationalActive",
           "stockmovements",
           "stocksnapshots",
           "stocktakes",
@@ -35933,6 +35927,9 @@
           },
           "warehouseType": {
             "type": "string"
+          },
+          "isOperationalActive": {
+            "type": "boolean"
           },
           "note": {
             "type": "string",

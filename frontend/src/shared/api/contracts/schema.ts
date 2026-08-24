@@ -11071,7 +11071,7 @@ export interface components {
             /** Format: double */
             readonly proposedUnitPrice: number;
             readonly purchasingTerms: string;
-            readonly receivingWarehouseId: string;
+            readonly receivingWarehouseId?: string | null;
             readonly supplierId: string;
         };
         readonly CoordinationCustomerOptionDto: {
@@ -11213,7 +11213,7 @@ export interface components {
             /** Format: double */
             readonly referencePrice: number;
             readonly unitId: string;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly CreateInventoryAllocationDispositionRequest: {
             readonly causationId?: string | null;
@@ -11249,7 +11249,7 @@ export interface components {
             readonly materialRequestId: string;
             readonly receivedBy?: string | null;
             readonly shiftName?: string | null;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly CreateInventoryReceiptFromPurchaseLineRequest: {
             /** Format: date */
@@ -11270,7 +11270,7 @@ export interface components {
             /** Format: date */
             readonly receiptDate: string;
             readonly supplierId: string;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly CreateInventoryReceiptLineRequest: {
             /** Format: date */
@@ -11291,7 +11291,7 @@ export interface components {
             /** Format: date */
             readonly receiptDate: string;
             readonly supplierId: string;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly CreateInventoryReturnLineRequest: {
             readonly ingredientId: string;
@@ -11311,7 +11311,7 @@ export interface components {
             readonly returnDate: string;
             readonly returnType: string;
             readonly shiftName?: string | null;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly CreateLegacyLineageDispositionRequest: {
             readonly commandId: string;
@@ -11371,7 +11371,7 @@ export interface components {
         readonly CreateStocktakeRequest: {
             readonly ingredientIds: readonly string[];
             readonly notes?: string | null;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly CreateSupplementalMaterialRequest: {
             readonly commandId: string;
@@ -14512,7 +14512,7 @@ export interface components {
             readonly purchaseOrderId: string;
             /** Format: date */
             readonly receiptDate: string;
-            readonly warehouseId: string;
+            readonly warehouseId?: string | null;
         };
         readonly RefreshToken: {
             /** Format: date-time */
@@ -15642,6 +15642,7 @@ export interface components {
             readonly inventoryissues: readonly components["schemas"]["InventoryIssue"][];
             readonly inventoryreceipts: readonly components["schemas"]["InventoryReceipt"][];
             readonly inventoryreturns: readonly components["schemas"]["InventoryReturn"][];
+            readonly isOperationalActive: boolean;
             readonly note?: string | null;
             readonly stockmovements: readonly components["schemas"]["StockMovement"][];
             readonly stocksnapshots: readonly components["schemas"]["StockSnapshot"][];
