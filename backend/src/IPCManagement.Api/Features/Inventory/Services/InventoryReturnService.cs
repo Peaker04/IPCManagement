@@ -27,6 +27,7 @@ public class InventoryReturnService : IInventoryReturnService
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public InventoryReturnService(
         IInventoryReturnRepository returnRepository,
@@ -34,6 +35,7 @@ public class InventoryReturnService : IInventoryReturnService
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         IpcManagementContext? context = null)
     {
         _returnRepository = returnRepository;
@@ -41,6 +43,7 @@ public class InventoryReturnService : IInventoryReturnService
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
     }
 
@@ -76,8 +79,13 @@ public class InventoryReturnService : IInventoryReturnService
         const string aggregateType = "InventoryReturn";
         var recorder = _context is null ? null : new LifecycleTransitionRecorder(_context);
 
-        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
-            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var canonicalWarehouseId = await _operationalWarehouseResolver.ResolveAsync();
+        var warehouseBytes = dto.WarehouseId is null
+            ? canonicalWarehouseId
+            : GuidHelper.ParseGuidString(dto.WarehouseId)
+                ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!warehouseBytes.AsSpan().SequenceEqual(canonicalWarehouseId))
+            throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
         var issueBytes = GuidHelper.ParseGuidString(dto.IssueId)
             ?? throw new ArgumentException("IssueId không hợp lệ.");
 
@@ -102,7 +110,7 @@ public class InventoryReturnService : IInventoryReturnService
                 var issue = await _issueRepository.GetByIdWithLinesAsync(issueBytes)
                     ?? throw new KeyNotFoundException($"Không tìm thấy phiếu xuất kho với ID: {dto.IssueId}");
 
-                if (!issue.WarehouseId.SequenceEqual(warehouseBytes))
+                if (!issue.WarehouseId.SequenceEqual(canonicalWarehouseId))
                 {
                     throw new BusinessRuleException("Phiếu trả phải thuộc cùng kho với phiếu xuất gốc.");
                 }

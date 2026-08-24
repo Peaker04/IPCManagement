@@ -268,6 +268,7 @@ public partial class WorkflowGenerationTests
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
             new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(context),
             context);
 
     private static InventoryReceiptService CreateInventoryReceiptService(IpcManagementContext context)
@@ -278,6 +279,7 @@ public partial class WorkflowGenerationTests
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
             new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(context),
             context);
 
     private static InventoryReturnService CreateInventoryReturnService(IpcManagementContext context)
@@ -289,6 +291,7 @@ public partial class WorkflowGenerationTests
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
             new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(context),
             context);
 
     private static async Task<string> SeedSubmittedPurchaseRequestAsync(WorkflowFixture fixture)
@@ -415,6 +418,16 @@ public partial class WorkflowGenerationTests
         var quantityLine = await context.Mealquantityplanlines.SingleAsync();
         quantityLine.FinalServings = 120;
         await context.SaveChangesAsync();
+    }
+
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext context)
+    {
+        using var command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT warehouseId FROM warehouses LIMIT 1";
+        var warehouseId = (byte[])command.ExecuteScalar()!;
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
+        return resolver;
     }
 
 }

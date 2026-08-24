@@ -21,18 +21,21 @@ public class StocktakeService : IStocktakeService
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public StocktakeService(
         IStocktakeRepository stocktakeRepo,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         IpcManagementContext? context = null)
     {
         _stocktakeRepo = stocktakeRepo;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
     }
 
@@ -95,7 +98,14 @@ public class StocktakeService : IStocktakeService
     {
         if (_context == null) throw new InvalidOperationException("DbContext is null.");
 
-        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId) ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var warehouseBytes = await _operationalWarehouseResolver.ResolveAsync();
+        if (dto.WarehouseId is not null)
+        {
+            var suppliedWarehouseId = GuidHelper.ParseGuidString(dto.WarehouseId)
+                ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+            if (!suppliedWarehouseId.AsSpan().SequenceEqual(warehouseBytes))
+                throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        }
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
         if (dto.IngredientIds == null || !dto.IngredientIds.Any())

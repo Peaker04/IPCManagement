@@ -21,6 +21,7 @@ public class InventoryReturnServiceTests
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
     private readonly ImmediateTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly InventoryReturnService _service;
 
     public InventoryReturnServiceTests()
@@ -30,6 +31,7 @@ public class InventoryReturnServiceTests
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
         _transactionRunner = new ImmediateTransactionRunner();
+        _operationalWarehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
         _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
@@ -38,7 +40,8 @@ public class InventoryReturnServiceTests
             _issueRepository,
             _unitOfWork,
             _stockLedgerService,
-            _transactionRunner);
+            _transactionRunner,
+            _operationalWarehouseResolver);
     }
 
     [Fact]
@@ -47,6 +50,8 @@ public class InventoryReturnServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -107,6 +112,8 @@ public class InventoryReturnServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -170,6 +177,8 @@ public class InventoryReturnServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -208,6 +217,8 @@ public class InventoryReturnServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -271,6 +282,8 @@ public class InventoryReturnServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var mismatchedIngredientId = Guid.NewGuid().ToString();
@@ -306,6 +319,8 @@ public class InventoryReturnServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -339,6 +354,8 @@ public class InventoryReturnServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -372,6 +389,8 @@ public class InventoryReturnServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();

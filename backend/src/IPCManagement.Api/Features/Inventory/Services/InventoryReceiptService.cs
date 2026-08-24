@@ -19,18 +19,21 @@ public class InventoryReceiptService : IInventoryReceiptService
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public InventoryReceiptService(
         IInventoryReceiptRepository receiptRepository,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         IpcManagementContext? context = null)
     {
         _receiptRepository = receiptRepository;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
     }
 
@@ -63,8 +66,7 @@ public class InventoryReceiptService : IInventoryReceiptService
 
         var supplierBytes = GuidHelper.ParseGuidString(dto.SupplierId)
             ?? throw new ArgumentException("SupplierId không hợp lệ.");
-        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
-            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
 
         var receiptId = GuidHelper.NewId();
         var receiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
@@ -149,8 +151,7 @@ public class InventoryReceiptService : IInventoryReceiptService
             ?? throw new ArgumentException("PurchaseRequestId không hợp lệ.");
         var supplierId = GuidHelper.ParseGuidString(dto.SupplierId)
             ?? throw new ArgumentException("SupplierId không hợp lệ.");
-        var warehouseId = GuidHelper.ParseGuidString(dto.WarehouseId)
-            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var warehouseId = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
         if (dto.Lines.Count == 0)
         {
             throw new ArgumentException("Cần ít nhất một dòng nguyên liệu để nhập kho.");
@@ -341,6 +342,18 @@ public class InventoryReceiptService : IInventoryReceiptService
         }
 
         return receivedAll ? "RECEIVED" : receivedAny ? "PARTIALRECEIVED" : "SENTTOSUPPLIER";
+    }
+
+    private async Task<byte[]> ResolveCanonicalWarehouseAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        return canonicalId;
     }
 
     private static string BuildReceiptLineMatchKey(byte[] purchaseRequestLineId)

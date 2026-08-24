@@ -30,18 +30,21 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         IpcManagementContext? context = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
     }
 
@@ -70,8 +73,7 @@ public class InventoryIssueService : IInventoryIssueService
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
 
-        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
-            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
             ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
         var commandId = dto.CommandId?.Trim() ?? string.Empty;
@@ -453,5 +455,16 @@ public class InventoryIssueService : IInventoryIssueService
         }
     }
 
+
+    private async Task<byte[]> ResolveCanonicalWarehouseAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        return canonicalId;
+    }
 
 }

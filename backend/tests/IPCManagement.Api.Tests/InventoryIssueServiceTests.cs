@@ -25,6 +25,7 @@ public class InventoryIssueServiceTests
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
     private readonly ImmediateTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly InventoryIssueService _service;
 
     public InventoryIssueServiceTests()
@@ -33,12 +34,14 @@ public class InventoryIssueServiceTests
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
         _transactionRunner = new ImmediateTransactionRunner();
+        _operationalWarehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
 
         _service = new InventoryIssueService(
             _issueRepository,
             _unitOfWork,
             _stockLedgerService,
-            _transactionRunner);
+            _transactionRunner,
+            _operationalWarehouseResolver);
     }
 
     [Fact]
@@ -65,6 +68,7 @@ public class InventoryIssueServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -125,6 +129,7 @@ public class InventoryIssueServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -177,6 +182,7 @@ public class InventoryIssueServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -225,6 +231,7 @@ public class InventoryIssueServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -280,6 +287,7 @@ public class InventoryIssueServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -313,6 +321,7 @@ public class InventoryIssueServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -351,6 +360,7 @@ public class InventoryIssueServiceTests
     {
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var materialRequestId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -538,7 +548,9 @@ public class InventoryIssueServiceTests
                 warehouseCode TEXT,
                 warehouseName TEXT,
                 note TEXT,
-                warehouseType TEXT
+                warehouseType TEXT,
+                IsOperationalActive INTEGER NOT NULL DEFAULT 0,
+                OperationalSingletonKey INTEGER NULL
             );
 
             CREATE TABLE users (
@@ -656,12 +668,14 @@ public class InventoryIssueServiceTests
             new UnitOfWork(context),
             _stockLedgerService,
             new EfTransactionRunner(context),
+            _operationalWarehouseResolver,
             context);
 
         var materialRequestId = GuidHelper.NewId();
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         var warehouseId = GuidHelper.NewId();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
         var userId = GuidHelper.NewId();
 
         var pr = new MaterialRequest
@@ -732,6 +746,7 @@ public class InventoryIssueServiceTests
             _unitOfWork,
             _stockLedgerService,
             new EfTransactionRunner(context),
+            _operationalWarehouseResolver,
             context);
 
         var issueId = GuidHelper.NewId();
@@ -783,11 +798,13 @@ public class InventoryIssueServiceTests
             _unitOfWork,
             _stockLedgerService,
             new EfTransactionRunner(context),
+            _operationalWarehouseResolver,
             context);
         var issueId = GuidHelper.NewId();
         var requestId = GuidHelper.NewId();
         var userId = GuidHelper.NewId();
         var warehouseId = GuidHelper.NewId();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         context.Users.Add(new User { UserId = userId, Username = "supplemental-user", FullName = "Supplemental User" });

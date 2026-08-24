@@ -444,7 +444,9 @@ public partial class WorkflowGenerationTests
                     warehouseCode TEXT NOT NULL,
                     warehouseName TEXT NOT NULL,
                     warehouseType TEXT NOT NULL,
-                    note TEXT NULL
+                    note TEXT NULL,
+                    IsOperationalActive INTEGER NOT NULL DEFAULT 0,
+                    OperationalSingletonKey INTEGER NULL
                 );
                 CREATE TABLE ingredients (
                     ingredientId BLOB PRIMARY KEY,
@@ -736,7 +738,9 @@ public partial class WorkflowGenerationTests
                     purchaseQty TEXT NOT NULL,
                     estimatedUnitPrice TEXT NOT NULL,
                     expectedDeliveryDate TEXT NULL,
-                    note TEXT NULL
+                    note TEXT NULL,
+                    IsOperationalActive INTEGER NOT NULL DEFAULT 0,
+                    OperationalSingletonKey INTEGER NULL
                 );
                 CREATE TABLE purchaselinesupplierdecisions (
                     purchaseLineSupplierDecisionId BLOB PRIMARY KEY,
