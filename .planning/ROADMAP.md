@@ -115,6 +115,7 @@ Plans:
 4. Every operational table has semantic labeling, type-correct alignment, bounded overflow, deliberate column priority and complete loading/empty/error/stale behavior.
 5. The single operational warehouse is shown once as passive context; no false warehouse choice remains in routine UI, while IDs and server enforcement remain intact.
 6. No public API, permission, cache identity, database grain or business transition changes as a side effect of presentation rollout.
+7. PUX-06 closes with zero `UNRESOLVED` and zero owner-bearing/actionable `FAIL` after remediation of exactly 1,453 owner-bearing baseline `FAIL` findings. The exact 770 identities / 47,208 findings dispositioned `NEEDS_EVIDENCE` remain honest terminal non-`PASS` results unless a separately authorized evidence-capture plan supplies new production measurement provenance; blind review cannot override deterministic rows, and PUX-06 does not require or claim zero `NEEDS_EVIDENCE`.
 
 ### Stop conditions
 
