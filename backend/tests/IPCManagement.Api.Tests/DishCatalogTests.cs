@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Inventory.Services;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
@@ -751,7 +752,7 @@ public class DishCatalogTests
         => new(context, new MemoryCache(new MemoryCacheOptions()));
 
     private static DishBomImportService CreateDishBomImportService(IpcManagementContext context)
-        => new(context, new MemoryCache(new MemoryCacheOptions()), new EfTransactionRunner(context));
+        => new(context, new MemoryCache(new MemoryCacheOptions()), new EfTransactionRunner(context), CreateOperationalWarehouseResolver(context));
 
     private static MemoryStream ToStream(string content)
         => new(Encoding.UTF8.GetBytes(content));
@@ -911,4 +912,12 @@ public class DishCatalogTests
             await Connection.DisposeAsync();
         }
     }
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext context)
+    {
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            context.Warehouses.Local.Select(item => item.WarehouseId).First());
+        return resolver;
+    }
+
 }

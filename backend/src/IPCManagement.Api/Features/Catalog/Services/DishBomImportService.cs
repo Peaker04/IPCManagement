@@ -1,6 +1,7 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Caching;
@@ -17,16 +18,19 @@ public sealed class DishBomImportService : IDishBomImportService
     private readonly IMemoryCache _cache;
     private readonly DishBomImportParser _parser;
     private readonly IEfTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public DishBomImportService(
         IpcManagementContext context,
         IMemoryCache cache,
-        IEfTransactionRunner transactionRunner)
+        IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _context = context;
         _cache = cache;
         _parser = new DishBomImportParser(context);
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public Task<BomImportPreviewDto> PreviewAsync(
@@ -316,12 +320,7 @@ public sealed class DishBomImportService : IDishBomImportService
             return existingIngredient;
         }
 
-        var warehouseId = await _context.Warehouses
-            .AsNoTracking()
-            .OrderBy(item => item.WarehouseCode)
-            .Select(item => item.WarehouseId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new BusinessRuleException("Chưa có kho nguyên liệu để tự tạo IngredientCode mới.");
+        var warehouseId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
 
         var ingredient = new Ingredient
         {

@@ -1,3 +1,5 @@
+using NSubstitute;
+using IPCManagement.Api.Features.Inventory.Services;
 
 using System.IO.Compression;
 using System.Reflection;
@@ -21,7 +23,7 @@ public class SampleDataImportServiceTests
     [Fact]
     public void EnsureBomLine_Should_KeepPresetPriceTiersSeparate()
     {
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureBomLine",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -62,7 +64,7 @@ public class SampleDataImportServiceTests
         };
         var dishes = new List<Dish> { existing };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureDish",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -96,7 +98,7 @@ public class SampleDataImportServiceTests
         };
         var ingredients = new List<Ingredient> { existing };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureIngredient",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -124,7 +126,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
@@ -184,7 +186,7 @@ public class SampleDataImportServiceTests
         };
         var ingredients = new List<Ingredient> { ingredient };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureIngredient",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -208,7 +210,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
@@ -245,7 +247,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
 
         var result = await service.ImportAsync(new SampleDataImportRequest
@@ -275,7 +277,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
         var request = new SampleDataImportRequest
         {
@@ -840,4 +842,12 @@ public class SampleDataImportServiceTests
         IpcManagementContext Context,
         string CustomerIdString,
         string UserIdString);
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext? context)
+    {
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            context?.Warehouses.Local.Select(item => item.WarehouseId).FirstOrDefault() ?? GuidHelper.NewId());
+        return resolver;
+    }
+
 }

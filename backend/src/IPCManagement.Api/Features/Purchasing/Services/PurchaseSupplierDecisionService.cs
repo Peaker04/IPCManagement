@@ -3,6 +3,7 @@ using System.Globalization;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,13 +20,16 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
 
     private readonly IpcManagementContext _context;
     private readonly IEfTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public PurchaseSupplierDecisionService(
         IpcManagementContext context,
-        IEfTransactionRunner transactionRunner)
+        IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _context = context;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public async Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
@@ -239,12 +243,13 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
             throw new ArgumentException("Đơn giá đề xuất phải lớn hơn 0.");
         }
 
-        var receivingWarehouseId = string.IsNullOrWhiteSpace(request.ReceivingWarehouseId)
-            ? null
-            : GuidHelper.ParseGuidString(request.ReceivingWarehouseId);
-        if (!string.IsNullOrWhiteSpace(request.ReceivingWarehouseId) && receivingWarehouseId is null)
+        var receivingWarehouseId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(request.ReceivingWarehouseId))
         {
-            throw new ArgumentException("Kho nhận hàng không hợp lệ.");
+            var suppliedWarehouseId = GuidHelper.ParseGuidString(request.ReceivingWarehouseId)
+                ?? throw new ArgumentException("Kho nhận hàng không hợp lệ.");
+            if (!suppliedWarehouseId.AsSpan().SequenceEqual(receivingWarehouseId))
+                throw new BusinessRuleException("Kho nhận hàng không khớp kho vận hành của hệ thống.");
         }
 
         var purchasingTerms = string.IsNullOrWhiteSpace(request.PurchasingTerms) ? null : request.PurchasingTerms.Trim();

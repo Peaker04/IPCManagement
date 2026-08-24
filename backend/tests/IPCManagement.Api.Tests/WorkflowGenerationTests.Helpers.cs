@@ -233,7 +233,8 @@ public partial class WorkflowGenerationTests
             new StockLedgerService(
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
-            new EfTransactionRunner(context));
+            new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(context));
 
     private static RecordWarehousePurchaseReceiptRequest CreatePurchaseReceiptRequest(
         WorkflowFixture fixture,

@@ -3,6 +3,8 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Exceptions;
 
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
@@ -10,13 +12,15 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 {
     private readonly PurchaseReceiptDraftWorkflow _draftWorkflow;
     private readonly ReceiptLifecycleWorkflow _lifecycleWorkflow;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public PurchaseReceivingService(
         IpcManagementContext context,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         Func<string, CancellationToken, Task>? faultInjector = null)
-        : this(context, stockLedgerService, transactionRunner, faultInjector, new LifecycleTransitionRecorder(context))
+        : this(context, stockLedgerService, transactionRunner, operationalWarehouseResolver, faultInjector, new LifecycleTransitionRecorder(context))
     {
     }
 
@@ -24,9 +28,11 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         IpcManagementContext context,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         Func<string, CancellationToken, Task>? faultInjector,
         ILifecycleTransitionRecorder lifecycleRecorder)
     {
+        _operationalWarehouseResolver = operationalWarehouseResolver;
         var queries = new PurchaseReceivingQueries(context);
         var validator = new PurchaseReceivingValidator(queries);
 
@@ -45,11 +51,22 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
             queries);
     }
 
-    public Task<WarehousePurchaseReceiptResultDto> RecordAsync(
+    public async Task<WarehousePurchaseReceiptResultDto> RecordAsync(
         RecordWarehousePurchaseReceiptRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
-        => _draftWorkflow.RecordAsync(request, userId, cancellationToken);
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
+        if (request.WarehouseId is not null)
+        {
+            var suppliedId = GuidHelper.ParseGuidString(request.WarehouseId)
+                ?? throw new ArgumentException("Kho nhận hàng không hợp lệ.");
+            if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+                throw new BusinessRuleException("Kho nhận hàng không khớp kho vận hành của hệ thống.");
+        }
+        request.WarehouseId = GuidHelper.ToGuidString(canonicalId);
+        return await _draftWorkflow.RecordAsync(request, userId, cancellationToken);
+    }
 
     public Task<WarehousePurchaseReceiptResultDto> AcceptQualityAsync(
         string receiptId,

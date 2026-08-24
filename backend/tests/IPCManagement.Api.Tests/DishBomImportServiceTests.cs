@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Inventory.Services;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
@@ -24,7 +25,7 @@ public class DishBomImportServiceTests
             .Options;
         await using var context = new IpcManagementContext(options);
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context));
+        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context), CreateOperationalWarehouseResolver(context));
         await using var stream = new MemoryStream("PK-not-a-valid-xlsx"u8.ToArray());
 
         var act = () => service.PreviewAsync(stream, new BomImportPreviewRequestDto { PriceTier = 25000m });
@@ -70,7 +71,7 @@ public class DishBomImportServiceTests
         using var cache = new MemoryCache(new MemoryCacheOptions());
         cache.Set("DishCatalog", new object());
         cache.Set("DishCatalog:all", new object());
-        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context));
+        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context), CreateOperationalWarehouseResolver(context));
         var csv = """
             DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note
             DISH-IMPORT,Món import,25000,,,Nguyên liệu mới,KG,0.12,5,2026-07-01,,PUBLISHED,Import
@@ -91,4 +92,12 @@ public class DishBomImportServiceTests
         cache.TryGetValue("DishCatalog", out _).Should().BeFalse();
         cache.TryGetValue("DishCatalog:all", out _).Should().BeFalse();
     }
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext context)
+    {
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            context.Warehouses.Local.Select(item => item.WarehouseId).First());
+        return resolver;
+    }
+
 }

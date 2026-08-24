@@ -247,8 +247,8 @@ public class WarehousePurchaseReceivingTests
 
         var action = () => InvokeRecordAsync(fixture.CreateService(), request, fixture.UserId);
 
-        await action.Should().ThrowAsync<KeyNotFoundException>()
-            .WithMessage("Kho nhập hàng không tồn tại.");
+        await action.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("Kho nhận hàng không khớp kho vận hành của hệ thống.");
         fixture.Context.Inventoryreceipts.Should().BeEmpty();
         fixture.Context.Inventoryreceiptlines.Should().BeEmpty();
         fixture.Context.Purchasereceiptactivelines.Should().BeEmpty();
@@ -710,11 +710,15 @@ public class WarehousePurchaseReceivingTests
         var serviceType = typeof(PurchaseOrderService).Assembly.GetType(
             "IPCManagement.Api.Features.Purchasing.Services.PurchaseReceivingService");
         serviceType.Should().NotBeNull("the canonical Warehouse receiving writer must exist");
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            context.Warehouses.AsNoTracking().Select(item => item.WarehouseId).Single());
         return Activator.CreateInstance(
             serviceType!,
             context,
             stockLedgerService,
             new EfTransactionRunner(context),
+            resolver,
             faultInjector)!;
     }
 
