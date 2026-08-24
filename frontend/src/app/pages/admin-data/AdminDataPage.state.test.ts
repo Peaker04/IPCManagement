@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import pageSource from '../AdminDataPage.tsx?raw';
 import bomSource from './AdminBomPanel.tsx?raw';
 import inventorySource from './AdminInventoryPanel.tsx?raw';
 import auditModelSource from './useAdminAuditPanelModel.ts?raw';
@@ -50,5 +51,12 @@ describe('AdminDataPage query ownership contract', () => {
   it('composes every panel model unconditionally through the compatibility facade', () => {
     expect(modelSource.match(/useAdmin(?:Bom|Contracts|Cleanup|Inventory|Statistics|Audit|Employees)PanelModel\(/g)).toHaveLength(7);
     expect(modelSource).toContain('export type AdminDataPageModel = ReturnType<typeof useAdminDataPageModel>');
+  });
+
+  it('keeps the admin work area shrinkable and confines dense BOM actions locally', () => {
+    expect(pageSource).toContain('className="min-w-0 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!"');
+    expect(bomSource).toContain('grid-cols-1 gap-2 sm:grid-cols-3');
+    expect(bomSource).toContain('grid-cols-1 gap-2 sm:grid-cols-2');
+    expect(bomSource).toContain('ariaLabel="BOM hiện tại theo đơn giá"');
   });
 });

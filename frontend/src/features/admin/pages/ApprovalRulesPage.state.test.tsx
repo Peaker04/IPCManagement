@@ -232,6 +232,14 @@ describe('ApprovalRulesPage query state boundary', () => {
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Tên quy tắc đã tồn tại.');
   });
 
+  it('uses passing semantic text tokens for exact rule-list contrast targets', () => {
+    mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
+    const { container } = renderPage();
+
+    expect(container.querySelector('.text-slate-400')).toBeNull();
+    expect(container.querySelector('.text-red-500')).toBeNull();
+  });
+
   it('keeps a delete failure inside the confirmation dialog', async () => {
     mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
     mocks.deleteRule.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({ data: { message: 'Quy tắc đang được sử dụng.' } }) });

@@ -96,6 +96,21 @@ describe('AdvancedDisplaySettings Component', () => {
     expect(screen.getByText('Phải giữ lại ít nhất 1 khu vực hiển thị trên thanh menu.')).toBeInTheDocument();
   });
 
+  it('keeps accordion expansion and show-all as sibling native controls', async () => {
+    const user = userEvent.setup();
+    const customTabPrefs = structuredClone(defaultPageTabPreferences);
+    customTabPrefs['weekly-menu']['dish-materials'] = false;
+    window.localStorage.setItem('ipc.page-tab-preferences.v1', JSON.stringify(customTabPrefs));
+    renderComponent();
+
+    const expandButton = screen.getByRole('button', { name: /Thực đơn tuần/i });
+    const showAllButton = screen.getByRole('button', { name: 'Hiện tất cả tab của Thực đơn tuần' });
+    expect(expandButton).not.toContainElement(showAllButton);
+
+    await user.click(showAllButton);
+    expect(readPageTabPreferences(window.localStorage)['weekly-menu']['dish-materials']).toBe(true);
+  });
+
   it('expands tab groups and allows toggling tabs', async () => {
     const user = userEvent.setup();
     renderComponent();
