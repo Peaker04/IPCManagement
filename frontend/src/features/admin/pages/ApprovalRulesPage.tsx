@@ -303,14 +303,14 @@ export default function ApprovalRulesPage() {
                       )}
                     </div>
                     <div className="mt-3 pt-3 border-t border-slate-100">
-                      <h4 className="text-xs font-semibold text-slate-400 mb-2">Trình tự duyệt:</h4>
+                      <h4 className="text-xs font-semibold text-slate-700 mb-2">Trình tự duyệt:</h4>
                       <div className="space-y-1">
                         {(rule.approvalassignments ?? []).map((a: ApprovalAssignmentDto) => (
                           <div key={a.assignmentId ?? `${rule.ruleId}-${a.sequence}-${a.approverRole}`} className="flex items-center gap-2 text-xs">
                             <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">{a.sequence}</span>
                             <span className="font-semibold text-slate-700">{formatApproverRole(a.approverRole)}</span>
-                            {a.approverUser && <span className="text-slate-400">({a.approverUser.fullName})</span>}
-                            {a.isRequired && <span className="text-[10px] text-red-500 font-semibold bg-red-50 px-1 rounded">Bắt buộc</span>}
+                            {a.approverUser && <span className="text-slate-700">({a.approverUser.fullName})</span>}
+                            {a.isRequired && <span className="text-[10px] text-red-700 font-semibold bg-red-50 px-1 rounded">Bắt buộc</span>}
                           </div>
                         ))}
                       </div>

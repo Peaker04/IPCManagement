@@ -103,7 +103,7 @@ describe('AdvancedDisplaySettings Component', () => {
     window.localStorage.setItem('ipc.page-tab-preferences.v1', JSON.stringify(customTabPrefs));
     renderComponent();
 
-    const expandButton = screen.getByRole('button', { name: /Thực đơn tuần/i });
+    const expandButton = screen.getByRole('button', { name: 'Mở nhóm Thực đơn tuần' });
     const showAllButton = screen.getByRole('button', { name: 'Hiện tất cả tab của Thực đơn tuần' });
     expect(expandButton).not.toContainElement(showAllButton);
 
@@ -116,7 +116,7 @@ describe('AdvancedDisplaySettings Component', () => {
     renderComponent();
 
     // Click on "Thực đơn tuần" accordion header
-    const weeklyMenuGroup = screen.getByRole('button', { name: /Thực đơn tuần/i });
+    const weeklyMenuGroup = screen.getByRole('button', { name: 'Mở nhóm Thực đơn tuần' });
     await user.click(weeklyMenuGroup);
 
     // Check that child tabs are visible
@@ -194,7 +194,7 @@ describe('AdvancedDisplaySettings Component', () => {
     renderComponent();
 
     // Expand Chef group
-    const chefGroup = screen.getByRole('button', { name: /Bếp trưởng/i });
+    const chefGroup = screen.getByRole('button', { name: 'Mở nhóm Bếp trưởng' });
     await user.click(chefGroup);
 
     // Try to disable the only active tab ('production')

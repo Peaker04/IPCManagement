@@ -105,7 +105,7 @@ const NavigationItemCard = memo(function NavigationItemCard({
         'group relative flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border p-3.5 text-left transition-[background-color,border-color,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
         visible
           ? 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/70'
-          : 'border-slate-200/80 bg-slate-50/80 opacity-60 hover:opacity-85'
+          : 'border-slate-200/80 bg-slate-50/80 hover:bg-slate-100'
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -123,7 +123,7 @@ const NavigationItemCard = memo(function NavigationItemCard({
           <span
             className={cn(
               'block truncate text-sm font-semibold',
-              visible ? 'text-slate-800' : 'text-slate-500 line-through decoration-slate-400'
+              visible ? 'text-slate-800' : 'text-slate-700 line-through decoration-slate-500'
             )}
           >
             {item.label}
@@ -133,7 +133,7 @@ const NavigationItemCard = memo(function NavigationItemCard({
       </div>
 
       <div className="flex shrink-0 items-center gap-2.5 pl-2">
-        <span className={cn('text-xs font-medium', visible ? 'text-slate-700' : 'text-slate-400')}>
+        <span className={cn('text-xs font-medium', visible ? 'text-slate-700' : 'text-slate-700')}>
           {visible ? 'Đang hiện' : 'Đã ẩn'}
         </span>
         <SwitchIndicator checked={visible} />
@@ -168,7 +168,7 @@ const PageTabItemButton = memo(function PageTabItemButton({
         'flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-left transition-[background-color,border-color,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
         visible
           ? 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50'
-          : 'border-slate-200/70 bg-slate-100/60 opacity-60 hover:opacity-85'
+          : 'border-slate-200/70 bg-slate-100/60 hover:bg-slate-100'
       )}
     >
       <span
@@ -218,51 +218,44 @@ const PageTabGroupCard = memo(function PageTabGroupCard({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white transition-colors">
       {/* Accordion Header */}
-      <button
-        type="button"
-        aria-expanded={isExpanded}
-        onClick={() => onToggleExpand(group.id)}
-        className="flex w-full cursor-pointer select-none items-center justify-between gap-3 p-3.5 text-left hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
-      >
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-600">
-            <Icon size={16} />
+      <div className="flex items-center gap-2 p-3.5 hover:bg-slate-50/80">
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          aria-label={`${isExpanded ? 'Thu gọn' : 'Mở'} nhóm ${group.label}`}
+          onClick={() => onToggleExpand(group.id)}
+          className="flex min-w-0 flex-1 cursor-pointer select-none items-center justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-600">
+              <Icon size={16} />
+            </div>
+            <div className="min-w-0">
+              <span className="block text-sm font-semibold text-slate-800">{group.label}</span>
+              <p className="mt-0.5 truncate text-xs text-slate-700">{group.description}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <span className="block text-sm font-semibold text-slate-800">{group.label}</span>
-            <p className="mt-0.5 truncate text-xs text-slate-500">{group.description}</p>
-          </div>
-        </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          {!allInGroupVisible && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onShowAllInGroup(group.id);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onShowAllInGroup(group.id);
-                }
-              }}
-              className="hidden rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700 sm:inline-flex"
-            >
-              Hiện tất cả tab
+          <div className="flex shrink-0 items-center gap-3">
+            <StatusBadge variant={allInGroupVisible ? 'neutral' : 'warning'}>
+              {visibleInGroup}/{totalInGroup} tab đang hiện
+            </StatusBadge>
+            <span className="text-slate-600 transition-transform duration-150">
+              {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
             </span>
-          )}
-          <StatusBadge variant={allInGroupVisible ? 'neutral' : 'warning'}>
-            {visibleInGroup}/{totalInGroup} tab đang hiện
-          </StatusBadge>
-          <span className="text-slate-400 transition-transform duration-150">
-            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-          </span>
-        </div>
-      </button>
+          </div>
+        </button>
+        {!allInGroupVisible && (
+          <button
+            type="button"
+            aria-label={`Hiện tất cả tab của ${group.label}`}
+            onClick={() => onShowAllInGroup(group.id)}
+            className="hidden shrink-0 rounded px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 sm:inline-flex"
+          >
+            Hiện tất cả tab
+          </button>
+        )}
+      </div>
 
       {/* Accordion Body */}
       {isExpanded && (
@@ -397,7 +390,7 @@ export function AdvancedDisplaySettings() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
       {/* Top Actions & Summary Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
