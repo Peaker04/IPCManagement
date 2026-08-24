@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -98,6 +101,81 @@ const renderPage = (entry = '/purchasing?week=2026-07-20') => render(
     <PurchasingPage />
   </MemoryRouter>,
 );
+
+const repositoryRoot = resolve(__dirname, '../../../../..');
+const purchasingPageSourcePath = resolve(__dirname, 'PurchasingPage.tsx');
+const serviceDateWorkbenchSourcePath = resolve(__dirname, '../PurchaseServiceDateWorkbench.tsx');
+const recoveryAuthorityPath = resolve(repositoryRoot, '.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json');
+
+type SealedFinding = {
+  identity: string;
+  ruleId: string;
+  verdict: string;
+  expected?: string;
+  actual?: string;
+  severity?: string;
+  lowestOwner?: string;
+};
+
+const exactFindingKey = ({ identity, ruleId, expected, actual, severity, lowestOwner }: SealedFinding) => ({
+  identity,
+  ruleId,
+  expected,
+  actual,
+  severity,
+  lowestOwner,
+});
+
+describe('Purchasing sealed remediation contract', () => {
+  it('keeps one route H1 and demotes the view-specific heading', () => {
+    const source = readFileSync(purchasingPageSourcePath, 'utf8');
+    expect(source).not.toContain('<h1 className="text-[20px]');
+    expect(source).toContain('<h2 className="text-[20px]');
+  });
+
+  it('uses native named date grouping and headers for loading and empty workflow tables', () => {
+    const source = readFileSync(serviceDateWorkbenchSourcePath, 'utf8');
+    expect(source).toContain('<fieldset');
+    expect(source).toContain('<legend className="sr-only">Các ngày cần xử lý</legend>');
+    expect(source.match(/<thead>/g)).toHaveLength(2);
+    expect(source).not.toContain('<div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-[11.4rem] xl:grid-cols-3" aria-label="Các ngày cần xử lý">');
+  });
+
+  it('partitions exact current recovery FAIL keys without consuming NEEDS_EVIDENCE', () => {
+    const authority = JSON.parse(readFileSync(recoveryAuthorityPath, 'utf8')) as {
+      selectedRecovery: { root: string; counts: { verdictTotals: Record<string, number> } };
+    };
+    const baseline = JSON.parse(readFileSync(resolve(repositoryRoot, authority.selectedRecovery.root, 'evidence/canonical-combined.json'), 'utf8')) as {
+      records: Array<{ findings: SealedFinding[] }>;
+    };
+    const findings = baseline.records.flatMap(({ findings: recordFindings }) => recordFindings);
+    const failures = findings.filter(({ verdict }) => verdict === 'FAIL');
+    const purchasing = failures.filter(({ identity }) => identity.split('|')[0] === '/purchasing');
+    const residual = failures.filter(({ identity }) => identity.split('|')[0] !== '/purchasing');
+    const purchasingKeys = purchasing.map(exactFindingKey);
+    const residualKeys = residual.map(exactFindingKey);
+    const serialize = (keys: ReturnType<typeof exactFindingKey>[]) => JSON.stringify(
+      [...keys].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+    );
+    const purchasingSet = new Set(purchasingKeys.map((key) => JSON.stringify(key)));
+    const residualSet = new Set(residualKeys.map((key) => JSON.stringify(key)));
+
+    expect(failures).toHaveLength(authority.selectedRecovery.counts.verdictTotals.FAIL);
+    expect(purchasing).toHaveLength(203);
+    expect(residual).toHaveLength(1_258);
+    expect(purchasingKeys.every((key) => key.identity.split('|').length === 6 && key.expected && key.actual && key.severity && key.lowestOwner)).toBe(true);
+    expect(residualKeys.every((key) => key.identity.split('|').length === 6 && key.expected && key.actual && key.severity && key.lowestOwner)).toBe(true);
+    expect([...purchasingSet].some((key) => residualSet.has(key))).toBe(false);
+    expect(new Set([...purchasingSet, ...residualSet]).size).toBe(failures.length);
+    expect(findings.filter(({ verdict }) => verdict === 'NEEDS_EVIDENCE')).toHaveLength(47_208);
+    expect(failures.some(({ verdict }) => verdict === 'NEEDS_EVIDENCE')).toBe(false);
+
+    const residualSha256 = createHash('sha256').update(serialize(residualKeys)).digest('hex');
+    console.info(`PHASE28_PURCHASING_FAIL_KEYS=${purchasing.length}`);
+    console.info(`PHASE28_RESIDUAL_FAIL_KEYS=${residual.length}`);
+    console.info(`PHASE28_RESIDUAL_FAIL_KEYS_SHA256=${residualSha256}`);
+  });
+});
 
 describe('PurchasingPage query state boundary', () => {
   beforeEach(() => {
