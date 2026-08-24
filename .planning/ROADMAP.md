@@ -4,7 +4,7 @@
 
 - [x] **Phase 27: Warehouse Data Workspace contract pilot** — complete; fresh Warehouse verification and reviewer reconciliation pass.
 - [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
-- [ ] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
+- [x] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
@@ -89,7 +89,7 @@ Plans:
 
 ## Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation
 
-**Status:** IN PROGRESS — Plan 28-05 completed the exact 152-key admin residual remediation; Plan 28-06 receives the actionable-zero closure handoff with raw adapter provenance and honest NEEDS_EVIDENCE preserved
+**Status:** COMPLETE — all 16 plans closed; full frontend aggregate 186 files / 1,209 tests passes with historical LOST_NO_BACKUP truth preserved
 
 **Goal:** Use the Phase 27 evidence architecture to audit and remediate the whole web application’s information hierarchy, typography, spacing, cards/data containers, tables, responsive behavior and accessibility. Present the real single operational warehouse without false choices or repeated scope while preserving warehouse identity in API, authorization, audit and data-integrity contracts.
 
@@ -143,4 +143,4 @@ Plans:
 - [x] 28-12-PLAN.md — convert purchasing, imports, singleton selector, and authorization compatibility (wave 13; SWH-02/SWH-03).
 - [x] 28-13-PLAN.md — regenerate contracts and require exact one-disposition impact-map closure (wave 14; SWH-02/SWH-03).
 - [x] 28-14-PLAN.md — replace frontend selection with passive exact-cardinality context and fail-closed commands (wave 15; SWH-01/SWH-02/SWH-03).
-- [ ] 28-15-PLAN.md — execute exact-three regression plus full static/build/docs closeout (wave 16; SWH-01/SWH-02/SWH-03).
+- [x] 28-15-PLAN.md — execute exact-three regression plus full static/build/docs closeout (wave 16; SWH-01/SWH-02/SWH-03).

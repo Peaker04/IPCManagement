@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: active
-stopped_at: 28-15 aggregate frontend regression blocker
+status: complete
+stopped_at: Completed 28-15-PLAN.md
 last_updated: "2026-08-24T19:19:04.232Z"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 37
-  completed_plans: 36
-  percent: 67
+  completed_plans: 37
+  percent: 100
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
 last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust inventory and DTO/validator/filter compatibility
 ---
@@ -21,7 +21,7 @@ last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust invento
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 28 — project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
+**Current focus:** Phase 28 complete — project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
 
 ## Current Status
 
@@ -34,12 +34,12 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 ## Session Continuity
 
 **Last session:** 2026-08-24T19:19:04.204Z
-**Resume file:** .planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-15-SUMMARY.md
+**Resume file:** None
 
-**Stopped at:** 28-15 aggregate frontend regression blocker
+**Stopped at:** Completed 28-15-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: continue Phase 28 at Plan 28-11; keep migration application and warehouse activation separately authorized.
+Next workflow: select the next explicitly authorized phase; Phase 28 operational database state and rollback artifacts remain unchanged.
 
 ## Decisions
 
@@ -82,7 +82,7 @@ Next workflow: continue Phase 28 at Plan 28-11; keep migration application and w
 ### Blockers
 
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
-- Phase 28 closeout blocked: full frontend aggregate run has 24 historical authority failures (lost ignored Phase 28 baseline inputs and stale Phase 27/27.1 locks); focused/static/build gates pass and oracles were not rewritten.
+- No Phase 28 blocker remains. Full frontend aggregate passes 186 files / 1,209 tests after source-aware authority reconciliation; old baseline bytes remain truthfully LOST_NO_BACKUP.
 
 ## Performance Metrics
 
