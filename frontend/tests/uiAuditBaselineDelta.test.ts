@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -58,7 +58,26 @@ const forbiddenPaths = [
   /backend\//,
   /migrations?\//i,
   /shared\/api\/contracts\//,
+  /(?:^|\/)apiSlice\.ts$/,
+  /(?:^|\/)routeConfig\.ts$/,
+  /(?:^|\/)permissions?\//i,
+  /warehouseId|receivingWarehouseId/i,
+  /playwright[^/]*\.config\.ts$/,
+  /uiAuditOracleRegistry\.ts$/,
 ];
+
+const authorizedWave2ProductionPaths = [
+  'frontend/src/features/auth/pages/LoginPage.tsx',
+  'frontend/src/features/dashboard/pages/DashboardPage.tsx',
+  'frontend/src/styles/index.css',
+] as const;
+
+export function validateWave2ChangedPaths(paths: string[]) {
+  if (paths.some((path) => !authorizedWave2ProductionPaths.includes(path as typeof authorizedWave2ProductionPaths[number]))) {
+    throw new Error('Wave 2 production path is not owner-authorized');
+  }
+  return paths;
+}
 
 const repositoryRoot = resolve(__dirname, '../..');
 const authorityPath = resolve(repositoryRoot, '.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json');
@@ -149,6 +168,12 @@ describe('Phase 28 remediation delta contract', () => {
     'backend/src/Api.cs',
     'backend/Migrations/20260824_Change.cs',
     'frontend/src/shared/api/contracts/schema.ts',
+    'frontend/src/api/apiSlice.ts',
+    'frontend/src/lib/routeConfig.ts',
+    'frontend/src/permissions/roleRules.ts',
+    'frontend/src/features/warehouse/warehouseId.ts',
+    'frontend/playwright.config.ts',
+    'frontend/tests/uiAuditOracleRegistry.ts',
   ])('rejects forbidden production path %s', (path) => {
     expect(() => validateRemediationDelta({ ...valid, productionPaths: [path] })).toThrow(/outside/);
   });
@@ -194,5 +219,38 @@ describe('Phase 28 baseline recovery authority', () => {
 
   it.each(['../attempt-1', 'attempt-0', 'attempt-current', 'attempt-1/child'])('rejects unsafe attempt name %s', (attemptName) => {
     expect(() => validateRecoveryAttemptRoot({ repositoryRoot, configuredOutput: 'frontend/test-results', recoveryParent: '.artifacts/phase28-ui-audit/baseline-recovery', attemptName })).toThrow();
+  });
+});
+
+describe('Phase 28 Wave 2 architecture boundary', () => {
+  it('accepts only the declared Login, Dashboard, and semantic-style production owners', () => {
+    expect(validateWave2ChangedPaths([...authorizedWave2ProductionPaths])).toEqual(authorizedWave2ProductionPaths);
+    expect(() => validateWave2ChangedPaths(['frontend/src/components/common/InlineAlert.tsx'])).toThrow(/owner-authorized/);
+    expect(() => validateWave2ChangedPaths(['backend/src/Api.cs'])).toThrow(/owner-authorized/);
+  });
+
+  it('keeps one RTK createApi owner and no warehouse identity in the Wave 2 production paths', () => {
+    const sourceRoot = resolve(repositoryRoot, 'frontend/src');
+    const sourceFiles: string[] = [];
+    const visit = (directory: string) => {
+      for (const entry of readdirSync(directory)) {
+        const path = resolve(directory, entry);
+        if (statSync(path).isDirectory()) visit(path);
+        else if (/\.[tj]sx?$/.test(path)) sourceFiles.push(path);
+      }
+    };
+    visit(sourceRoot);
+    const createApiOwners = sourceFiles.filter((path) => /\bcreateApi\s*\(/.test(readFileSync(path, 'utf8')));
+    expect(createApiOwners.map((path) => relative(repositoryRoot, path).replaceAll('\\', '/'))).toEqual(['frontend/src/api/apiSlice.ts']);
+
+    for (const productionPath of authorizedWave2ProductionPaths) {
+      expect(readFileSync(resolve(repositoryRoot, productionPath), 'utf8')).not.toMatch(/\b(?:warehouseId|receivingWarehouseId)\b/);
+    }
+  });
+
+  it('retains active-first and preserve-visited regression authorities outside the production delta', () => {
+    expect(readFileSync(resolve(repositoryRoot, 'frontend/tests/purchasing-production-query.spec.ts'), 'utf8')).toContain('active-first preserve-visited');
+    expect(readFileSync(resolve(repositoryRoot, 'frontend/tests/approvals-production-query.spec.ts'), 'utf8')).toContain('active-first visited panels');
+    expect(readFileSync(resolve(repositoryRoot, 'frontend/tests/warehouseDataWorkspaceContract.ts'), 'utf8')).toContain("'preserve-visited'");
   });
 });
