@@ -9,7 +9,6 @@ type Authority = { status: string; restored: boolean; historicalExpectedArtifact
 type Options = { allowLegacyAdminRaw: boolean };
 
 const sha256 = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
-const stable = (value: unknown): string => Array.isArray(value) ? `[${value.map(stable).join(',')}]` : value && typeof value === 'object' ? `{${Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stable(item)}`).join(',')}}` : JSON.stringify(value);
 const hashFile = (path: string) => sha256(readFileSync(path));
 
 export function validateRecoveryAuthority(authority: Authority, repositoryRoot: string) {
@@ -43,7 +42,7 @@ export function reconcileRemediationRuns(run1: RemediationRun, run2: Remediation
       if (record.network.some(({ method }) => !['GET', 'HEAD'].includes(method))) throw new Error(`${name} non-read-only network request`);
     }
   }
-  if (stable(run1) !== stable(run2)) throw new Error('run mismatch');
+  if (JSON.stringify(run1) !== JSON.stringify(run2)) throw new Error('run mismatch');
   const totals = { PASS: 0, FAIL: 0, NOT_APPLICABLE: 0, NEEDS_EVIDENCE: 0, UNRESOLVED: 0 } as Record<UiAuditVerdict, number>;
   let legacyRawCount = 0;
   for (const record of run2.records) for (const finding of record.findings) {

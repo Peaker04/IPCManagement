@@ -187,6 +187,7 @@ export function reconcilePhase28Baseline(inputs: readonly ReconciliationInput[],
     recordsByIdentity.set(record.identity, mergeMeasuredRecord(recordsByIdentity.get(record.identity)!, record));
   }
   const records = [...recordsByIdentity.values()].sort((a, b) => a.identity.localeCompare(b.identity));
+  for (const record of records) record.network.sort((left, right) => `${left.method}\u0000${left.url}\u0000${left.resourceType}\u0000${left.classification}`.localeCompare(`${right.method}\u0000${right.url}\u0000${right.resourceType}\u0000${right.classification}`));
   validateCanonicalBaseline(records, productionEvidenceIdentities);
   const verdictTotals = Object.fromEntries(UI_AUDIT_VERDICTS.map((verdict) => [verdict, 0])) as Record<UiAuditVerdict, number>;
   records.flatMap(({ findings }) => findings).forEach(({ verdict }) => verdictTotals[verdict]++);

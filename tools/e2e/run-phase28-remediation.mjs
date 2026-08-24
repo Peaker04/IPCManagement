@@ -19,8 +19,8 @@ mkdirSync(root);
 for (const child of ['run-1', 'run-2', 'playwright-run-1', 'playwright-run-2', 'runner']) mkdirSync(resolve(root, child));
 const playwrightCli = resolve(repositoryRoot, 'node_modules/@playwright/test/cli.js');
 const viteCli = resolve(repositoryRoot, 'node_modules/vite/bin/vite.js');
-const viteNodeCli = resolve(repositoryRoot, 'node_modules/vite-node/vite-node.mjs');
-for (const entry of [playwrightCli, viteCli, viteNodeCli]) if (!existsSync(entry)) throw new Error(`repository-resolved executable missing: ${entry}`);
+const vitestCli = resolve(repositoryRoot, 'node_modules/vitest/vitest.mjs');
+for (const entry of [playwrightCli, viteCli, vitestCli]) if (!existsSync(entry)) throw new Error(`repository-resolved executable missing: ${entry}`);
 const baseEnv = { ...process.env, VITE_ENABLE_MOCK_LOGIN: 'true' };
 const run = (name, argv, env = baseEnv) => new Promise((accept, reject) => {
   const child = spawn(process.execPath, argv, { cwd: frontendRoot, env, shell: false, windowsHide: false });
@@ -44,11 +44,11 @@ try {
     const evidence = resolve(root, `run-${runNumber}`);
     const env = { ...baseEnv, UI_AUDIT_OUTPUT_ROOT: evidence, UI_AUDIT_RECOVERY_OUTPUT_ROOT: evidence };
     for (const [name, ...args] of specs) await run(`run-${runNumber}-${name}`, [playwrightCli, 'test', ...args, '--config', 'playwright.recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, name)}`], env);
-    await run(`run-${runNumber}-matrix`, [playwrightCli, 'test', 'tests/ui-audit-remediation.spec.ts', '--grep', '^phase 28 remediation / full D5\\+R2 identity matrix$', '--config', 'playwright.recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, 'matrix')}`], env);
+    await run(`run-${runNumber}-matrix`, [playwrightCli, 'test', 'tests/ui-audit-remediation.spec.ts', '--grep', 'phase 28 remediation / full D5', '--config', 'playwright.recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, 'matrix')}`], env);
   }
   const selection = resolve(parent, 'selected-attempt.json');
   if (existsSync(selection)) throw new Error('selected-attempt.json already exists; append-only selection cannot be overwritten');
-  await run('reconcile', [viteNodeCli, 'tests/uiAuditRemediationReconciliation.ts', '--recovery-authority', '.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json', '--run1', relative(repositoryRoot, resolve(root, 'run-1')), '--run2', relative(repositoryRoot, resolve(root, 'run-2')), '--attempt-manifest', relative(repositoryRoot, resolve(root, 'manifest.json')), '--write-selection', relative(repositoryRoot, selection)]);
+  await run('reconcile', [vitestCli, 'run', '--run', 'tests/uiAuditRemediationReconciliation.emit.test.ts', '--maxWorkers=1'], { ...baseEnv, PHASE28_RECOVERY_AUTHORITY: '.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json', PHASE28_RUN1: relative(repositoryRoot, resolve(root, 'run-1')), PHASE28_RUN2: relative(repositoryRoot, resolve(root, 'run-2')), PHASE28_ATTEMPT_MANIFEST: relative(repositoryRoot, resolve(root, 'manifest.json')), PHASE28_SELECTION: relative(repositoryRoot, selection) });
 } finally {
   vite.kill('SIGTERM');
   writeFileSync(resolve(root, 'runner', 'vite.log'), viteLog);
