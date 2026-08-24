@@ -42,6 +42,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           <Input
             type="search"
             aria-label="Tìm nguyên liệu"
+            className="text-slate-700 placeholder:text-slate-600"
             value={workflow.ingredientSearch}
             onChange={(event) => workflow.setIngredientSearch(event.target.value)}
           />
@@ -53,7 +54,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           >
             <SelectTrigger
               id="quotation-ingredient"
-              className="w-full"
+              className="w-full text-slate-700"
               aria-invalid={Boolean(workflow.validationErrors.ingredientId) || undefined}
               aria-describedby={workflow.validationErrors.ingredientId ? 'quotation-ingredient-error' : undefined}
             >
@@ -113,7 +114,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                       <td>{quotation.supplierName}{quotation.isBestPrice && <span className="ml-2 text-xs font-medium text-emerald-700">Tốt nhất</span>}</td>
                       <td className="text-right">{formatCurrency(quotation.unitPrice)}</td>
                       <td>{quotation.effectiveFrom}</td><td>{quotation.effectiveTo ?? '—'}</td><td>{quotation.note ?? ''}</td>
-                      <td>{quotation.isActive ? <span className="text-emerald-600">Đang hoạt động</span> : <span className="text-slate-400">Đã ngừng</span>}</td>
+                      <td>{quotation.isActive ? <span className="text-emerald-800">Đang hoạt động</span> : <span className="text-slate-400">Đã ngừng</span>}</td>
                       <td className="space-x-2">
                         <Button type="button" variant="outline" size="xs" onClick={() => workflow.edit(quotation)}>Sửa</Button>
                         {quotation.isActive && <Button type="button" variant="destructive" size="xs" onClick={() => workflow.setDeactivateTargetId(quotation.quotationId)}>Ngừng</Button>}
@@ -121,7 +122,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                     </tr>
                   ))}
                   {workflow.quotationView.phase === 'ready' && workflow.rows.length === 0 && !workflow.quotationView.isRefreshing && (
-                    <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>
+                    <tr><td colSpan={7} className="py-4 text-center text-slate-600">Chưa có báo giá nào cho nguyên liệu này</td></tr>
                   )}
                 </tbody>
               </table>
@@ -146,15 +147,15 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                   {workflow.validationErrors.supplierId && <p id="quotation-supplier-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.supplierId.title}</span>{' '}{workflow.validationErrors.supplierId.message}</p>}
                 </div>
                 <div>
-                  <Input type="number" aria-label="Đơn giá" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
+                  <Input type="number" aria-label="Đơn giá" className="text-slate-700 placeholder:text-slate-600" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
                   {workflow.validationErrors.unitPrice && <p id="quotation-unit-price-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.unitPrice.title}</span>{' '}{workflow.validationErrors.unitPrice.message}</p>}
                 </div>
                 <div>
-                  <Input type="date" aria-label="Hiệu lực từ" aria-invalid={Boolean(workflow.validationErrors.effectiveFrom) || undefined} aria-describedby={workflow.validationErrors.effectiveFrom ? 'quotation-effective-from-error' : undefined} value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
+                  <Input type="date" aria-label="Hiệu lực từ" className="text-slate-700 placeholder:text-slate-600" aria-invalid={Boolean(workflow.validationErrors.effectiveFrom) || undefined} aria-describedby={workflow.validationErrors.effectiveFrom ? 'quotation-effective-from-error' : undefined} value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
                   {workflow.validationErrors.effectiveFrom && <p id="quotation-effective-from-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.effectiveFrom.title}</span>{' '}{workflow.validationErrors.effectiveFrom.message}</p>}
                 </div>
-                <Input type="date" aria-label="Hiệu lực đến" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
-                <Input type="text" aria-label="Ghi chú" placeholder="Ghi chú" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
+                <Input type="date" aria-label="Hiệu lực đến" className="text-slate-700 placeholder:text-slate-600" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
+                <Input type="text" aria-label="Ghi chú" className="text-slate-700 placeholder:text-slate-600" placeholder="Ghi chú" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
               </div>
               {workflow.saveError && <div role="alert" className="mt-3"><InlineAlert title="Chưa thể lưu báo giá" variant="danger">{workflow.saveError}</InlineAlert></div>}
               <div className="mt-3 flex gap-2">

@@ -221,6 +221,13 @@ describe('PurchasingPage query state boundary', () => {
     renderPage();
 
     expect(screen.getByText('Đang tải')).toBeInTheDocument();
+    expect(mocks.getWorkbench).toHaveBeenCalledWith({
+      week: '2026-07-20',
+      date: undefined,
+      stage: undefined,
+      page: 1,
+      pageSize: 8,
+    }, { skip: false });
     expect(screen.getByTestId('service-date-workbench')).toHaveTextContent('service dates: 1');
     expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
     expect(screen.getByTestId('supplemental-workbench').closest('[hidden]')).not.toBeNull();

@@ -147,6 +147,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
     return (
       <EmptyState
         title="Chưa có nhu cầu mua bổ sung cần xử lý"
+        className="[&_.text-slate-500]:text-slate-600"
         description="Kho chưa chuyển yêu cầu thiếu hàng nào sang Thu mua, hoặc các yêu cầu hiện tại đã được xử lý hết."
       />
     );

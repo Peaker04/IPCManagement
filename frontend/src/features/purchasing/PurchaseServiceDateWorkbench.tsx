@@ -69,7 +69,9 @@ export function PurchaseServiceDateWorkbench({
       description="Chọn đúng một ngày trong tuần. Mọi dòng bên dưới thuộc phạm vi Cả ngày (FULLDAY)."
       className="min-w-0 overflow-hidden"
     >
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-[11.4rem] xl:grid-cols-3" aria-label="Các ngày cần xử lý">
+      <fieldset className="m-0 min-w-0 border-0 p-0">
+        <legend className="sr-only">Các ngày cần xử lý</legend>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-[11.4rem] xl:grid-cols-3">
         {serviceDates.map((serviceDate) => {
           const active = serviceDate.serviceDate === selectedDate;
           const supplierLineCount = Math.max(serviceDate.shortageLineCount, serviceDate.purchaseLines.length);
@@ -102,7 +104,8 @@ export function PurchaseServiceDateWorkbench({
             </Button>
           );
         })}
-      </div>
+        </div>
+      </fieldset>
 
       <div
         id={activeDate ? `purchase-service-date-${activeDate.serviceDate}` : 'purchase-service-date-empty'}
@@ -119,7 +122,19 @@ export function PurchaseServiceDateWorkbench({
           caption={isLoading || hasPurchaseLines ? 'Bảng có cuộn ngang cục bộ và giữ chiều cao ổn định.' : 'Trạng thái trống của ngày phục vụ đang chọn.'}
           className={isLoading || hasPurchaseLines ? 'h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]' : undefined}
         >
-          {isLoading ? <table className="ipc-data-table min-w-[900px]"><tbody>{Array.from({ length: 8 }, (_, index) => <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true"><td><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td></tr>)}</tbody></table> : hasPurchaseLines && activeDate ? <PurchaseLineGroups lines={activeDate.purchaseLines} selectedLineId={selectedLineId} onLineChange={onLineChange} /> : <table className="ipc-data-table min-w-[900px]"><tbody><tr><td className="py-10 text-center text-slate-600">{serviceDates.length === 0 ? 'Chưa có nhu cầu đã duyệt trong tuần này.' : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}</td></tr></tbody></table>}
+          {isLoading ? (
+            <table className="ipc-data-table min-w-[900px] table-fixed">
+              <thead><tr><th>Nguyên liệu</th><th>Số lượng mua</th><th>Nhà cung cấp</th><th>Bằng chứng hiện tại</th><th>Giá đề xuất</th><th>Ngày giao</th><th>Thao tác</th></tr></thead>
+              <tbody>{Array.from({ length: 8 }, (_, index) => <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true">{Array.from({ length: 7 }, (_, cellIndex) => <td key={cellIndex}><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td>)}</tr>)}</tbody>
+            </table>
+          ) : hasPurchaseLines && activeDate ? (
+            <PurchaseLineGroups lines={activeDate.purchaseLines} selectedLineId={selectedLineId} onLineChange={onLineChange} />
+          ) : (
+            <table className="ipc-data-table min-w-[900px] table-fixed">
+              <thead><tr><th>Nguyên liệu</th><th>Số lượng mua</th><th>Nhà cung cấp</th><th>Bằng chứng hiện tại</th><th>Giá đề xuất</th><th>Ngày giao</th><th>Thao tác</th></tr></thead>
+              <tbody><tr><td colSpan={7} className="py-10 text-center text-slate-600">{serviceDates.length === 0 ? 'Chưa có nhu cầu đã duyệt trong tuần này.' : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}</td></tr></tbody>
+            </table>
+          )}
         </TableViewport>
         <PaginationBar
           page={page}
