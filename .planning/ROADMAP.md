@@ -131,7 +131,7 @@ Plans:
 - [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact (wave 1; historical tracked authority remains byte-exact).
 - [x] 28-01R-PLAN.md — preserve the lost old hashes as LOST_NO_BACKUP, regenerate through production-route GET/HEAD-only measurement outside Playwright cleanup, and pin a new immutable recovery authority (wave 2; PUX recovery prerequisite).
 - [x] 28-02-PLAN.md — consume only the pinned recovery authority, reconcile the existing RED commit without treating it as complete, group exact FAIL findings, remediate Login/Dashboard/shared seams, and freeze bounded attribution (wave 3; PUX only).
-- [ ] 28-03-PLAN.md — execute the Purchasing tracer and emit an exact residual-key handoff (wave 4; PUX only).
+- [x] 28-03-PLAN.md — execute the Purchasing tracer and emit an exact residual-key handoff (wave 4; PUX only).
 - [ ] 28-04-PLAN.md — close non-admin route-owner families and emit the exact admin residual handoff (wave 5; PUX only).
 - [ ] 28-05-PLAN.md — close Admin Data overflow plus Approval Rules/Advanced Settings exact owners (wave 6; PUX only).
 - [ ] 28-06-PLAN.md — produce immutable two-run headed remediation evidence outside Playwright cleanup and exact reconciliation (wave 7; PUX only).
