@@ -15,7 +15,6 @@ namespace IPCManagement.Api.Features.Inventory.Controllers;
 [EnableRateLimiting("api-general")]
 public class WarehousesController : ControllerBase
 {
-    private const int SelectorPageSize = 100;
     private readonly IWarehouseService _warehouseService;
 
     public WarehousesController(IWarehouseService warehouseService)
@@ -39,23 +38,8 @@ public class WarehousesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WarehouseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSelectorAsync()
     {
-        var warehouses = new List<WarehouseDto>();
-        var pageNumber = 1;
-        PagedResponseDto<WarehouseDto> page;
-
-        do
-        {
-            page = await _warehouseService.GetPagedAsync(new PagedRequestDto
-            {
-                PageNumber = pageNumber,
-                PageSize = SelectorPageSize
-            });
-            warehouses.AddRange(page.Items);
-            pageNumber++;
-        }
-        while (pageNumber <= page.TotalPages);
-
-        return Ok(ApiResponse<IReadOnlyList<WarehouseDto>>.SuccessResult(warehouses));
+        var warehouse = await _warehouseService.GetOperationalAsync(HttpContext.RequestAborted);
+        return Ok(ApiResponse<IReadOnlyList<WarehouseDto>>.SuccessResult([warehouse]));
     }
 
     /// <summary>Lấy chi tiết kho theo ID.</summary>

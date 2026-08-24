@@ -23,16 +23,17 @@ namespace IPCManagement.Api.Tests;
 public class WarehousesAuthorizationIntegrationTests
 {
     [Fact]
-    public async Task Selector_Should_AllowPurchasingAndCoordinatorRoles_AndReturnEveryWarehousePage()
+    public async Task Selector_Should_AllowPurchasingAndCoordinatorRoles_AndReturnSingleton()
     {
-        var warehouses = Enumerable.Range(1, 205)
-            .Select(index => new WarehouseDto
+        var warehouses = new[]
+        {
+            new WarehouseDto
             {
-                WarehouseId = $"warehouse-{index}",
-                WarehouseCode = $"WH-{index:000}",
-                WarehouseName = $"Kho {index}"
-            })
-            .ToArray();
+                WarehouseId = "warehouse-operational",
+                WarehouseCode = "WH-OP",
+                WarehouseName = "Kho vận hành"
+            }
+        };
         var service = BuildPagedWarehouseService(warehouses);
         await using var app = await CreateAppAsync(service);
         using var client = app.GetTestClient();
@@ -42,9 +43,8 @@ public class WarehousesAuthorizationIntegrationTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payload = await response.Content.ReadFromJsonAsync<ApiResponse<List<WarehouseDto>>>();
-        payload!.Data.Should().HaveCount(205);
-        payload.Data.Select(item => item.WarehouseId).Should().Contain("warehouse-205");
-        await service.Received(3).GetPagedAsync(Arg.Any<PagedRequestDto>());
+        payload!.Data.Should().ContainSingle().Which.WarehouseId.Should().Be("warehouse-operational");
+        await service.Received(1).GetOperationalAsync(Arg.Any<CancellationToken>());
 
         client.DefaultRequestHeaders.Remove(TestAuthHandler.RoleHeader);
         client.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, "Coordinator");
@@ -65,8 +65,8 @@ public class WarehousesAuthorizationIntegrationTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payload = await response.Content.ReadFromJsonAsync<ApiResponse<List<WarehouseDto>>>();
-        payload!.Data.Should().BeEmpty();
-        await service.Received(1).GetPagedAsync(Arg.Any<PagedRequestDto>());
+        payload!.Data.Should().ContainSingle();
+        await service.Received(1).GetOperationalAsync(Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -87,12 +87,19 @@ public class WarehousesAuthorizationIntegrationTests
         var response = await client.GetAsync("/api/warehouses/selector");
 
         response.StatusCode.Should().Be(expectedStatus);
-        await service.DidNotReceive().GetPagedAsync(Arg.Any<PagedRequestDto>());
+        await service.DidNotReceive().GetOperationalAsync(Arg.Any<CancellationToken>());
     }
 
     private static IWarehouseService BuildPagedWarehouseService(IReadOnlyList<WarehouseDto> warehouses)
     {
         var service = Substitute.For<IWarehouseService>();
+        var operational = warehouses.SingleOrDefault() ?? new WarehouseDto
+        {
+            WarehouseId = "warehouse-operational",
+            WarehouseCode = "WH-OP",
+            WarehouseName = "Kho vận hành"
+        };
+        service.GetOperationalAsync(Arg.Any<CancellationToken>()).Returns(operational);
         service.GetPagedAsync(Arg.Any<PagedRequestDto>()).Returns(callInfo =>
         {
             var request = callInfo.Arg<PagedRequestDto>();
