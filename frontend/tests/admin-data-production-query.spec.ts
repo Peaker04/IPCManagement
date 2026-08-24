@@ -145,8 +145,7 @@ const identities = expandProductionQueryIdentities()
 const records: UiAuditRecord[] = [];
 const completedRegions = new Set<Region>();
 const output = resolve(
-  process.cwd(),
-  "test-results",
+  process.env.UI_AUDIT_OUTPUT_ROOT ?? resolve(process.cwd(), "test-results"),
   "ui-audit-phase28-admin-data-query-states.json",
 );
 

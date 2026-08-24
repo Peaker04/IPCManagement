@@ -121,7 +121,7 @@ test.describe('Phase 28 production-route static/form baseline', () => {
     expect(records.filter(({ findings }) => findings[0].verdict === 'NEEDS_EVIDENCE')).toHaveLength(14);
     const verdictTotals = records.flatMap(({ findings }) => findings).reduce<Record<string, number>>((totals, finding) => ((totals[finding.verdict] = (totals[finding.verdict] ?? 0) + 1), totals), {});
     const perRoute = Object.fromEntries((['/admin/advanced-settings', '/403'] as const).map((route) => [route, { identityCount: records.filter(({ identity }) => identity.startsWith(`${route}|`)).length, measuredIdentityCount: records.filter(({ identity, findings }) => identity.startsWith(`${route}|`) && findings[0].verdict !== 'NOT_APPLICABLE' && findings[0].verdict !== 'NEEDS_EVIDENCE').length }]));
-    const output = resolve(process.cwd(), 'test-results', 'ui-audit-phase28-static-form-production-routes.json');
+    const output = resolve(process.env.UI_AUDIT_OUTPUT_ROOT ?? resolve(process.cwd(), 'test-results'), 'ui-audit-phase28-static-form-production-routes.json');
     mkdirSync(dirname(output), { recursive: true });
     writeFileSync(output, `${JSON.stringify({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, identityCount: 126, measuredIdentityCount: 14, notApplicableIdentityCount: 98, needsEvidenceIdentityCount: 14, reasons: PRODUCTION_STATIC_FORM_REASONS, verdictTotals, perRoute, records }, null, 2)}\n`);
   });

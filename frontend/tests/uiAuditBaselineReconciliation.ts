@@ -238,16 +238,18 @@ function atomicWrite(path: string, bytes: string) {
   renameSync(temporary, path);
 }
 
-export function reconcilePhase28BaselineFromDisk(frontendRoot = process.cwd()) {
-  const testResults = resolve(frontendRoot, 'test-results');
+export function reconcilePhase28BaselineFromDisk(
+  frontendRoot = process.cwd(),
+  evidenceRoot = process.env.UI_AUDIT_OUTPUT_ROOT ?? resolve(frontendRoot, 'test-results'),
+  outputRoot = process.env.UI_AUDIT_RECOVERY_OUTPUT_ROOT ?? resolve(evidenceRoot, 'ui-audit-phase28-baseline'),
+) {
   const inputs = PHASE28_RECONCILIATION_ARTIFACTS.map((name) => {
-    const bytes = readFileSync(resolve(testResults, name));
+    const bytes = readFileSync(resolve(evidenceRoot, name));
     return { name, bytes, artifact: JSON.parse(bytes.toString('utf8')) as SourceArtifact };
   });
   const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: resolve(frontendRoot, '..'), encoding: 'utf8' }).trim();
   const result = reconcilePhase28Baseline(inputs, sourceCommit);
-  const output = resolve(testResults, 'ui-audit-phase28-baseline');
-  atomicWrite(resolve(output, 'canonical-combined.json'), result.combinedBytes);
-  atomicWrite(resolve(output, 'manifest.json'), `${JSON.stringify(result.manifest, null, 2)}\n`);
+  atomicWrite(resolve(outputRoot, 'canonical-combined.json'), result.combinedBytes);
+  atomicWrite(resolve(outputRoot, 'manifest.json'), `${JSON.stringify(result.manifest, null, 2)}\n`);
   return result;
 }

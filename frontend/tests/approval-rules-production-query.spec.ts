@@ -111,7 +111,7 @@ test.describe('Phase 28 Approval Rules production-route query-state adapter', ()
     const verdictTotals = records.flatMap(({ findings }) => findings).reduce<Record<string, number>>((totals, finding) => ((totals[finding.verdict] = (totals[finding.verdict] ?? 0) + 1), totals), {});
     const perRule = UI_AUDIT_RULE_IDS.reduce<Record<string, Record<string, number>>>((totals, ruleId) => ((totals[ruleId] = records.flatMap(({ findings }) => findings).filter((finding) => finding.ruleId === ruleId).reduce<Record<string, number>>((counts, finding) => ((counts[finding.verdict] = (counts[finding.verdict] ?? 0) + 1), counts), {})), totals), {});
     expect(Object.values(perRule).every((counts) => Object.values(counts).reduce((sum, count) => sum + count, 0) === 49)).toBe(true);
-    const output = resolve(process.cwd(), 'test-results', 'ui-audit-phase28-approval-rules-query-states.json');
+    const output = resolve(process.env.UI_AUDIT_OUTPUT_ROOT ?? resolve(process.cwd(), 'test-results'), 'ui-audit-phase28-approval-rules-query-states.json');
     mkdirSync(dirname(output), { recursive: true });
     writeFileSync(output, `${JSON.stringify({ schemaVersion: UI_AUDIT_SCHEMA_VERSION, identityCount: 49, measuredIdentityCount: 28, notApplicableIdentityCount: 7, needsEvidenceIdentityCount: 14, reasons: APPROVAL_RULES_QUERY_DISPOSITION_REASONS, verdictTotals, perRule, records }, null, 2)}\n`);
   });
