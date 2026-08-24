@@ -36,6 +36,7 @@ import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
+import { resolveOperationalWarehouseContext } from '@/features/purchasing/purchasingModel';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
@@ -76,7 +77,6 @@ export default function WarehousePage() {
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [issueCommandId, setIssueCommandId] = useState('');
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [stockMovementSearch, setStockMovementSearch] = useState('');
   const deferredStockMovementSearch = useDeferredValue(stockMovementSearch.trim());
@@ -96,6 +96,8 @@ export default function WarehousePage() {
     pageSize: 8,
   });
   const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery();
+  const operationalWarehouseContext = resolveOperationalWarehouseContext(receiptWarehouses);
+  const selectedWarehouseId = operationalWarehouseContext.warehouse?.warehouseId ?? '';
   const requestedDemandDate = searchParams.get('date');
   const requestedDemandWeek = searchParams.get('week');
   const demandDateFrom = requestedDemandDate ?? requestedDemandWeek ?? undefined;
@@ -181,10 +183,6 @@ export default function WarehousePage() {
     candidateCount: issueCandidatePage?.totalCount,
     isError: isIssueCandidateError,
   });
-  const warehouseOptions = receiptWarehouses.map((warehouse) => ({
-    id: warehouse.warehouseId,
-    name: warehouse.warehouseName,
-  }));
   const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const {
     data: selectedDemandLines = [],
@@ -230,7 +228,6 @@ export default function WarehousePage() {
   const openIssueDialog = () => {
     setIssueCandidatePageNumber(1);
     setSelectedMaterialRequestId('');
-    setSelectedWarehouseId('');
     setWarehouseFeedback(null);
     setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
     setIsIssueDialogOpen(true);
@@ -425,8 +422,7 @@ export default function WarehousePage() {
                   value={selectedMaterialRequestId}
                   onValueChange={(value) => {
                     setSelectedMaterialRequestId(value ?? '');
-                    setSelectedWarehouseId('');
-                    setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
+                                    setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
                   }}
                 >
                   <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">
@@ -463,32 +459,15 @@ export default function WarehousePage() {
                 )}
               </div>
               <div className="grid gap-2">
-                <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-source">
-                  Kho xuất{' '}
-                  <span aria-hidden="true" className="text-red-600">
-                    *
-                  </span>
-                </label>
-                <Select value={selectedWarehouseId} onValueChange={(value) => setSelectedWarehouseId(value ?? '')}>
-                  <SelectTrigger id="warehouse-source" aria-label="Chọn kho xuất">
-                    <SelectValue placeholder="Chọn kho cấp nguyên liệu">{warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId)?.name ?? 'Chọn kho cấp nguyên liệu'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouseOptions.map((warehouse) => (
-                      <SelectItem key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {warehouseOptions.length === 0 &&
-                  (isWarehouseSelectorError ? (
-                    <p className="text-xs font-semibold text-red-700" role="alert">
-                      Không tải được danh sách kho. Chưa thể kết luận là không có kho nào cấp được nguyên liệu.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>
-                  ))}
+                <p className="text-sm font-medium text-slate-800">Kho vận hành</p>
+                <p className="rounded-sm border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
+                  {operationalWarehouseContext.warehouse?.warehouseName ?? 'Chưa xác định'}
+                </p>
+                {(isWarehouseSelectorError || operationalWarehouseContext.state === 'blocked') && (
+                  <p className="text-xs font-semibold text-red-700" role="alert">
+                    {isWarehouseSelectorError ? 'Không tải được kho vận hành.' : operationalWarehouseContext.blocker}
+                  </p>
+                )}
                 {selectedWarehouseId && (
                   <div
                     className={`rounded-sm border px-3 py-2 text-xs ${

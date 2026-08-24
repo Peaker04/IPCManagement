@@ -143,7 +143,7 @@ describe('WarehouseExceptionsWorkbench', () => {
     mocks.recordReceipt.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) });
   });
 
-  it('renders the warehouse name in the closed receipt select trigger', () => {
+  it('renders the operational warehouse as passive receipt context', () => {
     render(<WarehousePurchaseReceiptDialog
       open
       order={{ purchaseOrderId: 'po-1', purchaseOrderCode: 'PO-001', supplierName: 'Nhà cung cấp Minh An' } as PurchaseOrderDto}
@@ -160,13 +160,12 @@ describe('WarehouseExceptionsWorkbench', () => {
         expiryDateRequired: false,
       } as PurchaseOrderLineDto}
       warehouses={[{ warehouseId: 'warehouse-1', warehouseCode: 'KHO-01', warehouseName: 'Kho chính' }]}
-      preferredWarehouseId="warehouse-1"
       onOpenChange={vi.fn()}
       onSuccess={vi.fn()}
     />);
 
-    expect(screen.getByRole('combobox', { name: /Kho nhận/ })).toHaveTextContent('Kho chính');
-    expect(screen.getByRole('combobox', { name: /Kho nhận/ })).not.toHaveTextContent('__no-warehouse__');
+    expect(screen.queryByRole('combobox', { name: /Kho nhận/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Kho chính')).toBeInTheDocument();
   });
 
   it('shows server-authoritative actions and creates a partial supplemental issue', async () => {

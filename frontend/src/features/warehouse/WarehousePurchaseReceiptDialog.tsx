@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency } from '@/lib/formatters';
 import type {
   PurchaseOrderDto,
@@ -25,7 +24,6 @@ interface WarehousePurchaseReceiptDialogProps {
   order: PurchaseOrderDto;
   line: PurchaseOrderLineDto;
   warehouses: WarehouseDto[];
-  preferredWarehouseId?: string;
   week?: string;
   onOpenChange: (open: boolean) => void;
   onSuccess: (result: WarehousePurchaseReceiptResult) => void;
@@ -42,7 +40,6 @@ interface ReceiptFormErrors {
   packageSnapshot?: string;
 }
 
-const EMPTY_WAREHOUSE_SELECT_VALUE = '__no-warehouse__';
 
 const createIdempotencyKey = () => {
   const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -68,7 +65,6 @@ export function WarehousePurchaseReceiptDialog({
   order,
   line,
   warehouses,
-  preferredWarehouseId,
   week,
   onOpenChange,
   onSuccess,
@@ -76,8 +72,8 @@ export function WarehousePurchaseReceiptDialog({
   const remainingQuantity = Math.max(line.orderedQty - line.receivedQty, 0);
   const idempotencyKey = useRef(createIdempotencyKey());
   const backButtonRef = useRef<HTMLButtonElement>(null);
-  const preferredWarehouse = warehouses.find((warehouse) => warehouse.warehouseId === preferredWarehouseId);
-  const [warehouseId, setWarehouseId] = useState(preferredWarehouse?.warehouseId ?? '');
+  const operationalWarehouse = warehouses.length === 1 ? warehouses[0] : undefined;
+  const warehouseId = operationalWarehouse?.warehouseId ?? '';
   const [receiptDate, setReceiptDate] = useState('');
   const [actualQuantity, setActualQuantity] = useState(String(remainingQuantity || ''));
   const [actualUnitPrice, setActualUnitPrice] = useState(String(line.unitPrice || ''));
@@ -223,30 +219,10 @@ export function WarehousePurchaseReceiptDialog({
         ) : (
           <div className="grid gap-4 py-1 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium" htmlFor="purchase-receipt-warehouse">Kho nhận <span className="text-red-600">*</span></label>
-              <Select
-                value={warehouseId || EMPTY_WAREHOUSE_SELECT_VALUE}
-                onValueChange={(value) => setWarehouseId(value === EMPTY_WAREHOUSE_SELECT_VALUE ? '' : (value ?? ''))}
-                disabled={Boolean(preferredWarehouse)}
-              >
-                <SelectTrigger
-                  id="purchase-receipt-warehouse"
-                  className="h-8 w-full"
-                  aria-invalid={Boolean(errors.warehouseId)}
-                  aria-describedby={errors.warehouseId ? 'purchase-receipt-warehouse-error' : undefined}
-                >
-                  <SelectValue>
-                    {warehouses.find((warehouse) => warehouse.warehouseId === warehouseId)?.warehouseName ?? 'Chọn kho nhận'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={EMPTY_WAREHOUSE_SELECT_VALUE}>Chọn kho nhận</SelectItem>
-                {warehouses.map((warehouse) => (
-                  <SelectItem key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouseName}</SelectItem>
-                ))}
-                </SelectContent>
-              </Select>
-              {preferredWarehouse && <p className="text-xs text-sky-700">Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.</p>}
+              <p className="text-sm font-medium">Kho vận hành</p>
+              <p className="rounded-sm border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
+                {operationalWarehouse?.warehouseName ?? 'Chưa xác định'}
+              </p>
               {errors.warehouseId && <p id="purchase-receipt-warehouse-error" className="text-xs text-red-700">{errors.warehouseId}</p>}
             </div>
             <div className="grid gap-1.5">
@@ -318,14 +294,14 @@ export function WarehousePurchaseReceiptDialog({
           {isConfirming ? (
             <>
               <Button ref={backButtonRef} type="button" variant="outline" autoFocus disabled={isLoading} onClick={() => setIsConfirming(false)}>Quay lại chỉnh sửa</Button>
-              <Button type="button" disabled={isLoading || Boolean(line.blockerReason)} onClick={() => void submitReceipt()}>
+              <Button type="button" disabled={isLoading || !warehouseId || Boolean(line.blockerReason)} onClick={() => void submitReceipt()}>
                 {isLoading ? 'Đang lưu...' : 'Tạo phiếu nháp'}
               </Button>
             </>
           ) : (
             <>
               <Button type="button" variant="outline" autoFocus disabled={isLoading} onClick={requestClose}>Hủy</Button>
-              <Button type="button" disabled={isLoading || Boolean(line.blockerReason)} onClick={showConfirmation}>Tiếp tục xác nhận</Button>
+              <Button type="button" disabled={isLoading || !warehouseId || Boolean(line.blockerReason)} onClick={showConfirmation}>Tiếp tục xác nhận</Button>
             </>
           )}
         </DialogFooter>

@@ -388,8 +388,8 @@ describe('purchasing hook behavior', { timeout: 15_000 }, () => {
       />,
     )
 
-    await user.click(screen.getByRole('combobox', { name: 'Kho nhận *' }))
-    await user.click(await screen.findByRole('option', { name: 'Kho trung tâm' }))
+    expect(screen.queryByRole('combobox', { name: 'Kho nhận *' })).not.toBeInTheDocument()
+    expect(screen.getByText('Kho trung tâm')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Ngày nhận *'), '22/07/2026')
     await user.tab()
     fireEvent.change(screen.getByLabelText('Số lượng thực nhận *'), { target: { value: '3' } })
@@ -423,11 +423,10 @@ describe('purchasing hook behavior', { timeout: 15_000 }, () => {
     expect(screen.getByLabelText('Số lô *')).toHaveValue('LOT-2207')
   })
 
-  it('preselects and locks the warehouse linked to a supplemental request', () => {
+  it('blocks receipt submission when the selector returns multiple warehouses', () => {
     render(
       <WarehousePurchaseReceiptDialog
         open
-        preferredWarehouseId="warehouse-supplemental"
         warehouses={[
           { warehouseId: 'warehouse-default', warehouseCode: 'KHO-01', warehouseName: 'Kho trung tâm' },
           { warehouseId: 'warehouse-supplemental', warehouseCode: 'KHO-02', warehouseName: 'Kho xử lý yêu cầu bổ sung' },
@@ -462,8 +461,8 @@ describe('purchasing hook behavior', { timeout: 15_000 }, () => {
       />,
     )
 
-    expect(screen.getByRole('combobox', { name: 'Kho nhận *' })).toHaveTextContent('Kho xử lý yêu cầu bổ sung')
-    expect(screen.getByRole('combobox', { name: 'Kho nhận *' })).toBeDisabled()
-    expect(screen.getByText('Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Kho nhận *' })).not.toBeInTheDocument()
+    expect(screen.getByText('Chưa xác định')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tiếp tục xác nhận' })).toBeDisabled()
   })
 })
