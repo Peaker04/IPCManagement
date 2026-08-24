@@ -21,8 +21,8 @@ public sealed class RecordWarehousePurchaseReceiptRequest : IValidatableObject
     [Required, MaxLength(100)]
     public string IdempotencyKey { get; set; } = string.Empty;
 
-    [Required, MaxLength(36)]
-    public string WarehouseId { get; set; } = string.Empty;
+    [MaxLength(36)]
+    public string? WarehouseId { get; set; }
 
     public DateOnly ReceiptDate { get; set; }
 

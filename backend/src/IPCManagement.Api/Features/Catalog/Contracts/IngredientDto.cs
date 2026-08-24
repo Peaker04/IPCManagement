@@ -36,8 +36,7 @@ public class CreateIngredientRequest
     [Required]
     public string  UnitId         { get; set; } = string.Empty;
 
-    [Required]
-    public string  WarehouseId    { get; set; } = string.Empty;
+    public string? WarehouseId    { get; set; }
 }
 
 /// <summary>Request DTO — cập nhật nguyên liệu.</summary>

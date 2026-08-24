@@ -18,8 +18,8 @@ public class CreateInventoryReceiptDtoValidator : AbstractValidator<CreateInvent
             .Must(BeValidGuid).WithMessage("SupplierId phải là GUID hợp lệ.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.Lines)
             .NotEmpty().WithMessage("Phiếu nhập phải có ít nhất 1 dòng chi tiết.");
@@ -67,8 +67,8 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
             .NotEmpty().WithMessage("Ngày xuất kho không được để trống.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.MaterialRequestId)
             .NotEmpty().WithMessage("Yêu cầu vật tư không được để trống.")
@@ -116,8 +116,8 @@ public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInvento
             .NotEmpty().WithMessage("Ngày trả nguyên liệu không được để trống.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.IssueId)
             .NotEmpty().WithMessage("Phiếu xuất gốc không được để trống.")
@@ -179,8 +179,8 @@ public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<
             .Must(BeValidGuid).WithMessage("SupplierId phải là GUID hợp lệ.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.Lines)
             .NotEmpty().WithMessage("Phiếu nhập phải có ít nhất 1 dòng chi tiết.");

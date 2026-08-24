@@ -38,7 +38,7 @@ public class ConfirmPurchaseLineSupplierRequest
     public string SupplierId { get; set; } = string.Empty;
     public decimal ProposedUnitPrice { get; set; }
     public string ProposedDeliveryDate { get; set; } = string.Empty;
-    public string ReceivingWarehouseId { get; set; } = string.Empty;
+    public string? ReceivingWarehouseId { get; set; }
     public string PurchasingTerms { get; set; } = string.Empty;
     public int ExpectedDecisionVersion { get; set; }
     public string? Note { get; set; }

@@ -57,8 +57,7 @@ public class CreateInventoryReceiptRequest
     [Required]
     public string   SupplierId        { get; set; } = string.Empty;
 
-    [Required]
-    public string   WarehouseId       { get; set; } = string.Empty;
+    public string?  WarehouseId       { get; set; }
 
     public string?  PurchaseRequestId { get; set; }
 
@@ -102,8 +101,7 @@ public class CreateInventoryReceiptFromPurchaseRequest
     [Required]
     public string SupplierId { get; set; } = string.Empty;
 
-    [Required]
-    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseId { get; set; }
 
     [Required, MinLength(1)]
     public List<CreateInventoryReceiptFromPurchaseLineRequest> Lines { get; set; } = new();
@@ -188,8 +186,7 @@ public class CreateInventoryIssueRequest
 
     public string? ShiftName { get; set; }
 
-    [Required]
-    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseId { get; set; }
 
     [Required]
     public string MaterialRequestId { get; set; } = string.Empty;
@@ -310,8 +307,7 @@ public class CreateInventoryReturnRequest
 
     public string ReturnType { get; set; } = "RETURN";
 
-    [Required]
-    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseId { get; set; }
 
     [Required]
     public string IssueId { get; set; } = string.Empty;
