@@ -15,6 +15,12 @@ Tài liệu này là contract chung cho backend, frontend, export và E2E khi hi
 | BOM món | `dishId + customer scope + priceTierAmount + effective range + bomLineId` | Phân tích theo một suất và ngày hiệu lực. Không gộp hai ingredient ID chỉ vì tên giống nhau. |
 | Danh mục nguyên liệu | `ingredientId` | Tên trùng là vấn đề data quality cần merge/deactivate có duyệt, không phải lý do gộp tự động trên FE. |
 
+## Bất biến kho vận hành
+
+`IsOperationalActive` chỉ định kho vận hành hiện hành; nó không thay đổi grain. `warehouseId` vẫn là thành phần bắt buộc của tồn hiện tại, lot, snapshot, chứng từ, stock movement, purchasing compatibility, authorization, audit và lineage. Hàng kho lịch sử/inactive cùng mọi FK vẫn giữ nguyên ID; không được merge, reassign, cộng dồn stock hoặc physically delete vì giao diện chỉ còn một kho vận hành.
+
+`OperationalSingletonKey` là discriminator nullable do MySQL sinh từ `CASE WHEN IsOperationalActive THEN 1 ELSE NULL END`; application/API không được ghi nó. Unique index chỉ khóa at-most-one active. Việc chuyển một hàng sang active là mutation được ủy quyền riêng theo `DEPLOYMENT.md`, không phải startup repair hay bước tự động của migration. Zero active trước checkpoint là trạng thái fail-closed có chủ đích; không được tự chọn fallback.
+
 ## Phân loại các màn hình
 
 | Khu vực / bảng | Phạm vi | Grain hiển thị hoặc thao tác | Dấu hiệu bắt buộc trên UI |

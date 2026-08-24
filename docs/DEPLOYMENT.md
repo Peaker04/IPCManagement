@@ -24,6 +24,16 @@ Production backend cần `ConnectionStrings:DefaultConnection`, `JwtSettings:*`,
 
 Frontend cần build với `VITE_API_BASE_URL` khi API không cùng origin. Không bật `VITE_ENABLE_MOCK_LOGIN` trong production build.
 
+## Kích hoạt kho vận hành — checkpoint được ủy quyền riêng
+
+Migration `20260824161853_EnforceSingleOperationalWarehouse` chỉ bổ sung `IsOperationalActive` (mặc định `FALSE`), cột sinh nullable `OperationalSingletonKey` và unique index. Chạy migration không chọn hay kích hoạt kho. Executor tự động phải dừng trước mọi lệnh áp dụng migration hoặc thay đổi dữ liệu; chỉ operator có ủy quyền riêng, sau khi xác nhận đúng database/lane và backup, mới được tiếp tục.
+
+Trước khi kích hoạt, operator phải lưu pre-state bất biến gồm database đích, migration lineage, toàn bộ `warehouseId`/`warehouseCode`/`IsOperationalActive`, số hàng và checksum theo từng bảng có FK kho, tồn hiện tại, lot, snapshot và stock movement. Đọc `OperationalWarehouse:WarehouseId` từ cấu hình deployment và xác nhận đó là đúng một ID 16 byte đã tồn tại; không chọn theo tên, mã, thứ tự hoặc `First` và không tạo/merge/reassign warehouse.
+
+Trong một transaction do operator chủ động mở: khóa các hàng `warehouses` liên quan để tránh race; xác nhận không có hàng active và configured ID tồn tại đúng một lần; chỉ đặt `IsOperationalActive = TRUE` cho chính configured ID. Không sửa hàng khác. Sau update nhưng trước commit, yêu cầu đồng thời: đúng một hàng active, ID active byte-exact bằng configured ID, `OperationalSingletonKey = 1` cho hàng đó, mọi hàng inactive có discriminator `NULL`, và các số lượng/checksum ID/FK/tồn/history bằng pre-state. Bất kỳ mismatch hoặc unique-index error nào đều phải `ROLLBACK`; không auto-repair flag, không thử ID khác và không consolidation.
+
+Chỉ commit sau khi operator xác nhận post-check. Sau commit, khởi động backend ở chế độ observation-only: startup resolver chỉ quan sát exact-one/config-match và phải fail closed khi zero/multiple/missing/mismatch; startup không được kích hoạt, retire hoặc sửa hàng. Rollback nghiệp vụ của activation là một transaction được ủy quyền riêng đặt chính configured row về `FALSE`, rồi xác nhận zero active và pre-state identity/history vẫn nguyên vẹn. Việc rollback schema/deploy phải được đánh giá tương thích riêng và không được sửa migration lịch sử.
+
 ## Rollback
 
 1. Dừng promotion của deployment đang lỗi và giữ lại build/artifact trước đó.
