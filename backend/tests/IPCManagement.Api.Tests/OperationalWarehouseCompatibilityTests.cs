@@ -1,3 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Validators;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Validators;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Shared.Contracts;
+
 namespace IPCManagement.Api.Tests;
 
 public sealed class OperationalWarehouseCompatibilityTests
@@ -108,6 +117,82 @@ public sealed class OperationalWarehouseCompatibilityTests
         Assert.Equal(Inventory.Length, dispositionTotals.Values.Sum());
         Assert.True(ownerTotals.All(pair => pair.Key is >= 10 and <= 13 && pair.Value > 0));
         Assert.True(dispositionTotals.Where(pair => pair.Key != Disposition.Unresolved).All(pair => pair.Value > 0));
+    }
+
+    [Fact]
+    public void DtoValidatorFilter_OrdinaryCompatibilityInputsAreOptional()
+    {
+        AssertOptionalWarehouseProperty<CreateIngredientRequest>(nameof(CreateIngredientRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<UpdateIngredientRequest>(nameof(UpdateIngredientRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<CreateInventoryReceiptRequest>(nameof(CreateInventoryReceiptRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<CreateInventoryReceiptFromPurchaseRequest>(nameof(CreateInventoryReceiptFromPurchaseRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<CreateInventoryIssueRequest>(nameof(CreateInventoryIssueRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<CreateInventoryReturnRequest>(nameof(CreateInventoryReturnRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<CreateStocktakeRequest>(nameof(CreateStocktakeRequest.WarehouseId));
+        AssertOptionalWarehouseProperty<ConfirmPurchaseLineSupplierRequest>(nameof(ConfirmPurchaseLineSupplierRequest.ReceivingWarehouseId));
+        AssertOptionalWarehouseProperty<RecordWarehousePurchaseReceiptRequest>(nameof(RecordWarehousePurchaseReceiptRequest.WarehouseId));
+
+        Assert.Null(new InventoryIssueFilterRequestDto().WarehouseId);
+        Assert.Null(new InventoryReturnFilterRequestDto().WarehouseId);
+        Assert.Null(new StocktakeFilterRequestDto().WarehouseId);
+        Assert.Null(new SupplementalMaterialRequestFilterDto().WarehouseId);
+        Assert.Null(new WorkflowReportQueryDto().WarehouseId);
+    }
+
+    [Fact]
+    public void DtoValidatorFilter_OmittedCompatibilityInputsPassFormatValidation()
+    {
+        Assert.DoesNotContain(new CreateIngredientDtoValidator().Validate(new CreateIngredientRequest()).Errors,
+            error => error.PropertyName == nameof(CreateIngredientRequest.WarehouseId));
+        Assert.DoesNotContain(new UpdateIngredientDtoValidator().Validate(new UpdateIngredientRequest()).Errors,
+            error => error.PropertyName == nameof(UpdateIngredientRequest.WarehouseId));
+        Assert.DoesNotContain(new CreateInventoryReceiptDtoValidator().Validate(new CreateInventoryReceiptRequest()).Errors,
+            error => error.PropertyName == nameof(CreateInventoryReceiptRequest.WarehouseId));
+        Assert.DoesNotContain(new CreateInventoryReceiptFromPurchaseDtoValidator().Validate(new CreateInventoryReceiptFromPurchaseRequest()).Errors,
+            error => error.PropertyName == nameof(CreateInventoryReceiptFromPurchaseRequest.WarehouseId));
+        Assert.DoesNotContain(new CreateInventoryIssueDtoValidator().Validate(new CreateInventoryIssueRequest()).Errors,
+            error => error.PropertyName == nameof(CreateInventoryIssueRequest.WarehouseId));
+        Assert.DoesNotContain(new CreateInventoryReturnDtoValidator().Validate(new CreateInventoryReturnRequest()).Errors,
+            error => error.PropertyName == nameof(CreateInventoryReturnRequest.WarehouseId));
+    }
+
+    [Fact]
+    public void DtoValidatorFilter_SuppliedCompatibilityInputsMustBeGuidShaped()
+    {
+        AssertWarehouseFormatRejected(new CreateIngredientDtoValidator(), new CreateIngredientRequest { WarehouseId = "arbitrary" }, nameof(CreateIngredientRequest.WarehouseId));
+        AssertWarehouseFormatRejected(new UpdateIngredientDtoValidator(), new UpdateIngredientRequest { WarehouseId = "arbitrary" }, nameof(UpdateIngredientRequest.WarehouseId));
+        AssertWarehouseFormatRejected(new CreateInventoryReceiptDtoValidator(), new CreateInventoryReceiptRequest { WarehouseId = "arbitrary" }, nameof(CreateInventoryReceiptRequest.WarehouseId));
+        AssertWarehouseFormatRejected(new CreateInventoryReceiptFromPurchaseDtoValidator(), new CreateInventoryReceiptFromPurchaseRequest { WarehouseId = "arbitrary" }, nameof(CreateInventoryReceiptFromPurchaseRequest.WarehouseId));
+        AssertWarehouseFormatRejected(new CreateInventoryIssueDtoValidator(), new CreateInventoryIssueRequest { WarehouseId = "arbitrary" }, nameof(CreateInventoryIssueRequest.WarehouseId));
+        AssertWarehouseFormatRejected(new CreateInventoryReturnDtoValidator(), new CreateInventoryReturnRequest { WarehouseId = "arbitrary" }, nameof(CreateInventoryReturnRequest.WarehouseId));
+    }
+
+    [Fact]
+    public void DtoValidatorFilter_ResponseAndInternalIdentitiesRemainRequiredStrings()
+    {
+        Assert.Equal(typeof(string), typeof(IngredientDto).GetProperty(nameof(IngredientDto.WarehouseId))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(InventoryReceiptDto).GetProperty(nameof(InventoryReceiptDto.WarehouseId))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(InventoryIssueDto).GetProperty(nameof(InventoryIssueDto.WarehouseId))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(InventoryReturnDto).GetProperty(nameof(InventoryReturnDto.WarehouseId))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(StocktakeDto).GetProperty(nameof(StocktakeDto.WarehouseId))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(SupplementalMaterialRequestDto).GetProperty(nameof(SupplementalMaterialRequestDto.WarehouseId))!.PropertyType);
+        Assert.Equal(typeof(string), typeof(PurchaseLineSupplierDecisionDto).GetProperty(nameof(PurchaseLineSupplierDecisionDto.ReceivingWarehouseId))!.PropertyType);
+    }
+
+    private static void AssertOptionalWarehouseProperty<T>(string propertyName)
+    {
+        var property = typeof(T).GetProperty(propertyName)!;
+        var nullability = new NullabilityInfoContext().Create(property);
+
+        Assert.Equal(typeof(string), property.PropertyType);
+        Assert.Equal(NullabilityState.Nullable, nullability.WriteState);
+        Assert.Empty(property.GetCustomAttributes(typeof(RequiredAttribute), inherit: true));
+        Assert.Null(property.GetValue(Activator.CreateInstance<T>()));
+    }
+
+    private static void AssertWarehouseFormatRejected<T>(FluentValidation.IValidator<T> validator, T request, string propertyName)
+    {
+        Assert.Contains(validator.Validate(request).Errors, error => error.PropertyName == propertyName);
     }
 
     private static IReadOnlyList<string> Validate(IReadOnlyCollection<TrustBoundary> rows)
