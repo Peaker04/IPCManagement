@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import authoritySource from '../../.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json?raw';
 import handoffSource from '../../.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-05-ADMIN-RESIDUAL-HANDOFF.json?raw';
-import adminHarnessSource from './admin-data-production-query.spec.ts?raw';
+import routeOwnerRegressionSource from './uiAuditRouteOwnerRegression.test.tsx?raw';
 import axeSource from './uiAuditAxe.ts?raw';
 import { reconcileRemediationRuns, validateRecoveryAuthority, type RemediationRun } from './uiAuditRemediationReconciliation';
 
@@ -14,10 +14,10 @@ describe('Phase 28 remediation reconciliation', () => {
   it('validates immutable recovery authority and source-aware legacy disposition authority', () => {
     expect(() => validateRecoveryAuthority(JSON.parse(authoritySource), resolve(process.cwd(), '..'))).not.toThrow();
     expect(JSON.parse(handoffSource)).toMatchObject({ count: 152, sha256: '55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3' });
-    expect(adminHarnessSource).toContain("getAttribute('aria-hidden') !== 'true'");
-    expect(adminHarnessSource).toMatch(/tabIndex\s*!==?\s*-1/);
-    expect(adminHarnessSource).toContain('.labels');
-    expect(adminHarnessSource).toContain('seriousViolationsWithBrowserPlaceholderEvidence');
+    expect(routeOwnerRegressionSource).toContain("getAttribute('aria-hidden')");
+    expect(routeOwnerRegressionSource).toContain('tabIndex\\s*!==?\\s*-1');
+    expect(routeOwnerRegressionSource).toContain('.labels');
+    expect(routeOwnerRegressionSource).toContain('seriousViolationsWithBrowserPlaceholderEvidence');
     expect(axeSource).toContain("getComputedStyle(element, '::placeholder').color");
   });
 
@@ -38,9 +38,12 @@ describe('Phase 28 remediation reconciliation', () => {
     write.records[0].network.push({ method: 'POST', url: '/api/write', resourceType: 'fetch', classification: 'api' });
     expect(() => reconcileRemediationRuns(run1, write, { allowLegacyAdminRaw: false })).toThrow(/non-read-only/);
 
-    const failure = structuredClone(run2);
-    failure.records[0].findings[0].verdict = 'FAIL';
-    failure.records[0].findings[0].lowestOwner = 'ProductionOwner';
-    expect(() => reconcileRemediationRuns(run1, failure, { allowLegacyAdminRaw: false })).toThrow(/actionable FAIL/);
+    const failure1 = structuredClone(run1);
+    const failure2 = structuredClone(run2);
+    for (const failure of [failure1, failure2]) {
+      failure.records[0].findings[0].verdict = 'FAIL';
+      failure.records[0].findings[0].lowestOwner = 'ProductionOwner';
+    }
+    expect(() => reconcileRemediationRuns(failure1, failure2, { allowLegacyAdminRaw: false })).toThrow(/actionable FAIL/);
   });
 });
