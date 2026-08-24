@@ -28,7 +28,27 @@ type RecoveryAuthority = {
   recoveryContract: {
     parent: string;
     configuredPlaywrightOutput: string;
+    requiredIdentityParts: number;
+    requiredRuleCount: number;
+    requiredIdentityCount: number;
+    requiredFindingCount: number;
+    allowedNetworkMethods: string[];
   };
+  selectedRecovery: {
+    attempt: string;
+    root: string;
+    status: string;
+    schemaVersion: string;
+    counts: {
+      identityCount: number;
+      ruleCount: number;
+      findingCount: number;
+      verdictTotals: Record<string, number>;
+    };
+    networkProof: { allowed: string[]; observed: string[]; requestCount: number; sha256: string };
+    members: Record<string, string>;
+  } | null;
+  redExecution: { commit: string; status: string };
 };
 
 const forbiddenPaths = [
@@ -69,6 +89,26 @@ export function validateRecoveryAttemptRoot(input: {
   if (!isWithin(canonicalParent, attemptRoot)) throw new Error('attempt path traversal is forbidden');
   if (existsSync(attemptRoot)) throw new Error('attempt root must be absent');
   return { repository, output, canonicalParent, attemptRoot };
+}
+
+export function validatePinnedRecovery(candidate: RecoveryAuthority) {
+  const selected = candidate.selectedRecovery;
+  if (!selected || selected.status !== 'IMMUTABLE_COMPLETE') throw new Error('selected immutable recovery is required');
+  if (selected.attempt !== selected.root.split('/').at(-1) || !/^attempt-[1-9]\d*$/.test(selected.attempt)) throw new Error('selected recovery root mismatch');
+  const root = resolve(repositoryRoot, selected.root);
+  if (!existsSync(root) || lstatSync(root).isSymbolicLink()) throw new Error('selected recovery root is missing or unsafe');
+  if (selected.counts.identityCount !== candidate.recoveryContract.requiredIdentityCount
+    || selected.counts.ruleCount !== candidate.recoveryContract.requiredRuleCount
+    || selected.counts.findingCount !== candidate.recoveryContract.requiredFindingCount) throw new Error('selected recovery scope drift');
+  for (const [member, expectedHash] of Object.entries(selected.members)) {
+    const memberPath = resolve(root, member);
+    if (!isWithin(root, memberPath) || !existsSync(memberPath) || sha256(memberPath) !== expectedHash) throw new Error(`selected recovery member drift: ${member}`);
+  }
+  const proof = JSON.parse(readFileSync(resolve(root, 'evidence/network-method-proof.json'), 'utf8')) as { allowed: string[]; observed: string[]; requestCount: number };
+  if (sha256(resolve(root, 'evidence/network-method-proof.json')) !== selected.networkProof.sha256
+    || proof.requestCount !== selected.networkProof.requestCount
+    || proof.observed.some((method) => !candidate.recoveryContract.allowedNetworkMethods.includes(method))) throw new Error('network proof drift');
+  return selected;
 }
 
 export function validateRemediationDelta(delta: RemediationDelta) {
@@ -135,9 +175,21 @@ describe('Phase 28 baseline recovery authority', () => {
       repositoryRoot,
       configuredOutput: authority.recoveryContract.configuredPlaywrightOutput,
       recoveryParent: authority.recoveryContract.parent,
-      attemptName: 'attempt-1',
+      attemptName: 'attempt-4',
     });
-    expect(result.attemptRoot).toBe(resolve(result.canonicalParent, 'attempt-1'));
+    expect(result.attemptRoot).toBe(resolve(result.canonicalParent, 'attempt-4'));
+  });
+
+  it('consumes only the complete hash-pinned recovery while preserving RED history', () => {
+    expect(validatePinnedRecovery(authority)).toBe(authority.selectedRecovery);
+    expect(authority.redExecution).toEqual({ commit: 'a8a4a9dc', status: 'RED_RECONCILED_NOT_COMPLETE' });
+  });
+
+  it('rejects missing authority, unpinned scope, hash drift, and lost-byte substitution', () => {
+    expect(() => validatePinnedRecovery({ ...authority, selectedRecovery: null })).toThrow(/required/);
+    expect(() => validatePinnedRecovery({ ...authority, selectedRecovery: { ...authority.selectedRecovery!, counts: { ...authority.selectedRecovery!.counts, identityCount: 2141 } } })).toThrow(/scope drift/);
+    expect(() => validatePinnedRecovery({ ...authority, selectedRecovery: { ...authority.selectedRecovery!, members: { ...authority.selectedRecovery!.members, 'evidence/manifest.json': '0'.repeat(64) } } })).toThrow(/member drift/);
+    expect(() => validatePinnedRecovery({ ...authority, selectedRecovery: { ...authority.selectedRecovery!, members: { ...authority.selectedRecovery!.members, 'evidence/manifest.json': authority.historicalExpectedArtifacts['manifest.json'].sha256 } } })).toThrow(/member drift/);
   });
 
   it.each(['../attempt-1', 'attempt-0', 'attempt-current', 'attempt-1/child'])('rejects unsafe attempt name %s', (attemptName) => {

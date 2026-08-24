@@ -49,4 +49,19 @@ describe('Phase 28 sealed remediation attribution', () => {
     expect(sha256(resolve(frontendRoot, '../.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-01-SUMMARY.md')))
       .toBe('fd7e45d65c1b503c121d0cba14bfee597181f4c7edd235c3b2341fa233a9d342');
   });
+
+  it('keeps duplicate headings as owner-bearing measured HIER-01 failures', () => {
+    const recovery = JSON.parse(readFileSync(recoveryAuthorityPath, 'utf8')) as { selectedRecovery: { root: string } };
+    const baseline = JSON.parse(readFileSync(resolve(frontendRoot, '..', recovery.selectedRecovery.root, 'evidence/canonical-combined.json'), 'utf8')) as Baseline;
+    const duplicateHeadingFailures = sealedFailFindings(baseline).filter((finding) => {
+      if (finding.ruleId !== 'HIER-01') return false;
+      try {
+        return (JSON.parse(finding.actual ?? '{}') as { h1Count?: number }).h1Count !== 1;
+      } catch {
+        return false;
+      }
+    });
+    expect(duplicateHeadingFailures.length).toBeGreaterThan(0);
+    expect(duplicateHeadingFailures.every((finding) => finding.expected && finding.actual && finding.lowestOwner)).toBe(true);
+  });
 });

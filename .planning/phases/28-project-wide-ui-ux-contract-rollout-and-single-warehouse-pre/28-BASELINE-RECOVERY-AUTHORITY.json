@@ -34,7 +34,59 @@
     "requiredFindingCount": 68544,
     "rejectPassWithoutFreshEvidence": true
   },
-  "selectedRecovery": null,
+  "selectedRecovery": {
+    "attempt": "attempt-3",
+    "root": ".artifacts/phase28-ui-audit/baseline-recovery/attempt-3",
+    "status": "IMMUTABLE_COMPLETE",
+    "sourceCommit": "c74b84fde7bec4bfba6f44de35288ff4c68ed0d5",
+    "schemaVersion": "phase28-ui-audit/v1",
+    "toolchain": {
+      "controller": "tools/e2e/run-phase28-baseline-recovery.mjs",
+      "playwrightConfig": "frontend/playwright.recovery.config.ts",
+      "nodeExecutable": "process.execPath",
+      "shell": false
+    },
+    "counts": {
+      "identityCount": 2142,
+      "ruleCount": 32,
+      "findingCount": 68544,
+      "measuredIdentityCount": 903,
+      "notApplicableIdentityCount": 469,
+      "needsEvidenceIdentityCount": 770,
+      "verdictTotals": {
+        "PASS": 4755,
+        "FAIL": 1461,
+        "NOT_APPLICABLE": 15120,
+        "NEEDS_EVIDENCE": 47208,
+        "UNRESOLVED": 0
+      }
+    },
+    "networkProof": {
+      "allowed": ["GET", "HEAD"],
+      "observed": ["GET"],
+      "requestCount": 4782,
+      "sha256": "c361111b6ded612cb9d2fd6a1a361bfc8759beeac390874ffc6cea9ad353751c"
+    },
+    "members": {
+      "attempt-complete.json": "7e2c8f4f5a5d94082850e43cdbfd8259efde6165b8dfeec72763887258708f75",
+      "evidence/manifest.json": "50197ba550a1cde1b060ad99bacfdfb6505fa1af7635170bcfee4a519dd74a3b",
+      "evidence/canonical-combined.json": "30d0d19c58111b498424848fbfbb66da22ccebf5660a5bf4a475b13d4487b6b8",
+      "evidence/network-method-proof.json": "c361111b6ded612cb9d2fd6a1a361bfc8759beeac390874ffc6cea9ad353751c",
+      "evidence/ui-audit-phase28-admin-data-query-states.json": "15435b87799918b74918164c8c504b88536c3f65406e15f9b5cdba700cae9a83",
+      "evidence/ui-audit-phase28-approval-rules-query-states.json": "c89d0540fa1e7ad0d186c35eb31ada282ec4ce6708787d8fa910520d4b768a07",
+      "evidence/ui-audit-phase28-approvals-query-states.json": "f332556a730cd064ce561acb4b4ad7ef1d9f2ad9351c801d881374b5d5ca8395",
+      "evidence/ui-audit-phase28-chef-dashboard-query-states.json": "e4d2a28bcf9df6f12da3f6e5252922d07fa6eefb4cf73fcd558d363ad50844ed",
+      "evidence/ui-audit-phase28-dashboard-query-states.json": "5b56a1abb957ee0eba52717da3f4a91cfc81db9ce9159c51ab133ef47543fb35",
+      "evidence/ui-audit-phase28-login-production-route.json": "eb9fffa794ee8f76a2142dd24f04c2a1eac53dca0e53e8696be55990458533bf",
+      "evidence/ui-audit-phase28-meal-orders-query-states.json": "1ec974b083a163bf47ea8b658d7a00d026189d0db6f7bb1b8e378cdd1a82e021",
+      "evidence/ui-audit-phase28-protected-production-routes.json": "727be847581bb14e96713ea7c14f973e42ca7931a4ca1cd214de41bcb95b9266",
+      "evidence/ui-audit-phase28-purchasing-query-states.json": "0a04032066010b562c5f34fa3c670cb55ffca9637780a990954c8138e822746b",
+      "evidence/ui-audit-phase28-reports-query-states.json": "2d786166c05cceb1eba5589f2e55ebc4f9bbb0073f98916d9e3e2034816b3716",
+      "evidence/ui-audit-phase28-static-form-production-routes.json": "baf1b72cad15d6e2daa3856ecb7e09eefc71c943ef86b9d196cca1c71b5208a7",
+      "evidence/ui-audit-phase28-warehouse-query-states.json": "e3c994b9a4f28562aee84e861e1275327c68131de043132e016f5b99476f3d27",
+      "evidence/ui-audit-phase28-weekly-menu-query-states.json": "85ddab8f45253a1be4709fa678b91c41e67d59cec73a1371b59d0ab7eabc2bdb"
+    }
+  },
   "redExecution": {
     "commit": "a8a4a9dc",
     "status": "RED_RECONCILED_NOT_COMPLETE"
