@@ -60,25 +60,27 @@ return (
         <ContextStrip items={adminContextItems} />
       }
     >
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn góc nhìn quản trị dữ liệu"
-        tabs={adminTabs}
-        activeTab={`admin-${effectiveActiveView}`}
-        onTabChange={(id) => activateView(id.replace('admin-', '') as AdminView)}
-      />
+      <div className="min-w-0 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
+        <ViewSwitcher
+          compact
+          ariaLabel="Chọn góc nhìn quản trị dữ liệu"
+          tabs={adminTabs}
+          activeTab={`admin-${effectiveActiveView}`}
+          onTabChange={(id) => activateView(id.replace('admin-', '') as AdminView)}
+        />
 
-      {isViewPending ? <span className="sr-only" role="status">Đang chuyển vùng dữ liệu quản trị.</span> : null}
+        {isViewPending ? <span className="sr-only" role="status">Đang chuyển vùng dữ liệu quản trị.</span> : null}
 
-      <Suspense fallback={AdminPanelFallback}>
-        {visitedViews.has('bom-import') && <AdminBomPanel model={model} />}
-        {visitedViews.has('contracts') && <AdminContractsPanel model={model} />}
-        {visitedViews.has('cleanup') && <AdminCleanupPanel model={model} />}
-        {visitedViews.has('inventory') && <AdminInventoryPanel model={model} />}
-        {visitedViews.has('statistics') && <AdminStatisticsPanel model={model} />}
-        {visitedViews.has('employees') && <AdminEmployeesPanel model={model} />}
-        {visitedViews.has('audit') && <AdminAuditPanel model={model} />}
-      </Suspense>
+        <Suspense fallback={AdminPanelFallback}>
+          {visitedViews.has('bom-import') && <AdminBomPanel model={model} />}
+          {visitedViews.has('contracts') && <AdminContractsPanel model={model} />}
+          {visitedViews.has('cleanup') && <AdminCleanupPanel model={model} />}
+          {visitedViews.has('inventory') && <AdminInventoryPanel model={model} />}
+          {visitedViews.has('statistics') && <AdminStatisticsPanel model={model} />}
+          {visitedViews.has('employees') && <AdminEmployeesPanel model={model} />}
+          {visitedViews.has('audit') && <AdminAuditPanel model={model} />}
+        </Suspense>
+      </div>
     </OperationalFrame>
   );
 }

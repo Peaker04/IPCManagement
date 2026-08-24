@@ -29,10 +29,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
           { label: 'hợp đồng khách hàng', view: queryViews.contracts },
         ]}>
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
-            <div className="grid gap-4">
-              <div className="grid self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="grid min-w-0 gap-4" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+              <div className="grid w-full min-w-0 max-w-full self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                 <FieldRow label="Đơn giá BOM">
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {[25000, 30000, 34000].map((tier) => (
                       <Button
                         key={tier}
@@ -86,7 +86,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </FieldRow>
 
                 <FieldRow label="Tải file Excel">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -187,7 +187,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </InlineAlert>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex min-w-0 flex-col gap-3">
                 <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-xs font-semibold text-slate-600" role="status">
                     {bomPanelMode === 'preview' ? 'Đang xem kết quả kiểm tra file — nhập dữ liệu để áp dụng.' : 'BOM đang áp dụng'}
@@ -213,8 +213,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </div>
 
                 <KeepAliveTabPanel id="bom-current" active={bomPanelMode === 'current'} className="min-w-0">
-                  <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
-                    <table className="ipc-data-table ipc-bom-current-table table-fixed">
+                  <div className="min-w-0 max-w-full" style={{ width: 'calc(100vw - 2rem)' }}>
+                    <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
+                      <table className="ipc-data-table ipc-bom-current-table table-fixed">
                     <colgroup>
                       <col className="w-[16%]" />
                       <col className="w-[22%]" />
@@ -263,9 +264,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                       {isDishCatalogLoading && (
                         <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
                       )}
-                    </tbody>
-                    </table>
-                  </TableViewport>
+                      </tbody>
+                      </table>
+                    </TableViewport>
+                  </div>
                   <PaginationBar
                     page={currentBomPagination?.page ?? 1}
                     pageSize={currentBomPagination?.pageSize ?? 8}
