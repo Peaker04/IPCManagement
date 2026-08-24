@@ -1747,3 +1747,11 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Reconciled login, complementary protected ready routes, ten query-state artifacts and static/form routes into exactly 2,142 records × 32 findings. Production measurements override structural fallback only by exact six-part identity.
 - SEALED closure allows honest NEEDS_EVIDENCE under the read-only contract: identity totals measured 903, N/A 469, NEEDS_EVIDENCE 770; outcome totals PASS 4,763, FAIL 1,453, N/A 15,120, NEEDS_EVIDENCE 47,208, UNRESOLVED 0.
 - Fail-closed checks cover missing/duplicate/extra and mutated actor/owner identities, non-GET/HEAD, ownerless FAIL, guessed PASS, synthetic production measurement and generic placeholder reasons. Focused 34/34, lint and production build pass; no production/backend/DB/snapshot/threshold change.
+
+
+## 2026-08-24 · Phase 28 whole-web and single operational warehouse closeout
+
+- Completed Plans 28-01/01R through 28-15: immutable production-route UI evidence, zero actionable FAIL, hash-pinned blind review, backend single-operational-warehouse invariant, exact trust-surface conversion, passive frontend context, generated contract and static/build closeout.
+- Authorized local checkpoint applied migration 20260824161853 only to ipcmanagement and activated exact WH-SAMPLE without deleting, merging, reassigning, or rewriting warehouse/FK/stock/movement/audit history. Full rollback dump and startup proof are indexed in docs/EVIDENCE-INDEX.md.
+- Backend full regression passed 971 with one intentional integration skip; focused frontend closeout, lint, dependency, build, architecture, and route budgets passed. Historical ignored baseline bytes remain unavailable by design, so aggregate tests that require those old files remain non-authoritative rather than being regenerated.
+- No push was performed.

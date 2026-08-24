@@ -30,6 +30,15 @@ Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được tea
 count là `0`. Các PID/runtime khác nếu còn mở nằm ngoài run này và không bị chạm. Runtime warehouse development
 `3020/8020` nếu còn mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
+## Phase 28 complete · 24/08/2026
+
+- Plans 28-01/01R..15 complete. Project-wide UI authority remains 2,142 identities × 32 rules; selected remediation run is byte-stable with actionable FAIL 0, honest NEEDS_EVIDENCE 47,208, and blind review preserved all 2,142 identities as NEEDS_EVIDENCE.
+- Exact local operational database is `ipcmanagement`. Migration `20260824161853_EnforceSingleOperationalWarehouse` is applied; WH-SAMPLE is the only active row. Application config uses GUID `ead76aad-c02e-4b49-9e59-90efa2d042e1`, the `GuidHelper` representation of database bytes displayed by `BIN_TO_UUID` as `ad6ad7ea-2ec0-494b-9e59-90efa2d042e1`.
+- Full rollback dump and activation/startup evidence are hash-pinned in `docs/EVIDENCE-INDEX.md`. Owned API port 8148 returned `/health/ready` 200 and was torn down; KnownProxies warning remains intentionally unresolved until exact trusted proxy IPs exist.
+- Backend ordinary writes, purchasing/imports, selector/auth, generated contracts, and frontend commands are server-canonical/fail-closed. UI shows passive warehouse context; technical warehouseId remains in FK/stock/ledger/audit/report/cache/deep-link/export/reconciliation identity.
+- Backend full regression 971 pass / 1 intentional skip. Frontend focused closeout 41/41, lint, dependency 438/1,645/0, build 2,294 modules, strict architecture and all 10 route budgets pass. Full frontend aggregate remains non-authoritative/red because old ignored Phase 28 baseline inputs are intentionally absent and older Phase 27 attestation/location locks are stale; do not regenerate historical bytes or weaken those oracles.
+- Branch remains local; no push.
+
 ## Phase 28 Plan 28-01 closeout · 23/08/2026
 
 - Baseline read-only đã SEALED trên đúng 2.142 six-part identity và 32 finding/identity; production measurement chỉ override structural fallback khi identity byte-exact.

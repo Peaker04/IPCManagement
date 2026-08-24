@@ -47,6 +47,10 @@ Tài liệu này là contract chung cho backend, frontend, export và E2E khi hi
 | Admin · Nguyên liệu | Master | Ingredient ID | Tên trùng được cảnh báo data quality. |
 | Admin · BOM | Master có hiệu lực | Dish + scope + tier + date range + BOM line | Search/filter không thay đổi grain. |
 
+## Kho vận hành và grain kỹ thuật
+
+UI thông thường chỉ hiển thị một kho vận hành dưới dạng context thụ động. Việc bỏ selector không xóa `warehouseId`: ID vẫn là một phần bắt buộc của FK, current-stock/lot/snapshot grain, stock movement, chứng từ nguồn, purchasing fingerprint, authorization, audit, report, cache, deep-link, export và reconciliation. Zero hoặc multiple operational rows phải chặn thao tác; không được co danh sách bằng index, tên, mã, sort hoặc activity.
+
 ## Quy tắc chống double-count
 
 1. Không dùng tên nguyên liệu làm khóa cộng hoặc khóa React.
