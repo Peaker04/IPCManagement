@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-13-PLAN.md
-last_updated: "2026-08-24T18:50:18.737Z"
+stopped_at: Completed 28-14-PLAN.md
+last_updated: "2026-08-24T18:57:28.751Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 37
-  completed_plans: 34
+  completed_plans: 35
   percent: 33
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
 last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust inventory and DTO/validator/filter compatibility
@@ -33,10 +33,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T18:50:18.710Z
+**Last session:** 2026-08-24T18:57:28.719Z
 **Resume file:** None
 
-**Stopped at:** Completed 28-13-PLAN.md
+**Stopped at:** Completed 28-14-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
 Next workflow: continue Phase 28 at Plan 28-11; keep migration application and warehouse activation separately authorized.
@@ -73,6 +73,7 @@ Next workflow: continue Phase 28 at Plan 28-11; keep migration application and w
 - [Phase 28]: Response and internal warehouse identities remain intact for provenance, stock grain, audit, reports, purchasing, and lineage.
 - [Phase ?]: Plan 28-11 resolves canonical warehouse before inventory mutations and rejects compatibility/source mismatch without rewriting provenance.
 - [Phase ?]: Plan 28-12 derives purchasing/import/selector trust from the operational resolver while preserving fingerprint and historical identity.
+- [Phase ?]: Plan 28-14 treats exact-one selector data as passive context and blocks zero/multiple states without implicit selection.
 
 ### Roadmap Evolution
 
@@ -99,3 +100,4 @@ Next workflow: continue Phase 28 at Plan 28-11; keep migration application and w
 | Phase 28 P11 | 24m | 2 tasks | 16 files |
 | Phase 28 P12 | 23m | 2 tasks | 15 files |
 | Phase 28 P13 | 10m | 2 tasks | 4 files |
+| Phase 28 P14 | 18m | 2 tasks | 7 files |

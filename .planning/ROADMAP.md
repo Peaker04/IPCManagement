@@ -142,5 +142,5 @@ Plans:
 - [x] 28-11-PLAN.md — convert inventory writes, source lineage, supplemental policy, and filters (wave 12; SWH-02/SWH-03).
 - [x] 28-12-PLAN.md — convert purchasing, imports, singleton selector, and authorization compatibility (wave 13; SWH-02/SWH-03).
 - [x] 28-13-PLAN.md — regenerate contracts and require exact one-disposition impact-map closure (wave 14; SWH-02/SWH-03).
-- [ ] 28-14-PLAN.md — replace frontend selection with passive exact-cardinality context and fail-closed commands (wave 15; SWH-01/SWH-02/SWH-03).
+- [x] 28-14-PLAN.md — replace frontend selection with passive exact-cardinality context and fail-closed commands (wave 15; SWH-01/SWH-02/SWH-03).
 - [ ] 28-15-PLAN.md — execute exact-three regression plus full static/build/docs closeout (wave 16; SWH-01/SWH-02/SWH-03).
