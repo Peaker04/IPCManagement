@@ -4,7 +4,7 @@ public sealed class OperationalWarehouseCompatibilityTests
 {
     private static readonly TrustBoundary[] Inventory =
     [
-        new("backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs", "CreateIngredientRequest.WarehouseId", Disposition.Unresolved, 10),
+        new("backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs", "CreateIngredientRequest.WarehouseId", Disposition.CanonicalInput, 10),
         new("backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs", "UpdateIngredientRequest.WarehouseId", Disposition.CanonicalInput, 10),
         new("backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs", "IngredientDto.WarehouseId", Disposition.RetainedInternalIdentity, 10),
         new("backend/src/IPCManagement.Api/Features/Catalog/Validators/IngredientValidators.cs", "CreateIngredientDtoValidator.WarehouseId", Disposition.CanonicalInput, 10),
