@@ -30,7 +30,7 @@ import {
   useSubmitPurchaseRequestMutation,
 } from '@/api/purchasingApi';
 import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
-import { getPurchasingErrorMessage, type PurchasingStageId } from './purchasingModel';
+import { getPurchasingErrorMessage, resolveOperationalWarehouseContext, type PurchasingStageId } from './purchasingModel';
 
 interface PurchaseDecisionPanelProps {
   week: string;
@@ -159,7 +159,6 @@ export function PurchaseDecisionPanel({
   const [selectedEvidence, setSelectedEvidence] = useState<SupplierEvidenceCandidate>();
   const [proposedUnitPrice, setProposedUnitPrice] = useState('');
   const [proposedDeliveryDate, setProposedDeliveryDate] = useState('');
-  const [receivingWarehouseId, setReceivingWarehouseId] = useState('');
   const [purchasingTerms, setPurchasingTerms] = useState('');
   const [decisionNote, setDecisionNote] = useState('');
   const [selectedDemandId, setSelectedDemandId] = useState('');
@@ -185,6 +184,8 @@ export function PurchaseDecisionPanel({
   const evidence = evidenceView.phase === 'ready' ? evidenceView.data : undefined;
   const warehouseQuery = useGetWarehouseSelectorQuery();
   const warehouses = warehouseQuery.data ?? [];
+  const warehouseContext = resolveOperationalWarehouseContext(warehouses);
+  const receivingWarehouseId = warehouseContext.warehouse?.warehouseId;
   const [confirmSupplier, { isLoading: isConfirmingSupplier }] = useConfirmLineSupplierMutation();
   const [createRequest, { isLoading: isCreatingRequest }] = useCreatePurchaseRequestFromDemandMutation();
   const [submitRequest, { isLoading: isSubmittingRequest }] = useSubmitPurchaseRequestMutation();
@@ -206,7 +207,6 @@ export function PurchaseDecisionPanel({
     setSelectedEvidence(candidate);
     setProposedUnitPrice(String(candidate.unitPrice));
     setProposedDeliveryDate('');
-    setReceivingWarehouseId('');
     setPurchasingTerms('');
     setDecisionNote('');
     setErrorMessage('');
@@ -396,29 +396,20 @@ export function PurchaseDecisionPanel({
                         <span>Ngày giao</span>
                         <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
                       </label>
-                      <label className="space-y-2 text-body font-semibold text-slate-900">
-                        <span>Kho nhận</span>
-                        <Select value={receivingWarehouseId} onValueChange={(value) => setReceivingWarehouseId(value ?? '')}>
-                          <SelectTrigger aria-label="Kho nhận" className="min-h-11 w-full sm:min-h-9">
-                            <SelectValue placeholder={warehouseQuery.isLoading ? 'Đang tải kho...' : 'Chọn kho nhận'} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {warehouses.map((warehouse) => (
-                              <SelectItem key={warehouse.warehouseId} value={warehouse.warehouseId}>
-                                {warehouse.warehouseName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </label>
+                      <div className="space-y-2 text-body text-slate-900">
+                        <span className="font-semibold">Kho vận hành</span>
+                        <p className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-2">
+                          {warehouseContext.warehouse?.warehouseName ?? 'Chưa xác định'}
+                        </p>
+                      </div>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Điều khoản mua</span>
                         <Input value={purchasingTerms} onChange={(event) => setPurchasingTerms(event.target.value)} />
                       </label>
                     </div>
-                    {warehouseQuery.isError ? (
-                      <InlineAlert title="Không tải được danh sách kho" variant="danger">
-                        Hãy tải lại dữ liệu trước khi xác nhận nhà cung cấp.
+                    {warehouseQuery.isError || warehouseContext.state === 'blocked' ? (
+                      <InlineAlert title="Không thể xác định kho vận hành" variant="danger">
+                        {warehouseQuery.isError ? 'Hãy tải lại dữ liệu trước khi xác nhận nhà cung cấp.' : warehouseContext.blocker}
                       </InlineAlert>
                     ) : null}
                     <label className="block space-y-2 text-body font-semibold text-slate-900">
@@ -430,7 +421,7 @@ export function PurchaseDecisionPanel({
                 <Button
                   data-inp-action="confirm-supplier"
                   className="min-h-11 sm:min-h-9"
-                  disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || !receivingWarehouseId || !purchasingTerms.trim() || warehouseQuery.isError || Boolean(evidence?.blocker)}
+                  disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || warehouseContext.state !== 'ready' || !purchasingTerms.trim() || warehouseQuery.isError || Boolean(evidence?.blocker)}
                   onClick={() => setConfirmation({ type: 'supplier' })}
                 >
                   Xác nhận nhà cung cấp
@@ -515,7 +506,7 @@ export function PurchaseDecisionPanel({
                 <p><strong>Bằng chứng:</strong> {evidenceLabel(selectedEvidence)}</p>
                 <p><strong>Giá đề xuất:</strong> {formatCurrency(Number(proposedUnitPrice))}</p>
                 <p><strong>Ngày giao:</strong> {formatDateOnly(proposedDeliveryDate)}</p>
-                <p><strong>Kho nhận:</strong> {warehouses.find((warehouse) => warehouse.warehouseId === receivingWarehouseId)?.warehouseName}</p>
+                <p><strong>Kho nhận:</strong> {warehouseContext.warehouse?.warehouseName}</p>
                 <p><strong>Điều khoản mua:</strong> {purchasingTerms.trim()}</p>
                 {decisionNote.trim() ? <p><strong>Ghi chú:</strong> {decisionNote.trim()}</p> : null}
               </div>

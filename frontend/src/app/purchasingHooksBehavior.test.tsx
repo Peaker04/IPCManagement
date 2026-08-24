@@ -232,8 +232,8 @@ describe('purchasing hook behavior', { timeout: 15_000 }, () => {
     expect(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
-    await user.click(screen.getByRole('combobox', { name: 'Kho nhận' }))
-    await user.click(await screen.findByRole('option', { name: 'Kho trung tâm' }))
+    expect(screen.queryByRole('combobox', { name: 'Kho nhận' })).not.toBeInTheDocument()
+    expect(screen.getByText('Kho trung tâm')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Điều khoản mua'), 'Giao tại kho.')
     await user.clear(screen.getByLabelText('Ngày giao'))
     await user.type(screen.getByLabelText('Ngày giao'), '21/07/2026')
