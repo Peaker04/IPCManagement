@@ -54,7 +54,8 @@ public class WarehouseRepository : IWarehouseRepository
         return await _context.Warehouses
             .FromSqlRaw(
                 """
-                SELECT `warehouseId`, `warehouseCode`, `warehouseName`, `warehouseType`, `note`
+                SELECT `warehouseId`, `warehouseCode`, `warehouseName`, `warehouseType`, `note`,
+                       `IsOperationalActive`, `OperationalSingletonKey`
                 FROM `warehouses`
                 WHERE `IsOperationalActive` = TRUE
                 """)
