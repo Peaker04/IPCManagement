@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-03-PLAN.md
-last_updated: "2026-08-24T08:00:08.355Z"
+stopped_at: Completed 28-04-PLAN.md
+last_updated: "2026-08-24T11:30:02.334Z"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 37
-  completed_plans: 24
-  percent: 75
+  completed_plans: 25
+  percent: 81
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Completed Plan 28-03 Purchasing remediation and exact residual handoff
+last_activity: 2026-08-24 — Completed Plan 28-04 non-admin route-owner remediation and exact admin-only handoff
 ---
 
 # Project State
@@ -33,13 +33,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T08:00:08.331Z
+**Last session:** 2026-08-24T11:30:02.307Z
 **Resume file:** None
 
-**Stopped at:** Completed 28-03-PLAN.md
+**Stopped at:** Completed 28-04-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: execute Plan 28-04 from the exact 1,258-key non-Purchasing residual handoff; preserve attempt-3 authority and honest NEEDS_EVIDENCE.
+Next workflow: execute Plan 28-05 from the exact 152-key admin-only residual handoff; preserve attempt-3 authority and honest NEEDS_EVIDENCE.
 
 ## Decisions
 
@@ -56,6 +56,8 @@ Next workflow: execute Plan 28-04 from the exact 1,258-key non-Purchasing residu
 - [Phase 28]: Attempt-3 authority partitions 1,461 FAIL into 203 Purchasing and 1,258 residual keys.
 - [Phase 28]: Aria-hidden tabindex=-1 Base UI internals are excluded from actionable unnamed-control evidence.
 - [Phase 28]: Purchasing residual handoff SHA-256 is b8fa28d6f612c719912c89620a5729b83b0264be4fc8b57aadeb9c2ddc98fa6a.
+- [Phase 28]: Non-admin route evidence is zero-FAIL across five attempt-38 members plus corrected Weekly Menu attempt-39.
+- [Phase 28]: Admin-only handoff contains 152 keys at SHA-256 55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3.
 
 ### Roadmap Evolution
 
@@ -72,3 +74,4 @@ Next workflow: execute Plan 28-04 from the exact 1,258-key non-Purchasing residu
 | Phase 28 P01R | 35min | 3 tasks | 18 files |
 | Phase 28 P02 | 34min | 3 tasks | 7 files |
 | Phase 28 P03 | 21min | 2 tasks | 6 files |
+| Phase 28 P04 | 3h | 2 tasks | 31 files |
