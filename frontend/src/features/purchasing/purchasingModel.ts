@@ -330,20 +330,6 @@ export function getActionableDraftPurchaseRequests(requests: PurchaseRequestResu
   return requests.filter((request) => request.status === 'DRAFT' && request.lines.length > 0);
 }
 
-export function mapWarehouseOptions(warehouses: WarehouseDto[]) {
-  return warehouses.map((warehouse) => ({
-    warehouseId: warehouse.warehouseId,
-    warehouse: warehouse.warehouseName,
-  }));
-}
-
-export function getSelectedReceiptWarehouseId(
-  receiveWarehouseByOrder: Record<string, string>,
-  purchaseOrderId: string,
-) {
-  return receiveWarehouseByOrder[purchaseOrderId] ?? '';
-}
-
 export function formatPurchaseRequestCandidate(candidate: {
   materialRequestCode: string;
   requestDate: string;

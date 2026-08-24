@@ -4,18 +4,16 @@ import {
   workflowApi,
   type ConfirmPurchaseLineSupplierRequest,
   type PurchaseRequestResult,
-  type WarehouseDto,
   type WarehousePurchaseReceiptRequest,
 } from '@/api/workflowApi';
 import {
   PURCHASING_STAGES,
   formatPurchaseRequestCandidate,
   getActionableDraftPurchaseRequests,
-  getSelectedReceiptWarehouseId,
   mapPurchasePlanLines,
   mapPurchaseRequestLines,
-  mapWarehouseOptions,
   resolveNextPurchasingAction,
+  resolveOperationalWarehouseContext,
   resolvePurchasingRouteState,
 } from './purchasingModel';
 
@@ -238,23 +236,30 @@ describe('purchasing model', () => {
       .toEqual(['draft']);
   });
 
-  it('uses the dedicated warehouse catalog when it is empty or contains more than 20 warehouses', () => {
-    expect(mapWarehouseOptions([])).toEqual([]);
-
-    const warehouses: WarehouseDto[] = Array.from({ length: 205 }, (_, index) => ({
-      warehouseId: `warehouse-${index + 1}`,
-      warehouseCode: `WH-${index + 1}`,
-      warehouseName: `Kho ${index + 1}`,
-    }));
-    const options = mapWarehouseOptions(warehouses);
-
-    expect(options).toHaveLength(205);
-    expect(options[204]).toEqual({ warehouseId: 'warehouse-205', warehouse: 'Kho 205' });
+  it('warehouse invariant / zero active / blocks without mutation', () => {
+    const mutation = vi.fn();
+    const context = resolveOperationalWarehouseContext([]);
+    if (context.state === 'ready') mutation(context.warehouse.warehouseId);
+    expect(context.state).toBe('blocked');
+    expect(mutation).not.toHaveBeenCalled();
   });
 
-  it('requires an explicit warehouse selection instead of silently using the first catalog item', () => {
-    expect(getSelectedReceiptWarehouseId({}, 'order-1')).toBe('');
-    expect(getSelectedReceiptWarehouseId({ 'order-1': 'warehouse-25' }, 'order-1')).toBe('warehouse-25');
+  it('warehouse invariant / one active / passive context without selector', () => {
+    const context = resolveOperationalWarehouseContext([
+      { warehouseId: 'warehouse-1', warehouseCode: 'WH-01', warehouseName: 'Kho vận hành' },
+    ]);
+    expect(context).toMatchObject({ state: 'ready', warehouse: { warehouseId: 'warehouse-1' } });
+  });
+
+  it('warehouse invariant / multiple active / fails closed without implicit selection', () => {
+    const mutation = vi.fn();
+    const context = resolveOperationalWarehouseContext([
+      { warehouseId: 'warehouse-1', warehouseCode: 'WH-01', warehouseName: 'Kho 1' },
+      { warehouseId: 'warehouse-2', warehouseCode: 'WH-02', warehouseName: 'Kho 2' },
+    ]);
+    if (context.state === 'ready') mutation(context.warehouse.warehouseId);
+    expect(context.state).toBe('blocked');
+    expect(mutation).not.toHaveBeenCalled();
   });
 });
 
