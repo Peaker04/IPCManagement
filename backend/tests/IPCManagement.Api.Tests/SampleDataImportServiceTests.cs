@@ -259,7 +259,7 @@ public class SampleDataImportServiceTests
 
         result.DryRun.Should().BeTrue();
         result.Counts.BomLinesCreated.Should().BeGreaterThan(0);
-        (await context.Warehouses.CountAsync()).Should().Be(0);
+        (await context.Warehouses.CountAsync()).Should().Be(1);
         (await context.Units.CountAsync()).Should().Be(0);
         (await context.Suppliers.CountAsync()).Should().Be(0);
         (await context.Ingredients.CountAsync()).Should().Be(0);
@@ -844,9 +844,20 @@ public class SampleDataImportServiceTests
         string UserIdString);
     private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext? context)
     {
+        var warehouseId = GuidHelper.NewId();
+        if (context is not null)
+        {
+            context.Warehouses.Add(new Warehouse
+            {
+                WarehouseId = warehouseId,
+                WarehouseCode = "WH-TEST-OP",
+                WarehouseName = "Kho vận hành test",
+                WarehouseType = "KHAC",
+            });
+            context.SaveChanges();
+        }
         var resolver = Substitute.For<IOperationalWarehouseResolver>();
-        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-            context?.Warehouses.Local.Select(item => item.WarehouseId).FirstOrDefault() ?? GuidHelper.NewId());
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
         return resolver;
     }
 

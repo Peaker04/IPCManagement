@@ -10,7 +10,7 @@ import { isLedgerRequest } from './uiAuditEvidence';
 
 type CreatedState='initial-loading'|'populated'|'truly-empty'|'no-results'|'error-no-data';
 type Region=(typeof REGION_INVENTORY)['/purchasing'][number];
-const profile={userId:'phase28-purchasing',username:'phase28-purchasing',fullName:'Thu mua Phase 28',role:'purchasing',roleCode:'PURCHASING',roleName:'Thu mua',isAdminFullAccess:false,permissions:['purchase.read','purchase.manage','supplier.read','ingredient.read']};
+const profile={userId:'phase28-purchasing',username:'phase28-purchasing',fullName:'Thu mua Phase 28',role:'purchasing',roleCode:'PURCHASING',roleName:'Thu mua',isAdminFullAccess:false,permissions:['purchase.read']};
 const owners:Record<Region,{endpoint:string;view?:string;tab:string}>={
  'purchase-workflow':{endpoint:'/api/purchase-workflow/workbench',tab:'Xử lý thu mua'},
  'purchase-supplemental':{endpoint:'/api/supplemental-material-requests',view:'supplemental',tab:'Mua bổ sung'},

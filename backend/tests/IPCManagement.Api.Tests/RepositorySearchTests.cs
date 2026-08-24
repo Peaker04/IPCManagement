@@ -135,7 +135,9 @@ public class RepositorySearchTests
                     warehouseCode TEXT NOT NULL,
                     warehouseName TEXT NOT NULL,
                     warehouseType TEXT NOT NULL,
-                    note TEXT NULL
+                    note TEXT NULL,
+                    IsOperationalActive INTEGER NOT NULL DEFAULT 0,
+                    OperationalSingletonKey INTEGER NULL
                 );
                 """;
             await command.ExecuteNonQueryAsync();

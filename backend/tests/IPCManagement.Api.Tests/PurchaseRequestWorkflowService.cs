@@ -1,4 +1,5 @@
 using NSubstitute;
+using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
@@ -64,7 +65,7 @@ internal sealed class PurchaseRequestWorkflowService
     {
         var resolver = Substitute.For<IOperationalWarehouseResolver>();
         resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-            context.Warehouses.Local.Select(item => item.WarehouseId).First());
+            context.Ingredients.AsNoTracking().Select(item => item.WarehouseId).First());
         return resolver;
     }
 
