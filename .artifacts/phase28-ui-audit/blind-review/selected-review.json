@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "phase28-blind-review-selection/v1",
+  "selectedAttempt": "attempt-3",
+  "root": ".artifacts/phase28-ui-audit/blind-review/attempt-3",
+  "manifestSha256": "374ae3ba43df583f407ecaa4a393beac03f3807821d90b839480fa255936ce8c",
+  "inputSha256": "6de1cd1d6280591ebb40b09cab9db671d713b25bffe53c2ff6ca73f5179ab3ad",
+  "schemaSha256": "1345f2706e8b8c95418caba3b4f99a540d5a224a4b1d2526b31573d5272d5ed5",
+  "reviewSha256": "10e4bfd1a37dbcb2077d2af71adbcdc85484e569fbb4ba2fc9965cc751877ff1",
+  "selectedCanonicalSha256": "ff043b0d44db49944d33076dea37a015b596bcd0f2e606db84643c1f23454724",
+  "reviewer": {
+    "identity": "worker — isolated blind evidence reviewer",
+    "tool": "OpenAI Codex API",
+    "model": "GPT-5",
+    "invocationId": "ipc-route-budget-wave39:worker"
+  },
+  "counts": {
+    "identityCount": 2142,
+    "findingCount": 68544,
+    "rawPass": 6104,
+    "rawRetainedAdminFail": 112,
+    "actionableFail": 0,
+    "notApplicable": 15120,
+    "needsEvidence": 47208,
+    "unresolved": 0,
+    "reviewPass": 0,
+    "reviewFail": 0,
+    "reviewNeedsEvidence": 2142,
+    "reviewUnresolved": 0
+  }
+}
