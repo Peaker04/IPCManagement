@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -10,11 +11,24 @@ import {
 } from './uiAuditBaselineReconciliation';
 
 type Artifact = ReconciliationInput['artifact'];
-const resultsRoot = resolve(process.cwd(), 'test-results');
-const loadInputs = (): ReconciliationInput[] => PHASE28_RECONCILIATION_ARTIFACTS.map((name) => {
-  const bytes = readFileSync(resolve(resultsRoot, name));
-  return { name, bytes, artifact: JSON.parse(bytes.toString('utf8')) as Artifact };
-});
+const repositoryRoot = resolve(process.cwd(), '..');
+const recoveryAuthorityPath = resolve(repositoryRoot, '.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json');
+const recoveryAuthority = JSON.parse(readFileSync(recoveryAuthorityPath, 'utf8')) as {
+  status: string;
+  restored: boolean;
+  byteEqualityToLostArtifacts: boolean;
+  selectedRecovery: { root: string; members: Record<string, string> };
+};
+const selectedEvidenceRoot = resolve(repositoryRoot, recoveryAuthority.selectedRecovery.root, 'evidence');
+const loadInputs = (): ReconciliationInput[] => {
+  expect(recoveryAuthority).toMatchObject({ status: 'LOST_NO_BACKUP', restored: false, byteEqualityToLostArtifacts: false });
+  return PHASE28_RECONCILIATION_ARTIFACTS.map((name) => {
+    const bytes = readFileSync(resolve(selectedEvidenceRoot, name));
+    const expectedHash = recoveryAuthority.selectedRecovery.members[`evidence/${name}`];
+    expect(createHash('sha256').update(bytes).digest('hex'), name).toBe(expectedHash);
+    return { name, bytes, artifact: JSON.parse(bytes.toString('utf8')) as Artifact };
+  });
+};
 const cloneInputs = () => structuredClone(loadInputs()) as ReconciliationInput[];
 const dashboard = (inputs: ReconciliationInput[]) => inputs.find(({ name }) => name === 'ui-audit-phase28-dashboard-query-states.json')!;
 

@@ -10,7 +10,20 @@ const required = (name: string) => {
 };
 const sha256 = async (value: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
-test('emits the immutable attempt manifest and selected run', async () => {
+const emissionEnvironment = ['PHASE28_RECOVERY_AUTHORITY', 'PHASE28_RUN1', 'PHASE28_RUN2', 'PHASE28_ATTEMPT_MANIFEST', 'PHASE28_SELECTION'];
+const emissionConfigured = emissionEnvironment.every((name) => Boolean(process.env[name]));
+
+test('validates selected recovery authority during ordinary aggregate invocation', () => {
+  const repositoryRoot = resolve(process.cwd(), '..');
+  const authorityPath = resolve(repositoryRoot, '.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json');
+  const authority = JSON.parse(readFileSync(authorityPath, 'utf8'));
+  expect(() => validateRecoveryAuthority(authority, repositoryRoot)).not.toThrow();
+  expect(authority).toMatchObject({ status: 'LOST_NO_BACKUP', restored: false, byteEqualityToLostArtifacts: false });
+});
+
+test('emits only under the explicit environment contract', async () => {
+  expect([0, emissionEnvironment.length]).toContain(emissionEnvironment.filter((name) => Boolean(process.env[name])).length);
+  if (!emissionConfigured) return;
   const repositoryRoot = resolve(process.cwd(), '..');
   const authority = JSON.parse(readFileSync(resolve(repositoryRoot, required('PHASE28_RECOVERY_AUTHORITY')), 'utf8'));
   validateRecoveryAuthority(authority, repositoryRoot);
