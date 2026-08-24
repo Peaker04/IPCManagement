@@ -171,6 +171,7 @@ describe('Purchasing sealed remediation contract', () => {
     expect(failures.some(({ verdict }) => verdict === 'NEEDS_EVIDENCE')).toBe(false);
 
     const residualSha256 = createHash('sha256').update(serialize(residualKeys)).digest('hex');
+    expect(residualSha256).toBe('b8fa28d6f612c719912c89620a5729b83b0264be4fc8b57aadeb9c2ddc98fa6a');
     console.info(`PHASE28_PURCHASING_FAIL_KEYS=${purchasing.length}`);
     console.info(`PHASE28_RESIDUAL_FAIL_KEYS=${residual.length}`);
     console.info(`PHASE28_RESIDUAL_FAIL_KEYS_SHA256=${residualSha256}`);
