@@ -29,6 +29,15 @@ describe('LoginPage validation feedback', () => {
     mocks.navigate.mockReset();
   });
 
+  it('places its single page heading inside one named main landmark', () => {
+    render(<LoginPage />);
+
+    const main = screen.getByRole('main', { name: 'Đăng nhập IPC' });
+    expect(main).toContainElement(screen.getByRole('heading', { level: 1, name: 'IPC Management System' }));
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
   it('associates the existing required-fields message with both empty fields', () => {
     render(<LoginPage />);
 
