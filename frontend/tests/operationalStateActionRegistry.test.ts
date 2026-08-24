@@ -134,7 +134,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   WarehousePurchaseReceipt: {
-    'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:66': [
+    'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:63-71': [
       'export function WarehousePurchaseReceiptDialog({',
     ],
   },

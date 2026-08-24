@@ -3,7 +3,7 @@ import warehouseMovementPanelSource from './WarehouseMovementPanel.tsx?raw';
 
 describe('WarehouseMovementPanel contract', () => {
   it('phase27-baseline-responsive-wide-rail-stacked: uses the bounded responsive rail and keeps one tab-level Phiếu kho owner', () => {
-    expect(warehouseMovementPanelSource).toContain('<SplitWorkbench\n      wideDetailRail');
+    expect(warehouseMovementPanelSource).toMatch(/<SplitWorkbench\s+wideDetailRail/);
     expect(warehouseMovementPanelSource.match(/detailLabel="Phiếu kho"/g)).toHaveLength(1);
     expect(warehouseMovementPanelSource).not.toMatch(/tabIndex|\border\s*:/);
   });

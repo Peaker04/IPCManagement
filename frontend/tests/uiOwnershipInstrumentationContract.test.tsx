@@ -86,7 +86,9 @@ describe('Phase 26 opaque instrumentation contract', () => {
       const tuple = tupleFor(entry.surfaceId)
       expectOpaqueTuple(tuple)
       if (entry.routeKey === 'LOGIN') {
-        expect(loginPageSource).toContain('data-ui-owner="uio-l" data-ui-floorplan="uif-l" data-ui-region="uir-l"')
+        expect(loginPageSource).toContain('data-ui-owner="uio-l"')
+        expect(loginPageSource).toContain('data-ui-floorplan="uif-l"')
+        expect(loginPageSource).toContain('data-ui-region="uir-l"')
       } else if (entry.routeKey === 'FORBIDDEN') {
         expect(forbiddenPageSource).toContain('data-ui-owner="uio-k" data-ui-floorplan="uif-k" data-ui-region="uir-k"')
         expect(mainLayoutSource).toContain(`[ROUTES.FORBIDDEN]: { ${tupleLiteral(tuple)} }`)

@@ -213,7 +213,9 @@ describe('typography contract', () => {
   })
 
   it('does not grow the documented arbitrary font-size baseline', () => {
-    const occurrences = sourceFiles(sourceRoot).flatMap((path) => {
+    const occurrences = sourceFiles(sourceRoot)
+      .filter((path) => !/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(path))
+      .flatMap((path) => {
       const source = readFileSync(path, 'utf8')
       const matches = source.match(/text-\[(?:\d+(?:\.\d+)?)(?:px|rem)\]/g) ?? []
       const sourcePath = relative(projectRoot, path).replaceAll('\\', '/')

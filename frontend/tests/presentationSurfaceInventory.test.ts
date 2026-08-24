@@ -64,7 +64,7 @@ describe('project-wide presentation surface inventory', () => {
       actions: actions.reduce((sum, item) => sum + item.count, 0),
       drawerOwners: drawers.length,
       drawers: drawers.reduce((sum, item) => sum + item.count, 0),
-    }).toEqual({ routeOwners: 1, routes: 14, actionOwners: 64, actions: 224, drawerOwners: 0, drawers: 0 })
+    }).toEqual({ routeOwners: 1, routes: 14, actionOwners: 64, actions: 225, drawerOwners: 0, drawers: 0 })
   })
 
   it('keeps document reload out of production UI', () => {

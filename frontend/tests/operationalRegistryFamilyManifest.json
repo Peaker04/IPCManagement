@@ -198,7 +198,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Receipt eligibility, validation, and confirmation are component-local while enforcement is server-only.",
         "sources": [
-          "frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:66"
+          "frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:63-71"
         ]
       },
       "backendBacked": true,

@@ -22,7 +22,7 @@ const commandBarExceptionLocations = [
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:62',
   'src/features/reports/pages/ReportsPage.tsx:77',
   'src/features/reports/pages/ReportsPage.tsx:86',
-  'src/features/warehouse/pages/WarehousePage.tsx:319',
+  'src/features/warehouse/pages/WarehousePage.tsx:316',
 ]
 
 const adapterExceptionLocations = [
@@ -41,8 +41,9 @@ const adapterExceptionLocations = [
   'src/components/common/ViewSwitcher.tsx:76',
   'src/features/admin/components/AdvancedDisplaySettings.tsx:98',
   'src/features/admin/components/AdvancedDisplaySettings.tsx:161',
-  'src/features/admin/components/AdvancedDisplaySettings.tsx:221',
-  'src/features/reports/pages/ReportsPricePanel.tsx:182',
+  'src/features/admin/components/AdvancedDisplaySettings.tsx:222',
+  'src/features/admin/components/AdvancedDisplaySettings.tsx:249',
+  'src/features/reports/pages/ReportsPricePanel.tsx:183',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
