@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-14-PLAN.md
-last_updated: "2026-08-24T18:57:28.751Z"
+stopped_at: 28-15 aggregate frontend regression blocker
+last_updated: "2026-08-24T19:19:04.232Z"
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 37
-  completed_plans: 35
-  percent: 33
+  completed_plans: 36
+  percent: 67
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
 last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust inventory and DTO/validator/filter compatibility
 ---
@@ -33,10 +33,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T18:57:28.719Z
-**Resume file:** None
+**Last session:** 2026-08-24T19:19:04.204Z
+**Resume file:** .planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-15-SUMMARY.md
 
-**Stopped at:** Completed 28-14-PLAN.md
+**Stopped at:** 28-15 aggregate frontend regression blocker
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
 Next workflow: continue Phase 28 at Plan 28-11; keep migration application and warehouse activation separately authorized.
@@ -82,6 +82,7 @@ Next workflow: continue Phase 28 at Plan 28-11; keep migration application and w
 ### Blockers
 
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
+- Phase 28 closeout blocked: full frontend aggregate run has 24 historical authority failures (lost ignored Phase 28 baseline inputs and stale Phase 27/27.1 locks); focused/static/build gates pass and oracles were not rewritten.
 
 ## Performance Metrics
 
@@ -101,3 +102,4 @@ Next workflow: continue Phase 28 at Plan 28-11; keep migration application and w
 | Phase 28 P12 | 23m | 2 tasks | 15 files |
 | Phase 28 P13 | 10m | 2 tasks | 4 files |
 | Phase 28 P14 | 18m | 2 tasks | 7 files |
+| Phase 28 P15 | 34m | 2 tasks | 17 files |
