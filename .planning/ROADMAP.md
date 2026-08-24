@@ -89,7 +89,7 @@ Plans:
 
 ## Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation
 
-**Status:** IN PROGRESS — Plan 28-04 completed all declared non-admin route-owner remediation; Plan 28-05 receives the exact 152-key admin-only residual
+**Status:** IN PROGRESS — Plan 28-05 completed the exact 152-key admin residual remediation; Plan 28-06 receives the actionable-zero closure handoff with raw adapter provenance and honest NEEDS_EVIDENCE preserved
 
 **Goal:** Use the Phase 27 evidence architecture to audit and remediate the whole web application’s information hierarchy, typography, spacing, cards/data containers, tables, responsive behavior and accessibility. Present the real single operational warehouse without false choices or repeated scope while preserving warehouse identity in API, authorization, audit and data-integrity contracts.
 
@@ -133,7 +133,7 @@ Plans:
 - [x] 28-02-PLAN.md — consume only the pinned recovery authority, reconcile the existing RED commit without treating it as complete, group exact FAIL findings, remediate Login/Dashboard/shared seams, and freeze bounded attribution (wave 3; PUX only).
 - [x] 28-03-PLAN.md — execute the Purchasing tracer and emit an exact residual-key handoff (wave 4; PUX only).
 - [x] 28-04-PLAN.md — close non-admin route-owner families and emit the exact admin residual handoff (wave 5; PUX only).
-- [ ] 28-05-PLAN.md — close Admin Data overflow plus Approval Rules/Advanced Settings exact owners (wave 6; PUX only).
+- [x] 28-05-PLAN.md — close Admin Data overflow plus Approval Rules/Advanced Settings exact owners (wave 6; PUX only).
 - [ ] 28-06-PLAN.md — produce immutable two-run headed remediation evidence outside Playwright cleanup and exact reconciliation (wave 7; PUX only).
 - [ ] 28-07-PLAN.md — enforce hash-pinned exact-bijection fresh blind review outside Playwright cleanup (wave 8; PUX only; blocking review checkpoint).
 - [ ] 28-08-PLAN.md — add the observation-only configured exact-cardinality resolver and startup gate (wave 9; SWH-02/SWH-03).

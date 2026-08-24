@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-04-PLAN.md
-last_updated: "2026-08-24T11:30:02.334Z"
+stopped_at: Completed 28-05-PLAN.md
+last_updated: "2026-08-24T12:29:02.134Z"
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 37
-  completed_plans: 25
-  percent: 81
+  completed_plans: 26
+  percent: 70
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Completed Plan 28-04 non-admin route-owner remediation and exact admin-only handoff
+last_activity: 2026-08-24 — Completed Plan 28-05 exact admin residual remediation and 28-06 closure handoff
 ---
 
 # Project State
@@ -33,13 +33,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T11:30:02.307Z
+**Last session:** 2026-08-24T12:29:02.112Z
 **Resume file:** None
 
-**Stopped at:** Completed 28-04-PLAN.md
+**Stopped at:** Completed 28-05-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: execute Plan 28-05 from the exact 152-key admin-only residual handoff; preserve attempt-3 authority and honest NEEDS_EVIDENCE.
+Next workflow: execute Plan 28-06 from the completed 28-05 admin closure handoff; preserve attempt-3 authority, raw adapter provenance, and honest NEEDS_EVIDENCE.
 
 ## Decisions
 
@@ -58,6 +58,8 @@ Next workflow: execute Plan 28-05 from the exact 152-key admin-only residual han
 - [Phase 28]: Purchasing residual handoff SHA-256 is b8fa28d6f612c719912c89620a5729b83b0264be4fc8b57aadeb9c2ddc98fa6a.
 - [Phase 28]: Non-admin route evidence is zero-FAIL across five attempt-38 members plus corrected Weekly Menu attempt-39.
 - [Phase 28]: Admin-only handoff contains 152 keys at SHA-256 55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3.
+- [Phase 28]: Plan 28-05 confines Admin BOM overflow at the owner and preserves shared UI behavior.
+- [Phase 28]: Plan 28-06 must reconcile 112 raw Admin Data adapter rows through the locked 28-04 actionable-control and browser-computed contrast predicates.
 
 ### Roadmap Evolution
 
@@ -75,3 +77,4 @@ Next workflow: execute Plan 28-05 from the exact 152-key admin-only residual han
 | Phase 28 P02 | 34min | 3 tasks | 7 files |
 | Phase 28 P03 | 21min | 2 tasks | 6 files |
 | Phase 28 P04 | 3h | 2 tasks | 31 files |
+| Phase 28 P05 | 1h | 2 tasks | 7 files |
