@@ -80,6 +80,30 @@
   max-width: none;
 }
 
+/* Phase 28 route-owner contrast overrides. IDs keep these rules local to the audited controls. */
+:is(
+  #approval-inbox-search,
+  #coordination-order-search,
+  #report-filter-from,
+  #report-filter-to,
+  #price-variance-search,
+  #report-demand-search,
+  #report-purchase-search,
+  #report-stock-search,
+  #report-movement-search,
+  #warehouse-current-stock-search,
+  #warehouse-stock-movement-search,
+  #weekly-purchase-search
+)::placeholder,
+.ipc-weekly-menu-shell input::placeholder {
+  color: #475569 !important;
+  opacity: 1;
+}
+
+.ipc-weekly-menu-shell .is-warning > dt {
+  color: #1e293b !important;
+}
+
 .ipc-weekly-pricing-context {
   display: grid;
   gap: var(--ipc-space-2);

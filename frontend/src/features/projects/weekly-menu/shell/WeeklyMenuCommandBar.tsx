@@ -65,7 +65,7 @@ export const WeeklyMenuCommandBar = ({
   </>}>
     <FieldRow label="Khách hàng">
       <Select value={selectedCustomerId || EMPTY_CUSTOMER_VALUE} onValueChange={(value) => onCustomerChange(value === EMPTY_CUSTOMER_VALUE || value === null ? '' : value)} disabled={isCustomerLoading}>
-        <SelectTrigger className="min-w-[200px]"><SelectValue>{selectedCustomerLabel}</SelectValue></SelectTrigger>
+        <SelectTrigger aria-label="Chọn khách hàng" className="min-w-[200px]"><SelectValue>{selectedCustomerLabel}</SelectValue></SelectTrigger>
         <SelectContent>
           <SelectItem value={EMPTY_CUSTOMER_VALUE}>Chọn khách hàng</SelectItem>
           {customers.map((customer) => (
@@ -77,7 +77,7 @@ export const WeeklyMenuCommandBar = ({
       </Select>
     </FieldRow>
     <FieldRow label="Tuần bắt đầu">
-      <Input aria-label="Tuần bắt đầu" type="date" weekStartOnly value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} />
+      <Input aria-label="Tuần bắt đầu" type="date" weekStartOnly value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} className="placeholder:text-slate-600!" />
     </FieldRow>
   </CommandBar>
   )

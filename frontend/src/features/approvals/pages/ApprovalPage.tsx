@@ -420,7 +420,7 @@ export default function ApprovalPage() {
                                 <div className="text-sm">
                                   <span className="font-semibold text-blue-700">{formatApprovalDecision(item.decision)}</span>
                                   {item.oldStatus && item.newStatus && (
-                                    <span className="ml-2 text-xs text-slate-400">
+                                    <span className="ml-2 text-xs text-slate-600">
                                       ({formatWorkflowStatus(item.oldStatus)} <ArrowRight className="inline size-3 mx-0.5" /> {formatWorkflowStatus(item.newStatus)})
                                     </span>
                                   )}
@@ -439,7 +439,7 @@ export default function ApprovalPage() {
                   )}
                 </div>
               ) : (
-                <div className="flex h-full items-center justify-center p-8 text-center text-slate-400">
+                <div className="flex h-full items-center justify-center p-8 text-center text-slate-600">
                   <div>
                     <Clock className="mx-auto size-8 text-slate-300 mb-2" />
                     <p className="text-sm">Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt</p>

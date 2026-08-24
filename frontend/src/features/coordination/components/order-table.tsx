@@ -316,7 +316,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
             <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--ipc-slate-50)]'}`}>
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
-                <div className={`${typography.code} mt-0.5 text-xs text-slate-400`}>{order.customerCode}</div>
+                <div className={`${typography.code} mt-0.5 text-xs text-slate-600`}>{order.customerCode}</div>
               </td>
 
               <td className="border-r border-slate-200 text-slate-600">

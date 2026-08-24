@@ -385,7 +385,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
       {(hasStateActions || feedback) && (
         <div className="ipc-order-action-toolbar border-b border-slate-200 bg-white px-4 py-2.5">
           {hasStateActions && (
-            <div className="ipc-order-action-buttons flex flex-wrap items-center justify-end gap-2" aria-label="Thao tác điều phối">
+            <div className="ipc-order-action-buttons flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Thao tác điều phối">
           {canLock && <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
               onClick={() => openConfirmationDialog('lock')}

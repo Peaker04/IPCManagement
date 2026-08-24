@@ -15,6 +15,7 @@ interface ExceptionLaneProps {
   items: ExceptionLaneItem[];
   empty?: ReactNode;
   className?: string;
+  scrollLabel?: string;
 }
 
 const exceptionToneClasses = {
@@ -31,9 +32,9 @@ const exceptionIcons = {
   danger: <AlertTriangle size={16} />,
 };
 
-export function ExceptionLane({ title, items, empty, className }: ExceptionLaneProps) {
+export function ExceptionLane({ title, items, empty, className, scrollLabel }: ExceptionLaneProps) {
   return (
-    <aside className={cn('ipc-exception-lane min-h-[145px] flex flex-col', className)}>
+    <aside className={cn('ipc-exception-lane min-h-[145px] flex flex-col', className)} tabIndex={scrollLabel ? 0 : undefined} aria-label={scrollLabel}>
       {title && <div className="ipc-exception-lane-title">{title}</div>}
       {items.length === 0 ? (
         <EmptyState

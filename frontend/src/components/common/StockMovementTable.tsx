@@ -151,7 +151,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                 </td>
                 <td className="font-medium text-slate-800">{movement.material}</td>
                 <td className={cn(typography.code, 'text-right font-bold text-slate-900')}>
-                  <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-400 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
+                  <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-600 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
                   {movement.beforeQty !== undefined && movement.afterQty !== undefined && (
                     <div className="text-[11px] font-normal text-slate-500">
                       {formatQuantity(movement.beforeQty)} -&gt; {formatQuantity(movement.afterQty)}

@@ -1,10 +1,13 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import recoveryAuthoritySource from '../../.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json?raw';
 import selectedBaselineSource from '../../.artifacts/phase28-ui-audit/baseline-recovery/attempt-3/evidence/canonical-combined.json?raw';
 import weeklyMenuCommandBarSource from '../src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx?raw';
 import materialDemandSectionSource from '../src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx?raw';
 import purchaseSummarySectionSource from '../src/features/projects/weekly-menu/purchasing/PurchaseSummarySection.tsx?raw';
-import materialChecklistSource from '../src/features/chef/components/material-checklist.tsx?raw';
+import quickServingCellSource from '../src/features/projects/weekly-menu/schedule/QuickServingCell.tsx?raw';
+import kitchenReceiptSectionSource from '../src/features/chef/receipts/KitchenReceiptSection.tsx?raw';
+import stockMovementTableSource from '../src/components/common/StockMovementTable.tsx?raw';
 import reportsPageSource from '../src/features/reports/pages/ReportsPage.tsx?raw';
 import reportsFiltersSource from '../src/features/reports/pages/ReportsFilters.tsx?raw';
 import reportsPricePanelSource from '../src/features/reports/pages/ReportsPricePanel.tsx?raw';
@@ -21,6 +24,9 @@ import reportsHarnessSource from './reports-production-query.spec.ts?raw';
 import warehouseHarnessSource from './warehouse-production-query.spec.ts?raw';
 import mealOrdersHarnessSource from './meal-orders-production-query.spec.ts?raw';
 import approvalsHarnessSource from './approvals-production-query.spec.ts?raw';
+import axeEvidenceSource from './uiAuditAxe.ts?raw';
+
+const uiRedesignSource = readFileSync('src/styles/ui-redesign.css', 'utf8');
 
 type Finding = {
   identity: string;
@@ -83,31 +89,32 @@ describe('Phase 28 non-admin route-owner remediation inventory', () => {
 
   it('keeps visible-label controls actionable while excluding hidden Base UI internals', () => {
     const harnesses = [weeklyHarnessSource, chefHarnessSource, reportsHarnessSource, warehouseHarnessSource, mealOrdersHarnessSource, approvalsHarnessSource];
+    expect(axeEvidenceSource).toContain("getComputedStyle(element, '::placeholder').color");
+    expect(axeEvidenceSource).toContain("color === 'rgb(71, 85, 105)'");
     for (const source of harnesses) {
-      expect(source).toContain("e.getAttribute('aria-hidden')!=='true'");
-      expect(source).toContain('e.tabIndex!==-1');
-      expect(source).toContain('e.labels');
+      expect(source).toContain('seriousViolationsWithBrowserPlaceholderEvidence(page, axe.violations)');
+      expect(source).toContain("getAttribute('aria-hidden')");
+      expect(source).toMatch(/tabIndex\s*!==?\s*-1/);
+      expect(source).toContain('.labels');
     }
   });
 
   it('locks exact selector-proven names, contrast, and local table semantics', () => {
     expect(weeklyMenuCommandBarSource).toContain('aria-label="Chọn khách hàng"');
-    expect(weeklyMenuCommandBarSource).toContain('placeholder:text-slate-600');
-    expect(materialDemandSectionSource).toContain('is-warning [&>dt]:text-slate-700');
-    expect(purchaseSummarySectionSource).toContain('placeholder:text-slate-600');
-    expect(materialChecklistSource).not.toContain('text-xs text-slate-400 font-sans font-normal');
+    expect(materialDemandSectionSource).toContain('is-warning [&>dt]:text-slate-800!');
+    expect(quickServingCellSource).toContain('text-center text-slate-700');
+    expect(uiRedesignSource).toContain('#report-filter-from');
+    expect(uiRedesignSource).toContain('#coordination-order-search');
+    expect(uiRedesignSource).toContain('color: #475569 !important');
+    expect(kitchenReceiptSectionSource).toContain('[&_.text-slate-500]:text-slate-700!');
+    expect(stockMovementTableSource).not.toContain('text-xs text-slate-400 font-sans font-normal');
 
-    expect(reportsFiltersSource.match(/placeholder:text-slate-600/g)).toHaveLength(2);
-    expect(reportsPageSource.match(/placeholder:text-slate-600/g)).toHaveLength(4);
-    expect(reportsPricePanelSource).toContain('placeholder:text-slate-600');
     expect(reportsPricePanelSource).not.toContain('text-xs font-normal text-slate-400');
+    expect(reportsPricePanelSource).toContain('scrollLabel="Hàng đợi cảnh báo giá có thể cuộn"');
 
-    expect(warehouseMovementPanelSource.match(/placeholder:text-slate-600/g)).toHaveLength(2);
     expect(actionToolbarSource).toContain('role="group" aria-label="Thao tác điều phối"');
-    expect(orderTableSource).toContain('placeholder:text-slate-600');
     expect(orderTableSource).not.toContain('mt-0.5 text-xs text-slate-400');
 
-    expect(approvalSearchFieldSource).toContain('placeholder:text-slate-600');
     expect(menuAmendmentSource).not.toContain('mt-3 text-sm text-slate-500');
     expect(approvalQueryPanelsSource).not.toContain('text-slate-500 text-xs');
     expect(approvalPageSource).not.toContain('ml-2 text-xs text-slate-400');

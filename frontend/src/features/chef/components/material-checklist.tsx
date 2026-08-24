@@ -70,7 +70,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
       className={cn(typography.body, 'ipc-chef-checklist-panel')}
     >
         <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Danh sách nguyên liệu cần ký nhận" className="ipc-chef-checklist-shell">
-          <Table className="ipc-chef-checklist-table text-xs">
+          <Table aria-label="Checklist ký nhận nguyên liệu bếp" className="ipc-chef-checklist-table text-xs">
             <TableHeader>
               <TableRow className="border-slate-200 hover:bg-transparent">
                 <TableHead className="w-20 text-slate-600 font-semibold">Thao tác</TableHead>

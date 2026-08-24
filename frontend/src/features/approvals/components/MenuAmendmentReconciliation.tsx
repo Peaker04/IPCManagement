@@ -84,7 +84,7 @@ export function MenuAmendmentReconciliation() {
 
       {feedback && <p role="status" className="mt-3 text-sm text-slate-700">{feedback}</p>}
       {!scope ? (
-        <p className="mt-3 text-sm text-slate-500">Chọn khách hàng để xem yêu cầu cần xử lý.</p>
+        <p className="mt-3 text-sm text-slate-700">Chọn khách hàng để xem yêu cầu cần xử lý.</p>
       ) : decisionQuery.isError ? (
         <div className="mt-3"><QueryErrorAlert title="Không tải được yêu cầu đối soát" onRetry={decisionQuery.refetch}>Chưa thể xác định danh sách đang trống. Hãy tải lại trước khi xử lý.</QueryErrorAlert></div>
       ) : decisionQuery.isLoading ? (

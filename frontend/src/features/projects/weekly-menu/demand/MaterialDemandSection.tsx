@@ -146,7 +146,7 @@ export function MaterialDemandSection({
             <dt>KHSX trong ngày</dt>
             <dd>{activeRows.length} dòng</dd>
           </div>
-          <div className={completedShiftCount === activeShiftGroups.length && activeShiftGroups.length > 0 ? 'is-complete' : 'is-warning'}>
+          <div className={completedShiftCount === activeShiftGroups.length && activeShiftGroups.length > 0 ? 'is-complete' : 'is-warning [&>dt]:text-slate-800!'}>
             <CheckCircle2 size={18} aria-hidden="true" />
             <dt>Số suất theo ca</dt>
             <dd>{completedShiftCount}/{activeShiftGroups.length} ca hoàn tất</dd>

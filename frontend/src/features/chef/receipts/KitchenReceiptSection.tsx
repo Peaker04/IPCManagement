@@ -41,7 +41,7 @@ export function KitchenReceiptSection({
           icon={<AlertCircle className="size-12 text-slate-400" />}
           title="Không có suất ăn nào được lên lịch cho ca này."
           description="Vui lòng điều phối suất dự kiến tại trang Điều phối trước. Bạn vẫn có thể xem chứng từ và nhật ký của ca ở tab bên cạnh."
-          className="ipc-chef-empty-state !min-h-0 p-8 pb-12 text-slate-500"
+          className="ipc-chef-empty-state !min-h-0 p-8 pb-12 text-slate-500 [&_.text-slate-500]:text-slate-700!"
         />
       ) : (
         <>

@@ -21,7 +21,7 @@ export function QuickServingCell({ row, workflow }: { row: QuickServingRow; work
             workflow.actions.discardQuickServing(row.key)
           }
         }}
-        className="h-8 w-24 text-center"
+        className="h-8 w-24 text-center text-slate-700"
         disabled={row.isConfirmed}
         aria-label={`Số suất ${row.dayLabel} ${row.shiftLabel}`}
       />

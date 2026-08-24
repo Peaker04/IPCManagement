@@ -374,7 +374,7 @@ export function PurchaseRequestHistoryState({
                   {formatWorkflowStatus(purchaseRequest.status)}
                 </StatusBadge>
               </div>
-              <div className="flex items-center justify-between text-xs text-slate-500">
+              <div className="flex items-center justify-between text-xs text-slate-700">
                 <span>
                   Ngày mua: {purchaseRequest.purchaseForDate}{" "}
                   {purchaseRequest.shiftName

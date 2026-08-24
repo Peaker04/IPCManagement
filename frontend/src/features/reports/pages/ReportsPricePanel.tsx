@@ -113,6 +113,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                 ? 'Chưa thể tải hàng đợi cảnh báo giá.'
                 : 'Không có nguyên liệu vượt ngưỡng trong kỳ này.'}
             className="h-[145px] overflow-y-auto"
+            scrollLabel="Hàng đợi cảnh báo giá có thể cuộn"
           />
         )}
 
@@ -157,7 +158,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="var(--ipc-slate-600)" />}
                             <span className="ipc-report-material-copy">
                               <span>{item.name}</span>
-                              <span className="text-xs font-normal text-slate-400">{item.supplier}</span>
+                              <span className="text-xs font-normal text-slate-600">{item.supplier}</span>
                             </span>
                           </span>
                         </td>
