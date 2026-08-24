@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Security;
 
 namespace IPCManagement.Api.Helpers;
@@ -96,6 +97,14 @@ public static class DeploymentConfigurationValidator
             throw new InvalidOperationException(
                 "Deployment configuration is not ready: " + string.Join(" ", errors));
         }
+    }
+
+    public static async Task ValidateOperationalWarehouseAsync(
+        IOperationalWarehouseResolver resolver,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        _ = await resolver.ResolveAsync(cancellationToken);
     }
 
     private static bool ContainsPlaceholder(string value)

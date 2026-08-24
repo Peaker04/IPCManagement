@@ -8,6 +8,7 @@ using IPCManagement.Api.HealthChecks;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.OpenApi;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -98,6 +99,7 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 DeploymentConfigurationValidator.Validate(builder.Configuration, builder.Environment);
 
 builder.Services.AddBackendServices(builder.Configuration);
+builder.Services.AddScoped<IOperationalWarehouseResolver, OperationalWarehouseResolver>();
 
 builder.Services.AddOptions<JwtSettings>()
     .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
@@ -322,6 +324,14 @@ static string GetRateLimitPartitionKey(HttpContext context)
 }
 
 var app = builder.Build();
+
+await using (var startupScope = app.Services.CreateAsyncScope())
+{
+    var operationalWarehouseResolver = startupScope.ServiceProvider
+        .GetRequiredService<IOperationalWarehouseResolver>();
+    await DeploymentConfigurationValidator.ValidateOperationalWarehouseAsync(
+        operationalWarehouseResolver);
+}
 
 // PHẢI đứng đầu pipeline: mọi middleware phía sau (HttpsRedirection, rate limiter phân partition
 // theo IP, log request) đều cần RemoteIpAddress/Scheme đã được sửa lại theo header của proxy.
