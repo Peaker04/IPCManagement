@@ -148,7 +148,13 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="ipc-auth-shell" data-ui-owner="uio-l" data-ui-floorplan="uif-l" data-ui-region="uir-l">
+    <main
+      aria-label="Đăng nhập IPC"
+      className="ipc-auth-shell"
+      data-ui-owner="uio-l"
+      data-ui-floorplan="uif-l"
+      data-ui-region="uir-l"
+    >
       <div className="ipc-auth-card">
         <div className="ipc-auth-header">
           <span className="ipc-auth-mark">
@@ -202,7 +208,7 @@ const LoginPage = () => {
 
         <DevLoginFallbackHint />
       </div>
-    </div>
+    </main>
   );
 };
 
