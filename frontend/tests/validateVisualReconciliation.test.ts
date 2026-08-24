@@ -176,7 +176,12 @@ describe('Phase 27.1 downstream readiness closure', () => {
   it('accepts exact authorized cumulative snapshots and deduplicates overlap',()=>{
     const paths=cumulativeRows.map(row=>row.owner);
     expect(validateClassAwareAccounting(cwd,matrix,cumulativeRows,[...paths,...paths])).toEqual(paths);
-    expect(validate().authorizedClassAwarePaths).toEqual(expect.arrayContaining(paths));
+    expect(validate().authorizedClassAwarePaths).toEqual([
+      'frontend/tests/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png',
+      'frontend/tests/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png',
+      'frontend/tests/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png',
+      'frontend/src/components/common/StockMovementTable.tsx',
+    ]);
   });
   it.each([
     ['path',(rows:any[])=>{rows[0].owner='frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png';}],

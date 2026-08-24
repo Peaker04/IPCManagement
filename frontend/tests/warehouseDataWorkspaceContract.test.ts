@@ -169,11 +169,13 @@ describe('Warehouse Data Workspace contract', () => {
     const input = JSON.parse(readFileSync(resolve(after, 'ai-rereview-input.json'), 'utf8'));
     const output = JSON.parse(readFileSync(resolve(after, 'ai-rereview.json'), 'utf8'));
     const attestation = JSON.parse(readFileSync(resolve(after, 'ai-rereview-attestation.json'), 'utf8'));
-    const digest = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');
+    const canonicalSourceDigest = (path: string) => createHash('sha256')
+      .update(readFileSync(path, 'utf8').replaceAll('\r\n', '\n'))
+      .digest('hex');
 
     expect(attestation).toMatchObject({ status: 'COMPLETE', context: 'fresh', mode: 'read-only' });
     expect(attestation.reviewerRunId).toBe(input.reviewerRunId);
-    expect(attestation.output.sha256).toBe(digest(resolve(after, 'ai-rereview.json')));
+    expect(attestation.output.sha256).toBe(canonicalSourceDigest(resolve(after, 'ai-rereview.json')));
     expect(output.findings.map(({ verdict }: { verdict: string }) => verdict)).toEqual(['RESOLVED', 'RESOLVED', 'RESOLVED']);
     expect(new Set(output.findings.map(({ id }: { id: string }) => id))).toEqual(new Set([
       'phase27-baseline-responsive-wide-rail-stacked',
