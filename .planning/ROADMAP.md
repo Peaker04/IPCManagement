@@ -89,7 +89,7 @@ Plans:
 
 ## Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation
 
-**Status:** RECOVERY PLANNED — immutable 28-01 authority intact; lost ignored baseline bytes require additive read-only recapture before remediation resumes
+**Status:** IN PROGRESS — Plan 28-01R pinned immutable attempt-3 recovery authority; Plan 28-02 may resume from preserved RED history
 
 **Goal:** Use the Phase 27 evidence architecture to audit and remediate the whole web application’s information hierarchy, typography, spacing, cards/data containers, tables, responsive behavior and accessibility. Present the real single operational warehouse without false choices or repeated scope while preserving warehouse identity in API, authorization, audit and data-integrity contracts.
 
@@ -129,7 +129,7 @@ Plans:
 Plans:
 
 - [x] 28-01-PLAN.md — seal the immutable read-only whole-web baseline and canonical reconciliation artifact (wave 1; historical tracked authority remains byte-exact).
-- [ ] 28-01R-PLAN.md — preserve the lost old hashes as LOST_NO_BACKUP, regenerate through production-route GET/HEAD-only measurement outside Playwright cleanup, and pin a new immutable recovery authority (wave 2; PUX recovery prerequisite).
+- [x] 28-01R-PLAN.md — preserve the lost old hashes as LOST_NO_BACKUP, regenerate through production-route GET/HEAD-only measurement outside Playwright cleanup, and pin a new immutable recovery authority (wave 2; PUX recovery prerequisite).
 - [ ] 28-02-PLAN.md — consume only the pinned recovery authority, reconcile the existing RED commit without treating it as complete, group exact FAIL findings, remediate Login/Dashboard/shared seams, and freeze bounded attribution (wave 3; PUX only).
 - [ ] 28-03-PLAN.md — execute the Purchasing tracer and emit an exact residual-key handoff (wave 4; PUX only).
 - [ ] 28-04-PLAN.md — close non-admin route-owner families and emit the exact admin residual handoff (wave 5; PUX only).

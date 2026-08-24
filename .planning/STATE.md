@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Phase 28 Plan 28-01R baseline recovery ready to execute
-last_updated: "2026-08-24T05:45:00.000Z"
+stopped_at: Completed 28-01R-PLAN.md
+last_updated: "2026-08-24T07:00:20.979Z"
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 36
-  completed_plans: 21
-  percent: 69
+  total_plans: 37
+  completed_plans: 22
+  percent: 72
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Preserved lost baseline truth and prepared fail-closed Plan 28-01R recovery
+last_activity: 2026-08-24 — Completed fail-closed Plan 28-01R recovery and pinned immutable attempt-3 authority
 ---
 
 # Project State
@@ -33,10 +33,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Stopped at:** Plan 28-01 complete; ignored sealed bytes were lost to Playwright output cleanup with no backup; recovery authority is planned and pending execution.
+**Last session:** 2026-08-24T07:00:20.951Z
+**Resume file:** None
+
+**Stopped at:** Completed 28-01R-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: execute Plan 28-01R into a new immutable `.artifacts/phase28-ui-audit` attempt root, pin fresh read-only evidence, then resume Plan 28-02 from its preserved RED commit.
+Next workflow: execute Plan 28-02 from its preserved RED commit using only the hash-pinned immutable attempt-3 recovery authority.
 
 ## Decisions
 
@@ -45,6 +48,9 @@ Next workflow: execute Plan 28-01R into a new immutable `.artifacts/phase28-ui-a
 - Use one audit harness; deterministic rules precede fresh AI review.
 - Prefer token → primitive → formatter/hook → layout → page fixes.
 - Keep one operational warehouse passive in routine UI; never erase technical identity or authorization boundaries.
+- [Phase 28]: Recovery selects immutable attempt-3; attempts 1 and 2 remain untouched failed history.
+- [Phase 28]: Duplicate H1 remains an owner-bearing measured HIER-01 FAIL; capture does not abort before metrics.
+- [Phase 28]: Historical baseline hashes remain LOST_NO_BACKUP and a8a4a9dc remains RED_RECONCILED_NOT_COMPLETE.
 
 ### Roadmap Evolution
 
@@ -53,4 +59,9 @@ Next workflow: execute Plan 28-01R into a new immutable `.artifacts/phase28-ui-a
 ### Blockers
 
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
-- Plan 28-02 remains blocked until Plan 28-01R produces and hash-pins a fresh authenticated GET/HEAD-only production-route baseline.
+
+## Performance Metrics
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 28 P01R | 35min | 3 tasks | 18 files |
