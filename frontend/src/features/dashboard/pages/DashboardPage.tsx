@@ -295,11 +295,11 @@ const DashboardPage = () => {
                 className="ipc-dashboard-signal"
               >
                 <span className="ipc-dashboard-signal-copy">
-                  <span className="ipc-dashboard-signal-label">{signal.label}</span>
+                  <span className="ipc-dashboard-signal-label !text-slate-700">{signal.label}</span>
                   <strong className={`ipc-dashboard-signal-number tone-${isDashboardLoading ? 'neutral' : signal.numberTone}`}>
                     {isDashboardLoading ? '—' : signal.value}
                   </strong>
-                  <small>{isDashboardLoading ? 'Đang tổng hợp' : signal.helper}</small>
+                  <small className="!text-slate-700">{isDashboardLoading ? 'Đang tổng hợp' : signal.helper}</small>
                 </span>
               </Link>
             ))}
@@ -351,7 +351,7 @@ const DashboardPage = () => {
               ) : visibleQueue.length === 0 ? (
                 <EmptyState
                   title="Không có việc cần xử lý trong ca này."
-                  className="ipc-dashboard-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left"
+                  className="ipc-dashboard-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left [&_p]:!text-slate-800"
                 />
               ) : (
                 visibleQueue.map((item, index) => (

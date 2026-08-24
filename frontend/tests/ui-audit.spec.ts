@@ -1120,6 +1120,19 @@ test.describe('Phase 28 login production-route baseline bridge', () => {
         };
       });
       const seriousViolations = axe.violations.filter(({ impact }) => impact === 'serious' || impact === 'critical');
+      const seriousAttribution = await page.evaluate((violations) => violations.flatMap((violation) => violation.nodes.map((node) => {
+        const selector = node.target[0];
+        const element = typeof selector === 'string' ? document.querySelector<HTMLElement>(selector) : null;
+        const style = element ? getComputedStyle(element) : null;
+        return {
+          ruleId: violation.id,
+          selector,
+          owner: element?.closest<HTMLElement>('[data-ui-owner]')?.dataset.uiOwner ?? null,
+          foreground: style?.color ?? null,
+          placeholderForeground: element ? getComputedStyle(element, '::placeholder').color : null,
+          background: style?.backgroundColor ?? null,
+        };
+      })), seriousViolations.map(({ id, nodes }) => ({ id, nodes: nodes.map(({ target }) => ({ target })) })));
       const identity = identityKey({ route: '/login', regionId: 'login-form', state: 'populated', actor: 'anonymous', viewport: viewport.id, lowestOwner: 'login-form' });
       const finding = (ruleId: string, passed: boolean, measured: Record<string, unknown>, expected: string) => routeMeasuredFinding({
         ruleId, identity, productionRouteMeasured: true, passed,
@@ -1129,7 +1142,7 @@ test.describe('Phase 28 login production-route baseline bridge', () => {
       const findings = [
         finding('HIER-01', metrics.h1Count === 1 && metrics.mainCount === 1, { h1Count: metrics.h1Count, mainCount: metrics.mainCount }, 'exactly one h1 inside one main landmark'),
         finding('HIER-02', metrics.blankControlNames === 0 && metrics.primaryActionCount === 1, { blankControlNames: metrics.blankControlNames, primaryActionCount: metrics.primaryActionCount }, 'named controls and exactly one primary action'),
-        finding('A11Y-01', seriousViolations.length === 0 && metrics.blankControlNames === 0, { seriousCount: seriousViolations.length, violationIds: seriousViolations.map(({ id }) => id), blankControlNames: metrics.blankControlNames }, 'zero serious/critical axe violations and zero unnamed controls'),
+        finding('A11Y-01', seriousViolations.length === 0 && metrics.blankControlNames === 0, { seriousCount: seriousViolations.length, violationIds: seriousViolations.map(({ id }) => id), blankControlNames: metrics.blankControlNames, attribution: seriousAttribution }, 'zero serious/critical axe violations and zero unnamed controls'),
         finding('RESP-01', metrics.documentOverflowPx <= 2 && metrics.ownerWithinViewport, { maximumDocumentOverflowPx: metrics.documentOverflowPx, ownerWithinViewport: metrics.ownerWithinViewport }, 'at most 2px document overflow and route owner within viewport'),
         finding('RESP-02', metrics.documentOverflowPx <= 2 && metrics.visibleControlCount === 3, { textZoomPercent, clippedDocumentPx: metrics.documentOverflowPx, visibleControlCount: metrics.visibleControlCount }, 'all three controls remain available without document clipping'),
       ];
@@ -1317,12 +1330,16 @@ test.describe('Phase 28 protected production-route ready cohort', () => {
           overflowPx:Math.max(0,document.documentElement.scrollWidth-innerWidth), ownerWithinViewport:rect.left>=-1&&rect.right<=innerWidth+1 };
       });
       const serious=axe.violations.filter(v=>v.impact==='serious'||v.impact==='critical');
+      const seriousAttribution=await page.evaluate((violations)=>violations.flatMap(violation=>violation.nodes.map(node=>{
+        const selector=node.target[0]; const element=typeof selector==='string'?document.querySelector<HTMLElement>(selector):null; const style=element?getComputedStyle(element):null;
+        return {ruleId:violation.id,selector,owner:element?.closest<HTMLElement>('[data-ui-owner]')?.dataset.uiOwner??null,foreground:style?.color??null,background:style?.backgroundColor??null};
+      })),serious.map(({id,nodes})=>({id,nodes:nodes.map(({target})=>({target}))})));
       const identity=identityKey({route:path,regionId,state,actor:actorName,viewport:viewport.id,lowestOwner:owner});
       const measured=(ruleId:string,pass:boolean,value:Record<string,unknown>,expected:string)=>routeMeasuredFinding({ruleId,identity,productionRouteMeasured:true,passed:pass,measured:{...value,captureMode:'production-route',route:metrics.route},expected,actual:JSON.stringify(value),lowestOwner:owner});
       const findings=[
         measured('HIER-01',metrics.h1Count===1&&metrics.mainCount===1,{h1Count:metrics.h1Count,mainCount:metrics.mainCount},'one h1 and one main'),
         measured('HIER-02',metrics.blankControlNames===0,{blankControlNames:metrics.blankControlNames},'zero unnamed visible controls'),
-        measured('A11Y-01',serious.length===0&&metrics.blankControlNames===0,{seriousCount:serious.length,violationIds:serious.map(v=>v.id),blankControlNames:metrics.blankControlNames},'zero serious/critical axe violations and unnamed controls'),
+        measured('A11Y-01',serious.length===0&&metrics.blankControlNames===0,{seriousCount:serious.length,violationIds:serious.map(v=>v.id),blankControlNames:metrics.blankControlNames,attribution:seriousAttribution},'zero serious/critical axe violations and unnamed controls'),
         measured('RESP-01',metrics.overflowPx<=2&&metrics.ownerWithinViewport,{maximumDocumentOverflowPx:metrics.overflowPx,ownerWithinViewport:metrics.ownerWithinViewport},'at most 2px overflow and owner within viewport'),
         measured('RESP-02',metrics.overflowPx<=2,{textZoomPercent:zoom,clippedDocumentPx:metrics.overflowPx},'no document clipping'),
       ];

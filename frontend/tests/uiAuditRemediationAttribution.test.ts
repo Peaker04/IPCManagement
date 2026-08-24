@@ -121,6 +121,17 @@ const loadPinnedRecovery = () => {
   return { authority, baseline };
 };
 
+const dashboardAuthorizedContrastIdentities = [
+  '/|dashboard-shift-status|error-no-data|authenticated|320x900|DashboardPage',
+  '/|dashboard-shift-status|populated|authenticated|1440x900|DashboardPage',
+  '/|dashboard-shift-status|truly-empty|authenticated|320x900@200%|DashboardPage',
+  '/|dashboard-shift-status|truly-empty|authenticated|320x900|DashboardPage',
+  '/|dashboard-workflow-exceptions|no-results|authenticated|320x900|DashboardPage',
+  '/|dashboard-workflow-exceptions|populated|authenticated|1440x900|DashboardPage',
+] as const;
+
+const dashboardPlanOnlyIdentity = '/|dashboard-workflow-exceptions|populated|authenticated|1920x1080|DashboardPage';
+
 describe('Phase 28 sealed remediation attribution', () => {
   it('validates immutable attempt/member hashes and historical loss before consuming findings', () => {
     const { authority } = loadPinnedRecovery();
@@ -152,6 +163,19 @@ describe('Phase 28 sealed remediation attribution', () => {
     expect([...groups.values()].flat().every(({ verdict }) => verdict === 'FAIL')).toBe(true);
     expect(needsEvidence).toHaveLength(47_208);
     expect(needsEvidence.every(({ verdict }) => verdict === 'NEEDS_EVIDENCE')).toBe(true);
+  });
+
+  it('pins every declared Dashboard contrast identity to its route owner', () => {
+    const { baseline } = loadPinnedRecovery();
+    const dashboardContrastFailures = sealedFailFindings(baseline).filter(({ ruleId, identity }) =>
+      ruleId === 'A11Y-01' && dashboardAuthorizedContrastIdentities.includes(identity as typeof dashboardAuthorizedContrastIdentities[number]));
+
+    expect(dashboardContrastFailures.map(({ identity }) => identity).sort())
+      .toEqual([...dashboardAuthorizedContrastIdentities].sort());
+    expect(dashboardContrastFailures.every(({ lowestOwner, actual }) =>
+      lowestOwner === 'DashboardPage' && actual?.includes('color-contrast'))).toBe(true);
+    expect(sealedFailFindings(baseline).some(({ ruleId, identity }) =>
+      ruleId === 'A11Y-01' && identity === dashboardPlanOnlyIdentity)).toBe(false);
   });
 
   it('keeps duplicate headings as owner-bearing measured HIER-01 failures', () => {

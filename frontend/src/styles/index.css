@@ -339,12 +339,21 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .ipc-main,
+  .ipc-empty-state,
+  .ipc-inline-alert-enter {
+    animation: none !important;
+  }
+}
+
+.ipc-main,
+.ipc-empty-state,
+.ipc-inline-alert-enter {
+  animation: none !important;
 }
 
 @media (min-width: 768px) {
-  .ipc-main,
-  .ipc-empty-state,
-  .ipc-inline-alert-enter,
   .ipc-main .animate-pulse {
     animation: none !important;
   }
