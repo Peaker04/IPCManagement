@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Completed 28-09-PLAN.md
-last_updated: "2026-08-24T16:22:30.206Z"
+stopped_at: Completed 28-10-PLAN.md
+last_updated: "2026-08-24T16:34:42.818Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 37
-  completed_plans: 31
-  percent: 84
+  completed_plans: 32
+  percent: 86
 current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Completed Plan 28-09 additive MySQL operational warehouse singleton schema and authorization-gated runbook
+last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust inventory and DTO/validator/filter compatibility
 ---
 
 # Project State
@@ -33,13 +33,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T16:22:30.183Z
+**Last session:** 2026-08-24T16:34:42.795Z
 **Resume file:** None
 
-**Stopped at:** Completed 28-09-PLAN.md
+**Stopped at:** Completed 28-10-PLAN.md
 **Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
 
-Next workflow: continue Phase 28 at Plan 28-10; keep migration application and warehouse activation separately authorized.
+Next workflow: continue Phase 28 at Plan 28-11; keep migration application and warehouse activation separately authorized.
 
 ## Decisions
 
@@ -68,6 +68,9 @@ Next workflow: continue Phase 28 at Plan 28-10; keep migration application and w
 - [Phase 28]: Plan 28-08 startup observation remains separate from Plan 28-09 additive schema and separately authorized activation.
 - [Phase 28]: OperationalSingletonKey is a non-writable MySQL-generated nullable discriminator with a normal unique index.
 - [Phase 28]: Migration application and operational warehouse activation remain separately operator-authorized checkpoints.
+- [Phase 28]: Plan 28-10 trust inventory is the sole mutable registry; Plans 28-11 through 28-13 consume it read-only.
+- [Phase 28]: Ordinary warehouse inputs accept omission for resolver derivation while supplied values remain compatibility claims requiring later exact service equality.
+- [Phase 28]: Response and internal warehouse identities remain intact for provenance, stock grain, audit, reports, purchasing, and lineage.
 
 ### Roadmap Evolution
 
@@ -90,3 +93,4 @@ Next workflow: continue Phase 28 at Plan 28-10; keep migration application and w
 | Phase 28 P07 | 32min | 2 tasks | 8 files |
 | Phase 28 P08 | 9min | 2 tasks | 8 files |
 | Phase 28 P09 | 8min | 2 tasks | 8 files |
+| Phase 28 P10 | 8min | 2 tasks | 8 files |
