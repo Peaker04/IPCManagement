@@ -3,13 +3,14 @@ using IPCManagement.Api.Migrations;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 
 namespace IPCManagement.Api.Tests;
 
 public sealed class MySqlOperationalWarehouseInvariantTests
 {
-    private const string Expression = "CASE WHEN `isOperationalActive` THEN 1 ELSE NULL END";
+    private const string Expression = "CASE WHEN IsOperationalActive THEN 1 ELSE NULL END";
 
     [Fact]
     public void MySqlSingleton_Model_UsesDatabaseGeneratedNullableDiscriminator()
@@ -20,11 +21,11 @@ public sealed class MySqlOperationalWarehouseInvariantTests
         var singleton = warehouse.FindProperty("OperationalSingletonKey")!;
 
         Assert.Equal(typeof(bool), active.ClrType);
-        Assert.Equal("isOperationalActive", active.GetColumnName());
+        Assert.Equal("IsOperationalActive", active.GetColumnName());
         Assert.True(singleton.IsShadowProperty());
         Assert.Equal(typeof(int?), singleton.ClrType);
         Assert.True(singleton.IsNullable);
-        Assert.Equal("operationalSingletonKey", singleton.GetColumnName());
+        Assert.Equal("OperationalSingletonKey", singleton.GetColumnName());
         Assert.Equal(Expression, singleton.GetComputedColumnSql());
         Assert.Equal(ValueGenerated.OnAddOrUpdate, singleton.ValueGenerated);
         Assert.Equal(PropertySaveBehavior.Ignore, singleton.GetBeforeSaveBehavior());
@@ -46,12 +47,12 @@ public sealed class MySqlOperationalWarehouseInvariantTests
 
         Assert.Equal(2, columns.Length);
 
-        var active = Assert.Single(columns, column => column.Name == "isOperationalActive");
+        var active = Assert.Single(columns, column => column.Name == "IsOperationalActive");
         Assert.Equal("warehouses", active.Table);
         Assert.False(active.IsNullable);
         Assert.Equal(false, active.DefaultValue);
 
-        var singleton = Assert.Single(columns, column => column.Name == "operationalSingletonKey");
+        var singleton = Assert.Single(columns, column => column.Name == "OperationalSingletonKey");
         Assert.Equal("warehouses", singleton.Table);
         Assert.True(singleton.IsNullable);
         Assert.Equal(Expression, singleton.ComputedColumnSql);
@@ -59,7 +60,7 @@ public sealed class MySqlOperationalWarehouseInvariantTests
         var unique = Assert.Single(indexes);
         Assert.Equal("uqWarehousesOperationalSingleton", unique.Name);
         Assert.Equal("warehouses", unique.Table);
-        Assert.Equal(new[] { "operationalSingletonKey" }, unique.Columns);
+        Assert.Equal(new[] { "OperationalSingletonKey" }, unique.Columns);
         Assert.True(unique.IsUnique);
         Assert.Null(unique.Filter);
 
@@ -84,7 +85,7 @@ public sealed class MySqlOperationalWarehouseInvariantTests
         Assert.Equal(3, inactiveKeys.Length);
         Assert.All(inactiveKeys, key => Assert.Null(key));
         Assert.Equal(2, activeKeys.Count(key => key == 1));
-        Assert.Equal(1, activeKeys.Where(key => key is not null).Distinct().Count());
+        Assert.Single(activeKeys.Where(key => key is not null).Distinct());
     }
 
     [Fact]

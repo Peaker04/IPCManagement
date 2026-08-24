@@ -914,6 +914,14 @@ internal sealed class WarehouseConfiguration : IEntityTypeConfiguration<Warehous
 
         entity.HasIndex(e => e.WarehouseCode, "warehouseCode").IsUnique();
 
+        entity.Property<int?>("OperationalSingletonKey")
+            .HasColumnName("OperationalSingletonKey")
+            .HasComputedColumnSql("CASE WHEN IsOperationalActive THEN 1 ELSE NULL END", stored: false);
+
+        entity.HasIndex("OperationalSingletonKey")
+            .HasDatabaseName("uqWarehousesOperationalSingleton")
+            .IsUnique();
+
         entity.Property(e => e.WarehouseId)
             .HasMaxLength(16)
             .IsFixedLength()
@@ -927,6 +935,9 @@ internal sealed class WarehouseConfiguration : IEntityTypeConfiguration<Warehous
         entity.Property(e => e.WarehouseName)
             .HasMaxLength(150)
             .HasColumnName("warehouseName");
+        entity.Property(e => e.IsOperationalActive)
+            .HasDefaultValue(false)
+            .HasColumnName("IsOperationalActive");
         entity.Property(e => e.WarehouseType)
             .HasDefaultValueSql("'KHAC'")
             .HasColumnType("enum('PHULIEUGIAVI','TUOI','DONGLANH','KHAC')")
