@@ -89,6 +89,18 @@ const evidence = {
   reflowChecks: [],
   preferenceFlows: [],
   attributionTraces: [],
+  phase29Contract: {
+    modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'],
+    roles: ['Admin', 'Purchasing', 'Warehouse', 'retained-permission-denied'],
+    requiredViewports: allViewports.map(({ name }) => name),
+    verdicts: ['navigation', 'direct-route', 'bundle-preload', 'data-preload', 'action'],
+    twoSessionRelocation: null,
+    databaseInvariants: ['purchaseRequests', 'purchaseOrders', 'receipts', 'issues', 'movements', 'lots', 'snapshots', 'currentStock'],
+    immutableHistory: null,
+    focusAndReload: null,
+    performanceDisposition: { cls: null, longTasks: null },
+    ownedProcessTeardown: null,
+  },
 };
 
 const context = await chromium.launchPersistentContext(profile, {
