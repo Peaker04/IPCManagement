@@ -30,6 +30,15 @@ Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được tea
 count là `0`. Các PID/runtime khác nếu còn mở nằm ngoài run này và không bị chạm. Runtime warehouse development
 `3020/8020` nếu còn mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
+## Phase 29 discovery checkpoint · 25/08/2026
+
+- Kỳ approved one **server-authoritative system-wide operation mode**, mutable only by Admin: UI labels `Mặc định` and `Đối chiếu nguyên liệu`; stable internal values are `DEFAULT` and `MATERIAL_RECONCILIATION`. `localStorage` is not authority. Mode eligibility is enforced with existing permissions and direct excluded routes use a mode-unavailable state, not `/403`.
+- Reconciliation mode retains Tổng quan, Thực đơn tuần, Thu mua, Kho nguyên liệu, Báo cáo, Quản trị dữ liệu and Admin-only Thiết lập nâng cao. It excludes Điều phối đơn, Duyệt vận hành, Bếp trưởng and Thiết lập quy trình duyệt for every role, including Admin.
+- Each import creates an immutable reconciliation batch at grain `batch × ingredient identity × canonical unit`. Demand and tolerance freeze when Purchasing starts actual entry. Compare purchased−required, issued−required and purchased−issued; always show exact differences and mark `Cần kiểm tra` only beyond the frozen tolerance.
+- The clarity rules apply to both modes and therefore the whole current default project: remove redundant notes and implementation-language copy, consolidate empty states to one state plus one authorized next action, shorten technical document codes only with full-value inspect/copy/search support, prioritize decision-bearing table columns, and enforce consistent spacing/alignment/truncation/visual hierarchy without erasing business meaning or audit identity.
+- Discovery authority: `.planning/notes/system-operation-mode-and-material-reconciliation.md`. Phase seed: `.planning/phases/29-system-operation-mode-and-material-reconciliation/29-SPEC-SEED.md`. Requirements: OPM-01..04, MRC-01..04, CLR-01..03. No Phase 29 production code or DB mutation has started.
+- **Next session:** read `AGENTS.md` and this file only, verify clean/dirty Git state, then open the two Phase 29 authority files above and run Phase 29 research/spec/discussion before planning. Do not reopen Phase 28 or repeat its activation.
+
 ## Phase 28 complete · 24/08/2026
 
 - Plans 28-01/01R..15 complete. Project-wide UI authority remains 2,142 identities × 32 rules; selected remediation run is byte-stable with actionable FAIL 0, honest NEEDS_EVIDENCE 47,208, and blind review preserved all 2,142 identities as NEEDS_EVIDENCE.

@@ -5,6 +5,7 @@
 - [x] **Phase 27: Warehouse Data Workspace contract pilot** — complete; fresh Warehouse verification and reviewer reconciliation pass.
 - [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
 - [x] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
+- [ ] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
@@ -144,3 +145,30 @@ Plans:
 - [x] 28-13-PLAN.md — regenerate contracts and require exact one-disposition impact-map closure (wave 14; SWH-02/SWH-03).
 - [x] 28-14-PLAN.md — replace frontend selection with passive exact-cardinality context and fail-closed commands (wave 15; SWH-01/SWH-02/SWH-03).
 - [x] 28-15-PLAN.md — execute exact-three regression plus full static/build/docs closeout (wave 16; SWH-01/SWH-02/SWH-03).
+
+## Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup
+
+**Status:** DISCOVERY LOCKED — requirements and spec seed captured; research/discuss/plan not yet executed
+
+**Goal:** Introduce one server-authoritative, Admin-controlled operation mode with `DEFAULT` and `MATERIAL_RECONCILIATION`; deliver an immutable reconciliation-batch workflow comparing required, purchased and issued material quantities; and apply concise user-language, table-density, empty-state and visual-hierarchy rules across the current default project and the new branch.
+
+**Requirements:** OPM-01, OPM-02, OPM-03, OPM-04, MRC-01, MRC-02, MRC-03, MRC-04, CLR-01, CLR-02, CLR-03
+
+**Depends on:** Phase 28 COMPLETE
+
+**Locked scope:**
+
+- `DEFAULT` preserves the complete current golden path.
+- `MATERIAL_RECONCILIATION` retains Dashboard, Weekly Menu, Purchasing, Warehouse, Reports, Admin Data and Admin-only Advanced Settings.
+- Coordination, Approvals, Chef Dashboard and Approval Rules are unavailable in reconciliation mode for every role, including Admin.
+- Existing permissions remain authoritative within mode-eligible routes.
+- Each import creates a frozen reconciliation batch at grain `batch × ingredient identity × canonical unit`.
+- Exact required/purchased/issued differences remain visible; warning verdicts use the tolerance frozen with the batch.
+- Project-wide clarity rules apply to both modes: remove redundant notes, implementation-language copy, meaningless full-code display, inconsistent spacing/alignment, uncontrolled truncation and weak visual hierarchy without erasing audit identity or business meaning.
+
+**Discovery authority:**
+
+- `.planning/notes/system-operation-mode-and-material-reconciliation.md`
+- `.planning/phases/29-system-operation-mode-and-material-reconciliation/29-SPEC-SEED.md`
+
+**Next workflow:** Run Phase 29 research/spec/discussion before creating implementation plans. No production code or database mutation is authorized by this roadmap entry alone.

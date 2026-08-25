@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: complete
-stopped_at: Completed 28-15-PLAN.md
-last_updated: "2026-08-24T19:19:04.232Z"
+status: active
+stopped_at: Phase 29 discovery locked; research/spec/discussion pending
+last_updated: "2026-08-25T08:55:00+07:00"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
   total_plans: 37
   completed_plans: 37
-  percent: 100
-current_phase_name: project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
-last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust inventory and DTO/validator/filter compatibility
+  percent: 75
+current_phase_name: system-operation-mode-and-material-reconciliation
+last_activity: 2026-08-25 — Captured Phase 29 global mode, reconciliation and project-wide clarity discovery authority
 ---
 
 # Project State
@@ -21,25 +21,25 @@ last_activity: 2026-08-24 — Completed Plan 28-10 exact warehouse trust invento
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 28 complete — project-wide-ui-ux-contract-rollout-and-single-warehouse-pre
+**Current focus:** Phase 29 discovery — system-operation-mode-and-material-reconciliation
 
 ## Current Status
 
-- Phase 27 and Phase 27.1 are COMPLETE; their evidence architecture is the foundation, not the final project-wide UI outcome.
-- Kỳ explicitly authorized whole-web research, audit and evidence-backed presentation corrections on 23/08/2026.
-- Standards research and source inventory are captured in the Phase 28 directory.
-- No Phase 28 production edit is authorized until the deterministic audit contract and read-only baseline identify exact owners.
-- Business truth: one operational warehouse stores all materials. UI should remove false choice/repetition while retaining warehouse IDs and server enforcement.
+- Phases 27, 27.1 and 28 are COMPLETE; their evidence architecture remains mandatory for Phase 29 UI correction.
+- Kỳ locked one server-authoritative system-wide mode, mutable only by Admin: `DEFAULT` or `MATERIAL_RECONCILIATION`.
+- Reconciliation mode retains Dashboard, Weekly Menu, Purchasing, Warehouse, Reports, Admin Data and Admin-only Advanced Settings; it excludes Coordination, Approvals, Chef Dashboard and Approval Rules for every role.
+- Each import creates an immutable reconciliation batch at grain `batch × ingredient identity × canonical unit`; required/purchased/issued comparisons use tolerance frozen with the batch.
+- Project-wide copy/table/empty-state/hierarchy cleanup applies to both modes, including the current default project. No production edit is authorized until Phase 29 research/spec/discussion and planning close their ambiguities.
 
 ## Session Continuity
 
-**Last session:** 2026-08-24T19:19:04.204Z
-**Resume file:** None
+**Last session:** 2026-08-25T08:55:00+07:00
+**Resume file:** `.planning/phases/29-system-operation-mode-and-material-reconciliation/29-SPEC-SEED.md`
 
-**Stopped at:** Completed 28-15-PLAN.md
-**Resume directory:** `.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre`
+**Stopped at:** Phase 29 discovery decisions captured; implementation has not started
+**Resume directory:** `.planning/phases/29-system-operation-mode-and-material-reconciliation`
 
-Next workflow: select the next explicitly authorized phase; Phase 28 operational database state and rollback artifacts remain unchanged.
+Next workflow: read the Phase 29 discovery note and spec seed, then run research/spec/discussion before planning. Phase 28 operational database state and rollback artifacts remain unchanged.
 
 ## Decisions
 
@@ -78,6 +78,7 @@ Next workflow: select the next explicitly authorized phase; Phase 28 operational
 ### Roadmap Evolution
 
 - Phase 28 added: Project-wide UI/UX contract rollout and single-warehouse presentation.
+- Phase 29 added: System operation mode, material reconciliation and project-wide clarity cleanup.
 
 ### Blockers
 

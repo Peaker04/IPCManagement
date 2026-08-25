@@ -41,6 +41,26 @@
 - [ ] **SWH-02:** Warehouse identity remains present in API payloads, authorization, audit events, deep links/exports where required, and database/data-grain contracts; client presentation never weakens server enforcement.
 - [ ] **SWH-03:** Harness coverage proves zero warehouse blocks safely, one warehouse removes false choice, and unexpected multiple authorized warehouses fail closed or expose an explicit selector rather than silently merging data.
 
+## System operation mode
+
+- [ ] **OPM-01:** The active operation mode is one server-authoritative system-wide value: `DEFAULT` or `MATERIAL_RECONCILIATION`; browser storage and per-user preferences cannot override it.
+- [ ] **OPM-02:** Only Admin may change the mode, with confirmation, persisted actor/time audit, frontend cache invalidation and safe relocation from newly unavailable routes; mode changes never delete workflow data.
+- [ ] **OPM-03:** Mode eligibility and existing permission checks are both enforced. Mode never grants permission, and direct access to an excluded route returns an explicit mode-unavailable state rather than a false permission denial.
+- [ ] **OPM-04:** Reconciliation mode retains Dashboard, Weekly Menu, Purchasing, Warehouse, Reports, Admin Data and Admin-only Advanced Settings, while excluding Coordination, Approvals, Chef Dashboard and Approval Rules for every role.
+
+## Material reconciliation branch
+
+- [ ] **MRC-01:** Every menu/meal import creates an independently identified reconciliation batch at grain `batch × ingredient identity × canonical unit`.
+- [ ] **MRC-02:** Demand and applicable tolerance are frozen when Purchasing begins entering actual quantities; later menu or configuration changes cannot rewrite historical batch results.
+- [ ] **MRC-03:** Each ingredient exposes exact required, purchased and issued quantities plus purchase variance, issue variance and purchase-to-issue flow gap, with full source identity and audit provenance retained.
+- [ ] **MRC-04:** The UI always shows exact differences and marks `Cần kiểm tra` only when the frozen tolerance is exceeded; default views prioritize exceptions and offer a secondary all-row view.
+
+## Project-wide clarity and density
+
+- [ ] **CLR-01:** Both operation modes use concise user-language copy: each region states the current condition and at most one authorized next action without duplicated headings, implementation vocabulary or stacked explanatory notes.
+- [ ] **CLR-02:** Tables prioritize decision-bearing fields, use consistent type-correct alignment and spacing, shorten technical identifiers only with full-value inspection/copy/search support, and preserve raw IDs in API/export/audit/lineage.
+- [ ] **CLR-03:** Empty states, cards, badges, spacing and visual hierarchy are corrected at the lowest demonstrated owner using semantic DOM/geometry/runtime evidence; screenshots alone cannot authorize cleanup and business meaning cannot be removed.
+
 ## Out of scope for the Warehouse phase
 
 - Replacing shadcn/Base UI with SAP UI5, Carbon or another component stack.
@@ -58,5 +78,8 @@
 | WHP-01..03 | 27 | Complete |
 | WHP-04 | 27 | Complete |
 | VREC-01..04 | 27.1 | Complete |
-| PUX-01..06 | 28 | Researching |
-| SWH-01..03 | 28 | Researching |
+| PUX-01..06 | 28 | Complete |
+| SWH-01..03 | 28 | Complete |
+| OPM-01..04 | 29 | Discovery locked |
+| MRC-01..04 | 29 | Discovery locked |
+| CLR-01..03 | 29 | Discovery locked |
