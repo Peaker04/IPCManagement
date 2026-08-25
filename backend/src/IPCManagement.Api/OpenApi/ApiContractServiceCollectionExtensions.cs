@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 
@@ -10,7 +11,7 @@ public static class ApiContractServiceCollectionExtensions
 {
     public static IServiceCollection AddApiContractServices(this IServiceCollection services)
     {
-        services.AddControllers()
+        services.AddControllers(options => options.Filters.AddService<SystemOperationModeFilter>())
             .AddApplicationPart(typeof(Program).Assembly)
             .AddJsonOptions(options =>
             {

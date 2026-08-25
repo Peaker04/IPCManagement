@@ -16,6 +16,9 @@ using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Infrastructure.LifecycleOutbox;
 using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Features.SystemOperation.Initialization;
+using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Features.Reconciliation.Services;
 
 namespace IPCManagement.Api;
 
@@ -49,8 +52,19 @@ public static class DependencyInjection
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<SystemOperationRequestContext>();
+        services.AddScoped<SystemOperationModeGuard>();
+        services.AddScoped<SystemOperationModeFilter>();
+        services.AddScoped<SystemOperationModeService>();
+        services.AddScoped<SystemOperationModeInitializer>();
+        services.AddScoped<ReconciliationBatchService>();
+        services.AddScoped<ReconciliationActualService>();
+        services.AddScoped<ReconciliationCompletionService>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>
-            new EfTransactionRunner(serviceProvider.GetRequiredService<IpcManagementContext>()));
+            new EfTransactionRunner(
+                serviceProvider.GetRequiredService<IpcManagementContext>(),
+                serviceProvider.GetRequiredService<SystemOperationRequestContext>(),
+                serviceProvider.GetRequiredService<SystemOperationModeGuard>()));
         services.AddScoped<ILifecycleTransitionRecorder, LifecycleTransitionRecorder>();
         services.AddScoped<ILifecycleOutboxProcessor, LifecycleOutboxProcessor>();
         services.AddScoped<ILifecycleOutboxAdminService, LifecycleOutboxAdminService>();
