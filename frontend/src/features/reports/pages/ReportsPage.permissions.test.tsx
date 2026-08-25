@@ -147,6 +147,13 @@ const renderReportsPage = (role: TestRole, initialPath = '/reports') => {
   );
 };
 
+const renderPriceReportsPage = async (role: TestRole, initialPath = '/reports') => {
+  // Resolve the lazy price panel before rendering so aggregate CPU contention cannot
+  // consume the assertion window while Vite transforms the dynamic import.
+  await import('./ReportsPricePanel');
+  return renderReportsPage(role, initialPath);
+};
+
 const tabNames = () => screen.getAllByRole('tab').map((tab) => tab.textContent);
 
 const PURCHASE_ACCESS_TABS = ['Biến động giá', 'Kế hoạch thu mua'];
@@ -186,7 +193,7 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
   });
 
   it('shows price tabs to Thu mua but keeps the audit log admin-only', async () => {
-    renderReportsPage('thumua');
+    await renderPriceReportsPage('thumua');
 
     PURCHASE_ACCESS_TABS.forEach((label) => {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
@@ -197,7 +204,7 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
   });
 
   it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', async () => {
-    renderReportsPage('thukho');
+    await renderPriceReportsPage('thukho');
 
     // receipt-price-variance dùng PurchaseOrderReadAccess nên Thủ kho vẫn xem được dòng nhập.
     expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
@@ -229,7 +236,7 @@ describe('ReportsPage falls back when the URL points at a forbidden tab', () => 
   });
 
   it('keeps Thủ kho on the allowed price sub tab when the URL asks for a PurchaseAccess aggregate', async () => {
-    renderReportsPage('thukho', '/reports?view=price&subview=supplier');
+    await renderPriceReportsPage('thukho', '/reports?view=price&subview=supplier');
 
     expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(mocks.priceVarianceBySupplierPage).toHaveBeenCalledWith(expect.anything(), { skip: true });

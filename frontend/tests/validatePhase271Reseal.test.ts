@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   PAYLOAD_PATHS,
   MARKER_PATH,
@@ -23,7 +24,7 @@ import {
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 const commit = (cwd: string, message: string) => { git(cwd, 'add', '.'); git(cwd, 'commit', '-m', message); return git(cwd, 'rev-parse', 'HEAD'); };
 const put = (cwd: string, path: string, value: string) => { const absolute = join(cwd, path); mkdirSync(join(absolute, '..'), { recursive: true }); writeFileSync(absolute, value); };
-const sha = (cwd: string, path: string) => execFileSync('node', ['-e', `const{createHash}=require('crypto'),{readFileSync}=require('fs');process.stdout.write(createHash('sha256').update(readFileSync(${JSON.stringify(join(cwd, path))})).digest('hex'))`], { encoding: 'utf8' });
+const sha = (cwd: string, path: string) => createHash('sha256').update(readFileSync(join(cwd, path))).digest('hex');
 
 function fixture() {
   const cwd = mkdtempSync(join(tmpdir(), 'phase271-01w-'));
@@ -46,15 +47,28 @@ function fixture() {
 const mutate = (request: SealRequest, change: (copy: SealRequest) => void) => { const copy = structuredClone(request); change(copy); return copy; };
 
 describe('Phase 27.1 01W disjoint topology validator', () => {
+  let value: ReturnType<typeof fixture>;
+
+  beforeAll(() => {
+    value = fixture();
+  });
+
+  afterAll(() => {
+    rmSync(value.cwd, { recursive: true, force: true });
+  });
+
   it('accepts exact planning predecessor -> payload -> immediate marker-only topology', () => {
-    const value = fixture();
     expect(() => validateSeal(value.request)).not.toThrow();
   });
 
   it('seal remains valid when process current HEAD is unrelated', () => {
-    const value = fixture();
-    put(value.cwd, 'unrelated.txt', 'later'); commit(value.cwd, 'unrelated live head');
-    expect(() => validateSeal(value.request)).not.toThrow();
+    const unrelated = fixture();
+    try {
+      put(unrelated.cwd, 'unrelated.txt', 'later'); commit(unrelated.cwd, 'unrelated live head');
+      expect(() => validateSeal(unrelated.request)).not.toThrow();
+    } finally {
+      rmSync(unrelated.cwd, { recursive: true, force: true });
+    }
   });
 
   it.each([
@@ -66,8 +80,7 @@ describe('Phase 27.1 01W disjoint topology validator', () => {
     ['payload-to-marker reference', (x: any) => { x.manifest.markerCommit = x.markerCommit; }],
     ['marker-to-payload cycle', (x: any) => { x.marker.references = [x.payloadCommit, x.markerCommit]; }],
   ])('rejects %s', (_label, change) => {
-    const { request } = fixture();
-    expect(() => validateSeal(mutate(request, change))).toThrow();
+    expect(() => validateSeal(mutate(value.request, change))).toThrow();
   });
 
   it.each([
@@ -81,27 +94,23 @@ describe('Phase 27.1 01W disjoint topology validator', () => {
     ['artifact hash mismatch', (x: any) => { x.manifest.artifactPins[0].sha256 = '0'.repeat(64); }],
     ['collapsed historical root', (x: any) => { x.invalid01vCommit = x.focused01fCommit; }],
   ])('rejects %s', (_label, change) => {
-    const { request } = fixture();
-    expect(() => validateSeal(mutate(request, change))).toThrow();
+    expect(() => validateSeal(mutate(value.request, change))).toThrow();
   });
 
   it('rejects live-head inputs in seal mode', () => {
-    const { request } = fixture();
-    expect(() => validateSeal({ ...request, expectedLiveHead: request.markerCommit } as SealRequest)).toThrow(/expectedLiveHead/);
+    expect(() => validateSeal({ ...value.request, expectedLiveHead: value.request.markerCommit } as SealRequest)).toThrow(/expectedLiveHead/);
   });
 
   it('downstream requires and compares caller expected live head', () => {
-    const { cwd, marker } = fixture();
-    expect(() => validateDownstream(cwd, marker)).not.toThrow();
-    expect(() => validateDownstream(cwd, '')).toThrow(/required/);
-    expect(() => validateDownstream(cwd, '0'.repeat(40))).toThrow(/mismatch/);
+    expect(() => validateDownstream(value.cwd, value.marker)).not.toThrow();
+    expect(() => validateDownstream(value.cwd, '')).toThrow(/required/);
+    expect(() => validateDownstream(value.cwd, '0'.repeat(40))).toThrow(/mismatch/);
   });
 
   it('closed schemas reject unknown and forbidden live/self claims independently', () => {
-    const { manifest } = fixture();
-    expect(() => validateTopologyDocument(manifest, 'READY_TO_SEAL')).not.toThrow();
+    expect(() => validateTopologyDocument(value.manifest, 'READY_TO_SEAL')).not.toThrow();
     for (const field of ['expectedLiveHead', 'selfCommit', 'selfHash']) {
-      expect(() => validateTopologyDocument({ ...manifest, [field]: 'x' }, 'READY_TO_SEAL')).toThrow(/schema|forbidden/);
+      expect(() => validateTopologyDocument({ ...value.manifest, [field]: 'x' }, 'READY_TO_SEAL')).toThrow(/schema|forbidden/);
     }
   });
 });
