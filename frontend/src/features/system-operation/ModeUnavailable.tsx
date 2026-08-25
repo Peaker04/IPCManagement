@@ -1,0 +1,1 @@
+export function ModeUnavailable() { return <section className="ipc-operational-frame" role="status"><h2>Chức năng không khả dụng</h2><p>Chức năng này không sử dụng trong chế độ Đối chiếu nguyên liệu.</p></section> }

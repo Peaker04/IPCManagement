@@ -11,6 +11,8 @@ import { apiSlice } from '@/api/apiSlice';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
 import { readNavigationPreferences, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { isRouteEligible } from '@/features/system-operation/systemOperationEligibility';
 import {
   ChefHat,
   LayoutDashboard,
@@ -66,6 +68,7 @@ export const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
+  const systemOperation = useSystemOperation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [navigationPreferences, setNavigationPreferences] = useState(readNavigationPreferences);
 
@@ -76,11 +79,12 @@ export const MainLayout = () => {
 
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
   const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
+    if (systemOperation && !isRouteEligible(systemOperation.mode, item.path)) return false;
     if (!navigationPreferences[item.preferenceKey]) return false;
     if (!item.requiredPermissions) return true;
     if (isAdmin) return true;
     return item.requiredPermissions.some((perm) => currentUser?.permissions?.includes(perm));
-  }), [currentUser?.permissions, isAdmin, navigationPreferences]);
+  }), [currentUser?.permissions, isAdmin, navigationPreferences, systemOperation]);
 
   useEffect(() => {
     const refresh = () => setNavigationPreferences(readNavigationPreferences());
@@ -245,6 +249,7 @@ export const MainLayout = () => {
               <CalendarDays size={16} />
               <span>{serviceDate}</span>
             </div>
+            {systemOperation && <div className="ipc-header-chip" aria-label="Chế độ vận hành"><SlidersHorizontal size={16} /><span>{systemOperation.label}</span></div>}
             <HeaderShiftContext
               isCoordination={location.pathname === ROUTES.MEAL_ORDERS}
               owner={workflowContext.lane.owner}

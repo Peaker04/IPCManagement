@@ -4,6 +4,8 @@ import { ROUTES } from '@/lib/routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '@/app/layout/MainLayout';
+import { SystemOperationProvider } from '@/features/system-operation/SystemOperationProvider';
+import { ModeGuard } from '@/features/system-operation/ModeGuard';
 import {
   AdminDataPage,
   ApprovalPage,
@@ -61,18 +63,18 @@ export const AppRouter = () => {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<MainLayout />}>
+          <Route element={<SystemOperationProvider><MainLayout /></SystemOperationProvider>}>
             <Route path={ROUTES.FORBIDDEN} element={<Suspense fallback={routeFallback}><ForbiddenPage /></Suspense>} />
             <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={routeFallback}><DashboardPage /></Suspense>} />
-            <Route path={ROUTES.WEEKLY_MENU} element={<RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><WeeklyMenuPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.REPORTS} element={<RoleGuard requiredPermissions={['report.read']}><Suspense fallback={routeFallback}><ReportsPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.MEAL_ORDERS} element={<RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><CoordinationPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.CHEF_DASHBOARD} element={<RoleGuard requiredPermissions={['production.read']}><Suspense fallback={routeFallback}><ChefDashboardPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.APPROVALS} element={<RoleGuard requiredPermissions={['purchase.request.approve']}><Suspense fallback={routeFallback}><ApprovalPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.WEEKLY_MENU} element={<ModeGuard><RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><WeeklyMenuPage /></Suspense></RoleGuard></ModeGuard>} />
+            <Route path={ROUTES.REPORTS} element={<ModeGuard><RoleGuard requiredPermissions={['report.read']}><Suspense fallback={routeFallback}><ReportsPage /></Suspense></RoleGuard></ModeGuard>} />
+            <Route path={ROUTES.MEAL_ORDERS} element={<ModeGuard><RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><CoordinationPage /></Suspense></RoleGuard></ModeGuard>} />
+            <Route path={ROUTES.CHEF_DASHBOARD} element={<ModeGuard><RoleGuard requiredPermissions={['production.read']}><Suspense fallback={routeFallback}><ChefDashboardPage /></Suspense></RoleGuard></ModeGuard>} />
+            <Route path={ROUTES.APPROVALS} element={<ModeGuard><RoleGuard requiredPermissions={['purchase.request.approve']}><Suspense fallback={routeFallback}><ApprovalPage /></Suspense></RoleGuard></ModeGuard>} />
             <Route path={ROUTES.PURCHASING} element={<RoleGuard requiredPermissions={['purchase.read']}><Suspense fallback={routeFallback}><PurchasingPage /></Suspense></RoleGuard>} />
             <Route path={ROUTES.WAREHOUSE} element={<RoleGuard requiredPermissions={['warehouse.read']}><Suspense fallback={routeFallback}><WarehousePage /></Suspense></RoleGuard>} />
             <Route path={ROUTES.ADMIN_DATA} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdminDataPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.APPROVAL_RULES} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><ApprovalRulesPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.APPROVAL_RULES} element={<ModeGuard><RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><ApprovalRulesPage /></Suspense></RoleGuard></ModeGuard>} />
             <Route path={ROUTES.ADVANCED_SETTINGS} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdvancedDisplaySettingsPage /></Suspense></RoleGuard>} />
           </Route>
         </Route>

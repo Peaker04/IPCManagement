@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, SectionPanel, StatusBadge, useToast } from '@/components/common';
 import { cn } from '@/lib/utils';
+import { useGetSystemOperationModeQuery, useChangeSystemOperationModeMutation } from '@/features/system-operation/systemOperationApi';
 import {
   defaultNavigationPreferences,
   readNavigationPreferences,
@@ -283,6 +284,8 @@ const PageTabGroupCard = memo(function PageTabGroupCard({
 });
 
 export function AdvancedDisplaySettings() {
+  const { data: systemOperation, isError: isSystemOperationError } = useGetSystemOperationModeQuery();
+  const [changeSystemOperationMode, { isLoading: isChangingMode }] = useChangeSystemOperationModeMutation();
   const { toast } = useToast();
   const [preferences, setPreferences] = useState(() => readNavigationPreferences());
   const [tabPreferences, setTabPreferences] = useState(() => readPageTabPreferences());
@@ -391,6 +394,23 @@ export function AdvancedDisplaySettings() {
 
   return (
     <div className="space-y-6 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
+      {isSystemOperationError && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">Không tải được chế độ vận hành. Vui lòng thử lại.</p>}
+      {systemOperation && (
+        <SectionPanel title="Chế độ vận hành toàn hệ thống" icon={<SlidersHorizontal size={18} />} description="Chỉ quản trị viên thay đổi. Mọi người dùng đọc cùng một chế độ từ máy chủ.">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><p className="text-sm font-semibold text-slate-800">{systemOperation.label}</p><p className="text-xs text-slate-600">Phiên bản {systemOperation.version}</p></div>
+            <Button type="button" disabled={isChangingMode} onClick={async () => {
+              const nextMode = systemOperation.mode === 'DEFAULT' ? 'MATERIAL_RECONCILIATION' : 'DEFAULT';
+              const nextLabel = nextMode === 'DEFAULT' ? 'Mặc định' : 'Đối chiếu nguyên liệu';
+              if (!window.confirm(`Chuyển toàn hệ thống sang chế độ ${nextLabel}?`)) return;
+              const reason = systemOperation.reasonRequired ? window.prompt('Hệ thống đang có công việc chưa hoàn tất. Nhập lý do thay đổi:') ?? '' : undefined;
+              if (systemOperation.reasonRequired && !reason?.trim()) return;
+              await changeSystemOperationMode({ mode: nextMode, expectedVersion: systemOperation.version, confirmed: true, reason }).unwrap();
+            }}>Chuyển chế độ</Button>
+          </div>
+        </SectionPanel>
+      )}
+
       {/* Top Actions & Summary Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
