@@ -11,6 +11,41 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationServiceTests
 {
+    [Theory]
+    [InlineData("ACTIVE", true)]
+    [InlineData("PUBLISHED", true)]
+    [InlineData("DRAFT", false)]
+    [InlineData("ARCHIVED", false)]
+    public async Task Draft_source_listing_uses_canonical_published_compatible_status(string status, bool expected)
+    {
+        await using var context = CreateContext();
+        SeedDraftSource(context, status, "COMPLETED");
+        await context.SaveChangesAsync();
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        var sources = await service.ListDraftSourcesAsync();
+
+        Assert.Equal(expected, sources.Count == 1);
+    }
+
+    [Theory]
+    [InlineData("ACTIVE")]
+    [InlineData("PUBLISHED")]
+    public async Task Draft_sources_API_returns_published_compatible_sources(string status)
+    {
+        await using var context = CreateContext();
+        SeedDraftSource(context, status, "COMPLETED");
+        await context.SaveChangesAsync();
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+        var controller = new IPCManagement.Api.Features.Reconciliation.Controllers.ReconciliationBatchesController(service, null!, null!);
+
+        var response = await controller.DraftSources(default);
+
+        var ok = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(response);
+        var payload = Assert.IsType<ApiResponse<IReadOnlyList<ReconciliationDraftSourceDto>>>(ok.Value);
+        Assert.Single(payload.Data!);
+    }
+
     [Fact]
     public async Task CreateDraft_rejects_direct_request_for_unpublished_exact_source_pair()
     {
@@ -209,6 +244,21 @@ public sealed class ReconciliationServiceTests
         OperationKey = "reconciliation.test",
         ExpectedModeVersion = 1
     };
+
+    private static void SeedDraftSource(IpcManagementContext context, string menuVersionStatus, string importStatus)
+    {
+        var menuVersionId = GuidHelper.NewId();
+        var importBatchId = GuidHelper.NewId();
+        var planId = GuidHelper.NewId();
+        var scheduleId = GuidHelper.NewId();
+        var customerId = GuidHelper.NewId();
+        var menuId = GuidHelper.NewId();
+        var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = menuVersionStatus, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        var import = new QuantityImportBatch { ImportBatchId = importBatchId, BatchCode = $"BATCH-{menuVersionStatus}", SourceType = "TEST", Status = importStatus, ImportedAt = DateTime.UtcNow };
+        var plan = new MealQuantityPlan { QuantityPlanId = planId, ImportBatchId = importBatchId, ImportBatch = import, PlanCode = "PLAN", ServiceDate = new DateOnly(2026, 8, 25), Status = "CONFIRMED" };
+        var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, MenuVersionId = menuVersionId, MenuVersion = menuVersion, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
+        context.AddRange(menuVersion, import, plan, schedule, new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, ShiftName = "MORNING", FinalServings = 10, UpdatedAt = DateTime.UtcNow });
+    }
 
     private static Fixture SeedInProgressLine(IpcManagementContext context, long purchasedVersion, long issuedVersion)
     {

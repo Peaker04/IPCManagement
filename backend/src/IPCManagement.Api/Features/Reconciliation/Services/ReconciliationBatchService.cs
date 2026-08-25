@@ -27,7 +27,7 @@ public sealed class ReconciliationBatchService(
         var sources = await context.Mealquantityplanlines.AsNoTracking()
             .Where(line => line.QuantityPlan.ImportBatchId != null && line.QuantityPlan.ImportBatch != null)
             .Where(line => line.QuantityPlan.ImportBatch!.Status != "FAILED" && line.QuantityPlan.ImportBatch.Status != "PREVIEW")
-            .Where(line => line.MenuSchedule.MenuVersionId != null && line.MenuSchedule.MenuVersion!.Status == "PUBLISHED")
+            .Where(line => line.MenuSchedule.MenuVersionId != null && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(line.MenuSchedule.MenuVersion!.Status))
             .Select(line => new
             {
                 MenuVersionId = line.MenuSchedule.MenuVersionId!,
@@ -80,7 +80,7 @@ public sealed class ReconciliationBatchService(
                         && x.QuantityPlan.ImportBatch.Status != "PREVIEW"
                         && x.MenuSchedule.MenuVersionId == menuVersionId
                         && x.MenuSchedule.MenuVersion != null
-                        && x.MenuSchedule.MenuVersion.Status == "PUBLISHED", operationToken);
+                        && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(x.MenuSchedule.MenuVersion.Status), operationToken);
                 if (!validCommittedPair) throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
 
                 var sourceLines = await context.Mealquantityplanlines

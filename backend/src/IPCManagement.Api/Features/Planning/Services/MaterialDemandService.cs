@@ -559,7 +559,7 @@ public class MaterialDemandService : IMaterialDemandService
             (line.MenuSchedule.MenuVersionId != null &&
              !_context.Menuversions.Any(version =>
                  version.MenuVersionId == line.MenuSchedule.MenuVersionId &&
-                 (version.Status == "ACTIVE" || version.Status == "PUBLISHED"))),
+                 MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(version.Status))),
             cancellationToken);
         if (hasUnpublishedMenu)
         {
@@ -799,7 +799,7 @@ public class MaterialDemandService : IMaterialDemandService
                 .AsNoTracking()
                 .Where(version => version.WeekStartDate == weekStartDate.Value)
                 .Where(version => version.CustomerId.SequenceEqual(customerId))
-                .Where(version => version.Status == "ACTIVE" || version.Status == "PUBLISHED")
+                .Where(version => MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(version.Status))
                 .OrderByDescending(version => version.PublishedAt.HasValue)
                 .ThenByDescending(version => version.VersionNo)
                 .Select(version => version.MenuVersionId)
