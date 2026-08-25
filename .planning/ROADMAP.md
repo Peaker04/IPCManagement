@@ -148,7 +148,7 @@ Plans:
 
 ## Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup
 
-**Status:** DISCOVERY LOCKED — requirements and spec seed captured; research/discuss/plan not yet executed
+**Status:** PLANNED — 22 canonical execution plans validated; implementation not started
 
 **Goal:** Introduce one server-authoritative, Admin-controlled operation mode with `DEFAULT` and `MATERIAL_RECONCILIATION`; deliver an immutable reconciliation-batch workflow comparing required, purchased and issued material quantities; and apply concise user-language, table-density, empty-state and visual-hierarchy rules across the current default project and the new branch.
 
@@ -171,4 +171,30 @@ Plans:
 - `.planning/notes/system-operation-mode-and-material-reconciliation.md`
 - `.planning/phases/29-system-operation-mode-and-material-reconciliation/29-SPEC-SEED.md`
 
-**Next workflow:** Run Phase 29 research/spec/discussion before creating implementation plans. No production code or database mutation is authorized by this roadmap entry alone.
+**Plans:** 22 plans
+
+Plans:
+- [ ] 29-01-PLAN.md — register the complete operation-mode and reconciliation EF model.
+- [ ] 29-02-PLAN.md — enforce runtime mode eligibility for every protected MVC query and command before permission.
+- [ ] 29-03-PLAN.md — add the mutation pre-commit fence and exact direct-save owner manifest.
+- [ ] 29-04-PLAN.md — fence Approvals and Coordination mutation owners.
+- [ ] 29-05-PLAN.md — fence Admin and Catalog mutation owners.
+- [ ] 29-06-PLAN.md — fence Inventory and Planning mutation owners.
+- [ ] 29-07-PLAN.md — fence Purchasing mutation owners.
+- [ ] 29-08-PLAN.md — fence Reports and SampleData mutation owners.
+- [ ] 29-09-PLAN.md — verify neutral owners and close mutation-owner coverage.
+- [ ] 29-10-PLAN.md — generate/rehearse schema plus deterministic idempotent DEFAULT initialization.
+- [ ] 29-11-PLAN.md — deliver startup validation, mode API and generated client contracts.
+- [ ] 29-12-PLAN.md — create immutable draft batches and freeze readiness.
+- [ ] 29-13-PLAN.md — implement actuals, comparison, disposition, completion and stock isolation.
+- [ ] 29-14-PLAN.md — implement frontend mode propagation, route/action/preload gates and relocation.
+- [ ] 29-15-PLAN.md — materialize exact CLR rows from the authoritative evidence harness.
+- [ ] 29-16-PLAN.md — prove the first bounded route-owner evidence slice.
+- [ ] 29-17-PLAN.md — prove the remaining bounded route-owner evidence slice.
+- [ ] 29-18-PLAN.md — close CLR authority at zero actionable production findings without speculative edits.
+- [ ] 29-19-PLAN.md — deliver reconciliation feature primitives and cross-work-area tracer.
+- [ ] 29-20-PLAN.md — integrate retained pages and finalize generated contract parity.
+- [ ] 29-21-PLAN.md — execute exhaustive headed/browser/API/DB evidence and two-session relocation.
+- [ ] 29-22-PLAN.md — perform multi-source verification, state closeout and baseline-clean hygiene.
+
+**Next workflow:** Execute the validated canonical plan set in declared waves. No production code or database mutation has started.
