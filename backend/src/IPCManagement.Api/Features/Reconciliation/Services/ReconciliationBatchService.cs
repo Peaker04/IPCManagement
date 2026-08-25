@@ -24,6 +24,34 @@ public sealed class ReconciliationBatchService(
         return batches.Select(batch => Map(batch, actuals, dispositions)).ToList();
     }
 
+    public async Task<IReadOnlyList<ReconciliationDraftSourceDto>> ListDraftSourcesAsync(CancellationToken token = default)
+    {
+        var sources = await context.Mealquantityplanlines.AsNoTracking()
+            .Where(line => line.QuantityPlan.ImportBatchId != null && line.QuantityPlan.ImportBatch != null)
+            .Where(line => line.QuantityPlan.ImportBatch!.Status != "FAILED" && line.QuantityPlan.ImportBatch.Status != "PREVIEW")
+            .Where(line => line.MenuSchedule.MenuVersionId != null && line.MenuSchedule.MenuVersion!.Status == "PUBLISHED")
+            .Select(line => new
+            {
+                MenuVersionId = line.MenuSchedule.MenuVersionId!,
+                line.MenuSchedule.MenuVersion!.WeekStartDate,
+                line.MenuSchedule.MenuVersion.VersionNo,
+                ImportBatchId = line.QuantityPlan.ImportBatchId!,
+                line.QuantityPlan.ImportBatch!.BatchCode,
+                line.QuantityPlan.ImportBatch.ImportedAt
+            })
+            .Distinct()
+            .OrderByDescending(source => source.WeekStartDate)
+            .ThenByDescending(source => source.ImportedAt)
+            .ToListAsync(token);
+
+        return sources.Select(source => new ReconciliationDraftSourceDto(
+            GuidHelper.ToGuidString(source.MenuVersionId),
+            $"Tuần {source.WeekStartDate:dd/MM/yyyy} · phiên bản {source.VersionNo}",
+            GuidHelper.ToGuidString(source.ImportBatchId),
+            $"{source.BatchCode} · {source.ImportedAt:dd/MM/yyyy HH:mm}"))
+            .ToList();
+    }
+
     public async Task<ReconciliationBatchDto?> GetAsync(string id, CancellationToken token = default)
     {
         var bytes = RequiredId(id);

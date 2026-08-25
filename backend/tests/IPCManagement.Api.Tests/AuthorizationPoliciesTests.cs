@@ -5,6 +5,7 @@ using Xunit;
 using IPCManagement.Api.Features.Catalog.Controllers;
 using IPCManagement.Api.Features.Inventory.Controllers;
 using IPCManagement.Api.Features.Purchasing.Controllers;
+using IPCManagement.Api.Features.Reconciliation.Controllers;
 
 namespace IPCManagement.Api.Tests;
 
@@ -102,6 +103,29 @@ public class AuthorizationPoliciesTests
             .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.InventoryAccess);
     }
+
+    [Fact]
+    public void Reconciliation_endpoint_policy_matrix_separates_read_coordinate_actual_and_decision_access()
+    {
+        var batches = typeof(ReconciliationBatchesController);
+        Policy(batches, nameof(ReconciliationBatchesController.List)).Should().Be(AuthorizationPolicies.ReportAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Get)).Should().Be(AuthorizationPolicies.ReportAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.DraftSources)).Should().Be(AuthorizationPolicies.CoordinationAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Create)).Should().Be(AuthorizationPolicies.CoordinationAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Ready)).Should().Be(AuthorizationPolicies.CoordinationAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Complete)).Should().Be(AuthorizationPolicies.ReconciliationCompleteAccess);
+
+        var actuals = typeof(ReconciliationActualsController);
+        Policy(actuals, nameof(ReconciliationActualsController.Purchased)).Should().Be(AuthorizationPolicies.PurchaseAccess);
+        Policy(actuals, nameof(ReconciliationActualsController.Issued)).Should().Be(AuthorizationPolicies.WarehouseAccess);
+        Policy(actuals, nameof(ReconciliationActualsController.Disposition)).Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
+        AuthorizationPolicies.ReconciliationDecisionRoles.Should().Contain(["Manager", "Admin"]);
+        AuthorizationPolicies.ReconciliationDecisionRoles.Should().NotContain(["Coordinator", "Purchasing", "WarehouseStaff"]);
+    }
+
+    private static string? Policy(Type controller, string action) => controller.GetMethod(action)!
+        .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
+        .Single().Policy;
 
     [Fact]
     public void ResolvePermissions_Should_TreatVietnameseAdminRoleAsFullAccess()
