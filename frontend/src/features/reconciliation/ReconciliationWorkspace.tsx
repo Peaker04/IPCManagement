@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext'
 import { ReconciliationBatchTable } from './ReconciliationBatchTable'
 import { ReconciliationComparisonTable } from './ReconciliationComparisonTable'
@@ -55,12 +56,12 @@ function ActiveReconciliationWorkspace({ owner }: { owner:'weekly-menu'|'purchas
     </div>
 
     {owner === 'weekly-menu' && canCoordinate && <div className="flex flex-wrap items-end gap-2 rounded border border-slate-200 p-3" aria-label="Tạo lô đối chiếu">
-      <label className="min-w-72 flex-1 text-sm">Nguồn đã cam kết
-        <select className="mt-1 h-8 w-full rounded-sm border border-input bg-white px-2" value={sourceIndex} onChange={(event) => { setSourceIndex(event.target.value); setActionError(undefined) }}>
-          <option value="">Chọn thực đơn và đợt nhập số suất</option>
-          {draftSources.map((source, index) => <option key={`${source.menuVersionId}:${source.quantityImportBatchId}`} value={String(index)}>{source.menuLabel} · {source.importBatchLabel}</option>)}
-        </select>
-      </label>
+      <div className="min-w-72 flex-1 text-sm"><span id="reconciliation-source-label">Nguồn đã cam kết</span>
+        <Select value={sourceIndex || null} onValueChange={(value) => { setSourceIndex(value ?? ''); setActionError(undefined) }}>
+          <SelectTrigger className="mt-1 w-full" aria-labelledby="reconciliation-source-label"><SelectValue placeholder="Chọn thực đơn và đợt nhập số suất" /></SelectTrigger>
+          <SelectContent>{draftSources.map((source, index) => <SelectItem key={`${source.menuVersionId}:${source.quantityImportBatchId}`} value={String(index)}>{source.menuLabel} · {source.importBatchLabel}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
       <Button disabled={isCreating || sourceIndex === ''} onClick={() => {
         const source = draftSources[Number(sourceIndex)]
         if (!source) return

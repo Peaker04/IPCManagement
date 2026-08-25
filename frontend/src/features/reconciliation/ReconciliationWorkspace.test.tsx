@@ -48,7 +48,8 @@ describe('ReconciliationWorkspace lifecycle', () => {
   it('creates a draft from a committed source and can move draft to ready', async () => {
     const view = render(<ReconciliationWorkspace owner="weekly-menu" />)
     expect(screen.getByText('Chưa có lô đối chiếu.')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Nguồn đã cam kết'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('combobox', { name: 'Nguồn đã cam kết' }))
+    fireEvent.click(screen.getByRole('option', { name: /Tuần 25\/08\/2026/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Tạo lô nháp' }))
     await waitFor(() => expect(createDraft).toHaveBeenCalledWith({ menuVersionId: 'menu-1', quantityImportBatchId: 'import-1' }))
 
