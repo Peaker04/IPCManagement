@@ -28,6 +28,11 @@ vi.mock('./reconciliationApi', async (importOriginal) => {
     useReadyReconciliationBatchMutation: () => [ready, { isLoading: false }],
     useCompleteReconciliationBatchMutation: () => [complete, { isLoading: false }],
     useSetReconciliationDispositionMutation: () => [setDisposition, { isLoading: false }],
+    useListReconciliationDispositionCategoriesQuery: () => ({ data: [
+      { value: 'ACCEPTED_VARIANCE', label: 'Chấp nhận chênh lệch' },
+      { value: 'CORRECTION_REQUIRED', label: 'Cần điều chỉnh số liệu' },
+      { value: 'FOLLOW_UP_REQUIRED', label: 'Cần theo dõi thêm' },
+    ], isLoading: false, isError: false, refetch: vi.fn() }),
     useSetReconciliationActualMutation: () => [setActual, { isLoading: false }],
   }
 })
@@ -124,7 +129,8 @@ describe('ReconciliationWorkspace lifecycle', () => {
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [triggeredLine] }]
     const view = render(<ReconciliationWorkspace owner="reports" />)
     fireEvent.click(screen.getByRole('button', { name: 'Xử lý chênh lệch' }))
-    fireEvent.change(screen.getByLabelText('Nhóm xử lý'), { target: { value: 'ACCEPTED_VARIANCE' } })
+    fireEvent.click(screen.getByRole('combobox', { name: 'Nhóm xử lý' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Chấp nhận chênh lệch' }))
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đã xác minh chứng từ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận xử lý' }))
     await waitFor(() => expect(setDisposition).toHaveBeenCalledWith({ lineId: 'line-1', category: 'ACCEPTED_VARIANCE', reason: 'Đã xác minh chứng từ', expectedVersion: undefined }))

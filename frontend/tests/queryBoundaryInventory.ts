@@ -20,6 +20,10 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'The retained-work-area reconciliation workspace owns one batch collection and preserves loading, error and genuinely empty states.',
     requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được lô đối chiếu', 'Chưa có lô đối chiếu'],
   },
+  'src/features/reconciliation/ReconciliationDispositionDrawer.tsx': {
+    rationale: 'The drawer loads the server-owned category vocabulary and blocks submission with an explicit retryable error when that contract is unavailable.',
+    requiredMarkers: ['useListReconciliationDispositionCategoriesQuery', 'Không tải được nhóm xử lý', 'refetchCategories'],
+  },
   'src/features/system-operation/SystemOperationProvider.tsx': {
     rationale: 'The provider is the authenticated singleton bootstrap boundary; authority failure is exposed to route guards and never treated as DEFAULT or empty data.',
     requiredMarkers: ['useGetSystemOperationModeQuery', 'Không thể xác định chế độ vận hành', 'isLoading'],
