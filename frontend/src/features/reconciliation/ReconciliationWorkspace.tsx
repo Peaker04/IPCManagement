@@ -14,7 +14,6 @@ import {
   useListReconciliationBatchesQuery,
   useListReconciliationDraftSourcesQuery,
   useReadyReconciliationBatchMutation,
-  type ReconciliationLine,
 } from './reconciliationApi'
 
 export function ReconciliationWorkspace({ owner }: { owner:'weekly-menu'|'purchasing'|'warehouse'|'reports' }) {
@@ -32,10 +31,12 @@ function ActiveReconciliationWorkspace({ owner }: { owner:'weekly-menu'|'purchas
   const [selectedId, setSelectedId] = useState<string>()
   const [sourceIndex, setSourceIndex] = useState('')
   const [showAll, setShowAll] = useState(false)
-  const [editing, setEditing] = useState<ReconciliationLine>()
-  const [disposing, setDisposing] = useState<ReconciliationLine>()
+  const [editingLineId, setEditingLineId] = useState<string>()
+  const [disposingLineId, setDisposingLineId] = useState<string>()
   const [actionError, setActionError] = useState<{ message: string; canRefetch: boolean }>()
   const selected = useMemo(() => data.find((batch) => batch.batchId === (selectedId ?? data[0]?.batchId)), [data, selectedId])
+  const editing = selected?.lines.find((line) => line.batchLineId === editingLineId)
+  const disposing = selected?.lines.find((line) => line.batchLineId === disposingLineId)
   const [createDraft, { isLoading: isCreating }] = useCreateReconciliationDraftMutation()
   const [ready, { isLoading: isReadying }] = useReadyReconciliationBatchMutation()
   const [complete, { isLoading: isCompleting }] = useCompleteReconciliationBatchMutation()
@@ -73,9 +74,9 @@ function ActiveReconciliationWorkspace({ owner }: { owner:'weekly-menu'|'purchas
     {actionError && <div className="space-y-2" role="alert"><p className="text-sm text-red-700">{actionError.message}</p>{actionError.canRefetch && <Button type="button" variant="outline" size="sm" onClick={reload}>Tải lại dữ liệu</Button>}</div>}
     {isLoading ? <p>Đang tải lô đối chiếu...</p> : isError ? <p role="alert">Không tải được lô đối chiếu. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Thử lại</Button></p> : data.length === 0 ? <p>Chưa có lô đối chiếu.</p> : <>
       <ReconciliationBatchTable batches={data} selectedId={selected?.batchId} onSelect={setSelectedId}/>
-      {selected && <><div className="flex justify-end"><Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện dòng cần xử lý' : 'Hiện tất cả'}</Button></div><ReconciliationComparisonTable lines={selected.lines} showAll={showAll} onEdit={owner === 'purchasing' || owner === 'warehouse' ? setEditing : undefined} onDisposition={owner === 'reports' && canDecide ? setDisposing : undefined}/></>}
+      {selected && <><div className="flex justify-end"><Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện dòng cần xử lý' : 'Hiện tất cả'}</Button></div><ReconciliationComparisonTable lines={selected.lines} showAll={showAll} onEdit={owner === 'purchasing' || owner === 'warehouse' ? (line) => setEditingLineId(line.batchLineId) : undefined} onDisposition={owner === 'reports' && canDecide ? (line) => setDisposingLineId(line.batchLineId) : undefined}/></>}
     </>}
-    {editing && <ReconciliationActualDrawer line={editing} side={owner === 'warehouse' ? 'issued' : 'purchased'} onClose={() => setEditing(undefined)} onRefetch={reload}/>}
-    {disposing && <ReconciliationDispositionDrawer line={disposing} onClose={() => setDisposing(undefined)} onRefetch={reload}/>}
+    {editing && <ReconciliationActualDrawer key={`${editing.batchLineId}:${editing.purchasedVersion ?? 'new'}:${editing.issuedVersion ?? 'new'}`} line={editing} side={owner === 'warehouse' ? 'issued' : 'purchased'} onClose={() => setEditingLineId(undefined)} onRefetch={reload}/>}
+    {disposing && <ReconciliationDispositionDrawer key={`${disposing.batchLineId}:${disposing.disposition?.version ?? 'new'}:${disposing.purchasedVersion ?? 'new'}:${disposing.issuedVersion ?? 'new'}`} line={disposing} onClose={() => setDisposingLineId(undefined)} onRefetch={reload}/>}
   </section>
 }

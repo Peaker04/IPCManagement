@@ -11,6 +11,7 @@ const createDraft = vi.fn()
 const ready = vi.fn()
 const complete = vi.fn()
 const setDisposition = vi.fn()
+const setActual = vi.fn()
 const unwrap = (value?: unknown) => ({ unwrap: () => Promise.resolve(value) })
 
 vi.mock('@/app/hooks', () => ({
@@ -27,6 +28,7 @@ vi.mock('./reconciliationApi', async (importOriginal) => {
     useReadyReconciliationBatchMutation: () => [ready, { isLoading: false }],
     useCompleteReconciliationBatchMutation: () => [complete, { isLoading: false }],
     useSetReconciliationDispositionMutation: () => [setDisposition, { isLoading: false }],
+    useSetReconciliationActualMutation: () => [setActual, { isLoading: false }],
   }
 })
 
@@ -42,6 +44,7 @@ beforeEach(() => {
   ready.mockReturnValue(unwrap({ ...draft, status: 'READY', version: 2 }))
   complete.mockReturnValue(unwrap())
   setDisposition.mockReturnValue(unwrap())
+  setActual.mockReturnValue(unwrap())
 })
 
 describe('ReconciliationWorkspace lifecycle', () => {
@@ -69,6 +72,51 @@ describe('ReconciliationWorkspace lifecycle', () => {
     view.rerender(<ReconciliationWorkspace owner="reports" />)
     expect(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+  })
+
+  it('recovers an actual correction after conflict by hydrating the refreshed version', async () => {
+    role = 'muahang'
+    batches = [{ ...draft, status: 'IN_PROGRESS', lines: [triggeredLine] }]
+    setActual
+      .mockReturnValueOnce({ unwrap: () => Promise.reject({ status: 409, data: { message: 'Số liệu đã thay đổi.' } }) })
+      .mockReturnValueOnce(unwrap())
+    const view = render(<ReconciliationWorkspace owner="purchasing" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật số liệu' }))
+    fireEvent.change(screen.getByLabelText('Lý do điều chỉnh'), { target: { value: 'Theo hóa đơn đầu tiên' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }))
+    await screen.findByRole('alert')
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
+
+    batches = [{ ...draft, status: 'IN_PROGRESS', lines: [{ ...triggeredLine, purchasedQuantity: 13, purchasedVersion: 5 }] }]
+    view.rerender(<ReconciliationWorkspace owner="purchasing" />)
+    expect(screen.getByLabelText('Số lượng')).toHaveValue(13)
+    fireEvent.change(screen.getByLabelText('Lý do điều chỉnh'), { target: { value: 'Theo hóa đơn mới' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }))
+    await waitFor(() => expect(setActual).toHaveBeenLastCalledWith({ lineId: 'line-1', side: 'purchased', quantity: 13, confirmZero: false, expectedVersion: 5, correctionReason: 'Theo hóa đơn mới' }))
+  })
+
+  it('recovers a disposition correction after conflict by hydrating the refreshed version', async () => {
+    role = 'admin'
+    const oldDisposition = { category: 'ACCEPTED_VARIANCE', reason: 'Lý do cũ', version: 2, disposedAt: '2026-08-25' }
+    batches = [{ ...draft, status: 'IN_PROGRESS', lines: [{ ...triggeredLine, disposition: oldDisposition }] }]
+    setDisposition
+      .mockReturnValueOnce({ unwrap: () => Promise.reject({ status: 409, data: { message: 'Kết luận đã thay đổi.' } }) })
+      .mockReturnValueOnce(unwrap())
+    const view = render(<ReconciliationWorkspace owner="reports" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa xử lý' }))
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Lý do xung đột' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
+    await screen.findByRole('alert')
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
+
+    batches = [{ ...draft, status: 'IN_PROGRESS', lines: [{ ...triggeredLine, disposition: { ...oldDisposition, reason: 'Kết luận máy chủ', version: 4 } }] }]
+    view.rerender(<ReconciliationWorkspace owner="reports" />)
+    expect(screen.getByLabelText('Lý do')).toHaveValue('Kết luận máy chủ')
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Kết luận sau tải lại' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
+    await waitFor(() => expect(setDisposition).toHaveBeenLastCalledWith({ lineId: 'line-1', category: 'ACCEPTED_VARIANCE', reason: 'Kết luận sau tải lại', expectedVersion: 4 }))
   })
 
   it('records and corrects a typed disposition before completion', async () => {
