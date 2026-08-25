@@ -6360,6 +6360,43 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/batches/draft-sources": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationDraftSourceDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationDraftSourceDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationDraftSourceDtoIReadOnlyListApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/lines/{lineId}/disposition": {
         readonly parameters: {
             readonly query?: never;
@@ -14998,6 +15035,18 @@ export interface components {
             readonly reason: string;
             /** Format: int64 */
             readonly version: number;
+        };
+        readonly ReconciliationDraftSourceDto: {
+            readonly importBatchLabel: string;
+            readonly menuLabel: string;
+            readonly menuVersionId: string;
+            readonly quantityImportBatchId: string;
+        };
+        readonly ReconciliationDraftSourceDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["ReconciliationDraftSourceDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ReconciliationLineDto: {
             readonly batchLineId: string;

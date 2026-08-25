@@ -8467,6 +8467,35 @@
         }
       }
     },
+    "/api/reconciliation/batches/draft-sources": {
+      "get": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDraftSourceDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDraftSourceDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDraftSourceDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/batches/{id}": {
       "get": {
         "tags": [
@@ -32422,6 +32451,56 @@
           "disposedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationDraftSourceDto": {
+        "required": [
+          "importBatchLabel",
+          "menuLabel",
+          "menuVersionId",
+          "quantityImportBatchId"
+        ],
+        "type": "object",
+        "properties": {
+          "menuVersionId": {
+            "type": "string"
+          },
+          "menuLabel": {
+            "type": "string"
+          },
+          "quantityImportBatchId": {
+            "type": "string"
+          },
+          "importBatchLabel": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationDraftSourceDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationDraftSourceDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
