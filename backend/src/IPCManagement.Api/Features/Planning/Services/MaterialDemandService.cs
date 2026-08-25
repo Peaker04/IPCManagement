@@ -11,7 +11,6 @@ namespace IPCManagement.Api.Features.Planning.Services;
 public class MaterialDemandService : IMaterialDemandService
 {
     private readonly IpcManagementContext _context;
-    private const string PublishedBomStatus = "PUBLISHED";
     private const string DemandApprovedStatus = "MANAGERAPPROVED";
     private const string DemandDraftStatus = "DRAFT";
     private const string PurchaseDraftStatus = "DRAFT";
@@ -121,8 +120,8 @@ public class MaterialDemandService : IMaterialDemandService
                 var productionLine = EnsureProductionPlanLine(plan, quantityLine, menuItem);
                 generatedPlanLineIds.Add(BuildKey(productionLine.PlanLineId));
                 var portionRule = ResolvePortionRule(effectivePortionRules, quantityLine, menuItem, serviceDate);
-                var priceTier = NormalizePriceTier(quantityLine.MenuSchedule.MenuPrice);
-                var activeBomLines = ResolveBomLines(menuItem.Dish.Dishboms, quantityLine.CustomerId, priceTier, serviceDate);
+                var priceTier = BomSelectionResolver.NormalizePriceTier(quantityLine.MenuSchedule.MenuPrice);
+                var activeBomLines = BomSelectionResolver.Resolve(menuItem.Dish.Dishboms, quantityLine.CustomerId, priceTier, serviceDate);
                 if (activeBomLines.Count == 0)
                 {
                     missingBomDishes.Add(MapMissingBomDish(
@@ -1310,38 +1309,9 @@ public class MaterialDemandService : IMaterialDemandService
         => Convert.ToBase64String(value);
 
     private static bool IsPublishedAndEffective(DishBom bom, DateOnly serviceDate)
-        => bom.BomStatus == PublishedBomStatus &&
+        => bom.BomStatus == "PUBLISHED" &&
            bom.EffectiveFrom <= serviceDate &&
            (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate);
-
-    private static List<DishBom> ResolveBomLines(
-        IEnumerable<DishBom> lines,
-        byte[] customerId,
-        decimal priceTier,
-        DateOnly serviceDate)
-    {
-        var effectiveLines = lines
-            .Where(bom => IsPublishedAndEffective(bom, serviceDate))
-            .Where(bom => bom.PriceTierAmount == priceTier)
-            .ToList();
-        var customerLines = effectiveLines
-            .Where(bom => bom.CustomerId is not null && bom.CustomerId.SequenceEqual(customerId))
-            .ToList();
-
-        return customerLines.Count > 0
-            ? customerLines
-            : effectiveLines.Where(bom => bom.CustomerId is null).ToList();
-    }
-
-    private static decimal NormalizePriceTier(decimal menuPrice)
-    {
-        var normalized = decimal.Round(menuPrice, 0);
-        return normalized switch
-        {
-            25000m or 30000m or 34000m => normalized,
-            _ => throw new BusinessRuleException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
-        };
-    }
 
     private static string NormalizeScope(string? scope, string? shiftName)
     {

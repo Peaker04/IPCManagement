@@ -1,6 +1,7 @@
 using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Features.Planning.Services;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
@@ -74,11 +75,15 @@ public sealed class ReconciliationBatchService(
                 var materialized = new Dictionary<string, ReconciliationBatchLine>(StringComparer.Ordinal);
                 foreach (var source in sourceLines)
                 {
-                    foreach (var menuItem in source.Menu.Menuitems)
+                    foreach (var menuItem in source.Menu.Menuitems
+                                 .OrderBy(item => item.DisplayOrder)
+                                 .DistinctBy(item => Convert.ToBase64String(item.DishId)))
                     {
-                        var boms = menuItem.Dish.Dishboms
-                            .Where(x => x.BomStatus == "PUBLISHED" && x.EffectiveFrom <= source.MenuSchedule.ServiceDate && (x.EffectiveTo == null || x.EffectiveTo >= source.MenuSchedule.ServiceDate))
-                            .Where(x => x.CustomerId == null || x.CustomerId.AsSpan().SequenceEqual(source.CustomerId));
+                        var boms = BomSelectionResolver.Resolve(
+                            menuItem.Dish.Dishboms,
+                            source.CustomerId,
+                            source.MenuSchedule.MenuPrice,
+                            source.MenuSchedule.ServiceDate);
                         foreach (var bom in boms)
                         {
                             var converted = ConvertToCanonical(bom.GrossQtyPerServing * source.FinalServings, bom.Unit, bom.Ingredient.Unit);
@@ -145,7 +150,7 @@ public sealed class ReconciliationBatchService(
             _ => throw new InvalidOperationException("Thiếu ngữ cảnh bảo vệ chế độ vận hành.")
         };
 
-    private static decimal ConvertToCanonical(decimal quantity, Unit source, Unit target)
+    internal static decimal ConvertToCanonical(decimal quantity, Unit source, Unit target)
     {
         if (source.UnitId.AsSpan().SequenceEqual(target.UnitId)) return quantity;
         if (string.IsNullOrWhiteSpace(source.BaseUnitCode) || string.IsNullOrWhiteSpace(target.BaseUnitCode)
