@@ -1,7 +1,7 @@
 ---
 phase: 29-system-operation-mode-and-material-reconciliation
-artifact: autonomous-run-plan-set
-status: executable
+artifact: rejected-autonomous-run-index
+status: non-executable-superseded
 process_owner: GSD
 production_edits_authorized: false
 tracer_mode: true
@@ -27,7 +27,7 @@ requirements:
 
 Introduce the locked server-authoritative global operation mode, deliver the immutable material-reconciliation workflow from committed menu import through completed historical report/export, remediate project-wide clarity at demonstrated owners, and close with database, API, frontend, headed-browser and documentation evidence.
 
-This file is the sole Phase 29 planning artifact produced by this run. It contains ten executable plan units. Executors must not edit production code until the applicable plan begins, must preserve unrelated worktree changes, must not invoke GitNexus, and must keep GSD as the only owner of planning, checkpoints, verification, evidence registration and state closeout.
+This rejected autonomous-run document is retained only as a non-executable historical index. It MUST NOT be passed to `$gsd-execute-phase`, parsed as a plan, or used as scheduling authority. The canonical executable inputs are `29-01-PLAN.md` through `29-15-PLAN.md`; those standard files supersede all embedded units below.
 
 ## Locked execution rules
 
