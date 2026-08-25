@@ -12,6 +12,7 @@ import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
 import { readNavigationPreferences, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { SystemOperationProvider } from '@/features/system-operation/SystemOperationProvider';
 import { isRouteEligible } from '@/features/system-operation/systemOperationEligibility';
 import {
   ChefHat,
@@ -63,7 +64,7 @@ const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenc
   { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập quy trình duyệt', icon: <Settings size={18} />, preferenceKey: 'approval-rules', requiredPermissions: ['*'] },
 ];
 
-export const MainLayout = () => {
+const MainLayoutContent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -287,6 +288,8 @@ export const MainLayout = () => {
     </div>
   );
 };
+
+export const MainLayout = () => <SystemOperationProvider><MainLayoutContent /></SystemOperationProvider>;
 
 const routeOwnership = {
    [ROUTES.ADMIN_DATA]: { ownerId: 'uio-0', floorplanId: 'uif-0', regionId: 'uir-0' },

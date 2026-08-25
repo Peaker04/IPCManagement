@@ -4,7 +4,6 @@ import { ROUTES } from '@/lib/routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '@/app/layout/MainLayout';
-import { SystemOperationProvider } from '@/features/system-operation/SystemOperationProvider';
 import { ModeGuard } from '@/features/system-operation/ModeGuard';
 import {
   AdminDataPage,
@@ -63,7 +62,7 @@ export const AppRouter = () => {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<SystemOperationProvider><MainLayout /></SystemOperationProvider>}>
+          <Route element={<MainLayout />}>
             <Route path={ROUTES.FORBIDDEN} element={<Suspense fallback={routeFallback}><ForbiddenPage /></Suspense>} />
             <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={routeFallback}><DashboardPage /></Suspense>} />
             <Route path={ROUTES.WEEKLY_MENU} element={<ModeGuard><RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><WeeklyMenuPage /></Suspense></RoleGuard></ModeGuard>} />
