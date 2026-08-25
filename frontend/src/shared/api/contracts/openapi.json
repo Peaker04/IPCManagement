@@ -8680,6 +8680,75 @@
         }
       }
     },
+    "/api/reconciliation/configuration/system-default/initialize": {
+      "post": {
+        "tags": [
+          "ReconciliationConfiguration"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationToleranceInitializationResultApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationToleranceInitializationResultApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationToleranceInitializationResultApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/reports/{id}": {
       "get": {
         "tags": [
@@ -32678,6 +32747,63 @@
           },
           "disposition": {
             "$ref": "#/components/schemas/ReconciliationDispositionDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationToleranceInitializationResult": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "inserted",
+          "scopeKind",
+          "value",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "inserted": {
+            "type": "boolean"
+          },
+          "scopeKind": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationToleranceInitializationResultApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationToleranceInitializationResult"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false

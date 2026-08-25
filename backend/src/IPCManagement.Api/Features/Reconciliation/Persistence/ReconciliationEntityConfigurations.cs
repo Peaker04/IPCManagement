@@ -58,9 +58,17 @@ internal sealed class ReconciliationToleranceConfiguration : IEntityTypeConfigur
 {
     public void Configure(EntityTypeBuilder<ReconciliationTolerance> e)
     {
-        e.ToTable("reconciliationtolerances"); e.HasKey(x => x.ToleranceId); ReconciliationMapping.Id(e.Property(x => x.ToleranceId)); e.Property(x => x.ScopeId).HasMaxLength(16).IsFixedLength();
+        e.ToTable("reconciliationtolerances", table =>
+        {
+            table.HasCheckConstraint("ckReconciliationToleranceScope", "(`ScopeKind` = 'SYSTEM_DEFAULT' AND `ScopeId` IS NULL) OR (`ScopeKind` IN ('INGREDIENT','UNIT_GROUP') AND `ScopeId` IS NOT NULL)");
+            table.HasCheckConstraint("ckReconciliationToleranceValue", "`Value` >= 0");
+            table.HasCheckConstraint("ckReconciliationToleranceVersion", "`Version` >= 1");
+        });
+        e.HasKey(x => x.ToleranceId); ReconciliationMapping.Id(e.Property(x => x.ToleranceId)); e.Property(x => x.ScopeId).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.SystemDefaultKey).HasComputedColumnSql("CASE WHEN `ScopeKind` = 'SYSTEM_DEFAULT' THEN 1 ELSE NULL END", stored: false);
         e.Property(x => x.ScopeKind).HasMaxLength(32); e.Property(x => x.Value).HasPrecision(18, 6); e.Property(x => x.Version).IsConcurrencyToken();
         ReconciliationMapping.Id(e.Property(x => x.CreatedBy)); e.Property(x => x.CreatedAt).HasColumnType("datetime");
+        e.HasIndex(x => x.SystemDefaultKey).IsUnique();
         e.HasIndex(x => new { x.ScopeKind, x.ScopeId }).IsUnique(); e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
     }
 }

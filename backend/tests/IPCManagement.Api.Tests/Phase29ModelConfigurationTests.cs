@@ -1,9 +1,12 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Features.Reconciliation.Controllers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
+using IPCManagement.Api.Security;
 
 namespace IPCManagement.Api.Tests;
 
@@ -38,12 +41,26 @@ public sealed class Phase29ModelConfigurationTests
     }
 
     [Fact]
+    public void Tolerance_initializer_endpoint_is_admin_only()
+    {
+        var authorization = typeof(ReconciliationConfigurationController)
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Single();
+
+        Assert.Equal(AuthorizationPolicies.AdminAccess, authorization.Policy);
+    }
+
+    [Fact]
     public void Maps_tolerance_actual_revision_and_disposition_invariants()
     {
         var model = Model();
         var tolerance = model.FindEntityType(typeof(ReconciliationTolerance))!;
         Assert.Equal(18, tolerance.FindProperty(nameof(ReconciliationTolerance.Value))!.GetPrecision());
         Assert.Equal(6, tolerance.FindProperty(nameof(ReconciliationTolerance.Value))!.GetScale());
+        Assert.Contains(tolerance.GetCheckConstraints(), check => check.Name == "ckReconciliationToleranceScope" && check.Sql!.Contains("SYSTEM_DEFAULT"));
+        Assert.Contains(tolerance.GetCheckConstraints(), check => check.Name == "ckReconciliationToleranceValue" && check.Sql!.Contains(">= 0"));
+        Assert.Contains(tolerance.GetIndexes(), index => index.IsUnique && index.Properties.Single().Name == nameof(ReconciliationTolerance.SystemDefaultKey));
 
         var actual = model.FindEntityType(typeof(ReconciliationActual))!;
         Assert.True(actual.FindProperty(nameof(ReconciliationActual.Version))!.IsConcurrencyToken);

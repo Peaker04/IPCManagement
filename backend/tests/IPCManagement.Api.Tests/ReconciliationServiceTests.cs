@@ -11,6 +11,41 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationServiceTests
 {
+    [Fact]
+    public void Tolerance_resolution_uses_ingredient_then_unit_group_then_system_default()
+    {
+        var ingredientId = GuidHelper.NewId();
+        var canonicalUnitId = GuidHelper.NewId();
+        var defaultTolerance = Tolerance("SYSTEM_DEFAULT", null, 0.5m, 1);
+        var unitTolerance = Tolerance("UNIT_GROUP", canonicalUnitId, 0.25m, 2);
+        var ingredientTolerance = Tolerance("INGREDIENT", ingredientId, 0.1m, 3);
+
+        Assert.Equal((0.1m, "INGREDIENT", "3"), ReconciliationBatchService.ResolveTolerance([defaultTolerance, unitTolerance, ingredientTolerance], ingredientId, canonicalUnitId));
+        Assert.Equal((0.25m, "UNIT_GROUP", "2"), ReconciliationBatchService.ResolveTolerance([defaultTolerance, unitTolerance], ingredientId, canonicalUnitId));
+        Assert.Equal((0.5m, "SYSTEM_DEFAULT", "1"), ReconciliationBatchService.ResolveTolerance([defaultTolerance], ingredientId, canonicalUnitId));
+    }
+
+    [Fact]
+    public void Tolerance_resolution_fails_closed_without_applicable_authority()
+    {
+        Assert.Throws<ReconciliationToleranceAuthorityException>(() =>
+            ReconciliationBatchService.ResolveTolerance([], GuidHelper.NewId(), GuidHelper.NewId()));
+    }
+
+    [Theory]
+    [InlineData(0.4, 1)]
+    [InlineData(0.5, 2)]
+    public void Tolerance_resolution_rejects_drifted_system_default_even_when_override_exists(double value, long version)
+    {
+        var ingredientId = GuidHelper.NewId();
+        var canonicalUnitId = GuidHelper.NewId();
+        var driftedDefault = Tolerance("SYSTEM_DEFAULT", null, (decimal)value, version);
+        var ingredientOverride = Tolerance("INGREDIENT", ingredientId, 0.1m, 4);
+
+        Assert.Throws<ReconciliationToleranceAuthorityException>(() =>
+            ReconciliationBatchService.ResolveTolerance([driftedDefault, ingredientOverride], ingredientId, canonicalUnitId));
+    }
+
     [Theory]
     [InlineData("ACTIVE", true)]
     [InlineData("PUBLISHED", true)]
@@ -243,6 +278,12 @@ public sealed class ReconciliationServiceTests
     {
         OperationKey = "reconciliation.test",
         ExpectedModeVersion = 1
+    };
+
+    private static ReconciliationTolerance Tolerance(string scopeKind, byte[]? scopeId, decimal value, long version) => new()
+    {
+        ToleranceId = GuidHelper.NewId(), ScopeKind = scopeKind, ScopeId = scopeId, Value = value, Version = version,
+        CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow
     };
 
     private static void SeedDraftSource(IpcManagementContext context, string menuVersionStatus, string importStatus)

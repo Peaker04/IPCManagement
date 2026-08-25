@@ -123,7 +123,7 @@ public sealed class ReconciliationBatchService(
                             var key = Convert.ToBase64String(bom.IngredientId) + ":" + Convert.ToBase64String(bom.Ingredient.UnitId);
                             if (!materialized.TryGetValue(key, out var line))
                             {
-                                var tolerance = ResolveTolerance(tolerances, bom.IngredientId);
+                                var tolerance = ResolveTolerance(tolerances, bom.IngredientId, bom.Ingredient.UnitId);
                                 line = new ReconciliationBatchLine
                                 {
                                     BatchLineId = GuidHelper.NewId(), BatchId = batchId, IngredientId = bom.IngredientId,
@@ -192,11 +192,16 @@ public sealed class ReconciliationBatchService(
         return quantity * source.ConvertRateToBase / target.ConvertRateToBase;
     }
 
-    private static (decimal Value, string Kind, string Version) ResolveTolerance(IReadOnlyList<ReconciliationTolerance> tolerances, byte[] ingredientId)
+    internal static (decimal Value, string Kind, string Version) ResolveTolerance(
+        IReadOnlyList<ReconciliationTolerance> tolerances,
+        byte[] ingredientId,
+        byte[] canonicalUnitId)
     {
+        var systemDefault = ReconciliationToleranceAuthority.ReadSystemDefault(tolerances)
+            ?? throw new ReconciliationToleranceAuthorityException("Chưa cấu hình dung sai mặc định hệ thống.");
         var selected = tolerances.FirstOrDefault(x => x.ScopeKind == "INGREDIENT" && x.ScopeId != null && x.ScopeId.AsSpan().SequenceEqual(ingredientId))
-            ?? tolerances.FirstOrDefault(x => x.ScopeKind == "SYSTEM_DEFAULT" && x.ScopeId == null)
-            ?? throw new InvalidOperationException("Chưa cấu hình dung sai đối chiếu.");
+            ?? tolerances.FirstOrDefault(x => x.ScopeKind == "UNIT_GROUP" && x.ScopeId != null && x.ScopeId.AsSpan().SequenceEqual(canonicalUnitId))
+            ?? systemDefault;
         return (selected.Value, selected.ScopeKind, selected.Version.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 

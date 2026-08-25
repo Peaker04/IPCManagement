@@ -6397,6 +6397,65 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/configuration/system-default/initialize": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationToleranceInitializationResultApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationToleranceInitializationResultApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationToleranceInitializationResultApiResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                readonly 401: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                readonly 403: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/lines/{lineId}/disposition": {
         readonly parameters: {
             readonly query?: never;
@@ -15157,6 +15216,23 @@ export interface components {
             readonly triggers: readonly string[];
             /** Format: int64 */
             readonly version: number;
+        };
+        readonly ReconciliationToleranceInitializationResult: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly createdBy: string;
+            readonly inserted: boolean;
+            readonly scopeKind: string;
+            /** Format: double */
+            readonly value: number;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly ReconciliationToleranceInitializationResultApiResponse: {
+            readonly data?: components["schemas"]["ReconciliationToleranceInitializationResult"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly RecordActualServingsRequest: {
             /** Format: int32 */
