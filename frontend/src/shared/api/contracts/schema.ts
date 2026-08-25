@@ -6188,7 +6188,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDtoIReadOnlyListApiResponse"];
+                    };
                 };
             };
         };
@@ -6213,7 +6217,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -6246,7 +6254,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -6289,7 +6301,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -6330,7 +6346,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -6486,7 +6506,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -14939,6 +14963,69 @@ export interface components {
             /** Format: int64 */
             readonly expectedVersion: number;
             readonly reason: string;
+        };
+        readonly ReconciliationBatchDto: {
+            readonly batchId: string;
+            /** Format: date-time */
+            readonly completedAt?: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly lines: readonly components["schemas"]["ReconciliationLineDto"][];
+            readonly menuVersionId: string;
+            readonly quantityImportBatchId: string;
+            /** Format: date-time */
+            readonly readyAt?: string | null;
+            readonly status: string;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly ReconciliationBatchDtoApiResponse: {
+            readonly data?: components["schemas"]["ReconciliationBatchDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationBatchDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["ReconciliationBatchDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationDispositionDto: {
+            readonly category: string;
+            /** Format: date-time */
+            readonly disposedAt: string;
+            readonly reason: string;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly ReconciliationLineDto: {
+            readonly batchLineId: string;
+            readonly canonicalUnitId: string;
+            readonly disposition?: components["schemas"]["ReconciliationDispositionDto"];
+            /** Format: double */
+            readonly frozenTolerance: number;
+            readonly ingredientId: string;
+            /** Format: double */
+            readonly issuedQuantity?: number | null;
+            /** Format: double */
+            readonly issuedRequiredDifference?: number | null;
+            /** Format: int64 */
+            readonly issuedVersion?: number | null;
+            /** Format: double */
+            readonly purchasedIssuedDifference?: number | null;
+            /** Format: double */
+            readonly purchasedQuantity?: number | null;
+            /** Format: double */
+            readonly purchasedRequiredDifference?: number | null;
+            /** Format: int64 */
+            readonly purchasedVersion?: number | null;
+            /** Format: double */
+            readonly requiredQuantity: number;
+            readonly status: string;
+            readonly triggers: readonly string[];
+            /** Format: int64 */
+            readonly version: number;
         };
         readonly RecordActualServingsRequest: {
             /** Format: int32 */

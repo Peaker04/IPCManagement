@@ -1,2 +1,20 @@
+import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { getDateTimeFormat } from '@/lib/formatters'
 import type { ReconciliationBatch } from './reconciliationApi'
-export function ReconciliationBatchTable({ batches, selectedId, onSelect }: { batches: ReconciliationBatch[]; selectedId?: string; onSelect: (id:string)=>void }) { return <div className="overflow-x-auto"><table className="ipc-data-table"><thead><tr><th>Lô đối chiếu</th><th>Trạng thái</th><th>Số dòng</th><th>Ngày tạo</th></tr></thead><tbody>{batches.map(batch=><tr key={batch.batchId} aria-selected={batch.batchId===selectedId} onClick={()=>onSelect(batch.batchId)} className="cursor-pointer"><td><button type="button" className="font-medium text-blue-700">Lô …{batch.batchId.slice(-8)}</button></td><td>{batch.status}</td><td>{batch.lines.length}</td><td>{new Date(batch.createdAt).toLocaleString('vi-VN')}</td></tr>)}</tbody></table></div> }
+
+const createdAtFormat = getDateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+
+export function ReconciliationBatchTable({ batches, selectedId, onSelect }: { batches: ReconciliationBatch[]; selectedId?: string; onSelect: (id: string) => void }) {
+  return (
+    <Table aria-label="Danh sách lô đối chiếu">
+      <TableHeader><TableRow><TableHead>Lô đối chiếu</TableHead><TableHead>Trạng thái</TableHead><TableHead>Số dòng</TableHead><TableHead>Ngày tạo</TableHead></TableRow></TableHeader>
+      <TableBody>{batches.map((batch) => (
+        <TableRow key={batch.batchId} aria-selected={batch.batchId === selectedId} data-state={batch.batchId === selectedId ? 'selected' : undefined}>
+          <TableCell><Button type="button" variant="link" className="h-auto p-0 font-medium" onClick={() => onSelect(batch.batchId)}>Lô …{batch.batchId.slice(-8)}</Button></TableCell>
+          <TableCell>{batch.status}</TableCell><TableCell>{batch.lines.length}</TableCell><TableCell>{createdAtFormat.format(new Date(batch.createdAt))}</TableCell>
+        </TableRow>
+      ))}</TableBody>
+    </Table>
+  )
+}

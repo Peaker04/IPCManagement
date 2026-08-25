@@ -8399,7 +8399,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -8428,7 +8445,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8450,7 +8484,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8491,7 +8542,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8532,7 +8600,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8554,7 +8639,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -32195,6 +32297,215 @@
             "maxLength": 1000,
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchDto": {
+        "required": [
+          "batchId",
+          "createdAt",
+          "lines",
+          "menuVersionId",
+          "quantityImportBatchId",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "menuVersionId": {
+            "type": "string"
+          },
+          "quantityImportBatchId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readyAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationBatchDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationBatchDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationDispositionDto": {
+        "required": [
+          "category",
+          "disposedAt",
+          "reason",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "disposedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationLineDto": {
+        "required": [
+          "batchLineId",
+          "canonicalUnitId",
+          "frozenTolerance",
+          "ingredientId",
+          "requiredQuantity",
+          "status",
+          "triggers",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "batchLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "canonicalUnitId": {
+            "type": "string"
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "frozenTolerance": {
+            "type": "number",
+            "format": "double"
+          },
+          "purchasedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "purchasedVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "issuedQuantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "issuedVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "purchasedRequiredDifference": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "issuedRequiredDifference": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "purchasedIssuedDifference": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "disposition": {
+            "$ref": "#/components/schemas/ReconciliationDispositionDto"
           }
         },
         "additionalProperties": false
