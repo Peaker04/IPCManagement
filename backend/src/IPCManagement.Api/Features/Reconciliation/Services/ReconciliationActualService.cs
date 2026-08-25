@@ -75,7 +75,8 @@ public sealed class ReconciliationActualService(
 
     public async Task SetDispositionAsync(string lineId, SetReconciliationDispositionRequest request, string actorId, CancellationToken token = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Category) || string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Cần chọn hướng xử lý và nhập lý do.");
+        var category = ReconciliationDispositionCategories.RequireValid(request.Category);
+        if (string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Cần nhập lý do xử lý chênh lệch.");
         var lineBytes = ReconciliationBatchService.RequiredId(lineId);
         var actor = ReconciliationBatchService.RequiredId(actorId);
         var protection = RequiredProtection();
@@ -95,14 +96,14 @@ public sealed class ReconciliationActualService(
                 if (current is null)
                 {
                     if (request.ExpectedVersion.HasValue) throw new DbUpdateConcurrencyException("Hướng xử lý đã thay đổi.");
-                    current = new ReconciliationDisposition { DispositionId = GuidHelper.NewId(), BatchLineId = lineBytes, Category = request.Category.Trim(), Reason = request.Reason.Trim(), Version = 1, DisposedBy = actor, DisposedAt = DateTime.UtcNow };
+                    current = new ReconciliationDisposition { DispositionId = GuidHelper.NewId(), BatchLineId = lineBytes, Category = category, Reason = request.Reason.Trim(), Version = 1, DisposedBy = actor, DisposedAt = DateTime.UtcNow };
                     context.Reconciliationdispositions.Add(current);
                 }
                 else
                 {
                     if (current.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Hướng xử lý đã thay đổi.");
                     context.Entry(current).Property(x => x.Version).OriginalValue = request.ExpectedVersion!.Value;
-                    current.Category = request.Category.Trim(); current.Reason = request.Reason.Trim(); current.Version++; current.DisposedBy = actor; current.DisposedAt = DateTime.UtcNow;
+                    current.Category = category; current.Reason = request.Reason.Trim(); current.Version++; current.DisposedBy = actor; current.DisposedAt = DateTime.UtcNow;
                 }
                 resultingVersion = current.Version;
                 await context.SaveChangesAsync(operationToken);

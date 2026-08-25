@@ -8269,6 +8269,35 @@
         }
       }
     },
+    "/api/reconciliation/lines/disposition-categories": {
+      "get": {
+        "tags": [
+          "ReconciliationActuals"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/lines/{lineId}/purchased": {
       "put": {
         "tags": [
@@ -8686,6 +8715,28 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/reports/{id}/export": {
+      "get": {
+        "tags": [
+          "ReconciliationReports"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -32420,6 +32471,48 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ReconciliationBatchDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationDispositionCategoryDto": {
+        "required": [
+          "label",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationDispositionCategoryDto"
             },
             "nullable": true
           },

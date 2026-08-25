@@ -6520,6 +6520,43 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/lines/disposition-categories": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/reports/{id}": {
         readonly parameters: {
             readonly query?: never;
@@ -6548,6 +6585,41 @@ export interface paths {
                         readonly "text/json": components["schemas"]["ReconciliationBatchDtoApiResponse"];
                         readonly "text/plain": components["schemas"]["ReconciliationBatchDtoApiResponse"];
                     };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/reports/{id}/export": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -15024,6 +15096,16 @@ export interface components {
         };
         readonly ReconciliationBatchDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["ReconciliationBatchDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationDispositionCategoryDto: {
+            readonly label: string;
+            readonly value: string;
+        };
+        readonly ReconciliationDispositionCategoryDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["ReconciliationDispositionCategoryDto"][] | null;
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;

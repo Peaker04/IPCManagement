@@ -1,7 +1,9 @@
 import { apiSlice } from '@/api/apiSlice'
+import type { components } from '@/shared/api/contracts/schema'
 import type { ApiResponse } from '@/types/api'
 
 export interface ReconciliationDisposition { category: string; reason: string; version: number; disposedAt: string }
+export type ReconciliationDispositionCategory = components['schemas']['ReconciliationDispositionCategoryDto']
 export interface ReconciliationLine { batchLineId: string; ingredientId: string; canonicalUnitId: string; requiredQuantity: number; frozenTolerance: number; purchasedQuantity?: number | null; purchasedVersion?: number | null; issuedQuantity?: number | null; issuedVersion?: number | null; purchasedRequiredDifference?: number | null; issuedRequiredDifference?: number | null; purchasedIssuedDifference?: number | null; triggers: string[]; status: 'MATCHED'|'NEEDS_REVIEW'|'INCOMPLETE'; version: number; disposition?: ReconciliationDisposition | null }
 export interface ReconciliationBatch { batchId: string; menuVersionId: string; quantityImportBatchId: string; status: 'DRAFT'|'READY'|'IN_PROGRESS'|'COMPLETED'; version: number; createdAt: string; readyAt?: string|null; completedAt?: string|null; lines: ReconciliationLine[] }
 export interface ReconciliationDraftSource { menuVersionId: string; menuLabel: string; quantityImportBatchId: string; importBatchLabel: string }
@@ -10,6 +12,7 @@ export interface CreateReconciliationDraftRequest { menuVersionId: string; quant
 export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder => ({
   listReconciliationBatches: builder.query<ReconciliationBatch[], void>({ query: () => '/reconciliation/batches', transformResponse: (r: ApiResponse<ReconciliationBatch[]>) => r.data ?? [], providesTags: ['ReconciliationBatches'] }),
   listReconciliationDraftSources: builder.query<ReconciliationDraftSource[], void>({ query: () => '/reconciliation/batches/draft-sources', transformResponse: (r: ApiResponse<ReconciliationDraftSource[]>) => r.data ?? [] }),
+  listReconciliationDispositionCategories: builder.query<ReconciliationDispositionCategory[], void>({ query: () => '/reconciliation/lines/disposition-categories', transformResponse: (r: ApiResponse<ReconciliationDispositionCategory[]>) => r.data ?? [] }),
   getReconciliationBatch: builder.query<ReconciliationBatch, string>({ query: id => `/reconciliation/batches/${id}`, transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, providesTags: ['ReconciliationBatches'] }),
   createReconciliationDraft: builder.mutation<ReconciliationBatch, CreateReconciliationDraftRequest>({ query: body => ({ url: '/reconciliation/batches', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags: ['ReconciliationBatches'] }),
   readyReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/ready`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
@@ -21,6 +24,7 @@ export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder =
 export const {
   useListReconciliationBatchesQuery,
   useListReconciliationDraftSourcesQuery,
+  useListReconciliationDispositionCategoriesQuery,
   useCreateReconciliationDraftMutation,
   useReadyReconciliationBatchMutation,
   useCompleteReconciliationBatchMutation,

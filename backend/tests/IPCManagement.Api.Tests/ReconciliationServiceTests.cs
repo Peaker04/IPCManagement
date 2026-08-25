@@ -61,6 +61,114 @@ public sealed class ReconciliationServiceTests
         Assert.Equal("COMPLETED", completed.Status);
     }
 
+    [Theory]
+    [InlineData("ACCEPTED_VARIANCE")]
+    [InlineData("CORRECTION_REQUIRED")]
+    [InlineData("FOLLOW_UP_REQUIRED")]
+    public async Task Every_allowed_disposition_category_round_trips_through_report_contract(string category)
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
+        await context.SaveChangesAsync();
+        var runner = new ImmediateTransactionRunner();
+        var actuals = new ReconciliationActualService(context, runner, ProtectedContext());
+        var batches = new ReconciliationBatchService(context, runner, ProtectedContext());
+
+        await actuals.SetDispositionAsync(GuidHelper.ToGuidString(fixture.Line.BatchLineId), new(category.ToLowerInvariant(), "Lý do hợp lệ", null), GuidHelper.ToGuidString(fixture.Actor));
+        var report = await batches.GetAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId));
+
+        Assert.Equal(category, Assert.Single(report!.Lines).Disposition!.Category);
+    }
+
+    [Fact]
+    public async Task Unknown_disposition_category_is_rejected_without_persistence()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
+        await context.SaveChangesAsync();
+        var service = new ReconciliationActualService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => service.SetDispositionAsync(
+            GuidHelper.ToGuidString(fixture.Line.BatchLineId), new("CLIENT_AUTHORED", "Không được phép", null), GuidHelper.ToGuidString(fixture.Actor)));
+
+        Assert.Equal("Hướng xử lý không hợp lệ.", error.Message);
+        Assert.Empty(context.Reconciliationdispositions);
+    }
+
+    [Fact]
+    public async Task Independent_relational_actual_writers_produce_one_winner_and_one_conflict()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-reconciliation-{Guid.NewGuid():N}.db");
+        try
+        {
+            var options = new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite($"Data Source={databasePath};Default Timeout=10").Options;
+            byte[] lineBytes;
+            byte[] actorBytes;
+            await using (var seed = new ReconciliationTestContext(options))
+            {
+                await seed.Database.EnsureCreatedAsync();
+                var fixture = SeedInProgressLine(seed, purchasedVersion: 3, issuedVersion: 2);
+                lineBytes = fixture.Line.BatchLineId;
+                actorBytes = fixture.Actor;
+                await seed.SaveChangesAsync();
+            }
+
+            await using var firstContext = new ReconciliationTestContext(options);
+            await using var secondContext = new ReconciliationTestContext(options);
+            await firstContext.Reconciliationactuals.SingleAsync(x => x.BatchLineId == lineBytes && x.Side == "PURCHASED");
+            await secondContext.Reconciliationactuals.SingleAsync(x => x.BatchLineId == lineBytes && x.Side == "PURCHASED");
+            var gate = new Barrier(2);
+            var first = new ReconciliationActualService(firstContext, new BarrierTransactionRunner(gate), ProtectedContext());
+            var second = new ReconciliationActualService(secondContext, new BarrierTransactionRunner(gate), ProtectedContext());
+            var lineId = GuidHelper.ToGuidString(lineBytes);
+            var actorId = GuidHelper.ToGuidString(actorBytes);
+
+            var results = await Task.WhenAll(Capture(() => first.UpsertAsync(lineId, "PURCHASED", new(14m, 3, false, "Người ghi thứ nhất"), actorId)), Capture(() => second.UpsertAsync(lineId, "PURCHASED", new(15m, 3, false, "Người ghi thứ hai"), actorId)));
+
+            Assert.Single(results, error => error is null);
+            Assert.Single(results, error => error is DbUpdateConcurrencyException);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(databasePath); }
+    }
+
+    [Fact]
+    public async Task Independent_relational_disposition_writers_produce_one_winner_and_one_conflict()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-disposition-{Guid.NewGuid():N}.db");
+        try
+        {
+            var options = new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite($"Data Source={databasePath};Default Timeout=10").Options;
+            byte[] lineBytes;
+            byte[] actorBytes;
+            await using (var seed = new ReconciliationTestContext(options))
+            {
+                await seed.Database.EnsureCreatedAsync();
+                var fixture = SeedInProgressLine(seed, purchasedVersion: 1, issuedVersion: 1);
+                lineBytes = fixture.Line.BatchLineId;
+                actorBytes = fixture.Actor;
+                await seed.SaveChangesAsync();
+            }
+
+            await using var firstContext = new ReconciliationTestContext(options);
+            await using var secondContext = new ReconciliationTestContext(options);
+            await firstContext.Reconciliationdispositions.SingleAsync(x => x.BatchLineId == lineBytes);
+            await secondContext.Reconciliationdispositions.SingleAsync(x => x.BatchLineId == lineBytes);
+            var gate = new Barrier(2);
+            var first = new ReconciliationActualService(firstContext, new BarrierTransactionRunner(gate), ProtectedContext());
+            var second = new ReconciliationActualService(secondContext, new BarrierTransactionRunner(gate), ProtectedContext());
+            var lineId = GuidHelper.ToGuidString(lineBytes);
+            var actorId = GuidHelper.ToGuidString(actorBytes);
+
+            var results = await Task.WhenAll(Capture(() => first.SetDispositionAsync(lineId, new("CORRECTION_REQUIRED", "Kết luận thứ nhất", 1), actorId)), Capture(() => second.SetDispositionAsync(lineId, new("FOLLOW_UP_REQUIRED", "Kết luận thứ hai", 1), actorId)));
+
+            Assert.Single(results, error => error is null);
+            Assert.Single(results, error => error is DbUpdateConcurrencyException);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(databasePath); }
+    }
+
     [Fact]
     public async Task Stale_actual_and_disposition_writers_lose_at_the_service_boundary()
     {
@@ -75,6 +183,12 @@ public sealed class ReconciliationServiceTests
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => service.UpsertAsync(lineId, "PURCHASED", new(15m, 3, false, "Người thua"), actorId));
         await service.SetDispositionAsync(lineId, new("ACCEPTED_VARIANCE", "Kết luận mới", null), actorId);
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => service.SetDispositionAsync(lineId, new("ACCEPTED_VARIANCE", "Kết luận cũ", null), actorId));
+    }
+
+    private static async Task<Exception?> Capture(Func<Task> operation)
+    {
+        try { await operation(); return null; }
+        catch (Exception error) { return error; }
     }
 
     private static IpcManagementContext CreateContext()
@@ -110,6 +224,19 @@ public sealed class ReconciliationServiceTests
     }
 
     private sealed record Fixture(ReconciliationBatch Batch, ReconciliationBatchLine Line, byte[] Actor);
+
+    private sealed class BarrierTransactionRunner(Barrier barrier) : IEfTransactionRunner
+    {
+        private async Task<TResult> Run<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken token)
+        {
+            await Task.Run(() => barrier.SignalAndWait(token), token);
+            return await operation(token);
+        }
+
+        public async Task ExecuteAsync(Func<CancellationToken, Task> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default) => await Run(async token => { await operation(token); return true; }, cancellationToken);
+        public Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default) => Run(operation, cancellationToken);
+        public Task<TResult> ExecuteProtectedAsync<TResult>(string operationKey, long expectedModeVersion, Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default) => Run(operation, cancellationToken);
+    }
 
     private sealed class ReconciliationTestContext(DbContextOptions<IpcManagementContext> options) : IpcManagementContext(options)
     {
@@ -149,9 +276,11 @@ public sealed class ReconciliationServiceTests
             modelBuilder.Entity<ReconciliationBatchLine>().HasKey(x => x.BatchLineId);
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.Batch).WithMany(x => x.Lines).HasForeignKey(x => x.BatchId);
             modelBuilder.Entity<ReconciliationActual>().HasKey(x => x.ActualId);
+            modelBuilder.Entity<ReconciliationActual>().Property(x => x.Version).IsConcurrencyToken();
             modelBuilder.Entity<ReconciliationActual>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);
             modelBuilder.Entity<ReconciliationActualRevision>().HasKey(x => x.RevisionId);
             modelBuilder.Entity<ReconciliationDisposition>().HasKey(x => x.DispositionId);
+            modelBuilder.Entity<ReconciliationDisposition>().Property(x => x.Version).IsConcurrencyToken();
             modelBuilder.Entity<ReconciliationDisposition>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);
             modelBuilder.Entity<AuditLog>().HasKey(x => x.AuditId);
             modelBuilder.Entity<AuditLog>().Ignore(x => x.ChangedByNavigation);
