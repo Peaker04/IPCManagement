@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using IPCManagement.Api.Features.SystemOperation.Services;
 
 namespace IPCManagement.Api.Data.Transactions;
 
@@ -8,17 +9,29 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
 {
     private readonly DbContext _context;
     private readonly Func<IExecutionStrategy> _executionStrategyFactory;
+    private readonly SystemOperationRequestContext? _requestContext;
+    private readonly SystemOperationModeGuard? _modeGuard;
 
     public EfTransactionRunner(DbContext context)
-        : this(context, context.Database.CreateExecutionStrategy)
+        : this(context, null, null, context.Database.CreateExecutionStrategy)
     {
     }
 
-    public EfTransactionRunner(
-        DbContext context,
-        Func<IExecutionStrategy> executionStrategyFactory)
+    public EfTransactionRunner(DbContext context, SystemOperationRequestContext requestContext, SystemOperationModeGuard modeGuard)
+        : this(context, requestContext, modeGuard, context.Database.CreateExecutionStrategy)
+    {
+    }
+
+    public EfTransactionRunner(DbContext context, Func<IExecutionStrategy> executionStrategyFactory)
+        : this(context, null, null, executionStrategyFactory)
+    {
+    }
+
+    private EfTransactionRunner(DbContext context, SystemOperationRequestContext? requestContext, SystemOperationModeGuard? modeGuard, Func<IExecutionStrategy> executionStrategyFactory)
     {
         _context = context;
+        _requestContext = requestContext;
+        _modeGuard = modeGuard;
         _executionStrategyFactory = executionStrategyFactory;
     }
 
@@ -37,6 +50,21 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
             verifySucceeded,
             isolationLevel,
             cancellationToken);
+    }
+
+    public Task<TResult> ExecuteProtectedAsync<TResult>(
+        string operationKey,
+        long expectedModeVersion,
+        Func<CancellationToken, Task<TResult>> operation,
+        Func<CancellationToken, Task<bool>> verifySucceeded,
+        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
+        CancellationToken cancellationToken = default)
+    {
+        if (_requestContext is null) throw new InvalidOperationException("Protected transaction context is unavailable.");
+        _requestContext.OperationKey = operationKey;
+        _requestContext.ExpectedModeVersion = expectedModeVersion;
+        _requestContext.Disposition = OperationDisposition.Retained;
+        return ExecuteAsync(operation, verifySucceeded, isolationLevel, cancellationToken);
     }
 
     public async Task<TResult> ExecuteAsync<TResult>(
@@ -69,7 +97,13 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
                     _context.ChangeTracker.Clear();
                 }
 
-                return await state.Operation(token);
+                var result = await state.Operation(token);
+                if (_modeGuard is not null && _requestContext?.OperationKey is { } operationKey && _requestContext.ExpectedModeVersion is { } expectedVersion)
+                {
+                    _context.ChangeTracker.Clear();
+                    await _modeGuard.ValidateAsync(operationKey, expectedVersion, _requestContext.Disposition, token);
+                }
+                return result;
             },
             async (state, token) =>
             {
