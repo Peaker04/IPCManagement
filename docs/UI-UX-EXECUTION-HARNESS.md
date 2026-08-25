@@ -10,8 +10,10 @@ last_reviewed: 2026-08-12
 
 Đây là quy trình thực thi cho một audit, sửa lỗi hoặc thay đổi UI/UX. Nó không phải một bộ rule
 thứ hai: nguyên tắc normative ở [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md), cách áp dụng theo
-ngữ cảnh project ở [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), và số đo/gate ở
-[`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md).
+ngữ cảnh project ở [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), số đo/gate ở
+[`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md), và corpus kiểm tra bổ sung ở
+[`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md). Front-End Checklist mở rộng
+coverage nhưng không được ghi đè authority hoặc evidence contract của project.
 
 ## 1. Phân loại trước khi làm
 
@@ -31,7 +33,9 @@ không đoán `PASS` và không sửa production chỉ vì “trông không hợ
 1. Đọc `AGENTS.md`, `MEMORY.md`, sau đó chỉ mở contract cần thiết. Xác định work object, grain,
    route, actor/permission, state và mutation boundary.
 2. Đối chiếu rule ID và tìm owner thấp nhất: token → shared primitive → formatter/query/action seam →
-   feature layout. Không tạo shell, badge, state algebra hay formatter song song.
+   feature layout. Không tạo shell, badge, state algebra hay formatter song song. Sau khi khóa rule project,
+   dùng skill `frontend-checklist-global` để rà coverage HTML/CSS/JS, accessibility, performance, security,
+   images, testing và i18n; chỉ giữ finding có bằng chứng và disposition rõ theo precedence của project.
 3. Đo hoặc kiểm tra trước khi sửa. Với layout/read-only dùng `npm run test:ui-measurements -w frontend`
    (thêm `NODE_OPTIONS=--max-old-space-size=4096` khi cần); đọc JSON report. Test/DOM/focus/query
    phải là oracle, screenshot chỉ dành cho reviewer.

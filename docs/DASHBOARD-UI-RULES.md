@@ -15,6 +15,9 @@ last_reviewed: 2026-08-12
 > **Trạng thái áp dụng:** Đây là contract normative cho UI mới và UI được sửa trong IPCManagement. Tài liệu
 > không tự chứng minh mọi route đã tuân thủ; mức `PASS`, `GAP`, `NEEDS_EVIDENCE` và `UNRESOLVED` phải lấy từ
 > source, test và evidence hiện hành. Điểm vào dành cho dev là [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md).
+> Front-End Checklist được tích hợp như corpus quality bổ sung tại
+> [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md); nó không phải design system
+> hoặc nguồn rule ngang hàng và không được ghi đè contract này.
 
 ---
 
@@ -41,6 +44,9 @@ last_reviewed: 2026-08-12
 5. Mỗi thay đổi MUST ghi ID rule đang áp trong mô tả PR/commit, ví dụ `C3`, `M3.2`.
 6. Khi hai rule mâu thuẫn, ưu tiên theo thứ tự: **An toàn dữ liệu > Accessibility > Ổn định layout > Hiệu năng > Nhất quán thị giác > Thẩm mỹ**.
 7. Rule nào không kiểm chứng được bằng lint, test hoặc checklist thì MUST NOT được coi là đã hoàn thành.
+8. Với mọi thay đổi UI/UX, MUST chạy discipline của `frontend-checklist-global` sau khi xác định rule project:
+   ưu tiên finding Critical/High có bằng chứng, disposition rule không phù hợp là `NOT_APPLICABLE`, và cấm
+   biến danh sách 385 rule thành scope triển khai mặc định.
 
 ### 0.4 Vị trí lưu trữ canonical trong worktree này
 
