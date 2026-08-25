@@ -22,6 +22,5 @@ public interface IEfTransactionRunner
         Func<CancellationToken, Task<TResult>> operation,
         Func<CancellationToken, Task<bool>> verifySucceeded,
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
-        CancellationToken cancellationToken = default)
-        => ExecuteAsync(operation, verifySucceeded, isolationLevel, cancellationToken);
+        CancellationToken cancellationToken = default);
 }

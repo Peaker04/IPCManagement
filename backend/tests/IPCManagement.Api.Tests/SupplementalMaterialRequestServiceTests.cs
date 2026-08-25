@@ -426,6 +426,15 @@ public sealed class SupplementalMaterialRequestServiceTests
             CancellationToken cancellationToken = default)
             => throw DuplicateKeyException();
 
+        public Task<TResult> ExecuteProtectedAsync<TResult>(
+            string operationKey,
+            long expectedModeVersion,
+            Func<CancellationToken, Task<TResult>> operation,
+            Func<CancellationToken, Task<bool>> verifySucceeded,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted,
+            CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("This test double does not support protected transactions.");
+
         public Task<TResult> ExecuteAsync<TResult>(
             Func<CancellationToken, Task<TResult>> operation,
             Func<CancellationToken, Task<bool>> verifySucceeded,

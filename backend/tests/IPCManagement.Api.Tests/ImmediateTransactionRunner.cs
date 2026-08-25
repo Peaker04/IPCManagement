@@ -17,6 +17,20 @@ internal sealed class ImmediateTransactionRunner : IEfTransactionRunner
         await operation(cancellationToken);
     }
 
+    public async Task<TResult> ExecuteProtectedAsync<TResult>(
+        string operationKey,
+        long expectedModeVersion,
+        Func<CancellationToken, Task<TResult>> operation,
+        Func<CancellationToken, Task<bool>> verifySucceeded,
+        IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(operationKey) || expectedModeVersion < 1)
+            throw new InvalidOperationException("Protected transaction requires mode context.");
+        ExecutionCount++;
+        return await operation(cancellationToken);
+    }
+
     public async Task<TResult> ExecuteAsync<TResult>(
         Func<CancellationToken, Task<TResult>> operation,
         Func<CancellationToken, Task<bool>> verifySucceeded,
