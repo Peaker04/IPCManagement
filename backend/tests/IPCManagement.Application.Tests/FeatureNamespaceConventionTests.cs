@@ -15,8 +15,10 @@ public class FeatureNamespaceConventionTests
         "Inventory",
         "Planning",
         "Purchasing",
+        "Reconciliation",
         "Reports",
         "SampleData",
+        "SystemOperation",
     ];
 
     private static readonly HashSet<string> AllowedLayers =

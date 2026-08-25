@@ -16,7 +16,6 @@ using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Infrastructure.LifecycleOutbox;
 using IPCManagement.Api.Infrastructure.Lifecycle;
-using IPCManagement.Api.Features.SystemOperation.Initialization;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Features.Reconciliation.Services;
 

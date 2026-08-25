@@ -1,4 +1,6 @@
-namespace IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
+
+namespace IPCManagement.Api.Data.Transactions;
 
 public sealed class SystemOperationRequestContext
 {

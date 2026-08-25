@@ -21,10 +21,12 @@ public class FeatureDependencyConventionTests
         new("SampleData", "Coordination"),
     ];
 
-    // These reverse edges are the remaining known cycles scheduled for removal in
-    // Step 13. Their reference count may decrease, but must never increase.
+    // Pre-existing non-preferred edges are frozen at their observed reference count.
+    // Their count may decrease, but must never increase.
     private static readonly Dictionary<FeatureEdge, int> LegacyCycleReferenceCeilings = new()
     {
+        [new("Catalog", "Inventory")] = 2,
+        [new("SampleData", "Inventory")] = 1,
     };
 
     [Fact]

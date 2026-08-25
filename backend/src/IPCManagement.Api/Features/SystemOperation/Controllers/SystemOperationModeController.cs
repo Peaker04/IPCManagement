@@ -1,6 +1,5 @@
 using IPCManagement.Api.Features.SystemOperation.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
-using IPCManagement.Api.Features.SystemOperation.Initialization;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Helpers;
 using Microsoft.AspNetCore.Authorization;
