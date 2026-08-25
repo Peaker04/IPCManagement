@@ -12,6 +12,18 @@ export type QueryBoundaryException = {
 }
 
 export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryException>> = {
+  'src/features/admin/components/SystemOperationModeSettings.tsx': {
+    rationale: 'The Admin mode setting owns one singleton query and renders explicit loading/error/current authority before allowing mutation.',
+    requiredMarkers: ['useGetSystemOperationModeQuery', 'Không tải được chế độ vận hành', 'useChangeSystemOperationModeMutation'],
+  },
+  'src/features/reconciliation/ReconciliationWorkspace.tsx': {
+    rationale: 'The retained-work-area reconciliation workspace owns one batch collection and preserves loading, error and genuinely empty states.',
+    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được lô đối chiếu', 'Chưa có lô đối chiếu'],
+  },
+  'src/features/system-operation/SystemOperationProvider.tsx': {
+    rationale: 'The provider is the authenticated singleton bootstrap boundary; authority failure is exposed to route guards and never treated as DEFAULT or empty data.',
+    requiredMarkers: ['useGetSystemOperationModeQuery', 'Không thể xác định chế độ vận hành', 'isLoading'],
+  },
   'src/routes/ProtectedRoute.tsx': {
     rationale: 'Authentication bootstrap is a route/session gate: failure clears credentials and redirects, so it has no authoritative empty-data state.',
     requiredMarkers: ['useGetCurrentUserQuery', 'selectIsAuthLoading', 'logOut()', '<Navigate'],

@@ -129,7 +129,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:113': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:114': [
       '<ReportQueryBoundary view={reportViews.demand}>',
     ],
   },

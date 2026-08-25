@@ -20,15 +20,15 @@ const commandBarExceptionLocations = [
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:52',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:57',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:62',
-  'src/features/reports/pages/ReportsPage.tsx:77',
-  'src/features/reports/pages/ReportsPage.tsx:86',
-  'src/features/warehouse/pages/WarehousePage.tsx:316',
+  'src/features/reports/pages/ReportsPage.tsx:78',
+  'src/features/reports/pages/ReportsPage.tsx:87',
+  'src/features/warehouse/pages/WarehousePage.tsx:317',
 ]
 
 const adapterExceptionLocations = [
-  'src/app/layout/MainLayout.tsx:150',
-  'src/app/layout/MainLayout.tsx:215',
-  'src/app/layout/MainLayout.tsx:254',
+  'src/app/layout/MainLayout.tsx:155',
+  'src/app/layout/MainLayout.tsx:220',
+  'src/app/layout/MainLayout.tsx:260',
   'src/components/common/ApprovalQueue.tsx:75',
   'src/components/common/CursorPaginationBar.tsx:63',
   'src/components/common/CursorPaginationBar.tsx:80',
