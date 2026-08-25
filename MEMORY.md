@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-23
+updated: 2026-08-26
 branch: feature/menu-amendment-reconciliation
 runtime_ports:
   frontend: 3001
@@ -30,14 +30,15 @@ Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được tea
 count là `0`. Các PID/runtime khác nếu còn mở nằm ngoài run này và không bị chạm. Runtime warehouse development
 `3020/8020` nếu còn mở thuộc lane riêng `ipc_dev_warehouse_20260812`, không được dùng thay cho Phase 5.
 
-## Phase 29 discovery checkpoint · 25/08/2026
+## Phase 29 protected-evidence checkpoint · 26/08/2026
 
-- Kỳ approved one **server-authoritative system-wide operation mode**, mutable only by Admin: UI labels `Mặc định` and `Đối chiếu nguyên liệu`; stable internal values are `DEFAULT` and `MATERIAL_RECONCILIATION`. `localStorage` is not authority. Mode eligibility is enforced with existing permissions and direct excluded routes use a mode-unavailable state, not `/403`.
-- Reconciliation mode retains Tổng quan, Thực đơn tuần, Thu mua, Kho nguyên liệu, Báo cáo, Quản trị dữ liệu and Admin-only Thiết lập nâng cao. It excludes Điều phối đơn, Duyệt vận hành, Bếp trưởng and Thiết lập quy trình duyệt for every role, including Admin.
-- Each import creates an immutable reconciliation batch at grain `batch × ingredient identity × canonical unit`. Demand and tolerance freeze when Purchasing starts actual entry. Compare purchased−required, issued−required and purchased−issued; always show exact differences and mark `Cần kiểm tra` only beyond the frozen tolerance.
-- The clarity rules apply to both modes and therefore the whole current default project: remove redundant notes and implementation-language copy, consolidate empty states to one state plus one authorized next action, shorten technical document codes only with full-value inspect/copy/search support, prioritize decision-bearing table columns, and enforce consistent spacing/alignment/truncation/visual hierarchy without erasing business meaning or audit identity.
-- Discovery authority: `.planning/notes/system-operation-mode-and-material-reconciliation.md`. Phase seed: `.planning/phases/29-system-operation-mode-and-material-reconciliation/29-SPEC-SEED.md`. Requirements: OPM-01..04, MRC-01..04, CLR-01..03. No Phase 29 production code or DB mutation has started.
-- **Next session:** read `AGENTS.md` and this file only, verify clean/dirty Git state, then open the two Phase 29 authority files above and run Phase 29 research/spec/discussion before planning. Do not reopen Phase 28 or repeat its activation.
+- Phase 29 research, SPEC, discussion, 22-plan convergence and Plans 01–21 implementation are complete. Plan 22 remains open; do not close the phase before protected MySQL, headed browser and independent verification evidence pass.
+- Canonical published-source eligibility is `ACTIVE/PUBLISHED`; commit `9e17fb9d` applies one dependency-neutral policy across scheduling, demand and reconciliation while preserving exact committed menu/import pair validation.
+- `SYSTEM_DEFAULT` reconciliation tolerance is now server-owned at exact decimal `0.500000`, version `1`, created through an Admin-only idempotent initializer with actor/time audit. Runtime rejects missing, duplicate or drifted defaults even when an override exists. MySQL migration 73 adds an atomic generated singleton key plus scope/value/version checks. Precedence is ingredient override → canonical-unit-group override → system default. Commit: `0a9ba4ba`.
+- Independent source re-review after fixes: 0 blockers, 0 warnings. Current source gates: Application 49/49; API 1,018 pass + 1 intentional skip; frontend 191 files / 1,222 tests pass in serial authoritative rerun; focused former failures 75/75; lint, frontend build, API contract parity, EF pending-model check and atomic migration SQL review pass. The first parallel frontend aggregate had seven contention failures; no timeout/assertion/config was weakened and every failure passed serially before the full serial aggregate passed.
+- Prior `ipc_lane7` rehearsal applied migrations 71–72, activated only exact configured warehouse bytes, initialized mode twice, then stopped on source/tolerance gaps and restored exact checkpoint with empty rollback diff. Current lane remains restored at 70 migrations; that attempt is failed history, not success evidence.
+- The current executor has all role password variables but **does not have `IPC_LANE7_MYSQL_PASSWORD`**. The resumed protected retry therefore stopped before MySQL connection, checkpoint, migration, runtime or browser mutation. No fallback credential/config source is authorized.
+- **Next session:** verify clean Git state and MySQL credential presence without printing values. Once injected, start a fresh read-only lineage/checkpoint preflight on exact `ipc_lane7`; review/apply migrations 71–73, conditionally activate only configured warehouse `ead76aad-c02e-4b49-9e59-90efa2d042e1`, initialize mode and tolerance twice, then create a newly controlled committed import/batch through application paths and run concurrency/correction/disposition/completion/zero-stock-procurement plus headed five-viewport role × mode evidence. Never reuse the restored rehearsal as PASS.
 
 ## Phase 28 complete · 24/08/2026
 

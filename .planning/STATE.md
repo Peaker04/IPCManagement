@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: active
-stopped_at: Phase 29 context gathered; autonomous plan and execution authorized
-last_updated: "2026-08-25T04:46:02.838Z"
+stopped_at: Phase 29 source blockers resolved; protected lane7 retry awaiting MySQL credential injection
+last_updated: "2026-08-26T00:37:00+07:00"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -12,7 +12,7 @@ progress:
   completed_plans: 36
   percent: 50
 current_phase_name: system-operation-mode-and-material-reconciliation
-last_activity: 2026-08-25 — Captured Phase 29 global mode, reconciliation and project-wide clarity discovery authority
+last_activity: 2026-08-26 — Closed published-source and SYSTEM_DEFAULT tolerance authority blockers; aggregate source gates green
 ---
 
 # Project State
@@ -21,25 +21,25 @@ last_activity: 2026-08-25 — Captured Phase 29 global mode, reconciliation and 
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 29 discovery — system-operation-mode-and-material-reconciliation
+**Current focus:** Phase 29 protected MySQL/browser evidence — system-operation-mode-and-material-reconciliation
 
 ## Current Status
 
-- Phases 27, 27.1 and 28 are COMPLETE; their evidence architecture remains mandatory for Phase 29 UI correction.
-- Kỳ locked one server-authoritative system-wide mode, mutable only by Admin: `DEFAULT` or `MATERIAL_RECONCILIATION`.
-- Reconciliation mode retains Dashboard, Weekly Menu, Purchasing, Warehouse, Reports, Admin Data and Admin-only Advanced Settings; it excludes Coordination, Approvals, Chef Dashboard and Approval Rules for every role.
-- Each import creates an immutable reconciliation batch at grain `batch × ingredient identity × canonical unit`; required/purchased/issued comparisons use tolerance frozen with the batch.
-- Project-wide copy/table/empty-state/hierarchy cleanup applies to both modes, including the current default project. No production edit is authorized until Phase 29 research/spec/discussion and planning close their ambiguities.
+- Phases 27, 27.1 and 28 are COMPLETE; Phase 29 plans 01–21 are implemented and Plan 22 closeout remains blocked on protected evidence.
+- Published source eligibility is canonicalized to `ACTIVE/PUBLISHED` at commit `9e17fb9d`.
+- `SYSTEM_DEFAULT` reconciliation tolerance is server-owned and fail-closed at value `0.500000`, version `1`, with immutable creation audit, idempotent Admin initialization, MySQL singleton enforcement and ingredient → canonical-unit-group → system-default precedence at commit `0a9ba4ba`.
+- Independent source re-review reports 0 blockers / 0 warnings. Current gates: Application 49/49; API 1,018 pass + 1 intentional skip; frontend 191 files / 1,222 tests serial, lint/build/API parity/model parity pass.
+- `ipc_lane7` remains restored at 70 migrations. Protected retry has not connected because `IPC_LANE7_MYSQL_PASSWORD` is absent from the current executor; no DB/runtime/browser mutation occurred in this resumed session.
 
 ## Session Continuity
 
-**Last session:** 2026-08-25T04:46:02.797Z
-**Resume file:** .planning/phases/29-system-operation-mode-and-material-reconciliation/29-CONTEXT.md
+**Last session:** 2026-08-26T00:37:00+07:00
+**Resume file:** .planning/phases/29-system-operation-mode-and-material-reconciliation/29-RUNTIME-FIX-RETRY-RUN.md
 
-**Stopped at:** Phase 29 context gathered; autonomous plan and execution authorized
+**Stopped at:** Source and migration authority are green; protected retry stopped before connection because the current process lacks `IPC_LANE7_MYSQL_PASSWORD`.
 **Resume directory:** `.planning/phases/29-system-operation-mode-and-material-reconciliation`
 
-Next workflow: read the Phase 29 discovery note and spec seed, then run research/spec/discussion before planning. Phase 28 operational database state and rollback artifacts remain unchanged.
+Next workflow: inject only the canonical lane7 MySQL credential into the executor environment, restart from read-only lineage/checkpoint preflight, apply migrations 71–73, activate only the exact configured warehouse if required, initialize mode and tolerance twice, then run controlled reconciliation DB/browser evidence. Do not reuse the prior restored attempt as success evidence.
 
 ## Decisions
 
@@ -82,8 +82,9 @@ Next workflow: read the Phase 29 discovery note and spec seed, then run research
 
 ### Blockers
 
+- Phase 29 protected retry cannot connect until `IPC_LANE7_MYSQL_PASSWORD` is present in the actual executor process. Role passwords are present; the MySQL credential is not. No fallback credential source is authorized.
+- Real MySQL reconciliation concurrency, correction/disposition/completion immutability, zero procurement/stock mutation and headed five-viewport role × mode evidence remain required before Plan 29-22 closeout.
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
-- No Phase 28 blocker remains. Full frontend aggregate passes 186 files / 1,209 tests after source-aware authority reconciliation; old baseline bytes remain truthfully LOST_NO_BACKUP.
 
 ## Performance Metrics
 
