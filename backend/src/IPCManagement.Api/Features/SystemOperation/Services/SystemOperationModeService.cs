@@ -25,6 +25,7 @@ public sealed class SystemOperationModeService(IpcManagementContext context, Sys
             throw new SystemOperationAuthorityException("Cấu hình chế độ vận hành không hợp lệ.");
         var row = rows[0];
         if (row.Version != request.ExpectedVersion) throw new SystemOperationConflictException("Chế độ vận hành đã thay đổi. Vui lòng tải lại.");
+        context.Entry(row).Property(x => x.Version).OriginalValue = request.ExpectedVersion;
         var reasonRequired = await HasWorkInProgressAsync(cancellationToken);
         if (reasonRequired && string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Cần nhập lý do vì hệ thống đang có công việc chưa hoàn tất.");
         if (row.Mode != request.Mode)
@@ -36,7 +37,14 @@ public sealed class SystemOperationModeService(IpcManagementContext context, Sys
             row.UpdatedBy = actor;
             row.Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
             context.Auditlogs.Add(new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = row.UpdatedAt, ChangedBy = actor, BusinessArea = "SYSTEM_OPERATION", EntityName = "SystemOperationMode", FieldName = "Mode", OldValue = oldMode, NewValue = row.Mode, Reason = row.Reason });
-            await context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new SystemOperationConflictException("Chế độ vận hành đã thay đổi. Vui lòng tải lại.");
+            }
         }
         await transaction.CommitAsync(cancellationToken);
         return new(row.Mode, Label(row.Mode), row.Version, row.UpdatedAt, reasonRequired);
