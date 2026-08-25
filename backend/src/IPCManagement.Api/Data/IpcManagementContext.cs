@@ -160,6 +160,15 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<LifecycleOutboxDelivery> Lifecycleoutboxdeliveries { get; set; }
     public virtual DbSet<DataQualityDisposition> Dataqualitydispositions { get; set; }
 
+    public virtual DbSet<SystemOperationMode> Systemoperationmodes { get; set; }
+    public virtual DbSet<ReconciliationBatch> Reconciliationbatches { get; set; }
+    public virtual DbSet<ReconciliationBatchLine> Reconciliationbatchlines { get; set; }
+    public virtual DbSet<ReconciliationBatchContributor> Reconciliationbatchcontributors { get; set; }
+    public virtual DbSet<ReconciliationTolerance> Reconciliationtolerances { get; set; }
+    public virtual DbSet<ReconciliationActual> Reconciliationactuals { get; set; }
+    public virtual DbSet<ReconciliationActualRevision> Reconciliationactualrevisions { get; set; }
+    public virtual DbSet<ReconciliationDisposition> Reconciliationdispositions { get; set; }
+
     public virtual DbSet<LifecycleCommandReceipt> Lifecyclecommandreceipts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

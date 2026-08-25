@@ -2,6 +2,8 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace IPCManagement.Api.Tests;
 
@@ -13,7 +15,7 @@ public sealed class Phase29ModelConfigurationTests
             .UseMySql("Server=localhost;Database=phase29_model;User=root;Password=unused", ServerVersion.Parse("8.0.36-mysql"))
             .Options;
         using var context = new IpcManagementContext(options);
-        return context.Model;
+        return context.GetService<IDesignTimeModel>().Model;
     }
 
     [Fact]
@@ -26,7 +28,8 @@ public sealed class Phase29ModelConfigurationTests
         Assert.Contains(mode.GetCheckConstraints(), check => check.Sql!.Contains("DEFAULT") && check.Sql.Contains("MATERIAL_RECONCILIATION"));
 
         var line = model.FindEntityType(typeof(ReconciliationBatchLine))!;
-        Assert.Equal(6, line.FindProperty(nameof(ReconciliationBatchLine.RequiredQuantity))!.GetPrecision());
+        Assert.Equal(18, line.FindProperty(nameof(ReconciliationBatchLine.RequiredQuantity))!.GetPrecision());
+        Assert.Equal(6, line.FindProperty(nameof(ReconciliationBatchLine.RequiredQuantity))!.GetScale());
         Assert.Contains(line.GetIndexes(), index => index.IsUnique && index.Properties.Select(p => p.Name).SequenceEqual([
             nameof(ReconciliationBatchLine.BatchId), nameof(ReconciliationBatchLine.IngredientId), nameof(ReconciliationBatchLine.CanonicalUnitId)]));
 
@@ -39,7 +42,8 @@ public sealed class Phase29ModelConfigurationTests
     {
         var model = Model();
         var tolerance = model.FindEntityType(typeof(ReconciliationTolerance))!;
-        Assert.Equal(6, tolerance.FindProperty(nameof(ReconciliationTolerance.Value))!.GetPrecision());
+        Assert.Equal(18, tolerance.FindProperty(nameof(ReconciliationTolerance.Value))!.GetPrecision());
+        Assert.Equal(6, tolerance.FindProperty(nameof(ReconciliationTolerance.Value))!.GetScale());
 
         var actual = model.FindEntityType(typeof(ReconciliationActual))!;
         Assert.True(actual.FindProperty(nameof(ReconciliationActual.Version))!.IsConcurrencyToken);
