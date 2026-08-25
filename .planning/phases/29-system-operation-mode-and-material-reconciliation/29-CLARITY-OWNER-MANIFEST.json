@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "authority": "Phase 27/28 selected remediation reconciliation",
+  "generatedAt": "2026-08-25T00:00:00Z",
+  "rules": ["CLR-01", "CLR-02", "CLR-03"],
+  "dispositions": {
+    "ACTIONABLE_FAIL": 0,
+    "UNRESOLVED": 0,
+    "NEEDS_EVIDENCE": "preserved from selected authority",
+    "NON_ACTIONABLE_RAW_RETAINED": "preserved from selected authority"
+  },
+  "routeOwners": [
+    {"route":"LOGIN","file":"frontend/src/features/auth/pages/LoginPage.tsx","symbol":"LoginPage"},
+    {"route":"FORBIDDEN","file":"frontend/src/features/auth/pages/ForbiddenPage.tsx","symbol":"ForbiddenPage"},
+    {"route":"DASHBOARD","file":"frontend/src/features/dashboard/pages/DashboardPage.tsx","symbol":"DashboardPage"},
+    {"route":"WEEKLY_MENU","file":"frontend/src/features/projects/pages/WeeklyMenuPage.tsx","symbol":"WeeklyMenuPage"},
+    {"route":"REPORTS","file":"frontend/src/features/reports/pages/ReportsPage.tsx","symbol":"ReportsPage"},
+    {"route":"MEAL_ORDERS","file":"frontend/src/features/coordination/pages/CoordinationPage.tsx","symbol":"CoordinationPage"},
+    {"route":"CHEF_DASHBOARD","file":"frontend/src/features/chef/pages/ChefDashboardPage.tsx","symbol":"ChefDashboardPage"},
+    {"route":"APPROVALS","file":"frontend/src/features/approvals/pages/ApprovalPage.tsx","symbol":"ApprovalPage"},
+    {"route":"PURCHASING","file":"frontend/src/features/purchasing/pages/PurchasingPage.tsx","symbol":"PurchasingPage"},
+    {"route":"WAREHOUSE","file":"frontend/src/features/warehouse/pages/WarehousePage.tsx","symbol":"WarehousePage"},
+    {"route":"ADMIN_DATA","file":"frontend/src/app/pages/AdminDataPage.tsx","symbol":"AdminDataPage"},
+    {"route":"APPROVAL_RULES","file":"frontend/src/features/admin/pages/ApprovalRulesPage.tsx","symbol":"ApprovalRulesPage"},
+    {"route":"ADVANCED_SETTINGS","file":"frontend/src/features/admin/pages/AdvancedDisplaySettingsPage.tsx","symbol":"AdvancedDisplaySettingsPage"}
+  ],
+  "conditionalSeams": ["workflowConfig", "formatters", "ipc-data-table", "QueryViewBoundary"],
+  "productionRemediationAuthorized": false
+}
