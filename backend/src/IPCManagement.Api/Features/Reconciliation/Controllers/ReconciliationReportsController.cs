@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IPCManagement.Api.Features.Reconciliation.Controllers;
 
-[ApiController, Route("api/reconciliation/reports"), Authorize(Policy = AuthorizationPolicies.ReportRead)]
+[ApiController, Route("api/reconciliation/reports"), Authorize(Policy = AuthorizationPolicies.ReportAccess)]
 public sealed class ReconciliationReportsController(ReconciliationBatchService service) : ControllerBase
 {
-    [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken token) { var batch = await service.GetAsync(id, token); return batch is null ? NotFound(ApiResponse.FailResult("Không tìm thấy báo cáo đối chiếu.")) : Ok(ApiResponse<ReconciliationBatchDto>.SuccessResult(batch)); }
+    [HttpGet("{id}"), ProducesResponseType(typeof(ApiResponse<ReconciliationBatchDto>), StatusCodes.Status200OK)] public async Task<IActionResult> Get(string id, CancellationToken token) { var batch = await service.GetAsync(id, token); return batch is null ? NotFound(ApiResponse.FailResult("Không tìm thấy báo cáo đối chiếu.")) : Ok(ApiResponse<ReconciliationBatchDto>.SuccessResult(batch)); }
 }

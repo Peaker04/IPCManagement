@@ -20,6 +20,9 @@ public static class AuthorizationPolicies
     public const string WarehouseCatalogAccess = "WarehouseCatalogAccess";
     public const string WarehouseSelectorAccess = "WarehouseSelectorAccess";
     public const string WarehousePurchaseReceive = "WarehousePurchaseReceive";
+    public const string ReportAccess = "ReportAccess";
+    public const string ReconciliationDispositionAccess = "ReconciliationDispositionAccess";
+    public const string ReconciliationCompleteAccess = "ReconciliationCompleteAccess";
 
     public static readonly string[] AdminRoles =
     [
@@ -88,6 +91,20 @@ public static class AuthorizationPolicies
         .Concat(CoordinationRoles)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
+
+    public static readonly string[] ReportRoles = AdminRoles
+        .Concat(CoordinationRoles)
+        .Concat(PurchaseRoles)
+        .Concat(WarehouseRoles)
+        .Concat(ProductionRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] ReconciliationDecisionRoles =
+    [
+        "Admin", "ADMIN", "Quản trị",
+        "Manager", "MANAGER", "Quản lý"
+    ];
 
     public static readonly string[] WarehousePurchaseReceiveRoles =
     [
