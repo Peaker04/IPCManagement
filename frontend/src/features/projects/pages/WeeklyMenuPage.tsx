@@ -48,6 +48,7 @@ import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
+import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
@@ -531,6 +532,7 @@ const WeeklyMenuPage = () => {
 
         {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
       </QueryViewBoundary>
+      <ReconciliationWorkspace owner="weekly-menu" />
     </OperationalFrame>
   );
 };

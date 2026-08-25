@@ -16,6 +16,7 @@ import {
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
+import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
   useGetCurrentStockQuery,
@@ -735,6 +736,7 @@ export default function WarehousePage() {
           </Suspense>
         </KeepAliveTabPanel>
       </div>
+      <ReconciliationWorkspace owner="warehouse" />
     </OperationalFrame>
   );
 }

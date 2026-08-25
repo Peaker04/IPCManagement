@@ -8269,6 +8269,296 @@
         }
       }
     },
+    "/api/reconciliation/lines/{lineId}/purchased": {
+      "put": {
+        "tags": [
+          "ReconciliationActuals"
+        ],
+        "parameters": [
+          {
+            "name": "lineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReconciliationActualRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReconciliationActualRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReconciliationActualRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/lines/{lineId}/issued": {
+      "put": {
+        "tags": [
+          "ReconciliationActuals"
+        ],
+        "parameters": [
+          {
+            "name": "lineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReconciliationActualRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReconciliationActualRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertReconciliationActualRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/lines/{lineId}/disposition": {
+      "put": {
+        "tags": [
+          "ReconciliationActuals"
+        ],
+        "parameters": [
+          {
+            "name": "lineId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReconciliationDispositionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReconciliationDispositionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetReconciliationDispositionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/batches": {
+      "get": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReconciliationDraftRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReconciliationDraftRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReconciliationDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/batches/{id}": {
+      "get": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/batches/{id}/ready": {
+      "post": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadyReconciliationBatchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadyReconciliationBatchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadyReconciliationBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/batches/{id}/complete": {
+      "post": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteReconciliationBatchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteReconciliationBatchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteReconciliationBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/reports/{id}": {
+      "get": {
+        "tags": [
+          "ReconciliationReports"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/sample-data/import": {
       "post": {
         "tags": [
@@ -10498,6 +10788,59 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/system-operation-mode": {
+      "get": {
+        "tags": [
+          "SystemOperationMode"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SystemOperationMode"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSystemOperationModeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSystemOperationModeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSystemOperationModeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/system-operation-mode/initialize": {
+      "post": {
+        "tags": [
+          "SystemOperationMode"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -19652,6 +19995,44 @@
         },
         "additionalProperties": false
       },
+      "ChangeSystemOperationModeRequest": {
+        "required": [
+          "confirmed",
+          "expectedVersion",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompleteReconciliationBatchRequest": {
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "ConfirmInventoryIssueReceiptRequest": {
         "required": [
           "hasDiscrepancy"
@@ -20909,6 +21290,22 @@
             "items": {
               "$ref": "#/components/schemas/ReceiptCorrectionLineRequest"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateReconciliationDraftRequest": {
+        "required": [
+          "menuVersionId",
+          "quantityImportBatchId"
+        ],
+        "type": "object",
+        "properties": {
+          "menuVersionId": {
+            "type": "string"
+          },
+          "quantityImportBatchId": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -31387,6 +31784,19 @@
         },
         "additionalProperties": false
       },
+      "ReadyReconciliationBatchRequest": {
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReasonRequest": {
         "required": [
           "reason"
@@ -33251,6 +33661,27 @@
           "declaredAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetReconciliationDispositionRequest": {
+        "required": [
+          "category",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -35606,6 +36037,32 @@
           },
           "complete": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpsertReconciliationActualRequest": {
+        "required": [
+          "confirmZero",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "confirmZero": {
+            "type": "boolean"
+          },
+          "correctionReason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

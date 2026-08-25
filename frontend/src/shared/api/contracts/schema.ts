@@ -6167,6 +6167,337 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/batches": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["CreateReconciliationDraftRequest"];
+                    readonly "application/json": components["schemas"]["CreateReconciliationDraftRequest"];
+                    readonly "text/json": components["schemas"]["CreateReconciliationDraftRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/batches/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/batches/{id}/complete": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["CompleteReconciliationBatchRequest"];
+                    readonly "application/json": components["schemas"]["CompleteReconciliationBatchRequest"];
+                    readonly "text/json": components["schemas"]["CompleteReconciliationBatchRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/batches/{id}/ready": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ReadyReconciliationBatchRequest"];
+                    readonly "application/json": components["schemas"]["ReadyReconciliationBatchRequest"];
+                    readonly "text/json": components["schemas"]["ReadyReconciliationBatchRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/lines/{lineId}/disposition": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly lineId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["SetReconciliationDispositionRequest"];
+                    readonly "application/json": components["schemas"]["SetReconciliationDispositionRequest"];
+                    readonly "text/json": components["schemas"]["SetReconciliationDispositionRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/lines/{lineId}/issued": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly lineId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["UpsertReconciliationActualRequest"];
+                    readonly "application/json": components["schemas"]["UpsertReconciliationActualRequest"];
+                    readonly "text/json": components["schemas"]["UpsertReconciliationActualRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/lines/{lineId}/purchased": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly lineId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["UpsertReconciliationActualRequest"];
+                    readonly "application/json": components["schemas"]["UpsertReconciliationActualRequest"];
+                    readonly "text/json": components["schemas"]["UpsertReconciliationActualRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/reports/{id}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/sample-data/import": {
         readonly parameters: {
             readonly query?: never;
@@ -7868,6 +8199,95 @@ export interface paths {
         };
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/system-operation-mode": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly put: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["ChangeSystemOperationModeRequest"];
+                    readonly "application/json": components["schemas"]["ChangeSystemOperationModeRequest"];
+                    readonly "text/json": components["schemas"]["ChangeSystemOperationModeRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/system-operation-mode/initialize": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -11042,6 +11462,17 @@ export interface components {
             readonly customerId: string;
             readonly slots: readonly components["schemas"]["WeeklyMenuSlotUpdateRequest"][];
         };
+        readonly ChangeSystemOperationModeRequest: {
+            readonly confirmed: boolean;
+            /** Format: int64 */
+            readonly expectedVersion: number;
+            readonly mode: string;
+            readonly reason?: string | null;
+        };
+        readonly CompleteReconciliationBatchRequest: {
+            /** Format: int64 */
+            readonly expectedVersion: number;
+        };
         readonly ConfirmInventoryIssueReceiptRequest: {
             readonly discrepancyNote?: string | null;
             readonly hasDiscrepancy: boolean;
@@ -11362,6 +11793,10 @@ export interface components {
             readonly expectedVersion: number;
             readonly lines: readonly components["schemas"]["ReceiptCorrectionLineRequest"][];
             readonly reason: string;
+        };
+        readonly CreateReconciliationDraftRequest: {
+            readonly menuVersionId: string;
+            readonly quantityImportBatchId: string;
         };
         readonly CreateServiceRunAdjustmentRequest: {
             /** Format: int32 */
@@ -14394,6 +14829,10 @@ export interface components {
             readonly sourceType: string;
             readonly status: string;
         };
+        readonly ReadyReconciliationBatchRequest: {
+            /** Format: int64 */
+            readonly expectedVersion: number;
+        };
         readonly ReasonRequest: {
             readonly reason: string;
         };
@@ -14916,6 +15355,12 @@ export interface components {
             readonly declaredByLabel: string;
             readonly reason: string;
             readonly trackLabel: string;
+        };
+        readonly SetReconciliationDispositionRequest: {
+            readonly category: string;
+            /** Format: int64 */
+            readonly expectedVersion?: number | null;
+            readonly reason: string;
         };
         readonly SignoffOrderRequest: {
             readonly note?: string | null;
@@ -15575,6 +16020,14 @@ export interface components {
             /** Format: int32 */
             readonly servings: number;
             readonly shiftName: string;
+        };
+        readonly UpsertReconciliationActualRequest: {
+            readonly confirmZero: boolean;
+            readonly correctionReason?: string | null;
+            /** Format: int64 */
+            readonly expectedVersion?: number | null;
+            /** Format: double */
+            readonly quantity: number;
         };
         readonly User: {
             readonly auditlogs: readonly components["schemas"]["AuditLog"][];

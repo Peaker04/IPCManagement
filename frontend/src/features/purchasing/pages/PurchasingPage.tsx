@@ -3,6 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from
 import { useSearchParams } from 'react-router-dom';
 import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
+import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
@@ -329,6 +330,7 @@ export default function PurchasingPage() {
           </KeepAliveTabPanel>
         </div>
       </div>
+      <ReconciliationWorkspace owner="purchasing" />
     </OperationalFrame>
   );
 }
