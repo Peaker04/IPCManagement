@@ -2,7 +2,6 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
-using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +43,18 @@ public sealed class ReconciliationActualService(
                     if (string.IsNullOrWhiteSpace(request.CorrectionReason)) throw new ArgumentException("Cần nhập lý do điều chỉnh.");
                     context.Entry(actual).Property(x => x.Version).OriginalValue = request.ExpectedVersion!.Value;
                     context.Reconciliationactualrevisions.Add(new ReconciliationActualRevision { RevisionId = GuidHelper.NewId(), ActualId = actual.ActualId, OldQuantity = actual.Quantity, NewQuantity = request.Quantity, Reason = request.CorrectionReason.Trim(), ChangedBy = actor, ChangedAt = DateTime.UtcNow });
+                    var disposition = await context.Reconciliationdispositions.SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken);
+                    if (disposition is not null)
+                    {
+                        context.Auditlogs.Add(new AuditLog
+                        {
+                            AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actor,
+                            BusinessArea = "RECONCILIATION", EntityName = "ReconciliationDisposition", EntityId = disposition.DispositionId,
+                            FieldName = "Validity", OldValue = $"{disposition.Category}|{disposition.Reason}|v{disposition.Version}", NewValue = "INVALIDATED",
+                            Reason = $"Actual {side} corrected from v{actual.Version}."
+                        });
+                        context.Reconciliationdispositions.Remove(disposition);
+                    }
                     actual.Quantity = request.Quantity; actual.Version++; actual.EnteredBy = actor; actual.EnteredAt = DateTime.UtcNow;
                 }
                 resultingVersion = actual.Version;
@@ -76,6 +87,10 @@ public sealed class ReconciliationActualService(
             {
                 var line = await context.Reconciliationbatchlines.Include(x => x.Batch).SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken) ?? throw new KeyNotFoundException();
                 if (line.Batch.Status is not ("READY" or "IN_PROGRESS")) throw new InvalidOperationException("Chỉ lô đang đối chiếu mới được cập nhật hướng xử lý.");
+                var actuals = await context.Reconciliationactuals.Where(x => x.BatchLineId == lineBytes).ToListAsync(operationToken);
+                var purchased = actuals.SingleOrDefault(x => x.Side == "PURCHASED");
+                var issued = actuals.SingleOrDefault(x => x.Side == "ISSUED");
+                if (purchased is null || issued is null) throw new InvalidOperationException("Cần nhập đủ số lượng mua và xuất trước khi xử lý chênh lệch.");
                 var current = await context.Reconciliationdispositions.SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken);
                 if (current is null)
                 {

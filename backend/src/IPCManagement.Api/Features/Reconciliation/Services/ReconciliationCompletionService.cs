@@ -2,7 +2,6 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
-using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Features.Reconciliation.Services;
@@ -32,7 +31,11 @@ public sealed class ReconciliationCompletionService(
                 {
                     var comparison = ReconciliationComparisonService.Map(line, actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(), dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)));
                     if (comparison.PurchasedQuantity is null || comparison.IssuedQuantity is null) throw new InvalidOperationException("Mọi dòng phải có số lượng mua và xuất.");
-                    if (comparison.Triggers.Count > 0 && (comparison.Disposition is null || string.IsNullOrWhiteSpace(comparison.Disposition.Reason))) throw new InvalidOperationException("Mọi dòng cần kiểm tra phải có hướng xử lý và lý do.");
+                    if (comparison.Triggers.Count > 0)
+                    {
+                        var disposition = dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId));
+                        if (disposition is null || string.IsNullOrWhiteSpace(disposition.Reason)) throw new InvalidOperationException("Mọi dòng cần kiểm tra phải có hướng xử lý và lý do.");
+                    }
                 }
                 batch.Status = "COMPLETED"; batch.Version++; batch.CompletedBy = actor; batch.CompletedAt = DateTime.UtcNow;
                 await context.SaveChangesAsync(operationToken);

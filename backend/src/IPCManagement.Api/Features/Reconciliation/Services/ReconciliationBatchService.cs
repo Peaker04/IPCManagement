@@ -2,7 +2,6 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
-using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -74,9 +73,15 @@ public sealed class ReconciliationBatchService(
             protection.ExpectedVersion,
             async operationToken =>
             {
-                var menuVersionExists = await context.Menuversions.AnyAsync(x => x.MenuVersionId == menuVersionId, operationToken);
-                var importBatchExists = await context.Quantityimportbatches.AnyAsync(x => x.ImportBatchId == importBatchId && x.Status != "FAILED" && x.Status != "PREVIEW", operationToken);
-                if (!menuVersionExists || !importBatchExists) throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
+                var validCommittedPair = await context.Mealquantityplanlines.AsNoTracking()
+                    .AnyAsync(x => x.QuantityPlan.ImportBatchId == importBatchId
+                        && x.QuantityPlan.ImportBatch != null
+                        && x.QuantityPlan.ImportBatch.Status != "FAILED"
+                        && x.QuantityPlan.ImportBatch.Status != "PREVIEW"
+                        && x.MenuSchedule.MenuVersionId == menuVersionId
+                        && x.MenuSchedule.MenuVersion != null
+                        && x.MenuSchedule.MenuVersion.Status == "PUBLISHED", operationToken);
+                if (!validCommittedPair) throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
 
                 var sourceLines = await context.Mealquantityplanlines
                     .Where(x => x.QuantityPlan.ImportBatchId == importBatchId && x.MenuSchedule.MenuVersionId == menuVersionId)
