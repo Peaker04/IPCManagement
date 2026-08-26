@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReconciliationWorkspace } from './ReconciliationWorkspace'
 import type { ReconciliationBatch, ReconciliationDraftSource } from './reconciliationApi'
@@ -6,8 +6,10 @@ import type { ReconciliationBatch, ReconciliationDraftSource } from './reconcili
 let batches: ReconciliationBatch[] = []
 let sources: ReconciliationDraftSource[] = []
 let role = 'dieuphoi'
+let previewState: { data?: unknown; isLoading: boolean; isError: boolean; error?: unknown } = { isLoading: false, isError: false }
 const refetch = vi.fn()
-const createDraft = vi.fn()
+const previewQuantityImport = vi.fn()
+const commitQuantityImport = vi.fn()
 const ready = vi.fn()
 const complete = vi.fn()
 const setDisposition = vi.fn()
@@ -24,7 +26,8 @@ vi.mock('./reconciliationApi', async (importOriginal) => {
     ...actual,
     useListReconciliationBatchesQuery: () => ({ data: batches, isLoading: false, isError: false, refetch }),
     useListReconciliationDraftSourcesQuery: () => ({ data: sources, isError: false, refetch }),
-    useCreateReconciliationDraftMutation: () => [createDraft, { isLoading: false }],
+    usePreviewReconciliationQuantityImportMutation: () => [previewQuantityImport, previewState],
+    useCommitReconciliationQuantityImportMutation: () => [commitQuantityImport, { isLoading: false }],
     useReadyReconciliationBatchMutation: () => [ready, { isLoading: false }],
     useCompleteReconciliationBatchMutation: () => [complete, { isLoading: false }],
     useSetReconciliationDispositionMutation: () => [setDisposition, { isLoading: false }],
@@ -45,7 +48,13 @@ beforeEach(() => {
   sources = [{ menuVersionId: 'menu-1', menuLabel: 'Tuần 25/08/2026 · phiên bản 1', quantityImportBatchId: 'import-1', importBatchLabel: 'IMPORT-1' }]
   role = 'dieuphoi'
   vi.clearAllMocks()
-  createDraft.mockReturnValue(unwrap(draft))
+  previewState = { isLoading: false, isError: false }
+  previewQuantityImport.mockReturnValue(unwrap({
+    token: 'preview-token', contentFingerprint: 'A'.repeat(64), fingerprintFormatVersion: 1,
+    expiresAt: '2026-08-25T12:00:00Z', diagnostics: [],
+    plans: [{ quantityPlanId: 'plan-1', planCode: 'QTY-1', serviceDate: '2026-08-25', status: 'COMPLETED', rowVersion: '2026-08-25T10:00:00Z', lines: [{ quantityPlanLineId: 'source-line-1', menuScheduleId: 'schedule-1', customerId: 'customer-1', menuId: 'menu-1', shift: 'MORNING', finalServings: 10 }] }],
+  }))
+  commitQuantityImport.mockReturnValue(unwrap({ importBatchId: 'import-1', reconciliationBatchId: 'batch-1', contentFingerprint: 'A'.repeat(64), idempotentReplay: false }))
   ready.mockReturnValue(unwrap({ ...draft, status: 'READY', version: 2 }))
   complete.mockReturnValue(unwrap())
   setDisposition.mockReturnValue(unwrap())
@@ -53,18 +62,55 @@ beforeEach(() => {
 })
 
 describe('ReconciliationWorkspace lifecycle', () => {
-  it('creates a draft from a committed source and can move draft to ready', async () => {
-    const view = render(<ReconciliationWorkspace owner="weekly-menu" />)
-    expect(screen.getByText('Chưa có lô đối chiếu.')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('combobox', { name: 'Nguồn đã cam kết' }))
-    fireEvent.click(screen.getByRole('option', { name: /Tuần 25\/08\/2026/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo lô nháp' }))
-    await waitFor(() => expect(createDraft).toHaveBeenCalledWith({ menuVersionId: 'menu-1', quantityImportBatchId: 'import-1' }))
+  it('previews and confirms one quantity-import commit before readiness without a second draft action', async () => {
+    const view = render(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" menuVersionLabel="ANV · tuần 25/08/2026" />)
+    expect(screen.queryByRole('button', { name: 'Tạo lô nháp' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra nguồn số suất' }))
+    await waitFor(() => expect(previewQuantityImport).toHaveBeenCalledWith({ menuVersionId: 'menu-1', sourceLabel: 'ANV · tuần 25/08/2026' }))
+
+    previewState = { isLoading: false, isError: false, data: await previewQuantityImport.mock.results[0].value.unwrap() }
+    view.rerender(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" menuVersionLabel="ANV · tuần 25/08/2026" />)
+    expect(screen.getByText('1 kế hoạch · 1 dòng nguồn')).toBeInTheDocument()
+    expect(screen.getByText('AAAAAAAAAAAA')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cam kết nguồn số suất' }))
+    const dialog = screen.getByRole('dialog', { name: 'Cam kết nguồn số suất?' })
+    expect(dialog).toHaveTextContent('ANV · tuần 25/08/2026')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cam kết nguồn' }))
+    await waitFor(() => expect(commitQuantityImport).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Đã tạo nguồn số suất và lô đối chiếu nháp.')).toBeInTheDocument()
 
     batches = [draft]
-    view.rerender(<ReconciliationWorkspace owner="weekly-menu" />)
+    view.rerender(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" menuVersionLabel="ANV · tuần 25/08/2026" />)
     fireEvent.click(screen.getByRole('button', { name: 'Sẵn sàng đối chiếu' }))
     await waitFor(() => expect(ready).toHaveBeenCalledWith({ id: 'batch-1', expectedVersion: 1 }))
+  })
+
+  it('hides quantity-import instructions from unauthorized actors and distinguishes blocked preview states', async () => {
+    role = 'muahang'
+    const view = render(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" />)
+    expect(screen.queryByText(/nguồn số suất/i)).not.toBeInTheDocument()
+
+    role = 'dieuphoi'
+    previewState = { isLoading: false, isError: false, data: { token: 't', contentFingerprint: 'B'.repeat(64), fingerprintFormatVersion: 1, expiresAt: '2026-08-25T12:00:00Z', plans: [], diagnostics: ['Nguồn chưa đủ điều kiện.'] } }
+    view.rerender(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Nguồn chưa đủ điều kiện.')
+    expect(screen.getByRole('button', { name: 'Cam kết nguồn số suất' })).toBeDisabled()
+  })
+
+  it('renders conflict guidance and idempotent replay as server-owned states', async () => {
+    const preview = { token: 't', contentFingerprint: 'C'.repeat(64), fingerprintFormatVersion: 1, expiresAt: '2026-08-25T12:00:00Z', diagnostics: [], plans: [{ quantityPlanId: 'p', planCode: 'P', serviceDate: '2026-08-25', status: 'COMPLETED', rowVersion: '2026-08-25T10:00:00Z', lines: [{ quantityPlanLineId: 'l', menuScheduleId: 's', customerId: 'c', menuId: 'm', shift: 'MORNING', finalServings: 1 }] }] }
+    previewState = { isLoading: false, isError: false, data: preview }
+    commitQuantityImport.mockReturnValueOnce({ unwrap: () => Promise.reject({ status: 409, data: { message: 'Nguồn số suất đã thay đổi.' } }) })
+    const view = render(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Cam kết nguồn số suất' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cam kết nguồn' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nguồn số suất đã thay đổi.')
+
+    commitQuantityImport.mockReturnValue(unwrap({ importBatchId: 'import-replay', reconciliationBatchId: 'batch-replay', contentFingerprint: preview.contentFingerprint, idempotentReplay: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cam kết nguồn số suất' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cam kết nguồn' }))
+    expect(await screen.findByText('Nguồn này đã được cam kết trước đó.')).toBeInTheDocument()
+    view.unmount()
   })
 
   it('gates completion and disposition to manager/admin while preserving read access', () => {
