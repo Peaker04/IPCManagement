@@ -75,6 +75,7 @@ namespace IPCManagement.Api.Migrations
                 WHERE q.menuVersionId IS NOT NULL
                    OR q.contentFingerprint IS NOT NULL
                    OR q.fingerprintFormatVersion IS NOT NULL
+                   OR q.sourceLabel IS NOT NULL
                 LIMIT 1;
                 DROP TEMPORARY TABLE quantity_import_authority_rollback_guard;
                 """);

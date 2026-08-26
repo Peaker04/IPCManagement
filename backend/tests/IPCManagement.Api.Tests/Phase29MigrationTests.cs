@@ -26,6 +26,9 @@ public sealed class Phase29MigrationTests
         Assert.Contains("quantityimportbatches_ibfk_2", sql);
         Assert.Contains("quantity_import_authority_rollback_guard", sql);
         Assert.Contains("SELECT NULL", sql);
+        var rollbackGuard = sql[sql.IndexOf("CREATE TEMPORARY TABLE quantity_import_authority_rollback_guard", StringComparison.Ordinal)..sql.IndexOf("DROP TEMPORARY TABLE quantity_import_authority_rollback_guard", StringComparison.Ordinal)];
+        Assert.All(new[] { "menuVersionId", "contentFingerprint", "fingerprintFormatVersion", "sourceLabel" }, column =>
+            Assert.Contains($"q.{column} IS NOT NULL", rollbackGuard));
         Assert.DoesNotContain("UpdateData", sql);
         Assert.DoesNotContain("DeleteData", sql);
         Assert.DoesNotContain("USE ", sql, StringComparison.OrdinalIgnoreCase);

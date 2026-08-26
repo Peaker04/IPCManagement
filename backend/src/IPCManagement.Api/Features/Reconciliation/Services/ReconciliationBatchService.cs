@@ -24,32 +24,25 @@ public sealed class ReconciliationBatchService(
 
     public async Task<IReadOnlyList<ReconciliationDraftSourceDto>> ListDraftSourcesAsync(CancellationToken token = default)
     {
-        var sources = await context.Mealquantityplanlines.AsNoTracking()
-            .Where(line => line.QuantityPlan.ImportBatchId != null && line.QuantityPlan.ImportBatch != null)
-            .Where(line => line.QuantityPlan.ImportBatch!.Status == "CONFIRMED"
-                && line.QuantityPlan.ImportBatch.MenuVersionId != null
-                && line.QuantityPlan.ImportBatch.ContentFingerprint != null
-                && line.QuantityPlan.ImportBatch.FingerprintFormatVersion == 1)
-            .Where(line => line.MenuSchedule.MenuVersionId != null && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(line.MenuSchedule.MenuVersion!.Status))
-            .Select(line => new
-            {
-                MenuVersionId = line.MenuSchedule.MenuVersionId!,
-                line.MenuSchedule.MenuVersion!.WeekStartDate,
-                line.MenuSchedule.MenuVersion.VersionNo,
-                ImportBatchId = line.QuantityPlan.ImportBatchId!,
-                line.QuantityPlan.ImportBatch!.BatchCode,
-                line.QuantityPlan.ImportBatch.ImportedAt
-            })
-            .Distinct()
-            .OrderByDescending(source => source.WeekStartDate)
-            .ThenByDescending(source => source.ImportedAt)
+        var imports = await context.Quantityimportbatches.AsNoTracking()
+            .Where(import => import.Status == "CONFIRMED" && import.MenuVersionId != null)
+            .Include(import => import.Mealquantityplans)
+            .ThenInclude(plan => plan.Mealquantityplanlines)
+            .ThenInclude(line => line.MenuSchedule)
+            .ThenInclude(schedule => schedule.MenuVersion)
+            .AsSplitQuery()
             .ToListAsync(token);
 
-        return sources.Select(source => new ReconciliationDraftSourceDto(
-            GuidHelper.ToGuidString(source.MenuVersionId),
-            $"Tuần {source.WeekStartDate:dd/MM/yyyy} · phiên bản {source.VersionNo}",
-            GuidHelper.ToGuidString(source.ImportBatchId),
-            $"{source.BatchCode} · {source.ImportedAt:dd/MM/yyyy HH:mm}"))
+        return imports
+            .Where(import => IsExactCommittedAuthority(import, import.MenuVersionId!))
+            .Select(import => new { Import = import, MenuVersion = import.Mealquantityplans.First().Mealquantityplanlines.First().MenuSchedule.MenuVersion! })
+            .OrderByDescending(source => source.MenuVersion.WeekStartDate)
+            .ThenByDescending(source => source.Import.ImportedAt)
+            .Select(source => new ReconciliationDraftSourceDto(
+                GuidHelper.ToGuidString(source.Import.MenuVersionId!),
+                $"Tuần {source.MenuVersion.WeekStartDate:dd/MM/yyyy} · phiên bản {source.MenuVersion.VersionNo}",
+                GuidHelper.ToGuidString(source.Import.ImportBatchId),
+                $"{source.Import.BatchCode} · {source.Import.ImportedAt:dd/MM/yyyy HH:mm}"))
             .ToList();
     }
 
@@ -76,17 +69,15 @@ public sealed class ReconciliationBatchService(
             protection.ExpectedVersion,
             async operationToken =>
             {
-                var validCommittedPair = await context.Mealquantityplanlines.AsNoTracking()
-                    .AnyAsync(x => x.QuantityPlan.ImportBatchId == importBatchId
-                        && x.QuantityPlan.ImportBatch != null
-                        && x.QuantityPlan.ImportBatch.Status == "CONFIRMED"
-                        && x.QuantityPlan.ImportBatch.MenuVersionId == menuVersionId
-                        && x.QuantityPlan.ImportBatch.ContentFingerprint != null
-                        && x.QuantityPlan.ImportBatch.FingerprintFormatVersion == 1
-                        && x.MenuSchedule.MenuVersionId == menuVersionId
-                        && x.MenuSchedule.MenuVersion != null
-                        && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(x.MenuSchedule.MenuVersion.Status), operationToken);
-                if (!validCommittedPair) throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
+                var committedImport = await context.Quantityimportbatches.AsNoTracking()
+                    .Include(x => x.Mealquantityplans)
+                    .ThenInclude(x => x.Mealquantityplanlines)
+                    .ThenInclude(x => x.MenuSchedule)
+                    .ThenInclude(x => x.MenuVersion)
+                    .AsSplitQuery()
+                    .SingleOrDefaultAsync(x => x.ImportBatchId == importBatchId, operationToken);
+                if (!IsExactCommittedAuthority(committedImport, menuVersionId))
+                    throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
 
                 var sourceLines = await context.Mealquantityplanlines
                     .Where(x => x.QuantityPlan.ImportBatchId == importBatchId && x.MenuSchedule.MenuVersionId == menuVersionId)
@@ -179,6 +170,24 @@ public sealed class ReconciliationBatchService(
             isolationLevel: IsolationLevel.Serializable,
             cancellationToken: token);
     }
+
+    private static bool IsExactCommittedAuthority(QuantityImportBatch? import, byte[] menuVersionId) =>
+        import is not null
+        && import.Status == "CONFIRMED"
+        && import.MenuVersionId is not null
+        && import.MenuVersionId.AsSpan().SequenceEqual(menuVersionId)
+        && !string.IsNullOrWhiteSpace(import.ContentFingerprint)
+        && import.FingerprintFormatVersion == 1
+        && !string.IsNullOrWhiteSpace(import.SourceLabel)
+        && import.Mealquantityplans.Count > 0
+        && import.Mealquantityplans.All(plan =>
+            plan.Status == "COMPLETED"
+            && plan.Mealquantityplanlines.Count > 0
+            && plan.Mealquantityplanlines.All(line =>
+                line.MenuSchedule.MenuVersionId is not null
+                && line.MenuSchedule.MenuVersionId.AsSpan().SequenceEqual(menuVersionId)
+                && line.MenuSchedule.MenuVersion is not null
+                && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(line.MenuSchedule.MenuVersion.Status)));
 
     private (string OperationKey, long ExpectedVersion) RequiredProtection() =>
         (requestContext.OperationKey, requestContext.ExpectedModeVersion) switch

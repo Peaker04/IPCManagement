@@ -107,6 +107,34 @@ public sealed class ReconciliationServiceTests
         Assert.Empty(context.Reconciliationbatches);
     }
 
+    [Theory]
+    [InlineData("mixed-menu")]
+    [InlineData("noncanonical-status")]
+    public async Task CreateDraft_rejects_when_any_linked_source_is_outside_the_exact_committed_authority(string defect)
+    {
+        await using var context = CreateContext();
+        SeedDraftSource(context, "PUBLISHED", "CONFIRMED");
+        var import = context.Quantityimportbatches.Local.Single();
+        var plan = context.Mealquantityplans.Local.Single();
+        plan.Status = defect == "noncanonical-status" ? "CONFIRMED" : "COMPLETED";
+        if (defect == "mixed-menu")
+        {
+            var otherVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = GuidHelper.NewId(), WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 2, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+            var otherSchedule = new MenuSchedule { MenuScheduleId = GuidHelper.NewId(), CustomerId = GuidHelper.NewId(), MenuId = GuidHelper.NewId(), MenuVersionId = otherVersion.MenuVersionId, MenuVersion = otherVersion, ServiceDate = new DateOnly(2026, 8, 26), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
+            context.AddRange(otherVersion, otherSchedule, new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = plan.QuantityPlanId, QuantityPlan = plan, MenuScheduleId = otherSchedule.MenuScheduleId, MenuSchedule = otherSchedule, CustomerId = otherSchedule.CustomerId, MenuId = otherSchedule.MenuId, ShiftName = "MORNING", FinalServings = 5, UpdatedAt = DateTime.UtcNow });
+        }
+        await context.SaveChangesAsync();
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateDraftAsync(
+            new(GuidHelper.ToGuidString(import.MenuVersionId!), GuidHelper.ToGuidString(import.ImportBatchId)),
+            Guid.NewGuid().ToString()));
+
+        Assert.Contains("chưa được cam kết hợp lệ", error.Message);
+        Assert.Empty(await service.ListDraftSourcesAsync());
+        Assert.Empty(context.Reconciliationbatches);
+    }
+
     [Fact]
     public async Task Actual_correction_invalidates_audited_disposition_and_requires_fresh_disposition_before_completion()
     {
@@ -296,7 +324,7 @@ public sealed class ReconciliationServiceTests
         var menuId = GuidHelper.NewId();
         var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = menuVersionStatus, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         var import = new QuantityImportBatch { ImportBatchId = importBatchId, BatchCode = $"BATCH-{menuVersionStatus}", SourceType = "API", Status = importStatus, ImportedAt = DateTime.UtcNow, MenuVersionId = menuVersionId, ContentFingerprint = new string('A', 64), FingerprintFormatVersion = 1, SourceLabel = "Test" };
-        var plan = new MealQuantityPlan { QuantityPlanId = planId, ImportBatchId = importBatchId, ImportBatch = import, PlanCode = "PLAN", ServiceDate = new DateOnly(2026, 8, 25), Status = "CONFIRMED" };
+        var plan = new MealQuantityPlan { QuantityPlanId = planId, ImportBatchId = importBatchId, ImportBatch = import, PlanCode = "PLAN", ServiceDate = new DateOnly(2026, 8, 25), Status = "COMPLETED" };
         var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, MenuVersionId = menuVersionId, MenuVersion = menuVersion, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
         context.AddRange(menuVersion, import, plan, schedule, new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, ShiftName = "MORNING", FinalServings = 10, UpdatedAt = DateTime.UtcNow });
     }

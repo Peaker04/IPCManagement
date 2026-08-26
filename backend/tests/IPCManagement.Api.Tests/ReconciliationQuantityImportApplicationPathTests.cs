@@ -69,6 +69,36 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     }
 
     [Fact]
+    public async Task Commit_rejects_plan_code_mutation_as_stale_preview_content()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chuẩn"), default));
+        fixture.Context.Mealquantityplans.Single().PlanCode = "QTY-CHANGED";
+        await fixture.Context.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => fixture.Controller.CommitQuantityImport(
+            new(preview.Token, preview.ContentFingerprint, "Nguồn chuẩn"), default));
+
+        Assert.Empty(fixture.Context.Quantityimportbatches);
+        Assert.Empty(fixture.Context.Reconciliationbatches);
+    }
+
+    [Fact]
+    public async Task Commit_rejects_token_fingerprint_mismatch_without_persisting_authority()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chuẩn"), default));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Controller.CommitQuantityImport(
+            new(preview.Token, new string('0', 64), "Nguồn chuẩn"), default));
+
+        Assert.Empty(fixture.Context.Quantityimportbatches);
+        Assert.Empty(fixture.Context.Reconciliationbatches);
+    }
+
+    [Fact]
     public async Task Preview_rejects_incomplete_or_unpublished_sources()
     {
         await using var fixture = await Fixture.CreateAsync();

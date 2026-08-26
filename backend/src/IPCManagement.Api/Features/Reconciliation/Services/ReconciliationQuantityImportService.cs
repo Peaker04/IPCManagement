@@ -147,6 +147,7 @@ public sealed class ReconciliationQuantityImportService(
         foreach (var plan in snapshot.Plans)
         {
             builder.Append("|p:").Append(GuidHelper.ToGuidString(plan.Entity.QuantityPlanId)).Append(':')
+                .Append(plan.Entity.PlanCode).Append(':')
                 .Append(plan.Entity.RowVersion.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)).Append(':')
                 .Append(plan.Entity.Status).Append(':').Append(plan.Entity.ServiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
             foreach (var line in plan.Lines)
