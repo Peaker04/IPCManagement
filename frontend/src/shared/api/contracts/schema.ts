@@ -6397,6 +6397,92 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/batches/quantity-import/commit": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["CommitQuantityImportRequest"];
+                    readonly "application/json": components["schemas"]["CommitQuantityImportRequest"];
+                    readonly "text/json": components["schemas"]["CommitQuantityImportRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["QuantityImportCommitDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["QuantityImportCommitDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["QuantityImportCommitDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/batches/quantity-import/preview": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["PreviewQuantityImportRequest"];
+                    readonly "application/json": components["schemas"]["PreviewQuantityImportRequest"];
+                    readonly "text/json": components["schemas"]["PreviewQuantityImportRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["QuantityImportPreviewDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["QuantityImportPreviewDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["QuantityImportPreviewDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/configuration/system-default/initialize": {
         readonly parameters: {
             readonly query?: never;
@@ -11661,6 +11747,11 @@ export interface components {
             readonly mode: string;
             readonly reason?: string | null;
         };
+        readonly CommitQuantityImportRequest: {
+            readonly contentFingerprint: string;
+            readonly sourceLabel?: string | null;
+            readonly token: string;
+        };
         readonly CompleteReconciliationBatchRequest: {
             /** Format: int64 */
             readonly expectedVersion: number;
@@ -14123,6 +14214,10 @@ export interface components {
             readonly message: string;
             readonly success: boolean;
         };
+        readonly PreviewQuantityImportRequest: {
+            readonly menuVersionId: string;
+            readonly sourceLabel?: string | null;
+        };
         readonly PriceVarianceByDishGroupDto: {
             readonly dishGroup: string;
             /** Format: int32 */
@@ -15009,6 +15104,9 @@ export interface components {
         };
         readonly QuantityImportBatch: {
             readonly batchCode: string;
+            readonly contentFingerprint?: string | null;
+            /** Format: int32 */
+            readonly fingerprintFormatVersion?: number | null;
             /** Format: byte */
             readonly importBatchId: string;
             /** Format: date-time */
@@ -15017,9 +15115,60 @@ export interface components {
             readonly importedBy?: string | null;
             readonly importedByNavigation?: components["schemas"]["User"];
             readonly mealquantityplans: readonly components["schemas"]["MealQuantityPlan"][];
+            readonly menuVersion?: components["schemas"]["MenuVersion"];
+            /** Format: byte */
+            readonly menuVersionId?: string | null;
             readonly sourceCompanyName?: string | null;
+            readonly sourceLabel?: string | null;
             readonly sourceType: string;
             readonly status: string;
+        };
+        readonly QuantityImportCommitDto: {
+            readonly contentFingerprint: string;
+            readonly idempotentReplay: boolean;
+            readonly importBatchId: string;
+            readonly reconciliationBatchId: string;
+        };
+        readonly QuantityImportCommitDtoApiResponse: {
+            readonly data?: components["schemas"]["QuantityImportCommitDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly QuantityImportPlanDto: {
+            readonly lines: readonly components["schemas"]["QuantityImportPlanLineDto"][];
+            readonly planCode: string;
+            readonly quantityPlanId: string;
+            /** Format: date-time */
+            readonly rowVersion: string;
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly status: string;
+        };
+        readonly QuantityImportPlanLineDto: {
+            readonly customerId: string;
+            /** Format: int32 */
+            readonly finalServings: number;
+            readonly menuId: string;
+            readonly menuScheduleId: string;
+            readonly quantityPlanLineId: string;
+            readonly shift: string;
+        };
+        readonly QuantityImportPreviewDto: {
+            readonly contentFingerprint: string;
+            readonly diagnostics: readonly string[];
+            /** Format: date-time */
+            readonly expiresAt: string;
+            /** Format: int32 */
+            readonly fingerprintFormatVersion: number;
+            readonly plans: readonly components["schemas"]["QuantityImportPlanDto"][];
+            readonly token: string;
+        };
+        readonly QuantityImportPreviewDtoApiResponse: {
+            readonly data?: components["schemas"]["QuantityImportPreviewDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ReadyReconciliationBatchRequest: {
             /** Format: int64 */

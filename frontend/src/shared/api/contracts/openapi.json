@@ -8564,6 +8564,102 @@
         }
       }
     },
+    "/api/reconciliation/batches/quantity-import/preview": {
+      "post": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewQuantityImportRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewQuantityImportRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewQuantityImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuantityImportPreviewDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuantityImportPreviewDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuantityImportPreviewDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/batches/quantity-import/commit": {
+      "post": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitQuantityImportRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitQuantityImportRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitQuantityImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuantityImportCommitDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuantityImportCommitDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuantityImportCommitDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/batches/{id}/ready": {
       "post": {
         "tags": [
@@ -20271,6 +20367,26 @@
         },
         "additionalProperties": false
       },
+      "CommitQuantityImportRequest": {
+        "required": [
+          "contentFingerprint",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "contentFingerprint": {
+            "type": "string"
+          },
+          "sourceLabel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CompleteReconciliationBatchRequest": {
         "required": [
           "expectedVersion"
@@ -28966,6 +29082,22 @@
         },
         "additionalProperties": false
       },
+      "PreviewQuantityImportRequest": {
+        "required": [
+          "menuVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "menuVersionId": {
+            "type": "string"
+          },
+          "sourceLabel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PriceVarianceByDishGroupDto": {
         "required": [
           "dishGroup",
@@ -32023,6 +32155,27 @@
           "status": {
             "type": "string"
           },
+          "menuVersionId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "contentFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "fingerprintFormatVersion": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sourceLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "menuVersion": {
+            "$ref": "#/components/schemas/MenuVersion"
+          },
           "importedByNavigation": {
             "$ref": "#/components/schemas/User"
           },
@@ -32031,6 +32184,184 @@
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlan"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportCommitDto": {
+        "required": [
+          "contentFingerprint",
+          "idempotentReplay",
+          "importBatchId",
+          "reconciliationBatchId"
+        ],
+        "type": "object",
+        "properties": {
+          "importBatchId": {
+            "type": "string"
+          },
+          "reconciliationBatchId": {
+            "type": "string"
+          },
+          "contentFingerprint": {
+            "type": "string"
+          },
+          "idempotentReplay": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportCommitDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/QuantityImportCommitDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportPlanDto": {
+        "required": [
+          "lines",
+          "planCode",
+          "quantityPlanId",
+          "rowVersion",
+          "serviceDate",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "quantityPlanId": {
+            "type": "string"
+          },
+          "planCode": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "rowVersion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantityImportPlanLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportPlanLineDto": {
+        "required": [
+          "customerId",
+          "finalServings",
+          "menuId",
+          "menuScheduleId",
+          "quantityPlanLineId",
+          "shift"
+        ],
+        "type": "object",
+        "properties": {
+          "quantityPlanLineId": {
+            "type": "string"
+          },
+          "menuScheduleId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "menuId": {
+            "type": "string"
+          },
+          "shift": {
+            "type": "string"
+          },
+          "finalServings": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportPreviewDto": {
+        "required": [
+          "contentFingerprint",
+          "diagnostics",
+          "expiresAt",
+          "fingerprintFormatVersion",
+          "plans",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contentFingerprint": {
+            "type": "string"
+          },
+          "fingerprintFormatVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantityImportPlanDto"
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportPreviewDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/QuantityImportPreviewDto"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
