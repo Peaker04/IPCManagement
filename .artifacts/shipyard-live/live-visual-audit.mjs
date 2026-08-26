@@ -100,6 +100,17 @@ const evidence = {
     focusAndReload: null,
     performanceDisposition: { cls: null, longTasks: null },
     ownedProcessTeardown: null,
+    protectedRetry: {
+      candidateScope: { customerCodes: ['ANV', 'AMANN'], dateFrom: '2026-09-07', dateTo: '2026-09-12', disposition: 'READ_ONLY_PREFLIGHT_CANDIDATE' },
+      freshWorkbookPath: null,
+      freshWorkbookSha256: null,
+      menuVersionId: null,
+      contentFingerprint: null,
+      quantityImportBatchId: null,
+      quantityPlanIds: [],
+      quantityPlanLineIds: [],
+      reconciliationBatchId: null,
+    },
   },
 };
 
