@@ -8,10 +8,16 @@ export interface ReconciliationLine { batchLineId: string; ingredientId: string;
 export interface ReconciliationBatch { batchId: string; menuVersionId: string; quantityImportBatchId: string; status: 'DRAFT'|'READY'|'IN_PROGRESS'|'COMPLETED'; version: number; createdAt: string; readyAt?: string|null; completedAt?: string|null; lines: ReconciliationLine[] }
 export interface ReconciliationDraftSource { menuVersionId: string; menuLabel: string; quantityImportBatchId: string; importBatchLabel: string }
 export interface CreateReconciliationDraftRequest { menuVersionId: string; quantityImportBatchId: string }
+export type QuantityImportPreview = components['schemas']['QuantityImportPreviewDto']
+export type QuantityImportCommit = components['schemas']['QuantityImportCommitDto']
+export type PreviewQuantityImportRequest = components['schemas']['PreviewQuantityImportRequest']
+export type CommitQuantityImportRequest = components['schemas']['CommitQuantityImportRequest']
 
 export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder => ({
   listReconciliationBatches: builder.query<ReconciliationBatch[], void>({ query: () => '/reconciliation/batches', transformResponse: (r: ApiResponse<ReconciliationBatch[]>) => r.data ?? [], providesTags: ['ReconciliationBatches'] }),
-  listReconciliationDraftSources: builder.query<ReconciliationDraftSource[], void>({ query: () => '/reconciliation/batches/draft-sources', transformResponse: (r: ApiResponse<ReconciliationDraftSource[]>) => r.data ?? [] }),
+  listReconciliationDraftSources: builder.query<ReconciliationDraftSource[], void>({ query: () => '/reconciliation/batches/draft-sources', transformResponse: (r: ApiResponse<ReconciliationDraftSource[]>) => r.data ?? [], providesTags: ['ReconciliationBatches'] }),
+  previewReconciliationQuantityImport: builder.mutation<QuantityImportPreview, PreviewQuantityImportRequest>({ query: body => ({ url: '/reconciliation/batches/quantity-import/preview', method: 'POST', body }), transformResponse: (r: ApiResponse<QuantityImportPreview>) => r.data! }),
+  commitReconciliationQuantityImport: builder.mutation<QuantityImportCommit, CommitQuantityImportRequest>({ query: body => ({ url: '/reconciliation/batches/quantity-import/commit', method: 'POST', body }), transformResponse: (r: ApiResponse<QuantityImportCommit>) => r.data!, invalidatesTags: ['ReconciliationBatches'] }),
   listReconciliationDispositionCategories: builder.query<ReconciliationDispositionCategory[], void>({ query: () => '/reconciliation/lines/disposition-categories', transformResponse: (r: ApiResponse<ReconciliationDispositionCategory[]>) => r.data ?? [] }),
   getReconciliationBatch: builder.query<ReconciliationBatch, string>({ query: id => `/reconciliation/batches/${id}`, transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, providesTags: ['ReconciliationBatches'] }),
   createReconciliationDraft: builder.mutation<ReconciliationBatch, CreateReconciliationDraftRequest>({ query: body => ({ url: '/reconciliation/batches', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags: ['ReconciliationBatches'] }),
@@ -26,6 +32,8 @@ export const {
   useListReconciliationDraftSourcesQuery,
   useListReconciliationDispositionCategoriesQuery,
   useCreateReconciliationDraftMutation,
+  usePreviewReconciliationQuantityImportMutation,
+  useCommitReconciliationQuantityImportMutation,
   useReadyReconciliationBatchMutation,
   useCompleteReconciliationBatchMutation,
   useSetReconciliationActualMutation,

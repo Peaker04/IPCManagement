@@ -532,7 +532,13 @@ const WeeklyMenuPage = () => {
 
         {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
       </QueryViewBoundary>
-      <ReconciliationWorkspace owner="weekly-menu" />
+      <ReconciliationWorkspace
+        owner="weekly-menu"
+        menuVersionId={committedMenu?.menuVersionId}
+        menuVersionLabel={selectedCustomer && displayedWeekStartDate
+          ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
+          : undefined}
+      />
     </OperationalFrame>
   );
 };
