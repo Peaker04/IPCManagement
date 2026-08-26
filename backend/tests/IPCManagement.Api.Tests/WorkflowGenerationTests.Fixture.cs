@@ -630,7 +630,11 @@ public partial class WorkflowGenerationTests
                     sourceType TEXT NOT NULL,
                     importedBy BLOB NULL,
                     importedAt TEXT NOT NULL,
-                    status TEXT NOT NULL
+                    status TEXT NOT NULL,
+                    menuVersionId BLOB NULL,
+                    contentFingerprint TEXT NULL,
+                    fingerprintFormatVersion INTEGER NULL,
+                    sourceLabel TEXT NULL
                 );
                 CREATE TABLE mealquantityplans (
                     quantityPlanId BLOB PRIMARY KEY,

@@ -60,11 +60,19 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         Assert.All(fixture.Context.Mealquantityplans, plan => Assert.Equal(import.ImportBatchId, plan.ImportBatchId));
         Assert.Single(fixture.Context.Auditlogs.Where(audit => audit.EntityName == nameof(QuantityImportBatch)));
 
+        var manualReplay = Payload<ReconciliationBatchDto>(await controller.Create(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), first.ImportBatchId), default));
+        Assert.Equal(first.ReconciliationBatchId, manualReplay.BatchId);
+        Assert.Equal("DRAFT", manualReplay.Status);
+        Assert.Single(fixture.Context.Reconciliationbatches);
+
         var readback = Payload<ReconciliationBatchDto>(await controller.Get(first.ReconciliationBatchId, default));
         Assert.Equal(first.ImportBatchId, readback.QuantityImportBatchId);
         Assert.NotEmpty(readback.Lines);
         Assert.All(readback.Lines, line => Assert.True(line.RequiredQuantity > 0));
-        Assert.NotEmpty(await fixture.Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
+        var contributors = await fixture.Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync();
+        Assert.NotEmpty(contributors);
+        Assert.All(contributors, contributor => Assert.True(contributor.SourceQuantity > 0));
 
         var ready = Payload<ReconciliationBatchDto>(await controller.Ready(
             first.ReconciliationBatchId, new ReadyReconciliationBatchRequest(readback.Version), default));

@@ -96,7 +96,7 @@ public sealed class ReconciliationQuantityImportService(
                 isolationLevel: IsolationLevel.Serializable,
                 cancellationToken: token);
         }
-        catch (DbUpdateException error) when (IsDuplicate(error))
+        catch (DbUpdateException error) when (IsContentFingerprintDuplicate(error))
         {
             context.ChangeTracker.Clear();
             return await ExistingAsync(ticket.Fingerprint, token)
@@ -166,8 +166,14 @@ public sealed class ReconciliationQuantityImportService(
         };
 
     private static string NormalizeSourceLabel(string? value) => string.IsNullOrWhiteSpace(value) ? "Nguồn số suất chuẩn" : value.Trim();
-    private static bool IsDuplicate(DbUpdateException error) => error.InnerException is MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry }
-        || error.InnerException?.Message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase) == true;
+    private static bool IsContentFingerprintDuplicate(DbUpdateException error)
+    {
+        var message = error.InnerException?.Message ?? error.Message;
+        return (error.InnerException is MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry }
+                && message.Contains("ux_quantityimportbatches_contentFingerprint", StringComparison.OrdinalIgnoreCase))
+            || message.Contains("quantityimportbatches.contentFingerprint", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("quantityimportbatches_ux_quantityimportbatches_contentFingerprint", StringComparison.OrdinalIgnoreCase);
+    }
 
     private sealed record PreviewTicket(byte[] MenuVersionId, string Fingerprint, DateTimeOffset ExpiresAt);
     private sealed record CanonicalSnapshot(byte[] MenuVersionId, IReadOnlyList<CanonicalPlan> Plans);

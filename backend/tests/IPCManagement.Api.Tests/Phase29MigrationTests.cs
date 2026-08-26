@@ -36,5 +36,25 @@ public sealed class Phase29MigrationTests
         Assert.DoesNotContain("DropDatabase", sql);
         Assert.Contains("20260826120000_AddQuantityImportCommitAuthority", metadata);
     }
+    [Fact]
+    public void Reconciliation_batch_import_uniqueness_migration_is_fail_closed_and_discoverable()
+    {
+        var root = FindRoot();
+        var migration = Path.Combine(root, "backend", "src", "IPCManagement.Api", "Migrations", "20260826130000_EnforceReconciliationBatchImportUniqueness.cs");
+        var designer = Path.Combine(root, "backend", "src", "IPCManagement.Api", "Migrations", "20260826130000_EnforceReconciliationBatchImportUniqueness.Designer.cs");
+        var sql = File.ReadAllText(migration);
+        var metadata = File.ReadAllText(designer);
+
+        Assert.Contains("ux_reconciliationbatches_quantityImportBatchId", sql);
+        Assert.Contains("GROUP BY QuantityImportBatchId", sql);
+        Assert.Contains("HAVING COUNT(*) > 1", sql);
+        Assert.Contains("reconciliation_batch_import_uniqueness_rollback_guard", sql);
+        Assert.Contains("SELECT NULL", sql);
+        Assert.DoesNotContain("DeleteData", sql);
+        Assert.DoesNotContain("UpdateData", sql);
+        Assert.DoesNotContain("USE ", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("20260826130000_EnforceReconciliationBatchImportUniqueness", metadata);
+    }
+
     private static string FindRoot(){var d=new DirectoryInfo(AppContext.BaseDirectory);while(d!=null&&!Directory.Exists(Path.Combine(d.FullName,".git")))d=d.Parent;return d?.FullName??throw new DirectoryNotFoundException();}
 }

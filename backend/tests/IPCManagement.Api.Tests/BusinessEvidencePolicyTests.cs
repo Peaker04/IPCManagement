@@ -6,7 +6,7 @@ namespace IPCManagement.Api.Tests;
 public sealed partial class BusinessEvidencePolicyTests
 {
     [Fact]
-    public void DeployableModel_IsMigration73WithoutBusinessEvidencePersistence()
+    public void DeployableModel_IsMigration75WithoutBusinessEvidencePersistence()
     {
         var root = FindWorkspaceRoot();
         var retiredPaths = new[]
@@ -43,8 +43,8 @@ public sealed partial class BusinessEvidencePolicyTests
             .OrderBy(id => id, StringComparer.Ordinal)
             .ToArray();
 
-        migrationIds.Should().HaveCount(73);
-        migrationIds[^1].Should().Be("20260825172102_HardenReconciliationSystemDefaultTolerance");
+        migrationIds.Should().HaveCount(75);
+        migrationIds[^1].Should().Be("20260826130000_EnforceReconciliationBatchImportUniqueness");
     }
 
     [GeneratedRegex("\\[Migration\\(\"([^\"]+)\"\\)\\]", RegexOptions.CultureInvariant)]

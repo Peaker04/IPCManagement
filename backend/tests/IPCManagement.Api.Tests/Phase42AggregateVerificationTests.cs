@@ -794,9 +794,9 @@ public class Phase42AggregateVerificationTests
                 .Should().Be("IMMUTABLE_APPROVAL_RECEIPT");
             receipt.GetProperty("expectedRestoreTarget").GetString()
                 .Should().Be("ipc_restore_phase42_phase_04_2_execution");
-            receipt.GetProperty("repositoryMigrationCount").GetInt32().Should().Be(73);
+            receipt.GetProperty("repositoryMigrationCount").GetInt32().Should().Be(75);
             receipt.GetProperty("repositoryMigrationHead").GetString()
-                .Should().Be("20260825172102_HardenReconciliationSystemDefaultTolerance");
+                .Should().Be("20260826130000_EnforceReconciliationBatchImportUniqueness");
             receipt.GetProperty("repositoryArchiveMigrationIdsPrefixExact").GetBoolean().Should().BeTrue();
             receipt.GetProperty("archiveMigrationCount").GetInt32().Should().Be(63);
             receipt.GetProperty("archiveMigrationHead").GetString()

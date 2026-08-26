@@ -19,6 +19,7 @@ internal sealed class ReconciliationBatchConfiguration : IEntityTypeConfiguratio
         e.Property(x => x.Status).HasMaxLength(20); e.Property(x => x.Version).IsConcurrencyToken();
         ReconciliationMapping.Id(e.Property(x => x.CreatedBy)); e.Property(x => x.ReadyBy).HasMaxLength(16).IsFixedLength(); e.Property(x => x.CompletedBy).HasMaxLength(16).IsFixedLength();
         e.Property(x => x.CreatedAt).HasColumnType("datetime"); e.Property(x => x.ReadyAt).HasColumnType("datetime"); e.Property(x => x.CompletedAt).HasColumnType("datetime");
+        e.HasIndex(x => x.QuantityImportBatchId).IsUnique().HasDatabaseName("ux_reconciliationbatches_quantityImportBatchId");
         e.HasOne<MenuVersion>().WithMany().HasForeignKey(x => x.MenuVersionId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<QuantityImportBatch>().WithMany().HasForeignKey(x => x.QuantityImportBatchId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);

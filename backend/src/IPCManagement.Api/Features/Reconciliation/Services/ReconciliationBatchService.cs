@@ -5,6 +5,7 @@ using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace IPCManagement.Api.Features.Reconciliation.Services;
 
@@ -64,18 +65,39 @@ public sealed class ReconciliationBatchService(
         var actor = RequiredId(actorId);
         var protection = RequiredProtection();
 
-        return await transactions.ExecuteProtectedAsync(
-            protection.OperationKey,
-            protection.ExpectedVersion,
-            async operationToken =>
-            {
-                var batch = await MaterializeDraftAsync(batchId, menuVersionId, importBatchId, actor, operationToken);
-                await context.SaveChangesAsync(operationToken);
-                return Map(batch, [], []);
-            },
-            verifySucceeded: verifyToken => context.Reconciliationbatches.AsNoTracking().AnyAsync(x => x.BatchId == batchId && x.Lines.Any(), verifyToken),
-            isolationLevel: IsolationLevel.Serializable,
-            cancellationToken: token);
+        try
+        {
+            return await transactions.ExecuteProtectedAsync(
+                protection.OperationKey,
+                protection.ExpectedVersion,
+                async operationToken =>
+                {
+                    var existing = await LoadByImportAsync(importBatchId, operationToken);
+                    if (existing is not null)
+                    {
+                        if (!existing.MenuVersionId.AsSpan().SequenceEqual(menuVersionId))
+                            throw new InvalidOperationException("Nguồn thực đơn không khớp lô đối chiếu đã tồn tại.");
+                        return Map(existing, [], []);
+                    }
+
+                    var batch = await MaterializeDraftAsync(batchId, menuVersionId, importBatchId, actor, operationToken);
+                    await context.SaveChangesAsync(operationToken);
+                    return Map(batch, [], []);
+                },
+                verifySucceeded: verifyToken => context.Reconciliationbatches.AsNoTracking().AnyAsync(x => x.QuantityImportBatchId == importBatchId && x.Lines.Any(), verifyToken),
+                isolationLevel: IsolationLevel.Serializable,
+                cancellationToken: token);
+        }
+        catch (DbUpdateException error) when (IsQuantityImportBatchDuplicate(error))
+        {
+            context.ChangeTracker.Clear();
+            var winner = await LoadByImportAsync(importBatchId, token);
+            if (winner is null)
+                throw new DbUpdateConcurrencyException("Đợt nhập đã được tạo lô đối chiếu đồng thời.", error);
+            if (!winner.MenuVersionId.AsSpan().SequenceEqual(menuVersionId))
+                throw new InvalidOperationException("Nguồn thực đơn không khớp lô đối chiếu đã tồn tại.");
+            return Map(winner, [], []);
+        }
     }
 
     internal async Task<ReconciliationBatch> MaterializeDraftAsync(
@@ -128,10 +150,16 @@ public sealed class ReconciliationBatchService(
                     source.CustomerId,
                     source.MenuSchedule.MenuPrice,
                     source.MenuSchedule.ServiceDate);
+                if (boms.Count == 0)
+                    throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' chưa có BOM đã phát hành hợp lệ.");
+
+                var dishHasPositiveContribution = false;
                 foreach (var bom in boms)
                 {
                     var converted = ConvertToCanonical(bom.GrossQtyPerServing * source.FinalServings, bom.Unit, bom.Ingredient.Unit);
-                    if (converted <= 0) continue;
+                    var persistedQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
+                    if (persistedQuantity <= 0) continue;
+                    dishHasPositiveContribution = true;
                     var key = Convert.ToBase64String(bom.IngredientId) + ":" + Convert.ToBase64String(bom.Ingredient.UnitId);
                     if (!materialized.TryGetValue(key, out var line))
                     {
@@ -145,17 +173,23 @@ public sealed class ReconciliationBatchService(
                         materialized.Add(key, line);
                         batch.Lines.Add(line);
                     }
-                    line.RequiredQuantity += decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
+                    line.RequiredQuantity += persistedQuantity;
                     line.Contributors.Add(new ReconciliationBatchContributor
                     {
                         ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId,
                         MenuScheduleId = source.MenuScheduleId, MealQuantityPlanLineId = source.QuantityPlanLineId,
-                        DishBomId = bom.BomId, SourceQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero)
+                        DishBomId = bom.BomId, SourceQuantity = persistedQuantity
                     });
                 }
+                if (!dishHasPositiveContribution)
+                    throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' không tạo được lượng nguyên liệu dương ở độ chính xác lưu trữ.");
             }
         }
-        if (batch.Lines.Count == 0) throw new InvalidOperationException("Không thể tạo dòng nguyên liệu hợp lệ từ nguồn đã chọn.");
+        if (batch.Lines.Count == 0
+            || batch.Lines.Any(line => line.RequiredQuantity <= 0
+                || line.Contributors.Count == 0
+                || line.Contributors.Any(contributor => contributor.SourceQuantity <= 0)))
+            throw new InvalidOperationException("Không thể tạo đầy đủ dòng nguyên liệu dương từ nguồn đã chọn.");
         context.Reconciliationbatches.Add(batch);
         return batch;
     }
@@ -172,7 +206,7 @@ public sealed class ReconciliationBatchService(
                 var batch = await context.Reconciliationbatches.Include(x => x.Lines).ThenInclude(x => x.Contributors).SingleOrDefaultAsync(x => x.BatchId == bytes, operationToken) ?? throw new KeyNotFoundException();
                 context.Entry(batch).Property(x => x.Version).OriginalValue = request.ExpectedVersion;
                 if (batch.Status != "DRAFT" || batch.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Lô đối chiếu đã thay đổi.");
-                if (batch.Lines.Count == 0 || batch.Lines.Any(x => x.RequiredQuantity <= 0 || x.FrozenTolerance < 0 || x.Contributors.Count == 0)) throw new InvalidOperationException("Lô chưa có đủ dòng nguyên liệu hợp lệ để sẵn sàng đối chiếu.");
+                if (batch.Lines.Count == 0 || batch.Lines.Any(x => x.RequiredQuantity <= 0 || x.FrozenTolerance < 0 || x.Contributors.Count == 0 || x.Contributors.Any(contributor => contributor.SourceQuantity <= 0))) throw new InvalidOperationException("Lô chưa có đủ dòng nguyên liệu hợp lệ để sẵn sàng đối chiếu.");
                 batch.Status = "READY"; batch.Version++; batch.ReadyBy = actor; batch.ReadyAt = DateTime.UtcNow;
                 await context.SaveChangesAsync(operationToken);
                 return Map(batch, [], []);
@@ -199,6 +233,20 @@ public sealed class ReconciliationBatchService(
                 && line.MenuSchedule.MenuVersionId.AsSpan().SequenceEqual(menuVersionId)
                 && line.MenuSchedule.MenuVersion is not null
                 && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(line.MenuSchedule.MenuVersion.Status)));
+
+    private Task<ReconciliationBatch?> LoadByImportAsync(byte[] importBatchId, CancellationToken token) =>
+        context.Reconciliationbatches.AsNoTracking()
+            .Include(batch => batch.Lines)
+            .SingleOrDefaultAsync(batch => batch.QuantityImportBatchId == importBatchId, token);
+
+    private static bool IsQuantityImportBatchDuplicate(DbUpdateException error)
+    {
+        var message = error.InnerException?.Message ?? error.Message;
+        return (error.InnerException is MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry }
+                && message.Contains("ux_reconciliationbatches_quantityImportBatchId", StringComparison.OrdinalIgnoreCase))
+            || message.Contains("reconciliationbatches.QuantityImportBatchId", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("reconciliationbatches_quantityImportBatchId", StringComparison.OrdinalIgnoreCase);
+    }
 
     private (string OperationKey, long ExpectedVersion) RequiredProtection() =>
         (requestContext.OperationKey, requestContext.ExpectedModeVersion) switch

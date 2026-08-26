@@ -89,6 +89,8 @@ public sealed class ReconciliationQuantityImportReachabilityTests
 
     [Theory]
     [InlineData(MaterialDefect.NoEligibleBom)]
+    [InlineData(MaterialDefect.PartialMissingBom)]
+    [InlineData(MaterialDefect.AllSubPrecision)]
     [InlineData(MaterialDefect.InvalidUnitConversion)]
     [InlineData(MaterialDefect.MissingTolerance)]
     public async Task Invalid_material_projection_rolls_back_all_import_link_and_draft_authority(MaterialDefect defect)
@@ -141,6 +143,8 @@ public sealed class ReconciliationQuantityImportReachabilityTests
     {
         None,
         NoEligibleBom,
+        PartialMissingBom,
+        AllSubPrecision,
         InvalidUnitConversion,
         MissingTolerance
     }
@@ -292,13 +296,15 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                     WarehouseId = GuidHelper.NewId(), ReferencePrice = 1m, IsActive = true, Unit = canonicalUnit
                 };
                 Context.AddRange(dish, ingredient);
-                if (materialDefect != MaterialDefect.NoEligibleBom)
+                var omitBom = materialDefect == MaterialDefect.NoEligibleBom;
+                if (!omitBom)
                 {
                     Context.Dishboms.Add(new DishBom
                     {
                         BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish,
                         IngredientId = ingredient.IngredientId, Ingredient = ingredient,
-                        UnitId = bomUnit.UnitId, Unit = bomUnit, GrossQtyPerServing = 0.1m,
+                        UnitId = bomUnit.UnitId, Unit = bomUnit,
+                        GrossQtyPerServing = materialDefect == MaterialDefect.AllSubPrecision ? 0.000000001m : 0.1m,
                         PriceTierAmount = 25000m, BomStatus = "PUBLISHED", EffectiveFrom = Week.AddDays(-1)
                     });
                 }
@@ -325,6 +331,21 @@ public sealed class ReconciliationQuantityImportReachabilityTests
             var committedMenu = Payload<WeeklyMenuImportResultDto>(await WeeklyMenuController.CommitWeeklyMenuImportAsync(
                 FormFile(fileName, workbook), CustomerIdString, Week.ToString("yyyy-MM-dd"), 25000m, preview.PreviewToken, default));
             Assert.True(committedMenu.Committed);
+
+            if (materialDefect == MaterialDefect.PartialMissingBom)
+            {
+                var selectedDishIds = await Context.Menuitems
+                    .Where(item => item.Menu.Menuschedules.Any(schedule => schedule.MenuVersionId == GuidHelper.ParseGuidString(committedMenu.MenuVersionId!)))
+                    .OrderBy(item => item.DisplayOrder)
+                    .Select(item => item.DishId)
+                    .Distinct()
+                    .ToListAsync();
+                Assert.True(selectedDishIds.Count > 1);
+                var missingDishIds = selectedDishIds.Take(selectedDishIds.Count - 1).ToList();
+                Context.Dishboms.RemoveRange(Context.Dishboms.Where(bom => missingDishIds.Contains(bom.DishId)));
+                await Context.SaveChangesAsync();
+                Context.ChangeTracker.Clear();
+            }
 
             var schedule = await Context.Menuschedules.OrderBy(item => item.ServiceDate).FirstAsync();
             var published = Payload<MenuScheduleDto>(await MenuSchedulesController.UpdateMenuScheduleVersionAsync(
@@ -366,7 +387,9 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                 Assert.True(line.RequiredQuantity > 0);
                 Assert.True(line.FrozenTolerance >= 0);
             });
-            Assert.NotEmpty(await Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
+            var contributors = await Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync();
+            Assert.NotEmpty(contributors);
+            Assert.All(contributors, contributor => Assert.True(contributor.SourceQuantity > 0));
             Assert.Single(await Context.Reconciliationbatches.Where(batch => batch.QuantityImportBatchId != null && batch.QuantityImportBatchId.SequenceEqual(GuidHelper.ParseGuidString(commit.ImportBatchId)!)).ToListAsync());
 
             var ready = Payload<ReconciliationBatchDto>(await ReconciliationController.Ready(
