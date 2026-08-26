@@ -5,16 +5,29 @@ using IPCManagement.Api.Features.Reconciliation.Controllers;
 using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationQuantityImportApplicationPathTests
 {
+    [Fact]
+    public async Task AspNetCore_service_provider_activates_controller_and_reaches_quantity_preview_endpoint()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+
+        var result = await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "DI activation regression"), default);
+
+        Assert.IsType<QuantityImportPreviewDto>(Payload<QuantityImportPreviewDto>(result));
+    }
+
     [Fact]
     public async Task Preview_then_commit_creates_one_confirmed_import_and_one_draft_batch_idempotently()
     {
@@ -123,13 +136,15 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection connection;
+        private readonly ServiceProvider serviceProvider;
         public ImportTestContext Context { get; }
         public ReconciliationBatchesController Controller { get; }
         public byte[] MenuVersionId { get; }
 
-        private Fixture(SqliteConnection connection, ImportTestContext context, ReconciliationBatchesController controller, byte[] menuVersionId)
+        private Fixture(SqliteConnection connection, ServiceProvider serviceProvider, ImportTestContext context, ReconciliationBatchesController controller, byte[] menuVersionId)
         {
             this.connection = connection;
+            this.serviceProvider = serviceProvider;
             Context = context;
             Controller = controller;
             MenuVersionId = menuVersionId;
@@ -158,12 +173,26 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             var requestContext = new SystemOperationRequestContext { OperationKey = "reconciliation.quantity-import.commit", ExpectedModeVersion = 1, Disposition = IPCManagement.Api.Features.SystemOperation.Services.OperationDisposition.Retained };
             var runner = new ImmediateTransactionRunner();
             var batchService = new ReconciliationBatchService(context, runner, requestContext);
-            var importService = new ReconciliationQuantityImportService(context, runner, requestContext, new MemoryCache(new MemoryCacheOptions()));
-            var controller = new ReconciliationBatchesController(batchService, null!, importService, new StubCurrentUser(Guid.NewGuid().ToString()));
-            return new Fixture(connection, context, controller, menuVersionId);
+            var cache = new MemoryCache(new MemoryCacheOptions());
+            var importService = new ReconciliationQuantityImportService(context, runner, requestContext, cache);
+            var completionService = new ReconciliationCompletionService(context, batchService, runner, requestContext);
+            var services = new ServiceCollection();
+            services.AddControllers().AddApplicationPart(typeof(ReconciliationBatchesController).Assembly).AddControllersAsServices();
+            services.AddSingleton(batchService);
+            services.AddSingleton(importService);
+            services.AddSingleton(completionService);
+            services.AddSingleton<ICurrentUserService>(new StubCurrentUser(Guid.NewGuid().ToString()));
+            var serviceProvider = services.BuildServiceProvider();
+            var controller = serviceProvider.GetRequiredService<ReconciliationBatchesController>();
+            return new Fixture(connection, serviceProvider, context, controller, menuVersionId);
         }
 
-        public async ValueTask DisposeAsync() { await Context.DisposeAsync(); await connection.DisposeAsync(); }
+        public async ValueTask DisposeAsync()
+        {
+            await serviceProvider.DisposeAsync();
+            await Context.DisposeAsync();
+            await connection.DisposeAsync();
+        }
     }
 
     private sealed class StubCurrentUser(string id) : IPCManagement.Api.Security.ICurrentUserService
