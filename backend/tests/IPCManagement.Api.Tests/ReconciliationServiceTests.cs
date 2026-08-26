@@ -76,7 +76,7 @@ public sealed class ReconciliationServiceTests
         var requestContext = ProtectedContext();
         var service = new ReconciliationBatchService(context, runner, requestContext);
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var quantityImports = new ReconciliationQuantityImportService(context, runner, requestContext, cache);
+        var quantityImports = new ReconciliationQuantityImportService(context, runner, requestContext, cache, service);
         var completion = new ReconciliationCompletionService(context, service, runner, requestContext);
         var controller = new IPCManagement.Api.Features.Reconciliation.Controllers.ReconciliationBatchesController(
             service, completion, quantityImports, new StubCurrentUser());

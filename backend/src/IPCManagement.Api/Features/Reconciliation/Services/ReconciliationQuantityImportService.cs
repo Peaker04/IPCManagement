@@ -17,7 +17,8 @@ public sealed class ReconciliationQuantityImportService(
     IpcManagementContext context,
     IEfTransactionRunner transactions,
     SystemOperationRequestContext requestContext,
-    IMemoryCache cache)
+    IMemoryCache cache,
+    ReconciliationBatchService batchService)
 {
     private const int FingerprintFormatVersion = 1;
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(15);
@@ -80,22 +81,14 @@ public sealed class ReconciliationQuantityImportService(
                     };
                     context.Quantityimportbatches.Add(import);
                     foreach (var plan in snapshot.Plans) plan.Entity.ImportBatchId = importId;
-                    context.Reconciliationbatches.Add(new ReconciliationBatch
-                    {
-                        BatchId = reconciliationId,
-                        MenuVersionId = ticket.MenuVersionId,
-                        QuantityImportBatchId = importId,
-                        Status = "DRAFT",
-                        Version = 1,
-                        CreatedBy = actor,
-                        CreatedAt = now
-                    });
                     context.Auditlogs.Add(new AuditLog
                     {
                         AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = actor, BusinessArea = "Reconciliation",
                         EntityName = nameof(QuantityImportBatch), EntityId = importId, FieldName = "Commit",
                         NewValue = currentFingerprint, Reason = "Cam kết nguồn số suất đối chiếu"
                     });
+                    await context.SaveChangesAsync(operationToken);
+                    await batchService.MaterializeDraftAsync(reconciliationId, ticket.MenuVersionId, importId, actor, operationToken);
                     await context.SaveChangesAsync(operationToken);
                     return new(GuidHelper.ToGuidString(importId), GuidHelper.ToGuidString(reconciliationId), currentFingerprint, false);
                 },

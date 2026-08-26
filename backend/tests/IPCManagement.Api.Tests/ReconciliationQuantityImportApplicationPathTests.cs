@@ -62,6 +62,13 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
 
         var readback = Payload<ReconciliationBatchDto>(await controller.Get(first.ReconciliationBatchId, default));
         Assert.Equal(first.ImportBatchId, readback.QuantityImportBatchId);
+        Assert.NotEmpty(readback.Lines);
+        Assert.All(readback.Lines, line => Assert.True(line.RequiredQuantity > 0));
+        Assert.NotEmpty(await fixture.Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
+
+        var ready = Payload<ReconciliationBatchDto>(await controller.Ready(
+            first.ReconciliationBatchId, new ReadyReconciliationBatchRequest(readback.Version), default));
+        Assert.Equal("READY", ready.Status);
     }
 
     [Fact]
@@ -163,25 +170,33 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             var menuId = GuidHelper.NewId();
             var scheduleId = GuidHelper.NewId();
             var planId = GuidHelper.NewId();
+            var actorId = GuidHelper.NewId();
+            var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram", BaseUnitCode = "KG", ConvertRateToBase = 1m };
+            var ingredient = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "ING-1", IngredientName = "Ingredient", UnitId = unit.UnitId, WarehouseId = GuidHelper.NewId(), ReferencePrice = 1m, IsActive = true, Unit = unit };
+            var dish = new Dish { DishId = GuidHelper.NewId(), DishCode = "DISH-1", DishName = "Dish", IsActive = true };
+            var menu = new Menu { MenuId = menuId, MenuCode = "MENU-1", MenuName = "Menu", IsActive = true };
+            var menuItem = new MenuItem { MenuItemId = GuidHelper.NewId(), MenuId = menuId, Menu = menu, DishId = dish.DishId, Dish = dish, DisplayOrder = 1 };
+            var bom = new DishBom { BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish, IngredientId = ingredient.IngredientId, Ingredient = ingredient, UnitId = unit.UnitId, Unit = unit, GrossQtyPerServing = 0.1m, PriceTierAmount = 25000m, BomStatus = "PUBLISHED", EffectiveFrom = new DateOnly(2026, 8, 1) };
+            var tolerance = new ReconciliationTolerance { ToleranceId = GuidHelper.NewId(), ScopeKind = ReconciliationToleranceAuthority.SystemDefaultScope, Value = ReconciliationToleranceAuthority.SystemDefaultValue, Version = ReconciliationToleranceAuthority.SystemDefaultVersion, CreatedBy = actorId, CreatedAt = DateTime.UtcNow };
             var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-            var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, MenuVersionId = menuVersionId, MenuVersion = menuVersion, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
+            var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, Menu = menu, MenuVersionId = menuVersionId, MenuVersion = menuVersion, MenuPrice = 25000m, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
             var plan = new MealQuantityPlan { QuantityPlanId = planId, PlanCode = "QTY-1", ServiceDate = schedule.ServiceDate, Status = "COMPLETED", CompletedAt = DateTime.UtcNow, RowVersion = DateTime.UtcNow };
-            var line = new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow };
-            context.AddRange(menuVersion, schedule, plan, line);
+            var line = new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, Menu = menu, ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow };
+            context.AddRange(unit, ingredient, dish, menu, menuItem, bom, tolerance, menuVersion, schedule, plan, line);
             await context.SaveChangesAsync();
 
             var requestContext = new SystemOperationRequestContext { OperationKey = "reconciliation.quantity-import.commit", ExpectedModeVersion = 1, Disposition = IPCManagement.Api.Features.SystemOperation.Services.OperationDisposition.Retained };
             var runner = new ImmediateTransactionRunner();
             var batchService = new ReconciliationBatchService(context, runner, requestContext);
             var cache = new MemoryCache(new MemoryCacheOptions());
-            var importService = new ReconciliationQuantityImportService(context, runner, requestContext, cache);
+            var importService = new ReconciliationQuantityImportService(context, runner, requestContext, cache, batchService);
             var completionService = new ReconciliationCompletionService(context, batchService, runner, requestContext);
             var services = new ServiceCollection();
             services.AddControllers().AddApplicationPart(typeof(ReconciliationBatchesController).Assembly).AddControllersAsServices();
             services.AddSingleton(batchService);
             services.AddSingleton(importService);
             services.AddSingleton(completionService);
-            services.AddSingleton<ICurrentUserService>(new StubCurrentUser(Guid.NewGuid().ToString()));
+            services.AddSingleton<ICurrentUserService>(new StubCurrentUser(GuidHelper.ToGuidString(actorId)));
             var serviceProvider = services.BuildServiceProvider();
             var controller = serviceProvider.GetRequiredService<ReconciliationBatchesController>();
             return new Fixture(connection, serviceProvider, context, controller, menuVersionId);
@@ -213,18 +228,22 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            var included = new HashSet<Type> { typeof(MenuVersion), typeof(MenuSchedule), typeof(MealQuantityPlan), typeof(MealQuantityPlanLine), typeof(QuantityImportBatch), typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationActual), typeof(ReconciliationDisposition), typeof(AuditLog) };
-            foreach (var type in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type))) modelBuilder.Ignore(type);
-            modelBuilder.Entity<MenuVersion>().HasKey(x => x.MenuVersionId); modelBuilder.Entity<MenuVersion>().Ignore(x => x.Customer);
-            modelBuilder.Entity<MenuSchedule>().HasKey(x => x.MenuScheduleId); modelBuilder.Entity<MenuSchedule>().Ignore(x => x.Customer); modelBuilder.Entity<MenuSchedule>().Ignore(x => x.CustomerWeekMenuTier); modelBuilder.Entity<MenuSchedule>().Ignore(x => x.Menu);
-            modelBuilder.Entity<MealQuantityPlan>().HasKey(x => x.QuantityPlanId); modelBuilder.Entity<MealQuantityPlan>().Ignore(x => x.ConfirmedByNavigation); modelBuilder.Entity<MealQuantityPlan>().Ignore(x => x.CompletedByNavigation);
-            modelBuilder.Entity<MealQuantityPlanLine>().HasKey(x => x.QuantityPlanLineId); modelBuilder.Entity<MealQuantityPlanLine>().Ignore(x => x.Customer); modelBuilder.Entity<MealQuantityPlanLine>().Ignore(x => x.Menu); modelBuilder.Entity<MealQuantityPlanLine>().Ignore(x => x.Productionplanlines); modelBuilder.Entity<MealQuantityPlanLine>().Ignore(x => x.Quantityadjustments);
-            modelBuilder.Entity<QuantityImportBatch>().HasKey(x => x.ImportBatchId); modelBuilder.Entity<QuantityImportBatch>().Ignore(x => x.ImportedByNavigation); modelBuilder.Entity<QuantityImportBatch>().HasIndex(x => x.ContentFingerprint).IsUnique();
-            modelBuilder.Entity<ReconciliationBatch>().HasKey(x => x.BatchId); modelBuilder.Entity<ReconciliationBatch>().HasIndex(x => new { x.MenuVersionId, x.QuantityImportBatchId }).IsUnique();
-            modelBuilder.Entity<ReconciliationBatchLine>().HasKey(x => x.BatchLineId);
-            modelBuilder.Entity<ReconciliationActual>().HasKey(x => x.ActualId); modelBuilder.Entity<ReconciliationActual>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);
-            modelBuilder.Entity<ReconciliationDisposition>().HasKey(x => x.DispositionId); modelBuilder.Entity<ReconciliationDisposition>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);
-            modelBuilder.Entity<AuditLog>().HasKey(x => x.AuditId); modelBuilder.Entity<AuditLog>().Ignore(x => x.ChangedByNavigation);
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.UseCollation("BINARY");
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var index in entity.GetIndexes())
+                    index.SetDatabaseName($"{entity.GetTableName()}_{index.GetDatabaseName()}");
+            }
+            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(entity => entity.GetProperties()))
+            {
+                if (property.GetColumnType()?.StartsWith("enum(", StringComparison.OrdinalIgnoreCase) == true)
+                    property.SetColumnType("TEXT");
+                if (property.GetCollation()?.Contains("utf8mb4", StringComparison.OrdinalIgnoreCase) == true)
+                    property.SetCollation("BINARY");
+                if (property.GetDefaultValueSql()?.Contains("CURRENT_TIMESTAMP(6)", StringComparison.OrdinalIgnoreCase) == true)
+                    property.SetDefaultValueSql("CURRENT_TIMESTAMP");
+            }
         }
     }
 }

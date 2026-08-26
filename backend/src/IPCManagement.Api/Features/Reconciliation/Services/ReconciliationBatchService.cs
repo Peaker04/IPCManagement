@@ -69,84 +69,95 @@ public sealed class ReconciliationBatchService(
             protection.ExpectedVersion,
             async operationToken =>
             {
-                var committedImport = await context.Quantityimportbatches.AsNoTracking()
-                    .Include(x => x.Mealquantityplans)
-                    .ThenInclude(x => x.Mealquantityplanlines)
-                    .ThenInclude(x => x.MenuSchedule)
-                    .ThenInclude(x => x.MenuVersion)
-                    .AsSplitQuery()
-                    .SingleOrDefaultAsync(x => x.ImportBatchId == importBatchId, operationToken);
-                if (!IsExactCommittedAuthority(committedImport, menuVersionId))
-                    throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
-
-                var sourceLines = await context.Mealquantityplanlines
-                    .Where(x => x.QuantityPlan.ImportBatchId == importBatchId && x.MenuSchedule.MenuVersionId == menuVersionId)
-                    .Include(x => x.MenuSchedule)
-                    .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Unit)
-                    .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Ingredient).ThenInclude(x => x.Unit)
-                    .AsSplitQuery()
-                    .ToListAsync(operationToken);
-                if (sourceLines.Count == 0) throw new InvalidOperationException("Đợt nhập không có dòng số suất thuộc phiên bản thực đơn đã chọn.");
-
-                var tolerances = await context.Reconciliationtolerances.AsNoTracking().ToListAsync(operationToken);
-                var batch = new ReconciliationBatch
-                {
-                    BatchId = batchId,
-                    MenuVersionId = menuVersionId,
-                    QuantityImportBatchId = importBatchId,
-                    Status = "DRAFT",
-                    Version = 1,
-                    CreatedBy = actor,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                var materialized = new Dictionary<string, ReconciliationBatchLine>(StringComparer.Ordinal);
-                foreach (var source in sourceLines)
-                {
-                    foreach (var menuItem in source.Menu.Menuitems
-                                 .OrderBy(item => item.DisplayOrder)
-                                 .DistinctBy(item => Convert.ToBase64String(item.DishId)))
-                    {
-                        var boms = BomSelectionResolver.Resolve(
-                            menuItem.Dish.Dishboms,
-                            source.CustomerId,
-                            source.MenuSchedule.MenuPrice,
-                            source.MenuSchedule.ServiceDate);
-                        foreach (var bom in boms)
-                        {
-                            var converted = ConvertToCanonical(bom.GrossQtyPerServing * source.FinalServings, bom.Unit, bom.Ingredient.Unit);
-                            if (converted <= 0) continue;
-                            var key = Convert.ToBase64String(bom.IngredientId) + ":" + Convert.ToBase64String(bom.Ingredient.UnitId);
-                            if (!materialized.TryGetValue(key, out var line))
-                            {
-                                var tolerance = ResolveTolerance(tolerances, bom.IngredientId, bom.Ingredient.UnitId);
-                                line = new ReconciliationBatchLine
-                                {
-                                    BatchLineId = GuidHelper.NewId(), BatchId = batchId, IngredientId = bom.IngredientId,
-                                    CanonicalUnitId = bom.Ingredient.UnitId, RequiredQuantity = 0, FrozenTolerance = tolerance.Value,
-                                    ToleranceSourceKind = tolerance.Kind, ToleranceSourceVersion = tolerance.Version, Version = 1
-                                };
-                                materialized.Add(key, line);
-                                batch.Lines.Add(line);
-                            }
-                            line.RequiredQuantity += decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
-                            line.Contributors.Add(new ReconciliationBatchContributor
-                            {
-                                ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId,
-                                MenuScheduleId = source.MenuScheduleId, MealQuantityPlanLineId = source.QuantityPlanLineId,
-                                DishBomId = bom.BomId, SourceQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero)
-                            });
-                        }
-                    }
-                }
-                if (batch.Lines.Count == 0) throw new InvalidOperationException("Không thể tạo dòng nguyên liệu hợp lệ từ nguồn đã chọn.");
-                context.Reconciliationbatches.Add(batch);
+                var batch = await MaterializeDraftAsync(batchId, menuVersionId, importBatchId, actor, operationToken);
                 await context.SaveChangesAsync(operationToken);
                 return Map(batch, [], []);
             },
             verifySucceeded: verifyToken => context.Reconciliationbatches.AsNoTracking().AnyAsync(x => x.BatchId == batchId && x.Lines.Any(), verifyToken),
             isolationLevel: IsolationLevel.Serializable,
             cancellationToken: token);
+    }
+
+    internal async Task<ReconciliationBatch> MaterializeDraftAsync(
+        byte[] batchId,
+        byte[] menuVersionId,
+        byte[] importBatchId,
+        byte[] actor,
+        CancellationToken token)
+    {
+        var committedImport = await context.Quantityimportbatches.AsNoTracking()
+            .Include(x => x.Mealquantityplans)
+            .ThenInclude(x => x.Mealquantityplanlines)
+            .ThenInclude(x => x.MenuSchedule)
+            .ThenInclude(x => x.MenuVersion)
+            .AsSplitQuery()
+            .SingleOrDefaultAsync(x => x.ImportBatchId == importBatchId, token);
+        if (!IsExactCommittedAuthority(committedImport, menuVersionId))
+            throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
+
+        var sourceLines = await context.Mealquantityplanlines
+            .Where(x => x.QuantityPlan.ImportBatchId == importBatchId && x.MenuSchedule.MenuVersionId == menuVersionId)
+            .Include(x => x.MenuSchedule)
+            .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Unit)
+            .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Ingredient).ThenInclude(x => x.Unit)
+            .AsSplitQuery()
+            .ToListAsync(token);
+        if (sourceLines.Count == 0) throw new InvalidOperationException("Đợt nhập không có dòng số suất thuộc phiên bản thực đơn đã chọn.");
+
+        var tolerances = await context.Reconciliationtolerances.AsNoTracking().ToListAsync(token);
+        var batch = new ReconciliationBatch
+        {
+            BatchId = batchId,
+            MenuVersionId = menuVersionId,
+            QuantityImportBatchId = importBatchId,
+            Status = "DRAFT",
+            Version = 1,
+            CreatedBy = actor,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var materialized = new Dictionary<string, ReconciliationBatchLine>(StringComparer.Ordinal);
+        foreach (var source in sourceLines)
+        {
+            foreach (var menuItem in source.Menu.Menuitems
+                         .OrderBy(item => item.DisplayOrder)
+                         .DistinctBy(item => Convert.ToBase64String(item.DishId)))
+            {
+                var boms = BomSelectionResolver.Resolve(
+                    menuItem.Dish.Dishboms,
+                    source.CustomerId,
+                    source.MenuSchedule.MenuPrice,
+                    source.MenuSchedule.ServiceDate);
+                foreach (var bom in boms)
+                {
+                    var converted = ConvertToCanonical(bom.GrossQtyPerServing * source.FinalServings, bom.Unit, bom.Ingredient.Unit);
+                    if (converted <= 0) continue;
+                    var key = Convert.ToBase64String(bom.IngredientId) + ":" + Convert.ToBase64String(bom.Ingredient.UnitId);
+                    if (!materialized.TryGetValue(key, out var line))
+                    {
+                        var tolerance = ResolveTolerance(tolerances, bom.IngredientId, bom.Ingredient.UnitId);
+                        line = new ReconciliationBatchLine
+                        {
+                            BatchLineId = GuidHelper.NewId(), BatchId = batchId, IngredientId = bom.IngredientId,
+                            CanonicalUnitId = bom.Ingredient.UnitId, RequiredQuantity = 0, FrozenTolerance = tolerance.Value,
+                            ToleranceSourceKind = tolerance.Kind, ToleranceSourceVersion = tolerance.Version, Version = 1
+                        };
+                        materialized.Add(key, line);
+                        batch.Lines.Add(line);
+                    }
+                    line.RequiredQuantity += decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
+                    line.Contributors.Add(new ReconciliationBatchContributor
+                    {
+                        ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId,
+                        MenuScheduleId = source.MenuScheduleId, MealQuantityPlanLineId = source.QuantityPlanLineId,
+                        DishBomId = bom.BomId, SourceQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero)
+                    });
+                }
+            }
+        }
+        if (batch.Lines.Count == 0) throw new InvalidOperationException("Không thể tạo dòng nguyên liệu hợp lệ từ nguồn đã chọn.");
+        context.Reconciliationbatches.Add(batch);
+        return batch;
     }
 
     public async Task<ReconciliationBatchDto> ReadyAsync(string id, ReadyReconciliationBatchRequest request, string actorId, CancellationToken token = default)

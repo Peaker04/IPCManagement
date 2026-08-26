@@ -53,6 +53,8 @@ public sealed class ReconciliationQuantityImportReachabilityTests
 
         Assert.Single(await firstFixture.Context.Reconciliationbatches.AsNoTracking().ToListAsync());
         Assert.Single(await secondFixture.Context.Reconciliationbatches.AsNoTracking().ToListAsync());
+        Assert.NotEmpty(await firstFixture.Context.Reconciliationbatchlines.AsNoTracking().ToListAsync());
+        Assert.NotEmpty(await firstFixture.Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
         Assert.Equal(firstBefore, await firstFixture.InventoryAsync());
         Assert.Equal(secondBefore, await secondFixture.InventoryAsync());
     }
@@ -85,6 +87,25 @@ public sealed class ReconciliationQuantityImportReachabilityTests
         Assert.Equal(before, await fixture.InventoryAsync());
     }
 
+    [Theory]
+    [InlineData(MaterialDefect.NoEligibleBom)]
+    [InlineData(MaterialDefect.InvalidUnitConversion)]
+    [InlineData(MaterialDefect.MissingTolerance)]
+    public async Task Invalid_material_projection_rolls_back_all_import_link_and_draft_authority(MaterialDefect defect)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var before = await fixture.InventoryAsync();
+
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
+            fixture.CreateCanonicalSourceAsync("INVALID", 120, materialDefect: defect));
+
+        await fixture.AssertNoReconciliationAuthorityAsync();
+        Assert.Empty(await fixture.Context.Reconciliationbatchlines.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.Context.Auditlogs.Where(x => x.BusinessArea == "Reconciliation").ToListAsync());
+        Assert.Equal(before, await fixture.InventoryAsync());
+    }
+
     [Fact]
     public void Reachability_suite_source_rejects_prohibited_fixture_authority()
     {
@@ -114,6 +135,14 @@ public sealed class ReconciliationQuantityImportReachabilityTests
         while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
             directory = directory.Parent;
         return directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");
+    }
+
+    public enum MaterialDefect
+    {
+        None,
+        NoEligibleBom,
+        InvalidUnitConversion,
+        MissingTolerance
     }
 
     private sealed record SourceResult(
@@ -216,10 +245,11 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                 ExpectedModeVersion = 1,
                 Disposition = OperationDisposition.Retained
             };
+            var batchService = new ReconciliationBatchService(context, transactionRunner, requestContext);
             var reconciliationController = new ReconciliationBatchesController(
-                new ReconciliationBatchService(context, transactionRunner, requestContext),
+                batchService,
                 null!,
-                new ReconciliationQuantityImportService(context, transactionRunner, requestContext, cache),
+                new ReconciliationQuantityImportService(context, transactionRunner, requestContext, cache, batchService),
                 currentUser)
             {
                 ControllerContext = ControllerContext()
@@ -229,16 +259,58 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                 reconciliationController, GuidHelper.ToGuidString(customerId), GuidHelper.ToGuidString(userId));
         }
 
-        public async Task<SourceResult> CreateCanonicalSourceAsync(string sourceMarker, int servings, bool commitQuantity = true)
+        public async Task<SourceResult> CreateCanonicalSourceAsync(
+            string sourceMarker,
+            int servings,
+            bool commitQuantity = true,
+            MaterialDefect materialDefect = MaterialDefect.None)
         {
+            var canonicalUnit = new Unit
+            {
+                UnitId = GuidHelper.NewId(), UnitCode = $"KG-{sourceMarker}", UnitName = "Kilogram",
+                BaseUnitCode = "KG", ConvertRateToBase = 1m
+            };
+            var bomUnit = materialDefect == MaterialDefect.InvalidUnitConversion
+                ? new Unit { UnitId = GuidHelper.NewId(), UnitCode = $"G-{sourceMarker}", UnitName = "Gram", BaseUnitCode = "G", ConvertRateToBase = 1m }
+                : canonicalUnit;
+            Context.Units.Add(canonicalUnit);
+            if (!ReferenceEquals(bomUnit, canonicalUnit)) Context.Units.Add(bomUnit);
+
             foreach (var (name, index) in WorkbookDishNames(sourceMarker).Select((name, index) => (name, index)))
             {
-                Context.Dishes.Add(new Dish
+                var dish = new Dish
                 {
                     DishId = GuidHelper.NewId(),
                     DishCode = $"REACH-{sourceMarker}-{index:00}",
                     DishName = name,
                     IsActive = true
+                };
+                var ingredient = new Ingredient
+                {
+                    IngredientId = GuidHelper.NewId(), IngredientCode = $"ING-{sourceMarker}-{index:00}",
+                    IngredientName = $"Ingredient {index}", UnitId = canonicalUnit.UnitId,
+                    WarehouseId = GuidHelper.NewId(), ReferencePrice = 1m, IsActive = true, Unit = canonicalUnit
+                };
+                Context.AddRange(dish, ingredient);
+                if (materialDefect != MaterialDefect.NoEligibleBom)
+                {
+                    Context.Dishboms.Add(new DishBom
+                    {
+                        BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish,
+                        IngredientId = ingredient.IngredientId, Ingredient = ingredient,
+                        UnitId = bomUnit.UnitId, Unit = bomUnit, GrossQtyPerServing = 0.1m,
+                        PriceTierAmount = 25000m, BomStatus = "PUBLISHED", EffectiveFrom = Week.AddDays(-1)
+                    });
+                }
+            }
+            if (materialDefect != MaterialDefect.MissingTolerance)
+            {
+                Context.Reconciliationtolerances.Add(new ReconciliationTolerance
+                {
+                    ToleranceId = GuidHelper.NewId(), ScopeKind = ReconciliationToleranceAuthority.SystemDefaultScope,
+                    Value = ReconciliationToleranceAuthority.SystemDefaultValue,
+                    Version = ReconciliationToleranceAuthority.SystemDefaultVersion,
+                    CreatedBy = GuidHelper.ParseGuidString(UserIdString)!, CreatedAt = DateTime.UtcNow
                 });
             }
             await Context.SaveChangesAsync();
@@ -288,7 +360,18 @@ public sealed class ReconciliationQuantityImportReachabilityTests
             var readback = Payload<ReconciliationBatchDto>(await ReconciliationController.Get(commit.ReconciliationBatchId, default));
             Assert.Equal("DRAFT", readback.Status);
             Assert.Equal(commit.ImportBatchId, readback.QuantityImportBatchId);
+            Assert.NotEmpty(readback.Lines);
+            Assert.All(readback.Lines, line =>
+            {
+                Assert.True(line.RequiredQuantity > 0);
+                Assert.True(line.FrozenTolerance >= 0);
+            });
+            Assert.NotEmpty(await Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
             Assert.Single(await Context.Reconciliationbatches.Where(batch => batch.QuantityImportBatchId != null && batch.QuantityImportBatchId.SequenceEqual(GuidHelper.ParseGuidString(commit.ImportBatchId)!)).ToListAsync());
+
+            var ready = Payload<ReconciliationBatchDto>(await ReconciliationController.Ready(
+                commit.ReconciliationBatchId, new ReadyReconciliationBatchRequest(readback.Version), default));
+            Assert.Equal("READY", ready.Status);
             return new SourceResult(sourceLabel, quantityPreview, commit);
         }
 
