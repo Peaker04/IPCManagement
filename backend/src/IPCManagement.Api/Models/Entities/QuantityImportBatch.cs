@@ -19,6 +19,16 @@ public partial class QuantityImportBatch
 
     public string Status { get; set; } = null!;
 
+    public byte[]? MenuVersionId { get; set; }
+
+    public string? ContentFingerprint { get; set; }
+
+    public int? FingerprintFormatVersion { get; set; }
+
+    public string? SourceLabel { get; set; }
+
+    public virtual MenuVersion? MenuVersion { get; set; }
+
     public virtual User? ImportedByNavigation { get; set; }
 
     public virtual ICollection<MealQuantityPlan> Mealquantityplans { get; set; } = new List<MealQuantityPlan>();

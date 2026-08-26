@@ -57,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<SystemOperationModeService>();
         services.AddScoped<SystemOperationModeInitializer>();
         services.AddScoped<ReconciliationBatchService>();
+        services.AddScoped<ReconciliationQuantityImportService>();
         services.AddScoped<ReconciliationToleranceInitializer>();
         services.AddScoped<ReconciliationActualService>();
         services.AddScoped<ReconciliationCompletionService>();

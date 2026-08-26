@@ -26,7 +26,10 @@ public sealed class ReconciliationBatchService(
     {
         var sources = await context.Mealquantityplanlines.AsNoTracking()
             .Where(line => line.QuantityPlan.ImportBatchId != null && line.QuantityPlan.ImportBatch != null)
-            .Where(line => line.QuantityPlan.ImportBatch!.Status != "FAILED" && line.QuantityPlan.ImportBatch.Status != "PREVIEW")
+            .Where(line => line.QuantityPlan.ImportBatch!.Status == "CONFIRMED"
+                && line.QuantityPlan.ImportBatch.MenuVersionId != null
+                && line.QuantityPlan.ImportBatch.ContentFingerprint != null
+                && line.QuantityPlan.ImportBatch.FingerprintFormatVersion == 1)
             .Where(line => line.MenuSchedule.MenuVersionId != null && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(line.MenuSchedule.MenuVersion!.Status))
             .Select(line => new
             {
@@ -76,8 +79,10 @@ public sealed class ReconciliationBatchService(
                 var validCommittedPair = await context.Mealquantityplanlines.AsNoTracking()
                     .AnyAsync(x => x.QuantityPlan.ImportBatchId == importBatchId
                         && x.QuantityPlan.ImportBatch != null
-                        && x.QuantityPlan.ImportBatch.Status != "FAILED"
-                        && x.QuantityPlan.ImportBatch.Status != "PREVIEW"
+                        && x.QuantityPlan.ImportBatch.Status == "CONFIRMED"
+                        && x.QuantityPlan.ImportBatch.MenuVersionId == menuVersionId
+                        && x.QuantityPlan.ImportBatch.ContentFingerprint != null
+                        && x.QuantityPlan.ImportBatch.FingerprintFormatVersion == 1
                         && x.MenuSchedule.MenuVersionId == menuVersionId
                         && x.MenuSchedule.MenuVersion != null
                         && MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(x.MenuSchedule.MenuVersion.Status), operationToken);

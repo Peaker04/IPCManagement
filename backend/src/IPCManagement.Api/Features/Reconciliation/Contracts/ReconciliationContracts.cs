@@ -5,6 +5,12 @@ public sealed record ReconciliationLineDto(string BatchLineId, string Ingredient
 public sealed record ReconciliationDispositionDto(string Category, string Reason, long Version, DateTime DisposedAt);
 public sealed record ReconciliationDispositionCategoryDto(string Value, string Label);
 public sealed record ReconciliationDraftSourceDto(string MenuVersionId, string MenuLabel, string QuantityImportBatchId, string ImportBatchLabel);
+public sealed record PreviewQuantityImportRequest(string MenuVersionId, string? SourceLabel);
+public sealed record CommitQuantityImportRequest(string Token, string ContentFingerprint, string? SourceLabel);
+public sealed record QuantityImportPlanLineDto(string QuantityPlanLineId, string MenuScheduleId, string CustomerId, string MenuId, string Shift, int FinalServings);
+public sealed record QuantityImportPlanDto(string QuantityPlanId, string PlanCode, DateOnly ServiceDate, string Status, DateTime RowVersion, IReadOnlyList<QuantityImportPlanLineDto> Lines);
+public sealed record QuantityImportPreviewDto(string Token, DateTimeOffset ExpiresAt, string ContentFingerprint, int FingerprintFormatVersion, IReadOnlyList<QuantityImportPlanDto> Plans, IReadOnlyList<string> Diagnostics);
+public sealed record QuantityImportCommitDto(string ImportBatchId, string ReconciliationBatchId, string ContentFingerprint, bool IdempotentReplay);
 public sealed record CreateReconciliationDraftRequest(string MenuVersionId, string QuantityImportBatchId);
 public sealed record ReadyReconciliationBatchRequest(long ExpectedVersion);
 public sealed record UpsertReconciliationActualRequest(decimal Quantity, long? ExpectedVersion, bool ConfirmZero, string? CorrectionReason);

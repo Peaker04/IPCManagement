@@ -54,7 +54,7 @@ public sealed class ReconciliationServiceTests
     public async Task Draft_source_listing_uses_canonical_published_compatible_status(string status, bool expected)
     {
         await using var context = CreateContext();
-        SeedDraftSource(context, status, "COMPLETED");
+        SeedDraftSource(context, status, "CONFIRMED");
         await context.SaveChangesAsync();
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
 
@@ -69,7 +69,7 @@ public sealed class ReconciliationServiceTests
     public async Task Draft_sources_API_returns_published_compatible_sources(string status)
     {
         await using var context = CreateContext();
-        SeedDraftSource(context, status, "COMPLETED");
+        SeedDraftSource(context, status, "CONFIRMED");
         await context.SaveChangesAsync();
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
         var controller = new IPCManagement.Api.Features.Reconciliation.Controllers.ReconciliationBatchesController(service, null!, null!);
@@ -295,7 +295,7 @@ public sealed class ReconciliationServiceTests
         var customerId = GuidHelper.NewId();
         var menuId = GuidHelper.NewId();
         var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = menuVersionStatus, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var import = new QuantityImportBatch { ImportBatchId = importBatchId, BatchCode = $"BATCH-{menuVersionStatus}", SourceType = "TEST", Status = importStatus, ImportedAt = DateTime.UtcNow };
+        var import = new QuantityImportBatch { ImportBatchId = importBatchId, BatchCode = $"BATCH-{menuVersionStatus}", SourceType = "API", Status = importStatus, ImportedAt = DateTime.UtcNow, MenuVersionId = menuVersionId, ContentFingerprint = new string('A', 64), FingerprintFormatVersion = 1, SourceLabel = "Test" };
         var plan = new MealQuantityPlan { QuantityPlanId = planId, ImportBatchId = importBatchId, ImportBatch = import, PlanCode = "PLAN", ServiceDate = new DateOnly(2026, 8, 25), Status = "CONFIRMED" };
         var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, MenuVersionId = menuVersionId, MenuVersion = menuVersion, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
         context.AddRange(menuVersion, import, plan, schedule, new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, ShiftName = "MORNING", FinalServings = 10, UpdatedAt = DateTime.UtcNow });
