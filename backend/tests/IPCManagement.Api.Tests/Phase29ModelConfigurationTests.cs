@@ -30,6 +30,12 @@ public sealed class Phase29ModelConfigurationTests
         Assert.True(mode.FindProperty(nameof(SystemOperationMode.Version))!.IsConcurrencyToken);
         Assert.Contains(mode.GetCheckConstraints(), check => check.Sql!.Contains("DEFAULT") && check.Sql.Contains("MATERIAL_RECONCILIATION"));
 
+        var batch = model.FindEntityType(typeof(ReconciliationBatch))!;
+        var importIndex = Assert.Single(batch.GetIndexes(), index =>
+            index.Properties.Select(property => property.Name).SequenceEqual([nameof(ReconciliationBatch.QuantityImportBatchId)]));
+        Assert.True(importIndex.IsUnique);
+        Assert.Equal("ux_reconciliationbatches_quantityImportBatchId", importIndex.GetDatabaseName());
+
         var line = model.FindEntityType(typeof(ReconciliationBatchLine))!;
         Assert.Equal(18, line.FindProperty(nameof(ReconciliationBatchLine.RequiredQuantity))!.GetPrecision());
         Assert.Equal(6, line.FindProperty(nameof(ReconciliationBatchLine.RequiredQuantity))!.GetScale());

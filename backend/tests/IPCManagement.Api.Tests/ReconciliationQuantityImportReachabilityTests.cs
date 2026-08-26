@@ -91,6 +91,7 @@ public sealed class ReconciliationQuantityImportReachabilityTests
     [InlineData(MaterialDefect.NoEligibleBom)]
     [InlineData(MaterialDefect.PartialMissingBom)]
     [InlineData(MaterialDefect.AllSubPrecision)]
+    [InlineData(MaterialDefect.MixedSubPrecision)]
     [InlineData(MaterialDefect.InvalidUnitConversion)]
     [InlineData(MaterialDefect.MissingTolerance)]
     public async Task Invalid_material_projection_rolls_back_all_import_link_and_draft_authority(MaterialDefect defect)
@@ -145,6 +146,7 @@ public sealed class ReconciliationQuantityImportReachabilityTests
         NoEligibleBom,
         PartialMissingBom,
         AllSubPrecision,
+        MixedSubPrecision,
         InvalidUnitConversion,
         MissingTolerance
     }
@@ -307,6 +309,23 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                         GrossQtyPerServing = materialDefect == MaterialDefect.AllSubPrecision ? 0.000000001m : 0.1m,
                         PriceTierAmount = 25000m, BomStatus = "PUBLISHED", EffectiveFrom = Week.AddDays(-1)
                     });
+                    if (materialDefect == MaterialDefect.MixedSubPrecision)
+                    {
+                        var traceIngredient = new Ingredient
+                        {
+                            IngredientId = GuidHelper.NewId(), IngredientCode = $"ING-{sourceMarker}-TRACE-{index:00}",
+                            IngredientName = "Subprecision ingredient", UnitId = canonicalUnit.UnitId,
+                            WarehouseId = GuidHelper.NewId(), ReferencePrice = 1m, IsActive = true, Unit = canonicalUnit
+                        };
+                        Context.Add(traceIngredient);
+                        Context.Dishboms.Add(new DishBom
+                        {
+                            BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish,
+                            IngredientId = traceIngredient.IngredientId, Ingredient = traceIngredient,
+                            UnitId = canonicalUnit.UnitId, Unit = canonicalUnit, GrossQtyPerServing = 0.000000001m,
+                            PriceTierAmount = 25000m, BomStatus = "PUBLISHED", EffectiveFrom = Week.AddDays(-1)
+                        });
+                    }
                 }
             }
             if (materialDefect != MaterialDefect.MissingTolerance)

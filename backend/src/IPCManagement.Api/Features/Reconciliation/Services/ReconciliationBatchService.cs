@@ -153,13 +153,13 @@ public sealed class ReconciliationBatchService(
                 if (boms.Count == 0)
                     throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' chưa có BOM đã phát hành hợp lệ.");
 
-                var dishHasPositiveContribution = false;
                 foreach (var bom in boms)
                 {
                     var converted = ConvertToCanonical(bom.GrossQtyPerServing * source.FinalServings, bom.Unit, bom.Ingredient.Unit);
                     var persistedQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
+                    if (converted > 0 && persistedQuantity <= 0)
+                        throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' có lượng nguyên liệu dương nhỏ hơn độ chính xác lưu trữ.");
                     if (persistedQuantity <= 0) continue;
-                    dishHasPositiveContribution = true;
                     var key = Convert.ToBase64String(bom.IngredientId) + ":" + Convert.ToBase64String(bom.Ingredient.UnitId);
                     if (!materialized.TryGetValue(key, out var line))
                     {
@@ -181,8 +181,6 @@ public sealed class ReconciliationBatchService(
                         DishBomId = bom.BomId, SourceQuantity = persistedQuantity
                     });
                 }
-                if (!dishHasPositiveContribution)
-                    throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' không tạo được lượng nguyên liệu dương ở độ chính xác lưu trữ.");
             }
         }
         if (batch.Lines.Count == 0
@@ -239,7 +237,7 @@ public sealed class ReconciliationBatchService(
             .Include(batch => batch.Lines)
             .SingleOrDefaultAsync(batch => batch.QuantityImportBatchId == importBatchId, token);
 
-    private static bool IsQuantityImportBatchDuplicate(DbUpdateException error)
+    internal static bool IsQuantityImportBatchDuplicate(DbUpdateException error)
     {
         var message = error.InnerException?.Message ?? error.Message;
         return (error.InnerException is MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry }

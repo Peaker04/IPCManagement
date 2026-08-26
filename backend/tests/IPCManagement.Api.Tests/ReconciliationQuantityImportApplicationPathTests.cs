@@ -80,6 +80,41 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     }
 
     [Fact]
+    public async Task Manual_materialization_of_valid_committed_import_matches_auto_projection_and_ready_semantics()
+    {
+        await using var autoFixture = await Fixture.CreateAsync();
+        await using var manualFixture = await Fixture.CreateAsync();
+
+        var autoPreview = Payload<QuantityImportPreviewDto>(await autoFixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(autoFixture.MenuVersionId), "Nguồn tương đương"), default));
+        var autoCommit = Payload<QuantityImportCommitDto>(await autoFixture.Controller.CommitQuantityImport(
+            new(autoPreview.Token, autoPreview.ContentFingerprint, "Nguồn tương đương"), default));
+        var autoDraft = Payload<ReconciliationBatchDto>(await autoFixture.Controller.Get(autoCommit.ReconciliationBatchId, default));
+
+        var manualImportId = await manualFixture.CreateCommittedImportWithoutBatchAsync("Nguồn tương đương");
+        var manualDraft = Payload<ReconciliationBatchDto>(await manualFixture.Controller.Create(
+            new(GuidHelper.ToGuidString(manualFixture.MenuVersionId), GuidHelper.ToGuidString(manualImportId)), default));
+
+        Assert.Equal(Projection(autoDraft), Projection(manualDraft));
+        Assert.Equal(await autoFixture.PersistedProjectionAsync(), await manualFixture.PersistedProjectionAsync());
+        Assert.Equal("DRAFT", manualDraft.Status);
+        Assert.Single(manualFixture.Context.Reconciliationbatches);
+        Assert.NotEmpty(manualFixture.Context.Reconciliationbatchcontributors);
+
+        var autoReady = Payload<ReconciliationBatchDto>(await autoFixture.Controller.Ready(
+            autoDraft.BatchId, new ReadyReconciliationBatchRequest(autoDraft.Version), default));
+        var manualReady = Payload<ReconciliationBatchDto>(await manualFixture.Controller.Ready(
+            manualDraft.BatchId, new ReadyReconciliationBatchRequest(manualDraft.Version), default));
+        Assert.Equal("READY", autoReady.Status);
+        Assert.Equal(autoReady.Status, manualReady.Status);
+    }
+
+    private static IReadOnlyList<string> Projection(ReconciliationBatchDto batch) => batch.Lines
+        .Select(line => $"{line.RequiredQuantity:F6}|{line.FrozenTolerance:F6}")
+        .OrderBy(value => value, StringComparer.Ordinal)
+        .ToList();
+
+    [Fact]
     public async Task Commit_rejects_stale_source_without_persisting_authority()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -155,14 +190,16 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         public ImportTestContext Context { get; }
         public ReconciliationBatchesController Controller { get; }
         public byte[] MenuVersionId { get; }
+        public byte[] ActorId { get; }
 
-        private Fixture(SqliteConnection connection, ServiceProvider serviceProvider, ImportTestContext context, ReconciliationBatchesController controller, byte[] menuVersionId)
+        private Fixture(SqliteConnection connection, ServiceProvider serviceProvider, ImportTestContext context, ReconciliationBatchesController controller, byte[] menuVersionId, byte[] actorId)
         {
             this.connection = connection;
             this.serviceProvider = serviceProvider;
             Context = context;
             Controller = controller;
             MenuVersionId = menuVersionId;
+            ActorId = actorId;
         }
 
         public static async Task<Fixture> CreateAsync()
@@ -207,7 +244,44 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             services.AddSingleton<ICurrentUserService>(new StubCurrentUser(GuidHelper.ToGuidString(actorId)));
             var serviceProvider = services.BuildServiceProvider();
             var controller = serviceProvider.GetRequiredService<ReconciliationBatchesController>();
-            return new Fixture(connection, serviceProvider, context, controller, menuVersionId);
+            return new Fixture(connection, serviceProvider, context, controller, menuVersionId, actorId);
+        }
+
+        public async Task<IReadOnlyList<string>> PersistedProjectionAsync()
+        {
+            var lines = await Context.Reconciliationbatchlines.AsNoTracking()
+                .Include(line => line.Contributors)
+                .ToListAsync();
+            return lines.Select(line =>
+                    $"{line.RequiredQuantity:F6}|{line.FrozenTolerance:F6}|{line.ToleranceSourceKind}|{line.ToleranceSourceVersion}|{string.Join(',', line.Contributors.Select(contributor => contributor.SourceQuantity).OrderBy(quantity => quantity).Select(quantity => quantity.ToString("F6")))}")
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        public async Task<byte[]> CreateCommittedImportWithoutBatchAsync(string sourceLabel)
+        {
+            var preview = Payload<QuantityImportPreviewDto>(await Controller.PreviewQuantityImport(
+                new(GuidHelper.ToGuidString(MenuVersionId), sourceLabel), default));
+            var importId = GuidHelper.NewId();
+            var now = DateTime.UtcNow;
+            Context.Quantityimportbatches.Add(new QuantityImportBatch
+            {
+                ImportBatchId = importId, BatchCode = $"MANUAL-{preview.ContentFingerprint[..8]}",
+                SourceType = "API", SourceCompanyName = sourceLabel, SourceLabel = sourceLabel,
+                MenuVersionId = MenuVersionId, ContentFingerprint = preview.ContentFingerprint,
+                FingerprintFormatVersion = preview.FingerprintFormatVersion, ImportedBy = ActorId,
+                ImportedAt = now, Status = "CONFIRMED"
+            });
+            foreach (var plan in Context.Mealquantityplans) plan.ImportBatchId = importId;
+            Context.Auditlogs.Add(new AuditLog
+            {
+                AuditId = GuidHelper.NewId(), ChangedAt = now, ChangedBy = ActorId,
+                BusinessArea = "Reconciliation", EntityName = nameof(QuantityImportBatch), EntityId = importId,
+                FieldName = "Commit", NewValue = preview.ContentFingerprint, Reason = "Fixture committed import authority"
+            });
+            await Context.SaveChangesAsync();
+            Assert.Empty(Context.Reconciliationbatches);
+            return importId;
         }
 
         public async ValueTask DisposeAsync()

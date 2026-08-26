@@ -166,13 +166,13 @@ public sealed class ReconciliationQuantityImportService(
         };
 
     private static string NormalizeSourceLabel(string? value) => string.IsNullOrWhiteSpace(value) ? "Nguồn số suất chuẩn" : value.Trim();
-    private static bool IsContentFingerprintDuplicate(DbUpdateException error)
+    internal static bool IsContentFingerprintDuplicate(DbUpdateException error)
     {
         var message = error.InnerException?.Message ?? error.Message;
         return (error.InnerException is MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry }
                 && message.Contains("ux_quantityimportbatches_contentFingerprint", StringComparison.OrdinalIgnoreCase))
-            || message.Contains("quantityimportbatches.contentFingerprint", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("quantityimportbatches_ux_quantityimportbatches_contentFingerprint", StringComparison.OrdinalIgnoreCase);
+            || message.Contains("ux_quantityimportbatches_contentFingerprint", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("quantityimportbatches.contentFingerprint", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed record PreviewTicket(byte[] MenuVersionId, string Fingerprint, DateTimeOffset ExpiresAt);
