@@ -113,6 +113,17 @@ describe('ReconciliationWorkspace lifecycle', () => {
     view.unmount()
   })
 
+  it('exposes the exact reconciliation batch identity without expanding the compact table label', () => {
+    const batchId = 'cb62d8e1-e383-4e70-98e5-aed065b8c165'
+    batches = [{ ...draft, batchId }]
+
+    render(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" />)
+
+    const batchButton = screen.getByRole('button', { name: new RegExp(batchId) })
+    expect(batchButton).toHaveTextContent(batchId)
+    expect(batchButton).toHaveAttribute('title', `Lô đối chiếu ${batchId}`)
+  })
+
   it('gates completion and disposition to manager/admin while preserving read access', () => {
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [triggeredLine] }]
     const view = render(<ReconciliationWorkspace owner="reports" />)
