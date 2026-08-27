@@ -49,6 +49,7 @@ import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewConten
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
 
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
@@ -59,6 +60,8 @@ import { toLabeledQueryView } from '@/lib/labeledQueryView';
 const WeeklyMenuPage = () => {
   const canPublishWeeklyMenu = useHasRole([]);
   const dispatch = useAppDispatch();
+  const systemOperation = useSystemOperation();
+  const isMaterialReconciliationMode = systemOperation?.mode === 'MATERIAL_RECONCILIATION';
   const reduxWeeklyMenu = useCoordinationStoreSelector((state) => state.coordination.weeklyMenu);
   const orders = useCoordinationStoreSelector((state) => state.coordination.orders);
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts);
@@ -84,7 +87,9 @@ const WeeklyMenuPage = () => {
   const customers = customersResponse?.data ?? [];
   const isCustomerLoading = customersView.phase === 'loading';
   const isCustomerError = customersView.phase === 'error' || customersView.phase === 'forbidden';
-  const customerContractsQuery = useGetCustomerContractsQuery();
+  const customerContractsQuery = useGetCustomerContractsQuery(undefined, {
+    skip: isMaterialReconciliationMode,
+  });
   const customerContractsView = toLabeledQueryView(customerContractsQuery, 'hợp đồng định mức', {
     instruction: 'Mở kế hoạch tuần để tải hợp đồng định mức.',
   });
@@ -123,7 +128,7 @@ const WeeklyMenuPage = () => {
       customerId: effectiveMenuCustomerId,
       ...(menuScheduleWeekStartDate ? { weekStartDate: menuScheduleWeekStartDate } : {}),
     },
-    { skip: !effectiveMenuCustomerId },
+    { skip: isMaterialReconciliationMode || !effectiveMenuCustomerId },
   );
   const menuSchedulesView = toLabeledQueryView(menuSchedulesQuery, 'lịch thực đơn', {
     instruction: 'Chọn khách hàng để tải lịch thực đơn.',
@@ -138,7 +143,7 @@ const WeeklyMenuPage = () => {
       customerId: effectiveMenuCustomerId,
       ...(menuScheduleWeekStartDate ? { weekStartDate: menuScheduleWeekStartDate } : {}),
     },
-    { skip: !effectiveMenuCustomerId || !menuScheduleWeekStartDate },
+    { skip: isMaterialReconciliationMode || !effectiveMenuCustomerId || !menuScheduleWeekStartDate },
   );
   const mealQuantityPlansView = toLabeledQueryView(mealQuantityPlansQuery, 'kế hoạch số suất', {
     instruction: !effectiveMenuCustomerId
