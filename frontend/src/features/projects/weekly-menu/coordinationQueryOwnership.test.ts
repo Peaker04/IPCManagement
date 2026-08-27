@@ -21,6 +21,7 @@ describe('Weekly Menu Coordination query ownership contract', () => {
   it('does not request mode-ineligible planning data in reconciliation mode', () => {
     expect(weeklyMenuSource).toContain("systemOperation?.mode === 'MATERIAL_RECONCILIATION'")
     expect(weeklyMenuSource).toMatch(/useGetCustomerContractsQuery\(undefined, \{\s*skip: isMaterialReconciliationMode,/)
+    expect(weeklyMenuSource).toMatch(/useGetCommittedWeeklyMenuQuery\([\s\S]*?skip: isMaterialReconciliationMode \|\| !effectiveMenuCustomerId/)
     expect(weeklyMenuSource).toMatch(/useGetMenuSchedulesQuery\([\s\S]*?skip: isMaterialReconciliationMode \|\| !effectiveMenuCustomerId/)
     expect(weeklyMenuSource).toMatch(/useGetMealQuantityPlansQuery\([\s\S]*?skip: isMaterialReconciliationMode \|\| !effectiveMenuCustomerId \|\| !menuScheduleWeekStartDate/)
   })

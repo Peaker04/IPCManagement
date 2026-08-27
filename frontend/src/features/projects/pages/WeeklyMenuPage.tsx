@@ -109,7 +109,7 @@ const WeeklyMenuPage = () => {
       customerId: effectiveMenuCustomerId,
       weekStartDate: committedMenuWeekStartDate || undefined,
     },
-    { skip: !effectiveMenuCustomerId },
+    { skip: isMaterialReconciliationMode || !effectiveMenuCustomerId },
   );
   const committedMenuView = toLabeledQueryView(committedMenuQuery, 'thực đơn tuần đã lưu', {
     instruction: 'Chọn khách hàng để tải thực đơn tuần đã lưu.',
