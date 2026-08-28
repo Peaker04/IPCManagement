@@ -5,6 +5,8 @@ import { CommandBar, ContextStrip, OperationalFrame, ViewSwitcher } from '@/comp
 import { ROUTES } from '@/lib/routeConfig';
 import { useAdminDataPageModel } from './admin-data/useAdminDataPageModel';
 import type { AdminView } from './admin-data/adminDataPageTypes';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { ReconciliationAdminDataPage } from './admin-data/ReconciliationAdminDataPage';
 
 const AdminAuditPanel = lazy(() => import('./admin-data/AdminAuditPanel').then(({ AdminAuditPanel: component }) => ({ default: component })))
 const AdminBomPanel = lazy(() => import('./admin-data/AdminBomPanel').then(({ AdminBomPanel: component }) => ({ default: component })))
@@ -15,7 +17,7 @@ const AdminInventoryPanel = lazy(() => import('./admin-data/AdminInventoryPanel'
 const AdminStatisticsPanel = lazy(() => import('./admin-data/AdminStatisticsPanel').then(({ AdminStatisticsPanel: component }) => ({ default: component })))
 const AdminPanelFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
-export default function AdminDataPage() {
+function DefaultAdminDataPage() {
   const model = useAdminDataPageModel();
   const { adminContextItems, adminTabs, canManageEmployees, effectiveActiveView, isViewPending, setActiveView, startViewTransition } = model;
   const canShowEmployees = canManageEmployees && adminTabs.some((tab) => tab.id === 'admin-employees');
@@ -86,4 +88,11 @@ return (
       </div>
     </OperationalFrame>
   );
+}
+
+export default function AdminDataPage() {
+  const operation = useSystemOperation();
+  return operation?.mode === 'MATERIAL_RECONCILIATION'
+    ? <ReconciliationAdminDataPage />
+    : <DefaultAdminDataPage />;
 }

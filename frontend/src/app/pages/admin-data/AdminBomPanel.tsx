@@ -9,9 +9,10 @@ import { formatNumber, formatPercent, formatQuantity } from '@/lib/formatters';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import type { ReconciliationAdminDataPageModel } from './useReconciliationAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 
-type AdminBomPanelProps = { model: AdminDataPageModel };
+type AdminBomPanelProps = { model: AdminDataPageModel | ReconciliationAdminDataPageModel };
 
 const EMPTY_BOM_SELECT_VALUE = '__empty_bom_select__';
 

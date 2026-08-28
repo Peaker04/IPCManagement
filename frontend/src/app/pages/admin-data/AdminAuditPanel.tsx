@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import type { ReconciliationAdminDataPageModel } from './useReconciliationAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 import { formatDateTime } from '@/lib/formatters';
 import { typography } from '@/lib/typography';
@@ -11,7 +12,7 @@ import { useAppSelector } from '@/app/hooks';
 import { selectCurrentUser } from '@/features/auth';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
 
-type AdminAuditPanelProps = { model: AdminDataPageModel };
+type AdminAuditPanelProps = { model: AdminDataPageModel | ReconciliationAdminDataPageModel };
 
 const ALL_AUDIT_AREAS_VALUE = '__all_audit_areas__';
 

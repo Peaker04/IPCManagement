@@ -30,6 +30,30 @@ export const eligibleCapabilityIds = (mode: SystemOperationMode, backendIds: rea
   ? backendIds
   : backendIds.filter((id) => ['dashboard', 'weekly-menu', 'warehouse', 'reconciliation', 'admin-data'].includes(id))
 
+export const getCapabilityConfigurationError = (snapshot: {
+  mode: SystemOperationMode
+  capabilities: { navigation: readonly string[]; pageTabs: Readonly<Record<string, readonly string[]>> }
+}) => {
+  if (snapshot.mode !== 'MATERIAL_RECONCILIATION') return undefined
+  const expectedNavigation = ['dashboard', 'weekly-menu', 'warehouse', 'reconciliation', 'admin-data']
+  const expectedTabs: Record<string, readonly string[]> = {
+    'weekly-menu': ['schedule', 'material-demand'],
+    warehouse: ['demand', 'movement'],
+    'admin-data': ['bom-import', 'audit'],
+  }
+  const same = (actual: readonly string[] | undefined, expected: readonly string[]) =>
+    JSON.stringify(actual ?? []) === JSON.stringify(expected)
+  if (!same(snapshot.capabilities.navigation, expectedNavigation)) {
+    return 'Phiên bản máy chủ đang chạy không khớp cấu hình Đối chiếu nguyên liệu (danh mục chức năng).'
+  }
+  for (const [page, tabs] of Object.entries(expectedTabs)) {
+    if (!same(snapshot.capabilities.pageTabs[page], tabs)) {
+      return `Phiên bản máy chủ đang chạy không khớp cấu hình Đối chiếu nguyên liệu (${page}).`
+    }
+  }
+  return undefined
+}
+
 export const eligiblePageTabs = (
   mode: SystemOperationMode,
   groupId: string,

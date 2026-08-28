@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTES } from '@/lib/routeConfig'
-import { eligiblePageTabs, isRouteEligible, modeLabels, retainedRoutes } from './systemOperationEligibility'
+import { eligiblePageTabs, getCapabilityConfigurationError, isRouteEligible, modeLabels, retainedRoutes } from './systemOperationEligibility'
 
 describe('system operation route matrix', () => {
   it('keeps the explicit default golden path', () => {
@@ -21,6 +21,12 @@ describe('system operation route matrix', () => {
     expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'warehouse', ['demand', 'movement'], [])).toEqual(['demand', 'movement'])
     expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'admin-data', ['bom-import', 'audit'], ['bom-import'])).toEqual(['bom-import', 'audit'])
     expect(eligiblePageTabs('DEFAULT', 'weekly-menu', ['schedule', 'demand'], ['schedule'])).toEqual(['schedule'])
+  })
+
+  it('fails closed when reconciliation capabilities come from a stale or mismatched backend', () => {
+    expect(getCapabilityConfigurationError({ mode: 'MATERIAL_RECONCILIATION', capabilities: { navigation: ['dashboard', 'weekly-menu'], pageTabs: { 'weekly-menu': ['schedule'] } } })).toContain('Phiên bản máy chủ')
+    expect(getCapabilityConfigurationError({ mode: 'MATERIAL_RECONCILIATION', capabilities: { navigation: ['dashboard', 'weekly-menu', 'warehouse', 'reconciliation', 'admin-data'], pageTabs: { 'weekly-menu': ['schedule', 'material-demand'], warehouse: ['demand', 'movement'], 'admin-data': ['bom-import', 'audit'] } } })).toBeUndefined()
+    expect(getCapabilityConfigurationError({ mode: 'DEFAULT', capabilities: { navigation: [], pageTabs: {} } })).toBeUndefined()
   })
 
   it('uses user labels', () => expect(modeLabels).toEqual({ DEFAULT: 'Mặc định', MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu' }))

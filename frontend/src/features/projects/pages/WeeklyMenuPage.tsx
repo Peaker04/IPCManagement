@@ -52,6 +52,7 @@ import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreloa
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/features/reconciliation/ClosedLoopTransferPanel';
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { ReconciliationWeeklyMenuPage } from './ReconciliationWeeklyMenuPage';
 
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
@@ -59,7 +60,7 @@ const WeeklyScheduleEditorDialog = lazy(() => import('../weekly-menu/schedule/We
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
-const WeeklyMenuPage = () => {
+const DefaultWeeklyMenuPage = () => {
   const canPublishWeeklyMenu = useHasRole([]);
   const dispatch = useAppDispatch();
   const systemOperation = useSystemOperation();
@@ -566,4 +567,9 @@ const WeeklyMenuPage = () => {
   );
 };
 
-export default WeeklyMenuPage;
+export default function WeeklyMenuPage() {
+  const operation = useSystemOperation();
+  return operation?.mode === 'MATERIAL_RECONCILIATION'
+    ? <ReconciliationWeeklyMenuPage />
+    : <DefaultWeeklyMenuPage />;
+}
