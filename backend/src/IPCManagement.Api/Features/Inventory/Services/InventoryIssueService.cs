@@ -399,8 +399,6 @@ public class InventoryIssueService : IInventoryIssueService
                     ?? throw new BusinessRuleException("Không tìm thấy lô đối chiếu để xuất kho.");
                 if (batch.Status != "TRANSFERRED" || batch.Version != dto.ExpectedVersion)
                     throw new DbUpdateConcurrencyException("Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
-                if (await _context.Inventoryissues.AnyAsync(item => item.ReconciliationBatchId == batchId, token))
-                    throw new ResourceConflictException("Lô đối chiếu này đã có phiếu xuất kho.");
                 if (dto.Lines.Count == 0) throw new ArgumentException("Phiếu xuất kho phải có ít nhất một dòng nguồn.");
                 var sourceById = batch.Lines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
                 var resolved = new List<(ReconciliationBatchLine Source, decimal Quantity)>();
@@ -419,6 +417,10 @@ public class InventoryIssueService : IInventoryIssueService
                 }
                 if (resolved.Select(item => Convert.ToHexString(item.Source.BatchLineId)).Distinct().Count() != resolved.Count)
                     throw new BusinessRuleException("Một dòng nguồn không thể xuất lặp trong cùng phiếu.");
+                var requestedLineIds = resolved.Select(item => item.Source.BatchLineId).ToList();
+                if (await _context.Inventoryissuelines.AnyAsync(item =>
+                        item.ReconciliationBatchLineId != null && requestedLineIds.Contains(item.ReconciliationBatchLineId), token))
+                    throw new ResourceConflictException("Một dòng đối chiếu đã có phiếu xuất kho liên kết.");
                 await InventoryIssueStockValidator.EnsureAvailableAsync(_context, warehouseId, dto.IssueDate, batchId,
                     $"REC-{GuidHelper.ToGuidString(batchId)}", resolved.Select(item => new InventoryIssueStockLine(item.Source.IngredientId, item.Source.CanonicalUnitId, item.Quantity)));
                 var issue = new InventoryIssue

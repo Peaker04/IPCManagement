@@ -17,7 +17,7 @@ public sealed class Phase30MigrationTests
         Assert.Contains("reconciliationBatchLineId", source);
         Assert.Contains("ckInventoryIssuesSourceFamily", source);
         Assert.Contains("ckInventoryIssueLinesSourceFamily", source);
-        Assert.Contains("uxInventoryIssuesReconciliationBatch", source);
+        Assert.Contains("ixInventoryIssuesReconciliationBatch", source);
         Assert.Contains("uxInventoryIssueLinesReconciliationBatchLine", source);
         Assert.Contains("inventoryissues_ibfk_5", source);
         Assert.Contains("inventoryissuelines_ibfk_5", source);

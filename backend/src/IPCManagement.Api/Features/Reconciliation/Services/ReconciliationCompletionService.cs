@@ -27,10 +27,15 @@ public sealed class ReconciliationCompletionService(
                 var lineIds = batch.Lines.Select(x => x.BatchLineId).ToList();
                 var actuals = await context.Reconciliationactuals.Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
                 var dispositions = await context.Reconciliationdispositions.Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
+                var linkedIssued = await batches.LoadLinkedIssuedQuantitiesForCompletionAsync(lineIds, operationToken);
                 foreach (var line in batch.Lines)
                 {
-                    var comparison = ReconciliationComparisonService.Map(line, actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(), dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)));
-                    if (comparison.PurchasedQuantity is null || comparison.IssuedQuantity is null) throw new InvalidOperationException("Mọi dòng phải có số lượng mua và xuất.");
+                    var comparison = ReconciliationComparisonService.Map(
+                        line,
+                        actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
+                        dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
+                        linkedIssued.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)));
+                    if (comparison.IssuedQuantity is null) throw new InvalidOperationException("Mọi dòng phải có số lượng xuất kho liên kết.");
                     if (comparison.Triggers.Count > 0)
                     {
                         var disposition = dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId));

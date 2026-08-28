@@ -196,10 +196,16 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         context.AddRange(unit, warehouse, ingredient, batch, sourceLine, firstIssue, secondIssue, receivedReturn, pendingReturn);
         await context.SaveChangesAsync();
 
-        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), new SystemOperationRequestContext());
-        var result = Assert.Single(await service.ListAsync());
+        var issued = ReconciliationBatchService.ProjectNetIssuedQuantities(
+            context.Inventoryissuelines.Local
+                .Where(item => item.ReconciliationBatchLineId is not null)
+                .Select(item => (item.IssueLineId, item.ReconciliationBatchLineId!, item.IssuedQty)),
+            context.Inventoryreturnlines.Local
+                .Where(item => item.SourceIssueLineId is not null && item.Return.ReceivedAt is not null)
+                .Select(item => (item.SourceIssueLineId!, item.Quantity)));
+        var comparison = ReconciliationComparisonService.Map(
+            sourceLine, [], null, issued[Convert.ToHexString(lineId)]);
 
-        var comparison = Assert.Single(result.Lines);
         Assert.Equal(8m, comparison.IssuedQuantity);
         Assert.Equal(-2m, comparison.IssuedRequiredDifference);
         Assert.Equal("NEEDS_REVIEW", comparison.Status);

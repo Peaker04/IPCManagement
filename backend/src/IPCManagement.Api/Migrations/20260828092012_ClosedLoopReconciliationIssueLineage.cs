@@ -52,10 +52,9 @@ namespace IPCManagement.Api.Migrations
                 sql: "`status` IN ('DRAFT','READY','TRANSFERRED','IN_PROGRESS','COMPLETED')");
 
             migrationBuilder.CreateIndex(
-                name: "uxInventoryIssuesReconciliationBatch",
+                name: "ixInventoryIssuesReconciliationBatch",
                 table: "inventoryissues",
-                column: "reconciliationBatchId",
-                unique: true);
+                column: "reconciliationBatchId");
 
             migrationBuilder.AddCheckConstraint(
                 name: "ckInventoryIssuesSourceFamily",
@@ -134,7 +133,7 @@ namespace IPCManagement.Api.Migrations
                 table: "reconciliationbatches");
 
             migrationBuilder.DropIndex(
-                name: "uxInventoryIssuesReconciliationBatch",
+                name: "ixInventoryIssuesReconciliationBatch",
                 table: "inventoryissues");
 
             migrationBuilder.DropCheckConstraint(
