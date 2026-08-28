@@ -27,6 +27,15 @@ describe('material reconciliation UI contracts', () => {
     expect(warehouseSource).toContain("activeView === 'demand' && batch && <Button")
   })
 
+  it('keeps reconciliation scope controls compact and makes the no-batch prerequisite actionable', () => {
+    expect(reconciliationSource).toContain('<QueryViewBoundary geometry="compact"')
+    expect(reconciliationSource).toContain("geometry={selectedId ? 'table' : 'compact'}")
+    expect(reconciliationSource).toContain('data-ui-work-surface="reconciliation-scope"')
+    expect(reconciliationSource).toContain("batchesView.phase === 'ready' && batches.length === 0")
+    expect(reconciliationSource).toContain('title="Chưa có lô đối chiếu"')
+    expect(reconciliationSource).toContain("buildWeeklyMenuRoute({ view: 'demand' })")
+  })
+
   it('uses canonical dialogs and shared user-language presentation seams', () => {
     expect(reconciliationSource).toContain('<Dialog open={Boolean(detailLine)}')
     expect(reconciliationSource).toContain('getWorkflowStatusPresentation(item.status)')

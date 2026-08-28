@@ -8,13 +8,23 @@ export type QueryViewEntry = {
   view: QueryView<unknown>;
 };
 
+export type QueryViewGeometry = 'compact' | 'section' | 'table' | 'workspace';
+
 type Props = {
   queries: QueryViewEntry[];
   children: ReactNode;
   preserveFallback?: boolean;
   refreshLabel?: string;
+  geometry?: QueryViewGeometry;
   minHeight?: string;
   noticePlacement?: 'inline' | 'overlay';
+};
+
+const geometryMinHeight: Record<QueryViewGeometry, string> = {
+  compact: 'min-h-0',
+  section: 'min-h-[180px]',
+  table: 'min-h-[380px]',
+  workspace: 'min-h-[380px]',
 };
 
 /**
@@ -26,13 +36,15 @@ export function QueryViewBoundary({
   children,
   preserveFallback = false,
   refreshLabel = 'Đang cập nhật dữ liệu',
-  minHeight = 'min-h-[380px]',
+  geometry = 'section',
+  minHeight,
   noticePlacement = 'inline',
 }: Props) {
+  const boundaryMinHeight = minHeight ?? geometryMinHeight[geometry];
   const forbidden = queries.find(({ view }) => view.phase === 'forbidden');
   if (forbidden && forbidden.view.phase === 'forbidden') {
     return (
-      <div className={`relative flex flex-col gap-3 ${minHeight}`}>
+      <div className={`relative flex flex-col gap-3 ${boundaryMinHeight}`} data-query-geometry={geometry}>
         <InlineAlert title={`Không có quyền xem ${forbidden.label}`} variant="danger">
           <span role="alert">{forbidden.view.message}</span>
         </InlineAlert>
@@ -45,7 +57,7 @@ export function QueryViewBoundary({
     const primary = errors[0];
     if (primary.view.phase === 'error') {
       return (
-        <div className={`relative flex flex-col gap-3 ${minHeight}`}>
+        <div className={`relative flex flex-col gap-3 ${boundaryMinHeight}`} data-query-geometry={geometry}>
           <QueryErrorAlert
             title={`Không tải được ${primary.label}`}
             isRetrying={primary.view.isRetrying}
@@ -61,7 +73,7 @@ export function QueryViewBoundary({
   const uninitialized = queries.find(({ view }) => view.phase === 'uninitialized');
   if (uninitialized && !preserveFallback && queries.every(({ view }) => view.phase === 'uninitialized') && uninitialized.view.phase === 'uninitialized') {
     return (
-      <div className={`relative flex flex-col gap-3 ${minHeight}`}>
+      <div className={`relative flex flex-col gap-3 ${boundaryMinHeight}`} data-query-geometry={geometry}>
         <InlineAlert title={`Chưa khởi tạo ${uninitialized.label}`} variant="info">
           {uninitialized.view.instruction}
         </InlineAlert>
@@ -72,7 +84,7 @@ export function QueryViewBoundary({
   const loadingEntries = queries.filter(({ view }) => view.phase === 'loading');
   if (loadingEntries.length > 0 && !preserveFallback) {
     return (
-      <div className={`relative flex flex-col gap-3 ${minHeight}`} role="status">
+      <div className={`relative flex flex-col gap-3 ${boundaryMinHeight}`} data-query-geometry={geometry} role="status">
         {loadingEntries.map(({ label }) => (
           <InlineAlert key={`loading-${label}`} title={`Đang tải ${label}`} variant="info">
             Dữ liệu đang được đồng bộ.
@@ -85,7 +97,7 @@ export function QueryViewBoundary({
   const isRefreshing = queries.some(({ view }) => view.phase === 'ready' && view.isRefreshing);
 
   return (
-    <div className={`relative flex flex-col gap-3 ${minHeight}`}>
+    <div className={`relative flex flex-col gap-3 ${boundaryMinHeight}`} data-query-geometry={geometry}>
       {/* If preserveFallback and there are errors, show error notice */}
       {preserveFallback && noticePlacement === 'overlay' && errors.length > 0 && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 space-y-2">

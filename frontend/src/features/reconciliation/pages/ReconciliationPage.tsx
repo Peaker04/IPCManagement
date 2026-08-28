@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
-import { Button } from '@/components/ui/button'
+import { Link, useSearchParams } from 'react-router-dom'
+import { EmptyState, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateTime, formatUnit } from '@/lib/formatters'
@@ -10,6 +10,7 @@ import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
 import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '../reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
+import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -33,28 +34,33 @@ export default function ReconciliationPage() {
 
   return <OperationalFrame>
     <section className="space-y-4" aria-label="Đối chiếu nguyên liệu">
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4" data-ui-work-surface="reconciliation-scope">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Cần xuất và đã xuất kho</h2>
           <p className="mt-1 text-sm text-slate-600">Số đã xuất được đọc từ phiếu xuất kho liên kết; không nhập lại tại đây.</p>
         </div>
-        <QueryViewBoundary queries={[{ label: 'danh sách lô đối chiếu', view: batchesView }]}>
-          <label className="grid gap-1 text-sm font-medium text-slate-800">
+        <QueryViewBoundary geometry="compact" queries={[{ label: 'danh sách lô đối chiếu', view: batchesView }]}>
+          {batches.length > 0 && <label className="grid gap-1 text-sm font-medium text-slate-800">
             Lô đối chiếu
             <Select value={selectedId || null} onValueChange={(value) => value && setSearchParams({ batchId: value })}>
               <SelectTrigger className="min-w-72" aria-label="Chọn lô đối chiếu"><SelectValue placeholder="Chọn lô" /></SelectTrigger>
               <SelectContent>{batches.map((item) => { const status = getWorkflowStatusPresentation(item.status); return <SelectItem key={item.batchId} value={item.batchId}>{formatDateTime(item.createdAt)} · {status.label}</SelectItem> })}</SelectContent>
             </Select>
-          </label>
+          </label>}
         </QueryViewBoundary>
       </div>
 
-      <QueryViewBoundary queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
+      {batchesView.phase === 'ready' && batches.length === 0 ? <EmptyState
+        variant="uncreated"
+        title="Chưa có lô đối chiếu"
+        description="Hoàn tất định lượng nguyên liệu và chuyển danh sách cần xuất sang Kho trước khi đối chiếu số đã xuất."
+        action={<Link className={buttonVariants()} to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở định lượng xuất kho</Link>}
+      /> : <QueryViewBoundary geometry={selectedId ? 'table' : 'compact'} queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
         {batch && <SectionPanel title="Đối chiếu theo nguyên liệu" description={`${actionableCount} dòng cần xử lý · số liệu kho chỉ đọc`}>
           <div className="mb-2 flex justify-end"><Button type="button" variant="link" className="h-auto p-0" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện dòng cần xử lý' : 'Hiện tất cả'}</Button></div>
           <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={setDisposingLine} />
         </SectionPanel>}
-      </QueryViewBoundary>
+      </QueryViewBoundary>}
     </section>
 
     <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>

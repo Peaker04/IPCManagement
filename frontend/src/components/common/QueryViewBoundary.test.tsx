@@ -28,6 +28,14 @@ describe('QueryViewBoundary', () => {
     expect(screen.queryByText('Kết quả điều phối')).toBeNull()
   })
 
+  it('keeps compact controls content-sized instead of applying a table placeholder', () => {
+    render(<QueryViewBoundary geometry="compact" queries={[{ label: 'bộ lọc', view: ready() }]}><label>Phạm vi<select aria-label="Phạm vi"><option>Tuần này</option></select></label></QueryViewBoundary>)
+    const boundary = screen.getByLabelText('Phạm vi').closest('[data-query-geometry]')
+    expect(boundary).toHaveAttribute('data-query-geometry', 'compact')
+    expect(boundary).toHaveClass('min-h-0')
+    expect(boundary).not.toHaveClass('min-h-[380px]')
+  })
+
   it('blocks false-empty while loading', () => {
     renderBoundary([{ phase: 'loading' }])
     expect(screen.getByText('Đang tải nguồn 1')).toBeInTheDocument()
