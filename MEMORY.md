@@ -24,6 +24,14 @@ workbook:
 
 # Memory hiện hành
 
+## Weekly Menu reconciliation workspace · 28/08/2026
+
+- `MATERIAL_RECONCILIATION` now publishes exactly `weekly-menu: [schedule, purchase-summary]`; DEFAULT remains 10 navigation / 32 tabs.
+- Retained read endpoint: `GET /api/reconciliation/weekly-menu`; legacy `GET /api/coordination/weekly-menu` is explicitly excluded in reconciliation mode. FE selects the endpoint by mode and intersects backend tab authority with local hide-only preferences.
+- Exact `ipcmanagement` evidence for ANV week `2026-08-24`: 12 schedules, 114 menu items. Headed Chrome passed all five required viewports with only `Kế hoạch tuần` and `Tổng hợp mua`, retained read HTTP 200, zero forbidden requests, zero console/page errors and no document overflow. Evidence: `.artifacts/runtime/weekly-menu-fullstack/verification.json` plus five screenshots.
+- Verification: backend focused 19/19, backend Release build 0 warnings/errors; frontend focused 23/23, aggregate 192 files / 1,231 tests, ESLint and production build pass. Database operation mode restored to `DEFAULT / 21`; menu data was not mutated.
+- Local commits not yet pushed: `454e020a` (BE) and `f8e47901` (FE), in addition to the five earlier capability commits. Only untracked `nul` remains.
+
 File này là nguồn trạng thái duy nhất được auto-load sau `AGENTS.md`. Code/runtime và database
 lineage đã kiểm tra trực tiếp luôn cao hơn tài liệu. Phase 5 và route-budget/UI completion đã closeout.
 Closeout runtime FE `3040` / BE `8040` trên exact `ipc_lane7` đã được teardown đúng owner; remaining listener
