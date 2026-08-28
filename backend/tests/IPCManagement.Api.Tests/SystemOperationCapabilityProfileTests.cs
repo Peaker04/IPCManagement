@@ -1,8 +1,13 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.SystemOperation.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Controllers;
 using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
 
@@ -62,6 +67,37 @@ public sealed class SystemOperationCapabilityProfileTests
         var second = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.Default);
         Assert.Equal(ExpectedDefaultNavigation, second.Navigation);
         Assert.Equal(32, second.PageTabs.Sum(group => group.Value.Count));
+    }
+
+    [Fact]
+    public async Task Controller_get_publishes_capabilities_inside_the_authenticated_snapshot_envelope()
+    {
+        await using var context = CreateContext();
+        context.Systemoperationmodes.Add(new SystemOperationMode
+        {
+            Id = 1,
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            Version = 3,
+            UpdatedAt = DateTime.UtcNow,
+            UpdatedBy = Guid.NewGuid().ToByteArray()
+        });
+        await context.SaveChangesAsync();
+        var runner = new ImmediateTransactionRunner();
+        var service = new SystemOperationModeService(context, new SystemOperationModeGuard(context), runner);
+        var controller = new SystemOperationModeController(
+            service,
+            new SystemOperationModeInitializer(context, runner),
+            Substitute.For<ICurrentUserService>());
+
+        var result = await controller.GetAsync(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var payload = Assert.IsType<ApiResponse<SystemOperationModeDto>>(ok.Value);
+        Assert.NotNull(payload.Data);
+        Assert.Equal(
+            ["dashboard", "weekly-menu", "purchasing", "warehouse", "reports", "admin-data"],
+            payload.Data.Capabilities.Navigation);
+        Assert.Empty(payload.Data.Capabilities.PageTabs);
     }
 
     [Fact]
