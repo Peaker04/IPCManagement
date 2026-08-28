@@ -12,7 +12,7 @@ progress:
   completed_plans: 63
   percent: 75
 current_phase_name: system-operation-mode-and-material-reconciliation
-last_activity: 2026-08-28 — Phase 29 protected Retry 16 and Plan 29-22 closeout complete
+last_activity: 2026-08-28 — Completed quick task 260828-system-operation-capability-profile
 ---
 
 # Project State
@@ -76,6 +76,12 @@ Next workflow: none for Phase 29. Preserve retained migration-75 authority and c
 - [Phase ?]: Plan 28-14 treats exact-one selector data as passive context and blocks zero/multiple states without implicit selection.
 - [Phase ?]: Plan 29-24 reachability uses production controllers/services and forbids direct quantity/reconciliation authority fixtures.
 - [Phase ?]: ANV/AMANN 2026-09-07..2026-09-12 remains read-only candidate metadata until protected preflight.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260828-system-operation-capability-profile | Backend operation-mode capability profile | 2026-08-28 | a9a2d45a | [260828-system-operation-capability-profile](./quick/260828-system-operation-capability-profile/) |
 
 ### Roadmap Evolution
 
