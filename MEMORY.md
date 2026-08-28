@@ -24,6 +24,13 @@ workbook:
 
 # Memory hiện hành
 
+## Phase 30 planned · 28/08/2026
+
+- Kỳ locked a simplified closed workflow: Weekly Menu import/materialization → explicit transfer to Warehouse → real source-linked inventory issue/stock movement → required-versus-issued reconciliation → completion. Purchasing and manually entered issued actuals are excluded from this mode.
+- Planned primary navigation is exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data. Retained pages/tabs also remove unrelated DEFAULT content and hidden owners must produce zero requests.
+- Three-wave plan is ready at `.planning/phases/30-closed-loop-menu-issue-reconciliation/`: `30-01` authority tracer/schema/capability, `30-02` focused FE work surfaces/query ownership, `30-03` edge expansion plus protected MySQL/headed evidence and closeout.
+- No production code, migration or database mutation was performed while planning. Next action is execute `30-01-PLAN.md`; protected DB application remains gated until Wave 3.
+
 ## Weekly Menu reconciliation workspace · 28/08/2026
 
 - `MATERIAL_RECONCILIATION` now publishes exactly `weekly-menu: [schedule, purchase-summary]`; DEFAULT remains 10 navigation / 32 tabs.

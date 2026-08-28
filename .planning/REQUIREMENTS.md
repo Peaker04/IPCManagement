@@ -55,6 +55,15 @@
 - [x] **MRC-03:** Each ingredient exposes exact required, purchased and issued quantities plus purchase variance, issue variance and purchase-to-issue flow gap, with full source identity and audit provenance retained.
 - [x] **MRC-04:** The UI always shows exact differences and marks `Cần kiểm tra` only when the frozen tolerance is exceeded; default views prioritize exceptions and offer a secondary all-row view.
 
+## Closed-loop material issue reconciliation
+
+- [ ] **MRX-01:** `MATERIAL_RECONCILIATION` exposes exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data as primary navigation; Purchasing and Reports are mode-excluded from direct routes, preload, controls and requests while `DEFAULT` remains unchanged.
+- [ ] **MRX-02:** Weekly Menu materializes one immutable source-linked material issue list from the imported menu/servings/BOM authority and transfers it explicitly to Warehouse without creating stock movement at transfer time.
+- [ ] **MRX-03:** Warehouse creates real inventory issue documents through the canonical stock-ledger transaction, and every issue line retains exact reconciliation batch-line lineage with idempotent/concurrent duplicate protection.
+- [ ] **MRX-04:** Reconciliation compares only frozen required quantity with warehouse-authoritative issued quantity; purchased concepts and manually entered issued actuals are absent from the new mode workflow, while completed Phase 29 history remains readable and immutable.
+- [ ] **MRX-05:** Every retained route/tab is reduced to mode-relevant content and 5–7 decision fields; hidden routes, tabs and default-mode owners mount no excluded query/action, and user display preferences cannot re-enable backend-excluded capability.
+- [ ] **MRX-06:** Full tests and protected headed evidence prove import/materialization → transfer → issue/stock movement → comparison/disposition/completion → reload across five desktop viewports, with zero procurement mutation/request and final mode restored to `DEFAULT`.
+
 ## Project-wide clarity and density
 
 - [x] **CLR-01:** Both operation modes use concise user-language copy: each region states the current condition and at most one authorized next action without duplicated headings, implementation vocabulary or stacked explanatory notes.
@@ -83,3 +92,4 @@
 | OPM-01..04 | 29 | Complete |
 | MRC-01..04 | 29 | Complete |
 | CLR-01..03 | 29 | Complete |
+| MRX-01..06 | 30 | Planned |

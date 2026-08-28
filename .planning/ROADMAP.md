@@ -6,6 +6,7 @@
 - [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
 - [x] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
 - [x] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
+- [ ] **Phase 30: Closed-loop menu issue reconciliation** — simplify reconciliation mode to Menu import → material demand → real Warehouse issue → required-versus-issued reconciliation with minimal mode-specific work surfaces.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
@@ -201,3 +202,33 @@ Plans:
 - [x] 29-22-PLAN.md — perform multi-source verification, state closeout and baseline-clean hygiene.
 
 **Completion:** Retry 16 passed fresh protected MySQL/API/headed-browser evidence at commit `9e0805cc`; exact `ipc_lane7` is intentionally retained at migration 75 with one completed authority, final mode `DEFAULT`, zero inventory/procurement action and closed owned listeners.
+
+## Phase 30: Closed-loop menu issue reconciliation
+
+**Status:** PLANNED — three-wave executable plan ready
+
+**Goal:** Refine `MATERIAL_RECONCILIATION` into one closed workflow: import/select Weekly Menu source, calculate exact material quantities, transfer one frozen issue list to Warehouse, create real source-linked inventory issue documents, then compare required versus warehouse-issued quantities on one compact reconciliation page.
+
+**Requirements:** MRX-01, MRX-02, MRX-03, MRX-04, MRX-05, MRX-06
+
+**Depends on:** Phase 29 COMPLETE and backend/FE capability commits through `40619485`
+
+**Locked scope:**
+
+- `DEFAULT` remains unchanged.
+- Reconciliation-mode primary navigation is exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data.
+- Purchasing and Reports are absent from navigation, direct-route eligibility, preload, controls and requests in this mode.
+- Weekly Menu retains only Kế hoạch tuần and Định lượng xuất kho.
+- Warehouse retains only Danh sách cần xuất and Lịch sử xuất kho for the selected reconciliation source.
+- Reconciliation is one top-level no-tab page comparing only frozen required quantity with real Warehouse issued quantity.
+- Warehouse issue is the sole stock mutation authority; reconciliation never asks the user to re-enter issued quantity.
+- Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
+- Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
+
+**Plans:** 3 plans / 3 waves
+
+Plans:
+
+- [ ] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
+- [ ] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
+- [ ] 30-03-PLAN.md — edge expansion, protected MySQL/headed-browser evidence, documentation and closeout (wave 3).

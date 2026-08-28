@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: complete
-stopped_at: Completed 29-22-PLAN.md
-last_updated: "2026-08-28T00:20:00.000Z"
+status: planned
+stopped_at: Phase 30 planned; ready to execute 30-01-PLAN.md
+last_updated: "2026-08-28T15:30:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 63
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 66
   completed_plans: 63
-  percent: 75
-current_phase_name: system-operation-mode-and-material-reconciliation
-last_activity: 2026-08-28 — Completed quick task 260828-system-operation-capability-profile
+  percent: 95
+current_phase_name: closed-loop-menu-issue-reconciliation
+last_activity: 2026-08-28 — Planned Phase 30 in exactly three waves
 ---
 
 # Project State
@@ -21,11 +21,12 @@ last_activity: 2026-08-28 — Completed quick task 260828-system-operation-capab
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 29 complete; retained migration-75 evidence authority
+**Current focus:** Phase 30 planned — closed-loop Menu → Warehouse issue → required-versus-issued reconciliation
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
+- Phase 30 is PLANNED with exactly three executable plans/waves; next action is `30-01-PLAN.md`.
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
 - Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
@@ -36,10 +37,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 **Last session:** 2026-08-28T00:20:00.000Z
 **Resume file:** None
 
-**Stopped at:** Completed 29-22-PLAN.md
-**Resume directory:** `.planning/phases/29-system-operation-mode-and-material-reconciliation`
+**Stopped at:** Phase 30 planned; ready to execute `30-01-PLAN.md`
+**Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: none for Phase 29. Preserve retained migration-75 authority and consult `29-VERIFICATION.md` plus `docs/EVIDENCE-INDEX.md` before any future lane7 mutation.
+Next workflow: execute Wave 1 only. Preserve retained migration-75 authority; no protected DB mutation occurs until the explicit Wave 3 checkpoint.
 
 ## Decisions
 
@@ -87,6 +88,7 @@ Next workflow: none for Phase 29. Preserve retained migration-75 authority and c
 
 - Phase 28 added: Project-wide UI/UX contract rollout and single-warehouse presentation.
 - Phase 29 added: System operation mode, material reconciliation and project-wide clarity cleanup.
+- Phase 30 added: Closed-loop Menu → Warehouse issue → required-versus-issued reconciliation, constrained to three waves.
 
 ### Blockers
 
