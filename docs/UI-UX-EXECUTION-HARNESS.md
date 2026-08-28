@@ -3,7 +3,7 @@ title: IPCManagement UI/UX Execution Harness
 status: canonical-process
 scope: frontend-and-browser-evidence
 owner: GSD
-last_reviewed: 2026-08-12
+last_reviewed: 2026-08-28
 ---
 
 # UI/UX Execution Harness
@@ -12,8 +12,9 @@ last_reviewed: 2026-08-12
 thứ hai: nguyên tắc normative ở [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md), cách áp dụng theo
 ngữ cảnh project ở [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), số đo/gate ở
 [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md), và corpus kiểm tra bổ sung ở
-[`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md). Front-End Checklist mở rộng
-coverage nhưng không được ghi đè authority hoặc evidence contract của project.
+[`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md). Quy tắc chọn lane, feedback
+loop, skill và ngân sách nằm ở [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md).
+Front-End Checklist mở rộng coverage nhưng không được ghi đè authority hoặc evidence contract của project.
 
 ## 1. Phân loại trước khi làm
 
@@ -28,27 +29,33 @@ coverage nhưng không được ghi đè authority hoặc evidence contract củ
 Nếu chưa đủ số liệu, verdict là `NEEDS_EVIDENCE` (hoặc `UNRESOLVED` với rule chưa có oracle),
 không đoán `PASS` và không sửa production chỉ vì “trông không hợp lý”.
 
-## 2. Vòng lặp thực thi
+## 2. Vòng lặp thực thi — reproduce once, fix once, prove once
 
-1. Đọc `AGENTS.md`, `MEMORY.md`, sau đó chỉ mở contract cần thiết. Xác định work object, grain,
-   route, actor/permission, state và mutation boundary.
-2. Đối chiếu rule ID và tìm owner thấp nhất: token → shared primitive → formatter/query/action seam →
-   feature layout. Không tạo shell, badge, state algebra hay formatter song song. Sau khi khóa rule project,
-   dùng skill `frontend-checklist-global` để rà coverage HTML/CSS/JS, accessibility, performance, security,
-   images, testing và i18n; chỉ giữ finding có bằng chứng và disposition rõ theo precedence của project.
-3. Đo hoặc kiểm tra trước khi sửa. Với layout/read-only dùng `npm run test:ui-measurements -w frontend`
-   (thêm `NODE_OPTIONS=--max-old-space-size=4096` khi cần); đọc JSON report. Test/DOM/focus/query
-   phải là oracle, screenshot chỉ dành cho reviewer.
-4. Sửa tối thiểu đúng owner. Nếu issue có thể ảnh hưởng nhiều route, ưu tiên shared seam; page-local chỉ
-   hợp lệ khi metric/source chứng minh scope cục bộ. Thêm regression tại seam gây lỗi.
-   Với query-state/refresh audit, báo đúng bảng `Rule | Phán quyết | Số đo | Vị trí | Số nơi cùng lỗi`;
-   `Không đo được` là verdict hợp lệ khi thiếu browser oracle hoặc project parameter.
-5. Chạy focused test trước, rồi lint/build/gate phù hợp. So sánh metric trước/sau; không cập nhật visual
-   snapshot chỉ để biến test xanh.
-6. Với thay đổi có dữ liệu nghiệp vụ, chạy browser headed trên runtime do phiên tạo và chứng minh đủ
+1. Chọn `L0/L1/L2` theo [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md).
+   UI fix thông thường là L1 và làm inline; không tự gọi planner + executor + hai reviewer.
+2. Đọc `AGENTS.md`, `MEMORY.md`, sau đó chỉ mở contract cần thiết. Ghi contract ngắn:
+   `symptom | route/mode/actor/state/grain | red loop | owner | success | out-of-scope`.
+3. Lập finding ledger duy nhất và state matrix cho phần sẽ claim:
+   `route × tab/view × state × actor × viewport × action`. Mọi retained lazy tab trong claim phải được
+   kích hoạt; route navigation không chứng minh tab/query đó hoạt động.
+4. Tạo feedback loop red-capable trước khi sửa. Với layout/read-only ưu tiên
+   `npm run test:ui-measurements -w frontend` hoặc Playwright assertion DOM/network scoped. Với focus,
+   query ownership hoặc mutation, loop phải bắt đúng symptom tương ứng; screenshot không phải red loop.
+5. Đối chiếu rule ID, quét toàn declared scope cho cùng anti-pattern, rồi chọn owner thấp nhất:
+   token → shared primitive → formatter/query/action seam → feature layout. Dùng `frontend-checklist-global`
+   để bổ sung coverage, không dump recommendation hoặc tạo scope mới thiếu evidence.
+6. Sửa một lần tại owner, thêm regression tại seam. Không gọi lỗi là “pre-existing” nếu không có baseline
+   trước edit. Failure cùng owner phải được disposition ngay, không để sang vòng audit sau.
+7. Chạy focused test trước, rồi lint/build/parity/checklist phù hợp. Không chạy broad aggregate từng treo
+   nếu focused acceptance đã đủ; nếu broad gate là bắt buộc thì dùng bounded worker/time strategy.
+8. Trước browser recheck, xác nhận exact HEAD, FE source/build, BE binary, PID/ports, operation mode,
+   capabilities, database target và migration health. Runtime lệch source/binary là `INVALID_RUNTIME`, không
+   phải finding UI.
+9. Chạy Chrome headed đúng state matrix và viewport matrix; với dữ liệu nghiệp vụ chứng minh đủ
    control → API → DB → reload. Dùng source-line ID, không gộp action theo tên hiển thị.
-7. Kết thúc bằng `git diff --check`, secret/stub scan, evidence index và cập nhật `MEMORY.md`; việc đã
-   đóng chuyển sang `HISTORY.md`.
+10. Recheck ledger theo `FIXED | OPEN | NEEDS_EVIDENCE | NOT_APPLICABLE | BLOCKED`; chỉ claim PASS cho cell
+    có oracle đã chạy. Kết thúc bằng `git diff --check`, secret/stub scan, evidence index và cập nhật
+    `MEMORY.md`; việc đã đóng chuyển sang `HISTORY.md`.
 
 ## 3. Browser và evidence
 
@@ -63,17 +70,18 @@ không đoán `PASS` và không sửa production chỉ vì “trông không hợ
 - Chrome DevTools MCP chỉ bật để chẩn đoán CLS, INP, long task, network/console live hoặc modal timing khi
   gate/source chưa chỉ được nguyên nhân. Nó không thay thế Playwright JSON gate và không tự bật cho mọi UI
   task.
-- Mỗi run dùng run-id mới và một manifest/result. Runner cũ phải được đọc để lấy pattern, nhưng phải thay
-  scope, ID, date, lane và actor bằng state hiện hành; không chạy lại runner mang document ID hoặc credential
-  cũ.
+- Mỗi run dùng run-id/timestamp mới và một manifest/result immutable. Không ghi đè failed attempt. Runner cũ
+  chỉ dùng làm pattern; phải thay scope, ID, date, lane và actor bằng state hiện hành, đồng thời capture exact
+  commit SHA, mode/capabilities, tab/state cells, assertion failures và `needsEvidence[]`.
 - Chỉ teardown process/browser do run tạo. Artifact authoritative/hash chỉ khai ở
   [`EVIDENCE-INDEX.md`](EVIDENCE-INDEX.md); failed attempt phải giữ failure + teardown và không dùng làm gate.
 
 ## 4. Quy ước báo cáo
 
-Mỗi finding cần ghi: `rule`, verdict (`PASS`, `GAP`/`FAIL`, `NOT_APPLICABLE`, `NEEDS_EVIDENCE` hoặc
-`UNRESOLVED`), scope/selector hoặc owner, bằng chứng đo được và hành động tiếp theo. Không dùng các kết
-luận định tính như “trông ổn”, “có vẻ đẹp hơn” hay “đã hết lỗi” nếu thiếu gate sau sửa.
+Mỗi finding cần ghi: `ID`, `severity`, `rule`, state cell, verdict (`PASS`, `GAP`/`FAIL`,
+`NOT_APPLICABLE`, `NEEDS_EVIDENCE`, `UNRESOLVED` hoặc `BLOCKED`), scope/selector, root owner, số nơi cùng
+anti-pattern, regression, bằng chứng đo được và hành động tiếp theo. Không dùng các kết luận định tính như
+“trông ổn”, “có vẻ đẹp hơn” hay “đã hết lỗi” nếu thiếu gate sau sửa.
 
 ## 5. Handoff sang session mới
 
