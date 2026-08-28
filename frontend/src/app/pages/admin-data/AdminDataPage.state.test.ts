@@ -32,8 +32,8 @@ describe('AdminDataPage query ownership contract', () => {
     expect(inventorySource).toContain("{ label: 'tồn kho hiện tại', view: queryViews.currentStock }");
   });
 
-  it('loads customer contracts for both Contracts and BOM', () => {
-    expect(contractsModelSource).toContain("skip: activeView !== 'contracts' && activeView !== 'bom-import'");
+  it('loads customer contracts for DEFAULT Contracts and BOM only when the owner is enabled', () => {
+    expect(contractsModelSource).toContain("skip: !enabled || (activeView !== 'contracts' && activeView !== 'bom-import')");
   });
 
   it('keeps the manual BOM dialog behind authoritative catalog state', () => {
