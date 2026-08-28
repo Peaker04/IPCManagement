@@ -36,7 +36,7 @@ const toApiShiftName = (value: string): ApiShiftName | null => {
 
 const formatContractShiftInput = (shift: string) => shift === 'MORNING' ? 'Ca sáng' : shift === 'AFTERNOON' ? 'Ca chiều' : shift;
 
-export function useAdminContractsPanelModel(activeView: AdminView) {
+export function useAdminContractsPanelModel(activeView: AdminView, enabled = true) {
   const [selectedContractCustomerId, setSelectedContractCustomerId] = useState('');
   const [isCreatingContract, setIsCreatingContract] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
@@ -44,7 +44,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
   const [scheduleRuleForm, setScheduleRuleForm] = useState<ScheduleRuleFormState>(defaultScheduleRuleForm);
   const [contractFeedback, setContractFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const customerContractsQuery = useGetCustomerContractsQuery(undefined, {
-    skip: activeView !== 'contracts' && activeView !== 'bom-import',
+    skip: !enabled || (activeView !== 'contracts' && activeView !== 'bom-import'),
   });
   const customerContractsView = toAdminView(customerContractsQuery, 'hợp đồng khách hàng');
   const customerContracts = customerContractsView.phase === 'ready'
@@ -56,7 +56,7 @@ export function useAdminContractsPanelModel(activeView: AdminView) {
   );
   const menuSchedulesQuery = useGetMenuSchedulesQuery(
     { customerId: selectedContract?.customerId, serviceDate: selectedContract?.latestServiceDate ?? undefined },
-    { skip: activeView !== 'contracts' || !selectedContract?.customerId },
+    { skip: !enabled || activeView !== 'contracts' || !selectedContract?.customerId },
   );
   const menuSchedulesView = toAdminView(menuSchedulesQuery, 'lịch thực đơn');
   const menuSchedules = menuSchedulesView.phase === 'ready'

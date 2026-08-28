@@ -9,6 +9,8 @@ import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/type
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
 import { ROUTES } from '@/lib/routeConfig';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { ReconciliationDashboardPage } from './ReconciliationDashboardPage';
 
 const queuePriority: Record<WorkflowTone, number> = {
   danger: 0,
@@ -58,7 +60,7 @@ const getQueueCategory = (item: RoleInboxItem): Exclude<DashboardQueueCategory, 
   return 'data';
 };
 
-const DashboardPage = () => {
+const DefaultDashboardPage = () => {
   const workflowOverview = useWorkflowOverview();
   const kpiQuery = useGetOperationalKpisQuery();
   const [activeQueueFilter, setActiveQueueFilter] = useState<DashboardQueueCategory>('all');
@@ -435,4 +437,9 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage;
+export default function DashboardPage() {
+  const operation = useSystemOperation();
+  return operation?.mode === 'MATERIAL_RECONCILIATION'
+    ? <ReconciliationDashboardPage />
+    : <DefaultDashboardPage />;
+}

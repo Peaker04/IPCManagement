@@ -94,6 +94,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
 
 export async function prefetchRouteData(path: string, mode: SystemOperationMode = 'DEFAULT'): Promise<void> {
   if (!isRouteEligible(mode, path)) return;
+  if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.DASHBOARD) return;
   if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.WEEKLY_MENU) {
     const [{ coordinationApi }, { dishCatalogApi }] = await Promise.all([
       import('@/api/coordinationApi'),

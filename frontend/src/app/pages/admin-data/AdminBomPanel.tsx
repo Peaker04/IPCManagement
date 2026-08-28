@@ -18,6 +18,7 @@ const EMPTY_BOM_SELECT_VALUE = '__empty_bom_select__';
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
   const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const isReconciliationMode = 'isReconciliationMode' in model && model.isReconciliationMode;
   const selectedImportContract = customerContracts?.find((contract) => contract.customerId === bomImportCustomerId);
   const selectedDish = dishCatalog.find((dish) => dish.id === bomForm.dishId);
   const selectedIngredient = ingredientCatalog.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
@@ -27,7 +28,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
         <AdminQueryBoundary queries={[
           { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
           { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
-          { label: 'hợp đồng khách hàng', view: queryViews.contracts },
+          ...(!isReconciliationMode ? [{ label: 'hợp đồng khách hàng', view: queryViews.contracts }] : []),
         ]}>
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
             <div className="grid min-w-0 gap-4" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
@@ -51,31 +52,33 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   </div>
                 </FieldRow>
 
-                <FieldRow label="Khách hàng">
-                  <Select
-                    value={bomImportCustomerId || EMPTY_BOM_SELECT_VALUE}
-                    onValueChange={(value) => {
-                      setBomImportCustomerId(!value || value === EMPTY_BOM_SELECT_VALUE ? '' : value);
-                      setBomImportPreview(null);
-                    }}
-                    >
-                      <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {selectedImportContract
-                          ? `${selectedImportContract.customerCode} - ${selectedImportContract.customerName}`
-                          : 'BOM dùng chung'}
-                      </SelectValue>
-                      </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={EMPTY_BOM_SELECT_VALUE}>BOM dùng chung</SelectItem>
-                      {customerContracts.map((contract) => (
-                        <SelectItem key={contract.customerId} value={contract.customerId}>
-                          {contract.customerCode} - {contract.customerName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FieldRow>
+                {!isReconciliationMode && (
+                  <FieldRow label="Khách hàng">
+                    <Select
+                      value={bomImportCustomerId || EMPTY_BOM_SELECT_VALUE}
+                      onValueChange={(value) => {
+                        setBomImportCustomerId(!value || value === EMPTY_BOM_SELECT_VALUE ? '' : value);
+                        setBomImportPreview(null);
+                      }}
+                      >
+                        <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {selectedImportContract
+                            ? `${selectedImportContract.customerCode} - ${selectedImportContract.customerName}`
+                            : 'BOM dùng chung'}
+                        </SelectValue>
+                        </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={EMPTY_BOM_SELECT_VALUE}>BOM dùng chung</SelectItem>
+                        {customerContracts.map((contract) => (
+                          <SelectItem key={contract.customerId} value={contract.customerId}>
+                            {contract.customerCode} - {contract.customerName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+                )}
 
                 <FieldRow label="Hiệu lực từ">
                   <Input
