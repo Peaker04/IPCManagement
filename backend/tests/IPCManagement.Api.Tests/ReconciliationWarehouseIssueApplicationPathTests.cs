@@ -117,6 +117,94 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.Equal("MATCHED", comparison.Status);
     }
 
+    [Fact]
+    public async Task Multiple_partial_issues_sum_exact_linked_lines_and_subtract_only_received_source_linked_returns()
+    {
+        await using var context = CreateContext();
+        var batchId = GuidHelper.NewId();
+        var lineId = GuidHelper.NewId();
+        var otherLineId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        var warehouseId = GuidHelper.NewId();
+        var actor = GuidHelper.NewId();
+        var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var warehouse = new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH", WarehouseName = "Kho", WarehouseType = "MAIN", IsOperationalActive = true };
+        var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "ING-01", IngredientName = "Nguyên liệu", UnitId = unitId, WarehouseId = warehouseId, Unit = unit, Warehouse = warehouse, IsActive = true };
+        var sourceLine = new ReconciliationBatchLine
+        {
+            BatchLineId = lineId, BatchId = batchId, IngredientId = ingredientId, CanonicalUnitId = unitId,
+            RequiredQuantity = 10m, FrozenTolerance = 0.1m, ToleranceSourceKind = "SYSTEM_DEFAULT",
+            ToleranceSourceVersion = "1", Version = 1, Ingredient = ingredient, CanonicalUnit = unit
+        };
+        var batch = new ReconciliationBatch
+        {
+            BatchId = batchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "IN_PROGRESS", Version = 4, CreatedBy = actor, CreatedAt = DateTime.UtcNow,
+            Lines = [sourceLine]
+        };
+        var firstIssue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(), IssueCode = "ISS-PART-1", IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId, ReconciliationBatchId = batchId, IssuedBy = actor, CreatedAt = DateTime.UtcNow
+        };
+        var firstLine = new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(), IssueId = firstIssue.IssueId, IngredientId = ingredientId, UnitId = unitId,
+            RequestedQty = 10m, IssuedQty = 4m, ReconciliationBatchLineId = lineId, Issue = firstIssue
+        };
+        firstIssue.Inventoryissuelines.Add(firstLine);
+        var secondIssue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(), IssueCode = "ISS-PART-2", IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId, ReconciliationBatchId = batchId, IssuedBy = actor, CreatedAt = DateTime.UtcNow
+        };
+        secondIssue.Inventoryissuelines.Add(new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(), IssueId = secondIssue.IssueId, IngredientId = ingredientId, UnitId = unitId,
+            RequestedQty = 10m, IssuedQty = 5m, ReconciliationBatchLineId = lineId, Issue = secondIssue
+        });
+        secondIssue.Inventoryissuelines.Add(new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(), IssueId = secondIssue.IssueId, IngredientId = ingredientId, UnitId = unitId,
+            RequestedQty = 99m, IssuedQty = 99m, ReconciliationBatchLineId = otherLineId, Issue = secondIssue
+        });
+        var receivedReturn = new InventoryReturn
+        {
+            ReturnId = GuidHelper.NewId(), ReturnCode = "RET-RECEIVED", ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            ReturnType = "RETURN", WarehouseId = warehouseId, IssueId = firstIssue.IssueId, CreatedBy = actor,
+            CreatedAt = DateTime.UtcNow, ReceivedBy = actor, ReceivedAt = DateTime.UtcNow, Issue = firstIssue, Warehouse = warehouse
+        };
+        receivedReturn.Inventoryreturnlines.Add(new InventoryReturnLine
+        {
+            ReturnLineId = GuidHelper.NewId(), ReturnId = receivedReturn.ReturnId, IngredientId = ingredientId, UnitId = unitId,
+            SourceIssueLineId = firstLine.IssueLineId, Quantity = 1m, Return = receivedReturn, SourceIssueLine = firstLine,
+            Ingredient = ingredient, Unit = unit
+        });
+        var pendingReturn = new InventoryReturn
+        {
+            ReturnId = GuidHelper.NewId(), ReturnCode = "RET-PENDING", ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            ReturnType = "RETURN", WarehouseId = warehouseId, IssueId = firstIssue.IssueId, CreatedBy = actor,
+            CreatedAt = DateTime.UtcNow, Issue = firstIssue, Warehouse = warehouse
+        };
+        pendingReturn.Inventoryreturnlines.Add(new InventoryReturnLine
+        {
+            ReturnLineId = GuidHelper.NewId(), ReturnId = pendingReturn.ReturnId, IngredientId = ingredientId, UnitId = unitId,
+            SourceIssueLineId = firstLine.IssueLineId, Quantity = 2m, Return = pendingReturn, SourceIssueLine = firstLine,
+            Ingredient = ingredient, Unit = unit
+        });
+        context.AddRange(unit, warehouse, ingredient, batch, sourceLine, firstIssue, secondIssue, receivedReturn, pendingReturn);
+        await context.SaveChangesAsync();
+
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), new SystemOperationRequestContext());
+        var result = Assert.Single(await service.ListAsync());
+
+        var comparison = Assert.Single(result.Lines);
+        Assert.Equal(8m, comparison.IssuedQuantity);
+        Assert.Equal(-2m, comparison.IssuedRequiredDifference);
+        Assert.Equal("NEEDS_REVIEW", comparison.Status);
+    }
+
     private static IpcManagementContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
