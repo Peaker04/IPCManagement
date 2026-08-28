@@ -12,7 +12,13 @@ public sealed class SystemOperationModeService(IpcManagementContext context, Sys
     public async Task<SystemOperationModeDto> GetAsync(CancellationToken cancellationToken = default)
     {
         var snapshot = await guard.ReadRequiredAsync(cancellationToken);
-        return new(snapshot.Mode, Label(snapshot.Mode), snapshot.Version, snapshot.UpdatedAt, await HasWorkInProgressAsync(cancellationToken));
+        return new(
+            snapshot.Mode,
+            Label(snapshot.Mode),
+            snapshot.Version,
+            snapshot.UpdatedAt,
+            await HasWorkInProgressAsync(cancellationToken),
+            SystemOperationEligibility.CapabilitiesFor(snapshot.Mode));
     }
 
     public async Task<SystemOperationModeDto> ChangeAsync(ChangeSystemOperationModeRequest request, string actorId, CancellationToken cancellationToken = default)
@@ -51,7 +57,13 @@ public sealed class SystemOperationModeService(IpcManagementContext context, Sys
                         throw new SystemOperationConflictException("Chế độ vận hành đã thay đổi. Vui lòng tải lại.");
                     }
                 }
-                return new SystemOperationModeDto(row.Mode, Label(row.Mode), row.Version, row.UpdatedAt, reasonRequired);
+                return new SystemOperationModeDto(
+                    row.Mode,
+                    Label(row.Mode),
+                    row.Version,
+                    row.UpdatedAt,
+                    reasonRequired,
+                    SystemOperationEligibility.CapabilitiesFor(row.Mode));
             },
             verifySucceeded: verifyToken => context.Systemoperationmodes.AsNoTracking().AnyAsync(
                 row => row.Id == 1 && row.Mode == request.Mode && row.Version == resultingVersion,
