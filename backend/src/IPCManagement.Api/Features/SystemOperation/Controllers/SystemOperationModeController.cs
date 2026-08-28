@@ -14,6 +14,7 @@ namespace IPCManagement.Api.Features.SystemOperation.Controllers;
 public sealed class SystemOperationModeController(SystemOperationModeService service, SystemOperationModeInitializer initializer, ICurrentUserService currentUser) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<SystemOperationModeDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAsync(CancellationToken cancellationToken) =>
         Ok(ApiResponse<SystemOperationModeDto>.SuccessResult(await service.GetAsync(cancellationToken)));
 
@@ -24,6 +25,7 @@ public sealed class SystemOperationModeController(SystemOperationModeService ser
 
     [HttpPut]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [ProducesResponseType(typeof(ApiResponse<SystemOperationModeDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ChangeAsync(ChangeSystemOperationModeRequest request, CancellationToken cancellationToken)
     {
         try
