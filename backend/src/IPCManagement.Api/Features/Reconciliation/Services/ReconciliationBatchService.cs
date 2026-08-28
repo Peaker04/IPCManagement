@@ -60,7 +60,7 @@ public sealed class ReconciliationBatchService(
             .Include(x => x.Lines).ThenInclude(x => x.CanonicalUnit)
             .SingleOrDefaultAsync(x => x.BatchId == bytes, token);
         if (batch is null) return null;
-        var batchLines = context.Database.IsInMemory()
+        var batchLines = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal)
             ? (await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit).ToListAsync(token))
                 .Where(line => line.BatchId.SequenceEqual(bytes)).ToList()
             : await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit)
@@ -259,7 +259,7 @@ public sealed class ReconciliationBatchService(
     private async Task<IReadOnlyDictionary<string, decimal>> LoadLinkedIssuedQuantitiesAsync(IReadOnlyCollection<byte[]> lineIds, CancellationToken token)
     {
         if (lineIds.Count == 0) return new Dictionary<string, decimal>();
-        var rows = context.Database.IsInMemory()
+        var rows = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal)
             ? (await context.Inventoryissuelines.AsNoTracking().Where(line => line.ReconciliationBatchLineId != null)
                 .Select(line => new { line.ReconciliationBatchLineId, line.IssuedQty }).ToListAsync(token))
                 .Where(row => lineIds.Any(id => id.SequenceEqual(row.ReconciliationBatchLineId!))).ToList()

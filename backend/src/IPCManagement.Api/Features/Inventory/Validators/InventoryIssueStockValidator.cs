@@ -88,7 +88,7 @@ internal static class InventoryIssueStockValidator
         var requested = issueLines.ToList();
         var ingredientIds = requested.Select(line => line.IngredientId).ToList();
         var unitIds = requested.Select(line => line.UnitId).ToList();
-        var inMemory = context.Database.IsInMemory();
+        var inMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
         var ingredients = inMemory
             ? (await context.Ingredients.AsNoTracking().ToListAsync()).Where(item => ingredientIds.Any(id => id.SequenceEqual(item.IngredientId))).ToList()
             : await context.Ingredients.AsNoTracking().Where(item => ingredientIds.Contains(item.IngredientId)).ToListAsync();

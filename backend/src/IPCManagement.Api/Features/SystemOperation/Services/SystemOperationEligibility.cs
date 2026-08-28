@@ -22,17 +22,23 @@ public static class SystemOperationEligibility
         });
 
     private static readonly SystemOperationCapabilitiesDto MaterialReconciliationCapabilities = CreateCapabilities(
-        ["dashboard", "weekly-menu", "purchasing", "warehouse", "reports", "admin-data"],
+        ["dashboard", "weekly-menu", "warehouse", "reconciliation", "admin-data"],
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
-            ["weekly-menu"] = ["schedule", "purchase-summary"]
+            ["weekly-menu"] = ["schedule", "material-demand"],
+            ["warehouse"] = ["demand", "movement"],
+            ["admin-data"] = ["bom-import", "audit"]
         });
 
     private static readonly HashSet<string> ExcludedControllers = new(StringComparer.OrdinalIgnoreCase)
     {
         "Approvals", "ApprovalHistory", "ApprovalRules", "Coordination", "CustomerContracts",
         "MealQuantityPlans", "MenuSchedules", "OrderAdjustments", "OrderPlans", "OrderSignoffs",
-        "PortionRules", "Production", "ServiceRuns"
+        "PortionRules", "Production", "ServiceRuns",
+        "AuditReports", "DataQualityDispositions", "DemandReports", "InventoryOperationsReports",
+        "PriceVarianceReports", "PurchaseOrders", "PurchaseRequests", "PurchaseWorkflow", "PurchasingReports",
+        "StockLedgerReports", "StockMovementReports", "StockSnapshotReports", "SupplierQuotations", "Suppliers",
+        "UnitNormalizationReviews", "WarehousePurchaseReceipts", "WorkflowReports"
     };
 
     private static readonly HashSet<string> NeutralControllers = new(StringComparer.OrdinalIgnoreCase)

@@ -81,7 +81,7 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
         RuleForEach(x => x.Lines).SetValidator(new CreateInventoryIssueLineDtoValidator());
     }
 
-    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+    private static bool BeValidGuid(string? value) => Guid.TryParse(value, out _);
 }
 
 public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInventoryIssueLineRequest>
