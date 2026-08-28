@@ -38,6 +38,20 @@ describe('LoginPage validation feedback', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
+  it('supports password managers and an accessible password visibility control', () => {
+    render(<LoginPage />);
+
+    const username = screen.getByLabelText('Tài khoản');
+    const password = screen.getByLabelText('Mật khẩu');
+    expect(username).toHaveAttribute('autocomplete', 'username');
+    expect(password).toHaveAttribute('autocomplete', 'current-password');
+    expect(password).toHaveAttribute('type', 'password');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hiện mật khẩu' }));
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Ẩn mật khẩu' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('associates the existing required-fields message with both empty fields', () => {
     render(<LoginPage />);
 

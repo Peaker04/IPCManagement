@@ -286,7 +286,7 @@ export function MaterialDemandSection({
           <EmptyState
             variant="error"
             title="Không tải được nhu cầu nguyên liệu"
-            description="Máy chủ chưa trả được dòng nhu cầu cho ngày đang xem, nên không thể kết luận là tuần này không cần mua gì. Hãy tải lại rồi mới lập đề xuất mua hoặc phiếu xuất."
+            description="Vui lòng thử tải lại hoặc kiểm tra kết nối mạng."
             onRetry={demandView.retry}
             isRetrying={demandView.isRetrying}
           />

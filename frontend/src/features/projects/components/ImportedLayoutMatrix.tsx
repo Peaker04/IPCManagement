@@ -81,9 +81,9 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
             {displayDays.map((day, index) => (
               <th key={day.key} className={cn('text-center border-r border-slate-200 transition-colors', index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-50', day.key === activeDayKey && 'bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200')}>
                 <div className="flex flex-col items-center justify-center gap-0.5 py-1">
-                  <span className="text-[13px] font-bold text-slate-800">{day.label}</span>
-                  <span className="text-[10.5px] font-medium text-slate-500">{day.date}</span>
-                  {day.key === activeDayKey && <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Hôm nay</span>}
+                  <span className="text-xs font-bold text-slate-800">{day.label}</span>
+                  <span className="text-xs font-medium text-slate-500">{day.date}</span>
+                  {day.key === activeDayKey && <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-xs font-bold uppercase text-white">Hôm nay</span>}
                 </div>
               </th>
             ))}
@@ -95,10 +95,10 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
             const cellSpans = buildCellSpans(sectionRows, displayDays)
             return (
               <Fragment key={sectionName}>
-                <tr><td colSpan={displayDays.length + 1} className="border-b border-r border-slate-300 bg-slate-200 py-2.5 text-center text-[12.5px] font-bold uppercase tracking-wide text-slate-900">{sectionName}</td></tr>
+                <tr><td colSpan={displayDays.length + 1} className="border-b border-r border-slate-300 bg-slate-200 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-900">{sectionName}</td></tr>
                 {sectionRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-[12.5px] font-semibold text-slate-800">{row.slotLabel}</span></td>
+                    <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-xs font-semibold text-slate-800">{row.slotLabel}</span></td>
                     {(() => {
                       const cells = displayDays.map((day) => row.cells[day.key]).filter(Boolean)
                       const firstCell = cells[0]
@@ -106,13 +106,13 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
                       const isMergedDessert = (row.slot === 'fruit' || row.slot === 'dessert')
                         && cells.length === displayDays.length
                         && cells.every((cell) => (cell.dishId || cell.dishName) === (firstCell?.dishId || firstCell?.dishName))
-                      if (isMergedDessert) return <td colSpan={displayDays.length} className="border-r border-slate-200 bg-white p-2 text-center align-middle text-[12.5px] font-semibold text-slate-900"><span className="block text-center">{formatDishName(firstDishName)}</span></td>
+                      if (isMergedDessert) return <td colSpan={displayDays.length} className="border-r border-slate-200 bg-white p-2 text-center align-middle text-xs font-semibold text-slate-900"><span className="block text-center">{formatDishName(firstDishName)}</span></td>
                       return displayDays.map((day, index) => {
                       const cell = row.cells[day.key]
                       const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 }
                       if (spanInfo.hidden) return null
                       return (
-                        <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('border-r border-slate-200 p-2 text-center align-middle text-[12.5px]', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
+                        <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('border-r border-slate-200 p-2 text-center align-middle text-xs', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
                           {cell ? <span className="block text-center font-semibold text-slate-900">{formatDishName(cell.dishId ? dishNamesById?.get(cell.dishId) ?? cell.dishName : cell.dishName)}</span> : <span className="block text-center">-</span>}
                         </td>
                       )

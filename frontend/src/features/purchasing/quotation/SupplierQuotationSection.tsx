@@ -1,9 +1,9 @@
-import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
+import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import type { IngredientLookup } from '@/api/dishCatalogApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDateOnly } from '@/lib/formatters';
 import type { useSupplierQuotations } from './useSupplierQuotations';
 
 type SupplierQuotationWorkflow = ReturnType<typeof useSupplierQuotations>;
@@ -28,7 +28,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           <EmptyState
             variant="error"
             title="Không tải được danh mục nguyên liệu hoặc nhà cung cấp"
-            description="Các ô chọn đang rỗng vì lỗi tải dữ liệu, không phải vì hệ thống chưa có danh mục. Hãy tải lại trước khi nhập báo giá."
+            description="Vui lòng tải lại trang để nạp danh mục nguyên liệu và nhà cung cấp."
             onRetry={retryLookups}
             isRetrying={workflow.ingredientView.phase === 'error' && workflow.ingredientView.isRetrying
               || workflow.supplierView.phase === 'error' && workflow.supplierView.isRetrying}
@@ -93,7 +93,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
               <EmptyState
                 variant="error"
                 title="Không tải được báo giá của nguyên liệu này"
-                description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì nguyên liệu này chưa có báo giá. Hãy tải lại trước khi chọn nhà cung cấp hoặc nhập giá mới."
+                description="Vui lòng thử tải lại hoặc kiểm tra kết nối mạng."
                 onRetry={workflow.quotationView.retry}
                 isRetrying={workflow.quotationView.isRetrying}
               />
@@ -105,17 +105,23 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                 Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
               </InlineAlert>
             )}
-            <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu">
+            <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu" caption="Danh sách báo giá theo nguyên liệu">
               <table className="ipc-data-table min-w-[760px]">
-                <thead><tr><th>Nhà cung cấp</th><th className="text-right">Đơn giá (đ)</th><th>Hiệu lực từ</th><th>Hiệu lực đến</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                <thead><tr><th>Nhà cung cấp</th><th className="text-right">Đơn giá (VNĐ)</th><th>Hiệu lực từ</th><th>Hiệu lực đến</th><th>Ghi chú</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
                 <tbody>
                   {workflow.rows.map((quotation) => (
-                    <tr key={quotation.quotationId} className={quotation.isBestPrice ? 'bg-emerald-50' : ''}>
-                      <td>{quotation.supplierName}{quotation.isBestPrice && <span className="ml-2 text-xs font-medium text-emerald-700">Tốt nhất</span>}</td>
-                      <td className="text-right">{formatCurrency(quotation.unitPrice)}</td>
-                      <td>{quotation.effectiveFrom}</td><td>{quotation.effectiveTo ?? '—'}</td><td>{quotation.note ?? ''}</td>
-                      <td>{quotation.isActive ? <span className="text-emerald-800">Đang hoạt động</span> : <span className="text-slate-400">Đã ngừng</span>}</td>
-                      <td className="space-x-2">
+                    <tr key={quotation.quotationId} className={quotation.isBestPrice ? 'bg-emerald-50/60' : ''}>
+                      <td className="font-medium text-slate-900">{quotation.supplierName}{quotation.isBestPrice && <span className="ml-2 inline-flex items-center rounded-sm bg-emerald-100 px-1.5 py-0.5 text-xs font-semibold text-emerald-800">Tốt nhất</span>}</td>
+                      <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(quotation.unitPrice)}</td>
+                      <td className="tabular-nums text-slate-700">{formatDateOnly(quotation.effectiveFrom)}</td>
+                      <td className="tabular-nums text-slate-700">{quotation.effectiveTo ? formatDateOnly(quotation.effectiveTo) : '—'}</td>
+                      <td className="text-slate-600">{quotation.note || '—'}</td>
+                      <td>
+                        <StatusBadge variant={quotation.isActive ? 'success' : 'neutral'}>
+                          {quotation.isActive ? 'Đang hoạt động' : 'Đã ngừng'}
+                        </StatusBadge>
+                      </td>
+                      <td className="space-x-2 text-right">
                         <Button type="button" variant="outline" size="xs" onClick={() => workflow.edit(quotation)}>Sửa</Button>
                         {quotation.isActive && <Button type="button" variant="destructive" size="xs" onClick={() => workflow.setDeactivateTargetId(quotation.quotationId)}>Ngừng</Button>}
                       </td>
@@ -170,7 +176,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
             open={workflow.deactivateTargetId !== null}
             title="Ngừng báo giá này?"
             description={workflow.deactivateError
-              ? `Báo giá sẽ không còn được chọn cho các giao dịch mới. Chưa thể ngừng báo giá. ${workflow.deactivateError}`
+              ? `Chưa thể ngừng báo giá. ${workflow.deactivateError}`
               : 'Báo giá sẽ không còn được chọn cho các giao dịch mới.'}
             confirmLabel="Ngừng báo giá"
             onConfirm={workflow.confirmDeactivate}

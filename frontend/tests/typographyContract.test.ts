@@ -16,18 +16,8 @@ const sourceFiles = (directory: string): string[] => readdirSync(directory, { wi
   .filter((path) => ['.css', '.ts', '.tsx'].includes(extname(path)))
 
 const arbitrarySizeAllowlist: Readonly<Record<string, string>> = {
-  'src/app/pages/admin-data/AdminAuditPanel.tsx': 'compact audit density pending feature migration',
-  'src/app/pages/admin-data/AdminContractsPanel.tsx': '11px version provenance note preserves compact form geometry',
-  'src/components/common/SectionPanel.tsx': '13px description preserves the established panel geometry',
-  'src/components/common/StockMovementTable.tsx': '11–13px movement and badge density is a component contract',
   'src/components/ui/toggle.tsx': 'shadcn size variant geometry',
-  'src/features/admin/pages/ApprovalRulesPage.tsx': '9–10px matrix labels preserve the existing dense rule editor',
-  'src/features/coordination/components/dish-detail-dialog.tsx': '11px dialog metadata preserves compact detail geometry',
-  'src/features/coordination/components/order-table.tsx': '9px stacked quantity suffix preserves row height',
-  'src/features/projects/components/ImportedLayoutMatrix.tsx': '10–12.5px spreadsheet preview mirrors imported cell density',
   'src/features/purchasing/pages/PurchasingPage.tsx': '20px local workbench display heading has no matching shared role',
-  'src/features/purchasing/PurchaseWorkflowGuide.tsx': '13px stage label preserves six-column workbench density',
-  'src/features/reports/pages/ReportsPricePanel.tsx': '10px warning marker preserves chart annotation density',
 }
 
 const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
@@ -41,7 +31,6 @@ const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/features/chef/components/material-checklist.tsx': 'received quantities retain checklist emphasis',
   'src/features/chef/components/operational-actions.tsx': 'action metadata retains its established emphasis',
   'src/features/coordination/components/header-info.tsx': 'countdown remains bold for cutoff salience',
-  'src/features/coordination/components/order-table.tsx': 'compact customer identifier retains existing density',
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': 'approval document code retains compact emphasis',
   'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': 'import helper text retains existing medium emphasis',
   'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': 'locked-slot caption keeps emphasis within the compact weekly editor',

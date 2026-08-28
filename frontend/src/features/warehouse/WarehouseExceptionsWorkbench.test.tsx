@@ -207,7 +207,7 @@ describe('WarehouseExceptionsWorkbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
     expect(await screen.findByLabelText('Số thực nhận (kg)')).toHaveValue(2);
-    fireEvent.click(screen.getByLabelText('Có chênh lệch so với bếp khai báo'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Có chênh lệch so với bếp khai báo' }));
     fireEvent.change(screen.getByLabelText('Mô tả chênh lệch'), { target: { value: 'Chỉ nhận 1.5 kg còn sử dụng được' } });
     fireEvent.change(screen.getByLabelText('Số thực nhận (kg)'), { target: { value: '1.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tiếp nhận' }));
@@ -334,7 +334,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   it('associates return discrepancy and line-quantity validation with their fields', () => {
     render(<WarehouseExceptionsWorkbench canManage />);
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
-    fireEvent.click(screen.getByLabelText('Có chênh lệch so với bếp khai báo'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Có chênh lệch so với bếp khai báo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tiếp nhận' }));
 
     expect(screen.getByLabelText('Mô tả chênh lệch')).toHaveAttribute('aria-invalid', 'true');

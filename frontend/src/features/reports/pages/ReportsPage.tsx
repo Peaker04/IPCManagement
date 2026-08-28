@@ -134,9 +134,9 @@ const ReportsPage = () => {
                     <th>Ngày</th>
                     <th>Nguyên liệu</th>
                     <th>Nguồn</th>
-                    <th>Cần</th>
-                    <th>Đã cấp/xuất</th>
-                    <th>Chưa xuất</th>
+                    <th className="text-right">Cần</th>
+                    <th className="text-right">Đã cấp/xuất</th>
+                    <th className="text-right">Chưa xuất</th>
                     <th>Trạng thái</th>
                     <th>Chuyển xử lý</th>
                   </tr>
@@ -147,9 +147,9 @@ const ReportsPage = () => {
                       <td className="whitespace-nowrap">{row.serviceDate ? formatDateOnly(row.serviceDate) : 'Chưa xác định'}</td>
                       <td>{row.material}</td>
                       <td>{row.source}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.available, row.unit)}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.unissuedQty ?? Math.max(row.required - row.available, 0), row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.required, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.available, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.unissuedQty ?? Math.max(row.required - row.available, 0), row.unit)}</td>
                       <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
                       <td>{row.actionHref
                         ? <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.actionHref}>{row.nextAction}</Link>
@@ -215,10 +215,10 @@ const ReportsPage = () => {
                   <tr>
                     <th>Kỳ</th>
                     <th>Nguyên liệu</th>
-                    <th>Cần</th>
-                    <th>Tồn</th>
-                    <th>{uiCopy.reports.pending}</th>
-                    <th>Đề xuất mua</th>
+                    <th className="text-right">Cần</th>
+                    <th className="text-right">Tồn</th>
+                    <th className="text-right">{uiCopy.reports.pending}</th>
+                    <th className="text-right">Đề xuất mua</th>
                     <th>Nhà cung cấp</th>
                     <th>Cảnh báo</th>
                   </tr>
@@ -228,10 +228,10 @@ const ReportsPage = () => {
                     <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
                       <td>{row.periodKey}</td>
                       <td>{row.ingredientName ?? row.ingredientId}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.requiredQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.shortageQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.requiredQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.shortageQty, row.unitName ?? '')}</td>
                       <td>{row.supplierName ?? 'Chưa có báo giá'}</td>
                       <td className="ipc-badge-cell">
                         <StatusBadge variant={row.warnings.length ? 'warning' : 'success'}>
@@ -273,7 +273,7 @@ const ReportsPage = () => {
                   <tr>
                     <th>Kho</th>
                     <th>Nguyên liệu</th>
-                    <th>Số lượng hiện tại</th>
+                    <th className="text-right">Số lượng hiện tại</th>
                     <th>Cập nhật</th>
                     <th>Chuyển xử lý</th>
                   </tr>
@@ -283,7 +283,7 @@ const ReportsPage = () => {
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
                       <td>{formatDateTime(row.lastUpdated)}</td>
                       <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                     </tr>
@@ -342,8 +342,8 @@ const ReportsPage = () => {
                     <th>Ca</th>
                     <th>Kho</th>
                     <th>Nguyên liệu</th>
-                    <th>Yêu cầu</th>
-                    <th>Đã xuất</th>
+                    <th className="text-right">Yêu cầu</th>
+                    <th className="text-right">Đã xuất</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,8 +354,8 @@ const ReportsPage = () => {
                       <td>{row.shiftName ?? 'Cả ngày'}</td>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.requestedQty, row.unit)}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.issuedQty, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.requestedQty, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.issuedQty, row.unit)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -386,9 +386,9 @@ const ReportsPage = () => {
                     <th>Ngày</th>
                     <th>Ca</th>
                     <th>Nguyên liệu</th>
-                    <th>Đã xuất</th>
-                    <th>Hoàn kho</th>
-                    <th>Đã dùng</th>
+                    <th className="text-right">Đã xuất</th>
+                    <th className="text-right">Hoàn kho</th>
+                    <th className="text-right">Đã dùng</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -398,9 +398,9 @@ const ReportsPage = () => {
                       <td>{formatDateOnly(row.issueDate)}</td>
                       <td>{row.shiftName ?? 'Cả ngày'}</td>
                       <td>{row.ingredient}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.issuedQty, row.unit)}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.returnedQty, row.unit)}</td>
-                      <td className="ipc-numeric-cell font-bold">{formatQuantityWithUnit(row.usedQty, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.issuedQty, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.returnedQty, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right tabular-nums font-bold">{formatQuantityWithUnit(row.usedQty, row.unit)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -428,14 +428,14 @@ const ReportsPage = () => {
                   <tr>
                     <th>Nhu cầu nguồn</th>
                     <th>Nguyên liệu</th>
-                    <th>Cần</th>
-                    <th>PR/PO</th>
-                    <th>Đã nhập kho</th>
-                    <th>Đã xuất</th>
-                    <th>Bếp nhận</th>
-                    <th>Bổ sung<br />(YC/cấp/PR)</th>
-                    <th>Hoàn/Hao</th>
-                    <th>Delta</th>
+                    <th className="text-right">Cần</th>
+                    <th className="text-right">PR/PO</th>
+                    <th className="text-right">Đã nhập kho</th>
+                    <th className="text-right">Đã xuất</th>
+                    <th className="text-right">Bếp nhận</th>
+                    <th className="text-right">Bổ sung<br />(YC/cấp/PR)</th>
+                    <th className="text-right">Hoàn/Hao</th>
+                    <th className="text-right">Delta</th>
                     <th>Kết quả đối soát</th>
                   </tr>
                 </thead>

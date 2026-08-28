@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatters';
 import type {
@@ -265,8 +266,8 @@ export function WarehousePurchaseReceiptDialog({
               </div>
             )}
             <div className="sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={includePackageSnapshot} onChange={(event) => setIncludePackageSnapshot(event.target.checked)} />
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox checked={includePackageSnapshot} onCheckedChange={(checked) => setIncludePackageSnapshot(checked === true)} />
                 Ghi nhận ảnh chụp quy đổi đóng gói
               </label>
             </div>

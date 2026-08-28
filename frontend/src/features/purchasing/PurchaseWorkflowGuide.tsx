@@ -62,7 +62,7 @@ export function PurchaseWorkflowGuide({
                   {isCurrent ? <StatusBadge variant="warning">Hiện tại</StatusBadge> : null}
                 </span>
                 <span className="min-w-0 w-full flex-1">
-                  <span data-stage-label className={cn('block text-[13px] leading-[1.35]', isBlocked ? 'text-slate-700' : 'text-slate-900')}>{stage.label}</span>
+                  <span data-stage-label className={cn('block text-sm leading-[1.35]', isBlocked ? 'text-slate-700' : 'text-slate-900')}>{stage.label}</span>
                   <span className="mt-1 block text-caption font-medium leading-[1.4] text-slate-600">
                     {isComplete ? 'Hoàn tất' : isCurrent ? 'Đang xử lý' : 'Chưa mở'}
                     {count > 0 ? `, ${count} ngày` : ''}

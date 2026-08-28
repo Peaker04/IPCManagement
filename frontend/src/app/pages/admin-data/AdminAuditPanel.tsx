@@ -47,7 +47,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
           {/* Bộ lọc Audit log */}
           <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Người thực hiện</label>
+              <label className="text-xs font-semibold text-slate-600">Người thực hiện</label>
               <Input
                 type="text"
                 value={auditActor}
@@ -58,7 +58,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Mảng nghiệp vụ</label>
+              <label className="text-xs font-semibold text-slate-600">Mảng nghiệp vụ</label>
               <Select
                 value={auditArea || ALL_AUDIT_AREAS_VALUE}
                 onValueChange={(value) => {
@@ -82,7 +82,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Tên bảng/Thực thể</label>
+              <label className="text-xs font-semibold text-slate-600">Tên bảng/Thực thể</label>
               <Input
                 type="text"
                 value={auditEntity}
@@ -93,7 +93,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Tên cột/Trường</label>
+              <label className="text-xs font-semibold text-slate-600">Tên cột/Trường</label>
               <Input
                 type="text"
                 value={auditField}

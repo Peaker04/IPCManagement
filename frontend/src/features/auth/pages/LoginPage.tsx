@@ -5,7 +5,7 @@ import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
 import { normalizeUserRole, type AppRole } from '../roleUtils';
 import { ROUTES } from '@/lib/routeConfig';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, Eye, EyeOff } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +62,7 @@ const DevLoginFallbackHint = () => {
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
   const [missingFields, setMissingFields] = useState({ username: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,6 +172,8 @@ const LoginPage = () => {
             <Input
               type="text"
               id="username"
+              name="username"
+              autoComplete="username"
               value={username}
               aria-invalid={missingFields.username || undefined}
               aria-describedby={missingFields.username ? 'username-required-error' : undefined}
@@ -185,19 +188,36 @@ const LoginPage = () => {
           </FieldRow>
 
           <FieldRow label="Mật khẩu" htmlFor="password">
-            <Input
-              type="password"
-              id="password"
-              value={password}
-              aria-invalid={missingFields.password || undefined}
-              aria-describedby={missingFields.password ? 'password-required-error' : undefined}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setMissingFields((current) => ({ ...current, password: false }));
-              }}
-              placeholder="Nhập mật khẩu"
-              disabled={isSubmitting}
-            />
+            <div className="relative">
+              <Input
+                type={isPasswordVisible ? 'text' : 'password'}
+                id="password"
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                aria-invalid={missingFields.password || undefined}
+                aria-describedby={missingFields.password ? 'password-required-error' : undefined}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setMissingFields((current) => ({ ...current, password: false }));
+                }}
+                placeholder="Nhập mật khẩu"
+                disabled={isSubmitting}
+                className="pr-11"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-lg"
+                className="absolute inset-y-0 right-0 text-slate-600 hover:text-slate-900"
+                aria-label={isPasswordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-pressed={isPasswordVisible}
+                onClick={() => setIsPasswordVisible((current) => !current)}
+                disabled={isSubmitting}
+              >
+                {isPasswordVisible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </Button>
+            </div>
             {missingFields.password && <p id="password-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 

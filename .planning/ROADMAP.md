@@ -5,7 +5,7 @@
 - [x] **Phase 27: Warehouse Data Workspace contract pilot** — complete; fresh Warehouse verification and reviewer reconciliation pass.
 - [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
 - [x] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
-- [ ] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
+- [x] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
@@ -148,7 +148,7 @@ Plans:
 
 ## Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup
 
-**Status:** PLANNED — 22 canonical execution plans validated; implementation not started
+**Status:** COMPLETE — protected Retry 16 and independent Plan 29-22 closeout passed
 
 **Goal:** Introduce one server-authoritative, Admin-controlled operation mode with `DEFAULT` and `MATERIAL_RECONCILIATION`; deliver an immutable reconciliation-batch workflow comparing required, purchased and issued material quantities; and apply concise user-language, table-density, empty-state and visual-hierarchy rules across the current default project and the new branch.
 
@@ -171,30 +171,33 @@ Plans:
 - `.planning/notes/system-operation-mode-and-material-reconciliation.md`
 - `.planning/phases/29-system-operation-mode-and-material-reconciliation/29-SPEC-SEED.md`
 
-**Plans:** 22 plans
+**Plans:** 24/24 plans executed
 
 Plans:
-- [ ] 29-01-PLAN.md — register the complete operation-mode and reconciliation EF model.
-- [ ] 29-02-PLAN.md — enforce runtime mode eligibility for every protected MVC query and command before permission.
-- [ ] 29-03-PLAN.md — add the mutation pre-commit fence and exact direct-save owner manifest.
-- [ ] 29-04-PLAN.md — fence Approvals and Coordination mutation owners.
-- [ ] 29-05-PLAN.md — fence Admin and Catalog mutation owners.
-- [ ] 29-06-PLAN.md — fence Inventory and Planning mutation owners.
-- [ ] 29-07-PLAN.md — fence Purchasing mutation owners.
-- [ ] 29-08-PLAN.md — fence Reports and SampleData mutation owners.
-- [ ] 29-09-PLAN.md — verify neutral owners and close mutation-owner coverage.
-- [ ] 29-10-PLAN.md — generate/rehearse schema plus deterministic idempotent DEFAULT initialization.
-- [ ] 29-11-PLAN.md — deliver startup validation, mode API and generated client contracts.
-- [ ] 29-12-PLAN.md — create immutable draft batches and freeze readiness.
-- [ ] 29-13-PLAN.md — implement actuals, comparison, disposition, completion and stock isolation.
-- [ ] 29-14-PLAN.md — implement frontend mode propagation, route/action/preload gates and relocation.
-- [ ] 29-15-PLAN.md — materialize exact CLR rows from the authoritative evidence harness.
-- [ ] 29-16-PLAN.md — prove the first bounded route-owner evidence slice.
-- [ ] 29-17-PLAN.md — prove the remaining bounded route-owner evidence slice.
-- [ ] 29-18-PLAN.md — close CLR authority at zero actionable production findings without speculative edits.
-- [ ] 29-19-PLAN.md — deliver reconciliation feature primitives and cross-work-area tracer.
-- [ ] 29-20-PLAN.md — integrate retained pages and finalize generated contract parity.
-- [ ] 29-21-PLAN.md — execute exhaustive headed/browser/API/DB evidence and two-session relocation.
-- [ ] 29-22-PLAN.md — perform multi-source verification, state closeout and baseline-clean hygiene.
 
-**Next workflow:** Execute the validated canonical plan set in declared waves. No production code or database mutation has started.
+- [x] 29-23-PLAN.md
+- [x] 29-24-PLAN.md
+- [x] 29-01-PLAN.md — register the complete operation-mode and reconciliation EF model.
+- [x] 29-02-PLAN.md — enforce runtime mode eligibility for every protected MVC query and command before permission.
+- [x] 29-03-PLAN.md — add the mutation pre-commit fence and exact direct-save owner manifest.
+- [x] 29-04-PLAN.md — fence Approvals and Coordination mutation owners.
+- [x] 29-05-PLAN.md — fence Admin and Catalog mutation owners.
+- [x] 29-06-PLAN.md — fence Inventory and Planning mutation owners.
+- [x] 29-07-PLAN.md — fence Purchasing mutation owners.
+- [x] 29-08-PLAN.md — fence Reports and SampleData mutation owners.
+- [x] 29-09-PLAN.md — verify neutral owners and close mutation-owner coverage.
+- [x] 29-10-PLAN.md — generate/rehearse schema plus deterministic idempotent DEFAULT initialization.
+- [x] 29-11-PLAN.md — deliver startup validation, mode API and generated client contracts.
+- [x] 29-12-PLAN.md — create immutable draft batches and freeze readiness.
+- [x] 29-13-PLAN.md — implement actuals, comparison, disposition, completion and stock isolation.
+- [x] 29-14-PLAN.md — implement frontend mode propagation, route/action/preload gates and relocation.
+- [x] 29-15-PLAN.md — materialize exact CLR rows from the authoritative evidence harness.
+- [x] 29-16-PLAN.md — prove the first bounded route-owner evidence slice.
+- [x] 29-17-PLAN.md — prove the remaining bounded route-owner evidence slice.
+- [x] 29-18-PLAN.md — close CLR authority at zero actionable production findings without speculative edits.
+- [x] 29-19-PLAN.md — deliver reconciliation feature primitives and cross-work-area tracer.
+- [x] 29-20-PLAN.md — integrate retained pages and finalize generated contract parity.
+- [x] 29-21-PLAN.md — execute exhaustive headed/browser/API/DB evidence and two-session relocation.
+- [x] 29-22-PLAN.md — perform multi-source verification, state closeout and baseline-clean hygiene.
+
+**Completion:** Retry 16 passed fresh protected MySQL/API/headed-browser evidence at commit `9e0805cc`; exact `ipc_lane7` is intentionally retained at migration 75 with one completed authority, final mode `DEFAULT`, zero inventory/procurement action and closed owned listeners.

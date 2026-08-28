@@ -26,7 +26,8 @@ export function AdminQueryBoundary({
   loadingFallback,
   minHeight = 'min-h-[420px]',
 }: AdminQueryBoundaryProps) {
-  const forbidden = queries.find(({ view }) => view.phase === 'forbidden');
+  const validQueries = queries.filter(({ view }) => Boolean(view));
+  const forbidden = validQueries.find(({ view }) => view.phase === 'forbidden');
   if (forbidden?.view.phase === 'forbidden') {
     return (
       <div className={cn('relative flex flex-col', minHeight)}>
@@ -37,7 +38,7 @@ export function AdminQueryBoundary({
     );
   }
 
-  const failed = queries.find(({ view }) => view.phase === 'error');
+  const failed = validQueries.find(({ view }) => view.phase === 'error');
   if (failed?.view.phase === 'error') {
     return (
       <div className={cn('relative flex flex-col', minHeight)}>
@@ -52,7 +53,7 @@ export function AdminQueryBoundary({
     );
   }
 
-  const uninitialized = queries.find(({ view }) => view.phase === 'uninitialized');
+  const uninitialized = validQueries.find(({ view }) => view.phase === 'uninitialized');
   if (uninitialized?.view.phase === 'uninitialized') {
     return (
       <div className={cn('relative flex flex-col', minHeight)}>
@@ -63,7 +64,7 @@ export function AdminQueryBoundary({
     );
   }
 
-  const loading = queries.find(({ view }) => view.phase === 'loading');
+  const loading = validQueries.find(({ view }) => view.phase === 'loading');
   if (loading) {
     if (loadingFallback) {
       return (
@@ -88,7 +89,7 @@ export function AdminQueryBoundary({
     );
   }
 
-  const refreshingLabels = queries
+  const refreshingLabels = validQueries
     .filter(({ view }) => view.phase === 'ready' && view.isRefreshing)
     .map(({ label }) => label);
 

@@ -13,7 +13,7 @@ const production = readProductionSources()
 const commandBarExceptionLocations = [
   'src/app/pages/AdminDataPage.tsx:32',
   'src/app/pages/AdminDataPage.tsx:37',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:238',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:244',
   'src/features/approvals/pages/ApprovalPage.tsx:257',
   'src/features/approvals/pages/ApprovalPage.tsx:267',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:48',
@@ -28,7 +28,7 @@ const commandBarExceptionLocations = [
 const adapterExceptionLocations = [
   'src/app/layout/MainLayout.tsx:155',
   'src/app/layout/MainLayout.tsx:220',
-  'src/app/layout/MainLayout.tsx:260',
+  'src/app/layout/MainLayout.tsx:261',
   'src/components/common/ApprovalQueue.tsx:75',
   'src/components/common/CursorPaginationBar.tsx:63',
   'src/components/common/CursorPaginationBar.tsx:80',

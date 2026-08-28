@@ -40,7 +40,7 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                   <th>Trạng thái xử lý</th>
                   <th>Phụ trách</th>
                   <th>Đối tượng</th>
-                  <th className="text-left">Xử lý</th>
+                  <th className="text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,7 +69,7 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
                       <div className="font-semibold text-slate-900">{issue.entityCode}</div>
                       <div className="text-xs text-slate-500">{issue.entityName} / {issue.entityLabel}</div>
                     </td>
-                    <td className="ipc-quality-action-guidance-cell text-left text-slate-600" title={issue.suggestedAction}>
+                    <td className="ipc-quality-action-guidance-cell text-right text-slate-600" title={issue.suggestedAction}>
                       <span className="ipc-quality-guidance-copy">{issue.suggestedAction}</span>
                       <Link
                         className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control"

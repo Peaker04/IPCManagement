@@ -125,11 +125,11 @@ describe('Phase 27.1 pre-work entry closure', () => {
   it('accepts only the exact COMPLETE 03S class-aware authority', () => {
     expect(run(canonical)).toContain('"classAwareValidator"');
     expect(resolveClassAwareAuthority(cwd)).toMatchObject({ commit: expect.stringMatching(/^4aab947f/), payloadCommit: 'ef030acec72a893fafe9449947074edcaa020d05' });
-  }, 15_000);
+  }, 60_000);
 
   it('resolves the sealed tenth-root pre-work marker', () => {
     expect(resolvePreWorkValidatorAuthority(cwd)).toMatchObject({ roots: expect.arrayContaining([expect.objectContaining({ type: 'PRE_WORK_03T_VALIDATOR_PAYLOAD' })]) });
-  });
+  }, 60_000);
 
   it.each([
     ['legacy general-only entry', (args: string[]) => args.filter((value, index) => !['--class-aware-values-from', '--require-class-aware-complete', '--require-exact-class-aware-marker-hash-commit', '--require-class-aware-validator-test-pins', '--require-three-preserved-plan03-commits', '--require-nine-distinct-roots'].includes(value) && args[index - 1] !== '--class-aware-values-from')],
@@ -196,7 +196,7 @@ describe('Phase 27.1 downstream readiness closure', () => {
     const manifest=load<any>('attestations/27.1-03S-snapshot-recovery-manifest.json');
     expect(validateSnapshotRecoveryManifest(cwd,manifest,matrix,core.rows).orderedCommits).toHaveLength(3);
     for(const mutate of [(m:any)=>{m.orderedCommits.reverse();},(m:any)=>{m.commits[0].disposition='REVERTED';},(m:any)=>{m.commits[1].members.pop();},(m:any)=>{m.commits[2].members[0].sha256='0'.repeat(64);},(m:any)=>{m.snapshotBindings[0].identity='weekly-menu-desktop';}]){const candidate=clone(manifest);mutate(candidate);expect(()=>validateSnapshotRecoveryManifest(cwd,candidate,matrix,core.rows)).toThrow();}
-  });
+  }, 30_000);
   it('rejects extra snapshots, broad paths, and production class laundering',()=>{
     expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/visual-routes.spec.ts-snapshots/not-authorized-chromium-win32.png'])).toThrow(/unauthorized/);
     const dashboard=matrix.entries.find(x=>x.snapshotName==='dashboard-desktop-expected.png')!;

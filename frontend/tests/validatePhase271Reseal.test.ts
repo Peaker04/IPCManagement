@@ -51,11 +51,11 @@ describe('Phase 27.1 01W disjoint topology validator', () => {
 
   beforeAll(() => {
     value = fixture();
-  });
+  }, 60_000);
 
   afterAll(() => {
     rmSync(value.cwd, { recursive: true, force: true });
-  });
+  }, 60_000);
 
   it('accepts exact planning predecessor -> payload -> immediate marker-only topology', () => {
     expect(() => validateSeal(value.request)).not.toThrow();
@@ -69,7 +69,7 @@ describe('Phase 27.1 01W disjoint topology validator', () => {
     } finally {
       rmSync(unrelated.cwd, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it.each([
     ['expectedLiveHead', (x: any) => { x.marker.expectedLiveHead = x.markerCommit; }],

@@ -55,7 +55,7 @@ export function SectionPanel({
         </div>
       )}
 
-      {description && <div className="ipc-section-description mb-4 text-[13px] leading-6 text-slate-500">{description}</div>}
+      {description && <div className="ipc-section-description mb-4 text-sm leading-6 text-slate-500">{description}</div>}
 
       {children}
 

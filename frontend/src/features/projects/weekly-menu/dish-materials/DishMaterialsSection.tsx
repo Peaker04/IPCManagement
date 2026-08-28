@@ -94,15 +94,15 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
           <thead><tr>
             <th style={{ width: '28%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Nguyên liệu</th>
             <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn vị</th>
-            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Định lượng / suất</th>
-            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn giá</th>
-            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Thành tiền / khay</th>
+            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right`}>Định lượng / suất</th>
+            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right`}>Đơn giá</th>
+            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right`}>Thành tiền / khay</th>
           </tr></thead>
           <tbody>
             {ingredients.map((ingredient) => <tr key={ingredient.key} className="table-row">
               <td className={`${tableCellClass} text-left font-bold`}>{ingredient.name}</td><td className={tableCellClass}>{ingredient.unit}</td>
-              <td className={`${tableCellClass} font-semibold text-[var(--ipc-primary-600)]`}>{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
-              <td className={tableCellClass}>{formatCurrency(ingredient.supplierPrice)}</td><td className={`${tableCellClass} font-bold text-slate-950`}>{formatCurrency(Math.round(ingredient.cost))}</td>
+              <td className={`${tableCellClass} text-right tabular-nums font-semibold text-[var(--ipc-primary-600)]`}>{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
+              <td className={`${tableCellClass} text-right tabular-nums`}>{formatCurrency(ingredient.supplierPrice)}</td><td className={`${tableCellClass} text-right tabular-nums font-bold text-slate-950`}>{formatCurrency(Math.round(ingredient.cost))}</td>
             </tr>)}
             {ingredients.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có BOM phù hợp khách hàng, định mức và ngày áp dụng cho món đang chọn.</td></tr>}
           </tbody>

@@ -230,7 +230,7 @@ export function WarehouseReceiptLifecyclePanel() {
       ) : (
         <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="max-h-[220px]">
           <table className="ipc-data-table min-w-[760px]">
-            <thead><tr><th>Phiếu</th><th>Nhà cung cấp</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Phiếu</th><th>Nhà cung cấp</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Đang tải phiếu nhập…</td></tr>
                   : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
@@ -238,7 +238,7 @@ export function WarehouseReceiptLifecyclePanel() {
                     <td className={cn(typography.code, 'font-semibold text-slate-900')}>{item.receiptCode}</td>
                     <td>{item.supplierName ?? '—'}</td>
                     <td>{statusLabel(item.status, item.qualityStatus)}</td>
-                    <td><Button type="button" size="sm" variant="outline" onClick={() => { setSelectedReceiptId(item.receiptId); setFeedback(undefined); }}>Xem trạng thái</Button></td>
+                    <td className="text-right"><Button type="button" size="sm" variant="outline" onClick={() => { setSelectedReceiptId(item.receiptId); setFeedback(undefined); }}>Xem trạng thái</Button></td>
                   </tr>)}
             </tbody>
           </table>
@@ -316,14 +316,14 @@ export function WarehouseReceiptLifecyclePanel() {
 
       {postOpen && (
         <Dialog open={postOpen} onOpenChange={setPostOpen}>
-          <DialogContent aria-describedby="receipt-post-description"><DialogHeader><DialogTitle>Ghi sổ kho cho phiếu nhập?</DialogTitle><DialogDescription id="receipt-post-description">Thao tác này tạo bút toán tồn kho và cập nhật tiến độ đơn mua. Hệ thống kiểm tra phiên bản chứng từ để chặn thao tác trùng hoặc dữ liệu cũ.</DialogDescription></DialogHeader><DialogFooter><Button type="button" variant="outline" disabled={isPosting} onClick={() => setPostOpen(false)}>Hủy</Button><Button type="button" disabled={isPosting} onClick={() => void submitPost()}>{isPosting && <LoaderCircle className="animate-spin" />}Xác nhận ghi sổ kho</Button></DialogFooter></DialogContent>
+          <DialogContent aria-describedby="receipt-post-description"><DialogHeader><DialogTitle>Ghi sổ kho cho phiếu nhập?</DialogTitle><DialogDescription id="receipt-post-description">Xác nhận ghi sổ kho để cập nhật số lượng tồn thực tế vào hệ thống.</DialogDescription></DialogHeader><DialogFooter><Button type="button" variant="outline" disabled={isPosting} onClick={() => setPostOpen(false)}>Hủy</Button><Button type="button" disabled={isPosting} onClick={() => void submitPost()}>{isPosting && <LoaderCircle className="animate-spin" />}Xác nhận ghi sổ kho</Button></DialogFooter></DialogContent>
         </Dialog>
       )}
 
       {reworkOpen && (
         <Dialog open={reworkOpen} onOpenChange={setReworkOpen}>
           <DialogContent aria-describedby="receipt-rework-description">
-            <DialogHeader><DialogTitle>Xử lý lại phiếu nhập?</DialogTitle><DialogDescription id="receipt-rework-description">Phiếu sẽ quay về bước chờ kiểm tra chất lượng. Tồn kho không thay đổi.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle>Xử lý lại phiếu nhập?</DialogTitle><DialogDescription id="receipt-rework-description">Phiếu nhập sẽ quay về bước chờ kiểm tra chất lượng.</DialogDescription></DialogHeader>
             <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do xử lý lại<Input aria-label="Lý do xử lý lại" value={reworkReason} onChange={(event) => setReworkReason(event.target.value)} placeholder="Nêu lý do và bằng chứng cần kiểm tra lại" /></label>
             <DialogFooter><Button type="button" variant="outline" disabled={isReworking} onClick={() => setReworkOpen(false)}>Hủy</Button><Button type="button" disabled={isReworking || !reworkReason.trim()} onClick={() => void submitRework()}>{isReworking && <LoaderCircle className="animate-spin" />}Xác nhận xử lý lại</Button></DialogFooter>
           </DialogContent>
@@ -333,7 +333,7 @@ export function WarehouseReceiptLifecyclePanel() {
       {voidOpen && (
         <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
           <DialogContent aria-describedby="receipt-void-description">
-            <DialogHeader><DialogTitle>Hủy phiếu nhập trước khi ghi sổ kho?</DialogTitle><DialogDescription id="receipt-void-description">Chỉ dùng khi đối soát xác định phiếu tạo nhầm hoặc trùng. Hệ thống lưu phiếu, lý do, người xử lý và lịch sử; không xóa dữ liệu và không thay đổi tồn kho.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle>Hủy phiếu nhập trước khi ghi sổ kho?</DialogTitle><DialogDescription id="receipt-void-description">Phiếu nhập sẽ chuyển sang trạng thái đã hủy và không thay đổi tồn kho.</DialogDescription></DialogHeader>
             <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do đối soát <Input aria-label="Lý do hủy phiếu" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} placeholder="Nêu chứng từ, bằng chứng và lý do hủy" /></label>
             <DialogFooter><Button type="button" variant="outline" disabled={isVoiding} onClick={() => setVoidOpen(false)}>Quay lại</Button><Button type="button" variant="destructive" disabled={isVoiding || !voidReason.trim()} onClick={() => void submitVoid()}>{isVoiding && <LoaderCircle className="animate-spin" />}Xác nhận hủy phiếu</Button></DialogFooter>
           </DialogContent>
@@ -343,11 +343,11 @@ export function WarehouseReceiptLifecyclePanel() {
       {correctionOpen && (
         <Dialog open={correctionOpen} onOpenChange={setCorrectionOpen}>
           <DialogContent className="max-w-2xl" aria-describedby="receipt-correction-description">
-            <DialogHeader><DialogTitle>Tạo chứng từ điều chỉnh sau khi ghi sổ</DialogTitle><DialogDescription id="receipt-correction-description">Đây là chứng từ bổ sung, không sửa phiếu nhập hoặc bút toán gốc. Hệ thống tạo bút toán bù trừ theo đúng dòng nguyên liệu.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle>Tạo chứng từ điều chỉnh sau khi ghi sổ</DialogTitle><DialogDescription id="receipt-correction-description">Tạo chứng từ bù trừ điều chỉnh số lượng sau khi đã ghi sổ kho (không sửa phiếu nhập hoặc bút toán gốc).</DialogDescription></DialogHeader>
             <div className="grid gap-3">
               {receipt?.lines.map((line) => {
                 const maxQuantity = line.acceptedQuantity ?? 0;
-                return <label key={line.receiptLineId} className="grid gap-1 rounded-sm border border-slate-200 p-3 text-sm font-semibold text-slate-700 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center"><span>{line.ingredientName ?? 'Nguyên liệu chưa có tên'}<span className="mt-1 block text-xs font-normal text-slate-600">Tối đa theo số lượng đã chấp nhận: {formatQuantityWithUnit(maxQuantity, line.unitName ?? '')}. Hệ thống kiểm tra lại số lượng và tồn kho khi ghi sổ.</span></span><Input aria-label={`Số lượng điều chỉnh ${line.ingredientName ?? 'nguyên liệu'}`} type="number" min="0" max={maxQuantity} step="0.001" value={correctionDraft[line.receiptLineId] ?? ''} onChange={(event) => setCorrectionDraft((current) => ({ ...current, [line.receiptLineId]: event.target.value }))} disabled={maxQuantity <= 0} /></label>;
+                return <label key={line.receiptLineId} className="grid gap-1 rounded-sm border border-slate-200 p-3 text-sm font-semibold text-slate-700 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center"><span>{line.ingredientName ?? 'Nguyên liệu chưa có tên'}<span className="mt-1 block text-xs font-normal text-slate-600">Tối đa theo số lượng đã chấp nhận: {formatQuantityWithUnit(maxQuantity, line.unitName ?? '')}.</span></span><Input aria-label={`Số lượng điều chỉnh ${line.ingredientName ?? 'nguyên liệu'}`} type="number" min="0" max={maxQuantity} step="0.001" value={correctionDraft[line.receiptLineId] ?? ''} onChange={(event) => setCorrectionDraft((current) => ({ ...current, [line.receiptLineId]: event.target.value }))} disabled={maxQuantity <= 0} /></label>;
               })}
               <label className="grid gap-1 text-sm font-semibold text-slate-700">Lý do điều chỉnh<Input aria-label="Lý do điều chỉnh" value={correctionReason} onChange={(event) => setCorrectionReason(event.target.value)} placeholder="Nêu chứng từ, bằng chứng đối soát và lý do bù trừ" /></label>
             </div>

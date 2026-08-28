@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: active
-stopped_at: Phase 29 source blockers resolved; protected lane7 retry awaiting MySQL credential injection
-last_updated: "2026-08-26T00:37:00+07:00"
+status: complete
+stopped_at: Completed 29-22-PLAN.md
+last_updated: "2026-08-28T00:20:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 37
-  completed_plans: 36
-  percent: 50
+  completed_phases: 3
+  total_plans: 63
+  completed_plans: 63
+  percent: 75
 current_phase_name: system-operation-mode-and-material-reconciliation
-last_activity: 2026-08-26 — Closed published-source and SYSTEM_DEFAULT tolerance authority blockers; aggregate source gates green
+last_activity: 2026-08-28 — Phase 29 protected Retry 16 and Plan 29-22 closeout complete
 ---
 
 # Project State
@@ -21,25 +21,25 @@ last_activity: 2026-08-26 — Closed published-source and SYSTEM_DEFAULT toleran
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 29 protected MySQL/browser evidence — system-operation-mode-and-material-reconciliation
+**Current focus:** Phase 29 complete; retained migration-75 evidence authority
 
 ## Current Status
 
-- Phases 27, 27.1 and 28 are COMPLETE; Phase 29 plans 01–21 are implemented and Plan 22 closeout remains blocked on protected evidence.
-- Published source eligibility is canonicalized to `ACTIVE/PUBLISHED` at commit `9e17fb9d`.
-- `SYSTEM_DEFAULT` reconciliation tolerance is server-owned and fail-closed at value `0.500000`, version `1`, with immutable creation audit, idempotent Admin initialization, MySQL singleton enforcement and ingredient → canonical-unit-group → system-default precedence at commit `0a9ba4ba`.
-- Independent source re-review reports 0 blockers / 0 warnings. Current gates: Application 49/49; API 1,018 pass + 1 intentional skip; frontend 191 files / 1,222 tests serial, lint/build/API parity/model parity pass.
-- `ipc_lane7` remains restored at 70 migrations. Protected retry has not connected because `IPC_LANE7_MYSQL_PASSWORD` is absent from the current executor; no DB/runtime/browser mutation occurred in this resumed session.
+- Phases 27, 27.1, 28 and 29 are COMPLETE.
+- Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
+- Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
+- Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
+- Closeout gates: Application 49/49; API 1,044 pass + 1 intentional skip; frontend serial 191 files / 1,228 tests; focused Phase 29 18/18; lint/checklist/API parity/EF model/Release builds pass.
 
 ## Session Continuity
 
-**Last session:** 2026-08-26T00:37:00+07:00
-**Resume file:** .planning/phases/29-system-operation-mode-and-material-reconciliation/29-RUNTIME-FIX-RETRY-RUN.md
+**Last session:** 2026-08-28T00:20:00.000Z
+**Resume file:** None
 
-**Stopped at:** Source and migration authority are green; protected retry stopped before connection because the current process lacks `IPC_LANE7_MYSQL_PASSWORD`.
+**Stopped at:** Completed 29-22-PLAN.md
 **Resume directory:** `.planning/phases/29-system-operation-mode-and-material-reconciliation`
 
-Next workflow: inject only the canonical lane7 MySQL credential into the executor environment, restart from read-only lineage/checkpoint preflight, apply migrations 71–73, activate only the exact configured warehouse if required, initialize mode and tolerance twice, then run controlled reconciliation DB/browser evidence. Do not reuse the prior restored attempt as success evidence.
+Next workflow: none for Phase 29. Preserve retained migration-75 authority and consult `29-VERIFICATION.md` plus `docs/EVIDENCE-INDEX.md` before any future lane7 mutation.
 
 ## Decisions
 
@@ -74,6 +74,8 @@ Next workflow: inject only the canonical lane7 MySQL credential into the executo
 - [Phase ?]: Plan 28-11 resolves canonical warehouse before inventory mutations and rejects compatibility/source mismatch without rewriting provenance.
 - [Phase ?]: Plan 28-12 derives purchasing/import/selector trust from the operational resolver while preserving fingerprint and historical identity.
 - [Phase ?]: Plan 28-14 treats exact-one selector data as passive context and blocks zero/multiple states without implicit selection.
+- [Phase ?]: Plan 29-24 reachability uses production controllers/services and forbids direct quantity/reconciliation authority fixtures.
+- [Phase ?]: ANV/AMANN 2026-09-07..2026-09-12 remains read-only candidate metadata until protected preflight.
 
 ### Roadmap Evolution
 
@@ -82,8 +84,7 @@ Next workflow: inject only the canonical lane7 MySQL credential into the executo
 
 ### Blockers
 
-- Phase 29 protected retry cannot connect until `IPC_LANE7_MYSQL_PASSWORD` is present in the actual executor process. Role passwords are present; the MySQL credential is not. No fallback credential source is authorized.
-- Real MySQL reconciliation concurrency, correction/disposition/completion immutability, zero procurement/stock mutation and headed five-viewport role × mode evidence remain required before Plan 29-22 closeout.
+- No Phase 29 blocker remains.
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
 
 ## Performance Metrics
@@ -105,3 +106,6 @@ Next workflow: inject only the canonical lane7 MySQL credential into the executo
 | Phase 28 P13 | 10m | 2 tasks | 4 files |
 | Phase 28 P14 | 18m | 2 tasks | 7 files |
 | Phase 28 P15 | 34m | 2 tasks | 17 files |
+| Phase 29 P23 | 22 min | 2 tasks | 15 files |
+| Phase 29 P24 | 31 min | 2 tasks | 7 files |
+| Phase 29 P22 | 24 min | 2 tasks | 8 files |

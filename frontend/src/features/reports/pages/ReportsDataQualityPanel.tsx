@@ -78,7 +78,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
               <th>Nhóm lỗi và đối tượng</th>
               <th>Vấn đề</th>
               <th>Cách xử lý</th>
-              <th>Thao tác</th>
+              <th className="text-right">Thao tác</th>
             </tr>
           </thead>
           {dataQualityResult.isLoading && dataQualityRows.length === 0 ? (
@@ -123,7 +123,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                 <td className="text-left">
                   <span className="ipc-quality-action-guidance-cell" title={row.suggestedAction}>{row.suggestedAction}</span>
                 </td>
-                <td>
+                <td className="text-right">
                   {row.route ? (
                     <Link className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control" to={row.route}>
                       {row.actionLabel}

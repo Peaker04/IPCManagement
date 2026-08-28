@@ -86,14 +86,14 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                   {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>}
                   <td className="truncate" title={line.material}>{line.material}</td>
                   <td className="truncate" title={line.source}>{line.source}</td>
-                  <td className="ipc-numeric-cell text-right whitespace-nowrap">
+                  <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
-                  <td className="ipc-numeric-cell text-right whitespace-nowrap">
+                  <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(availableAfterReserve, line.unit)}
                   </td>
                   <td className={cn(
-                    'ipc-numeric-cell text-right whitespace-nowrap font-semibold',
+                    'ipc-numeric-cell text-right tabular-nums whitespace-nowrap font-semibold',
                     variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700',
                   )}>
                     {formatVariance(variance, line.unit)}

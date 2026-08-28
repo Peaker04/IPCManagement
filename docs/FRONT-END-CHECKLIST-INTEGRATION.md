@@ -10,10 +10,10 @@ reviewed_at: 2026-08-26
 
 # Front-End Checklist integration
 
-IPCManagement installs the upstream `frontend-checklist-global` skill as a project-local quality adapter:
-
-- `.agents/skills/frontend-checklist-global/` — agent-neutral project installation;
-- `.pi/skills/frontend-checklist-global/` — Pi project installation.
+IPCManagement installs the upstream `frontend-checklist-global` skill once at
+`.pi/skills/frontend-checklist-global/`, the canonical Pi project-skill location. Do not duplicate the same
+skill name under `.agents/skills/`: Pi discovers both project roots and reports a collision while skipping the
+`.agents` copy.
 
 The inspected upstream revision contains 385 English rules across HTML, CSS, JavaScript, performance,
 accessibility, SEO, security, images, testing, privacy and internationalization. The upstream project also
@@ -89,6 +89,6 @@ npm run check:frontend-checklist
 ```
 
 When updating the upstream skill, inspect the new revision and rule-count/category changes before replacing
-both project copies. Update `reviewed_revision`, re-evaluate conflicts and rerun the checker. Do not install all
-hundreds of rule-specific skills by default; the global skill is the bounded entry point and retrieves focused
-guidance only when needed.
+the canonical `.pi` copy. Update `reviewed_revision`, re-evaluate conflicts and rerun the checker. Do not add a
+same-named `.agents` copy or install all hundreds of rule-specific skills by default; the global skill is the
+bounded entry point and retrieves focused guidance only when needed.

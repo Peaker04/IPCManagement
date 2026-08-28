@@ -54,19 +54,19 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ngày</th>
             <th style={{ width: '14%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
             <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món sử dụng</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Cần</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Tồn khả dụng</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Chênh lệch</th>
+            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Cần</th>
+            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Tồn khả dụng</th>
+            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Chênh lệch</th>
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Trạng thái</th>
             <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-center whitespace-nowrap`}>Tiếp theo</th>
           </tr> : <tr>
             <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
             <th style={{ width: '8%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>ĐV</th>
-            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>LT cả tuần</th>
-            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>TT cả tuần</th>
+            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>LT cả tuần</th>
+            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>TT cả tuần</th>
             <th style={{ width: '30%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món trong kế hoạch</th>
-            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Đơn giá</th>
-            <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Thành tiền</th>
+            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Đơn giá</th>
+            <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Thành tiền</th>
           </tr>}</thead>
           <tbody>
             {presentation.demandRows.map((line, index) => {
@@ -75,8 +75,8 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               return <tr key={`${line.id}-${presentation.pageIndex}-${index}`} className="table-row">
                 <td className={`${tableCellClass} whitespace-nowrap`}>{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>
                 <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
-                <td className={tableCellClass}>{formatQuantityWithUnit(line.required, line.unit)}</td><td className={tableCellClass}>{formatQuantityWithUnit(available, line.unit)}</td>
-                <td className={`${tableCellClass} font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{formatQuantityVariance(variance, line.unit)}</td>
+                <td className={`${tableCellClass} text-right tabular-nums`}>{formatQuantityWithUnit(line.required, line.unit)}</td><td className={`${tableCellClass} text-right tabular-nums`}>{formatQuantityWithUnit(available, line.unit)}</td>
+                <td className={`${tableCellClass} text-right tabular-nums font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{formatQuantityVariance(variance, line.unit)}</td>
                 <td className="ipc-badge-cell">
                   <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
                     {line.tone === 'success' ? 'Đủ hàng' : line.status}
@@ -89,9 +89,9 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               </tr>
             })}
             {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey} className="table-row">
-              <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td><td className={tableCellClass}>{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
-              <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
-              <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
+              <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td><td className={`${tableCellClass} text-right tabular-nums`}>{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
+              <td className={`${tableCellClass} text-right tabular-nums font-bold text-[var(--ipc-primary-600)]`}>{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
+              <td className={`${tableCellClass} text-right tabular-nums`}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} text-right tabular-nums font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
             </tr>)}
             {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 8 : 7}>Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.</td></tr>}
           </tbody>

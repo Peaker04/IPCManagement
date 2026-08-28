@@ -18,6 +18,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toQueryView } from '@/lib/queryView';
 
@@ -46,7 +47,7 @@ const formatMutationError = (error: unknown) => {
 };
 
 const approvalDocumentLabels: Record<string, string> = {
-  'purchase-request': 'Đơn mua thêm',
+  'purchase-request': 'Đơn mua thêm (PR)',
   'inventory-issue': 'Phiếu xuất kho',
   'order-adjustment': 'Điều chỉnh suất ăn',
 };
@@ -60,6 +61,11 @@ const approverRoleLabels: Record<string, string> = {
 
 const formatApprovalDocumentType = (value: string) => approvalDocumentLabels[value] ?? value;
 const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value;
+const formatApproverUser = (userId: string, employees: readonly AdminEmployee[]) => {
+  if (!userId) return 'Gửi chung cho cả vai trò';
+  const employee = employees.find((emp) => emp.userId === userId);
+  return employee ? `${employee.fullName} (${employee.username})` : 'Gửi chung cho cả vai trò';
+};
 
 export default function ApprovalRulesPage() {
   const { toast } = useToast();
@@ -247,7 +253,7 @@ export default function ApprovalRulesPage() {
         >
           <span className="ipc-command-meta">
             <Settings size={16} />
-            Quản trị thiết lập quy trình phê duyệt và thời hạn xử lý
+            Cấu hình luồng phê duyệt và thời hạn xử lý
           </span>
         </CommandBar>
       }
@@ -264,7 +270,7 @@ export default function ApprovalRulesPage() {
               isRetrying={rulesView.isRetrying}
               onRetry={rulesView.retry}
             >
-              Chưa thể phân biệt lỗi kết nối với trường hợp chưa cấu hình quy tắc. Hãy thử tải lại trước khi tạo hoặc sửa luồng duyệt.
+              Không thể tải danh sách quy tắc duyệt. Vui lòng thử lại.
             </QueryErrorAlert>
           ) : rulesView.phase === 'uninitialized' ? (
             <InlineAlert title="Chưa khởi tạo quy tắc phê duyệt" variant="info">{rulesView.instruction}</InlineAlert>
@@ -274,14 +280,13 @@ export default function ApprovalRulesPage() {
             <>
               {rulesView.isRefreshing && (
                 <InlineAlert title="Đang cập nhật quy tắc phê duyệt" variant="info">
-                  Danh sách hiện tại vẫn được giữ trong khi đồng bộ bản mới.
+                  Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
                 </InlineAlert>
               )}
               {rules.length === 0 ? (
                 <EmptyState
                   icon={<Layers className="size-12 text-slate-400" />}
-                  title="Chưa có quy tắc phê duyệt nào được thiết lập."
-                  description="Nhấn nút '+ Thêm quy tắc' ở thanh điều khiển trên để thiết lập quy trình phê duyệt."
+                  title="Chưa có quy tắc phê duyệt"
                   className="!min-h-0 !p-8"
                 />
               ) : (
@@ -297,9 +302,9 @@ export default function ApprovalRulesPage() {
                     </div>
                     <div className="grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <div>Loại chứng từ: <span className="font-semibold text-slate-700">{formatApprovalDocumentType(rule.documentType)}</span></div>
-                      <div>Thời hạn xử lý (SLA): <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
+                      <div>Thời hạn xử lý: <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
                       {rule.minAmount !== null && (
-                        <div className="col-span-2">Ngưỡng tiền: <span className="font-semibold text-slate-700">{rule.minAmount === undefined ? '' : formatCurrency(rule.minAmount)} {rule.maxAmount ? ` - ${formatCurrency(rule.maxAmount)}` : ' trở lên'}</span></div>
+                        <div className="col-span-2">Giá trị áp dụng: <span className="font-semibold text-slate-700">{rule.minAmount === undefined ? '' : formatCurrency(rule.minAmount)} {rule.maxAmount ? ` - ${formatCurrency(rule.maxAmount)}` : ' trở lên'}</span></div>
                       )}
                     </div>
                     <div className="mt-3 pt-3 border-t border-slate-100">
@@ -307,10 +312,10 @@ export default function ApprovalRulesPage() {
                       <div className="space-y-1">
                         {(rule.approvalassignments ?? []).map((a: ApprovalAssignmentDto) => (
                           <div key={a.assignmentId ?? `${rule.ruleId}-${a.sequence}-${a.approverRole}`} className="flex items-center gap-2 text-xs">
-                            <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">{a.sequence}</span>
+                            <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">{a.sequence}</span>
                             <span className="font-semibold text-slate-700">{formatApproverRole(a.approverRole)}</span>
                             {a.approverUser && <span className="text-slate-700">({a.approverUser.fullName})</span>}
-                            {a.isRequired && <span className="text-[10px] text-red-700 font-semibold bg-red-50 px-1 rounded">Bắt buộc</span>}
+                            {a.isRequired && <span className="text-xs text-red-700 font-semibold bg-red-50 px-1.5 py-0.5 rounded">Bắt buộc</span>}
                           </div>
                         ))}
                       </div>
@@ -356,7 +361,7 @@ export default function ApprovalRulesPage() {
             <DialogHeader>
               <DialogTitle>{editingRuleId ? 'Cập nhật quy tắc duyệt' : 'Tạo quy tắc duyệt mới'}</DialogTitle>
               <DialogDescription>
-                Cấu hình điều kiện lọc chứng từ, thời hạn xử lý tối đa (SLA) và phân rã các bước phê duyệt tuần tự.
+                Thiết lập điều kiện áp dụng và các cấp duyệt theo thứ tự.
               </DialogDescription>
             </DialogHeader>
 
@@ -373,7 +378,7 @@ export default function ApprovalRulesPage() {
                       setRuleName(event.target.value);
                       setRuleNameError(null);
                     }}
-                    placeholder="Ví dụ: Duyệt PR vượt ngưỡng 10M..."
+                    placeholder="Ví dụ: Duyệt đơn mua vượt 10 triệu..."
                   />
                   {ruleNameError && (
                     <p id="approval-rule-name-error" className="text-xs text-red-700">
@@ -388,10 +393,10 @@ export default function ApprovalRulesPage() {
                     onValueChange={value => setDocumentType(value ?? '')}
                     >
                       <SelectTrigger className="h-10 w-full">
-                      <SelectValue>{documentType === 'purchase-request' ? 'Đơn mua thêm (PR)' : formatApprovalDocumentType(documentType)}</SelectValue>
+                        <SelectValue>{formatApprovalDocumentType(documentType)}</SelectValue>
                       </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="purchase-request">Đơn mua thêm (PR)</SelectItem>
+                      <SelectItem value="purchase-request">{formatApprovalDocumentType('purchase-request')}</SelectItem>
                       <SelectItem value="inventory-issue">Phiếu xuất kho</SelectItem>
                       <SelectItem value="order-adjustment">Điều chỉnh suất ăn</SelectItem>
                     </SelectContent>
@@ -401,30 +406,30 @@ export default function ApprovalRulesPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Ngưỡng tối thiểu (Min đ)</label>
-                  <Input type="number" value={minAmount} onChange={e => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không xét" />
+                  <label className="text-xs font-semibold text-slate-600">Giá trị từ (VNĐ)</label>
+                  <Input type="number" value={minAmount} onChange={e => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không giới hạn" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Ngưỡng tối đa (Max đ)</label>
-                  <Input type="number" value={maxAmount} onChange={e => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không xét" />
+                  <label className="text-xs font-semibold text-slate-600">Đến giá trị (VNĐ)</label>
+                  <Input type="number" value={maxAmount} onChange={e => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không giới hạn" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Thời hạn phê duyệt (giờ)</label>
+                  <label className="text-xs font-semibold text-slate-600">Thời hạn xử lý (giờ)</label>
                   <Input type="number" value={slaHours} onChange={e => setSlaHours(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Mặc định: 24" />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 py-1">
-                <input type="checkbox" id="rule-active-chk" checked={isActive} onChange={e => setIsActive(e.target.checked)} />
-                <label htmlFor="rule-active-chk" className="text-xs font-semibold text-slate-600 cursor-pointer">Kích hoạt hoạt động</label>
-              </div>
+              <label className="flex items-center gap-2 py-1 cursor-pointer">
+                <Checkbox id="rule-active-chk" checked={isActive} onCheckedChange={checked => setIsActive(checked === true)} />
+                <span className="text-xs font-semibold text-slate-700">Đang áp dụng quy tắc này</span>
+              </label>
 
               {/* Assignments list */}
               <div className="border-t border-slate-200 pt-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1">
                     <Shield size={16} />
-                    Các bước phê duyệt tuần tự
+                    Trình tự duyệt
                   </h4>
                   <Button
                     type="button"
@@ -451,15 +456,12 @@ export default function ApprovalRulesPage() {
                 ) : employeesView.phase === 'uninitialized' ? (
                   <InlineAlert title="Chưa khởi tạo danh sách nhân viên" variant="info">{employeesView.instruction}</InlineAlert>
                 ) : employeesView.phase === 'loading' ? (
-                  <InlineAlert title="Đang tải nhân viên chỉ định" variant="info">Danh sách nhân viên đang được đồng bộ.</InlineAlert>
+                  <div className="py-2 text-xs text-slate-500">Đang tải danh sách nhân viên...</div>
                 ) : employeesView.phase === 'ready' ? (
                   <>
-                    {employeesView.isRefreshing && (
-                      <InlineAlert title="Đang cập nhật nhân viên" variant="info">Các lựa chọn hiện tại vẫn được giữ.</InlineAlert>
-                    )}
                     {employeesView.truncation && (
                       <InlineAlert title="Danh sách nhân viên bị giới hạn" variant="warning">
-                        Đang hiển thị {employeesView.truncation.shown}/{employeesView.truncation.total ?? '?'} nhân viên. Hãy thu hẹp phạm vi trước khi chỉ định.
+                        Đang hiển thị {employeesView.truncation.shown}/{employeesView.truncation.total ?? '?'} nhân viên.
                       </InlineAlert>
                     )}
                   </>
@@ -472,7 +474,7 @@ export default function ApprovalRulesPage() {
                       
                       <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase">Vai trò phê duyệt</label>
+                          <label className="text-xs font-semibold text-slate-600">Vai trò phê duyệt</label>
                           <Select
                             value={assignment.approverRole}
                             onValueChange={value => handleAssignmentChange(idx, 'approverRole', value ?? '')}
@@ -490,7 +492,7 @@ export default function ApprovalRulesPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-500 uppercase">Nhân viên chỉ định (Tùy chọn)</label>
+                          <label className="text-xs font-semibold text-slate-600">Nhân viên chỉ định (Tùy chọn)</label>
                           <Select
                             value={assignment.approverUserId || EMPTY_APPROVER_USER_VALUE}
                             onValueChange={value => handleAssignmentChange(
@@ -514,13 +516,12 @@ export default function ApprovalRulesPage() {
                       </div>
 
                       <div className="flex items-center gap-2 pt-1 sm:flex-col sm:items-center sm:gap-1 sm:pt-4">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           id={`req-chk-${idx}`}
                           checked={assignment.isRequired}
-                          onChange={e => handleAssignmentChange(idx, 'isRequired', e.target.checked)}
+                          onCheckedChange={checked => handleAssignmentChange(idx, 'isRequired', checked === true)}
                         />
-                        <label htmlFor={`req-chk-${idx}`} className="text-[9px] font-semibold text-slate-500 cursor-pointer">Bắt buộc</label>
+                        <label htmlFor={`req-chk-${idx}`} className="text-xs font-medium text-slate-600 cursor-pointer">Bắt buộc</label>
                       </div>
 
                       {assignments.length > 1 && (
@@ -556,8 +557,8 @@ export default function ApprovalRulesPage() {
           ariaLabel="Xác nhận xóa quy tắc duyệt"
           title="Xóa quy tắc duyệt?"
           description={deleteError
-            ? `Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục. Chưa thể xóa quy tắc. ${deleteError}`
-            : 'Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục.'}
+            ? `Chưa thể xóa quy tắc. ${deleteError}`
+            : 'Quy tắc này sẽ ngừng áp dụng cho các chứng từ mới. Bạn có chắc chắn muốn xóa?'}
           confirmLabel="Xóa quy tắc"
           busy={isDeleting}
           busyLabel="Đang xóa..."
@@ -573,8 +574,3 @@ export default function ApprovalRulesPage() {
     </OperationalFrame>
   );
 }
-
-const formatApproverUser = (userId: string, employees: readonly AdminEmployee[]) => {
-  const employee = employees.find((item) => item.userId === userId);
-  return employee ? `${employee.fullName} (${employee.username})` : 'Gửi chung cho cả vai trò';
-};

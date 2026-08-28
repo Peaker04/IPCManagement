@@ -4,6 +4,7 @@ import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
 import { StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import type { AuthState } from '@/lib/auth/authTypes'
 import {
@@ -158,7 +159,7 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
         </div>
         <fieldset className="max-h-48 overflow-y-auto rounded border border-amber-200 bg-white p-2" aria-label="Nguyên liệu liên quan">
           <legend className="px-1 font-medium text-slate-700">Nguyên liệu liên quan</legend>
-          {sourceLineOptions.length ? <div className="grid gap-1 sm:grid-cols-2">{sourceLineOptions.map((line) => <label key={line.sourceLineId} className="flex min-w-0 items-start gap-2 rounded px-2 py-1.5 hover:bg-amber-50"><input type="checkbox" className="mt-0.5" checked={varianceSourceLines.includes(line.sourceLineId)} onChange={(event) => setVarianceSourceLines((current) => event.target.checked ? [...current, line.sourceLineId] : current.filter((id) => id !== line.sourceLineId))} /><span className="min-w-0"><strong className="block truncate text-slate-800">{line.ingredientLabel}</strong><span className="text-slate-600">Cần {line.requiredQuantity} {line.unitLabel}</span></span></label>)}</div> : <p className="text-slate-600">Chưa có dòng nguyên liệu cho ca này.</p>}
+          {sourceLineOptions.length ? <div className="grid gap-1 sm:grid-cols-2">{sourceLineOptions.map((line) => <label key={line.sourceLineId} className="flex min-w-0 items-start gap-2 rounded px-2 py-1.5 hover:bg-amber-50 cursor-pointer"><Checkbox className="mt-0.5" checked={varianceSourceLines.includes(line.sourceLineId)} onCheckedChange={(checked) => setVarianceSourceLines((current) => checked === true ? [...current, line.sourceLineId] : current.filter((id) => id !== line.sourceLineId))} /><span className="min-w-0"><strong className="block truncate text-slate-800">{line.ingredientLabel}</strong><span className="text-slate-600">Cần {line.requiredQuantity} {line.unitLabel}</span></span></label>)}</div> : <p className="text-slate-600">Chưa có dòng nguyên liệu cho ca này.</p>}
         </fieldset>
         <div><Button size="sm" variant="outline" disabled={!varianceTrack || varianceSourceLines.length === 0 || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
           await declareVariance({ id: run.serviceRunId, body: { commandId: `service-run-variance-${crypto.randomUUID()}`, expectedVersion: run.currentVersion, track: varianceTrack, sourceLineIds: varianceSourceLines, reason: varianceReason } }).unwrap()

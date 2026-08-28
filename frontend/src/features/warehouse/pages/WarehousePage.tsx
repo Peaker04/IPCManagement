@@ -409,7 +409,7 @@ export default function WarehousePage() {
           <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
             <DialogHeader>
               <DialogTitle id="warehouse-issue-title">Tạo phiếu xuất kho</DialogTitle>
-              <DialogDescription id="warehouse-issue-description">Chọn đúng nhu cầu nguyên liệu và kho xuất. Hệ thống không tự chọn chứng từ thay bạn.</DialogDescription>
+              <DialogDescription id="warehouse-issue-description">Chọn nhu cầu nguyên liệu và kho xuất tương ứng để lập phiếu.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-2">
               <div className="grid gap-2">
@@ -551,7 +551,7 @@ export default function WarehousePage() {
         )}
         <TableViewport
           ariaLabel="Danh sách đơn mua và tiến độ nhập kho"
-          caption="Danh sách được phân trang và cuộn trong vùng cố định."
+          caption="Danh sách đơn mua và tiến độ nhập kho"
           className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
         >
           <table className="ipc-data-table min-w-[1060px] !table-auto">
@@ -562,7 +562,7 @@ export default function WarehousePage() {
                 <th className="min-w-[220px]">Đề xuất mua</th>
                 <th className="min-w-[140px]">Trạng thái</th>
                 <th className="min-w-[130px]">Tiến độ dòng</th>
-                <th className="min-w-[130px]">Thao tác</th>
+                <th className="min-w-[130px] text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -597,7 +597,7 @@ export default function WarehousePage() {
                       <td className="whitespace-nowrap">
                         {completedLines}/{order.lines.length} dòng đã đủ
                       </td>
-                      <td>
+                      <td className="text-right">
                         <Link className="ipc-button ipc-button-ghost" aria-expanded={isSelected} to={purchaseOrderDetailsHref(isSelected ? null : order.purchaseOrderId)}>
                           {isSelected ? 'Đóng chi tiết' : 'Xem dòng nhận'}
                         </Link>

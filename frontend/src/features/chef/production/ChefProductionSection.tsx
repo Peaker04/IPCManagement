@@ -63,9 +63,9 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
               <th>Khách hàng</th>
               <th>Món</th>
               <th>Ca</th>
-              <th>Suất</th>
+              <th className="text-right">Số suất</th>
               <th>Định lượng</th>
-              <th>Mua dự kiến</th>
+              <th className="text-right">Mua dự kiến</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
@@ -85,9 +85,9 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
                     <td>{line.customerName ?? '-'}</td>
                     <td>{line.dishName ?? line.dishId}</td>
                     <td>{formatShiftName(line.shiftName ?? undefined)}</td>
-                    <td className="ipc-numeric-cell">{line.totalServings}</td>
+                    <td className="ipc-numeric-cell text-right tabular-nums">{line.totalServings}</td>
                     <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
-                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                    <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
                     <td className="ipc-badge-cell">
                       <StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge>
                     </td>

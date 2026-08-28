@@ -2,9 +2,10 @@ import { CalendarCheck, Pencil, PlusCircle, Save } from 'lucide-react';
 import { TableViewport, ContextStrip, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDateOnly } from '@/lib/formatters';
 import { formatMenuVersionStatus, formatShiftName } from '@/lib/workflowConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
@@ -177,11 +178,10 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   </label>
                 </div>
 
-                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 cursor-pointer">
+                  <Checkbox
                     checked={contractForm.isActive}
-                    onChange={(event) => setContractForm((prev) => ({ ...prev, isActive: event.target.checked }))}
+                    onCheckedChange={(checked) => setContractForm((prev) => ({ ...prev, isActive: checked === true }))}
                   />
                   Khách hàng đang hoạt động
                 </label>
@@ -201,8 +201,8 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                         <th>Ngày làm việc</th>
                         <th>Ca</th>
                         <th>Hiệu lực</th>
-                        <th>Đơn giá / mức BOM</th>
-                        <th>BOM áp dụng</th>
+                        <th className="text-right">Đơn giá</th>
+                        <th className="text-right">BOM áp dụng</th>
                         <th>Trạng thái</th>
                       </tr>
                     </thead>
@@ -213,14 +213,14 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                             <div className="font-semibold text-slate-900">{contract.customerName}</div>
                             <div className="text-xs text-slate-500">Mã {contract.customerCode}</div>
                           </td>
-                          <td>{contract.activeWeekDays.join(', ') || '-'}</td>
-                          <td>{contract.shiftNames.map(formatShiftName).join(', ') || '-'}</td>
+                          <td>{contract.activeWeekDays.join(', ') || '—'}</td>
+                          <td>{contract.shiftNames.map(formatShiftName).join(', ') || '—'}</td>
                           <td>
-                            <div>{contract.effectiveFrom ?? '-'}</div>
-                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : 'Không giới hạn'}</div>
+                            <div>{contract.effectiveFrom ? formatDateOnly(contract.effectiveFrom) : '—'}</div>
+                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${formatDateOnly(contract.effectiveTo)}` : 'Không giới hạn'}</div>
                           </td>
-                          <td className="ipc-numeric-cell">{contract.defaultMenuPrice == null ? '-' : formatCurrency(contract.defaultMenuPrice)}</td>
-                          <td className="ipc-numeric-cell">100%</td>
+                          <td className="text-right tabular-nums font-semibold">{contract.defaultMenuPrice == null ? '—' : formatCurrency(contract.defaultMenuPrice)}</td>
+                          <td className="text-right tabular-nums">100%</td>
                           <td>
                             <StatusBadge variant={contract.isActive ? 'success' : 'warning'}>
                               {contract.isActive ? 'Đang dùng' : 'Đã khóa'}
@@ -255,7 +255,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                           ))}
                         </SelectContent>
                       </Select>
-                      <span className="text-[11px] font-medium text-slate-500">
+                      <span className="text-xs font-medium text-slate-500">
                         {selectedSchedule?.sourceImportBatch
                           ? `Lần nhập ${selectedSchedule.sourceImportBatch} · Phiên bản ${selectedSchedule.menuVersionNo ?? '-'} · ${formatMenuVersionStatus(selectedSchedule.menuVersionStatus ?? selectedSchedule.status)}`
                           : `Trạng thái phiên bản: ${formatMenuVersionStatus(selectedSchedule?.status)}`}

@@ -77,12 +77,12 @@ export function PurchaseLineGroups({
         <thead>
           <tr>
             <th>Nguyên liệu</th>
-            <th>Số lượng mua</th>
+            <th className="text-right">Số lượng mua</th>
             <th>Nhà cung cấp</th>
             <th>Bằng chứng hiện tại</th>
-            <th>Giá đề xuất</th>
+            <th className="text-right">Giá đề xuất</th>
             <th>Ngày giao</th>
-            <th>Thao tác</th>
+            <th className="text-right">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -100,12 +100,12 @@ export function PurchaseLineGroups({
             const summary = (
               <tr key={group.key} className={group.lines.some((line) => line.purchaseRequestLineId === selectedLineId) ? 'bg-blue-50/60' : undefined}>
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
-                <td>{formatQuantityWithUnit(group.purchaseQty, group.unitName, { maximumFractionDigits: 3 })}</td>
+                <td className="text-right tabular-nums">{formatQuantityWithUnit(group.purchaseQty, group.unitName, { maximumFractionDigits: 3 })}</td>
                 <td>{uniqueText(group.lines.map((line) => line.supplierName), 'Chưa chọn nhà cung cấp')}</td>
                 <td>{readyCount}/{group.lines.length} dòng đã xác nhận</td>
-                <td>{priceLabel}</td>
+                <td className="text-right tabular-nums">{priceLabel}</td>
                 <td>{uniqueText(group.lines.map((line) => line.currentSupplierDecision?.proposedDeliveryDate ? formatDateOnly(line.currentSupplierDecision.proposedDeliveryDate) : null), 'Chưa có')}</td>
-                <td>
+                <td className="text-right">
                   <Button type="button" variant="outline" size="sm" className="min-h-9 whitespace-nowrap max-md:min-h-11" aria-expanded={group.lines.length > 1 ? expanded : undefined} onClick={() => group.lines.length === 1 ? onLineChange(group.lines[0].purchaseRequestLineId) : setExpandedGroupKey(expanded ? undefined : group.key)}>
                     {group.lines.length === 1 ? (readyCount ? 'Xem quyết định' : 'Xem bằng chứng') : (expanded ? 'Đóng nguồn' : `Xem ${group.lines.length} nguồn`)}
                   </Button>

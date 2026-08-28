@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber } from '@/lib/formatters';
+import { formatNumber, formatPercent, formatQuantity } from '@/lib/formatters';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
@@ -281,12 +281,12 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
-                        <th>Dòng</th>
-                        <th>Món</th>
+                        <th className="w-16">Dòng</th>
+                        <th>Món ăn</th>
                         <th>Nguyên liệu</th>
                         <th>ĐVT</th>
-                        <th>Định lượng/suất</th>
-                        <th>Hao hụt</th>
+                        <th className="text-right">Định lượng/suất</th>
+                        <th className="text-right">Hao hụt</th>
                         <th>Thao tác</th>
                         <th>Trạng thái</th>
                       </tr>
@@ -298,10 +298,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
                           <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
                           <td>{row.unitCode}</td>
-                          <td>{row.grossQtyPerServing}</td>
-                          <td>{row.wasteRatePercent}%</td>
-                          <td>{row.action}</td>
-                          <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors?.[0] ?? row.warnings?.[0] ?? 'Hợp lệ'}</StatusBadge></td>
+                          <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantity(row.grossQtyPerServing)}</td>
+                          <td className="text-right tabular-nums font-medium text-slate-700">{formatPercent(row.wasteRatePercent)}</td>
+                          <td>{row.action === 'INSERT' ? 'Thêm mới' : row.action === 'UPDATE' ? 'Cập nhật' : row.action === 'DELETE' ? 'Xóa' : row.action === 'NONE' ? 'Giữ nguyên' : row.action}</td>
+                          <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.status === 'error' ? (row.errors?.[0] ?? 'Lỗi') : row.status === 'warning' ? (row.warnings?.[0] ?? 'Cảnh báo') : 'Hợp lệ'}</StatusBadge></td>
                         </tr>
                       ))}
                       {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}

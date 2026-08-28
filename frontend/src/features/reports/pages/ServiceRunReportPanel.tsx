@@ -46,7 +46,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
     {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Không thể kết luận tình trạng đóng ca khi projection chứng từ nguồn chưa tải được." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
       <TableViewport ariaLabel="Bảng Ca phục vụ" caption="Các chứng từ nguồn được hiển thị theo từng Ca, không gộp theo tên nguyên liệu." preferences={{ accountId: currentAccountId, config: serviceRunPreferenceConfig }}>
         {({ columns }) => <table className="ipc-data-table ipc-status-action-table min-w-[1240px]">
-          <thead><tr>{columns.map((column) => <th scope="col" key={column.id}>{column.label}</th>)}</tr></thead>
+          <thead><tr>{columns.map((column) => <th scope="col" key={column.id} className={column.id === 'cost' || column.id === 'servings' ? 'text-right' : undefined}>{column.label}</th>)}</tr></thead>
           <tbody>
             {rows.length === 0 ? <tr><td colSpan={columns.length} className="py-8 text-center text-slate-600">Chưa có Ca phục vụ trong phạm vi đang lọc.</td></tr> : rows.map((row) => {
               const { lifecycle, materialRequestCodes, issueCodes, returnCodes, supplementalRequestCodes, materialRequestLineIds, issueLineIds, estimatedPurchaseCost, actualReceivedCost, isCloseSnapshot } = row;
@@ -62,7 +62,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
                 servings: <span className="ipc-numeric-cell tabular-nums">{lifecycle.actualServings ?? '—'} / {lifecycle.plannedServings}</span>,
                 correction: <CorrectionOverlay serviceRunId={lifecycle.serviceRunId} snapshotActual={lifecycle.actualServings} isCloseSnapshot={isCloseSnapshot} />,
               };
-              return <tr key={lifecycle.serviceRunId}>{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
+              return <tr key={lifecycle.serviceRunId}>{columns.map((column) => <td key={column.id} className={column.id === 'cost' || column.id === 'servings' ? 'text-right' : undefined}>{cells[column.id]}</td>)}</tr>;
             })}
           </tbody>
         </table>}

@@ -125,7 +125,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
           <tbody>
             {visibleMovements.map((movement) => (
               <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
-                <td className={cn(typography.code, 'text-[13px] font-semibold text-left text-slate-700')}>
+                <td className={cn(typography.code, 'text-sm font-semibold text-left text-slate-700')}>
                   <div className="flex items-center gap-1.5 justify-start">
                     <span title={movement.documentNo}>
                       {shortenDocumentNo(movement.documentNo)}
@@ -144,7 +144,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                   </div>
                 </td>
                 <td className="ipc-badge-cell">
-                  <span className={cn('ipc-table-badge ipc-table-badge--type rounded-sm border text-[11.5px] font-semibold leading-normal', typeClasses[movement.type])}>
+                  <span className={cn('ipc-table-badge ipc-table-badge--type rounded-sm border text-xs font-semibold leading-normal', typeClasses[movement.type])}>
                     <span className="ipc-table-badge-dot" aria-hidden="true" />
                     <span className="ipc-table-badge-label">{movementLabel[movement.type]}</span>
                   </span>
@@ -153,7 +153,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                 <td className={cn(typography.code, 'text-right font-bold text-slate-900')}>
                   <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-600 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
                   {movement.beforeQty !== undefined && movement.afterQty !== undefined && (
-                    <div className="text-[11px] font-normal text-slate-500">
+                    <div className="text-xs font-normal text-slate-500">
                       {formatQuantity(movement.beforeQty)} -&gt; {formatQuantity(movement.afterQty)}
                     </div>
                   )}
@@ -164,7 +164,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                     {displayWorkflowText(movement.status)}
                   </StatusBadge>
                 </td>
-                <td className="text-slate-600 text-[13px]">{displayWorkflowText(movement.nextAction)}</td>
+                <td className="text-slate-600 text-sm">{displayWorkflowText(movement.nextAction)}</td>
               </tr>
             ))}
           </tbody>

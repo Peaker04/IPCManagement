@@ -37,7 +37,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
               <thead>
                 <tr>
                   <th>Nhóm thống kê</th>
-                  <th>Chỉ số</th>
+                  <th className="text-right">Chỉ số</th>
                   <th>Ý nghĩa vận hành</th>
                   <th>Trạng thái</th>
                   <th>Chuyển xử lý</th>
@@ -46,7 +46,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
               <tbody>
                 <tr>
                   <td className="font-semibold">Workflow thất bại</td>
-                  <td className="ipc-numeric-cell">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
                   <td className="text-left">Dữ liệu nhập, nhu cầu hoặc mua hàng đang bị lỗi và cần điều tra.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
@@ -55,7 +55,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Vấn đề dữ liệu nghiêm trọng</td>
-                  <td className="ipc-numeric-cell">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
                   <td className="text-left">Lỗi dữ liệu cần xử lý trước khi tiếp tục vận hành.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(Boolean(operationalKpis?.criticalDataQualityCount), 'Đang chặn', 'Đạt')}
@@ -64,7 +64,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Approval chờ lâu</td>
-                  <td className="ipc-numeric-cell">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
                   <td className="text-left">Phiếu chưa có quyết định sau 24 giờ hoặc đã qua ngày yêu cầu.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(Boolean(operationalKpis?.overdueApprovalCount), 'Quá SLA', 'Trong SLA', 'warning')}
@@ -73,7 +73,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Nhu cầu nguyên liệu</td>
-                  <td className="ipc-numeric-cell">{shortageCount} dòng thiếu</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{shortageCount} dòng thiếu</td>
                   <td className="text-left">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(Boolean(shortageCount), `${shortageCount} thiếu`, 'Đủ tồn', 'warning')}
@@ -82,7 +82,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Kế hoạch thu mua</td>
-                  <td className="ipc-numeric-cell">{formatQuantity(totalPurchaseQty)} SL thiếu</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalPurchaseQty)} SL thiếu</td>
                   <td className="text-left">Đề xuất mua cho các ngày thiếu nguyên liệu sau kiểm tồn.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(Boolean(totalPurchaseQty), 'Có đề xuất mua', 'Không cần mua', 'warning')}
@@ -91,7 +91,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Xuất bếp</td>
-                  <td className="ipc-numeric-cell">{formatQuantity(totalIssuedQty)} đã xuất</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalIssuedQty)} đã xuất</td>
                   <td className="text-left">Tổng số lượng đã xuất cho bếp theo ca trong ngày.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(!totalIssuedQty, 'Chưa xuất bếp', 'Đã xuất', 'neutral')}
@@ -100,7 +100,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Thực tế sử dụng tại bếp</td>
-                  <td className="ipc-numeric-cell">{formatQuantity(totalUsedQty)} đã dùng</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalUsedQty)} đã dùng</td>
                   <td className="text-left">Số lượng bếp thực tế đã nấu và ghi nhận.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(!totalUsedQty, 'Chưa ghi nhận dùng', 'Đã ghi nhận', 'neutral')}
@@ -109,7 +109,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="font-semibold">Hoàn kho từ bếp</td>
-                  <td className="ipc-numeric-cell">{formatQuantity(totalReturnedQty)} hoàn kho</td>
+                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalReturnedQty)} hoàn kho</td>
                   <td className="text-left">Nguyên liệu thừa được lập phiếu hoàn về kho.</td>
                   <td className="ipc-badge-cell">
                     {renderKpiStatus(Boolean(totalReturnedQty), 'Có hoàn kho', 'Không hoàn kho', 'neutral')}
@@ -128,7 +128,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 <tr>
                   <th>Kho</th>
                   <th>Nguyên liệu</th>
-                  <th>Số lượng</th>
+                  <th className="text-right">Số lượng</th>
                   <th>Cập nhật</th>
                 </tr>
               </thead>
@@ -137,7 +137,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                   <tr key={`${row.warehouseId}-${row.ingredientId}`}>
                     <td>{row.warehouse}</td>
                     <td>{row.ingredient}</td>
-                    <td className="ipc-numeric-cell font-medium">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
+                    <td className="ipc-numeric-cell text-right tabular-nums font-medium">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
                     <td>{formatDateTime(row.lastUpdated)}</td>
                   </tr>
                 ))}
@@ -159,9 +159,9 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 <tr>
                   <th>Nguyên liệu</th>
                   <th>Nhà cung cấp</th>
-                  <th>Giá trước</th>
-                  <th>Giá hiện tại</th>
-                  <th>Mức tăng</th>
+                  <th className="text-right">Giá trước</th>
+                  <th className="text-right">Giá hiện tại</th>
+                  <th className="text-right">Mức tăng</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,9 +169,9 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                   <tr key={`${row.id}-${index}`}>
                     <td>{row.name}</td>
                     <td>{row.supplier}</td>
-                    <td className="ipc-numeric-cell">{formatCurrency(row.pricePrev)}</td>
-                    <td className="ipc-numeric-cell">{formatCurrency(row.priceCurrent)}</td>
-                    <td className="ipc-numeric-cell font-bold text-[var(--ipc-danger)]">+{formatPercent(row.change, 1)}</td>
+                    <td className="ipc-numeric-cell text-right tabular-nums">{formatCurrency(row.pricePrev)}</td>
+                    <td className="ipc-numeric-cell text-right tabular-nums">{formatCurrency(row.priceCurrent)}</td>
+                    <td className="ipc-numeric-cell text-right tabular-nums font-bold text-[var(--ipc-danger)]">+{formatPercent(row.change, 1)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -218,6 +218,7 @@ const MainLayoutContent = () => {
             </div>
           )}
           <button
+            type="button"
             onClick={handleLogout}
             className="ipc-logout-button"
           >

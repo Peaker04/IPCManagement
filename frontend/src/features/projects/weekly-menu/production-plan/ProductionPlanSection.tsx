@@ -59,7 +59,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
           <EmptyState
             variant="error"
             title="Không tải được kế hoạch sản xuất"
-            description={status.errorMessage ?? 'Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì tuần này chưa có kế hoạch sản xuất. Hãy tải lại trước khi kết luận.'}
+            description={status.errorMessage ?? 'Vui lòng thử tải lại hoặc kiểm tra kết nối mạng.'}
             onRetry={actions.retry}
             isRetrying={status.isRetrying}
           />
@@ -105,7 +105,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                           <tr key={line.planLineId}>
                             <td>{getShiftLabel(line.shiftName ?? undefined)}</td>
                             <td>{line.dishName ?? '-'}</td>
-                            <td className="text-right font-medium">{formatNumber(line.totalServings)} suất</td>
+                            <td className="text-right tabular-nums font-medium">{formatNumber(line.totalServings)} suất</td>
                           </tr>
                         ))}
                       </tbody>

@@ -10,15 +10,7 @@ import {
 
 const production = readProductionSources()
 
-const checkboxExceptionLocations = [
-  'src/app/pages/admin-data/AdminContractsPanel.tsx:181',
-  'src/app/pages/admin-data/AdminEmployeesPanel.tsx:107',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:418',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:517',
-  'src/features/chef/production/ServiceRunSection.tsx:161',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:411',
-  'src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:269',
-]
+const checkboxExceptionLocations: string[] = []
 
 const fileExceptionLocations = [
   'src/app/pages/admin-data/AdminBomPanel.tsx:130',
@@ -31,9 +23,9 @@ const pathExceptionLocations = [
   'src/components/ui/input.tsx:93',
   'src/components/ui/textarea.tsx:7',
   'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
-  'src/features/chef/production/ServiceRunSection.tsx:156',
-  'src/features/chef/production/ServiceRunSection.tsx:173',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:383',
+  'src/features/chef/production/ServiceRunSection.tsx:157',
+  'src/features/chef/production/ServiceRunSection.tsx:174',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:384',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
@@ -65,7 +57,9 @@ describe('form primitive convergence', () => {
       ...fileExceptionLocations,
       ...pathExceptionLocations,
     ])
-    expect(findingLocations(allControls).filter((location) => exceptionLocations.has(location))).toHaveLength(17)
+    expect(findingLocations(allControls).filter((location) => exceptionLocations.has(location))).toHaveLength(
+      fileExceptionLocations.length + pathExceptionLocations.length,
+    )
 
     const residuals = allControls.filter((finding) =>
       !exceptionLocations.has(`${finding.path}:${finding.line}`),

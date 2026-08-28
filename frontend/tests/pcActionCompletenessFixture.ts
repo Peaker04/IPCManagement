@@ -118,7 +118,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'spinbutton',
         /^Suất dự kiến của /,
-        'frontend/src/features/coordination/components/order-table.tsx:357',
+        'frontend/src/features/coordination/components/order-table.tsx:358',
       ),
       source: coordinationSource(
         'update-forecast',
@@ -180,7 +180,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'spinbutton',
         /^Suất thực tế của /,
-        'frontend/src/features/coordination/components/order-table.tsx:385',
+        'frontend/src/features/coordination/components/order-table.tsx:388',
       ),
       source: coordinationSource(
         'request-adjustment',

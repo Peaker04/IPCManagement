@@ -281,30 +281,30 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
         <table className="ipc-data-table ipc-order-table">
           <thead>
             <tr>
-              <th className="w-[120px] whitespace-nowrap border-r border-slate-200 text-left">
-                Khách Hàng
+              <th className="w-[140px] whitespace-nowrap border-r border-slate-200 text-left">
+                Khách hàng
               </th>
-              <th className="w-[210px] whitespace-nowrap border-r border-slate-200 text-left">
-                Thực Đơn
+              <th className="w-[200px] whitespace-nowrap border-r border-slate-200 text-left">
+                Thực đơn
               </th>
               <th className="w-[260px] whitespace-nowrap border-r border-slate-200 text-left">
-                Món Ăn
+                Món ăn
               </th>
-              <th className="w-[90px] whitespace-nowrap border-r border-slate-200 text-center">
-                Dự Kiến
+              <th className="w-[100px] whitespace-nowrap border-r border-slate-200 text-right">
+                Dự kiến
               </th>
-              <th className="w-[90px] whitespace-nowrap border-r border-slate-200 text-center">
-                Thực Tế
+              <th className="w-[100px] whitespace-nowrap border-r border-slate-200 text-right">
+                Thực tế
               </th>
-              <th className="w-[100px] whitespace-nowrap text-center">
-                Chênh Lệch
+              <th className="w-[100px] whitespace-nowrap text-right">
+                Chênh lệch
               </th>
             </tr>
           </thead>
           <tbody>
             {pageOrders.length === 0 ? (
               <tr><td colSpan={6} className="py-8 text-center text-slate-500">Không tìm thấy đơn phù hợp.</td></tr>
-            ) : pageOrders.map((order, idx) => {
+            ) : pageOrders.map((order) => {
               const finalQuantity = useFinalServings ? order.actualQuantity : order.forecastQuantity
               const variance = finalQuantity - order.forecastQuantity
               const uniqueDishes = Array.from(
@@ -313,7 +313,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
               const leadDish = uniqueDishes.find((dish) => dish.dishSlot?.toLowerCase().endsWith('-main')) ?? uniqueDishes[0]
 
               return (
-            <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--ipc-slate-50)]'}`}>
+            <tr key={order.id} className="border-b border-slate-200/80 bg-white transition-colors hover:bg-blue-50/40">
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
                 <div className={`${typography.code} mt-0.5 text-xs text-slate-600`}>{order.customerCode}</div>
@@ -352,93 +352,93 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                 </div>
               </td>
 
-              <td className="border-r border-slate-200 text-center">
-                <Input
-                  aria-label={`Suất dự kiến của ${order.customerName}`}
-                  type="number"
-                  min="0"
-                  max="9999"
-                  disabled={!canEditForecast || pendingForecastOrderIds[order.id]}
-                  title={!canEditForecast ? 'Ca đã khóa số suất dự kiến; mở lại ca trước khi điều chỉnh.' : pendingForecastOrderIds[order.id] ? 'Đang lưu số suất dự kiến.' : undefined}
-                  value={order.forecastQuantity}
-                  onFocus={() => rememberForecastValue(order)}
-                  onBlur={(e) =>
-                    handleForecastQuantitySave(order, parseServingInput(e.target.value))
-                  }
-                  onChange={(e) =>
-                    handleOrderChange({
-                      id: order.id,
-                      field: 'forecastQuantity',
-                      value: parseServingInput(e.target.value),
-                    })
-                  }
-                  className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
-                    !canEditForecast
-                      ? 'cursor-default border-transparent bg-transparent text-slate-700'
-                      : 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100'
-                  } ${pendingForecastOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
-                />
-              </td>
-
-              <td className="border-r border-slate-200 text-center">
-                <Input
-                  aria-label={`Suất thực tế của ${order.customerName}`}
-                  type="number"
-                  min="0"
-                  max="9999"
-                  disabled={!canRequestAdjustment || pendingOrderIds[order.id]}
-                  title={!canRequestAdjustment ? 'Ca đã hoàn tất; dùng luồng yêu cầu điều chỉnh nếu cần thay đổi.' : pendingOrderIds[order.id] ? 'Đang lưu số suất thực tế.' : undefined}
-                  value={actualQuantityDrafts[order.id] ?? order.actualQuantity}
-                  onChange={(event) => setActualQuantityDrafts((current) => ({
-                    ...current,
-                    [order.id]: parseServingInput(event.target.value),
-                  }))}
-                  onBlur={(event) => void handleActualQuantitySave(order, parseServingInput(event.target.value))}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      event.currentTarget.blur()
+              <td className="border-r border-slate-200 text-right">
+                <div className="flex justify-end">
+                  <Input
+                    aria-label={`Suất dự kiến của ${order.customerName}`}
+                    type="number"
+                    min="0"
+                    max="9999"
+                    disabled={!canEditForecast || pendingForecastOrderIds[order.id]}
+                    title={!canEditForecast ? 'Ca đã khóa số suất dự kiến; mở lại ca trước khi điều chỉnh.' : pendingForecastOrderIds[order.id] ? 'Đang lưu số suất dự kiến.' : undefined}
+                    value={order.forecastQuantity}
+                    onFocus={() => rememberForecastValue(order)}
+                    onBlur={(e) =>
+                      handleForecastQuantitySave(order, parseServingInput(e.target.value))
                     }
-                    if (event.key === 'Escape') {
-                      setActualQuantityDrafts((current) => {
-                        const next = { ...current }
-                        delete next[order.id]
-                        return next
+                    onChange={(e) =>
+                      handleOrderChange({
+                        id: order.id,
+                        field: 'forecastQuantity',
+                        value: parseServingInput(e.target.value),
                       })
                     }
-                  }}
-                  className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
-                    canRequestAdjustment
-                      ? 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100'
-                      : 'cursor-default border-transparent bg-transparent text-slate-700'
-                  } ${pendingOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
-                />
+                    className={`min-h-9 w-20 rounded-md border px-2 py-1.5 text-right tabular-nums font-semibold transition-colors ${
+                      !canEditForecast
+                        ? 'cursor-default border-transparent bg-transparent text-slate-800'
+                        : 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100'
+                    } ${pendingForecastOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
+                  />
+                </div>
               </td>
 
-              <td className="text-center">
-                <span
-                  className={`inline-flex items-center gap-0.5 min-w-12 justify-center rounded-md border px-1.5 py-1 text-label font-bold ${
-                    variance === 0
-                      ? 'border-teal-200 bg-teal-50 text-teal-800'
-                      : variance < 0
-                        ? 'border-red-200 bg-red-50 text-red-700'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
-                  }`}
-                >
-                  {variance < 0 ? (
-                    <>
-                      <span className="text-[9px]">▼</span>
+              <td className="border-r border-slate-200 text-right">
+                <div className="flex justify-end">
+                  <Input
+                    aria-label={`Suất thực tế của ${order.customerName}`}
+                    type="number"
+                    min="0"
+                    max="9999"
+                    disabled={!canRequestAdjustment || pendingOrderIds[order.id]}
+                    title={!canRequestAdjustment ? 'Ca đã hoàn tất; dùng luồng yêu cầu điều chỉnh nếu cần thay đổi.' : pendingOrderIds[order.id] ? 'Đang lưu số suất thực tế.' : undefined}
+                    value={actualQuantityDrafts[order.id] ?? order.actualQuantity}
+                    onChange={(event) => setActualQuantityDrafts((current) => ({
+                      ...current,
+                      [order.id]: parseServingInput(event.target.value),
+                    }))}
+                    onBlur={(event) => void handleActualQuantitySave(order, parseServingInput(event.target.value))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                      if (event.key === 'Escape') {
+                        setActualQuantityDrafts((current) => {
+                          const next = { ...current }
+                          delete next[order.id]
+                          return next
+                        })
+                      }
+                    }}
+                    className={`min-h-9 w-20 rounded-md border px-2 py-1.5 text-right tabular-nums font-semibold transition-colors ${
+                      canRequestAdjustment
+                        ? 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100'
+                        : 'cursor-default border-transparent bg-transparent text-slate-800'
+                    } ${pendingOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
+                  />
+                </div>
+              </td>
+
+              <td className="text-right">
+                <div className="flex justify-end">
+                  <span
+                    className={`inline-flex items-center gap-1 min-w-14 justify-center rounded-md border px-2 py-1 text-xs tabular-nums font-bold ${
+                      variance === 0
+                        ? 'border-teal-200 bg-teal-50 text-teal-800'
+                        : variance < 0
+                          ? 'border-red-200 bg-red-50 text-red-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-800'
+                    }`}
+                  >
+                    {variance < 0 ? (
                       <span>{variance}</span>
-                    </>
-                  ) : variance > 0 ? (
-                    <>
-                      <span className="text-[9px]">▲</span>
+                    ) : variance > 0 ? (
                       <span>+{variance}</span>
-                    </>
-                  ) : (
-                    <span>0</span>
-                  )}
-                </span>
+                    ) : (
+                      <span>0</span>
+                    )}
+                  </span>
+                </div>
               </td>
             </tr>
               )

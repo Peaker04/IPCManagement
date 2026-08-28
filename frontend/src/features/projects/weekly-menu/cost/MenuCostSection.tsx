@@ -1,13 +1,9 @@
 import { CalendarDays, CheckCircle2, ChevronDown, Scale, TriangleAlert } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { ContextStrip, SectionPanel, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatNumber, formatQuantity } from '@/lib/formatters'
 import { formatMaterialDishSource } from '../model/formatters'
 import type { MenuCostWorkflow } from './useMenuCost'
-
-const tableHeadClass = 'text-center'
-const tableCellClass = 'text-center'
 
 const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
   const { scope, actions, presentation } = workflow
@@ -44,24 +40,24 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
         <TableViewport caption={`Giá vốn món ngày ${activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}`} size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
           <table className="ipc-data-table ipc-cost-table table-fixed w-full">
             <thead><tr>
-              <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>
-              <th style={{ width: '14%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
-              <th style={{ width: showBomStatus ? '27%' : '35%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món trong kế hoạch</th>
-              <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
-              <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Đơn giá vốn</th>
-              <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Thành tiền</th>
-              {showBomStatus && <th style={{ width: '13%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>}
+              <th style={{ width: '10%' }} className="sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap">Ca</th>
+              <th style={{ width: '14%' }} className="sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap">Dòng</th>
+              <th style={{ width: showBomStatus ? '27%' : '35%' }} className="sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap">Món trong kế hoạch</th>
+              <th style={{ width: '12%' }} className="sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap">Suất</th>
+              <th style={{ width: '16%' }} className="sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap">Đơn giá vốn</th>
+              <th style={{ width: '18%' }} className="sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap">Thành tiền</th>
+              {showBomStatus && <th style={{ width: '13%' }} className="sticky top-0 z-10 bg-slate-100 text-center whitespace-nowrap">BOM</th>}
             </tr></thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={`cost-${row.key}`} className="table-row">
-                  <td className={tableCellClass}>{row.shiftLabel}</td>
-                  <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
-                  <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
-                  <td className={tableCellClass}>{formatNumber(row.portions)}</td>
-                  <td className={tableCellClass}>{row.hasCatalogBom ? formatCurrency(row.unitCost) : '-'}</td>
-                  <td className={`${tableCellClass} font-semibold`}>{row.hasCatalogBom ? formatCurrency(row.unitCost * row.portions) : '-'}</td>
-                  {showBomStatus && <td className={tableCellClass}>{row.hasCatalogBom
+                  <td className="text-left">{row.shiftLabel}</td>
+                  <td className="text-left">{row.slotLabel}</td>
+                  <td className="text-left font-semibold text-slate-900">{row.dishName}</td>
+                  <td className="text-right tabular-nums">{formatNumber(row.portions)}</td>
+                  <td className="text-right tabular-nums">{row.hasCatalogBom ? formatCurrency(row.unitCost) : '—'}</td>
+                  <td className="text-right tabular-nums font-semibold text-slate-900">{row.hasCatalogBom ? formatCurrency(row.unitCost * row.portions) : '—'}</td>
+                  {showBomStatus && <td className="text-center">{row.hasCatalogBom
                     ? <span className="ipc-inline-status"><CheckCircle2 size={15} aria-hidden="true" />Đã có BOM</span>
                     : <span className="ipc-inline-status is-warning"><TriangleAlert size={15} aria-hidden="true" />Chưa có BOM</span>}
                   </td>}
@@ -80,16 +76,25 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
           <TableViewport caption="Nguyên liệu theo món đang hiển thị trong ngày" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
             <table className="ipc-data-table ipc-cost-table">
               <thead><tr>
-                {['Nguyên liệu', 'ĐV', 'LT ngày', 'TT ngày', 'Món trong kế hoạch', 'Đơn giá', 'Thành tiền ngày'].map((label) => <th key={label} className={cn(tableHeadClass, 'sticky top-0 z-10 bg-slate-100', (label === 'Nguyên liệu' || label === 'Món trong kế hoạch') && 'text-left')}>{label}</th>)}
+                <th className="sticky top-0 z-10 bg-slate-100 text-left">Nguyên liệu</th>
+                <th className="sticky top-0 z-10 bg-slate-100 text-center">ĐVT</th>
+                <th className="sticky top-0 z-10 bg-slate-100 text-right">LT ngày</th>
+                <th className="sticky top-0 z-10 bg-slate-100 text-right">TT ngày</th>
+                <th className="sticky top-0 z-10 bg-slate-100 text-left">Món trong kế hoạch</th>
+                <th className="sticky top-0 z-10 bg-slate-100 text-right">Đơn giá</th>
+                <th className="sticky top-0 z-10 bg-slate-100 text-right">Thành tiền ngày</th>
               </tr></thead>
               <tbody>
                 {Object.entries(materialSummary).map(([identityKey, data]) => {
                   if (data.theory === 0) return null
                   return <tr key={`day-material-${identityKey}`} className="table-row">
-                    <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td>
-                    <td className={tableCellClass}>{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td><td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
-                    <td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
-                    <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
+                    <td className="text-left font-bold text-slate-900">{data.ingredientName}</td>
+                    <td className="text-center">{data.unit}</td>
+                    <td className="text-right tabular-nums">{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
+                    <td className="text-right tabular-nums font-bold text-[var(--ipc-primary-600)]">{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
+                    <td className="text-left font-medium text-slate-800" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
+                    <td className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
+                    <td className="text-right tabular-nums font-bold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
                   </tr>
                 })}
                 {materialCount === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra định lượng nguyên liệu của các món.</td></tr>}

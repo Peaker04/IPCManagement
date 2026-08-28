@@ -16,7 +16,7 @@ import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'
 import { visibleTabIds } from '@/lib/navigationPreferences'
 
-const ChefShiftControls = lazy(() => import('./ChefShiftControls').then(({ ChefShiftControls: component }) => ({ default: component })))
+import { ChefShiftControls } from './ChefShiftControls'
 const ChefProductionSection = lazy(() => import('../production/ChefProductionSection').then(({ ChefProductionSection: component }) => ({ default: component })))
 const ServiceRunSection = lazy(() => import('../production/ServiceRunSection').then(({ ServiceRunSection: component }) => ({ default: component })))
 const KitchenReceiptSection = lazy(() => import('../receipts/KitchenReceiptSection').then(({ KitchenReceiptSection: component }) => ({ default: component })))
@@ -82,7 +82,7 @@ export default function ChefDashboardPage() {
 
   return (
     <OperationalFrame
-      command={<CommandBar><Suspense fallback={<div aria-hidden="true" className="min-h-8 w-72 rounded-md bg-slate-50" />}><ChefShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></Suspense></CommandBar>}
+      command={<CommandBar><ChefShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></CommandBar>}
       context={(
         <>
           <ContextStrip items={[

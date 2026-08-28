@@ -168,7 +168,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                         <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>
                         <td className="text-right">
                           <span className={item.warning ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-warning)]' : 'inline-flex w-full items-center justify-end gap-1 text-slate-600'}>
-                            {item.change > 0 && <span className="inline-block text-[10px] text-inherit">▲</span>}
+                            {item.change > 0 && <span className="inline-block text-xs text-inherit">▲</span>}
                             {item.change > 0 ? `+${formatPercent(item.change)}` : '0%'}
                           </span>
                           <div className="mt-1 flex items-center justify-end gap-2">

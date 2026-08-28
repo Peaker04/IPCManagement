@@ -21,7 +21,7 @@ export function ChefDocumentsSection({ movements, documents, isError = false, is
           <EmptyState
             variant="error"
             title="Không tải được chứng từ và luân chuyển của bếp"
-            description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì ca này chưa có phiếu xuất hay phiếu trả. Hãy tải lại trước khi đối chiếu nguyên liệu đã nhận."
+            description="Vui lòng thử tải lại để nạp chứng từ và luân chuyển của bếp."
             onRetry={onRetry}
             isRetrying={isRetrying}
           />

@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { formatShiftName, formatWorkflowStatus } from '@/lib/workflowConfig';
@@ -282,7 +283,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         <QueryViewBoundary queries={[{ label: 'yêu cầu cấp bổ sung', view: supplementalView }]} refreshLabel="Đang cập nhật yêu cầu cấp bổ sung">
         <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Trạng thái và eligibility thao tác do máy chủ cung cấp.">
           <table className="ipc-data-table min-w-[980px]">
-            <thead><tr><th>Yêu cầu</th><th>Nguyên liệu</th><th>Đã cấp / yêu cầu</th><th>Tồn khả dụng</th><th>Trạng thái</th><th>Hướng xử lý</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Yêu cầu</th><th>Nguyên liệu</th><th className="text-right">Đã cấp / yêu cầu</th><th className="text-right">Tồn khả dụng</th><th>Trạng thái</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {supplementalItems.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
@@ -290,16 +291,16 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
                 <tr key={item.requestId}>
                   <td><span className="block font-semibold text-slate-950">{item.requestCode}</span><span className="text-xs text-slate-600">Từ {item.issueCode}</span></td>
                   <td><span className="block font-medium text-slate-900">{item.ingredientName}</span><span className="text-xs text-slate-600">{item.reason || 'Không có ghi chú'}</span></td>
-                  <td>{formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })} / {formatQuantityWithUnit(item.requestedQty, item.unitName, { maximumFractionDigits: 6 })}</td>
-                  <td>{formatQuantityWithUnit(item.availableQty, item.unitName, { maximumFractionDigits: 6 })}</td>
+                  <td className="text-right tabular-nums">{formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })} / {formatQuantityWithUnit(item.requestedQty, item.unitName, { maximumFractionDigits: 6 })}</td>
+                  <td className="text-right tabular-nums">{formatQuantityWithUnit(item.availableQty, item.unitName, { maximumFractionDigits: 6 })}</td>
                   <td>{formatWorkflowStatus(item.status)}{item.purchaseRequestCode && <span className="block text-xs text-slate-600">{item.purchaseRequestCode}: {formatWorkflowStatus(item.purchaseRequestStatus || '')}</span>}</td>
                   <td className="max-w-[240px] text-xs text-slate-700">
                     {item.remainingQty > 0 && <span className="block font-medium text-slate-900">Còn thiếu {formatQuantityWithUnit(item.remainingQty, item.unitName, { maximumFractionDigits: 6 })}</span>}
                     {item.actionDisabledReason || (item.availableQty >= item.remainingQty ? 'Cấp đủ phần còn thiếu.' : 'Cấp phần đang có, chuyển phần thiếu sang thu mua.')}
                   </td>
-                  <td>
+                  <td className="text-right">
                     {canManage ? (
-                      <div className="flex min-w-[250px] flex-wrap gap-2">
+                      <div className="flex min-w-[250px] justify-end flex-wrap gap-2">
                         <Button type="button" size="sm" disabled={!item.canFulfill || fulfillState.isLoading} onClick={() => openFulfill(item)}>Cấp bổ sung</Button>
                         <Button type="button" size="sm" variant="outline" disabled={!item.canRouteToPurchasing || routeState.isLoading} onClick={() => void submitRouteToPurchasing(item)}><ArrowRight size={15} aria-hidden="true" /> Chuyển thu mua</Button>
                         <Button type="button" size="sm" variant="ghost" disabled={!item.canReject || rejectState.isLoading} onClick={() => { setFeedback(undefined); setRejectValidation(undefined); setRejectError(undefined); setRejecting(item); setRejectReason(''); }}>Từ chối</Button>
@@ -319,9 +320,9 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         <QueryViewBoundary queries={[{ label: 'đối soát nguyên liệu theo dòng chứng từ', view: allocationView }]} refreshLabel="Đang cập nhật số liệu đối soát">
           <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Quyết định điều chuyển giữa khách hàng chỉ xuất hiện khi hệ thống xác nhận đủ điều kiện.">
             <table className="ipc-data-table min-w-[1120px]">
-              <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th>Đã xuất</th><th>Đã trả</th><th>Hao hụt</th><th>Còn dư</th><th>Hướng xử lý</th><th>Thao tác</th></tr></thead>
+              <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Đã xuất</th><th className="text-right">Đã trả</th><th className="text-right">Hao hụt</th><th className="text-right">Còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
               <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationRows.map((row) => (
-                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td>{formatQuantityWithUnit(row.issuedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{formatQuantityWithUnit(row.returnedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{formatQuantityWithUnit(row.wastedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{formatQuantityWithUnit(row.excessQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td>{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
+                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.issuedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.returnedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.wastedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.excessQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
               ))}</tbody>
             </table>
           </TableViewport>
@@ -343,7 +344,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         <QueryViewBoundary queries={[{ label: 'phiếu trả', view: returnsView }]} refreshLabel="Đang cập nhật phiếu trả">
         <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Kho mở từng phiếu để kiểm đếm số thực nhận.">
           <table className="ipc-data-table min-w-[820px]">
-            <thead><tr><th>Phiếu trả</th><th>Loại</th><th>Phiếu xuất gốc</th><th>Ngày/ca</th><th>Lý do</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Phiếu trả</th><th>Loại</th><th>Phiếu xuất gốc</th><th>Ngày/ca</th><th>Lý do</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {returnItems.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có phiếu trả hoặc hao hụt đang chờ kho.</td></tr>
@@ -355,7 +356,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
                   <td>{item.returnDate}{item.shiftName ? ` · ${item.shiftName}` : ''}</td>
                   <td className="max-w-[280px]">{item.reason}</td>
                   <td>{formatWorkflowStatus(item.status)}</td>
-                  <td><Button type="button" size="sm" disabled={!canManage} onClick={() => { setFeedback(undefined); setDiscrepancyValidation(undefined); setAdjustedQuantityErrors({}); setReturnError(undefined); setSelectedReturnId(item.returnId); setAdjustedQuantities({}); setHasDiscrepancy(false); setDiscrepancyNote(''); }}><PackageCheck size={15} aria-hidden="true" /> Tiếp nhận</Button></td>
+                  <td className="text-right"><Button type="button" size="sm" disabled={!canManage} onClick={() => { setFeedback(undefined); setDiscrepancyValidation(undefined); setAdjustedQuantityErrors({}); setReturnError(undefined); setSelectedReturnId(item.returnId); setAdjustedQuantities({}); setHasDiscrepancy(false); setDiscrepancyNote(''); }}><PackageCheck size={15} aria-hidden="true" /> Tiếp nhận</Button></td>
                 </tr>
               ))}
             </tbody>
@@ -368,7 +369,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       {Boolean(selectedSupplemental) && (
         <Dialog open={Boolean(selectedSupplemental)} onOpenChange={(open) => { if (!open) { setSelectedSupplemental(undefined); setFulfillValidation(undefined); setFulfillError(undefined); } }}>
           <DialogContent aria-labelledby="supplemental-fulfill-title" aria-describedby="supplemental-fulfill-description">
-            <DialogHeader><DialogTitle id="supplemental-fulfill-title">Cấp nguyên liệu bổ sung</DialogTitle><DialogDescription id="supplemental-fulfill-description">Tạo phiếu xuất bổ sung thật và trừ tồn kho ngay khi xác nhận.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle id="supplemental-fulfill-title">Cấp nguyên liệu bổ sung</DialogTitle><DialogDescription id="supplemental-fulfill-description">Lập phiếu xuất kho bổ sung và cập nhật trừ tồn kho ngay.</DialogDescription></DialogHeader>
             {selectedSupplemental && <div className="grid gap-2"><label htmlFor="supplemental-quantity" className="text-sm font-medium text-slate-900">Số lượng cấp ({formatUnit(selectedSupplemental.unitName)})</label><Input id="supplemental-quantity" type="number" min="0.000001" max={Math.min(selectedSupplemental.remainingQty, selectedSupplemental.availableQty)} step="any" aria-invalid={Boolean(fulfillValidation) || undefined} aria-describedby={fulfillValidation ? 'supplemental-quantity-error' : undefined} value={fulfillQty} onChange={(event) => { setFulfillQty(event.target.value); setFulfillValidation(undefined); }} />{fulfillValidation && <p id="supplemental-quantity-error" className="text-xs text-red-700"><span className="font-semibold">{fulfillValidation.title}</span>{' '}{fulfillValidation.message}</p>}<p className="text-xs text-slate-600">Còn thiếu {formatQuantityWithUnit(selectedSupplemental.remainingQty, selectedSupplemental.unitName, { maximumFractionDigits: 6 })}; tồn khả dụng {formatQuantityWithUnit(selectedSupplemental.availableQty, selectedSupplemental.unitName, { maximumFractionDigits: 6 })}.</p></div>}
             {fulfillError && <div role="alert"><InlineAlert title={fulfillError.title} variant="danger">{fulfillError.message}</InlineAlert></div>}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedSupplemental(undefined)}>Hủy</Button><Button type="button" disabled={fulfillState.isLoading} onClick={() => void submitFulfill()}>{fulfillState.isLoading ? 'Đang tạo phiếu...' : 'Xác nhận cấp'}</Button></DialogFooter>
@@ -379,7 +380,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       {Boolean(selectedAllocation) && (
         <Dialog open={Boolean(selectedAllocation)} onOpenChange={(open) => { if (!open) setSelectedAllocation(undefined); }}>
           <DialogContent aria-labelledby="allocation-disposition-title" aria-describedby="allocation-disposition-description">
-            <DialogHeader><DialogTitle id="allocation-disposition-title">Điều phối nguyên liệu còn dư</DialogTitle><DialogDescription id="allocation-disposition-description">Chuyển phần dư sang một khách hàng khác có cùng nguyên liệu và đơn vị. Lý do và người thực hiện sẽ được lưu trong lịch sử.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle id="allocation-disposition-title">Điều phối nguyên liệu còn dư</DialogTitle><DialogDescription id="allocation-disposition-description">Chuyển số lượng còn dư sang khách hàng khác có cùng nguyên liệu.</DialogDescription></DialogHeader>
             {selectedAllocation && <div className="grid gap-3"><p className="text-sm text-slate-700"><span className="block font-medium text-slate-950">{selectedAllocation.ingredientName || 'Nguyên liệu chưa xác định'}</span>{allocationScopeLabel(selectedAllocation)} · Còn dư {formatQuantityWithUnit(selectedAllocation.excessQuantity, selectedAllocation.unitName ?? '')}</p><label className="grid gap-1 text-sm font-medium" htmlFor="allocation-destination">Chuyển sang phạm vi<select id="allocation-destination" className="h-9 rounded-md border border-slate-300 px-2" value={destinationSourceLineId} onChange={(event) => setDestinationSourceLineId(event.target.value)}><option value="">Chọn khách hàng và ca nhận</option>{allocationRows.filter((row) => row.sourceIssueLineId !== selectedAllocation.sourceIssueLineId && row.customerId !== selectedAllocation.customerId && row.ingredientId === selectedAllocation.ingredientId && row.unitId === selectedAllocation.unitId).map((row) => <option key={row.sourceIssueLineId} value={row.sourceIssueLineId}>{allocationScopeLabel(row)} · {row.ingredientName || 'Nguyên liệu chưa xác định'}</option>)}</select></label><label className="grid gap-1 text-sm font-medium" htmlFor="allocation-quantity">Số lượng điều phối ({formatUnit(selectedAllocation.unitName ?? '')})<Input id="allocation-quantity" type="number" min="0.000001" max={selectedAllocation.excessQuantity} step="any" value={allocationQuantity} onChange={(event) => setAllocationQuantity(event.target.value)} /></label><label className="grid gap-1 text-sm font-medium" htmlFor="allocation-reason">Lý do<Textarea id="allocation-reason" value={allocationReason} onChange={(event) => setAllocationReason(event.target.value)} /></label>{allocationError && <InlineAlert title={allocationError.title} variant="danger">{allocationError.message}</InlineAlert>}</div>}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedAllocation(undefined)}>Hủy</Button><Button type="button" disabled={allocationDispositionState.isLoading} onClick={() => void submitDisposition()}>{allocationDispositionState.isLoading ? 'Đang ghi nhận...' : 'Xác nhận điều phối'}</Button></DialogFooter>
           </DialogContent>
@@ -389,7 +390,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       {Boolean(rejecting) && (
         <Dialog open={Boolean(rejecting)} onOpenChange={(open) => { if (!open) { setRejecting(undefined); setRejectValidation(undefined); setRejectError(undefined); } }}>
           <DialogContent aria-labelledby="supplemental-reject-title" aria-describedby="supplemental-reject-description">
-            <DialogHeader><DialogTitle id="supplemental-reject-title">Từ chối yêu cầu bổ sung</DialogTitle><DialogDescription id="supplemental-reject-description">Lý do là bắt buộc và sẽ hiển thị trong audit để bếp có hướng xử lý.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle id="supplemental-reject-title">Từ chối yêu cầu bổ sung</DialogTitle><DialogDescription id="supplemental-reject-description">Vui lòng nhập lý do từ chối yêu cầu bổ sung của bếp.</DialogDescription></DialogHeader>
             <div className="grid gap-2"><label htmlFor="supplemental-reject-reason" className="text-sm font-medium text-slate-900">Lý do từ chối</label><Textarea id="supplemental-reject-reason" className="min-h-24" aria-invalid={Boolean(rejectValidation) || undefined} aria-describedby={rejectValidation ? 'supplemental-reject-reason-error' : undefined} value={rejectReason} onChange={(event) => { setRejectReason(event.target.value); setRejectValidation(undefined); }} />{rejectValidation && <p id="supplemental-reject-reason-error" className="text-xs text-red-700"><span className="font-semibold">{rejectValidation.title}</span>{' '}{rejectValidation.message}</p>}</div>
             {rejectError && <div role="alert"><InlineAlert title={rejectError.title} variant="danger">{rejectError.message}</InlineAlert></div>}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setRejecting(undefined)}>Hủy</Button><Button type="button" variant="destructive" disabled={rejectState.isLoading} onClick={() => void submitReject()}>Xác nhận từ chối</Button></DialogFooter>
@@ -400,7 +401,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       {Boolean(selectedReturnId) && (
         <Dialog open={Boolean(selectedReturnId)} onOpenChange={(open) => { if (!open) { setSelectedReturnId(''); setDiscrepancyValidation(undefined); setAdjustedQuantityErrors({}); setReturnError(undefined); } }}>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" aria-labelledby="return-receipt-title" aria-describedby="return-receipt-description">
-            <DialogHeader><DialogTitle id="return-receipt-title">Tiếp nhận nguyên liệu trả</DialogTitle><DialogDescription id="return-receipt-description">Kiểm đếm từng nguyên liệu. Hàng trả lại được cộng tồn; hao hụt chỉ được lưu trong lịch sử.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle id="return-receipt-title">Tiếp nhận nguyên liệu trả</DialogTitle><DialogDescription id="return-receipt-description">Kiểm đếm và nhập số lượng thực nhận cho từng nguyên liệu.</DialogDescription></DialogHeader>
             <QueryViewBoundary queries={[{ label: 'chi tiết phiếu trả', view: returnDetailView }]} refreshLabel="Đang cập nhật chi tiết phiếu trả">
             {selectedReturn && <div className="grid gap-4">
               <InlineAlert title={`${selectedReturn.returnCode} · ${selectedReturn.returnType === 'WASTE' ? 'Hao hụt' : 'Trả kho'}`} variant={selectedReturn.returnType === 'WASTE' ? 'warning' : 'info'}>Bếp khai báo tổng {returnQuantity}; kho nhập số thực nhận cho từng dòng.</InlineAlert>
@@ -408,7 +409,13 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
                 const quantityError = adjustedQuantityErrors[line.returnLineId];
                 return <div key={line.returnLineId} className="grid gap-2 rounded-sm border border-slate-200 p-3 sm:grid-cols-[1fr_180px]"><div><p className="font-medium text-slate-950">{line.ingredientName}</p><p className="text-xs text-slate-600">Bếp khai báo {formatQuantityWithUnit(line.quantity, line.unitName || '')}</p></div><div><label htmlFor={`return-line-${line.returnLineId}`} className="text-xs font-medium text-slate-700">Số thực nhận ({formatUnit(line.unitName || '')})</label><Input id={`return-line-${line.returnLineId}`} type="number" min="0" step="any" aria-invalid={Boolean(quantityError) || undefined} aria-describedby={quantityError ? `return-line-${line.returnLineId}-error` : undefined} value={adjustedQuantities[line.returnLineId] ?? String(line.quantity)} onChange={(event) => { setAdjustedQuantities((current) => ({ ...current, [line.returnLineId]: event.target.value })); setAdjustedQuantityErrors((current) => { const next = { ...current }; delete next[line.returnLineId]; return next; }); }} />{quantityError && <p id={`return-line-${line.returnLineId}-error`} className="mt-1 text-xs text-red-700"><span className="font-semibold">{quantityError.title}</span>{' '}{quantityError.message}</p>}</div></div>;
               })}
-              <label className="flex min-h-11 items-center gap-2 text-sm font-medium text-slate-900"><input type="checkbox" checked={hasDiscrepancy} onChange={(event) => setHasDiscrepancy(event.target.checked)} /> Có chênh lệch so với bếp khai báo</label>
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-slate-900">
+                <Checkbox
+                  checked={hasDiscrepancy}
+                  onCheckedChange={(checked) => setHasDiscrepancy(checked === true)}
+                />
+                <span>Có chênh lệch so với bếp khai báo</span>
+              </label>
               {hasDiscrepancy && <div className="grid gap-2"><label htmlFor="return-discrepancy-note" className="text-sm font-medium text-slate-900">Mô tả chênh lệch</label><Textarea id="return-discrepancy-note" className="min-h-24" aria-invalid={Boolean(discrepancyValidation) || undefined} aria-describedby={discrepancyValidation ? 'return-discrepancy-note-error' : undefined} value={discrepancyNote} onChange={(event) => { setDiscrepancyNote(event.target.value); setDiscrepancyValidation(undefined); }} />{discrepancyValidation && <p id="return-discrepancy-note-error" className="text-xs text-red-700"><span className="font-semibold">{discrepancyValidation.title}</span>{' '}{discrepancyValidation.message}</p>}</div>}
             </div>}
             </QueryViewBoundary>

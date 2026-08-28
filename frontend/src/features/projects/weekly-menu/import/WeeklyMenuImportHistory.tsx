@@ -47,7 +47,7 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                     <td>{formatImportDate(item.weekStartDate)}</td>
                     <td className="text-center">v{item.versionNo}</td>
                     <td className="text-center"><StatusBadge variant={statusPresentation.tone}>{statusPresentation.label}</StatusBadge></td>
-                    <td className="text-center text-xs">
+                    <td className="text-center text-xs tabular-nums">
                       {item.successRowCount} thành công{item.errorRowCount > 0 ? ` / ${item.errorRowCount} lỗi` : ''}{item.warningRowCount > 0 ? ` / ${item.warningRowCount} cảnh báo` : ''}
                     </td>
                     <td>{item.createdByName ?? '-'}</td>
@@ -70,20 +70,18 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                 <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có lịch sử import thực đơn tuần.</td></tr>
               )}
               {history.length > 0 && filteredHistory.length === 0 && (
-                <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy lịch sử import phù hợp.</td></tr>
+                <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy lịch sử import thực đơn phù hợp.</td></tr>
               )}
             </tbody>
           </table>
         </TableViewport>
+        <PaginationBar
+          page={historyPage}
+          pageSize={historyPageInfo?.pageSize ?? 8}
+          totalItems={historyPageInfo?.totalCount ?? 0}
+          onPageChange={setHistoryPage}
+        />
       </QueryViewBoundary>
-      <PaginationBar
-        page={historyPage}
-        pageSize={historyPageInfo?.pageSize ?? 10}
-        totalItems={historyPageInfo?.totalCount ?? history.length}
-        itemLabel="phiên import"
-        isPending={workflow.historyDataState.phase === 'uninitialized'}
-        onPageChange={setHistoryPage}
-      />
     </SectionPanel>
   )
 }

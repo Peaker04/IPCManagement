@@ -365,6 +365,11 @@ export function PurchaseDecisionPanel({
                   <p className="font-semibold text-slate-900">{selectedLine.ingredientName}</p>
                   <p className="mt-1 text-caption text-slate-600">Cần mua {formatQuantityWithUnit(selectedLine.purchaseQty, selectedLine.unitName)}.</p>
                 </div>
+                {'isRefreshing' in evidenceView && evidenceView.isRefreshing ? (
+                  <InlineAlert title="Đang cập nhật bằng chứng nhà cung cấp" variant="info">
+                    Danh sách hiện tại vẫn được giữ trong khi nạp bản mới.
+                  </InlineAlert>
+                ) : null}
                 {evidenceView.phase === 'loading' ? <p role="status" className="text-body text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : evidenceView.phase === 'forbidden' ? (
                   <InlineAlert title="Không có quyền xem bằng chứng nhà cung cấp" variant="danger">
                     <span role="alert">{evidenceView.message}</span>
@@ -373,17 +378,14 @@ export function PurchaseDecisionPanel({
                   <EmptyState
                     variant="error"
                     title="Không tải được bằng chứng nhà cung cấp"
-                    description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì nguyên liệu này thiếu báo giá hoặc phiếu nhập. Hãy tải lại trước khi chọn nhà cung cấp và chốt giá."
+                    description="Vui lòng thử tải lại để nạp danh sách bằng chứng nhà cung cấp."
                     onRetry={evidenceView.retry}
                     isRetrying={evidenceView.isRetrying}
                   />
                 ) : evidenceView.phase === 'uninitialized' ? (
                   <InlineAlert title="Chưa chọn dòng nguyên liệu" variant="info">{evidenceView.instruction}</InlineAlert>
                 ) : (
-                  <>
-                    {evidenceView.isRefreshing && <p role="status" className="text-body text-slate-600">Đang cập nhật bằng chứng; danh sách hiện tại vẫn được giữ.</p>}
-                    <SupplierEvidenceList candidates={evidenceView.data.candidates} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
-                  </>
+                  <SupplierEvidenceList candidates={evidenceView.data.candidates} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
                 )}
                 {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}
                 {selectedEvidence ? (
