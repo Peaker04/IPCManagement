@@ -42,5 +42,9 @@ export const eligiblePageTabs = (
     warehouse: ['demand', 'movement'],
     'admin-data': ['bom-import', 'audit'],
   }[groupId]?.includes(tab) ?? false))
-  return allowed.filter((tab) => locallyVisibleTabs.includes(tab))
+  // Closed-loop tabs are mandatory workflow steps. DEFAULT display preferences must
+  // not make the reconciliation path unreachable after an operation-mode switch.
+  return mode === 'MATERIAL_RECONCILIATION'
+    ? allowed
+    : allowed.filter((tab) => locallyVisibleTabs.includes(tab))
 }

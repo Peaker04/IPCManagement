@@ -550,18 +550,18 @@ const WeeklyMenuPage = () => {
             purchaseSummaryWorkflow={purchaseSummaryWorkflow}
             dishMaterialsWorkflow={dishMaterialsWorkflow}
           />
+          {isMaterialReconciliationMode && activeView === 'demand' && <ClosedLoopTransferPanel
+            menuVersionId={committedMenu?.menuVersionId}
+            scopeLabel={selectedCustomer && displayedWeekStartDate
+              ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
+              : 'Chọn khách hàng và tuần'}
+          />}
         </div>
 
         {importWorkflow.state.isOpen && <Suspense fallback={null}><WeeklyMenuImportDialog workflow={importWorkflow} /></Suspense>}
 
         {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
       </QueryViewBoundary>
-      {isMaterialReconciliationMode && <ClosedLoopTransferPanel
-        menuVersionId={committedMenu?.menuVersionId}
-        scopeLabel={selectedCustomer && displayedWeekStartDate
-          ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
-          : 'Chọn khách hàng và tuần'}
-      />}
     </OperationalFrame>
   );
 };

@@ -31,7 +31,8 @@ workbook:
 - `MATERIAL_RECONCILIATION` backend capability is now exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data with six explicit retained tabs. Manual purchased/issued actual mutations are mode-excluded; dispositions remain.
 - Additive migration `20260828092012_ClosedLoopReconciliationIssueLineage` was generated, tested and SQL-inspected only. It was not applied to any protected or operational database; application remains gated until Wave 3.
 - Plan `30-02` is complete: the mode shell exposes exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data; source scope flows by URL from transfer through issue readback; excluded route/tab/query owners are unmounted. Bounded recovery verification passed 72 files / 336 tests plus lint, build, API parity and checklist. The known-hanging broad frontend aggregate was not rerun and remains a truthful Wave 3 regression obligation.
-- Next action is execute `30-03-PLAN.md` for edge expansion, repository-wide regression, protected MySQL checkpoint and headed evidence.
+- Weekly Menu live-page hotfix: reconciliation-mode mandatory tabs no longer inherit stale `DEFAULT` hide preferences, so `Kế hoạch tuần` and `Định lượng xuất kho` remain reachable. The transfer panel now mounts only inside active `Định lượng xuất kho`, not below the weekly plan. Warehouse `demand/movement` and Admin Data `bom-import/audit` use the same mandatory-step rule; DEFAULT preferences remain unchanged. Verification: 33 files / 146 tests, ESLint, production build and diff hygiene pass.
+- Plan `30-03` Task 1 is complete. Protected Task 2 remains paused until this UI gap receives browser confirmation and Kỳ explicitly authorizes the backup-first `ipc_lane7` checkpoint.
 
 ## Weekly Menu reconciliation workspace · 28/08/2026
 

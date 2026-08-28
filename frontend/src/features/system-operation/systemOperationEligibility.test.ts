@@ -16,9 +16,11 @@ describe('system operation route matrix', () => {
     expect(isRouteEligible('MATERIAL_RECONCILIATION', ROUTES.WAREHOUSE)).toBe(true)
   })
 
-  it('intersects backend authority with hide-only preferences and maps material demand identity', () => {
-    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'weekly-menu', ['schedule', 'material-demand'], ['schedule', 'demand'])).toEqual(['schedule', 'demand'])
-    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'admin-data', ['bom-import', 'audit'], ['bom-import'])).toEqual(['bom-import'])
+  it('keeps mandatory closed-loop steps visible and maps material demand identity', () => {
+    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'weekly-menu', ['schedule', 'material-demand'], ['schedule'])).toEqual(['schedule', 'demand'])
+    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'warehouse', ['demand', 'movement'], [])).toEqual(['demand', 'movement'])
+    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'admin-data', ['bom-import', 'audit'], ['bom-import'])).toEqual(['bom-import', 'audit'])
+    expect(eligiblePageTabs('DEFAULT', 'weekly-menu', ['schedule', 'demand'], ['schedule'])).toEqual(['schedule'])
   })
 
   it('uses user labels', () => expect(modeLabels).toEqual({ DEFAULT: 'Mặc định', MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu' }))

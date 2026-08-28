@@ -5,6 +5,7 @@ import { ReconciliationComparisonTable } from './ReconciliationComparisonTable'
 import { ROUTES } from '@/lib/routeConfig'
 import { isRouteEligible, retainedRoutes } from '@/features/system-operation/systemOperationEligibility'
 import type { ReconciliationLine } from './reconciliationApi'
+import weeklyMenuPageSource from '@/features/projects/pages/WeeklyMenuPage.tsx?raw'
 
 const line: ReconciliationLine = {
   batchLineId: 'line-uuid',
@@ -45,6 +46,11 @@ describe('closed-loop reconciliation frontend contract', () => {
     render(<MemoryRouter><ReconciliationComparisonTable lines={[{ ...line, ...sample }]} showAll /></MemoryRouter>)
     expect(screen.getByText(sample.label)).toBeInTheDocument()
     if (sample.issuedQuantity == null) expect(screen.getAllByText('Chưa xuất').length).toBeGreaterThan(0)
+  })
+
+  it('keeps transfer controls inside the material-demand tab instead of below the weekly plan', () => {
+    expect(weeklyMenuPageSource).toContain("isMaterialReconciliationMode && activeView === 'demand' && <ClosedLoopTransferPanel")
+    expect(weeklyMenuPageSource).not.toContain("</QueryViewBoundary>\n      {isMaterialReconciliationMode && <ClosedLoopTransferPanel")
   })
 
   it('renders only required-versus-issued decision fields with human labels', () => {
