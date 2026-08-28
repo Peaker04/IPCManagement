@@ -106,6 +106,32 @@ Rules:
 - Use `StatusBadge` inside table cells for status, not ad hoc red/amber/green pill classes.
 - Do not remove first-column left alignment unless the table is a fixed schedule matrix.
 
+## Async Boundary Geometry
+
+`QueryViewBoundary` and equivalent async surfaces must declare a semantic geometry role rather than inheriting
+one generic minimum height:
+
+| Role | Expected geometry | Examples |
+| --- | --- | --- |
+| `compact` | content height; no large min-height | select, filter, action row, metadata |
+| `section` | bounded placeholder matching a short form/list | summary panel, small list |
+| `table` | skeleton/placeholder matching the accepted row block | operational table |
+| `workspace` | may grow only for a real editor/matrix/canvas | weekly matrix, visual editor |
+
+Rules:
+
+- Never wrap one select/filter in the default table/workspace minimum height.
+- Do not use `flex-1`, `h-full`, viewport height, or `min-h-[...]` merely to fill desktop space.
+- One prerequisite/empty/error state gets one explanatory surface; do not keep an empty work panel above it.
+- Heading, scope control, state and content for one work object stay adjacent and preserve order across viewports.
+- If a generic primitive default creates blank surface, fix/extend the primitive API. Do not scatter page-local
+  `min-h-0` overrides across callsites.
+- Placeholder geometry must match the content that will replace it. Layout stability does not justify a 380px
+  placeholder around a 32–40px control.
+
+See [`docs/DESIGN.md`](../../docs/DESIGN.md) and rules `V1`–`V10` in
+[`docs/DASHBOARD-UI-RULES.md`](../../docs/DASHBOARD-UI-RULES.md).
+
 ## Panels And Page Structure
 
 Operational pages should be composed from:
@@ -117,7 +143,8 @@ Operational pages should be composed from:
 - `.ipc-section-header`, `.ipc-section-title`, and `.ipc-section-description` for panel heading rhythm.
 - `.ipc-context-strip` and `.ipc-context-item.is-*` for compact route facts.
 
-Avoid landing-page sections, oversized hero layouts, decorative gradients, and low-density marketing composition.
+Avoid landing-page sections, oversized hero layouts, decorative gradients, low-density marketing composition,
+or large blank operational cards created by generic `min-height`/flex growth.
 
 ## Motion
 

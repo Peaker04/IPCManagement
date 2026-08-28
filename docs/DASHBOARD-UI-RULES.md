@@ -17,7 +17,8 @@ last_reviewed: 2026-08-12
 > source, test và evidence hiện hành. Điểm vào dành cho dev là [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md).
 > Front-End Checklist được tích hợp như corpus quality bổ sung tại
 > [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md); nó không phải design system
-> hoặc nguồn rule ngang hàng và không được ghi đè contract này.
+> hoặc nguồn rule ngang hàng và không được ghi đè contract này. Kiến trúc surface, floorplan và geometry role
+> bắt buộc được định nghĩa tại [`DESIGN.md`](DESIGN.md).
 
 ---
 
@@ -432,6 +433,46 @@ html { scrollbar-gutter: stable; }
 
 ---
 
+## V. Visual composition, workspace geometry và information adjacency
+
+- **V1 (MUST)** Mỗi route phải có một primary work object và một floorplan có chủ đích theo `DESIGN.md`.
+  Không được lấp toàn bộ chiều cao còn lại chỉ vì parent dùng flex/grid.
+- **V2 (MUST)** Heading, description, scope control và content của cùng work object phải ở cùng visual group.
+  Control đứng ở một góc của panel trắng lớn hoặc heading bị đẩy xuống đáy là lỗi bố cục.
+- **V3 (MUST)** Một prerequisite/empty/error state chỉ có một explanatory surface chính. Cấm render panel trắng
+  rồi thêm alert thứ hai bên ngoài để giải thích vì sao panel đó trống.
+- **V4 (MUST)** Async boundary phải khai geometry đúng semantic role: `compact`, `section`, `table` hoặc
+  `workspace`. Boundary bọc select/filter/action MUST NOT dùng min-height của bảng/workspace.
+- **V5 (MUST)** `min-height`, `height`, `flex-grow` và viewport units chỉ được dùng khi có content/skeleton
+  contract tương ứng. Khoảng trắng sinh từ generic minimum height không phải layout stability.
+- **V6 (MUST)** Empty/prerequisite surface phải thay thế work surface chưa sẵn sàng, không được nằm bên dưới
+  một bản sao rỗng của work surface đó.
+- **V7 (MUST)** Next action phải ở trong state surface hoặc cách work object tối đa một section gap; nếu action
+  yêu cầu scope control thì phải focus/mở trực tiếp control đó.
+- **V8 (SHOULD)** Ở trạng thái không có dữ liệu, content hữu ích phải xuất hiện trong vùng quét đầu tiên của
+  page; không buộc người dùng quét qua một canvas rỗng trước khi thấy lý do và bước tiếp theo.
+- **V9 (MUST)** Screenshot có dấu hiệu orphan control/heading, excessive blank surface, duplicate state hoặc
+  broken adjacency là candidate finding bắt buộc triage. Screenshot không là PASS oracle, nhưng agent MUST NOT
+  bỏ qua tín hiệu rõ chỉ vì chưa có DOM metric; phải chuyển nó thành DOM/source assertion.
+- **V10 (MUST)** Cùng state cell phải giữ quan hệ heading → scope → state/content trên toàn viewport matrix.
+  Responsive không được chỉ kiểm tra overflow; phải kiểm tra cả thứ tự, adjacency và duplicate surfaces.
+
+### V.1 Gate tối thiểu
+
+Với route được sửa, measurement/browser evidence phải disposition:
+
+- số explanatory state surface visible;
+- bounding boxes của heading, scope control, state surface và primary content;
+- geometry role và computed `min-height` của async boundary;
+- khoảng cách/ordering giữa các vùng cùng work object;
+- phần tử đang chiếm diện tích lớn nhưng không có content/action hữu ích;
+- focus target của prerequisite action;
+- cùng các số đo trên mọi viewport trong claim.
+
+Không có oracle cho các quan hệ trên thì verdict composition là `NEEDS_EVIDENCE`, dù overflow bằng 0.
+
+---
+
 ## Q. Definition of Done, đo lường, thứ tự triển khai
 
 ### Q1. Checklist review PR
@@ -443,6 +484,8 @@ html { scrollbar-gutter: stable; }
 - [ ] Vùng bất đồng bộ có skeleton khớp kích thước; không có container cao 0px (`C1`, `C2`)
 - [ ] Không hiển thị "không có dữ liệu" trong lúc đang tải (`E1`)
 - [ ] Bốn loại empty state được xử lý riêng, mỗi loại có hành động kế tiếp (`E2`, `E3`)
+- [ ] Không có orphan control/heading, panel trắng vô nghĩa hoặc state bị lặp trên hai surface (`V2`–`V6`)
+- [ ] Mỗi async boundary khai geometry role phù hợp; compact control không mang min-height workspace (`V4`, `V5`)
 - [ ] Bảng: căn lề đúng loại dữ liệu, header dính, cột định danh đóng băng, sort mặc định có chủ đích (`T1`, `T7`, `T9`)
 - [ ] Modal mount theo nhu cầu, đặt ở cấp trang, code-split nếu nặng, huỷ tài nguyên khi đóng (`M3.1`–`M3.6`)
 - [ ] Khoá cuộn nền không gây dịch layout (`M2.6`, `C5`)

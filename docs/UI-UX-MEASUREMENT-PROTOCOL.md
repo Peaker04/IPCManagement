@@ -1,7 +1,8 @@
 # UI/UX measurement protocol
 
-[`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md) và [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) là contract
-nguyên tắc đã áp dụng; `docs/ui-audit-kit/` là nguồn tham khảo đã được chuẩn hóa vào IPCManagement. Từ nay agent không kết luận
+[`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), [`DESIGN.md`](DESIGN.md) và
+[`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) là contract nguyên tắc/kiến trúc đã áp dụng;
+`docs/ui-audit-kit/` là nguồn tham khảo đã được chuẩn hóa vào IPCManagement. Từ nay agent không kết luận
 UI đúng/sai bằng cách đọc screenshot. Kết luận phải xuất phát từ test, DOM metrics, API evidence, focus
 state hoặc performance record có thể lặp lại.
 
@@ -46,11 +47,52 @@ Các finding hiện có oracle máy kiểm tra được gồm: overflow toàn tr
 word-break không an toàn (C4), dialog thiếu accessible name (A1), và seam tab (C2). Route có table sử dụng
 vùng scroll cục bộ hợp lệ không bị coi là overflow toàn trang.
 
+Gate này **chưa đủ** để kết luận visual composition PASS. Mọi route được sửa về layout phải bổ sung scoped
+browser assertion theo `V1`–`V10`; thiếu assertion đó là `NEEDS_EVIDENCE`, không được suy từ `issueCount: 0`.
+
+## Visual composition oracle
+
+Screenshot được dùng để phát hiện candidate defect, sau đó phải chuyển thành DOM measurement. Với route/layout
+được claim, manifest nên ghi thêm:
+
+```json
+{
+  "composition": {
+    "stateSurfaceCount": 1,
+    "largeBlankSurfaces": [],
+    "regions": {
+      "heading": { "top": 0, "bottom": 0 },
+      "scopeControl": { "top": 0, "bottom": 0 },
+      "state": { "top": 0, "bottom": 0 },
+      "content": { "top": 0, "bottom": 0 }
+    },
+    "boundaries": [
+      { "selector": "...", "role": "compact", "minHeight": 0, "height": 0 }
+    ],
+    "ordering": ["heading", "scopeControl", "state", "content"],
+    "focusTargetValid": true
+  }
+}
+```
+
+Oracle bắt buộc:
+
+1. `stateSurfaceCount <= 1` cho một prerequisite/empty/error state của cùng work object.
+2. Boundary `compact` không có computed min-height của `section/table/workspace`.
+3. Heading/control/content cùng work object không bị tách bởi một blank surface không có semantic role.
+4. Không có visible surface chiếm diện tích lớn mà không chứa heading, data, skeleton đúng contract, state copy
+   hoặc action hữu ích.
+5. DOM order và visual order không mâu thuẫn; action prerequisite focus đúng control.
+6. Các assertion được chạy lại trên toàn viewport matrix thuộc claim.
+
+Ngưỡng khoảng cách/diện tích cụ thể phải xuất phát từ token và baseline của primitive. Không hardcode một tỷ lệ
+chung rồi áp cho chart, editor hoặc matrix workspace vốn có geometry hợp lệ.
+
 ## Quy trình xử lý lỗi
 
-1. Chạy gate và đọc JSON report; không gửi ảnh cho agent để tìm lỗi.
+1. Chạy gate và đọc JSON report. Nếu có ảnh, dùng ảnh để seed candidate finding thay vì bỏ qua hoặc coi là verdict.
 2. Phân loại từng rule thành `PASS`, `FAIL`, `NOT_APPLICABLE` hoặc `NEEDS_EVIDENCE`. Ảnh đơn lẻ luôn là
-   `NEEDS_EVIDENCE`.
+   `NEEDS_EVIDENCE`, nhưng candidate rõ phải được chuyển thành DOM/source assertion trước khi kết thúc triage.
 3. Sửa ở shared token/component trước; chỉ sửa page-local khi report chứng minh phạm vi cục bộ.
 4. Chạy lại đúng gate, đọc số đo mới và thêm regression test tại seam gây lỗi.
 5. Khi thay đổi có mutation hay dữ liệu nghiệp vụ, browser evidence vẫn phải nối FE control → API → DB →

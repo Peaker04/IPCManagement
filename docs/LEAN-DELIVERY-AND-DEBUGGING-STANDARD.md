@@ -71,7 +71,8 @@ Out of scope : phần không được thay đổi
 ```
 
 Nếu chưa có `Red loop`, không được nhảy sang giả thuyết/fix, trừ lỗi compile hoặc literal hiển nhiên. Với UI,
-red loop có thể là Playwright DOM/network assertion; screenshot không phải red loop.
+screenshot là đầu vào triage hợp lệ: candidate defect rõ không được bỏ qua. Tuy nhiên red loop vẫn phải là
+Playwright DOM/network/geometry assertion hoặc behavior test có thể lặp lại; screenshot không tự thay red loop.
 
 ## 5. Finding ledger và systemic scan
 
@@ -171,7 +172,8 @@ kéo task vào vòng audit vô hạn.
 
 ## 11. Anti-pattern bị cấm
 
-- Fix từ screenshot trước khi có selector/metric/state reproduction.
+- Fix từ screenshot trước khi có selector/metric/state reproduction, **hoặc bỏ qua candidate defect rõ trên
+  screenshot chỉ vì ảnh không phải oracle**. Đúng quy trình là ảnh → candidate rule → DOM/source red loop → fix.
 - Chạy route nhưng không mở retained tab rồi claim query isolation.
 - Sửa page-local khi cùng lỗi tồn tại ở shared primitive/formatter/query seam.
 - Tạo formatter/status/dialog/table shell song song.

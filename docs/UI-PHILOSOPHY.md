@@ -17,6 +17,7 @@ và không thay thế bộ rule chi tiết.
 | Khi cần quyết định | Đọc trước | Kết quả cần giữ |
 |---|---|---|
 | Nguyên tắc UI/UX đầy đủ và mã rule | [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) | Áp dụng `MUST`, `SHOULD`, `MAY`; ghi rule ID khi thay đổi |
+| Floorplan, surface và geometry role | [`DESIGN.md`](DESIGN.md) | Khóa primary work object, adjacency, one-state/one-surface và async-boundary geometry trước JSX |
 | Component, token và pattern đang có | [`frontend/docs/ipc-design-tokens.md`](../frontend/docs/ipc-design-tokens.md) | Dùng primitive/token hiện có trước khi tạo class hoặc variant mới |
 | Quyết định render đã được duyệt | [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) | Không tự thêm spacing, pixel, golden hoặc quota chưa có nguồn |
 | State, action, permission và grain nghiệp vụ | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md) | Không làm sai trạng thái, quyền hoặc mức chi tiết của dữ liệu |
@@ -42,6 +43,10 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
 - Điều hướng nhóm theo công việc người dùng, không phơi cấu trúc bảng hoặc tên module backend.
 - Dùng `OperationalFrame`, `ViewSwitcher`, `CommandBar`, `ContextStrip` và `SectionPanel` theo đúng vai trò;
   không dựng thêm shell song song cho cùng một loại màn hình.
+- Mỗi route phải khóa floorplan theo [`DESIGN.md`](DESIGN.md): scope control không được trôi khỏi heading/content,
+  async boundary bọc control phải compact, và prerequisite/empty chỉ có một explanatory surface.
+- Khoảng trắng chỉ hợp lệ khi biểu đạt hierarchy hoặc giữ chỗ đúng kích thước content sắp xuất hiện. Panel trắng
+  lớn do `min-height`, `flex-grow` hoặc boundary generic là defect, không phải “layout ổn định”.
 - Progressive disclosure là mặc định: danh sách giữ các trường quyết định, chi tiết mở ở vùng giữ nguyên
   ngữ cảnh như drawer, row expansion hoặc trang riêng.
 
@@ -108,14 +113,16 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
 ## 4. Quy trình khi thêm hoặc sửa UI
 
 1. Xác định work object, grain, state, permission và mutation boundary trước khi viết JSX.
-2. Tìm rule ID trong [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) và owner thấp nhất trong bảng trên.
-3. Kiểm tra primitive/token/formatter/query boundary hiện có; không tạo variant song song khi seam chung đã tồn tại.
-4. Sửa ở tầng thấp nhất có thể: token → primitive → hook/formatter → layout → feature page.
-5. Thêm hoặc cập nhật regression test tại seam gây lỗi. Phân loại mỗi kết quả là `PASS`, `FAIL`,
+2. Vẽ floorplan ngắn và gán geometry role cho từng async boundary theo [`DESIGN.md`](DESIGN.md); xác nhận
+   one-state/one-surface và heading/control/content adjacency.
+3. Tìm rule ID trong [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) và owner thấp nhất trong bảng trên.
+4. Kiểm tra primitive/token/formatter/query boundary hiện có; không tạo variant song song khi seam chung đã tồn tại.
+5. Sửa ở tầng thấp nhất có thể: token → primitive → hook/formatter → layout → feature page.
+6. Thêm hoặc cập nhật regression test tại seam gây lỗi. Phân loại mỗi kết quả là `PASS`, `FAIL`,
    `NOT_APPLICABLE`, `NEEDS_EVIDENCE` hoặc `UNRESOLVED`.
-6. Với UI read-only, chạy gate DOM/source/focus phù hợp. Với mutation hoặc dữ liệu nghiệp vụ, chứng minh
-   thêm control → API → DB → rendered reload.
-7. Chạy `git diff --check`, secret/stub scan và cập nhật tài liệu liên quan trong cùng thay đổi.
+7. Với UI read-only, chạy gate DOM/source/focus và composition geometry phù hợp. Với mutation hoặc dữ liệu
+   nghiệp vụ, chứng minh thêm control → API → DB → rendered reload.
+8. Chạy `git diff --check`, secret/stub scan và cập nhật tài liệu liên quan trong cùng thay đổi.
 
 ## 5. Thứ tự ưu tiên khi có xung đột
 
