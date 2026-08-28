@@ -60,6 +60,9 @@ public static class SystemOperationEligibility
 
     public static OperationDisposition Classify(string controller, string action)
     {
+        if (controller.Equals("ReconciliationActuals", StringComparison.OrdinalIgnoreCase)
+            && (action.Equals("Purchased", StringComparison.OrdinalIgnoreCase) || action.Equals("Issued", StringComparison.OrdinalIgnoreCase)))
+            return OperationDisposition.ExcludedInMaterialReconciliation;
         if (NeutralControllers.Contains(controller)) return OperationDisposition.Neutral;
         if (ExcludedControllers.Contains(controller)) return OperationDisposition.ExcludedInMaterialReconciliation;
         return OperationDisposition.Retained;

@@ -58,6 +58,14 @@ public sealed class SystemOperationCapabilityProfileTests
     }
 
     [Fact]
+    public void Material_reconciliation_excludes_manual_purchase_and_issue_actual_commands_but_retains_disposition()
+    {
+        Assert.Equal(OperationDisposition.ExcludedInMaterialReconciliation, SystemOperationEligibility.Classify("ReconciliationActuals", "Purchased"));
+        Assert.Equal(OperationDisposition.ExcludedInMaterialReconciliation, SystemOperationEligibility.Classify("ReconciliationActuals", "Issued"));
+        Assert.Equal(OperationDisposition.Retained, SystemOperationEligibility.Classify("ReconciliationActuals", "Disposition"));
+    }
+
+    [Fact]
     public void Returned_profiles_cannot_mutate_canonical_policy()
     {
         var first = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.Default);
