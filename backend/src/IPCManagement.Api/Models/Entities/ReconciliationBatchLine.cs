@@ -12,5 +12,7 @@ public sealed class ReconciliationBatchLine
     public string ToleranceSourceVersion { get; set; } = null!;
     public long Version { get; set; }
     public ReconciliationBatch Batch { get; set; } = null!;
+    public Ingredient Ingredient { get; set; } = null!;
+    public Unit CanonicalUnit { get; set; } = null!;
     public ICollection<ReconciliationBatchContributor> Contributors { get; set; } = [];
 }

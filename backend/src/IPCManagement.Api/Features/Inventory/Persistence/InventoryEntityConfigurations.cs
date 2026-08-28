@@ -37,13 +37,17 @@ internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<Inv
     {
         entity.HasKey(e => e.IssueId).HasName("PRIMARY");
 
-        entity.ToTable("inventoryissues");
+        entity.ToTable("inventoryissues", table => table.HasCheckConstraint(
+            "ckInventoryIssuesSourceFamily",
+            "(`materialRequestId` IS NOT NULL AND `reconciliationBatchId` IS NULL) OR (`materialRequestId` IS NULL AND `reconciliationBatchId` IS NOT NULL)"));
 
         entity.HasIndex(e => e.IssueCode, "issueCode").IsUnique();
 
         entity.HasIndex(e => e.IssuedBy, "issuedBy");
 
         entity.HasIndex(e => e.MaterialRequestId, "materialRequestId");
+
+        entity.HasIndex(e => e.ReconciliationBatchId, "uxInventoryIssuesReconciliationBatch").IsUnique();
 
         entity.HasIndex(e => e.ReceivedBy, "receivedBy");
 
@@ -69,6 +73,10 @@ internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<Inv
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("materialRequestId");
+        entity.Property(e => e.ReconciliationBatchId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("reconciliationBatchId");
         entity.Property(e => e.ReceivedBy)
             .HasMaxLength(16)
             .IsFixedLength()
@@ -91,8 +99,13 @@ internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<Inv
 
         entity.HasOne(d => d.MaterialRequest).WithMany(p => p.Inventoryissues)
             .HasForeignKey(d => d.MaterialRequestId)
-            .OnDelete(DeleteBehavior.ClientSetNull)
+            .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("inventoryissues_ibfk_2");
+
+        entity.HasOne(d => d.ReconciliationBatch).WithMany()
+            .HasForeignKey(d => d.ReconciliationBatchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryissues_ibfk_5");
 
         entity.HasOne(d => d.ReceivedByNavigation).WithMany(p => p.InventoryissueReceivedByNavigations)
             .HasForeignKey(d => d.ReceivedBy)
@@ -111,7 +124,9 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
     {
         entity.HasKey(e => e.IssueLineId).HasName("PRIMARY");
 
-        entity.ToTable("inventoryissuelines");
+        entity.ToTable("inventoryissuelines", table => table.HasCheckConstraint(
+            "ckInventoryIssueLinesSourceFamily",
+            "(`materialRequestLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NOT NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL)"));
 
         entity.HasIndex(e => e.IngredientId, "ingredientId")
             .HasDatabaseName("ingredientId1");
@@ -119,6 +134,8 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
         entity.HasIndex(e => e.IssueId, "issueId");
 
         entity.HasIndex(e => e.MaterialRequestLineId, "ixInventoryIssueLinesMaterialRequestLine");
+
+        entity.HasIndex(e => e.ReconciliationBatchLineId, "uxInventoryIssueLinesReconciliationBatchLine").IsUnique();
 
         entity.HasIndex(e => e.UnitId, "unitId")
             .HasDatabaseName("unitId2");
@@ -139,6 +156,10 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("materialRequestLineId");
+        entity.Property(e => e.ReconciliationBatchLineId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("reconciliationBatchLineId");
         entity.Property(e => e.IssuedQty)
             .HasPrecision(18, 6)
             .HasColumnName("issuedQty");
@@ -164,6 +185,11 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
             .HasForeignKey(d => d.MaterialRequestLineId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("inventoryissuelines_ibfk_4");
+
+        entity.HasOne(d => d.ReconciliationBatchLine).WithMany()
+            .HasForeignKey(d => d.ReconciliationBatchLineId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryissuelines_ibfk_5");
 
         entity.HasOne(d => d.Unit).WithMany(p => p.Inventoryissuelines)
             .HasForeignKey(d => d.UnitId)

@@ -13,7 +13,7 @@ internal sealed class ReconciliationBatchConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<ReconciliationBatch> e)
     {
-        e.ToTable("reconciliationbatches", t => t.HasCheckConstraint("ckReconciliationBatchStatus", "`status` IN ('DRAFT','READY','IN_PROGRESS','COMPLETED')"));
+        e.ToTable("reconciliationbatches", t => t.HasCheckConstraint("ckReconciliationBatchStatus", "`status` IN ('DRAFT','READY','TRANSFERRED','IN_PROGRESS','COMPLETED')"));
         e.HasKey(x => x.BatchId); ReconciliationMapping.Id(e.Property(x => x.BatchId));
         ReconciliationMapping.Id(e.Property(x => x.MenuVersionId)); ReconciliationMapping.Id(e.Property(x => x.QuantityImportBatchId));
         e.Property(x => x.Status).HasMaxLength(20); e.Property(x => x.Version).IsConcurrencyToken();
@@ -36,8 +36,8 @@ internal sealed class ReconciliationBatchLineConfiguration : IEntityTypeConfigur
         e.Property(x => x.RequiredQuantity).HasPrecision(18, 6); e.Property(x => x.FrozenTolerance).HasPrecision(18, 6);
         e.Property(x => x.ToleranceSourceKind).HasMaxLength(32); e.Property(x => x.ToleranceSourceVersion).HasMaxLength(128); e.Property(x => x.Version).IsConcurrencyToken();
         e.HasOne(x => x.Batch).WithMany(x => x.Lines).HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.Restrict);
-        e.HasOne<Ingredient>().WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
-        e.HasOne<Unit>().WithMany().HasForeignKey(x => x.CanonicalUnitId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne(x => x.CanonicalUnit).WithMany().HasForeignKey(x => x.CanonicalUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

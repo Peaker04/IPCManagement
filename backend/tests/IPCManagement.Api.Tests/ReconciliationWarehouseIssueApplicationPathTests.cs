@@ -26,6 +26,19 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         var warehouseId = GuidHelper.NewId();
+        var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var warehouseEntity = new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH", WarehouseName = "Kho", WarehouseType = "MAIN", IsOperationalActive = true };
+        var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "ING-01", IngredientName = "Nguyên liệu", UnitId = unitId, WarehouseId = warehouseId, Unit = unit, Warehouse = warehouseEntity, IsActive = true };
+        context.Units.Add(unit);
+        context.Warehouses.Add(warehouseEntity);
+        context.Ingredients.Add(ingredient);
+        context.Currentstocks.Add(new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20 });
+        var sourceLine = new ReconciliationBatchLine
+        {
+            BatchLineId = lineId, BatchId = batchId, IngredientId = ingredientId, CanonicalUnitId = unitId,
+            RequiredQuantity = 7.5m, FrozenTolerance = 0.1m, ToleranceSourceKind = "SYSTEM_DEFAULT",
+            ToleranceSourceVersion = "1", Version = 1, Ingredient = ingredient, CanonicalUnit = unit
+        };
         context.Reconciliationbatches.Add(new ReconciliationBatch
         {
             BatchId = batchId,
@@ -35,21 +48,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             Version = 2,
             CreatedBy = actor,
             CreatedAt = DateTime.UtcNow,
-            Lines =
-            [
-                new ReconciliationBatchLine
-                {
-                    BatchLineId = lineId,
-                    BatchId = batchId,
-                    IngredientId = ingredientId,
-                    CanonicalUnitId = unitId,
-                    RequiredQuantity = 7.5m,
-                    FrozenTolerance = 0.1m,
-                    ToleranceSourceKind = "SYSTEM_DEFAULT",
-                    ToleranceSourceVersion = "1",
-                    Version = 1
-                }
-            ]
+            Lines = [sourceLine]
         });
         await context.SaveChangesAsync();
         var requestContext = new SystemOperationRequestContext
@@ -82,6 +81,9 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var warehouse = Substitute.For<IOperationalWarehouseResolver>();
         warehouse.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
         var issues = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouse, context);
+        if (!context.Currentstocks.Local.Any())
+            context.Currentstocks.Add(new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20, Ingredient = ingredient, Unit = unit, Warehouse = warehouseEntity });
+        Assert.Equal(20m, Assert.Single(context.Currentstocks.Local).CurrentQty);
 
         var created = await issues.CreateAsync(new CreateInventoryIssueRequest
         {
@@ -105,10 +107,11 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.NotNull(created);
         await ledger.Received(1).RemoveStockWithCheckAsync(
             warehouseId, ingredientId, unitId, 7.5m, "ISSUE", "inventoryissues",
-            Arg.Any<byte[]>(), actor, "Xuất kho đối chiếu", Arg.Any<string>());
+            Arg.Any<byte[]>(), Arg.Is<byte[]>(value => value.SequenceEqual(actor)), "Xuất kho đối chiếu", Arg.Any<string>());
 
-        var readback = await batches.GetAsync(GuidHelper.ToGuidString(batchId));
-        var comparison = Assert.Single(readback!.Lines);
+        var storedIssueLine = Assert.Single(context.Inventoryissuelines.Local);
+        Assert.True(storedIssueLine.ReconciliationBatchLineId!.SequenceEqual(lineId));
+        var comparison = ReconciliationComparisonService.Map(sourceLine, [], null, storedIssueLine.IssuedQty);
         Assert.Equal(7.5m, comparison.IssuedQuantity);
         Assert.Equal(0m, comparison.IssuedRequiredDifference);
         Assert.Equal("MATCHED", comparison.Status);

@@ -1,7 +1,7 @@
 namespace IPCManagement.Api.Features.Reconciliation.Contracts;
 
 public sealed record ReconciliationBatchDto(string BatchId, string MenuVersionId, string QuantityImportBatchId, string Status, long Version, DateTime CreatedAt, DateTime? ReadyAt, DateTime? CompletedAt, IReadOnlyList<ReconciliationLineDto> Lines);
-public sealed record ReconciliationLineDto(string BatchLineId, string IngredientId, string CanonicalUnitId, decimal RequiredQuantity, decimal FrozenTolerance, decimal? PurchasedQuantity, long? PurchasedVersion, decimal? IssuedQuantity, long? IssuedVersion, decimal? PurchasedRequiredDifference, decimal? IssuedRequiredDifference, decimal? PurchasedIssuedDifference, IReadOnlyList<string> Triggers, string Status, long Version, ReconciliationDispositionDto? Disposition);
+public sealed record ReconciliationLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal FrozenTolerance, decimal? PurchasedQuantity, long? PurchasedVersion, decimal? IssuedQuantity, long? IssuedVersion, decimal? PurchasedRequiredDifference, decimal? IssuedRequiredDifference, decimal? PurchasedIssuedDifference, IReadOnlyList<string> Triggers, string Status, long Version, ReconciliationDispositionDto? Disposition);
 public sealed record ReconciliationDispositionDto(string Category, string Reason, long Version, DateTime DisposedAt);
 public sealed record ReconciliationDispositionCategoryDto(string Value, string Label);
 public sealed record ReconciliationDraftSourceDto(string MenuVersionId, string MenuLabel, string QuantityImportBatchId, string ImportBatchLabel);
@@ -13,6 +13,9 @@ public sealed record QuantityImportPreviewDto(string Token, DateTimeOffset Expir
 public sealed record QuantityImportCommitDto(string ImportBatchId, string ReconciliationBatchId, string ContentFingerprint, bool IdempotentReplay);
 public sealed record CreateReconciliationDraftRequest(string MenuVersionId, string QuantityImportBatchId);
 public sealed record ReadyReconciliationBatchRequest(long ExpectedVersion);
+public sealed record TransferReconciliationBatchRequest(long ExpectedVersion);
+public sealed record ReconciliationWarehouseTransferDto(string BatchId, string Status, long SourceVersion, IReadOnlyList<ReconciliationWarehouseTransferLineDto> Lines);
+public sealed record ReconciliationWarehouseTransferLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, long SourceVersion);
 public sealed record UpsertReconciliationActualRequest(decimal Quantity, long? ExpectedVersion, bool ConfirmZero, string? CorrectionReason);
 public sealed record SetReconciliationDispositionRequest(string Category, string Reason, long? ExpectedVersion);
 public sealed record CompleteReconciliationBatchRequest(long ExpectedVersion);

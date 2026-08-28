@@ -11,6 +11,7 @@ using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Validators;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Shared.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using System.Data;
 using System.Text.Json;
 
@@ -31,6 +32,7 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
+    private readonly SystemOperationRequestContext? _requestContext;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
@@ -38,7 +40,8 @@ public class InventoryIssueService : IInventoryIssueService
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
         IOperationalWarehouseResolver operationalWarehouseResolver,
-        IpcManagementContext? context = null)
+        IpcManagementContext? context = null,
+        SystemOperationRequestContext? requestContext = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
@@ -46,6 +49,7 @@ public class InventoryIssueService : IInventoryIssueService
         _transactionRunner = transactionRunner;
         _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
+        _requestContext = requestContext;
     }
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request)
@@ -73,6 +77,13 @@ public class InventoryIssueService : IInventoryIssueService
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
+
+        var hasMaterialSource = !string.IsNullOrWhiteSpace(dto.MaterialRequestId);
+        var hasReconciliationSource = !string.IsNullOrWhiteSpace(dto.ReconciliationBatchId);
+        if (hasMaterialSource == hasReconciliationSource)
+            throw new ArgumentException("Phiếu xuất phải có đúng một nguồn nhu cầu hoặc lô đối chiếu.");
+        if (hasReconciliationSource)
+            return await CreateFromReconciliationAsync(dto, userIdBytes);
 
         var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
@@ -359,6 +370,88 @@ public class InventoryIssueService : IInventoryIssueService
                 .AnyAsync(
                     item => item.IssueId == issueId && item.ReceivedAt != null,
                     cancellationToken));
+    }
+
+    private async Task<InventoryIssueCreatedDto> CreateFromReconciliationAsync(CreateInventoryIssueRequest dto, byte[] actorId)
+    {
+        if (_context is null) throw new InvalidOperationException("Chưa cấu hình dữ liệu cho xuất kho đối chiếu.");
+        if (_requestContext is not null && !string.Equals(_requestContext.Mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal))
+            throw new BusinessRuleException("Nguồn đối chiếu chỉ được xuất trong chế độ đối chiếu nguyên liệu.");
+        var batchId = GuidHelper.ParseGuidString(dto.ReconciliationBatchId)
+            ?? throw new ArgumentException("ReconciliationBatchId không hợp lệ.");
+        var commandId = dto.CommandId.Trim();
+        if (commandId.Length == 0) throw new ArgumentException("CommandId là bắt buộc.");
+        var recorder = new LifecycleTransitionRecorder(_context);
+        var replay = await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), batchId);
+        if (replay is not null)
+            return JsonSerializer.Deserialize<InventoryIssueCreatedDto>(replay.ResponseJson)
+                ?? throw new InvalidOperationException("Không thể đọc lại kết quả tạo phiếu xuất kho.");
+        var warehouseId = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
+        var issueId = GuidHelper.NewId();
+        try
+        {
+            return await _transactionRunner.ExecuteAsync(async token =>
+            {
+                var batch = await _context.Reconciliationbatches
+                    .Include(item => item.Lines).ThenInclude(line => line.Ingredient)
+                    .Include(item => item.Lines).ThenInclude(line => line.CanonicalUnit)
+                    .SingleOrDefaultAsync(item => item.BatchId == batchId, token)
+                    ?? throw new BusinessRuleException("Không tìm thấy lô đối chiếu để xuất kho.");
+                if (batch.Status != "TRANSFERRED" || batch.Version != dto.ExpectedVersion)
+                    throw new DbUpdateConcurrencyException("Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
+                if (await _context.Inventoryissues.AnyAsync(item => item.ReconciliationBatchId == batchId, token))
+                    throw new ResourceConflictException("Lô đối chiếu này đã có phiếu xuất kho.");
+                if (dto.Lines.Count == 0) throw new ArgumentException("Phiếu xuất kho phải có ít nhất một dòng nguồn.");
+                var sourceById = batch.Lines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
+                var resolved = new List<(ReconciliationBatchLine Source, decimal Quantity)>();
+                foreach (var requested in dto.Lines)
+                {
+                    var sourceLineId = GuidHelper.ParseGuidString(requested.ReconciliationBatchLineId)
+                        ?? throw new ArgumentException("ReconciliationBatchLineId không hợp lệ.");
+                    if (!sourceById.TryGetValue(Convert.ToHexString(sourceLineId), out var source))
+                        throw new BusinessRuleException("Dòng xuất kho không thuộc lô đối chiếu đã chuyển.");
+                    if (!source.IngredientId.SequenceEqual(GuidHelper.ParseGuidString(requested.IngredientId) ?? [])
+                        || !source.CanonicalUnitId.SequenceEqual(GuidHelper.ParseGuidString(requested.UnitId) ?? [])
+                        || requested.RequestedQty != source.RequiredQuantity
+                        || requested.IssuedQty != source.RequiredQuantity)
+                        throw new BusinessRuleException("Nguyên liệu, đơn vị hoặc số lượng không khớp dòng nguồn đã đóng băng.");
+                    resolved.Add((source, source.RequiredQuantity));
+                }
+                if (resolved.Select(item => Convert.ToHexString(item.Source.BatchLineId)).Distinct().Count() != resolved.Count)
+                    throw new BusinessRuleException("Một dòng nguồn không thể xuất lặp trong cùng phiếu.");
+                await InventoryIssueStockValidator.EnsureAvailableAsync(_context, warehouseId, dto.IssueDate, batchId,
+                    $"REC-{GuidHelper.ToGuidString(batchId)}", resolved.Select(item => new InventoryIssueStockLine(item.Source.IngredientId, item.Source.CanonicalUnitId, item.Quantity)));
+                var issue = new InventoryIssue
+                {
+                    IssueId = issueId, IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
+                    IssueDate = dto.IssueDate, ShiftName = dto.ShiftName, WarehouseId = warehouseId,
+                    ReconciliationBatchId = batchId, IssuedBy = actorId, CreatedAt = DateTime.UtcNow,
+                    Inventoryissuelines = resolved.Select(item => new InventoryIssueLine
+                    {
+                        IssueLineId = GuidHelper.NewId(), IssueId = issueId, IngredientId = item.Source.IngredientId,
+                        UnitId = item.Source.CanonicalUnitId, RequestedQty = item.Quantity, IssuedQty = item.Quantity,
+                        ReconciliationBatchLineId = item.Source.BatchLineId
+                    }).ToList()
+                };
+                _issueRepository.Add(issue);
+                foreach (var line in issue.Inventoryissuelines)
+                    await _stockLedgerService.RemoveStockWithCheckAsync(warehouseId, line.IngredientId, line.UnitId, line.IssuedQty,
+                        "ISSUE", "inventoryissues", issueId, actorId, "Xuất kho đối chiếu", $"Phiếu xuất {issue.IssueCode}");
+                await _unitOfWork.SaveChangesAsync();
+                var result = new InventoryIssueCreatedDto { IssueId = GuidHelper.ToGuidString(issueId), IssueCode = issue.IssueCode, ConcurrencyVersion = 1 };
+                var response = JsonSerializer.Serialize(result);
+                recorder.Stage(new LifecycleTransitionRequest(nameof(InventoryIssue), batchId, commandId, 1, "TRANSFERRED", "ISSUED", actorId,
+                    dto.ExpectedVersion, $"Tạo phiếu xuất {issue.IssueCode} từ lô đối chiếu.", dto.CorrelationId, dto.CausationId, response, response));
+                await _unitOfWork.SaveChangesAsync();
+                return result;
+            }, async token => await recorder.FindExistingCommandAsync(commandId, nameof(InventoryIssue), batchId, token) is not null,
+            IsolationLevel.Serializable);
+        }
+        catch (StockShortageException ex)
+        {
+            await WriteStockShortageAuditAsync(ex.Shortage, batchId, actorId, commandId);
+            throw;
+        }
     }
 
     private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId, string commandId)

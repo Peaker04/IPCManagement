@@ -36,6 +36,7 @@ public sealed class SystemOperationModeFilter(SystemOperationModeGuard guard, Sy
                 context.Result = new ObjectResult(new { success = false, code = "MODE_UNAVAILABLE", message = "Chức năng này không sử dụng trong chế độ Đối chiếu nguyên liệu." }) { StatusCode = StatusCodes.Status409Conflict };
                 return;
             }
+            requestContext.Mode = snapshot.Mode;
             requestContext.OperationKey = explicitMetadata?.OperationKey ?? SystemOperationEligibility.OperationKey(controller, action.ActionName);
             requestContext.ExpectedModeVersion = snapshot.Version;
             requestContext.Disposition = disposition;

@@ -70,9 +70,13 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
             .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
             .When(x => x.WarehouseId is not null);
 
-        RuleFor(x => x.MaterialRequestId)
-            .NotEmpty().WithMessage("Yêu cầu vật tư không được để trống.")
-            .Must(BeValidGuid).WithMessage("MaterialRequestId phải là GUID hợp lệ.");
+        RuleFor(x => x).Must(x =>
+                !string.IsNullOrWhiteSpace(x.MaterialRequestId) ^ !string.IsNullOrWhiteSpace(x.ReconciliationBatchId))
+            .WithMessage("Phiếu xuất phải có đúng một nguồn nhu cầu hoặc lô đối chiếu.");
+        RuleFor(x => x.MaterialRequestId).Must(BeValidGuid).When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestId))
+            .WithMessage("MaterialRequestId phải là GUID hợp lệ.");
+        RuleFor(x => x.ReconciliationBatchId).Must(BeValidGuid).When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchId))
+            .WithMessage("ReconciliationBatchId phải là GUID hợp lệ.");
 
         RuleForEach(x => x.Lines).SetValidator(new CreateInventoryIssueLineDtoValidator());
     }
@@ -84,9 +88,13 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
 {
     public CreateInventoryIssueLineDtoValidator()
     {
+        RuleFor(x => x).Must(x =>
+                string.IsNullOrWhiteSpace(x.MaterialRequestLineId) || string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
+            .WithMessage("Dòng xuất không thể có đồng thời hai loại dòng nguồn.");
         When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestLineId), () =>
-            RuleFor(x => x.MaterialRequestLineId)
-                .Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
+            RuleFor(x => x.MaterialRequestLineId).Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
+        When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId), () =>
+            RuleFor(x => x.ReconciliationBatchLineId).Must(BeValidGuid).WithMessage("ReconciliationBatchLineId phải là GUID hợp lệ."));
 
         RuleFor(x => x.IngredientId)
             .NotEmpty().WithMessage("Nguyên liệu không được để trống.")

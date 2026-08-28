@@ -2,6 +2,7 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +17,15 @@ public sealed class ReconciliationBatchService(
 {
     public async Task<IReadOnlyList<ReconciliationBatchDto>> ListAsync(CancellationToken token = default)
     {
-        var batches = await context.Reconciliationbatches.AsNoTracking().Include(x => x.Lines).OrderByDescending(x => x.CreatedAt).ToListAsync(token);
+        var batches = await context.Reconciliationbatches.AsNoTracking()
+            .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
+            .Include(x => x.Lines).ThenInclude(x => x.CanonicalUnit)
+            .OrderByDescending(x => x.CreatedAt).ToListAsync(token);
         var lineIds = batches.SelectMany(x => x.Lines).Select(x => x.BatchLineId).ToList();
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(token);
         var dispositions = await context.Reconciliationdispositions.AsNoTracking().Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(token);
-        return batches.Select(batch => Map(batch, actuals, dispositions)).ToList();
+        var issued = await LoadLinkedIssuedQuantitiesAsync(lineIds, token);
+        return batches.Select(batch => Map(batch, actuals, dispositions, issued)).ToList();
     }
 
     public async Task<IReadOnlyList<ReconciliationDraftSourceDto>> ListDraftSourcesAsync(CancellationToken token = default)
@@ -50,11 +55,20 @@ public sealed class ReconciliationBatchService(
     public async Task<ReconciliationBatchDto?> GetAsync(string id, CancellationToken token = default)
     {
         var bytes = RequiredId(id);
-        var batch = await context.Reconciliationbatches.AsNoTracking().Include(x => x.Lines).SingleOrDefaultAsync(x => x.BatchId == bytes, token);
+        var batch = await context.Reconciliationbatches.AsNoTracking()
+            .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
+            .Include(x => x.Lines).ThenInclude(x => x.CanonicalUnit)
+            .SingleOrDefaultAsync(x => x.BatchId == bytes, token);
         if (batch is null) return null;
+        var batchLines = context.Database.IsInMemory()
+            ? (await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit).ToListAsync(token))
+                .Where(line => line.BatchId.SequenceEqual(bytes)).ToList()
+            : await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit)
+                .Where(line => line.BatchId == bytes).ToListAsync(token);
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
         var dispositions = await context.Reconciliationdispositions.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
-        return Map(batch, actuals, dispositions);
+        var issued = await LoadLinkedIssuedQuantitiesAsync(batchLines.Select(line => line.BatchLineId).ToList(), token);
+        return Map(batch, actuals, dispositions, issued, batchLines);
     }
 
     public async Task<ReconciliationBatchDto> CreateDraftAsync(CreateReconciliationDraftRequest request, string actorId, CancellationToken token = default)
@@ -214,6 +228,57 @@ public sealed class ReconciliationBatchService(
             cancellationToken: token);
     }
 
+    public async Task<ReconciliationWarehouseTransferDto> TransferToWarehouseAsync(string id, TransferReconciliationBatchRequest request, string actorId, CancellationToken token = default)
+    {
+        if (!string.Equals(requestContext.Mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal))
+            throw new InvalidOperationException("Chỉ chế độ đối chiếu nguyên liệu mới được chuyển danh sách sang Kho.");
+        var batchId = RequiredId(id);
+        _ = RequiredId(actorId);
+        var batch = await transactions.ExecuteAsync(
+            async operationToken =>
+            {
+                var source = await context.Reconciliationbatches
+                    .Include(item => item.Lines).ThenInclude(line => line.Ingredient)
+                    .Include(item => item.Lines).ThenInclude(line => line.CanonicalUnit)
+                    .SingleOrDefaultAsync(item => item.BatchId == batchId, operationToken)
+                    ?? throw new KeyNotFoundException();
+                if (source.Status == "TRANSFERRED") return source;
+                if (source.Status != "READY" || source.Version != request.ExpectedVersion)
+                    throw new DbUpdateConcurrencyException("Lô đối chiếu đã thay đổi hoặc chưa sẵn sàng chuyển sang Kho.");
+                source.Status = "TRANSFERRED";
+                source.Version++;
+                await context.SaveChangesAsync(operationToken);
+                return source;
+            },
+            verifySucceeded: verifyToken => context.Reconciliationbatches.AsNoTracking().AnyAsync(item => item.BatchId == batchId && item.Status == "TRANSFERRED", verifyToken),
+            isolationLevel: IsolationLevel.Serializable,
+            cancellationToken: token);
+        return MapTransfer(batch);
+    }
+
+    private async Task<IReadOnlyDictionary<string, decimal>> LoadLinkedIssuedQuantitiesAsync(IReadOnlyCollection<byte[]> lineIds, CancellationToken token)
+    {
+        if (lineIds.Count == 0) return new Dictionary<string, decimal>();
+        var rows = context.Database.IsInMemory()
+            ? (await context.Inventoryissuelines.AsNoTracking().Where(line => line.ReconciliationBatchLineId != null)
+                .Select(line => new { line.ReconciliationBatchLineId, line.IssuedQty }).ToListAsync(token))
+                .Where(row => lineIds.Any(id => id.SequenceEqual(row.ReconciliationBatchLineId!))).ToList()
+            : await context.Inventoryissuelines.AsNoTracking()
+                .Where(line => line.ReconciliationBatchLineId != null && lineIds.Contains(line.ReconciliationBatchLineId))
+                .Select(line => new { line.ReconciliationBatchLineId, line.IssuedQty }).ToListAsync(token);
+        return rows.GroupBy(row => Convert.ToHexString(row.ReconciliationBatchLineId!))
+            .ToDictionary(group => group.Key, group => group.Sum(row => row.IssuedQty), StringComparer.Ordinal);
+    }
+
+    private static ReconciliationWarehouseTransferDto MapTransfer(ReconciliationBatch batch) =>
+        new(GuidHelper.ToGuidString(batch.BatchId), batch.Status, batch.Version,
+            batch.Lines.OrderBy(line => Convert.ToHexString(line.BatchLineId)).Select(line =>
+                new ReconciliationWarehouseTransferLineDto(
+                    GuidHelper.ToGuidString(line.BatchLineId), GuidHelper.ToGuidString(line.IngredientId),
+                    line.Ingredient?.IngredientCode, line.Ingredient?.IngredientName,
+                    GuidHelper.ToGuidString(line.CanonicalUnitId), line.CanonicalUnit?.UnitName,
+                    line.RequiredQuantity, line.Version)).ToList());
+
     private static bool IsExactCommittedAuthority(QuantityImportBatch? import, byte[] menuVersionId) =>
         import is not null
         && import.Status == "CONFIRMED"
@@ -276,9 +341,18 @@ public sealed class ReconciliationBatchService(
         return (selected.Value, selected.ScopeKind, selected.Version.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    private static ReconciliationBatchDto Map(ReconciliationBatch batch, IReadOnlyList<ReconciliationActual> actuals, IReadOnlyList<ReconciliationDisposition> dispositions) =>
+    private static ReconciliationBatchDto Map(
+        ReconciliationBatch batch,
+        IReadOnlyList<ReconciliationActual> actuals,
+        IReadOnlyList<ReconciliationDisposition> dispositions,
+        IReadOnlyDictionary<string, decimal>? linkedIssued = null,
+        IReadOnlyList<ReconciliationBatchLine>? explicitLines = null) =>
         new(GuidHelper.ToGuidString(batch.BatchId), GuidHelper.ToGuidString(batch.MenuVersionId), GuidHelper.ToGuidString(batch.QuantityImportBatchId), batch.Status, batch.Version, batch.CreatedAt, batch.ReadyAt, batch.CompletedAt,
-            batch.Lines.Select(line => ReconciliationComparisonService.Map(line, actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(), dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)))).ToList());
+            (explicitLines ?? batch.Lines.ToList()).Select(line => ReconciliationComparisonService.Map(
+                line,
+                actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
+                dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
+                linkedIssued?.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)))).ToList());
 
     internal static byte[] RequiredId(string id) => GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("ID không hợp lệ.");
 }

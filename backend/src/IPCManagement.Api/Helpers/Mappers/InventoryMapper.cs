@@ -61,7 +61,8 @@ public static class InventoryMapper
         ShiftName = issue.ShiftName,
         WarehouseId = GuidHelper.ToGuidString(issue.WarehouseId),
         WarehouseName = issue.Warehouse?.WarehouseName,
-        MaterialRequestId = GuidHelper.ToGuidString(issue.MaterialRequestId),
+        MaterialRequestId = issue.MaterialRequestId is null ? null : GuidHelper.ToGuidString(issue.MaterialRequestId),
+        ReconciliationBatchId = issue.ReconciliationBatchId is null ? null : GuidHelper.ToGuidString(issue.ReconciliationBatchId),
         IssuedBy = GuidHelper.ToGuidString(issue.IssuedBy),
         IssuedByName = issue.IssuedByNavigation?.FullName,
         ReceivedBy = issue.ReceivedBy is not null ? GuidHelper.ToGuidString(issue.ReceivedBy) : null,
@@ -77,6 +78,7 @@ public static class InventoryMapper
     {
         IssueLineId = GuidHelper.ToGuidString(line.IssueLineId),
         MaterialRequestLineId = line.MaterialRequestLineId is null ? null : GuidHelper.ToGuidString(line.MaterialRequestLineId),
+        ReconciliationBatchLineId = line.ReconciliationBatchLineId is null ? null : GuidHelper.ToGuidString(line.ReconciliationBatchLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
         IngredientName = line.Ingredient?.IngredientName,
         RequestedQty = DecimalPolicy.RoundQuantity(line.RequestedQty),
