@@ -1,4 +1,5 @@
-import { Suspense, lazy, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { OperationalFrame, QueryViewBoundary, ViewSwitcher } from '@/components/common'
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi'
 import { useGetCoordinationCustomersQuery, useGetReconciliationWeeklyMenuQuery } from '@/api/coordinationApi'
@@ -12,10 +13,37 @@ const WeeklyScheduleSection = lazy(() => import('../weekly-menu/schedule/WeeklyS
 
 type ReconciliationView = 'schedule' | 'demand'
 
+const isReconciliationView = (value: string | null): value is ReconciliationView => value === 'schedule' || value === 'demand'
+
 export function ReconciliationWeeklyMenuPage() {
-  const [activeView, setActiveView] = useState<ReconciliationView>('schedule')
-  const [customerId, setCustomerId] = useState(() => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '')
-  const [weekStartDate, setWeekStartDate] = useState(getStoredWeekStartDate)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedView = searchParams.get('view')
+  const activeView: ReconciliationView = isReconciliationView(requestedView) ? requestedView : 'schedule'
+  const customerId = searchParams.get('customerId') ?? window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? ''
+  const weekStartDate = normalizeWeekStartDate(searchParams.get('weekStartDate') ?? getStoredWeekStartDate())
+
+  useEffect(() => {
+    if (isReconciliationView(requestedView) && searchParams.has('customerId') && searchParams.has('weekStartDate')) return
+    const normalized = new URLSearchParams(searchParams)
+    normalized.set('view', activeView)
+    if (customerId) normalized.set('customerId', customerId)
+    if (weekStartDate) normalized.set('weekStartDate', weekStartDate)
+    setSearchParams(normalized, { replace: true })
+  }, [activeView, customerId, requestedView, searchParams, setSearchParams, weekStartDate])
+
+  const updateScope = (updates: { view?: ReconciliationView; customerId?: string; weekStartDate?: string }) => {
+    const next = new URLSearchParams(searchParams)
+    if (updates.view !== undefined) next.set('view', updates.view)
+    if (updates.customerId !== undefined) {
+      if (updates.customerId) next.set('customerId', updates.customerId)
+      else next.delete('customerId')
+    }
+    if (updates.weekStartDate !== undefined) {
+      if (updates.weekStartDate) next.set('weekStartDate', updates.weekStartDate)
+      else next.delete('weekStartDate')
+    }
+    setSearchParams(next)
+  }
   const customersQuery = useGetCoordinationCustomersQuery()
   const catalogQuery = useGetDishesCatalogQuery()
   const menuQuery = useGetReconciliationWeeklyMenuQuery({ customerId, weekStartDate: weekStartDate || undefined }, { skip: !customerId })
@@ -49,11 +77,11 @@ export function ReconciliationWeeklyMenuPage() {
   const dishNamesById = useMemo(() => new Map(catalog.map((dish) => [dish.id, dish.name])), [catalog])
 
   return <OperationalFrame command={<div className="ipc-command-bar flex flex-wrap gap-3">
-    <label className="grid gap-1 text-sm font-medium">Khách hàng<select className="ipc-input min-w-64" value={customerId} onChange={(event) => { const value = event.target.value; setCustomerId(value); if (value) window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, value); else window.localStorage.removeItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) }}><option value="">Chọn khách hàng</option>{customers.map((item) => <option key={item.customerId} value={item.customerId}>{item.customerCode} - {item.customerName}</option>)}</select></label>
-    <label className="grid gap-1 text-sm font-medium">Tuần bắt đầu<input className="ipc-input" type="date" value={weekStartDate} onChange={(event) => { const value = normalizeWeekStartDate(event.target.value); setWeekStartDate(value); if (value) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, value); else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY) }} /></label>
+    <label className="grid gap-1 text-sm font-medium">Khách hàng<select className="ipc-input min-w-64" value={customerId} onChange={(event) => { const value = event.target.value; updateScope({ customerId: value }); if (value) window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, value); else window.localStorage.removeItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) }}><option value="">Chọn khách hàng</option>{customers.map((item) => <option key={item.customerId} value={item.customerId}>{item.customerCode} - {item.customerName}</option>)}</select></label>
+    <label className="grid gap-1 text-sm font-medium">Tuần bắt đầu<input className="ipc-input" type="date" value={weekStartDate} onChange={(event) => { const value = normalizeWeekStartDate(event.target.value); updateScope({ weekStartDate: value }); if (value) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, value); else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY) }} /></label>
   </div>}>
     <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={[{ label: 'danh sách khách hàng', view: customersView }, { label: 'danh mục món và BOM', view: catalogView }, { label: 'kế hoạch tuần đối chiếu', view: menuView }]} refreshLabel="Đang cập nhật kế hoạch tuần">
-      <ViewSwitcher ariaLabel="Chọn góc nhìn kế hoạch tuần" tabs={[{ id: 'schedule', label: 'Kế hoạch tuần' }, { id: 'demand', label: 'Định lượng xuất kho' }]} activeTab={activeView} onTabChange={(id) => setActiveView(id as ReconciliationView)} />
+      <ViewSwitcher ariaLabel="Chọn góc nhìn kế hoạch tuần" tabs={[{ id: 'schedule', label: 'Kế hoạch tuần' }, { id: 'demand', label: 'Định lượng xuất kho' }]} activeTab={activeView} onTabChange={(id) => updateScope({ view: id as ReconciliationView })} />
       <div className="relative min-h-[480px]">
         {activeView === 'schedule' ? <div id="schedule-panel" role="tabpanel" aria-labelledby="schedule-tab"><Suspense fallback={<div aria-busy="true" className="min-h-[480px] rounded-md bg-slate-50" />}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={Boolean(menu?.weekStartDate)} rows={committedRows} dishNamesById={dishNamesById} /></Suspense></div> : <div id="demand-panel" role="tabpanel" aria-labelledby="demand-tab"><ClosedLoopTransferPanel menuVersionId={menu?.menuVersionId} scopeLabel={customer && displayedWeekStart ? `${customer.customerCode} · tuần ${formatImportDate(displayedWeekStart)}` : 'Chọn khách hàng và tuần'} /></div>}
       </div>

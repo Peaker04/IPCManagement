@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber, formatPercent, formatQuantity } from '@/lib/formatters';
+import { formatNumber, formatPercent, formatQuantity, formatUnit } from '@/lib/formatters';
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
@@ -149,7 +150,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button
-                    variant="default"
+                    variant={bomImportPreview?.canCommit ? "outline" : "default"}
                     size="sm"
                     type="button"
                     disabled={Boolean(previewBomImportState?.isLoading || !bomImportFile)}
@@ -161,7 +162,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     Kiểm tra file
                   </Button>
                   <Button
-                    variant="default"
+                    variant={bomImportPreview?.canCommit ? "default" : "outline"}
                     size="sm"
                     type="button"
                     disabled={Boolean(commitBomImportState?.isLoading || !bomImportPreview?.canCommit)}
@@ -239,7 +240,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                         <th>Hao hụt</th>
                         <th>Hiệu lực</th>
                         <th>Trạng thái</th>
-                        <th className="whitespace-nowrap">Thao tác</th>
+                        <th className="whitespace-nowrap text-right">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -247,13 +248,13 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                         <tr key={line.bomId}>
                           <td className="align-top"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
                           <td className="align-top"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
-                          <td className="align-top whitespace-nowrap">{line.unit}</td>
+                          <td className="align-top whitespace-nowrap">{formatUnit(line.unit)}</td>
                           <td className="align-top text-right font-semibold tabular-nums">{line.grossQtyPerServing}</td>
                           <td className="align-top text-right tabular-nums">{line.wasteRatePercent}%</td>
                           <td className="align-top"><div>{line.effectiveFrom}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div></td>
-                          <td className="align-top"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>{line.bomStatusLabel || line.bomStatus}</StatusBadge></td>
+                          <td className="align-top"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>{line.bomStatusLabel || getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
                           <td className="align-top">
-                            <div className="flex flex-wrap justify-center gap-1">
+                            <div className="flex flex-wrap justify-end gap-1">
                               <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
                                 <Pencil size={14} /> Sửa
                               </Button>

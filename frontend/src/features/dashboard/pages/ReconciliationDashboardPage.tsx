@@ -5,7 +5,7 @@ import { ROUTES } from '@/lib/routeConfig'
 const steps = [
   { order: '01', title: 'Kế hoạch tuần', description: 'Chọn khách hàng và tuần thực đơn.', route: ROUTES.WEEKLY_MENU },
   { order: '02', title: 'Định lượng xuất kho', description: 'Kiểm tra định lượng và chuyển danh sách đã chốt sang Kho.', route: `${ROUTES.WEEKLY_MENU}?view=demand` },
-  { order: '03', title: 'Kho xuất thực tế', description: 'Lập phiếu xuất từ đúng lô đã chuyển và ghi nhận stock movement.', route: ROUTES.WAREHOUSE },
+  { order: '03', title: 'Kho xuất thực tế', description: 'Lập phiếu xuất từ đúng lô đã chuyển và ghi nhận bút toán tồn kho.', route: ROUTES.WAREHOUSE },
   { order: '04', title: 'Đối chiếu', description: 'So sánh số cần xuất với số Kho đã xuất và xử lý sai lệch.', route: ROUTES.RECONCILIATION },
 ] as const
 

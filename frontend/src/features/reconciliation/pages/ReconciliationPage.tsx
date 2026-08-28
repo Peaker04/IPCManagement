@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatDateTime } from '@/lib/formatters'
+import { formatDateTime, formatUnit } from '@/lib/formatters'
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
 import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '../reconciliationApi'
@@ -12,9 +14,17 @@ import { toLabeledQueryView } from '@/lib/labeledQueryView'
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const batchesQuery = useListReconciliationBatchesQuery()
-  const selectedId = searchParams.get('batchId') ?? batchesQuery.data?.[0]?.batchId ?? ''
+  const requestedId = searchParams.get('batchId') ?? ''
+  const batches = useMemo(() => batchesQuery.currentData ?? batchesQuery.data ?? [], [batchesQuery.currentData, batchesQuery.data])
+  const selectedId = batches.some((item) => item.batchId === requestedId) ? requestedId : ''
+  const batchesView = toLabeledQueryView(batchesQuery, 'danh sách lô đối chiếu', { instruction: 'Tải lại danh sách lô để chọn đúng phạm vi cần đối chiếu.' })
   const batchQuery = useGetReconciliationBatchQuery(selectedId, { skip: !selectedId })
   const batchView = toLabeledQueryView(batchQuery, 'lô đối chiếu đã chọn', { instruction: 'Chọn một lô để xem số cần xuất và số kho đã xuất.' })
+
+  useEffect(() => {
+    if (!batchesQuery.isSuccess || requestedId || batches.length === 0) return
+    setSearchParams({ batchId: batches[0].batchId }, { replace: true })
+  }, [batches, batchesQuery.isSuccess, requestedId, setSearchParams])
   const [showAll, setShowAll] = useState(false)
   const [detailLine, setDetailLine] = useState<ReconciliationLine>()
   const [disposingLine, setDisposingLine] = useState<ReconciliationLine>()
@@ -28,13 +38,15 @@ export default function ReconciliationPage() {
           <h2 className="text-lg font-semibold text-slate-950">Cần xuất và đã xuất kho</h2>
           <p className="mt-1 text-sm text-slate-600">Số đã xuất được đọc từ phiếu xuất kho liên kết; không nhập lại tại đây.</p>
         </div>
-        <label className="grid gap-1 text-sm font-medium text-slate-800">
-          Lô đối chiếu
-          <Select value={selectedId} onValueChange={(value) => value && setSearchParams({ batchId: value })}>
-            <SelectTrigger className="min-w-72" aria-label="Chọn lô đối chiếu"><SelectValue placeholder="Chọn lô" /></SelectTrigger>
-            <SelectContent>{(batchesQuery.data ?? []).map((item) => <SelectItem key={item.batchId} value={item.batchId}>{formatDateTime(item.createdAt)} · {item.status}</SelectItem>)}</SelectContent>
-          </Select>
-        </label>
+        <QueryViewBoundary queries={[{ label: 'danh sách lô đối chiếu', view: batchesView }]}>
+          <label className="grid gap-1 text-sm font-medium text-slate-800">
+            Lô đối chiếu
+            <Select value={selectedId || null} onValueChange={(value) => value && setSearchParams({ batchId: value })}>
+              <SelectTrigger className="min-w-72" aria-label="Chọn lô đối chiếu"><SelectValue placeholder="Chọn lô" /></SelectTrigger>
+              <SelectContent>{batches.map((item) => { const status = getWorkflowStatusPresentation(item.status); return <SelectItem key={item.batchId} value={item.batchId}>{formatDateTime(item.createdAt)} · {status.label}</SelectItem> })}</SelectContent>
+            </Select>
+          </label>
+        </QueryViewBoundary>
       </div>
 
       <QueryViewBoundary queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
@@ -45,10 +57,12 @@ export default function ReconciliationPage() {
       </QueryViewBoundary>
     </section>
 
-    {detailLine && <aside role="dialog" aria-modal="true" aria-label="Chi tiết nguyên liệu" className="fixed inset-y-0 right-0 z-50 w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-xl">
-      <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">{detailLine.ingredientName || 'Chi tiết nguyên liệu'}</h2><Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button></div>
-      <dl className="mt-5 grid grid-cols-2 gap-3 text-sm"><dt>Mã nguyên liệu</dt><dd>{detailLine.ingredientCode || 'Chưa có mã'}</dd><dt>Đơn vị</dt><dd>{detailLine.canonicalUnitName || 'Chưa có tên đơn vị'}</dd><dt>Nguồn số đã xuất</dt><dd>Phiếu xuất kho liên kết</dd><dt>Ngưỡng sai lệch</dt><dd>{detailLine.frozenTolerance}</dd></dl>
-    </aside>}
+    <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
+      <DialogContent aria-label="Chi tiết nguyên liệu" className="ml-auto mr-0 min-h-[60vh] max-w-md rounded-none">
+        <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>
+        {detailLine && <><dl className="mt-5 grid grid-cols-2 gap-3 text-sm"><dt>Mã nguyên liệu</dt><dd>{detailLine.ingredientCode || 'Chưa có mã'}</dd><dt>Đơn vị</dt><dd>{formatUnit(detailLine.canonicalUnitName || '') || 'Chưa có tên đơn vị'}</dd><dt>Nguồn số đã xuất</dt><dd>Phiếu xuất kho liên kết</dd><dt>Ngưỡng sai lệch</dt><dd>{detailLine.frozenTolerance}</dd></dl><div className="mt-5 flex justify-end"><Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button></div></>}
+      </DialogContent>
+    </Dialog>
     {disposingLine && <ReconciliationDispositionDrawer line={disposingLine} onClose={() => setDisposingLine(undefined)} onRefetch={() => batchQuery.refetch()} />}
   </OperationalFrame>
 }

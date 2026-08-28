@@ -83,23 +83,23 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600">Tên bảng/Thực thể</label>
+              <label className="text-xs font-semibold text-slate-600">Đối tượng nghiệp vụ</label>
               <Input
                 type="text"
                 value={auditEntity}
                 onChange={(e) => { setAuditEntity(e.target.value); setAuditCursors([]); }}
-                placeholder="Ví dụ: Mealquantityplan..."
+                placeholder="Ví dụ: Kế hoạch suất ăn..."
                 className="w-44 text-xs"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600">Tên cột/Trường</label>
+              <label className="text-xs font-semibold text-slate-600">Thông tin thay đổi</label>
               <Input
                 type="text"
                 value={auditField}
                 onChange={(e) => { setAuditField(e.target.value); setAuditCursors([]); }}
-                placeholder="Ví dụ: Status..."
+                placeholder="Ví dụ: Trạng thái..."
                 className="w-40 text-xs"
               />
             </div>

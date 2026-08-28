@@ -18,7 +18,7 @@ vi.mock('./reconciliationApi', async (importOriginal) => ({
   }),
 }))
 
-const line = { batchLineId: 'line-1', ingredientId: 'ingredient-1', canonicalUnitId: 'unit-1', requiredQuantity: 10, frozenTolerance: 1, purchasedQuantity: 12, purchasedVersion: 1, issuedQuantity: 10, issuedVersion: 1, triggers: ['PURCHASED_REQUIRED'], status: 'NEEDS_REVIEW' as const, version: 1, disposition: { category: 'ACCEPTED_VARIANCE', reason: 'Lý do cũ', version: 3, disposedAt: '2026-08-25' } }
+const line = { batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo thơm', ingredientCode: 'GAO-01', canonicalUnitId: 'unit-1', requiredQuantity: 10, frozenTolerance: 1, purchasedQuantity: 12, purchasedVersion: 1, issuedQuantity: 10, issuedVersion: 1, triggers: ['PURCHASED_REQUIRED'], status: 'NEEDS_REVIEW' as const, version: 1, disposition: { category: 'ACCEPTED_VARIANCE', reason: 'Lý do cũ', version: 3, disposedAt: '2026-08-25' } }
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -35,6 +35,25 @@ it('preserves a disposition correction and offers refetch on stale version', asy
   expect(screen.getByLabelText('Lý do')).toHaveValue('Lý do điều chỉnh')
   fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
   expect(onRefetch).toHaveBeenCalled()
+})
+
+it('uses the canonical dialog focus contract and identifies the ingredient in user language', async () => {
+  const opener = document.createElement('button')
+  opener.textContent = 'Mở xử lý Gạo thơm'
+  document.body.appendChild(opener)
+  opener.focus()
+  const onClose = vi.fn()
+
+  render(<ReconciliationDispositionDrawer line={line} onClose={onClose} onRefetch={vi.fn()} />)
+
+  expect(await screen.findByRole('dialog', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+  expect(screen.getByText('Ghi nhận hoặc sửa kết luận cho Gạo thơm · mã GAO-01.')).toBeInTheDocument()
+  expect(document.body.style.overflow).toBe('hidden')
+  expect(screen.getByRole('combobox', { name: 'Nhóm xử lý' })).toHaveFocus()
+  fireEvent.keyDown(window, { key: 'Escape' })
+  expect(onClose).toHaveBeenCalledOnce()
+
+  opener.remove()
 })
 
 it('renders only server-owned disposition category options', () => {

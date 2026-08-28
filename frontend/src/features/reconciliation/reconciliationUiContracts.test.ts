@@ -1,0 +1,31 @@
+import { describe, expect, it } from 'vitest'
+import weeklyMenuSource from '@/features/projects/pages/ReconciliationWeeklyMenuPage.tsx?raw'
+import warehouseSource from '@/features/warehouse/pages/ReconciliationWarehousePage.tsx?raw'
+import reconciliationSource from '@/features/reconciliation/pages/ReconciliationPage.tsx?raw'
+import adminBomSource from '@/app/pages/admin-data/AdminBomPanel.tsx?raw'
+import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
+
+describe('material reconciliation UI contracts', () => {
+  it('owns the weekly-menu work object in validated URL query state', () => {
+    expect(buildWeeklyMenuRoute({ view: 'demand', customerId: 'customer 1', weekStartDate: '2026-08-24' }))
+      .toBe('/weekly-menu?view=demand&customerId=customer+1&weekStartDate=2026-08-24')
+    expect(weeklyMenuSource).toContain("value === 'schedule' || value === 'demand'")
+    expect(weeklyMenuSource).toContain("searchParams.get('customerId')")
+    expect(weeklyMenuSource).toContain("searchParams.get('weekStartDate')")
+  })
+
+  it('keeps warehouse tab semantics and the prerequisite action unambiguous', () => {
+    expect(warehouseSource).toContain('id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"')
+    expect(warehouseSource).toContain('id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"')
+    expect(warehouseSource).toContain("buildWeeklyMenuRoute({ view: 'demand' })")
+    expect(warehouseSource).toContain("activeView === 'demand' && batch && <Button")
+  })
+
+  it('uses canonical dialogs and shared user-language presentation seams', () => {
+    expect(reconciliationSource).toContain('<Dialog open={Boolean(detailLine)}')
+    expect(reconciliationSource).toContain('getWorkflowStatusPresentation(item.status)')
+    expect(warehouseSource).toContain('getWorkflowStatusPresentation(issue.status)')
+    expect(adminBomSource).toContain('formatUnit(line.unit)')
+    expect(adminBomSource).not.toContain('line.bomStatusLabel || line.bomStatus')
+  })
+})

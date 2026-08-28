@@ -4,8 +4,9 @@ import { OperationalFrame, SectionPanel, StatusBadge, TableViewport, ViewSwitche
 import { Button } from '@/components/ui/button'
 import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi'
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext'
-import { formatQuantity } from '@/lib/formatters'
-import { ROUTES } from '@/lib/routeConfig'
+import { formatQuantityWithUnit } from '@/lib/formatters'
+import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility'
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext'
 import { visibleTabIds } from '@/lib/navigationPreferences'
@@ -59,22 +60,22 @@ export default function ReconciliationWarehousePage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
         <div><h2 className="text-lg font-semibold">Xuất kho theo định lượng đã chốt</h2><p className="mt-1 text-sm text-slate-600">Kho vận hành: {warehouse.warehouse?.warehouseName ?? 'Chưa xác định'}.</p></div>
-        {activeView === 'demand' && <Button type="button" disabled={!batch || remainingLines.length === 0 || warehouse.state !== 'ready' || isCreating} onClick={() => void create()}>{isCreating ? 'Đang tạo phiếu...' : `Tạo phiếu xuất ${remainingLines.length} dòng`}</Button>}
+        {activeView === 'demand' && batch && <Button type="button" disabled={remainingLines.length === 0 || warehouse.state !== 'ready' || isCreating} onClick={() => void create()}>{isCreating ? 'Đang tạo phiếu...' : `Tạo phiếu xuất ${remainingLines.length} dòng`}</Button>}
       </div>
       {feedback && <p role="status" className="rounded-md border border-slate-200 bg-white p-3 text-sm">{feedback}</p>}
       {warehouseError && <p role="alert" className="text-sm text-red-700">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</p>}
-      {!batchId && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Chưa chọn lô cần xuất</h2><p className="mt-2 text-sm text-slate-600">Mở Định lượng xuất kho từ Thực đơn tuần để giữ đúng phạm vi khách hàng và tuần.</p><Link className="ipc-button ipc-button-primary mt-4" to={ROUTES.WEEKLY_MENU}>Mở Thực đơn tuần</Link></section>}
+      {!batchId && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Chưa chọn lô cần xuất</h2><p className="mt-2 text-sm text-slate-600">Mở Định lượng xuất kho từ Thực đơn tuần để giữ đúng phạm vi khách hàng và tuần.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
       {batchId && <>
         <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => setSelectedView(id.replace('warehouse-', ''))} />
-        {activeView === 'demand' && <SectionPanel title="Danh sách cần xuất" description="Số còn lại được tính từ định lượng chốt trừ số trên phiếu xuất liên kết.">
+        {activeView === 'demand' && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><SectionPanel title="Danh sách cần xuất" description="Số còn lại được tính từ định lượng chốt trừ số trên phiếu xuất liên kết.">
           <TableViewport ariaLabel="Danh sách nguyên liệu cần xuất" caption="Danh sách nguyên liệu của đúng lô đối chiếu">
-            <table className="ipc-data-table"><thead><tr><th>Nguyên liệu</th><th className="text-right">Cần xuất</th><th className="text-right">Đã xuất</th><th className="text-right">Còn lại</th><th>Trạng thái</th></tr></thead><tbody>{(batch?.lines ?? []).map((line) => { const remaining = line.requiredQuantity - (line.issuedQuantity ?? 0); return <tr key={line.batchLineId}><td><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span><span className="text-xs text-slate-600">{line.ingredientCode || ''}</span></td><td className="text-right tabular-nums">{formatQuantity(line.requiredQuantity)} {line.canonicalUnitName}</td><td className="text-right tabular-nums">{formatQuantity(line.issuedQuantity ?? 0)} {line.canonicalUnitName}</td><td className="text-right tabular-nums">{formatQuantity(remaining)} {line.canonicalUnitName}</td><td><StatusBadge variant={remaining <= 0 ? 'success' : 'warning'}>{remaining <= 0 ? 'Đã xuất đủ' : 'Cần xuất'}</StatusBadge></td></tr> })}</tbody></table>
+            <table className="ipc-data-table"><thead><tr><th>Nguyên liệu</th><th className="text-right">Cần xuất</th><th className="text-right">Đã xuất</th><th className="text-right">Còn lại</th><th>Trạng thái</th></tr></thead><tbody>{(batch?.lines ?? []).map((line) => { const remaining = line.requiredQuantity - (line.issuedQuantity ?? 0); return <tr key={line.batchLineId}><td><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span><span className="text-xs text-slate-600">{line.ingredientCode || ''}</span></td><td className="text-right tabular-nums">{formatQuantityWithUnit(line.requiredQuantity, line.canonicalUnitName ?? '')}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(line.issuedQuantity ?? 0, line.canonicalUnitName ?? '')}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(remaining, line.canonicalUnitName ?? '')}</td><td><StatusBadge variant={remaining <= 0 ? 'success' : 'warning'}>{remaining <= 0 ? 'Đã xuất đủ' : 'Cần xuất'}</StatusBadge></td></tr> })}</tbody></table>
           </TableViewport>
-        </SectionPanel>}
-        {activeView === 'movement' && <SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
-          {historyQuery.isLoading ? <p>Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ul className="divide-y divide-slate-200">{historyQuery.data?.items.map((issue) => <li key={issue.issueId} className="flex items-center justify-between gap-3 py-3"><span className="font-medium">{issue.issueCode}</span><StatusBadge variant="info">{issue.status}</StatusBadge></li>)}</ul>}
+        </SectionPanel></div>}
+        {activeView === 'movement' && <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"><SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
+          {historyQuery.isLoading ? <p>Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ul className="divide-y divide-slate-200">{historyQuery.data?.items.map((issue) => { const status = getWorkflowStatusPresentation(issue.status); return <li key={issue.issueId} className="flex items-center justify-between gap-3 py-3"><span className="font-medium">{issue.issueCode}</span><StatusBadge variant={status.tone}>{status.label}</StatusBadge></li> })}</ul>}
           <div className="mt-4 flex justify-end"><Link className="ipc-button ipc-button-primary" to={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}`}>Mở đối chiếu</Link></div>
-        </SectionPanel>}
+        </SectionPanel></div>}
       </>}
     </div>
   </OperationalFrame>

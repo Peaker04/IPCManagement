@@ -107,7 +107,7 @@ const MainLayoutContent = () => {
       case ROUTES.DASHBOARD:
         return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan vận hành', state: 'Theo dõi điểm tắc' };
       case ROUTES.WEEKLY_MENU:
-        return { title: 'KHSX và định lượng', workflow: workflowContext.lane.label, state: 'Theo dõi kế hoạch tuần' };
+        return { title: 'Kế hoạch sản xuất và định lượng', workflow: workflowContext.lane.label, state: 'Theo dõi kế hoạch tuần' };
       case ROUTES.MEAL_ORDERS:
         return { title: 'Điều phối suất ăn', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.CHEF_DASHBOARD:

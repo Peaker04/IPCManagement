@@ -6,7 +6,7 @@ import { useListReconciliationBatchesQuery, useTransferReconciliationBatchMutati
 export function ClosedLoopTransferPanel({ menuVersionId, scopeLabel }: { menuVersionId?: string | null; scopeLabel: string }) {
   const { data = [], isLoading, isError, refetch } = useListReconciliationBatchesQuery()
   const [transfer, { isLoading: isTransferring }] = useTransferReconciliationBatchMutation()
-  const batch = data.find((candidate) => candidate.menuVersionId === menuVersionId) ?? data[0]
+  const batch = menuVersionId ? data.find((candidate) => candidate.menuVersionId === menuVersionId) : undefined
   const warehouseHref = batch ? `${ROUTES.WAREHOUSE}?batchId=${encodeURIComponent(batch.batchId)}` : ROUTES.WAREHOUSE
 
   return <section className="rounded-lg border border-slate-200 bg-white p-4" aria-label="Chuyển định lượng sang kho">
@@ -20,6 +20,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, scopeLabel }: { menuVer
     </div>
     {isLoading && <p className="mt-3 text-sm text-slate-600">Đang tải định lượng đã chốt...</p>}
     {isError && <p className="mt-3 text-sm text-red-700" role="alert">Không tải được định lượng xuất kho. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Thử lại</Button></p>}
-    {!isLoading && !isError && !batch && <p className="mt-3 text-sm text-slate-600">Chưa có lô định lượng sẵn sàng. Hoàn tất nguồn số suất trước khi chuyển sang Kho.</p>}
+    {!isLoading && !isError && !menuVersionId && <p className="mt-3 text-sm text-slate-600">Chọn đúng khách hàng và tuần có kế hoạch đã nhập để mở định lượng xuất kho.</p>}
+    {!isLoading && !isError && menuVersionId && !batch && <p className="mt-3 text-sm text-slate-600">Phạm vi đang chọn chưa có lô định lượng. Hoàn tất nguồn số suất của đúng khách hàng và tuần trước khi chuyển sang Kho.</p>}
   </section>
 }
