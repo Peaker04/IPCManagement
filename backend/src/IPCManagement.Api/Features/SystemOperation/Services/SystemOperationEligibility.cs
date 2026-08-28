@@ -23,7 +23,10 @@ public static class SystemOperationEligibility
 
     private static readonly SystemOperationCapabilitiesDto MaterialReconciliationCapabilities = CreateCapabilities(
         ["dashboard", "weekly-menu", "purchasing", "warehouse", "reports", "admin-data"],
-        new Dictionary<string, string[]>(StringComparer.Ordinal));
+        new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["weekly-menu"] = ["schedule", "purchase-summary"]
+        });
 
     private static readonly HashSet<string> ExcludedControllers = new(StringComparer.OrdinalIgnoreCase)
     {

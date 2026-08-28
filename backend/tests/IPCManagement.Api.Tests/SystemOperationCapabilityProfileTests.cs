@@ -44,14 +44,16 @@ public sealed class SystemOperationCapabilityProfileTests
     }
 
     [Fact]
-    public void Material_reconciliation_profile_exposes_only_retained_navigation_and_zero_legacy_tabs()
+    public void Material_reconciliation_profile_exposes_only_retained_navigation_and_weekly_menu_work_tabs()
     {
         var profile = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation);
 
         Assert.Equal(
             ["dashboard", "weekly-menu", "purchasing", "warehouse", "reports", "admin-data"],
             profile.Navigation);
-        Assert.Empty(profile.PageTabs);
+        var weeklyMenuTabs = Assert.Single(profile.PageTabs);
+        Assert.Equal("weekly-menu", weeklyMenuTabs.Key);
+        Assert.Equal(["schedule", "purchase-summary"], weeklyMenuTabs.Value);
     }
 
     [Fact]
@@ -97,7 +99,9 @@ public sealed class SystemOperationCapabilityProfileTests
         Assert.Equal(
             ["dashboard", "weekly-menu", "purchasing", "warehouse", "reports", "admin-data"],
             payload.Data.Capabilities.Navigation);
-        Assert.Empty(payload.Data.Capabilities.PageTabs);
+        Assert.Equal(
+            ["schedule", "purchase-summary"],
+            payload.Data.Capabilities.PageTabs["weekly-menu"]);
     }
 
     [Fact]
@@ -134,7 +138,9 @@ public sealed class SystemOperationCapabilityProfileTests
         Assert.Equal(
             ["dashboard", "weekly-menu", "purchasing", "warehouse", "reports", "admin-data"],
             after.Capabilities.Navigation);
-        Assert.Empty(after.Capabilities.PageTabs);
+        Assert.Equal(
+            ["schedule", "purchase-summary"],
+            after.Capabilities.PageTabs["weekly-menu"]);
     }
 
     private static IpcManagementContext CreateContext()

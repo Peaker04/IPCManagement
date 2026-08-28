@@ -2,6 +2,7 @@ using System.Globalization;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Mvc;
 using IPCManagement.Api.Shared.Contracts;
 
@@ -18,6 +19,7 @@ public sealed partial class WeeklyMenuImportsController
     }
 
     [HttpGet("weekly-menu")]
+    [SystemOperation("coordination.weekly-menu.read", OperationDisposition.ExcludedInMaterialReconciliation)]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetWeeklyMenuAsync(
