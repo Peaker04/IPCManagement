@@ -6360,6 +6360,51 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/batches/{id}/transfer-to-warehouse": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["TransferReconciliationBatchRequest"];
+                    readonly "application/json": components["schemas"]["TransferReconciliationBatchRequest"];
+                    readonly "text/json": components["schemas"]["TransferReconciliationBatchRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationWarehouseTransferDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationWarehouseTransferDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationWarehouseTransferDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/batches/draft-sources": {
         readonly parameters: {
             readonly query?: never;
@@ -6765,6 +6810,57 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/weekly-menu": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly customerId?: string;
+                    readonly weekStartDate?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["WeeklyMenuImportResultDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["WeeklyMenuImportResultDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["WeeklyMenuImportResultDtoApiResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
                 };
             };
         };
@@ -8504,7 +8600,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["SystemOperationModeDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["SystemOperationModeDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["SystemOperationModeDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -8528,7 +8628,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["SystemOperationModeDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["SystemOperationModeDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["SystemOperationModeDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -11947,6 +12051,7 @@ export interface components {
             /** Format: double */
             readonly issuedQty: number;
             readonly materialRequestLineId?: string | null;
+            readonly reconciliationBatchLineId?: string | null;
             /** Format: double */
             readonly requestedQty: number;
             readonly unitId: string;
@@ -11960,8 +12065,9 @@ export interface components {
             /** Format: date */
             readonly issueDate: string;
             readonly lines: readonly components["schemas"]["CreateInventoryIssueLineRequest"][];
-            readonly materialRequestId: string;
+            readonly materialRequestId?: string | null;
             readonly receivedBy?: string | null;
+            readonly reconciliationBatchId?: string | null;
             readonly shiftName?: string | null;
             readonly warehouseId?: string | null;
         };
@@ -12941,14 +13047,17 @@ export interface components {
             readonly issuedByNavigation: components["schemas"]["User"];
             /** Format: byte */
             readonly issueId: string;
-            readonly materialRequest: components["schemas"]["MaterialRequest"];
+            readonly materialRequest?: components["schemas"]["MaterialRequest"];
             /** Format: byte */
-            readonly materialRequestId: string;
+            readonly materialRequestId?: string | null;
             /** Format: date-time */
             readonly receivedAt?: string | null;
             /** Format: byte */
             readonly receivedBy?: string | null;
             readonly receivedByNavigation?: components["schemas"]["User"];
+            readonly reconciliationBatch?: components["schemas"]["ReconciliationBatch"];
+            /** Format: byte */
+            readonly reconciliationBatchId?: string | null;
             readonly shiftName?: string | null;
             readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
@@ -12976,11 +13085,12 @@ export interface components {
             readonly issuedByName?: string | null;
             readonly issueId: string;
             readonly lines: readonly components["schemas"]["InventoryIssueLineDto"][];
-            readonly materialRequestId: string;
+            readonly materialRequestId?: string | null;
             /** Format: date-time */
             readonly receivedAt?: string | null;
             readonly receivedBy?: string | null;
             readonly receivedByName?: string | null;
+            readonly reconciliationBatchId?: string | null;
             readonly shiftName?: string | null;
             readonly warehouseId: string;
             readonly warehouseName?: string | null;
@@ -13024,6 +13134,9 @@ export interface components {
             readonly materialRequestLine?: components["schemas"]["MaterialRequestLine"];
             /** Format: byte */
             readonly materialRequestLineId?: string | null;
+            readonly reconciliationBatchLine?: components["schemas"]["ReconciliationBatchLine"];
+            /** Format: byte */
+            readonly reconciliationBatchLineId?: string | null;
             /** Format: double */
             readonly requestedQty: number;
             readonly unit: components["schemas"]["Unit"];
@@ -13037,6 +13150,7 @@ export interface components {
             readonly issuedQty: number;
             readonly issueLineId: string;
             readonly materialRequestLineId?: string | null;
+            readonly reconciliationBatchLineId?: string | null;
             /** Format: double */
             readonly requestedQty: number;
             readonly unitId: string;
@@ -15281,6 +15395,45 @@ export interface components {
             readonly expectedVersion: number;
             readonly reason: string;
         };
+        readonly ReconciliationBatch: {
+            /** Format: byte */
+            readonly batchId: string;
+            /** Format: date-time */
+            readonly completedAt?: string | null;
+            /** Format: byte */
+            readonly completedBy?: string | null;
+            /** Format: date-time */
+            readonly createdAt: string;
+            /** Format: byte */
+            readonly createdBy: string;
+            readonly lines: readonly components["schemas"]["ReconciliationBatchLine"][];
+            /** Format: byte */
+            readonly menuVersionId: string;
+            /** Format: byte */
+            readonly quantityImportBatchId: string;
+            /** Format: date-time */
+            readonly readyAt?: string | null;
+            /** Format: byte */
+            readonly readyBy?: string | null;
+            readonly status: string;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly ReconciliationBatchContributor: {
+            readonly batchLine: components["schemas"]["ReconciliationBatchLine"];
+            /** Format: byte */
+            readonly batchLineId: string;
+            /** Format: byte */
+            readonly contributorId: string;
+            /** Format: byte */
+            readonly dishBomId: string;
+            /** Format: byte */
+            readonly mealQuantityPlanLineId: string;
+            /** Format: byte */
+            readonly menuScheduleId: string;
+            /** Format: double */
+            readonly sourceQuantity: number;
+        };
         readonly ReconciliationBatchDto: {
             readonly batchId: string;
             /** Format: date-time */
@@ -15307,6 +15460,28 @@ export interface components {
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
+        };
+        readonly ReconciliationBatchLine: {
+            readonly batch: components["schemas"]["ReconciliationBatch"];
+            /** Format: byte */
+            readonly batchId: string;
+            /** Format: byte */
+            readonly batchLineId: string;
+            readonly canonicalUnit: components["schemas"]["Unit"];
+            /** Format: byte */
+            readonly canonicalUnitId: string;
+            readonly contributors: readonly components["schemas"]["ReconciliationBatchContributor"][];
+            /** Format: double */
+            readonly frozenTolerance: number;
+            readonly ingredient: components["schemas"]["Ingredient"];
+            /** Format: byte */
+            readonly ingredientId: string;
+            /** Format: double */
+            readonly requiredQuantity: number;
+            readonly toleranceSourceKind: string;
+            readonly toleranceSourceVersion: string;
+            /** Format: int64 */
+            readonly version: number;
         };
         readonly ReconciliationDispositionCategoryDto: {
             readonly label: string;
@@ -15341,10 +15516,13 @@ export interface components {
         readonly ReconciliationLineDto: {
             readonly batchLineId: string;
             readonly canonicalUnitId: string;
+            readonly canonicalUnitName?: string | null;
             readonly disposition?: components["schemas"]["ReconciliationDispositionDto"];
             /** Format: double */
             readonly frozenTolerance: number;
+            readonly ingredientCode?: string | null;
             readonly ingredientId: string;
+            readonly ingredientName?: string | null;
             /** Format: double */
             readonly issuedQuantity?: number | null;
             /** Format: double */
@@ -15382,6 +15560,31 @@ export interface components {
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
+        };
+        readonly ReconciliationWarehouseTransferDto: {
+            readonly batchId: string;
+            readonly lines: readonly components["schemas"]["ReconciliationWarehouseTransferLineDto"][];
+            /** Format: int64 */
+            readonly sourceVersion: number;
+            readonly status: string;
+        };
+        readonly ReconciliationWarehouseTransferDtoApiResponse: {
+            readonly data?: components["schemas"]["ReconciliationWarehouseTransferDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationWarehouseTransferLineDto: {
+            readonly batchLineId: string;
+            readonly canonicalUnitId: string;
+            readonly canonicalUnitName?: string | null;
+            readonly ingredientCode?: string | null;
+            readonly ingredientId: string;
+            readonly ingredientName?: string | null;
+            /** Format: double */
+            readonly requiredQuantity: number;
+            /** Format: int64 */
+            readonly sourceVersion: number;
         };
         readonly RecordActualServingsRequest: {
             /** Format: int32 */
@@ -16316,6 +16519,32 @@ export interface components {
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
+        };
+        readonly SystemOperationCapabilitiesDto: {
+            readonly navigation: readonly string[];
+            readonly pageTabs: {
+                readonly [key: string]: readonly string[];
+            };
+        };
+        readonly SystemOperationModeDto: {
+            readonly capabilities: components["schemas"]["SystemOperationCapabilitiesDto"];
+            readonly label: string;
+            readonly mode: string;
+            readonly reasonRequired: boolean;
+            /** Format: date-time */
+            readonly updatedAt: string;
+            /** Format: int64 */
+            readonly version: number;
+        };
+        readonly SystemOperationModeDtoApiResponse: {
+            readonly data?: components["schemas"]["SystemOperationModeDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly TransferReconciliationBatchRequest: {
+            /** Format: int64 */
+            readonly expectedVersion: number;
         };
         readonly Unit: {
             readonly baseUnitCode?: string | null;

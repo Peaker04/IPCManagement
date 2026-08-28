@@ -8718,6 +8718,64 @@
         }
       }
     },
+    "/api/reconciliation/batches/{id}/transfer-to-warehouse": {
+      "post": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferReconciliationBatchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferReconciliationBatchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferReconciliationBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationWarehouseTransferDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationWarehouseTransferDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationWarehouseTransferDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/batches/{id}/complete": {
       "post": {
         "tags": [
@@ -8902,6 +8960,71 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reconciliation/weekly-menu": {
+      "get": {
+        "tags": [
+          "ReconciliationWeeklyMenu"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyMenuImportResultDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11146,7 +11269,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOperationModeDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOperationModeDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOperationModeDtoApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -11175,7 +11315,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOperationModeDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOperationModeDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOperationModeDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -21148,6 +21305,10 @@
             "type": "string",
             "nullable": true
           },
+          "reconciliationBatchLineId": {
+            "type": "string",
+            "nullable": true
+          },
           "ingredientId": {
             "minLength": 1,
             "type": "string"
@@ -21172,8 +21333,7 @@
           "commandId",
           "expectedVersion",
           "issueDate",
-          "lines",
-          "materialRequestId"
+          "lines"
         ],
         "type": "object",
         "properties": {
@@ -21210,8 +21370,12 @@
             "nullable": true
           },
           "materialRequestId": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchId": {
+            "type": "string",
+            "nullable": true
           },
           "receivedBy": {
             "type": "string",
@@ -24712,8 +24876,6 @@
           "issuedBy",
           "issuedByNavigation",
           "issueId",
-          "materialRequest",
-          "materialRequestId",
           "warehouse",
           "warehouseId"
         ],
@@ -24740,7 +24902,13 @@
           },
           "materialRequestId": {
             "type": "string",
-            "format": "byte"
+            "format": "byte",
+            "nullable": true
+          },
+          "reconciliationBatchId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
           },
           "issuedBy": {
             "type": "string",
@@ -24777,6 +24945,9 @@
           },
           "materialRequest": {
             "$ref": "#/components/schemas/MaterialRequest"
+          },
+          "reconciliationBatch": {
+            "$ref": "#/components/schemas/ReconciliationBatch"
           },
           "receivedByNavigation": {
             "$ref": "#/components/schemas/User"
@@ -24838,7 +25009,6 @@
           "issuedBy",
           "issueId",
           "lines",
-          "materialRequestId",
           "warehouseId"
         ],
         "type": "object",
@@ -24865,7 +25035,12 @@
             "nullable": true
           },
           "materialRequestId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchId": {
+            "type": "string",
+            "nullable": true
           },
           "issuedBy": {
             "type": "string"
@@ -25025,6 +25200,11 @@
             "format": "byte",
             "nullable": true
           },
+          "reconciliationBatchLineId": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
           "requestedQty": {
             "type": "number",
             "format": "double"
@@ -25041,6 +25221,9 @@
           },
           "materialRequestLine": {
             "$ref": "#/components/schemas/MaterialRequestLine"
+          },
+          "reconciliationBatchLine": {
+            "$ref": "#/components/schemas/ReconciliationBatchLine"
           },
           "unit": {
             "$ref": "#/components/schemas/Unit"
@@ -25062,6 +25245,10 @@
             "type": "string"
           },
           "materialRequestLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchLineId": {
             "type": "string",
             "nullable": true
           },
@@ -32781,6 +32968,117 @@
         },
         "additionalProperties": false
       },
+      "ReconciliationBatch": {
+        "required": [
+          "batchId",
+          "createdAt",
+          "createdBy",
+          "lines",
+          "menuVersionId",
+          "quantityImportBatchId",
+          "status",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "menuVersionId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "quantityImportBatchId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "byte"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readyBy": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "readyAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedBy": {
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationBatchLine"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchContributor": {
+        "required": [
+          "batchLine",
+          "batchLineId",
+          "contributorId",
+          "dishBomId",
+          "mealQuantityPlanLineId",
+          "menuScheduleId",
+          "sourceQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "contributorId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "batchLineId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "menuScheduleId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "mealQuantityPlanLineId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "dishBomId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "sourceQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "batchLine": {
+            "$ref": "#/components/schemas/ReconciliationBatchLine"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReconciliationBatchDto": {
         "required": [
           "batchId",
@@ -32876,6 +33174,76 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchLine": {
+        "required": [
+          "batch",
+          "batchId",
+          "batchLineId",
+          "canonicalUnit",
+          "canonicalUnitId",
+          "contributors",
+          "frozenTolerance",
+          "ingredient",
+          "ingredientId",
+          "requiredQuantity",
+          "toleranceSourceKind",
+          "toleranceSourceVersion",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "batchLineId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "ingredientId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "canonicalUnitId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "frozenTolerance": {
+            "type": "number",
+            "format": "double"
+          },
+          "toleranceSourceKind": {
+            "type": "string"
+          },
+          "toleranceSourceVersion": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "batch": {
+            "$ref": "#/components/schemas/ReconciliationBatch"
+          },
+          "ingredient": {
+            "$ref": "#/components/schemas/Ingredient"
+          },
+          "canonicalUnit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "contributors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationBatchContributor"
+            }
           }
         },
         "additionalProperties": false
@@ -33017,8 +33385,20 @@
           "ingredientId": {
             "type": "string"
           },
+          "ingredientCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
           "canonicalUnitId": {
             "type": "string"
+          },
+          "canonicalUnitName": {
+            "type": "string",
+            "nullable": true
           },
           "requiredQuantity": {
             "type": "number",
@@ -33135,6 +33515,98 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationWarehouseTransferDto": {
+        "required": [
+          "batchId",
+          "lines",
+          "sourceVersion",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationWarehouseTransferLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationWarehouseTransferDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationWarehouseTransferDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationWarehouseTransferLineDto": {
+        "required": [
+          "batchLineId",
+          "canonicalUnitId",
+          "ingredientId",
+          "requiredQuantity",
+          "sourceVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "batchLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "canonicalUnitId": {
+            "type": "string"
+          },
+          "canonicalUnitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -36399,6 +36871,100 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SystemOperationCapabilitiesDto": {
+        "required": [
+          "navigation",
+          "pageTabs"
+        ],
+        "type": "object",
+        "properties": {
+          "navigation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pageTabs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SystemOperationModeDto": {
+        "required": [
+          "capabilities",
+          "label",
+          "mode",
+          "reasonRequired",
+          "updatedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reasonRequired": {
+            "type": "boolean"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/SystemOperationCapabilitiesDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SystemOperationModeDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SystemOperationModeDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransferReconciliationBatchRequest": {
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
