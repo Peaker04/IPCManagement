@@ -35,6 +35,18 @@ describe('closed-loop reconciliation frontend contract', () => {
     expect(isRouteEligible('MATERIAL_RECONCILIATION', ROUTES.REPORTS)).toBe(false)
   })
 
+  it.each([
+    { issuedQuantity: 10, issuedRequiredDifference: 0, status: 'MATCHED', label: 'Khớp' },
+    { issuedQuantity: 9.95, issuedRequiredDifference: -0.05, status: 'MATCHED', label: 'Khớp' },
+    { issuedQuantity: 8, issuedRequiredDifference: -2, status: 'NEEDS_REVIEW', label: 'Cần kiểm tra' },
+    { issuedQuantity: 12, issuedRequiredDifference: 2, status: 'NEEDS_REVIEW', label: 'Cần kiểm tra' },
+    { issuedQuantity: null, issuedRequiredDifference: null, status: 'INCOMPLETE', label: 'Chưa xuất đủ' },
+  ] as const)('renders stable signed difference label for $status at $issuedQuantity', (sample) => {
+    render(<MemoryRouter><ReconciliationComparisonTable lines={[{ ...line, ...sample }]} showAll /></MemoryRouter>)
+    expect(screen.getByText(sample.label)).toBeInTheDocument()
+    if (sample.issuedQuantity == null) expect(screen.getAllByText('Chưa xuất').length).toBeGreaterThan(0)
+  })
+
   it('renders only required-versus-issued decision fields with human labels', () => {
     render(<MemoryRouter><ReconciliationComparisonTable lines={[line]} showAll /></MemoryRouter>)
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument()
