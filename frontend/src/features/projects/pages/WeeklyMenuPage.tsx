@@ -7,6 +7,7 @@ import { typography } from '@/lib/typography';
 import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
 import { visibleTabIds } from '@/lib/navigationPreferences';
+import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/reportsApi';
 import {
@@ -49,7 +50,7 @@ import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
-import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
+import { ClosedLoopTransferPanel } from '@/features/reconciliation/ClosedLoopTransferPanel';
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
 
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
@@ -217,7 +218,7 @@ const WeeklyMenuPage = () => {
   const weeklyMenuTabIds = useMemo(() => {
     const locallyVisibleTabs = visibleTabIds('weekly-menu') as WeeklyMenuView[];
     const backendTabs = systemOperation?.capabilities.pageTabs['weekly-menu'] ?? [];
-    return locallyVisibleTabs.filter((tabId) => backendTabs.includes(tabId));
+    return eligiblePageTabs(systemOperation?.mode ?? 'DEFAULT', 'weekly-menu', backendTabs, locallyVisibleTabs) as WeeklyMenuView[];
   }, [systemOperation?.capabilities.pageTabs]);
   const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() => weeklyMenuTabIds[0] ?? 'schedule');
   const resolvedSelectedView = weeklyMenuTabIds.includes(selectedView)
@@ -481,7 +482,7 @@ const WeeklyMenuPage = () => {
         isPublishing={isPublishingMenu}
         onEdit={scheduleWorkflow.actions.openEditor}
         onImport={importWorkflow.actions.open}
-        onExport={purchaseSummaryWorkflow.actions.exportWarehouseReport}
+        onExport={isMaterialReconciliationMode ? undefined : purchaseSummaryWorkflow.actions.exportWarehouseReport}
         onPublish={() => void publishWeeklyMenu()}
         onCustomerChange={(customerId) => {
           setSelectedMenuCustomerId(customerId);
@@ -497,7 +498,7 @@ const WeeklyMenuPage = () => {
           else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
         }}
       />}
-      context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
+      context={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
         <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><WeeklyMenuReadiness readiness={readiness} /></Suspense>
@@ -505,7 +506,7 @@ const WeeklyMenuPage = () => {
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
             { id: 'schedule', label: 'Kế hoạch tuần' },
-            { id: 'demand', label: 'Nhu cầu' },
+            { id: 'demand', label: isMaterialReconciliationMode ? 'Định lượng xuất kho' : 'Nhu cầu' },
             { id: 'production-plan', label: 'Kế hoạch sản xuất' },
             { id: 'purchase-summary', label: 'Tổng hợp mua' },
             { id: 'cost', label: 'Giá vốn' },
@@ -555,13 +556,12 @@ const WeeklyMenuPage = () => {
 
         {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
       </QueryViewBoundary>
-      <ReconciliationWorkspace
-        owner="weekly-menu"
+      {isMaterialReconciliationMode && <ClosedLoopTransferPanel
         menuVersionId={committedMenu?.menuVersionId}
-        menuVersionLabel={selectedCustomer && displayedWeekStartDate
+        scopeLabel={selectedCustomer && displayedWeekStartDate
           ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
-          : undefined}
-      />
+          : 'Chọn khách hàng và tuần'}
+      />}
     </OperationalFrame>
   );
 };

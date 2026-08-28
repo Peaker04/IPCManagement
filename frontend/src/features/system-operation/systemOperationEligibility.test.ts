@@ -1,4 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTES } from '@/lib/routeConfig'
-import { isRouteEligible, modeLabels } from './systemOperationEligibility'
-describe('system operation route matrix',()=>{it('keeps the explicit default golden path',()=>{for(const path of Object.values(ROUTES))expect(isRouteEligible('DEFAULT',path)).toBe(true)});it('excludes only approved reconciliation routes',()=>{expect(isRouteEligible('MATERIAL_RECONCILIATION',ROUTES.MEAL_ORDERS)).toBe(false);expect(isRouteEligible('MATERIAL_RECONCILIATION',ROUTES.APPROVALS)).toBe(false);expect(isRouteEligible('MATERIAL_RECONCILIATION',ROUTES.CHEF_DASHBOARD)).toBe(false);expect(isRouteEligible('MATERIAL_RECONCILIATION',ROUTES.APPROVAL_RULES)).toBe(false);expect(isRouteEligible('MATERIAL_RECONCILIATION',ROUTES.PURCHASING)).toBe(true);expect(isRouteEligible('MATERIAL_RECONCILIATION',ROUTES.WAREHOUSE)).toBe(true)});it('uses user labels',()=>expect(modeLabels).toEqual({DEFAULT:'Mặc định',MATERIAL_RECONCILIATION:'Đối chiếu nguyên liệu'}))})
+import { eligiblePageTabs, isRouteEligible, modeLabels, retainedRoutes } from './systemOperationEligibility'
+
+describe('system operation route matrix', () => {
+  it('keeps the explicit default golden path', () => {
+    for (const path of Object.values(ROUTES)) expect(isRouteEligible('DEFAULT', path)).toBe(true)
+  })
+
+  it('keeps only the closed-loop workflow in reconciliation mode', () => {
+    expect(retainedRoutes('MATERIAL_RECONCILIATION')).toEqual([
+      ROUTES.DASHBOARD, ROUTES.WEEKLY_MENU, ROUTES.WAREHOUSE, ROUTES.RECONCILIATION, ROUTES.ADMIN_DATA,
+    ])
+    expect(isRouteEligible('MATERIAL_RECONCILIATION', ROUTES.PURCHASING)).toBe(false)
+    expect(isRouteEligible('MATERIAL_RECONCILIATION', ROUTES.REPORTS)).toBe(false)
+    expect(isRouteEligible('MATERIAL_RECONCILIATION', ROUTES.WAREHOUSE)).toBe(true)
+  })
+
+  it('intersects backend authority with hide-only preferences and maps material demand identity', () => {
+    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'weekly-menu', ['schedule', 'material-demand'], ['schedule', 'demand'])).toEqual(['schedule', 'demand'])
+    expect(eligiblePageTabs('MATERIAL_RECONCILIATION', 'admin-data', ['bom-import', 'audit'], ['bom-import'])).toEqual(['bom-import'])
+  })
+
+  it('uses user labels', () => expect(modeLabels).toEqual({ DEFAULT: 'Mặc định', MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu' }))
+})

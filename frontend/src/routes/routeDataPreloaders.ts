@@ -1,5 +1,6 @@
 import { store } from '../app/store';
 import { ROUTES } from '@/lib/routeConfig';
+import { isRouteEligible, type SystemOperationMode } from '@/features/system-operation/systemOperationEligibility';
 
 const dataPrefetchOptions = { ifOlderThan: 5 * 60 } as const;
 
@@ -91,6 +92,16 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   },
 };
 
-export function prefetchRouteData(path: string): Promise<void> {
-  return routeDataPreloaders[path]?.() ?? Promise.resolve();
+export async function prefetchRouteData(path: string, mode: SystemOperationMode = 'DEFAULT'): Promise<void> {
+  if (!isRouteEligible(mode, path)) return;
+  if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.WEEKLY_MENU) {
+    const [{ coordinationApi }, { dishCatalogApi }] = await Promise.all([
+      import('@/api/coordinationApi'),
+      import('../api/dishCatalogApi'),
+    ]);
+    store.dispatch(dishCatalogApi.util.prefetch('getDishCatalog', undefined, dataPrefetchOptions));
+    store.dispatch(coordinationApi.util.prefetch('getCoordinationCustomers', undefined, dataPrefetchOptions));
+    return;
+  }
+  await (routeDataPreloaders[path]?.() ?? Promise.resolve());
 }

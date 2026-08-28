@@ -16,7 +16,8 @@ import {
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import ReconciliationWarehousePage from './ReconciliationWarehousePage';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
   useGetCurrentStockQuery,
@@ -54,7 +55,7 @@ const WarehouseReceiptLifecyclePanel = lazy(() => import('../WarehouseReceiptLif
 const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
-export default function WarehousePage() {
+function DefaultWarehousePage() {
   const [searchParams] = useSearchParams();
   const canReceivePurchases = useHasRole(['dieuphoi']);
   const canCreateInventoryIssues = useHasRole(['thukho']);
@@ -736,7 +737,11 @@ export default function WarehousePage() {
           </Suspense>
         </KeepAliveTabPanel>
       </div>
-      <ReconciliationWorkspace owner="warehouse" />
     </OperationalFrame>
   );
+}
+
+export default function WarehousePage() {
+  const operation = useSystemOperation();
+  return operation?.mode === 'MATERIAL_RECONCILIATION' ? <ReconciliationWarehousePage /> : <DefaultWarehousePage />;
 }

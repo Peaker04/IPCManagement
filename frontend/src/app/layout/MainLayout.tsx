@@ -29,14 +29,15 @@ import {
   Menu,
   Settings,
   SlidersHorizontal,
+  Scale,
   X,
 } from 'lucide-react';
 
 const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
 
-const preloadNavigationTarget = (path: string) => {
-  void preloadRoute(path);
-  void preloadRouteData(path);
+const preloadNavigationTarget = (path: string, mode: 'DEFAULT' | 'MATERIAL_RECONCILIATION') => {
+  void preloadRoute(path, mode);
+  void preloadRouteData(path, mode);
 };
 
 function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean; owner: string }) {
@@ -51,13 +52,14 @@ function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean
   );
 }
 
-const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[] }> = [
+const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[]; reconciliationOnly?: boolean }> = [
   { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} />, preferenceKey: 'dashboard' },
   { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, preferenceKey: 'weekly-menu', requiredPermissions: ['coordination.read'] },
   { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, preferenceKey: 'meal-orders', requiredPermissions: ['coordination.read'] },
   { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, preferenceKey: 'approvals', requiredPermissions: ['purchase.request.approve'] },
   { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, preferenceKey: 'purchasing', requiredPermissions: ['purchase.read'] },
   { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'] },
+  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'], reconciliationOnly: true },
   { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, preferenceKey: 'chef-dashboard', requiredPermissions: ['production.read'] },
   { path: ROUTES.REPORTS, label: 'Báo cáo vận hành', icon: <TrendingUp size={18} />, preferenceKey: 'reports', requiredPermissions: ['report.read'] },
   { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, preferenceKey: 'admin-data', requiredPermissions: ['*'] },
@@ -80,6 +82,7 @@ const MainLayoutContent = () => {
 
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
   const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
+    if (item.reconciliationOnly && systemOperation?.mode !== 'MATERIAL_RECONCILIATION') return false;
     if (systemOperation && !isRouteEligible(systemOperation.mode, item.path)) return false;
     if (!navigationPreferences[item.preferenceKey]) return false;
     if (!item.requiredPermissions) return true;
@@ -117,6 +120,8 @@ const MainLayoutContent = () => {
         return { title: 'Thu mua', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.WAREHOUSE:
         return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+      case ROUTES.RECONCILIATION:
+        return { title: 'Đối chiếu nguyên liệu', workflow: 'Đối chiếu', state: 'Theo dõi sai lệch' };
       case ROUTES.ADMIN_DATA:
         return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.APPROVAL_RULES:
@@ -175,9 +180,9 @@ const MainLayoutContent = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                onPointerEnter={() => preloadNavigationTarget(item.path)}
-                onFocus={() => preloadNavigationTarget(item.path)}
-                onTouchStart={() => preloadNavigationTarget(item.path)}
+                onPointerEnter={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
+                onFocus={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
+                onTouchStart={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
                 onClick={() => setIsMobileNavOpen(false)}
                 aria-current={isActive ? 'page' : undefined}
                 className={[
@@ -303,6 +308,7 @@ const routeOwnership = {
    [ROUTES.MEAL_ORDERS]: { ownerId: 'uio-j', floorplanId: 'uif-j', regionId: 'uir-j' },
    [ROUTES.PURCHASING]: { ownerId: 'uio-k', floorplanId: 'uif-k', regionId: 'uir-k' },
    [ROUTES.REPORTS]: { ownerId: 'uio-s', floorplanId: 'uif-s', regionId: 'uir-s' },
+   [ROUTES.RECONCILIATION]: { ownerId: 'uio-rx', floorplanId: 'uif-rx', regionId: 'uir-rx' },
    [ROUTES.WAREHOUSE]: { ownerId: 'uio-12', floorplanId: 'uif-12', regionId: 'uir-12' },
    [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-16', floorplanId: 'uif-16', regionId: 'uir-16' },
 } as const;

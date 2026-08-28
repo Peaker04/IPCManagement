@@ -9,6 +9,7 @@ export const ROUTES = {
   APPROVALS: '/approvals',
   PURCHASING: '/purchasing',
   WAREHOUSE: '/warehouse',
+  RECONCILIATION: '/reconciliation',
   ADMIN_DATA: '/admin-data',
   APPROVAL_RULES: '/admin/rules',
   ADVANCED_SETTINGS: '/admin/advanced-settings',

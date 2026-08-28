@@ -17,7 +17,7 @@ type CommandProps = {
   isPublishing?: boolean
   onEdit: () => void
   onImport: () => void
-  onExport: () => void
+  onExport?: () => void
   onPublish?: () => void
   onCustomerChange: (customerId: string) => void
   onWeekChange: (weekStartDate: string) => void
@@ -59,9 +59,9 @@ export const WeeklyMenuCommandBar = ({
         {isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}
       </button>
     )}
-    <button type="button" onClick={onExport} className="ipc-button ipc-button-success whitespace-nowrap">
+    {onExport && <button type="button" onClick={onExport} className="ipc-button ipc-button-success whitespace-nowrap">
       Xuất báo cáo gửi kho
-    </button>
+    </button>}
   </>}>
     <FieldRow label="Khách hàng">
       <Select value={selectedCustomerId || EMPTY_CUSTOMER_VALUE} onValueChange={(value) => onCustomerChange(value === EMPTY_CUSTOMER_VALUE || value === null ? '' : value)} disabled={isCustomerLoading}>

@@ -25,7 +25,6 @@ import {
 } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/routeConfig';
-import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { useHasPermission } from '@/lib/useHasPermission';
 import { useHasRole } from '@/lib/useHasRole';
 import { formatCurrency, formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
@@ -515,7 +514,6 @@ const ReportsPage = () => {
       <KeepAliveTabPanel id="reports-data-quality" active={activeView === 'data-quality'} fallback={reportCapabilityFallback}>
         <Suspense fallback={reportCapabilityFallback}><ReportsDataQualityPanel model={model} /></Suspense>
       </KeepAliveTabPanel>
-      <ReconciliationWorkspace owner="reports" />
     </OperationalFrame>
   );
 };

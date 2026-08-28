@@ -261,6 +261,6 @@ export const apiSlice = createApi({
   // navigation. Mutations still invalidate the tags below immediately.
   keepUnusedDataFor: 5 * 60,
   refetchOnMountOrArgChange: false,
-  tagTypes: ['User', 'Employee', 'Project', 'Coordination', 'WorkflowReports', 'DishCatalog', 'Customers', 'Ingredients', 'MaterialDemandStaleness', 'SupplierQuotations', 'PurchaseOrders', 'SystemOperationMode', 'ReconciliationBatches'],
+  tagTypes: ['User', 'Employee', 'Project', 'Coordination', 'WorkflowReports', 'DishCatalog', 'Customers', 'Ingredients', 'MaterialDemandStaleness', 'SupplierQuotations', 'PurchaseOrders', 'SystemOperationMode', 'ReconciliationBatches', 'ReconciliationIssueHistory'],
   endpoints: () => ({}),
 });
