@@ -340,9 +340,23 @@ public sealed class ReconciliationServiceTests
     {
         var actor = GuidHelper.NewId();
         var batch = new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "IN_PROGRESS", Version = 1, CreatedBy = actor, CreatedAt = DateTime.UtcNow };
-        var line = new ReconciliationBatchLine { BatchLineId = GuidHelper.NewId(), BatchId = batch.BatchId, Batch = batch, IngredientId = GuidHelper.NewId(), CanonicalUnitId = GuidHelper.NewId(), RequiredQuantity = 10m, FrozenTolerance = 0.5m, ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1 };
+        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var ingredient = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "ING-RECON", IngredientName = "Nguyên liệu", UnitId = unit.UnitId, Unit = unit, WarehouseId = GuidHelper.NewId(), IsActive = true };
+        var line = new ReconciliationBatchLine { BatchLineId = GuidHelper.NewId(), BatchId = batch.BatchId, Batch = batch, IngredientId = ingredient.IngredientId, Ingredient = ingredient, CanonicalUnitId = unit.UnitId, CanonicalUnit = unit, RequiredQuantity = 10m, FrozenTolerance = 0.5m, ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1 };
         batch.Lines.Add(line);
-        context.AddRange(batch, line,
+        var issue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(), IssueCode = "ISS-RECONCILIATION", IssueDate = new DateOnly(2026, 8, 25),
+            WarehouseId = GuidHelper.NewId(), ReconciliationBatchId = batch.BatchId, IssuedBy = actor, CreatedAt = DateTime.UtcNow
+        };
+        var issueLine = new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(), IssueId = issue.IssueId, Issue = issue,
+            IngredientId = line.IngredientId, UnitId = line.CanonicalUnitId,
+            RequestedQty = 10m, IssuedQty = 10m, ReconciliationBatchLineId = line.BatchLineId
+        };
+        issue.Inventoryissuelines.Add(issueLine);
+        context.AddRange(unit, ingredient, batch, line, issue, issueLine,
             new ReconciliationActual { ActualId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line, Side = "PURCHASED", Quantity = 12m, Version = purchasedVersion, EnteredBy = actor, EnteredAt = DateTime.UtcNow },
             new ReconciliationActual { ActualId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line, Side = "ISSUED", Quantity = 10m, Version = issuedVersion, EnteredBy = actor, EnteredAt = DateTime.UtcNow },
             new ReconciliationDisposition { DispositionId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line, Category = "ACCEPTED_VARIANCE", Reason = "Kết luận cũ", Version = 1, DisposedBy = actor, DisposedAt = DateTime.UtcNow });
@@ -379,7 +393,8 @@ public sealed class ReconciliationServiceTests
             {
                 typeof(MenuVersion), typeof(QuantityImportBatch), typeof(MealQuantityPlan), typeof(MenuSchedule), typeof(MealQuantityPlanLine),
                 typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
-                typeof(ReconciliationDisposition), typeof(AuditLog)
+                typeof(ReconciliationDisposition), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
+                typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog)
             };
             foreach (var entityType in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type)))
                 modelBuilder.Ignore(entityType);
@@ -405,9 +420,25 @@ public sealed class ReconciliationServiceTests
             modelBuilder.Entity<MealQuantityPlanLine>().HasOne(x => x.QuantityPlan).WithMany(x => x.Mealquantityplanlines).HasForeignKey(x => x.QuantityPlanId);
             modelBuilder.Entity<MealQuantityPlanLine>().HasOne(x => x.MenuSchedule).WithMany(x => x.Mealquantityplanlines).HasForeignKey(x => x.MenuScheduleId);
 
+            modelBuilder.Entity<Ingredient>().HasKey(x => x.IngredientId);
+            modelBuilder.Entity<Ingredient>().Ignore(x => x.Warehouse);
+            modelBuilder.Entity<Ingredient>().Ignore(x => x.Inventoryissuelines);
+            modelBuilder.Entity<Ingredient>().Ignore(x => x.Inventoryreceiptlines);
+            modelBuilder.Entity<Ingredient>().Ignore(x => x.Inventoryreturnlines);
+            modelBuilder.Entity<Ingredient>().Ignore(x => x.Currentstocks);
+            modelBuilder.Entity<Ingredient>().Ignore(x => x.Stockmovements);
+            modelBuilder.Entity<Ingredient>().HasOne(x => x.Unit).WithMany(x => x.Ingredients).HasForeignKey(x => x.UnitId);
+            modelBuilder.Entity<Unit>().HasKey(x => x.UnitId);
+            modelBuilder.Entity<Unit>().Ignore(x => x.Inventoryissuelines);
+            modelBuilder.Entity<Unit>().Ignore(x => x.Inventoryreceiptlines);
+            modelBuilder.Entity<Unit>().Ignore(x => x.Inventoryreturnlines);
+            modelBuilder.Entity<Unit>().Ignore(x => x.Currentstocks);
+            modelBuilder.Entity<Unit>().Ignore(x => x.Stockmovements);
             modelBuilder.Entity<ReconciliationBatch>().HasKey(x => x.BatchId);
             modelBuilder.Entity<ReconciliationBatchLine>().HasKey(x => x.BatchLineId);
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.Batch).WithMany(x => x.Lines).HasForeignKey(x => x.BatchId);
+            modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId);
+            modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.CanonicalUnit).WithMany().HasForeignKey(x => x.CanonicalUnitId);
             modelBuilder.Entity<ReconciliationActual>().HasKey(x => x.ActualId);
             modelBuilder.Entity<ReconciliationActual>().Property(x => x.Version).IsConcurrencyToken();
             modelBuilder.Entity<ReconciliationActual>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);
@@ -415,6 +446,28 @@ public sealed class ReconciliationServiceTests
             modelBuilder.Entity<ReconciliationDisposition>().HasKey(x => x.DispositionId);
             modelBuilder.Entity<ReconciliationDisposition>().Property(x => x.Version).IsConcurrencyToken();
             modelBuilder.Entity<ReconciliationDisposition>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);
+            modelBuilder.Entity<InventoryIssue>().HasKey(x => x.IssueId);
+            modelBuilder.Entity<InventoryIssue>().Ignore(x => x.Warehouse);
+            modelBuilder.Entity<InventoryIssue>().Ignore(x => x.IssuedByNavigation);
+            modelBuilder.Entity<InventoryIssue>().Ignore(x => x.ReceivedByNavigation);
+            modelBuilder.Entity<InventoryIssue>().Ignore(x => x.MaterialRequest);
+            modelBuilder.Entity<InventoryIssue>().Ignore(x => x.ReconciliationBatch);
+            modelBuilder.Entity<InventoryIssueLine>().HasKey(x => x.IssueLineId);
+            modelBuilder.Entity<InventoryIssueLine>().Ignore(x => x.Ingredient);
+            modelBuilder.Entity<InventoryIssueLine>().Ignore(x => x.Unit);
+            modelBuilder.Entity<InventoryIssueLine>().Ignore(x => x.MaterialRequestLine);
+            modelBuilder.Entity<InventoryIssueLine>().Ignore(x => x.ReconciliationBatchLine);
+            modelBuilder.Entity<InventoryIssueLine>().HasOne(x => x.Issue).WithMany(x => x.Inventoryissuelines).HasForeignKey(x => x.IssueId);
+            modelBuilder.Entity<InventoryReturn>().HasKey(x => x.ReturnId);
+            modelBuilder.Entity<InventoryReturn>().Ignore(x => x.Warehouse);
+            modelBuilder.Entity<InventoryReturn>().Ignore(x => x.CreatedByNavigation);
+            modelBuilder.Entity<InventoryReturn>().Ignore(x => x.ReceivedByNavigation);
+            modelBuilder.Entity<InventoryReturn>().Ignore(x => x.Issue);
+            modelBuilder.Entity<InventoryReturnLine>().HasKey(x => x.ReturnLineId);
+            modelBuilder.Entity<InventoryReturnLine>().Ignore(x => x.Ingredient);
+            modelBuilder.Entity<InventoryReturnLine>().Ignore(x => x.Unit);
+            modelBuilder.Entity<InventoryReturnLine>().Ignore(x => x.SourceIssueLine);
+            modelBuilder.Entity<InventoryReturnLine>().HasOne(x => x.Return).WithMany(x => x.Inventoryreturnlines).HasForeignKey(x => x.ReturnId);
             modelBuilder.Entity<AuditLog>().HasKey(x => x.AuditId);
             modelBuilder.Entity<AuditLog>().Ignore(x => x.ChangedByNavigation);
         }
