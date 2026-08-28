@@ -11,18 +11,23 @@ import { useAdminContractsPanelModel } from './useAdminContractsPanelModel';
 import { useAdminEmployeesPanelModel } from './useAdminEmployeesPanelModel';
 import { useAdminInventoryPanelModel } from './useAdminInventoryPanelModel';
 import { useAdminStatisticsPanelModel } from './useAdminStatisticsPanelModel';
-import { readPageTabPreferences } from '@/lib/navigationPreferences';
+import { readPageTabPreferences, visibleTabIds } from '@/lib/navigationPreferences';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility';
 
 export function useAdminDataPageModel() {
   const [isViewPending, startViewTransition] = useTransition();
   const operationalDate = getTodayInputValue();
   const currentUser = useAppSelector(selectCurrentUser);
+  const operation = useSystemOperation();
   const [searchParams] = useSearchParams();
   const bomTemplateDishId = searchParams.get('dishId')?.trim() || undefined;
   const canManageEmployees = currentUser?.role === 'admin' || currentUser?.isAdminFullAccess;
-  const initialView = isAdminView(searchParams.get('view')) && (searchParams.get('view') !== 'employees' || canManageEmployees)
-    ? searchParams.get('view') as AdminView
-    : 'bom-import';
+  const eligibleAdminTabs = eligiblePageTabs(operation?.mode ?? 'DEFAULT', 'admin-data', operation?.capabilities.pageTabs['admin-data'] ?? [], visibleTabIds('admin-data')) as AdminView[];
+  const requestedView = searchParams.get('view');
+  const initialView = isAdminView(requestedView) && eligibleAdminTabs.includes(requestedView) && (requestedView !== 'employees' || canManageEmployees)
+    ? requestedView
+    : eligibleAdminTabs[0] ?? 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
   const adminTabPreferences = readPageTabPreferences()['admin-data'];
 
@@ -69,13 +74,13 @@ export function useAdminDataPageModel() {
               ? [{ label: 'Nhật ký', value: auditView.phase === 'ready' ? `${auditModel.displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]
               : [{ label: 'Nhân viên', value: employeeQueryViews.employees.phase === 'ready' ? `${employeeModel.employeeMeta?.totalCount ?? 0} tài khoản` : '—', tone: employeeQueryViews.employees.phase === 'ready' ? 'info' as const : 'neutral' as const }];
   const adminTabs: ViewTab[] = [
-    ...(adminTabPreferences['bom-import'] ? [{ id: 'admin-bom-import', label: 'BOM theo đơn giá' }] : []),
-    ...(adminTabPreferences.contracts ? [{ id: 'admin-contracts', label: 'Hợp đồng' }] : []),
-    ...(adminTabPreferences.cleanup ? [{ id: 'admin-cleanup', label: 'Dữ liệu lỗi' }] : []),
-    ...(adminTabPreferences.inventory ? [{ id: 'admin-inventory', label: 'Tồn kho' }] : []),
-    ...(adminTabPreferences.statistics ? [{ id: 'admin-statistics', label: 'Thống kê' }] : []),
-    ...(adminTabPreferences.audit ? [{ id: 'admin-audit', label: 'Nhật ký thay đổi' }] : []),
-    ...(canManageEmployees && adminTabPreferences.employees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
+    ...(adminTabPreferences['bom-import'] && eligibleAdminTabs.includes('bom-import') ? [{ id: 'admin-bom-import', label: 'BOM theo đơn giá' }] : []),
+    ...(adminTabPreferences.contracts && eligibleAdminTabs.includes('contracts') ? [{ id: 'admin-contracts', label: 'Hợp đồng' }] : []),
+    ...(adminTabPreferences.cleanup && eligibleAdminTabs.includes('cleanup') ? [{ id: 'admin-cleanup', label: 'Dữ liệu lỗi' }] : []),
+    ...(adminTabPreferences.inventory && eligibleAdminTabs.includes('inventory') ? [{ id: 'admin-inventory', label: 'Tồn kho' }] : []),
+    ...(adminTabPreferences.statistics && eligibleAdminTabs.includes('statistics') ? [{ id: 'admin-statistics', label: 'Thống kê' }] : []),
+    ...(adminTabPreferences.audit && eligibleAdminTabs.includes('audit') ? [{ id: 'admin-audit', label: 'Nhật ký thay đổi' }] : []),
+    ...(canManageEmployees && adminTabPreferences.employees && eligibleAdminTabs.includes('employees') ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
   ];
   const queryViews = {
     audit: auditView,

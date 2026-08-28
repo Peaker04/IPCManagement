@@ -19,6 +19,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, SectionPanel, StatusBadge, useToast } from '@/components/common';
 import { cn } from '@/lib/utils';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { eligibleCapabilityIds, eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility';
 import {
   defaultNavigationPreferences,
   readNavigationPreferences,
@@ -191,7 +193,7 @@ const PageTabItemButton = memo(function PageTabItemButton({
 });
 
 interface PageTabGroupCardProps {
-  group: typeof pageTabGroups[number];
+  group: { id: PageTabGroupId; label: string; description: string; tabs: ReadonlyArray<readonly [string, string]> };
   groupPreferences: Record<string, boolean>;
   isExpanded: boolean;
   onToggleExpand: (groupId: string) => void;
@@ -284,25 +286,32 @@ const PageTabGroupCard = memo(function PageTabGroupCard({
 
 export function AdvancedDisplaySettings() {
   const { toast } = useToast();
+  const operation = useSystemOperation();
+  const eligibleNavigationIds = eligibleCapabilityIds(operation?.mode ?? 'DEFAULT', operation?.capabilities.navigation ?? navigationItems.map((item) => item.key));
+  const displayedNavigationItems = navigationItems.filter((item) => eligibleNavigationIds.includes(item.key));
+  const displayedPageTabGroups = pageTabGroups.map((group) => ({
+    ...group,
+    tabs: group.tabs.filter(([id]) => eligiblePageTabs(operation?.mode ?? 'DEFAULT', group.id, operation?.capabilities.pageTabs[group.id] ?? group.tabs.map(([tabId]) => tabId), group.tabs.map(([tabId]) => tabId)).includes(id)),
+  })).filter((group) => group.tabs.length > 0);
   const [preferences, setPreferences] = useState(() => readNavigationPreferences());
   const [tabPreferences, setTabPreferences] = useState(() => readPageTabPreferences());
   const [lastChange, setLastChange] = useState('');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(pageTabGroups.map((g) => [g.id, false]))
+    Object.fromEntries(displayedPageTabGroups.map((g) => [g.id, false]))
   );
 
-  const visibleNavCount = useMemo(() => Object.values(preferences).filter(Boolean).length, [preferences]);
+  const visibleNavCount = useMemo(() => displayedNavigationItems.filter((item) => preferences[item.key]).length, [displayedNavigationItems, preferences]);
 
   const { totalTabs, totalVisibleTabs } = useMemo(() => {
     let total = 0;
     let visible = 0;
-    for (const group of pageTabGroups) {
+    for (const group of displayedPageTabGroups) {
       total += group.tabs.length;
       visible += group.tabs.filter(([id]) => tabPreferences[group.id]?.[id] !== false).length;
     }
     return { totalTabs: total, totalVisibleTabs: visible };
-  }, [tabPreferences]);
+  }, [displayedPageTabGroups, tabPreferences]);
 
   const updateNav = useCallback((key: NavigationPreferenceKey) => {
     const isCurrentlyVisible = preferences[key];
@@ -368,8 +377,8 @@ export function AdvancedDisplaySettings() {
   }, []);
 
   const toggleAllGroups = useCallback((expand: boolean) => {
-    setExpandedGroups(Object.fromEntries(pageTabGroups.map((g) => [g.id, expand])));
-  }, []);
+    setExpandedGroups(Object.fromEntries(displayedPageTabGroups.map((g) => [g.id, expand])));
+  }, [displayedPageTabGroups]);
 
   const resetAll = useCallback(() => {
     setPreferences({ ...defaultNavigationPreferences });
@@ -385,8 +394,8 @@ export function AdvancedDisplaySettings() {
   }, [toast]);
 
   const allGroupsExpanded = useMemo(
-    () => pageTabGroups.every((g) => expandedGroups[g.id]),
-    [expandedGroups]
+    () => displayedPageTabGroups.every((g) => expandedGroups[g.id]),
+    [displayedPageTabGroups, expandedGroups]
   );
 
   return (
@@ -394,7 +403,7 @@ export function AdvancedDisplaySettings() {
       {/* Top Actions & Summary Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge variant="neutral">{visibleNavCount}/{navigationItems.length} menu đang bật</StatusBadge>
+          <StatusBadge variant="neutral">{visibleNavCount}/{displayedNavigationItems.length} menu đang bật</StatusBadge>
           <StatusBadge variant={totalVisibleTabs === totalTabs ? 'neutral' : 'warning'}>
             {totalVisibleTabs}/{totalTabs} tab đang bật
           </StatusBadge>
@@ -435,7 +444,7 @@ export function AdvancedDisplaySettings() {
         description="Bật hoặc tắt các khu vực nghiệp vụ hiển thị trên thanh menu chính bên trái màn hình."
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {navigationItems.map((item) => (
+          {displayedNavigationItems.map((item) => (
             <NavigationItemCard
               key={item.key}
               item={item}
@@ -466,7 +475,7 @@ export function AdvancedDisplaySettings() {
         }
       >
         <div className="space-y-3">
-          {pageTabGroups.map((group) => (
+          {displayedPageTabGroups.map((group) => (
             <PageTabGroupCard
               key={group.id}
               group={group}

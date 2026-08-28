@@ -219,7 +219,7 @@ const WeeklyMenuPage = () => {
     const locallyVisibleTabs = visibleTabIds('weekly-menu') as WeeklyMenuView[];
     const backendTabs = systemOperation?.capabilities.pageTabs['weekly-menu'] ?? [];
     return eligiblePageTabs(systemOperation?.mode ?? 'DEFAULT', 'weekly-menu', backendTabs, locallyVisibleTabs) as WeeklyMenuView[];
-  }, [systemOperation?.capabilities.pageTabs]);
+  }, [systemOperation?.capabilities.pageTabs, systemOperation?.mode]);
   const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() => weeklyMenuTabIds[0] ?? 'schedule');
   const resolvedSelectedView = weeklyMenuTabIds.includes(selectedView)
     ? selectedView

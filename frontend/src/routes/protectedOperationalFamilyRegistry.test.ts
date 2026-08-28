@@ -230,6 +230,14 @@ export const protectedOperationalFamilies: readonly ProtectedOperationalFamily[]
     backendEnforcementSource: unknown('frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:149', 'Frontend mutations do not expose endpoint policy metadata.'),
   },
   {
+    routeKey: 'RECONCILIATION', page: 'ReconciliationPage', ownerSource: 'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx',
+    classification: 'object-family', families: ['MaterialReconciliation'],
+    stateSource: source('literal-guarded', 'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-80'),
+    roleSource: source('literal-guarded', 'frontend/src/routes/AppRouter.tsx:75'),
+    operationSource: source('literal-guarded', 'frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-200'),
+    backendEnforcementSource: source('literal-guarded', 'backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs:1-100'),
+  },
+  {
     routeKey: 'REPORTS', page: 'ReportsPage', ownerSource: 'frontend/src/features/reports/pages/ReportsPage.tsx',
     classification: 'query-only', families: ['Reports'], reason: 'Report filters and exports are query projections, not an entity lifecycle.',
     stateSource: unknown('frontend/src/features/reports/pages/ReportsPage.tsx:1', 'Query/view state only.'),

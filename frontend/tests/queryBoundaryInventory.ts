@@ -16,6 +16,10 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'The Admin mode setting owns one singleton query and renders explicit loading/error/current authority before allowing mutation.',
     requiredMarkers: ['useGetSystemOperationModeQuery', 'Không tải được chế độ vận hành', 'useChangeSystemOperationModeMutation'],
   },
+  'src/features/reconciliation/ClosedLoopTransferPanel.tsx': {
+    rationale: 'The transfer card owns one batch collection and explicitly distinguishes loading, error and no-ready-batch states.',
+    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Chưa có lô định lượng sẵn sàng'],
+  },
   'src/features/reconciliation/ReconciliationWorkspace.tsx': {
     rationale: 'The retained-work-area reconciliation workspace owns one batch collection and preserves loading, error and genuinely empty states.',
     requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được lô đối chiếu', 'Chưa có lô đối chiếu'],
@@ -71,6 +75,10 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
   'src/features/projects/weekly-menu/demand/useMaterialDemand.ts': {
     rationale: 'The authoritative demand/documents/aggregate sources form one composite QueryView; daily staleness and approval history are supporting action/status probes.',
     requiredMarkers: ['const demandView = toQueryView', 'getWeekStalenessState', 'isApprovalHistoryError'],
+  },
+  'src/features/warehouse/pages/ReconciliationWarehousePage.tsx': {
+    rationale: 'The closed-loop Warehouse page owns the selected batch, linked issue history and operational warehouse authority with explicit missing/error states.',
+    requiredMarkers: ['useGetReconciliationBatchQuery', 'useListReconciliationIssueHistoryQuery', 'Không tải được lịch sử xuất kho'],
   },
   'src/features/warehouse/pages/WarehousePage.tsx': {
     rationale: 'Stock and movement are QueryView owners; remaining multi-source issue-dialog probes enforce action blocking and explicitly render unknown/error instead of authoritative empty.',

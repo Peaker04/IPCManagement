@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatDateTime } from '@/lib/formatters'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
 import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '../reconciliationApi'
@@ -28,9 +30,10 @@ export default function ReconciliationPage() {
         </div>
         <label className="grid gap-1 text-sm font-medium text-slate-800">
           Lô đối chiếu
-          <select className="min-w-72 rounded-md border border-slate-300 bg-white px-3 py-2" value={selectedId} onChange={(event) => setSearchParams({ batchId: event.target.value })}>
-            {(batchesQuery.data ?? []).map((item) => <option key={item.batchId} value={item.batchId}>{new Date(item.createdAt).toLocaleDateString('vi-VN')} · {item.status}</option>)}
-          </select>
+          <Select value={selectedId} onValueChange={(value) => value && setSearchParams({ batchId: value })}>
+            <SelectTrigger className="min-w-72" aria-label="Chọn lô đối chiếu"><SelectValue placeholder="Chọn lô" /></SelectTrigger>
+            <SelectContent>{(batchesQuery.data ?? []).map((item) => <SelectItem key={item.batchId} value={item.batchId}>{formatDateTime(item.createdAt)} · {item.status}</SelectItem>)}</SelectContent>
+          </Select>
         </label>
       </div>
 

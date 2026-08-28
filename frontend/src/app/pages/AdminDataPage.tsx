@@ -18,6 +18,7 @@ const AdminPanelFallback = <div aria-busy="true" className="min-h-[420px] rounde
 export default function AdminDataPage() {
   const model = useAdminDataPageModel();
   const { adminContextItems, adminTabs, canManageEmployees, effectiveActiveView, isViewPending, setActiveView, startViewTransition } = model;
+  const canShowEmployees = canManageEmployees && adminTabs.some((tab) => tab.id === 'admin-employees');
   const [visitedViews, setVisitedViews] = useState<ReadonlySet<AdminView>>(() => new Set([effectiveActiveView]));
   const activateView = (view: AdminView) => {
     setVisitedViews((current) => current.has(view) ? current : new Set(current).add(view));
@@ -33,7 +34,7 @@ return (
                 <PackageCheck size={16} />
                 BOM theo đơn giá
               </button>
-              {canManageEmployees && (
+              {canShowEmployees && (
                 <button className="ipc-button ipc-button-ghost" type="button" onClick={() => activateView('employees')}>
                   <Users size={16} />
                   Nhân viên
@@ -61,6 +62,7 @@ return (
       }
     >
       <div className="min-w-0 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
+        {adminTabs.length === 0 ? <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không còn vùng dữ liệu đang hiển thị</h2><p className="mt-2 text-sm text-slate-600">Mở Thiết lập nâng cao để khôi phục một tab được chế độ hiện tại cho phép.</p><Link className="ipc-button ipc-button-primary mt-4" to={ROUTES.ADVANCED_SETTINGS}>Mở thiết lập hiển thị</Link></section> : <>
         <ViewSwitcher
           compact
           ariaLabel="Chọn góc nhìn quản trị dữ liệu"
@@ -80,6 +82,7 @@ return (
           {visitedViews.has('employees') && <AdminEmployeesPanel model={model} />}
           {visitedViews.has('audit') && <AdminAuditPanel model={model} />}
         </Suspense>
+        </>}
       </div>
     </OperationalFrame>
   );
