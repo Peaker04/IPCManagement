@@ -169,6 +169,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Coordination'],
     }),
+    getReconciliationWeeklyMenu: builder.query<ApiResponse<WeeklyMenuImportResult | null>, WeeklyMenuQuery>({
+      query: ({ customerId, weekStartDate }) => ({
+        url: '/reconciliation/weekly-menu',
+        params: { customerId, ...(weekStartDate ? { weekStartDate } : {}) },
+      }),
+      providesTags: ['Coordination'],
+    }),
     getMenuSchedules: builder.query<ApiResponse<MenuScheduleDto[]>, MenuScheduleQuery>({
       query: (params) => ({
         url: '/coordination/menu-schedules',
@@ -455,6 +462,7 @@ export const {
   useCreateCustomerContractMutation,
   useUpdateCustomerContractMutation,
   useGetCommittedWeeklyMenuQuery,
+  useGetReconciliationWeeklyMenuQuery,
   useGetMenuSchedulesQuery,
   useLazyGetMenuSchedulesQuery,
   useUpdateMenuScheduleRulesMutation,

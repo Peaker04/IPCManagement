@@ -2,7 +2,19 @@ import { apiSlice } from '@/api/apiSlice'
 import type { ApiResponse } from '@/types/api'
 import type { SystemOperationMode } from './systemOperationEligibility'
 
-export interface SystemOperationSnapshot { mode: SystemOperationMode; label: string; version: number; updatedAt: string; reasonRequired: boolean }
+export interface SystemOperationCapabilities {
+  navigation: readonly string[]
+  pageTabs: Readonly<Record<string, readonly string[]>>
+}
+
+export interface SystemOperationSnapshot {
+  mode: SystemOperationMode
+  label: string
+  version: number
+  updatedAt: string
+  reasonRequired: boolean
+  capabilities: SystemOperationCapabilities
+}
 export interface ChangeSystemOperationMode { mode: SystemOperationMode; expectedVersion: number; confirmed: boolean; reason?: string }
 
 export const systemOperationApi = apiSlice.injectEndpoints({ endpoints: builder => ({

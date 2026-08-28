@@ -13,6 +13,7 @@ import {
   useGetCoordinationCustomersQuery,
   useGetCustomerContractsQuery,
   useGetCommittedWeeklyMenuQuery,
+  useGetReconciliationWeeklyMenuQuery,
   useGetMealQuantityPlansQuery,
   useGetMenuSchedulesQuery,
   useUpdateMenuScheduleVersionMutation,
@@ -104,13 +105,21 @@ const WeeklyMenuPage = () => {
   const [committedMenuWeekStartDate, setCommittedMenuWeekStartDate] = useState(
     getStoredWeekStartDate,
   );
-  const committedMenuQuery = useGetCommittedWeeklyMenuQuery(
-    {
-      customerId: effectiveMenuCustomerId,
-      weekStartDate: committedMenuWeekStartDate || undefined,
-    },
+  const weeklyMenuQueryArgs = {
+    customerId: effectiveMenuCustomerId,
+    weekStartDate: committedMenuWeekStartDate || undefined,
+  };
+  const defaultCommittedMenuQuery = useGetCommittedWeeklyMenuQuery(
+    weeklyMenuQueryArgs,
     { skip: isMaterialReconciliationMode || !effectiveMenuCustomerId },
   );
+  const reconciliationCommittedMenuQuery = useGetReconciliationWeeklyMenuQuery(
+    weeklyMenuQueryArgs,
+    { skip: !isMaterialReconciliationMode || !effectiveMenuCustomerId },
+  );
+  const committedMenuQuery = isMaterialReconciliationMode
+    ? reconciliationCommittedMenuQuery
+    : defaultCommittedMenuQuery;
   const committedMenuView = toLabeledQueryView(committedMenuQuery, 'thực đơn tuần đã lưu', {
     instruction: 'Chọn khách hàng để tải thực đơn tuần đã lưu.',
   });
@@ -205,10 +214,17 @@ const WeeklyMenuPage = () => {
     dispatch(setWeeklyMenu(committedMenu.importedWeeklyMenu));
   }, [committedMenu, committedMenuView.phase, dispatch]);
 
-  const weeklyMenuTabIds = visibleTabIds('weekly-menu') as WeeklyMenuView[];
+  const weeklyMenuTabIds = useMemo(() => {
+    const locallyVisibleTabs = visibleTabIds('weekly-menu') as WeeklyMenuView[];
+    const backendTabs = systemOperation?.capabilities.pageTabs['weekly-menu'] ?? [];
+    return locallyVisibleTabs.filter((tabId) => backendTabs.includes(tabId));
+  }, [systemOperation?.capabilities.pageTabs]);
   const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() => weeklyMenuTabIds[0] ?? 'schedule');
-  const activeView = useDeferredValue(selectedView);
-  const isViewPending = selectedView !== activeView;
+  const resolvedSelectedView = weeklyMenuTabIds.includes(selectedView)
+    ? selectedView
+    : weeklyMenuTabIds[0] ?? 'schedule';
+  const activeView = useDeferredValue(resolvedSelectedView);
+  const isViewPending = resolvedSelectedView !== activeView;
   const [menuFeedback, setMenuFeedback] = useState<{
     title: string;
     message: string;
@@ -224,7 +240,7 @@ const WeeklyMenuPage = () => {
 
     let cancelled = false;
     let idleHandle: number | undefined;
-    const views: WeeklyMenuView[] = ['demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'];
+    const views = weeklyMenuTabIds.filter((view) => view !== 'schedule');
     const preloadNext = () => {
       if (cancelled) return;
       const view = views.shift();
@@ -245,7 +261,7 @@ const WeeklyMenuPage = () => {
         else window.clearTimeout(idleHandle);
       }
     };
-  }, []);
+  }, [weeklyMenuTabIds]);
 
   const resetScopedWeeklyMenuUi = () => {
     dispatch(setWeeklyMenu({}));
@@ -444,10 +460,12 @@ const WeeklyMenuPage = () => {
   const weeklyMenuQueries: QueryViewEntry[] = [
     { label: 'danh mục món và BOM', view: catalogView },
     { label: 'danh sách khách hàng', view: customersView },
-    { label: 'hợp đồng định mức', view: customerContractsView },
     { label: 'thực đơn tuần đã lưu', view: committedMenuView },
-    { label: 'lịch thực đơn', view: menuSchedulesView },
-    { label: 'kế hoạch số suất', view: mealQuantityPlansView },
+    ...(!isMaterialReconciliationMode ? [
+      { label: 'hợp đồng định mức', view: customerContractsView },
+      { label: 'lịch thực đơn', view: menuSchedulesView },
+      { label: 'kế hoạch số suất', view: mealQuantityPlansView },
+    ] : []),
   ];
   return (
 
@@ -493,7 +511,7 @@ const WeeklyMenuPage = () => {
             { id: 'cost', label: 'Giá vốn' },
             { id: 'dish-materials', label: 'Nguyên liệu món' },
           ].filter((tab) => weeklyMenuTabIds.includes(tab.id as WeeklyMenuView))}
-          activeTab={selectedView}
+          activeTab={resolvedSelectedView}
           onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
         />
         <WeeklyMenuAlerts
