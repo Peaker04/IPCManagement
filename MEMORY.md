@@ -24,12 +24,14 @@ workbook:
 
 # Memory hiện hành
 
-## Phase 30 planned · 28/08/2026
+## Phase 30 in progress · 28/08/2026
 
 - Kỳ locked a simplified closed workflow: Weekly Menu import/materialization → explicit transfer to Warehouse → real source-linked inventory issue/stock movement → required-versus-issued reconciliation → completion. Purchasing and manually entered issued actuals are excluded from this mode.
-- Planned primary navigation is exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data. Retained pages/tabs also remove unrelated DEFAULT content and hidden owners must produce zero requests.
-- Three-wave plan is ready at `.planning/phases/30-closed-loop-menu-issue-reconciliation/`: `30-01` authority tracer/schema/capability, `30-02` focused FE work surfaces/query ownership, `30-03` edge expansion plus protected MySQL/headed evidence and closeout.
-- No production code, migration or database mutation was performed while planning. Next action is execute `30-01-PLAN.md`; protected DB application remains gated until Wave 3.
+- Plan `30-01` is complete: READY batches transfer separately with zero stock mutation; reconciliation-origin issues reuse canonical stock validation/ledger/idempotency and persist exact batch plus batch-line lineage; issued reconciliation is projected from linked issue lines.
+- `MATERIAL_RECONCILIATION` backend capability is now exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data with six explicit retained tabs. Manual purchased/issued actual mutations are mode-excluded; dispositions remain.
+- Additive migration `20260828092012_ClosedLoopReconciliationIssueLineage` was generated, tested and SQL-inspected only. It was not applied to any protected or operational database; application remains gated until Wave 3.
+- Plan `30-02` is complete: the mode shell exposes exactly Dashboard, Weekly Menu, Warehouse, Reconciliation and Admin Data; source scope flows by URL from transfer through issue readback; excluded route/tab/query owners are unmounted. Bounded recovery verification passed 72 files / 336 tests plus lint, build, API parity and checklist. The known-hanging broad frontend aggregate was not rerun and remains a truthful Wave 3 regression obligation.
+- Next action is execute `30-03-PLAN.md` for edge expansion, repository-wide regression, protected MySQL checkpoint and headed evidence.
 
 ## Weekly Menu reconciliation workspace · 28/08/2026
 

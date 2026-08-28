@@ -225,10 +225,10 @@ Plans:
 - Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
 - Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
 
-**Plans:** 3 plans / 3 waves
+**Plans:** 2/3 plans executed / 3 waves
 
 Plans:
 
-- [ ] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
-- [ ] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
+- [x] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
+- [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
 - [ ] 30-03-PLAN.md — edge expansion, protected MySQL/headed-browser evidence, documentation and closeout (wave 3).

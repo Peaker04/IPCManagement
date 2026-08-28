@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: planned
-stopped_at: Phase 30 planned; ready to execute 30-01-PLAN.md
-last_updated: "2026-08-28T15:30:00.000Z"
+status: in_progress
+stopped_at: Completed 30-02-PLAN.md
+last_updated: "2026-08-28T10:00:23.936Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 66
-  completed_plans: 63
-  percent: 95
+  completed_plans: 65
+  percent: 98
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-28 — Planned Phase 30 in exactly three waves
+last_activity: 2026-08-28 — Completed Phase 30 Plan 02 focused frontend surfaces and query ownership
 ---
 
 # Project State
@@ -21,12 +21,13 @@ last_activity: 2026-08-28 — Planned Phase 30 in exactly three waves
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 30 planned — closed-loop Menu → Warehouse issue → required-versus-issued reconciliation
+**Current focus:** Phase 30 in progress — Plans 01-02 complete; Plan 03 edge expansion, protected evidence and closeout next
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
-- Phase 30 is PLANNED with exactly three executable plans/waves; next action is `30-01-PLAN.md`.
+- Phase 30 Plans 01-02 are COMPLETE: backend lineage/capability plus focused Weekly Menu → Warehouse → Reconciliation frontend ownership are test-proven.
+- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-03-PLAN.md`.
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
 - Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
@@ -34,13 +35,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-28T00:20:00.000Z
+**Last session:** 2026-08-28T10:00:23.891Z
 **Resume file:** None
 
-**Stopped at:** Phase 30 planned; ready to execute `30-01-PLAN.md`
+**Stopped at:** Completed 30-02-PLAN.md
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: execute Wave 1 only. Preserve retained migration-75 authority; no protected DB mutation occurs until the explicit Wave 3 checkpoint.
+Next workflow: execute `30-03-PLAN.md`. Preserve retained migration-75 authority; no protected DB mutation occurs before the explicit Wave 3 checkpoint.
 
 ## Decisions
 
@@ -77,6 +78,10 @@ Next workflow: execute Wave 1 only. Preserve retained migration-75 authority; no
 - [Phase ?]: Plan 28-14 treats exact-one selector data as passive context and blocks zero/multiple states without implicit selection.
 - [Phase ?]: Plan 29-24 reachability uses production controllers/services and forbids direct quantity/reconciliation authority fixtures.
 - [Phase ?]: ANV/AMANN 2026-09-07..2026-09-12 remains read-only candidate metadata until protected preflight.
+- [Phase ?]: Phase 30 Plan 01 keeps transfer zero-stock and routes reconciliation-origin issues through canonical inventory stock authority.
+- [Phase ?]: Closed-loop issued quantity is projected from exact InventoryIssueLine lineage; manual purchased/issued actual commands are mode-excluded.
+- [Phase ?]: MATERIAL_RECONCILIATION route, tab and preload ownership is resolved from backend capability at shared seams; DEFAULT remains unchanged.
+- [Phase ?]: Reconciliation is a route-owned no-tab page; Weekly Menu and Warehouse no longer embed or mutate reconciliation actuals.
 
 ### Quick Tasks Completed
 
@@ -117,3 +122,5 @@ Next workflow: execute Wave 1 only. Preserve retained migration-75 authority; no
 | Phase 29 P23 | 22 min | 2 tasks | 15 files |
 | Phase 29 P24 | 31 min | 2 tasks | 7 files |
 | Phase 29 P22 | 24 min | 2 tasks | 8 files |
+| Phase 30 P01 | 23 min | 2 tasks | 27 files |
+| Phase 30 P02 | 27 min | 2 tasks | 27 files |
