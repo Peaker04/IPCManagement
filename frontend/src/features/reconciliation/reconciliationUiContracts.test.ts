@@ -14,6 +14,12 @@ describe('material reconciliation UI contracts', () => {
     expect(weeklyMenuSource).toContain("searchParams.get('weekStartDate')")
   })
 
+  it('renders reason-specific schedule recovery outside the generic table empty row', () => {
+    expect(weeklyMenuSource).toContain('getReconciliationScheduleEmptyState')
+    expect(weeklyMenuSource).toContain('<EmptyState')
+    expect(weeklyMenuSource).toContain('scheduleEmptyState.actionLabel')
+  })
+
   it('keeps warehouse tab semantics and the prerequisite action unambiguous', () => {
     expect(warehouseSource).toContain('id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"')
     expect(warehouseSource).toContain('id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"')
