@@ -390,7 +390,8 @@ public class InventoryIssueService : IInventoryIssueService
         var issueId = GuidHelper.NewId();
         try
         {
-            return await _transactionRunner.ExecuteAsync(async token =>
+            var (operationKey, expectedModeVersion) = RequiredModeProtection();
+            return await _transactionRunner.ExecuteProtectedAsync(operationKey, expectedModeVersion, async token =>
             {
                 var batch = await _context.Reconciliationbatches
                     .Include(item => item.Lines).ThenInclude(line => line.Ingredient)
@@ -404,6 +405,9 @@ public class InventoryIssueService : IInventoryIssueService
                 var resolved = new List<(ReconciliationBatchLine Source, decimal Quantity)>();
                 foreach (var requested in dto.Lines)
                 {
+                    if (!string.IsNullOrWhiteSpace(requested.MaterialRequestLineId)
+                        || string.IsNullOrWhiteSpace(requested.ReconciliationBatchLineId))
+                        throw new BusinessRuleException("Dòng xuất phải thuộc đúng nguồn lô đối chiếu của phiếu.");
                     var sourceLineId = GuidHelper.ParseGuidString(requested.ReconciliationBatchLineId)
                         ?? throw new ArgumentException("ReconciliationBatchLineId không hợp lệ.");
                     if (!sourceById.TryGetValue(Convert.ToHexString(sourceLineId), out var source))
@@ -455,6 +459,13 @@ public class InventoryIssueService : IInventoryIssueService
             throw;
         }
     }
+
+    private (string OperationKey, long ExpectedModeVersion) RequiredModeProtection() =>
+        (_requestContext?.OperationKey, _requestContext?.ExpectedModeVersion) switch
+        {
+            ({ Length: > 0 } operationKey, long expectedModeVersion) => (operationKey, expectedModeVersion),
+            _ => throw new InvalidOperationException("Thiếu ngữ cảnh bảo vệ chế độ vận hành cho phiếu xuất đối chiếu.")
+        };
 
     private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId, string commandId)
     {

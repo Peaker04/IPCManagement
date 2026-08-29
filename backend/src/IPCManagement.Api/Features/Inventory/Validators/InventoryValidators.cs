@@ -79,6 +79,20 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
             .WithMessage("ReconciliationBatchId phải là GUID hợp lệ.");
 
         RuleForEach(x => x.Lines).SetValidator(new CreateInventoryIssueLineDtoValidator());
+        RuleFor(x => x).Custom((request, context) =>
+        {
+            var headerIsMaterial = !string.IsNullOrWhiteSpace(request.MaterialRequestId);
+            foreach (var line in request.Lines)
+            {
+                var lineIsMaterial = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
+                var lineIsReconciliation = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
+                if (lineIsMaterial == lineIsReconciliation || lineIsMaterial != headerIsMaterial)
+                {
+                    context.AddFailure(nameof(request.Lines), "Mỗi dòng xuất phải có đúng một nguồn và cùng loại với nguồn phiếu xuất.");
+                    break;
+                }
+            }
+        });
     }
 
     private static bool BeValidGuid(string? value) => Guid.TryParse(value, out _);
@@ -89,8 +103,8 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
     public CreateInventoryIssueLineDtoValidator()
     {
         RuleFor(x => x).Must(x =>
-                string.IsNullOrWhiteSpace(x.MaterialRequestLineId) || string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
-            .WithMessage("Dòng xuất không thể có đồng thời hai loại dòng nguồn.");
+                !string.IsNullOrWhiteSpace(x.MaterialRequestLineId) ^ !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
+            .WithMessage("Dòng xuất phải có đúng một loại dòng nguồn.");
         When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestLineId), () =>
             RuleFor(x => x.MaterialRequestLineId).Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
         When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId), () =>

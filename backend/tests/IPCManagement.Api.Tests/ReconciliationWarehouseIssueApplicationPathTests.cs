@@ -82,7 +82,14 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var ledger = Substitute.For<IStockLedgerService>();
         var warehouse = Substitute.For<IOperationalWarehouseResolver>();
         warehouse.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
-        var issues = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouse, context);
+        var issueRequestContext = new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            OperationKey = "inventoryissues.create",
+            ExpectedModeVersion = 1,
+            Disposition = OperationDisposition.Retained
+        };
+        var issues = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouse, context, issueRequestContext);
         if (!context.Currentstocks.Local.Any())
             context.Currentstocks.Add(new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20, Ingredient = ingredient, Unit = unit, Warehouse = warehouseEntity });
         Assert.Equal(20m, Assert.Single(context.Currentstocks.Local).CurrentQty);
