@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
@@ -34,28 +35,29 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
             existing = await fixture.CreateSupplementalAsync($"phase30-{owner}-fixture");
         }
 
-        var inactive = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, $"freeze supplemental {owner}");
-        fixture.SetAuthority(inactive, $"supplementalmaterialrequests.{owner}");
+        var staleDefaultAuthority = fixture.CaptureAuthority($"supplementalmaterialrequests.{owner}");
+        await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, $"freeze supplemental {owner}");
+        fixture.SetAuthority(staleDefaultAuthority);
         var preInactive = await fixture.CaptureCompleteCommonLedgerAsync();
 
         var rejected = () => fixture.InvokeSupplementalAsync(owner, existing, commandId);
-        await rejected.Should().ThrowAsync<BusinessRuleException>();
+        await rejected.Should().ThrowAsync<SystemOperationConflictException>();
         var postRejection = await fixture.CaptureCompleteCommonLedgerAsync();
-        postRejection.Should().BeEquivalentTo(preInactive);
+        fixture.AssertExactLedger(preInactive, postRejection);
 
         var resumed = await fixture.SwitchAsync(SystemOperationEligibility.Default, $"resume supplemental {owner}");
         fixture.SetAuthority(resumed, $"supplementalmaterialrequests.{owner}");
         var postSwitchBack = await fixture.CaptureCompleteCommonLedgerAsync();
-        postSwitchBack.Should().BeEquivalentTo(postRejection, options => options.Excluding(item => item.Path == "Mode"));
+        fixture.AssertExactLedger(postRejection with { Mode = postSwitchBack.Mode }, postSwitchBack);
 
         var result = await fixture.InvokeSupplementalAsync(owner, existing, commandId);
         var postSuccess = await fixture.CaptureCompleteCommonLedgerAsync();
         fixture.AssertSupplementalIntendedDelta(owner, preInactive, postSuccess, existing, result, commandId);
 
         var replay = await fixture.InvokeSupplementalAsync(owner, existing, commandId);
-        replay.Should().BeEquivalentTo(result);
+        JsonSerializer.Serialize(replay).Should().Be(JsonSerializer.Serialize(result));
         var postReplay = await fixture.CaptureCompleteCommonLedgerAsync();
-        postReplay.Should().BeEquivalentTo(postSuccess);
+        fixture.AssertExactLedger(postSuccess, postReplay);
     }
 
     [Fact]
@@ -65,8 +67,9 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
         var approved = await fixture.CreateApprovedLegacyDispositionAsync();
         var commandId = "phase30-legacy-apply-same-command";
 
-        var inactive = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "freeze approved legacy apply");
-        fixture.SetAuthority(inactive, "legacylineagedispositions.apply");
+        var staleDefaultAuthority = fixture.CaptureAuthority("legacylineagedispositions.apply");
+        await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "freeze approved legacy apply");
+        fixture.SetAuthority(staleDefaultAuthority);
         var preInactive = await fixture.CaptureCompleteCommonLedgerAsync();
         var rejected = () => fixture.LegacyService.ApplyAsync(approved.DispositionId, new ApplyLegacyLineageDispositionRequest
         {
@@ -74,14 +77,14 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
             ExpectedVersion = approved.Version,
             Reason = "Apply the exact Manager-reviewed target."
         }, fixture.AdminId);
-        await rejected.Should().ThrowAsync<BusinessRuleException>();
+        await rejected.Should().ThrowAsync<SystemOperationConflictException>();
         var postRejection = await fixture.CaptureCompleteCommonLedgerAsync();
-        postRejection.Should().BeEquivalentTo(preInactive);
+        fixture.AssertExactLedger(preInactive, postRejection);
 
         var resumed = await fixture.SwitchAsync(SystemOperationEligibility.Default, "resume approved legacy apply");
         fixture.SetAuthority(resumed, "legacylineagedispositions.apply");
         var postSwitchBack = await fixture.CaptureCompleteCommonLedgerAsync();
-        postSwitchBack.Should().BeEquivalentTo(postRejection, options => options.Excluding(item => item.Path == "Mode"));
+        fixture.AssertExactLedger(postRejection with { Mode = postSwitchBack.Mode }, postSwitchBack);
 
         var applied = await fixture.LegacyService.ApplyAsync(approved.DispositionId, new ApplyLegacyLineageDispositionRequest
         {
@@ -98,22 +101,7 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
         (await fixture.Context.Inventoryissuelines.AsNoTracking().SingleAsync(item => item.IssueLineId == fixture.LegacyIssueLineBytes))
             .MaterialRequestLineId.Should().Equal(fixture.MaterialRequestLineBytes);
         var postSuccess = await fixture.CaptureCompleteCommonLedgerAsync();
-        postSuccess.LegacyDispositions.Should().HaveSameCount(preInactive.LegacyDispositions);
-        postSuccess.IssueLines.Should().NotBeEquivalentTo(preInactive.IssueLines);
-        postSuccess.Transitions.Should().HaveCount(preInactive.Transitions.Length + 1);
-        postSuccess.Outbox.Should().HaveCount(preInactive.Outbox.Length + 1);
-        postSuccess.Receipts.Should().HaveCount(preInactive.Receipts.Length + 1);
-        postSuccess.Issues.Should().BeEquivalentTo(preInactive.Issues);
-        postSuccess.Returns.Should().BeEquivalentTo(preInactive.Returns);
-        postSuccess.Movements.Should().BeEquivalentTo(preInactive.Movements);
-        postSuccess.Stocks.Should().BeEquivalentTo(preInactive.Stocks);
-        postSuccess.Supplementals.Should().BeEquivalentTo(preInactive.Supplementals);
-        postSuccess.PurchaseRequests.Should().BeEquivalentTo(preInactive.PurchaseRequests);
-        postSuccess.Approvals.Should().BeEquivalentTo(preInactive.Approvals);
-        postSuccess.ReconciliationActuals.Should().BeEquivalentTo(preInactive.ReconciliationActuals);
-        postSuccess.ReconciliationRevisions.Should().BeEquivalentTo(preInactive.ReconciliationRevisions);
-        postSuccess.ReconciliationDispositions.Should().BeEquivalentTo(preInactive.ReconciliationDispositions);
-        postSuccess.Audits.Should().HaveCount(preInactive.Audits.Length + 1);
+        fixture.AssertLegacyIntendedDelta(preInactive, postSuccess, approved, applied, commandId);
 
         var replay = await fixture.LegacyService.ApplyAsync(approved.DispositionId, new ApplyLegacyLineageDispositionRequest
         {
@@ -121,8 +109,8 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
             ExpectedVersion = approved.Version,
             Reason = "Apply the exact Manager-reviewed target."
         }, fixture.AdminId);
-        replay.Should().BeEquivalentTo(applied);
-        (await fixture.CaptureCompleteCommonLedgerAsync()).Should().BeEquivalentTo(postSuccess);
+        JsonSerializer.Serialize(replay).Should().Be(JsonSerializer.Serialize(applied));
+        fixture.AssertExactLedger(postSuccess, await fixture.CaptureCompleteCommonLedgerAsync());
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -225,13 +213,9 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
             _modeVersion = result.Version;
             return result;
         }
-        public void SetAuthority(SystemOperationModeDto mode, string operationKey)
-        {
-            RequestContext.Mode = mode.Mode;
-            RequestContext.ExpectedModeVersion = mode.Version;
-            RequestContext.OperationKey = operationKey;
-            RequestContext.Disposition = OperationDisposition.Retained;
-        }
+        public OperationAuthority CaptureAuthority(string operationKey) => new(SystemOperationEligibility.Default, _modeVersion, operationKey);
+        public void SetAuthority(OperationAuthority authority) => SetAuthority(authority.Mode, authority.Version, authority.OperationKey);
+        public void SetAuthority(SystemOperationModeDto mode, string operationKey) => SetAuthority(mode.Mode, mode.Version, operationKey);
 
         public async Task<SupplementalMaterialRequestDto> CreateSupplementalAsync(string commandId)
         {
@@ -263,55 +247,173 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
         public void AssertSupplementalIntendedDelta(string owner, CompleteLedger before, CompleteLedger after, SupplementalMaterialRequestDto? existing, SupplementalMaterialRequestDto result, string commandId)
         {
             result.ConcurrencyVersion.Should().Be(owner == "create" ? 1 : existing!.ConcurrencyVersion + 1);
-            after.Returns.Should().BeEquivalentTo(before.Returns);
-            after.ReturnLines.Should().BeEquivalentTo(before.ReturnLines);
-            after.Approvals.Should().BeEquivalentTo(before.Approvals);
-            after.ReconciliationActuals.Should().BeEquivalentTo(before.ReconciliationActuals);
-            after.ReconciliationRevisions.Should().BeEquivalentTo(before.ReconciliationRevisions);
-            after.ReconciliationDispositions.Should().BeEquivalentTo(before.ReconciliationDispositions);
-            after.Receipts.Should().HaveCount(before.Receipts.Length + 1);
-            after.Transitions.Should().HaveCount(before.Transitions.Length + 1);
-            after.Outbox.Should().HaveCount(before.Outbox.Length + 1);
-            after.Receipts.Should().ContainSingle(item => item.Contains(commandId, StringComparison.Ordinal));
-            if (owner == "create")
+            AssertUnchangedCommon(before, after);
+
+            var requestId = result.RequestId;
+            var oldStatus = owner == "create" ? null : existing!.Status;
+            var newStatus = owner switch
             {
-                after.Supplementals.Should().HaveCount(before.Supplementals.Length + 1);
-                after.Issues.Should().BeEquivalentTo(before.Issues);
-                after.PurchaseRequests.Should().BeEquivalentTo(before.PurchaseRequests);
-                after.Movements.Should().BeEquivalentTo(before.Movements);
-            }
-            else
-            {
-                result.RequestId.Should().Be(existing!.RequestId);
-                after.Supplementals.Should().HaveSameCount(before.Supplementals);
-            }
+                "create" => "PENDING_WAREHOUSE_REVIEW",
+                "fulfill" => "PARTIALLY_FULFILLED",
+                "route" => "NEEDS_PURCHASE",
+                "reject" => "REJECTED",
+                _ => throw new ArgumentOutOfRangeException(nameof(owner))
+            };
+            result.Status.Should().Be(newStatus);
+            if (owner != "create") result.RequestId.Should().Be(existing!.RequestId);
+
+            var expectedSupplementals = owner == "create"
+                ? AddExact(before.Supplementals, $"{requestId}|{result.RequestCode}|{result.IssueId}|{result.IssueLineId}|{result.WarehouseId}|{result.IngredientId}|{result.UnitId}|8.0|Exact DEFAULT shortage|PENDING_WAREHOUSE_REVIEW|{AdminId}")
+                : ReplaceField(before.Supplementals, requestId, 9, newStatus);
+            AssertExactRows(expectedSupplementals, after.Supplementals, "supplemental requests");
+
+            string reason;
+            string field;
+            string? auditNewValue;
             if (owner == "fulfill")
             {
-                result.Status.Should().Be("PARTIALLY_FULFILLED");
-                after.Issues.Should().HaveCount(before.Issues.Length + 1);
-                after.IssueLines.Should().HaveCount(before.IssueLines.Length + 1);
-                after.Movements.Should().HaveCount(before.Movements.Length + 1);
-                after.Movements.Should().ContainSingle(item => item.Contains("|ISSUE|supplementalmaterialrequests|", StringComparison.Ordinal) && item.Contains(result.RequestId, StringComparison.Ordinal));
-                after.Stocks.Should().NotBeEquivalentTo(before.Stocks);
+                var issueRow = OnlyAdded(before.Issues, after.Issues, "fulfillment issue");
+                var issue = issueRow.Split('|');
+                issue.Length.Should().Be(10);
+                AssertExactRows(["8/30/2026", "MORNING", WarehouseId, GuidHelper.ToGuidString(MaterialRequestBytes), "-", AdminId, "-", ""], issue[2..], "fulfillment issue fields");
+                var issueId = issue[0];
+                var issueCode = issue[1];
+                var lineRow = OnlyAdded(before.IssueLines, after.IssueLines, "fulfillment issue line");
+                var line = lineRow.Split('|');
+                line.Length.Should().Be(8);
+                AssertExactRows([issueId, GuidHelper.ToGuidString(IngredientBytes), GuidHelper.ToGuidString(UnitBytes), GuidHelper.ToGuidString(MaterialRequestLineBytes), "-", "3.0", "3.0"], line[1..], "fulfillment issue-line fields");
+                AssertExactRows(AddExact(before.Issues, issueRow), after.Issues, "issues");
+                AssertExactRows(AddExact(before.IssueLines, lineRow), after.IssueLines, "issue lines");
+                AssertExactRows([$"{WarehouseId}|{GuidHelper.ToGuidString(IngredientBytes)}|{GuidHelper.ToGuidString(UnitBytes)}|2.0"], after.Stocks, "stock");
+                AssertExactRows(AddExact(before.Movements, $"{WarehouseId}|{GuidHelper.ToGuidString(IngredientBytes)}|{GuidHelper.ToGuidString(UnitBytes)}|ISSUE|supplementalmaterialrequests|{requestId}|0.0|3.0|5.0|2.0|{AdminId}"), after.Movements, "movements");
+                AssertExactRows(before.PurchaseRequests, after.PurchaseRequests, "purchase requests");
+                AssertExactRows(before.PurchaseRequestLines, after.PurchaseRequestLines, "purchase request lines");
+                field = SupplementalMaterialRequestService.FulfillmentIssueAuditField;
+                auditNewValue = issueId;
+                reason = $"Kho cấp 3 kg bằng phiếu {issueCode}.";
             }
             else if (owner == "route")
             {
-                result.Status.Should().Be("NEEDS_PURCHASE");
-                after.PurchaseRequests.Should().HaveCount(before.PurchaseRequests.Length + 1);
-                after.PurchaseRequestLines.Should().HaveCount(before.PurchaseRequestLines.Length + 1);
-                after.PurchaseRequestLines.Should().ContainSingle(item => item.Contains(GuidHelper.ToGuidString(MaterialRequestLineBytes), StringComparison.Ordinal));
-                after.Stocks.Should().BeEquivalentTo(before.Stocks);
-                after.Movements.Should().BeEquivalentTo(before.Movements);
+                AssertExactRows(before.Issues, after.Issues, "issues");
+                AssertExactRows(before.IssueLines, after.IssueLines, "issue lines");
+                AssertExactRows(before.Stocks, after.Stocks, "stock");
+                AssertExactRows(before.Movements, after.Movements, "movements");
+                var headerRow = OnlyAdded(before.PurchaseRequests, after.PurchaseRequests, "purchase request");
+                var header = headerRow.Split('|');
+                header.Length.Should().Be(8);
+                AssertExactRows(["<dynamic-date>", "8/30/2026", "MORNING", "DRAFT", AdminId, "-"], header[2..], "purchase header fields");
+                var purchaseId = header[0];
+                var purchaseCode = header[1];
+                var lineRow = OnlyAdded(before.PurchaseRequestLines, after.PurchaseRequestLines, "purchase request line");
+                var line = lineRow.Split('|');
+                line.Length.Should().Be(8);
+                AssertExactRows([purchaseId, GuidHelper.ToGuidString(MaterialRequestLineBytes), GuidHelper.ToGuidString(IngredientBytes), GuidHelper.ToGuidString(UnitBytes), "8.0", "5.0", "3.0"], line[1..], "purchase line fields");
+                AssertExactRows(AddExact(before.PurchaseRequests, headerRow), after.PurchaseRequests, "purchase requests");
+                AssertExactRows(AddExact(before.PurchaseRequestLines, lineRow), after.PurchaseRequestLines, "purchase request lines");
+                result.PurchaseRequestId.Should().Be(purchaseId);
+                result.PurchaseRequestCode.Should().Be(purchaseCode);
+                field = "PurchaseRequestId";
+                auditNewValue = purchaseId;
+                reason = $"Kho chuyển 3.0 kg còn thiếu sang đề xuất {purchaseCode}.";
             }
-            else if (owner == "reject")
+            else
             {
-                result.Status.Should().Be("REJECTED");
-                after.Issues.Should().BeEquivalentTo(before.Issues);
-                after.PurchaseRequests.Should().BeEquivalentTo(before.PurchaseRequests);
-                after.Stocks.Should().BeEquivalentTo(before.Stocks);
-                after.Movements.Should().BeEquivalentTo(before.Movements);
+                AssertExactRows(before.Issues, after.Issues, "issues");
+                AssertExactRows(before.IssueLines, after.IssueLines, "issue lines");
+                AssertExactRows(before.Stocks, after.Stocks, "stock");
+                AssertExactRows(before.Movements, after.Movements, "movements");
+                AssertExactRows(before.PurchaseRequests, after.PurchaseRequests, "purchase requests");
+                AssertExactRows(before.PurchaseRequestLines, after.PurchaseRequestLines, "purchase request lines");
+                field = owner == "create" ? "Create" : "Reject";
+                auditNewValue = newStatus;
+                reason = owner == "create" ? "Bếp gửi yêu cầu cấp nguyên liệu bổ sung tới kho." : "Warehouse rejects exact request";
             }
+
+            var transitionReason = owner == "create" ? "Exact DEFAULT shortage" : reason;
+            var response = JsonSerializer.Serialize(result);
+            var sequence = owner == "create" ? 0 : checked((int)existing!.ConcurrencyVersion);
+            var expectedVersion = owner == "create" ? 0 : existing!.ConcurrencyVersion;
+            AssertExactRows(AddExact(before.Transitions, $"SupplementalMaterialRequest|{requestId}|{commandId}|{sequence}|{oldStatus}|{newStatus}|{AdminId}|{expectedVersion}|{transitionReason}|{commandId}||1|{response}"), after.Transitions, "lifecycle transitions");
+            AssertExactRows(AddExact(before.Outbox, $"SupplementalMaterialRequest.Transitioned|SupplementalMaterialRequest|{requestId}|{commandId}|{sequence}|PENDING|0|||||{response}"), after.Outbox, "lifecycle outbox");
+            AssertExactRows(AddExact(before.Receipts, $"{commandId}|SupplementalMaterialRequest|{requestId}|{response}"), after.Receipts, "command receipts");
+            var businessAudit = $"{AdminId}|SupplementalMaterial|SupplementalMaterialRequest|{requestId}|{field}|{oldStatus}|{auditNewValue}|{reason}|";
+            var lifecycleAudit = $"{AdminId}|Lifecycle|SupplementalMaterialRequest|{requestId}|Transition|{oldStatus}|{newStatus}|{transitionReason}|{commandId}";
+            AssertExactRows(AddExact(before.Audits, businessAudit, lifecycleAudit), after.Audits, "audits");
         }
+
+        public void AssertLegacyIntendedDelta(CompleteLedger before, CompleteLedger after, LegacyLineageDispositionDto approved, LegacyLineageDispositionDto applied, string commandId)
+        {
+            AssertExactRows(before.MaterialRequests, after.MaterialRequests, "material requests");
+            AssertExactRows(before.MaterialRequestLines, after.MaterialRequestLines, "material request lines");
+            AssertExactRows(before.Issues, after.Issues, "issues");
+            AssertExactRows(ReplaceField(before.IssueLines, GuidHelper.ToGuidString(LegacyIssueLineBytes), 4, GuidHelper.ToGuidString(MaterialRequestLineBytes)), after.IssueLines, "issue lines");
+            AssertExactRows(before.Returns, after.Returns, "returns");
+            AssertExactRows(before.ReturnLines, after.ReturnLines, "return lines");
+            AssertExactRows(before.Stocks, after.Stocks, "stock");
+            AssertExactRows(before.Movements, after.Movements, "movements");
+            AssertExactRows(before.Supplementals, after.Supplementals, "supplemental requests");
+            AssertExactRows(before.PurchaseRequests, after.PurchaseRequests, "purchase requests");
+            AssertExactRows(before.PurchaseRequestLines, after.PurchaseRequestLines, "purchase request lines");
+            AssertExactRows(before.PurchaseOrders, after.PurchaseOrders, "purchase orders");
+            AssertExactRows(before.PurchaseOrderLines, after.PurchaseOrderLines, "purchase order lines");
+            AssertExactRows(before.Approvals, after.Approvals, "approvals");
+            AssertExactRows(before.ReconciliationActuals, after.ReconciliationActuals, "reconciliation actuals");
+            AssertExactRows(before.ReconciliationRevisions, after.ReconciliationRevisions, "reconciliation revisions");
+            AssertExactRows(before.ReconciliationDispositions, after.ReconciliationDispositions, "reconciliation dispositions");
+            AssertExactRows(before.OutboxDeliveries, after.OutboxDeliveries, "outbox deliveries");
+            var expectedDisposition = $"{approved.DispositionId}|ISSUE_LINE|{GuidHelper.ToGuidString(LegacyIssueLineBytes)}|{GuidHelper.ToGuidString(MaterialRequestLineBytes)}|-|APPLIED|Exact legacy source target|Independent Manager reviewed exact source and target|{AdminId}|{ManagerId}|{AdminId}|{approved.Version + 1}";
+            AssertExactRows(ReplaceRow(before.LegacyDispositions, approved.DispositionId, expectedDisposition), after.LegacyDispositions, "legacy dispositions");
+            var response = JsonSerializer.Serialize(applied);
+            var aggregateType = "LegacyLineageDisposition:ISSUE_LINE";
+            var aggregateId = GuidHelper.ToGuidString(LegacyIssueLineBytes);
+            const string reason = "Apply the exact Manager-reviewed target.";
+            AssertExactRows(AddExact(before.Transitions, $"{aggregateType}|{aggregateId}|{commandId}|{approved.Version + 1}|APPROVED|APPLIED|{AdminId}|{approved.Version}|{reason}|{commandId}||1|{response}"), after.Transitions, "lifecycle transitions");
+            AssertExactRows(AddExact(before.Outbox, $"{aggregateType}.Transitioned|{aggregateType}|{aggregateId}|{commandId}|{approved.Version + 1}|PENDING|0|||||{response}"), after.Outbox, "lifecycle outbox");
+            AssertExactRows(AddExact(before.Receipts, $"{commandId}|{aggregateType}|{aggregateId}|{response}"), after.Receipts, "command receipts");
+            AssertExactRows(AddExact(before.Audits, $"{AdminId}|Lifecycle|{aggregateType}|{aggregateId}|Transition|APPROVED|APPLIED|{reason}|{commandId}"), after.Audits, "audits");
+        }
+
+        private static void AssertUnchangedCommon(CompleteLedger before, CompleteLedger after)
+        {
+            AssertExactRows(before.MaterialRequests, after.MaterialRequests, "material requests");
+            AssertExactRows(before.MaterialRequestLines, after.MaterialRequestLines, "material request lines");
+            AssertExactRows(before.Returns, after.Returns, "returns");
+            AssertExactRows(before.ReturnLines, after.ReturnLines, "return lines");
+            AssertExactRows(before.PurchaseOrders, after.PurchaseOrders, "purchase orders");
+            AssertExactRows(before.PurchaseOrderLines, after.PurchaseOrderLines, "purchase order lines");
+            AssertExactRows(before.Approvals, after.Approvals, "approvals");
+            AssertExactRows(before.ReconciliationActuals, after.ReconciliationActuals, "reconciliation actuals");
+            AssertExactRows(before.ReconciliationRevisions, after.ReconciliationRevisions, "reconciliation revisions");
+            AssertExactRows(before.ReconciliationDispositions, after.ReconciliationDispositions, "reconciliation dispositions");
+            AssertExactRows(before.LegacyDispositions, after.LegacyDispositions, "legacy dispositions");
+            AssertExactRows(before.OutboxDeliveries, after.OutboxDeliveries, "outbox deliveries");
+        }
+
+        public void AssertExactLedger(CompleteLedger expected, CompleteLedger actual) => Canonical(expected).Should().Be(Canonical(actual));
+        private static void AssertExactRows(string[] expected, string[] actual, string ledger) => string.Join("\n", expected).Should().Be(string.Join("\n", actual), $"the complete {ledger} ledger must match exactly");
+        private static string[] AddExact(string[] rows, params string[] additions) => rows.Concat(additions).OrderBy(item => item, StringComparer.Ordinal).ToArray();
+        private static string OnlyAdded(string[] before, string[] after, string ledger)
+        {
+            var added = after.Except(before, StringComparer.Ordinal).ToArray();
+            added.Length.Should().Be(1, $"the {ledger} delta must be exactly one complete row");
+            return added[0];
+        }
+        private static string[] ReplaceField(string[] rows, string rowId, int fieldIndex, string value)
+        {
+            var replaced = false;
+            var result = rows.Select(row => { var fields = row.Split('|'); if (fields[0] != rowId) return row; replaced.Should().BeFalse(); replaced = true; fields[fieldIndex] = value; return string.Join('|', fields); }).OrderBy(item => item, StringComparer.Ordinal).ToArray();
+            replaced.Should().BeTrue();
+            return result;
+        }
+        private static string[] ReplaceRow(string[] rows, string rowId, string replacement)
+        {
+            var replaced = false;
+            var result = rows.Select(row => { if (!row.StartsWith(rowId + "|", StringComparison.Ordinal)) return row; replaced.Should().BeFalse(); replaced = true; return replacement; }).OrderBy(item => item, StringComparer.Ordinal).ToArray();
+            replaced.Should().BeTrue();
+            return result;
+        }
+        private static string Canonical(CompleteLedger ledger) => JsonSerializer.Serialize(ledger);
+        private static string NormalizePayload(string? payload) => payload ?? "-";
 
         public async Task<CompleteLedger> CaptureCompleteCommonLedgerAsync()
         {
@@ -326,23 +428,23 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
                 await Rows(Context.Inventoryissuelines, item => $"{Id(item.IssueLineId)}|{Id(item.IssueId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{Id(item.MaterialRequestLineId)}|{Id(item.ReconciliationBatchLineId)}|{item.RequestedQty}|{item.IssuedQty}"),
                 await Rows(Context.Inventoryreturns, item => $"{Id(item.ReturnId)}|{item.ReturnCode}|{item.ReturnDate}|{item.ReturnType}|{Id(item.WarehouseId)}|{Id(item.IssueId)}|{Id(item.CreatedBy)}|{Id(item.ReceivedBy)}|{item.ReceivedAt:O}"),
                 await Rows(Context.Inventoryreturnlines, item => $"{Id(item.ReturnLineId)}|{Id(item.ReturnId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{Id(item.SourceIssueLineId)}|{item.Quantity}"),
-                await Rows(Context.Currentstocks, item => $"{Id(item.WarehouseId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.CurrentQty}|{item.LastUpdated:O}|{item.RowVersion:O}"),
-                await Rows(Context.Stockmovements, item => $"{Id(item.MovementId)}|{item.MovementDate:O}|{Id(item.WarehouseId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.MovementType}|{item.RefTable}|{Id(item.RefId)}|{item.QuantityIn}|{item.QuantityOut}|{item.BeforeQty}|{item.AfterQty}|{Id(item.PerformedBy)}"),
-                await Rows(Context.Supplementalmaterialrequests, item => $"{Id(item.RequestId)}|{item.RequestCode}|{Id(item.IssueId)}|{Id(item.IssueLineId)}|{Id(item.WarehouseId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.RequestedQty}|{item.Reason}|{item.Status}|{Id(item.RequestedBy)}|{item.RequestedAt:O}"),
-                await Rows(Context.Purchaserequests, item => $"{Id(item.PurchaseRequestId)}|{item.PurchaseRequestCode}|{item.RequestDate}|{item.PurchaseForDate}|{item.ShiftName}|{item.Status}|{Id(item.CreatedBy)}|{Id(item.ApprovedBy)}"),
+                await Rows(Context.Currentstocks, item => $"{Id(item.WarehouseId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.CurrentQty}"),
+                await Rows(Context.Stockmovements, item => $"{Id(item.WarehouseId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.MovementType}|{item.RefTable}|{Id(item.RefId)}|{item.QuantityIn}|{item.QuantityOut}|{item.BeforeQty}|{item.AfterQty}|{Id(item.PerformedBy)}"),
+                await Rows(Context.Supplementalmaterialrequests, item => $"{Id(item.RequestId)}|{item.RequestCode}|{Id(item.IssueId)}|{Id(item.IssueLineId)}|{Id(item.WarehouseId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.RequestedQty}|{item.Reason}|{item.Status}|{Id(item.RequestedBy)}"),
+                await Rows(Context.Purchaserequests, item => $"{Id(item.PurchaseRequestId)}|{item.PurchaseRequestCode}|<dynamic-date>|{item.PurchaseForDate}|{item.ShiftName}|{item.Status}|{Id(item.CreatedBy)}|{Id(item.ApprovedBy)}"),
                 await Rows(Context.Purchaserequestlines, item => $"{Id(item.PurchaseRequestLineId)}|{Id(item.PurchaseRequestId)}|{Id(item.MaterialRequestLineId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.RequiredQty}|{item.CurrentStockQty}|{item.PurchaseQty}"),
                 await Rows(Context.Purchaseorders, item => $"{Id(item.PurchaseOrderId)}|{item.PurchaseOrderCode}|{Id(item.PurchaseRequestId)}|{Id(item.SupplierId)}|{Id(item.ReceivingWarehouseId)}|{item.Status}"),
                 await Rows(Context.Purchaseorderlines, item => $"{Id(item.PurchaseOrderLineId)}|{Id(item.PurchaseOrderId)}|{Id(item.PurchaseRequestLineId)}|{Id(item.IngredientId)}|{Id(item.UnitId)}|{item.OrderedQty}|{item.ReceivedQty}"),
                 await Rows(Context.Approvalhistories, item => $"{Id(item.ApprovalHistoryId)}|{item.TargetType}|{Id(item.TargetId)}|{item.Decision}|{item.OldStatus}|{item.NewStatus}|{Id(item.ActionBy)}"),
-                await Rows(Context.Auditlogs.Where(item => item.BusinessArea != "SYSTEM_OPERATION"), item => $"{Id(item.AuditId)}|{item.ChangedAt:O}|{Id(item.ChangedBy)}|{item.BusinessArea}|{item.EntityName}|{Id(item.EntityId)}|{item.FieldName}|{item.OldValue}|{item.NewValue}|{item.Reason}|{item.CorrelationId}"),
+                await Rows(Context.Auditlogs.Where(item => item.BusinessArea != "SYSTEM_OPERATION"), item => $"{Id(item.ChangedBy)}|{item.BusinessArea}|{item.EntityName}|{Id(item.EntityId)}|{item.FieldName}|{item.OldValue}|{item.NewValue}|{item.Reason}|{item.CorrelationId}"),
                 await Rows(Context.Reconciliationactuals, item => $"{Id(item.ActualId)}|{Id(item.BatchLineId)}|{item.Side}|{item.Quantity}|{item.Version}|{Id(item.EnteredBy)}"),
                 await Rows(Context.Reconciliationactualrevisions, item => $"{Id(item.RevisionId)}|{Id(item.ActualId)}|{item.OldQuantity}|{item.NewQuantity}|{item.Reason}|{Id(item.ChangedBy)}"),
                 await Rows(Context.Reconciliationdispositions, item => $"{Id(item.DispositionId)}|{Id(item.BatchLineId)}|{item.Category}|{item.Reason}|{item.Version}|{Id(item.DisposedBy)}"),
                 await Rows(Context.Legacylinedispositions, item => $"{Id(item.DispositionId)}|{item.LegacyLineType}|{Id(item.LegacyLineId)}|{Id(item.TargetMaterialRequestLineId)}|{Id(item.TargetIssueLineId)}|{item.Status}|{item.Reason}|{item.ReviewReason}|{Id(item.CreatedBy)}|{Id(item.ReviewedBy)}|{Id(item.AppliedBy)}|{item.Version}"),
-                await Rows(Context.Lifecycletransitions, item => $"{Id(item.TransitionId)}|{item.AggregateType}|{Id(item.AggregateId)}|{item.CommandId}|{item.AggregateSequence}|{item.FromState}|{item.ToState}|{Id(item.ActorId)}|{item.ExpectedVersion}|{item.PayloadJson}"),
-                await Rows(Context.Lifecycleoutboxmessages, item => $"{Id(item.OutboxMessageId)}|{item.AggregateType}|{Id(item.AggregateId)}|{item.CommandId}|{item.AggregateSequence}|{item.Status}|{item.PayloadJson}"),
+                await Rows(Context.Lifecycletransitions, item => $"{item.AggregateType}|{Id(item.AggregateId)}|{item.CommandId}|{item.AggregateSequence}|{item.FromState}|{item.ToState}|{Id(item.ActorId)}|{item.ExpectedVersion}|{item.Reason}|{item.CorrelationId}|{item.CausationId}|{item.SchemaVersion}|{NormalizePayload(item.PayloadJson)}"),
+                await Rows(Context.Lifecycleoutboxmessages, item => $"{item.EventType}|{item.AggregateType}|{Id(item.AggregateId)}|{item.CommandId}|{item.AggregateSequence}|{item.Status}|{item.AttemptCount}|{item.NextAttemptAt:O}|{item.LockedAt:O}|{item.ProcessedAt:O}|{item.LastError}|{NormalizePayload(item.PayloadJson)}"),
                 await Rows(Context.Lifecycleoutboxdeliveries, item => $"{Id(item.DeliveryId)}|{Id(item.OutboxMessageId)}|{item.ConsumerName}|{item.ProcessedAt:O}"),
-                await Rows(Context.Lifecyclecommandreceipts, item => $"{Id(item.CommandReceiptId)}|{item.CommandId}|{item.AggregateType}|{Id(item.AggregateId)}|{item.ResponseJson}"));
+                await Rows(Context.Lifecyclecommandreceipts, item => $"{item.CommandId}|{item.AggregateType}|{Id(item.AggregateId)}|{NormalizePayload(item.ResponseJson)}"));
         }
 
         private static async Task<string[]> Rows<TEntity>(DbSet<TEntity> set, Func<TEntity, string> project) where TEntity : class =>
@@ -352,6 +454,8 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
 
         public async ValueTask DisposeAsync() { await Context.DisposeAsync(); await _connection.DisposeAsync(); }
     }
+
+    private sealed record OperationAuthority(string Mode, long Version, string OperationKey);
 
     private sealed record CompleteLedger(string Mode, string[] MaterialRequests, string[] MaterialRequestLines, string[] Issues, string[] IssueLines, string[] Returns, string[] ReturnLines, string[] Stocks, string[] Movements, string[] Supplementals, string[] PurchaseRequests, string[] PurchaseRequestLines, string[] PurchaseOrders, string[] PurchaseOrderLines, string[] Approvals, string[] Audits, string[] ReconciliationActuals, string[] ReconciliationRevisions, string[] ReconciliationDispositions, string[] LegacyDispositions, string[] Transitions, string[] Outbox, string[] OutboxDeliveries, string[] Receipts);
 }
