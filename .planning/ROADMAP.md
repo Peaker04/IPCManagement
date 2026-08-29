@@ -205,7 +205,7 @@ Plans:
 
 ## Phase 30: Closed-loop menu issue reconciliation
 
-**Status:** IN PROGRESS — base closed loop complete; three remaining local data-isolation waves planned
+**Status:** IN PROGRESS — base closed loop and backend authority boundary complete; bounded local data-isolation slices remain in conceptual waves 4 and 5
 
 **Goal:** Refine `MATERIAL_RECONCILIATION` into one closed workflow: import/select Weekly Menu source, calculate exact material quantities, transfer one frozen issue list to Warehouse, create real source-linked inventory issue documents, then compare required versus warehouse-issued quantities on one compact reconciliation page.
 
@@ -225,14 +225,18 @@ Plans:
 - Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
 - Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
 
-**Plans:** 2/5 plans executed / 5 waves
+**Plans:** 3/9 plans executed / 5 conceptual waves
 
 Plans:
 
 - [x] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
 - [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
-- [ ] 30-03-PLAN.md — backend command transaction fences for server-authoritative mode/version and exact family writes (wave 3).
-- [ ] 30-04-PLAN.md — exact-family reads/aggregates/audit, immutable frozen facts and idempotent stock projection (wave 4).
-- [ ] 30-05-PLAN.md — real two-tab mode authority, captured stale replay and bounded local closeout with DEFAULT round-trip (wave 5).
+- [x] 30-03-PLAN.md — exact-one backend issue authority and retained endpoint permission matrix (wave 3; complete at `722175f2`).
+- [ ] 30-04-PLAN.md — backend Wave 4 slice A: dual-family canonical return/correction, DEFAULT-only supplemental/legacy exception and inactive freeze/resume (depends on 30-03).
+- [ ] 30-05-PLAN.md — backend Wave 4 slice B: exact discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-04).
+- [ ] 30-06-PLAN.md — backend Wave 4 slice C: exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-05).
+- [ ] 30-07-PLAN.md — backend Wave 4 slice D: frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-06).
+- [ ] 30-08-PLAN.md — frontend Wave 5 slice A: production two-tab authority channel and sharply bounded inactive-owner cleanup (depends on 30-07).
+- [ ] 30-09-PLAN.md — frontend Wave 5 slice B: deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-08).
 
 **MRX-06 disposition:** Plans 30-03..05 may complete only `MRX-06L` using local deterministic tests and source-aware closure. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`; these local plans must not access the protected lane and cannot mark MRX-06 or MRX-06P complete.
