@@ -141,6 +141,22 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         afterReceipt.Receipts.Should().Be(afterCreate.Receipts + 1);
     }
 
+    [Fact]
+    public async Task StaleCapturedModeVersion_FailsBeforeAnyDurableOwnerWrite()
+    {
+        await using var fixture = await Fixture.CreateAsync(receivedIssue: false);
+        var staleVersion = 1L;
+        await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Advance authority beyond captured DEFAULT request.");
+        fixture.SetRequestAuthority(SystemOperationEligibility.Default, staleVersion, "inventoryissues.createasync");
+        var before = await fixture.CaptureAsync();
+
+        var act = () => fixture.IssueService.CreateAsync(fixture.CreateIssueCommand("phase30-stale-mode-owner"), fixture.ActorId);
+        await act.Should().ThrowAsync<SystemOperationConflictException>()
+            .WithMessage("*đã thay đổi*");
+
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(before);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
@@ -399,10 +415,13 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
             return changed;
         }
 
-        public void SetRequestAuthority(SystemOperationModeDto authority, string operationKey)
+        public void SetRequestAuthority(SystemOperationModeDto authority, string operationKey) =>
+            SetRequestAuthority(authority.Mode, authority.Version, operationKey);
+
+        public void SetRequestAuthority(string mode, long version, string operationKey)
         {
-            RequestContext.Mode = authority.Mode;
-            RequestContext.ExpectedModeVersion = authority.Version;
+            RequestContext.Mode = mode;
+            RequestContext.ExpectedModeVersion = version;
             RequestContext.OperationKey = operationKey;
             RequestContext.Disposition = OperationDisposition.Retained;
         }
