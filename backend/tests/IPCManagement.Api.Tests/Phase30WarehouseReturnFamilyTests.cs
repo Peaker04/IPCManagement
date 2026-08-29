@@ -5,6 +5,7 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using NSubstitute;
@@ -12,7 +13,7 @@ using Xunit;
 
 namespace IPCManagement.Api.Tests;
 
-public class Phase30WarehouseReturnFamilyTests
+public partial class Phase30WarehouseReturnFamilyTests
 {
     [Theory]
     [InlineData("DEFAULT")]
@@ -62,7 +63,7 @@ public class Phase30WarehouseReturnFamilyTests
         await fixture.UnitOfWork.DidNotReceive().SaveChangesAsync();
     }
 
-    private static Fixture CreateFixture(string lineage)
+    private static Fixture CreateFixture(string lineage, string? mode = null)
     {
         var returnRepository = Substitute.For<IInventoryReturnRepository>();
         var issueRepository = Substitute.For<IInventoryIssueRepository>();
@@ -126,13 +127,21 @@ public class Phase30WarehouseReturnFamilyTests
         returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
+        var requestContext = new SystemOperationRequestContext
+        {
+            Mode = mode,
+            OperationKey = "inventoryreturns.create",
+            ExpectedModeVersion = 3,
+            Disposition = OperationDisposition.Retained,
+        };
         var service = new InventoryReturnService(
             returnRepository,
             issueRepository,
             unitOfWork,
             stockLedger,
             new ImmediateTransactionRunner(),
-            warehouseResolver);
+            warehouseResolver,
+            requestContext: requestContext);
         var request = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -151,7 +160,7 @@ public class Phase30WarehouseReturnFamilyTests
             ]
         };
 
-        return new Fixture(service, returnRepository, unitOfWork, stockLedger, issue, request, Guid.NewGuid().ToString());
+        return new Fixture(service, returnRepository, unitOfWork, stockLedger, issue, request, Guid.NewGuid().ToString(), requestContext);
     }
 
     private sealed record Fixture(
@@ -161,5 +170,6 @@ public class Phase30WarehouseReturnFamilyTests
         IStockLedgerService StockLedger,
         InventoryIssue Issue,
         CreateInventoryReturnRequest Request,
-        string UserId);
+        string UserId,
+        SystemOperationRequestContext RequestContext);
 }

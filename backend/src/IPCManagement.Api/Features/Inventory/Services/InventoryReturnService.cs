@@ -11,6 +11,7 @@ using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using System.Data;
 using System.Text.Json;
 namespace IPCManagement.Api.Features.Inventory.Services;
@@ -25,6 +26,7 @@ public class InventoryReturnService : IInventoryReturnService
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
+    private readonly SystemOperationRequestContext? _requestContext;
     public InventoryReturnService(
         IInventoryReturnRepository returnRepository,
         IInventoryIssueRepository issueRepository,
@@ -32,7 +34,8 @@ public class InventoryReturnService : IInventoryReturnService
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
         IOperationalWarehouseResolver operationalWarehouseResolver,
-        IpcManagementContext? context = null)
+        IpcManagementContext? context = null,
+        SystemOperationRequestContext? requestContext = null)
     {
         _returnRepository = returnRepository;
         _issueRepository = issueRepository;
@@ -41,6 +44,7 @@ public class InventoryReturnService : IInventoryReturnService
         _transactionRunner = transactionRunner;
         _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
+        _requestContext = requestContext;
     }
     public async Task<PagedResponseDto<InventoryReturnDto>> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
@@ -87,7 +91,7 @@ public class InventoryReturnService : IInventoryReturnService
 
         var returnId = GuidHelper.NewId();
         var returnCode = $"{ResolveReturnCodePrefix(returnType)}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
-        return await _transactionRunner.ExecuteAsync(
+        return await ExecuteModeProtectedAsync(
             async _ =>
             {
                 var replay = _context is null ? null : await _context.Lifecyclecommandreceipts.AsNoTracking()
@@ -99,6 +103,7 @@ public class InventoryReturnService : IInventoryReturnService
                 }
                 var issue = await _issueRepository.GetByIdWithLinesAsync(issueBytes)
                     ?? throw new KeyNotFoundException($"Không tìm thấy phiếu xuất kho với ID: {dto.IssueId}");
+                EnsureOwningFamilyActive(issue);
 
                 if (!issue.WarehouseId.SequenceEqual(canonicalWarehouseId))
                 {
@@ -213,7 +218,7 @@ public class InventoryReturnService : IInventoryReturnService
         // currentstocklots, stockmovements). Không có transaction thì một lỗi giữa chừng để lại
         // phiếu đã đánh dấu "đã nhận" nhưng tồn kho chưa cộng. Dùng đúng khuôn mẫu của CreateAsync
         // trong chính file này. Đọc phiếu cũng nằm trong transaction để chốt chặn xác nhận hai lần.
-        return await _transactionRunner.ExecuteAsync(
+        return await ExecuteModeProtectedAsync(
             async cancellationToken =>
             {
                 var inventoryReturn = await _context.Inventoryreturns
@@ -221,6 +226,9 @@ public class InventoryReturnService : IInventoryReturnService
                     .FirstOrDefaultAsync(r => r.ReturnId == bytes, cancellationToken);
 
                 if (inventoryReturn is null) return false;
+                var sourceIssue = await _issueRepository.GetByIdWithLinesAsync(inventoryReturn.IssueId)
+                    ?? throw new BusinessRuleException("Không tìm thấy phiếu xuất gốc của phiếu trả.");
+                EnsureOwningFamilyActive(sourceIssue);
 
                 var replay = await recorder.FindExistingCommandAsync(commandId, aggregateType, bytes, cancellationToken);
                 if (replay is not null) return true;
@@ -342,11 +350,7 @@ public class InventoryReturnService : IInventoryReturnService
                 }
                 else
                 {
-                    var issue = await _issueRepository.GetByIdWithLinesAsync(inventoryReturn.IssueId);
-                    if (issue != null)
-                    {
-                        AddWasteAudit(inventoryReturn, issue, userIdBytes);
-                    }
+                    AddWasteAudit(inventoryReturn, sourceIssue, userIdBytes);
                 }
 
                 var response = JsonSerializer.Serialize(new
@@ -377,6 +381,31 @@ public class InventoryReturnService : IInventoryReturnService
                 receipt => receipt.CommandId == commandId && receipt.AggregateType == aggregateType && receipt.AggregateId.SequenceEqual(bytes),
                 cancellationToken),
             IsolationLevel.Serializable);
+    }
+
+    private Task<TResult> ExecuteModeProtectedAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        Func<CancellationToken, Task<bool>> verifySucceeded,
+        IsolationLevel isolationLevel)
+    {
+        return (_requestContext?.OperationKey, _requestContext?.ExpectedModeVersion) switch
+        {
+            ({ Length: > 0 } operationKey, long expectedModeVersion) => _transactionRunner.ExecuteProtectedAsync(
+                operationKey, expectedModeVersion, operation, verifySucceeded, isolationLevel),
+            _ => _transactionRunner.ExecuteAsync(operation, verifySucceeded, isolationLevel)
+        };
+    }
+
+    private void EnsureOwningFamilyActive(InventoryIssue issue)
+    {
+        if (_requestContext?.Mode is not { } mode) return;
+        var exactDefault = issue.MaterialRequestId is not null && issue.ReconciliationBatchId is null;
+        var exactReconciliation = issue.MaterialRequestId is null && issue.ReconciliationBatchId is not null;
+        if ((exactDefault && mode != SystemOperationEligibility.Default)
+            || (exactReconciliation && mode != SystemOperationEligibility.MaterialReconciliation))
+        {
+            throw new BusinessRuleException("Phiếu trả/điều chỉnh chỉ được thay đổi khi workflow nguồn đang hoạt động.");
+        }
     }
 
     private static InventoryIssueLine ResolveSourceIssueLine(
