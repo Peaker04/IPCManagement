@@ -12,7 +12,7 @@ progress:
   completed_plans: 65
   percent: 86
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-29 — Completed Plan 30-06 with persisted five-checkpoint supplemental owner ledgers, transaction-local DEFAULT fences, and same-disposition legacy apply/replay proof
+last_activity: 2026-08-30 — Remediated Plan 30-06 stale DEFAULT transaction-local rejection and exact full-ledger success/replay evidence
 ---
 
 # Project State
@@ -35,7 +35,7 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-29T23:22:33.456Z
+**Last session:** 2026-08-30T06:40:00Z
 **Resume file:** None
 
 **Stopped at:** Completed 30-06-PLAN.md
