@@ -63,7 +63,7 @@ public partial class Phase30WarehouseReturnFamilyTests
         await fixture.UnitOfWork.DidNotReceive().SaveChangesAsync();
     }
 
-    private static Fixture CreateFixture(string lineage, string? mode = null)
+    internal static Fixture CreateFixture(string lineage, string? mode = null)
     {
         var returnRepository = Substitute.For<IInventoryReturnRepository>();
         var issueRepository = Substitute.For<IInventoryIssueRepository>();
@@ -163,7 +163,7 @@ public partial class Phase30WarehouseReturnFamilyTests
         return new Fixture(service, returnRepository, unitOfWork, stockLedger, issue, request, Guid.NewGuid().ToString(), requestContext);
     }
 
-    private sealed record Fixture(
+    internal sealed record Fixture(
         InventoryReturnService Service,
         IInventoryReturnRepository ReturnRepository,
         IUnitOfWork UnitOfWork,

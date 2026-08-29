@@ -6,7 +6,7 @@ using Xunit;
 
 namespace IPCManagement.Api.Tests;
 
-public partial class Phase30WarehouseReturnFamilyTests
+public sealed class Phase30InactiveWorkflowFenceTests
 {
     [Theory]
     [InlineData("DEFAULT", "MATERIAL_RECONCILIATION")]
@@ -15,7 +15,7 @@ public partial class Phase30WarehouseReturnFamilyTests
         string owningFamily,
         string inactiveMode)
     {
-        var fixture = CreateFixture(owningFamily, inactiveMode);
+        var fixture = Phase30WarehouseReturnFamilyTests.CreateFixture(owningFamily, inactiveMode);
         var issueIdBefore = fixture.Request.IssueId;
         var sourceLineBefore = fixture.Request.Lines.Single().SourceIssueLineId;
 
