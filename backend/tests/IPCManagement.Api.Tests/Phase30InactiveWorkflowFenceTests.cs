@@ -1,10 +1,9 @@
-using System.Reflection;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Features.Inventory.Controllers;
-using IPCManagement.Api.Features.Reconciliation.Controllers;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.SystemOperation.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
@@ -17,124 +16,192 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class Phase30InactiveWorkflowFenceTests
 {
-    [Theory]
-    [InlineData("DEFAULT", "MATERIAL_RECONCILIATION")]
-    [InlineData("MATERIAL_RECONCILIATION", "DEFAULT")]
-    public async Task ReturnCreation_FreezesInactiveFamilyThenResumesTheSameSourceWithoutDrift(
-        string owningFamily,
-        string inactiveMode)
+    [Fact]
+    public async Task DefaultIssueCreation_UsesTheCapturedModeVersionFenceInsteadOfOrdinaryTransactionDispatch()
     {
-        var fixture = Phase30WarehouseReturnFamilyTests.CreateFixture(owningFamily, inactiveMode);
-        var issueIdBefore = fixture.Request.IssueId;
-        var sourceLineBefore = fixture.Request.Lines.Single().SourceIssueLineId;
+        var issueRepository = Substitute.For<IPCManagement.Api.Data.Repositories.IInventoryIssueRepository>();
+        var unitOfWork = Substitute.For<IUnitOfWork>();
+        var stockLedger = Substitute.For<IStockLedgerService>();
+        var warehouse = Substitute.For<IOperationalWarehouseResolver>();
+        var actorId = Guid.NewGuid().ToString();
+        var warehouseId = GuidHelper.NewId();
+        var materialRequestId = GuidHelper.NewId();
+        var materialRequestLineId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        warehouse.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
+        issueRepository.GetMaterialRequestForIssueAsync(Arg.Any<byte[]>()).Returns(new MaterialRequest
+        {
+            RequestId = materialRequestId,
+            RequestCode = "MR-P30-DEFAULT-FENCE",
+            Status = "APPROVED",
+            Materialrequestlines =
+            [
+                new MaterialRequestLine
+                {
+                    RequestLineId = materialRequestLineId,
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    TotalRequiredQty = 1,
+                    Ingredient = new Ingredient { IngredientId = ingredientId, IngredientName = "Rice" },
+                    Unit = new Unit { UnitId = unitId, UnitName = "kg" },
+                }
+            ]
+        });
+        issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>()).Returns([]);
+        var requestContext = new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.Default,
+            OperationKey = "inventoryissues.createasync",
+            ExpectedModeVersion = 7,
+            Disposition = OperationDisposition.Retained,
+        };
+        var runner = new RecordingProtectedTransactionRunner(requestContext);
+        var service = new InventoryIssueService(
+            issueRepository, unitOfWork, stockLedger, runner, warehouse, requestContext: requestContext);
 
-        var inactive = () => fixture.Service.CreateAsync(fixture.Request, fixture.UserId);
+        await service.CreateAsync(new CreateInventoryIssueRequest
+        {
+            MaterialRequestId = GuidHelper.ToGuidString(materialRequestId),
+            WarehouseId = GuidHelper.ToGuidString(warehouseId),
+            IssueDate = new DateOnly(2026, 8, 30),
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    MaterialRequestLineId = GuidHelper.ToGuidString(materialRequestLineId),
+                    IngredientId = GuidHelper.ToGuidString(ingredientId),
+                    UnitId = GuidHelper.ToGuidString(unitId),
+                    RequestedQty = 1,
+                    IssuedQty = 1,
+                }
+            ]
+        }, actorId);
 
-        await inactive.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*workflow nguồn đang hoạt động*");
-        fixture.ReturnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());
-        await fixture.UnitOfWork.DidNotReceive().SaveChangesAsync();
-        await fixture.StockLedger.DidNotReceiveWithAnyArgs().AddStockAsync(
-            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
-
-        fixture.RequestContext.Mode = owningFamily;
-        var resumed = await fixture.Service.CreateAsync(fixture.Request, fixture.UserId);
-
-        resumed.Should().NotBeNull();
-        fixture.Request.IssueId.Should().Be(issueIdBefore);
-        fixture.Request.Lines.Single().SourceIssueLineId.Should().Be(sourceLineBefore);
-        fixture.ReturnRepository.Received(1).Add(Arg.Is<InventoryReturn>(created =>
-            created.IssueId.SequenceEqual(fixture.Issue.IssueId)
-            && created.Inventoryreturnlines.Single().SourceIssueLineId!.SequenceEqual(
-                fixture.Issue.Inventoryissuelines.Single().IssueLineId)));
-        await fixture.UnitOfWork.Received(1).SaveChangesAsync();
+        runner.ProtectedCalls.Should().Be(1);
+        runner.OrdinaryCalls.Should().Be(0);
+        runner.OperationKey.Should().Be("inventoryissues.createasync");
+        runner.ExpectedModeVersion.Should().Be(7);
+        runner.DispositionAtDispatch.Should().Be(OperationDisposition.ExcludedInMaterialReconciliation);
     }
 
     [Fact]
-    public async Task PersistedPublicOwnerMatrix_RejectsInactiveOwnersAndResumesExactAggregates()
+    public async Task LegacyDispositionApply_RejectsInactiveThenAppliesTheSameApprovedIdentityAfterRealSwitchBack()
     {
         await using var context = CreateContext();
-        var seed = await SeedAuthorityAndUnfinishedAggregatesAsync(context);
+        var adminRole = new Role { RoleId = GuidHelper.NewId(), RoleCode = "ADMIN", RoleName = "Admin" };
+        var admin = new User
+        {
+            UserId = GuidHelper.NewId(),
+            RoleId = adminRole.RoleId,
+            Username = "phase30-admin",
+            FullName = "Phase 30 Admin",
+            PasswordHash = "test-only",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        var request = new MaterialRequest
+        {
+            RequestId = GuidHelper.NewId(),
+            RequestCode = "MR-P30-LEGACY-RESUME",
+            PlanId = GuidHelper.NewId(),
+            RequestDate = new DateOnly(2026, 8, 30),
+            RequestScope = "FULLDAY",
+            Status = "APPROVED",
+            CreatedBy = admin.UserId,
+        };
+        var targetLine = new MaterialRequestLine
+        {
+            RequestLineId = GuidHelper.NewId(),
+            RequestId = request.RequestId,
+            PlanLineId = GuidHelper.NewId(),
+            IngredientId = ingredientId,
+            UnitId = unitId,
+            AppliedPortionRuleSource = "TEST",
+        };
+        request.Materialrequestlines.Add(targetLine);
+        var issue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "ISS-P30-LEGACY-RESUME",
+            IssueDate = new DateOnly(2026, 8, 30),
+            WarehouseId = GuidHelper.NewId(),
+            MaterialRequestId = request.RequestId,
+            IssuedBy = admin.UserId,
+            CreatedAt = DateTime.UtcNow,
+        };
+        var legacyLine = new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(),
+            IssueId = issue.IssueId,
+            IngredientId = ingredientId,
+            UnitId = unitId,
+            RequestedQty = 1,
+            IssuedQty = 1,
+        };
+        issue.Inventoryissuelines.Add(legacyLine);
+        var disposition = new LegacyLineageDisposition
+        {
+            DispositionId = GuidHelper.NewId(),
+            LegacyLineType = "ISSUE_LINE",
+            LegacyLineId = legacyLine.IssueLineId,
+            TargetMaterialRequestLineId = targetLine.RequestLineId,
+            Status = "APPROVED",
+            Reason = "Exact evidence approved before mode switch.",
+            CreatedBy = admin.UserId,
+            CreatedAt = DateTime.UtcNow,
+            ReviewedBy = GuidHelper.NewId(),
+            ReviewedAt = DateTime.UtcNow,
+            Version = 1,
+        };
+        context.AddRange(adminRole, admin, request, issue, disposition,
+            new SystemOperationMode { Id = 1, Mode = SystemOperationEligibility.Default, Version = 1, UpdatedAt = DateTime.UtcNow, UpdatedBy = admin.UserId });
+        await context.SaveChangesAsync();
         var guard = new SystemOperationModeGuard(context);
         var modeService = new SystemOperationModeService(context, guard, new EfTransactionRunner(context));
-        var original = await CaptureWorkflowSnapshotAsync(context);
-
-        var reconciliationAuthority = await modeService.ChangeAsync(
-            new ChangeSystemOperationModeRequest(
-                SystemOperationEligibility.MaterialReconciliation,
-                ExpectedVersion: 1,
-                Confirmed: true,
-                Reason: "Verify frozen DEFAULT public owners."),
-            seed.ActorId);
-
-        foreach (var owner in DefaultOnlyOwners())
+        var reconciliation = await modeService.ChangeAsync(new ChangeSystemOperationModeRequest(
+            SystemOperationEligibility.MaterialReconciliation, 1, true, "Freeze legacy disposition."), GuidHelper.ToGuidString(admin.UserId));
+        var requestContext = new SystemOperationRequestContext
         {
-            var attempt = () => guard.ValidateAsync(owner.OperationKey, reconciliationAuthority.Version, owner.Disposition);
-            await attempt.Should().ThrowAsync<SystemOperationUnavailableException>(owner.Name);
-            (await CaptureWorkflowSnapshotAsync(context)).Should().BeEquivalentTo(original, options => options.Excluding(row => row.Mode));
-        }
-
-        AssertDefaultNotApplicableOraclesAreProductionOwned();
-        var defaultAuthority = await modeService.ChangeAsync(
-            new ChangeSystemOperationModeRequest(
-                SystemOperationEligibility.Default,
-                ExpectedVersion: reconciliationAuthority.Version,
-                Confirmed: true,
-                Reason: "Resume the same DEFAULT aggregates."),
-            seed.ActorId);
-        foreach (var owner in DefaultOnlyOwners())
-            await guard.ValidateAsync(owner.OperationKey, defaultAuthority.Version, owner.Disposition);
-
-        var afterDefaultResume = await CaptureWorkflowSnapshotAsync(context);
-        afterDefaultResume.Should().BeEquivalentTo(original, options => options.Excluding(row => row.Mode));
-
-        var reconciliationMode = await modeService.ChangeAsync(
-            new ChangeSystemOperationModeRequest(
-                SystemOperationEligibility.MaterialReconciliation,
-                ExpectedVersion: defaultAuthority.Version,
-                Confirmed: true,
-                Reason: "Activate reconciliation owner matrix."),
-            seed.ActorId);
-        foreach (var owner in ReconciliationOwners())
-            await guard.ValidateAsync(owner.OperationKey, reconciliationMode.Version, owner.Disposition);
-
-        var inactiveDefault = await modeService.ChangeAsync(
-            new ChangeSystemOperationModeRequest(
-                SystemOperationEligibility.Default,
-                ExpectedVersion: reconciliationMode.Version,
-                Confirmed: true,
-                Reason: "Verify frozen reconciliation public owners."),
-            seed.ActorId);
-
-        foreach (var owner in ReconciliationOwners())
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            OperationKey = "legacylineagedispositions.applyasync",
+            ExpectedModeVersion = reconciliation.Version,
+            Disposition = OperationDisposition.ExcludedInMaterialReconciliation,
+        };
+        var service = new LegacyLineageDispositionService(
+            context, new ImmediateTransactionRunner(), new IPCManagement.Api.Infrastructure.Lifecycle.LifecycleTransitionRecorder(context), requestContext);
+        var command = new ApplyLegacyLineageDispositionRequest
         {
-            var attempt = () => guard.ValidateAsync(owner.OperationKey, inactiveDefault.Version, owner.Disposition);
-            await attempt.Should().ThrowAsync<SystemOperationUnavailableException>(owner.Name);
-            (await CaptureWorkflowSnapshotAsync(context)).Should().BeEquivalentTo(original, options => options.Excluding(row => row.Mode));
-        }
+            CommandId = "phase30-legacy-apply-resume",
+            ExpectedVersion = 1,
+            Reason = "Apply the exact approved evidence after DEFAULT resumes.",
+        };
+        var before = await CaptureLegacyLedgerAsync(context, disposition.DispositionId, legacyLine.IssueLineId);
 
-        AssertReconciliationRegistrationsAreExecutablePublicOracles();
-        var resumedReconciliation = await modeService.ChangeAsync(
-            new ChangeSystemOperationModeRequest(
-                SystemOperationEligibility.MaterialReconciliation,
-                ExpectedVersion: inactiveDefault.Version,
-                Confirmed: true,
-                Reason: "Resume the same reconciliation aggregate."),
-            seed.ActorId);
-        foreach (var owner in ReconciliationOwners())
-            await guard.ValidateAsync(owner.OperationKey, resumedReconciliation.Version, owner.Disposition);
+        var inactive = () => service.ApplyAsync(GuidHelper.ToGuidString(disposition.DispositionId), command, GuidHelper.ToGuidString(admin.UserId));
+        await inactive.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*chỉ khả dụng trong chế độ DEFAULT*");
+        (await CaptureLegacyLedgerAsync(context, disposition.DispositionId, legacyLine.IssueLineId)).Should().BeEquivalentTo(before);
 
-        var resumed = await CaptureWorkflowSnapshotAsync(context);
-        resumed.Should().BeEquivalentTo(original, options => options.Excluding(row => row.Mode));
-        resumed.MaterialRequestId.Should().Be(seed.MaterialRequestId);
-        resumed.DefaultIssueId.Should().Be(seed.DefaultIssueId);
-        resumed.ReconciliationBatchId.Should().Be(seed.ReconciliationBatchId);
-        resumed.LegacyDispositionId.Should().Be(seed.LegacyDispositionId);
-        resumed.MaterialRequestChildren.Should().Be(1);
-        resumed.DefaultIssueChildren.Should().Be(1);
-        resumed.ReconciliationChildren.Should().Be(1);
-        resumed.LegacyDispositionVersion.Should().Be(1);
-        resumed.LegacyDispositionStatus.Should().Be("APPROVED");
+        var resumedAuthority = await modeService.ChangeAsync(new ChangeSystemOperationModeRequest(
+            SystemOperationEligibility.Default, reconciliation.Version, true, "Resume exact legacy disposition."), GuidHelper.ToGuidString(admin.UserId));
+        requestContext.Mode = SystemOperationEligibility.Default;
+        requestContext.ExpectedModeVersion = resumedAuthority.Version;
+        var applied = await service.ApplyAsync(GuidHelper.ToGuidString(disposition.DispositionId), command, GuidHelper.ToGuidString(admin.UserId));
+        var replay = await service.ApplyAsync(GuidHelper.ToGuidString(disposition.DispositionId), command, GuidHelper.ToGuidString(admin.UserId));
+
+        applied.DispositionId.Should().Be(GuidHelper.ToGuidString(disposition.DispositionId));
+        replay.DispositionId.Should().Be(applied.DispositionId);
+        var after = await CaptureLegacyLedgerAsync(context, disposition.DispositionId, legacyLine.IssueLineId);
+        after.Status.Should().Be("APPLIED");
+        after.Version.Should().Be(2);
+        after.Lineage.Should().Be(Convert.ToHexString(targetLine.RequestLineId));
+        after.Dispositions.Should().Be(1);
+        after.Transitions.Should().Be(1);
+        after.Outbox.Should().Be(1);
+        after.Receipts.Should().Be(1);
     }
 
     [Fact]
@@ -149,50 +216,6 @@ public sealed class Phase30InactiveWorkflowFenceTests
         SystemOperationEligibility.Classify("ServiceRuns", "Continue").Should().Be(OperationDisposition.ExcludedInMaterialReconciliation);
         SystemOperationEligibility.Classify("SampleData", "Cleanup").Should().Be(OperationDisposition.Retained);
         SystemOperationEligibility.Classify("LifecycleOutbox", "Process").Should().Be(OperationDisposition.Neutral);
-    }
-
-    private static IReadOnlyList<OwnerRow> DefaultOnlyOwners() =>
-    [
-        new("DEFAULT approval/continuation", "approvals.continue", OperationDisposition.ExcludedInMaterialReconciliation),
-        new("DEFAULT supplemental", "supplementalmaterialrequests.create", OperationDisposition.ExcludedInMaterialReconciliation),
-        new("DEFAULT cleanup", "admindata.cleanup", OperationDisposition.ExcludedInMaterialReconciliation),
-        new("DEFAULT pending legacy disposition", "legacylineagedispositions.apply", OperationDisposition.ExcludedInMaterialReconciliation),
-    ];
-
-    private static IReadOnlyList<OwnerRow> ReconciliationOwners() =>
-    [
-        RegisteredOwner<ReconciliationBatchesController>(nameof(ReconciliationBatchesController.TransferToWarehouse), "reconciliation transfer"),
-        RegisteredOwner<ReconciliationActualsController>(nameof(ReconciliationActualsController.Issued), "reconciliation issue continuation"),
-        RegisteredOwner<ReconciliationActualsController>(nameof(ReconciliationActualsController.Disposition), "reconciliation disposition"),
-        RegisteredOwner<ReconciliationBatchesController>(nameof(ReconciliationBatchesController.Complete), "reconciliation completion"),
-    ];
-
-    private static OwnerRow RegisteredOwner<TController>(string methodName, string name, OperationDisposition? fallback = null)
-    {
-        var method = typeof(TController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public)
-            ?? throw new InvalidOperationException($"Missing production owner {typeof(TController).Name}.{methodName}.");
-        var metadata = method.GetCustomAttribute<SystemOperationAttribute>();
-        if (metadata is not null)
-            return new OwnerRow(name, metadata.OperationKey, metadata.Disposition);
-        if (fallback.HasValue)
-            return new OwnerRow(name, SystemOperationEligibility.OperationKey(typeof(TController).Name.Replace("Controller", ""), methodName), fallback.Value);
-        throw new InvalidOperationException($"Production owner {typeof(TController).Name}.{methodName} lacks explicit operation registration.");
-    }
-
-    private static void AssertReconciliationRegistrationsAreExecutablePublicOracles()
-    {
-        foreach (var owner in ReconciliationOwners())
-            owner.Disposition.Should().Be(OperationDisposition.ReconciliationOnly, owner.Name);
-    }
-
-    private static void AssertDefaultNotApplicableOraclesAreProductionOwned()
-    {
-        SystemOperationEligibility.Classify("Approvals", "Continue")
-            .Should().Be(OperationDisposition.ExcludedInMaterialReconciliation);
-        SystemOperationEligibility.Classify("ServiceRuns", "Continue")
-            .Should().Be(OperationDisposition.ExcludedInMaterialReconciliation);
-        SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation)
-            .PageTabs.GetValueOrDefault("admin-data", []).Should().NotContain("cleanup");
     }
 
     private static IpcManagementContext CreateContext()
@@ -316,6 +339,21 @@ public sealed class Phase30InactiveWorkflowFenceTests
         return new(actorId, Convert.ToHexString(materialRequestId), Convert.ToHexString(defaultIssueId), Convert.ToHexString(reconciliationBatchId), Convert.ToHexString(legacyDispositionId));
     }
 
+    private static async Task<LegacyLedger> CaptureLegacyLedgerAsync(IpcManagementContext context, byte[] dispositionId, byte[] lineId)
+    {
+        context.ChangeTracker.Clear();
+        var disposition = await context.Legacylinedispositions.AsNoTracking().SingleAsync(item => item.DispositionId == dispositionId);
+        var line = await context.Inventoryissuelines.AsNoTracking().SingleAsync(item => item.IssueLineId == lineId);
+        return new LegacyLedger(
+            disposition.Status,
+            disposition.Version,
+            line.MaterialRequestLineId is null ? null : Convert.ToHexString(line.MaterialRequestLineId),
+            await context.Legacylinedispositions.CountAsync(),
+            await context.Lifecycletransitions.CountAsync(),
+            await context.Lifecycleoutboxmessages.CountAsync(),
+            await context.Lifecyclecommandreceipts.CountAsync());
+    }
+
     private static async Task<WorkflowSnapshot> CaptureWorkflowSnapshotAsync(IpcManagementContext context)
     {
         context.ChangeTracker.Clear();
@@ -340,7 +378,37 @@ public sealed class Phase30InactiveWorkflowFenceTests
             await context.Lifecycleoutboxmessages.CountAsync(), await context.Lifecyclecommandreceipts.CountAsync());
     }
 
-    private sealed record OwnerRow(string Name, string OperationKey, OperationDisposition Disposition);
+    private sealed class RecordingProtectedTransactionRunner(SystemOperationRequestContext requestContext) : IEfTransactionRunner
+    {
+        public int OrdinaryCalls { get; private set; }
+        public int ProtectedCalls { get; private set; }
+        public string? OperationKey { get; private set; }
+        public long ExpectedModeVersion { get; private set; }
+        public OperationDisposition DispositionAtDispatch { get; private set; }
+
+        public Task ExecuteAsync(Func<CancellationToken, Task> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            OrdinaryCalls++;
+            return operation(cancellationToken);
+        }
+
+        public Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            OrdinaryCalls++;
+            return operation(cancellationToken);
+        }
+
+        public Task<TResult> ExecuteProtectedAsync<TResult>(string operationKey, long expectedModeVersion, Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            ProtectedCalls++;
+            OperationKey = operationKey;
+            ExpectedModeVersion = expectedModeVersion;
+            DispositionAtDispatch = requestContext.Disposition;
+            return operation(cancellationToken);
+        }
+    }
+
+    private sealed record LegacyLedger(string Status, long Version, string? Lineage, int Dispositions, int Transitions, int Outbox, int Receipts);
     private sealed record SeedIds(string ActorId, string MaterialRequestId, string DefaultIssueId, string ReconciliationBatchId, string LegacyDispositionId);
     private sealed record WorkflowSnapshot(
         string Mode,
