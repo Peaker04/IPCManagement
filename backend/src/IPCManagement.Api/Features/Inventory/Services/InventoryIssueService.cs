@@ -82,6 +82,13 @@ public class InventoryIssueService : IInventoryIssueService
         var hasReconciliationSource = !string.IsNullOrWhiteSpace(dto.ReconciliationBatchId);
         if (hasMaterialSource == hasReconciliationSource)
             throw new ArgumentException("Phiếu xuất phải có đúng một nguồn nhu cầu hoặc lô đối chiếu.");
+        foreach (var line in dto.Lines ?? [])
+        {
+            var hasMaterialLineSource = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
+            var hasReconciliationLineSource = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
+            if (hasMaterialLineSource == hasReconciliationLineSource || hasMaterialSource != hasMaterialLineSource)
+                throw new ArgumentException("Dòng xuất phải có đúng một nguồn và cùng họ nguồn với phiếu xuất.");
+        }
         if (hasReconciliationSource)
             return await CreateFromReconciliationAsync(dto, userIdBytes);
 

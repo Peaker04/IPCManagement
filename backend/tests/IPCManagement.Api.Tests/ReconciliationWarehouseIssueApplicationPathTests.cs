@@ -11,6 +11,8 @@ using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
@@ -226,36 +228,64 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     [InlineData("both-line")]
     [InlineData("neither-line")]
     [InlineData("header-line-mismatch")]
-    public void Exact_one_source_validator_rejects_structurally_invalid_issue_requests(string invalidCase)
+    public async Task Public_issue_seam_rejects_structurally_invalid_source_families_with_atomic_zero_effects(string invalidCase)
     {
-        var requestId = Guid.NewGuid().ToString();
-        var batchId = Guid.NewGuid().ToString();
-        var requestLineId = Guid.NewGuid().ToString();
-        var batchLineId = Guid.NewGuid().ToString();
-        var request = new CreateInventoryIssueRequest
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        var request = CloneRequest(fixture.Request);
+        request.CommandId = $"invalid-{invalidCase}";
+        var materialRequestId = Guid.NewGuid().ToString();
+        var materialRequestLineId = Guid.NewGuid().ToString();
+
+        if (invalidCase == "both-header") request.MaterialRequestId = materialRequestId;
+        if (invalidCase == "neither-header") request.ReconciliationBatchId = null;
+        if (invalidCase == "both-line") request.Lines[0].MaterialRequestLineId = materialRequestLineId;
+        if (invalidCase == "neither-line") request.Lines[0].ReconciliationBatchLineId = null;
+        if (invalidCase == "header-line-mismatch")
         {
-            CommandId = "invalid-source-shape",
-            ExpectedVersion = 1,
-            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            MaterialRequestId = invalidCase is "both-header" or "header-line-mismatch" ? requestId : null,
-            ReconciliationBatchId = invalidCase is not "neither-header" and not "header-line-mismatch" ? batchId : null,
-            Lines =
-            [
-                new CreateInventoryIssueLineRequest
-                {
-                    MaterialRequestLineId = invalidCase is "both-line" or "header-line-mismatch" ? requestLineId : null,
-                    ReconciliationBatchLineId = invalidCase == "both-line" ? batchLineId : invalidCase == "neither-line" ? null : batchLineId,
-                    IngredientId = Guid.NewGuid().ToString(),
-                    UnitId = Guid.NewGuid().ToString(),
-                    RequestedQty = 1,
-                    IssuedQty = 1
-                }
-            ]
-        };
+            request.MaterialRequestId = materialRequestId;
+            request.ReconciliationBatchId = null;
+        }
 
-        var result = new CreateInventoryIssueDtoValidator().Validate(request);
+        var before = CaptureEffects(context);
 
-        Assert.False(result.IsValid);
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => fixture.Service.CreateAsync(request, fixture.ActorId));
+
+        Assert.Equal(before, CaptureEffects(context));
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
+    public async Task Default_issue_rejects_material_request_line_from_another_request_with_atomic_zero_effects()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateDefaultIssueFixtureAsync(context);
+        var before = CaptureEffects(context);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+
+        Assert.Equal(before, CaptureEffects(context));
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
+    public void Ef_model_enforces_every_expressible_issue_source_family_boundary()
+    {
+        using var context = CreateContext();
+        var model = context.GetService<IDesignTimeModel>().Model;
+        var issue = model.FindEntityType(typeof(InventoryIssue))!;
+        var line = model.FindEntityType(typeof(InventoryIssueLine))!;
+        var issueCheck = Assert.Single(issue.GetCheckConstraints(), item => item.Name == "ckInventoryIssuesSourceFamily");
+        var lineCheck = Assert.Single(line.GetCheckConstraints(), item => item.Name == "ckInventoryIssueLinesSourceFamily");
+
+        Assert.Contains("materialRequestId` IS NOT NULL", issueCheck.Sql, StringComparison.Ordinal);
+        Assert.Contains("reconciliationBatchId` IS NOT NULL", issueCheck.Sql, StringComparison.Ordinal);
+        Assert.Contains("materialRequestLineId` IS NOT NULL", lineCheck.Sql, StringComparison.Ordinal);
+        Assert.Contains("reconciliationBatchLineId` IS NOT NULL", lineCheck.Sql, StringComparison.Ordinal);
+        Assert.Contains("materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL", lineCheck.Sql, StringComparison.Ordinal);
+        Assert.True(line.GetIndexes().Single(index => index.Name == "uxInventoryIssueLinesReconciliationBatchLine").IsUnique);
+        Assert.Contains(line.GetForeignKeys(), key => key.Properties.Single().Name == nameof(InventoryIssueLine.MaterialRequestLineId));
+        Assert.Contains(line.GetForeignKeys(), key => key.Properties.Single().Name == nameof(InventoryIssueLine.ReconciliationBatchLineId));
     }
 
     [Fact]
@@ -385,9 +415,89 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         return new(service, ledger, request, actorId, actor, ingredientId, unitId);
     }
 
-    private static (int Issues, int Lines, int Movements, int Audits, int Lifecycle) CaptureEffects(IpcManagementContext context) =>
+    private static async Task<ReconciliationIssueFixture> CreateDefaultIssueFixtureAsync(IpcManagementContext context)
+    {
+        var actorId = Guid.NewGuid().ToString();
+        var actor = GuidHelper.ParseGuidString(actorId)!;
+        var requestId = GuidHelper.NewId();
+        var ownedLineId = GuidHelper.NewId();
+        var foreignLineId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        var warehouseId = GuidHelper.NewId();
+        var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var warehouse = new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH", WarehouseName = "Kho", WarehouseType = "MAIN", IsOperationalActive = true };
+        var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "ING-DEFAULT", IngredientName = "Nguyên liệu", UnitId = unitId, WarehouseId = warehouseId, Unit = unit, Warehouse = warehouse, IsActive = true };
+        var materialRequest = new MaterialRequest
+        {
+            RequestId = requestId, RequestCode = "MR-PHASE30", RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            RequestScope = "FULLDAY", Status = "SENTTOWAREHOUSE", CreatedBy = actor, PlanId = GuidHelper.NewId(),
+            Materialrequestlines =
+            [
+                new MaterialRequestLine
+                {
+                    RequestLineId = ownedLineId, RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = ingredientId,
+                    UnitId = unitId, TotalServings = 1, GrossQtyPerServing = 2, BomRatePercent = 100,
+                    TotalRequiredQty = 2, CurrentStockQty = 20, SuggestedPurchaseQty = 0, Ingredient = ingredient, Unit = unit
+                }
+            ]
+        };
+        context.AddRange(unit, warehouse, ingredient, new CurrentStock
+        {
+            WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20,
+            Ingredient = ingredient, Unit = unit, Warehouse = warehouse
+        });
+        await context.SaveChangesAsync();
+        var repository = Substitute.For<IInventoryIssueRepository>();
+        repository.GetMaterialRequestForIssueAsync(Arg.Is<byte[]>(id => id.SequenceEqual(requestId))).Returns(materialRequest);
+        repository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>()).Returns([]);
+        repository.When(item => item.Add(Arg.Any<InventoryIssue>())).Do(call => context.Inventoryissues.Add(call.Arg<InventoryIssue>()));
+        var unitOfWork = Substitute.For<IUnitOfWork>();
+        unitOfWork.SaveChangesAsync().Returns(_ => context.SaveChangesAsync());
+        var ledger = Substitute.For<IStockLedgerService>();
+        var warehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
+        warehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
+        var service = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouseResolver, context);
+        var request = new CreateInventoryIssueRequest
+        {
+            CommandId = $"phase30-default-{Guid.NewGuid():N}", ExpectedVersion = 0,
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow), MaterialRequestId = GuidHelper.ToGuidString(requestId),
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    MaterialRequestLineId = GuidHelper.ToGuidString(foreignLineId), IngredientId = GuidHelper.ToGuidString(ingredientId),
+                    UnitId = GuidHelper.ToGuidString(unitId), RequestedQty = 2, IssuedQty = 2
+                }
+            ]
+        };
+        return new(service, ledger, request, actorId, actor, ingredientId, unitId);
+    }
+
+    private static CreateInventoryIssueRequest CloneRequest(CreateInventoryIssueRequest source) => new()
+    {
+        CommandId = source.CommandId,
+        ExpectedVersion = source.ExpectedVersion,
+        IssueDate = source.IssueDate,
+        WarehouseId = source.WarehouseId,
+        MaterialRequestId = source.MaterialRequestId,
+        ReconciliationBatchId = source.ReconciliationBatchId,
+        Lines = source.Lines.Select(line => new CreateInventoryIssueLineRequest
+        {
+            MaterialRequestLineId = line.MaterialRequestLineId,
+            ReconciliationBatchLineId = line.ReconciliationBatchLineId,
+            IngredientId = line.IngredientId,
+            UnitId = line.UnitId,
+            RequestedQty = line.RequestedQty,
+            IssuedQty = line.IssuedQty
+        }).ToList()
+    };
+
+    private static (int Issues, int Lines, int Movements, string Stock, int Audits, int Lifecycle, string Replays) CaptureEffects(IpcManagementContext context) =>
         (context.Inventoryissues.Count(), context.Inventoryissuelines.Count(), context.Stockmovements.Count(),
-            context.Auditlogs.Count(), context.Lifecycletransitions.Count());
+            string.Join('|', context.Currentstocks.OrderBy(item => item.IngredientId).Select(item => $"{Convert.ToHexString(item.WarehouseId)}:{Convert.ToHexString(item.IngredientId)}:{item.CurrentQty}")),
+            context.Auditlogs.Count(), context.Lifecycletransitions.Count(),
+            string.Join('|', context.Lifecyclecommandreceipts.OrderBy(item => item.CommandId).Select(item => $"{item.CommandId}:{item.ResponseJson}")));
 
     private sealed record ReconciliationIssueFixture(
         InventoryIssueService Service,
