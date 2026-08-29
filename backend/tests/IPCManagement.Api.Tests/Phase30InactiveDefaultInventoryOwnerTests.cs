@@ -80,6 +80,67 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         afterReceipt.Receipts.Should().Be(afterCreate.Receipts);
     }
 
+    [Fact]
+    public async Task Return_CreateAndReceipt_FreezeCompleteLedgerThenResumeOriginalIdentityOnce()
+    {
+        await using var fixture = await Fixture.CreateAsync(receivedIssue: true);
+        var create = fixture.CreateReturnCommand("phase30-default-return-create");
+
+        var inactiveAuthority = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Freeze DEFAULT return creation.");
+        fixture.SetRequestAuthority(inactiveAuthority, "inventoryreturns.createasync");
+        var beforeCreate = await fixture.CaptureAsync();
+        var inactiveCreate = () => fixture.ReturnService.CreateAsync(create, fixture.ActorId);
+        await inactiveCreate.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*workflow nguồn đang hoạt động*");
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeCreate);
+
+        var defaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT return creation.");
+        fixture.SetRequestAuthority(defaultAuthority, "inventoryreturns.createasync");
+        var created = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
+        var replay = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
+
+        replay!.ReturnId.Should().Be(created!.ReturnId);
+        var afterCreate = await fixture.CaptureAsync();
+        afterCreate.ReturnIds.Should().ContainSingle().Which.Should().Be(created.ReturnId);
+        afterCreate.ReturnParentIds.Should().ContainSingle().Which.Should().Be(fixture.IssueId);
+        afterCreate.ReturnSourceLineIds.Should().ContainSingle().Which.Should().Be(fixture.IssueLineId);
+        afterCreate.StockQuantity.Should().Be(20m);
+        afterCreate.ReturnMovements.Should().Be(0);
+        afterCreate.Transitions.Should().Be(1);
+        afterCreate.Outbox.Should().Be(1);
+        afterCreate.Receipts.Should().Be(1);
+
+        var receiptInactiveAuthority = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Freeze DEFAULT return receipt.");
+        fixture.SetRequestAuthority(receiptInactiveAuthority, "inventoryreturns.confirmreceiptasync");
+        var beforeReceipt = await fixture.CaptureAsync();
+        var confirmation = new ConfirmInventoryReturnReceiptRequest
+        {
+            CommandId = "phase30-default-return-confirm",
+            ExpectedVersion = 0,
+        };
+        var inactiveReceipt = () => fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId);
+        await inactiveReceipt.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*workflow nguồn đang hoạt động*");
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeReceipt);
+
+        var receiptDefaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT return receipt.");
+        fixture.SetRequestAuthority(receiptDefaultAuthority, "inventoryreturns.confirmreceiptasync");
+        (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
+        (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
+
+        var afterReceipt = await fixture.CaptureAsync();
+        afterReceipt.ReturnIds.Should().Equal(afterCreate.ReturnIds);
+        afterReceipt.ReceivedReturnIds.Should().ContainSingle().Which.Should().Be(created.ReturnId);
+        afterReceipt.StockQuantity.Should().Be(22m);
+        afterReceipt.ReturnMovements.Should().Be(1);
+        afterReceipt.ReturnMovementRefIds.Should().ContainSingle().Which.Should().Be(created.ReturnId);
+        afterReceipt.DefaultNetIssued.Should().Be(3m);
+        afterReceipt.ReconciliationNetIssued.Should().Be(0m);
+        afterReceipt.Transitions.Should().Be(afterCreate.Transitions + 1);
+        afterReceipt.Outbox.Should().Be(afterCreate.Outbox + 1);
+        afterReceipt.Receipts.Should().Be(afterCreate.Receipts + 1);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
