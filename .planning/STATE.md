@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: in_progress
-stopped_at: Remediated verifier gaps for 30-04-PLAN.md
-last_updated: "2026-08-29T21:38:43.525Z"
+status: blocked
+stopped_at: Plan 30-04 Task 3 real inactive-owner matrix remains incomplete
+last_updated: "2026-08-30T00:00:00Z"
 progress:
   total_phases: 5
   completed_phases: 4
@@ -12,7 +12,7 @@ progress:
   completed_plans: 64
   percent: 89
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-29 — Completed Phase 30 Plan 04 exact-family corrections and inactive workflow fences
+last_activity: 2026-08-30 — Replaced false guard-only inactive matrix with initial executable owner seams; full Task 3 matrix remains blocked
 ---
 
 # Project State
@@ -21,12 +21,12 @@ last_activity: 2026-08-29 — Completed Phase 30 Plan 04 exact-family correction
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 30 in progress — Plans 01-04 complete; Plan 05 protected evidence and closeout next
+**Current focus:** Phase 30 Plan 04 Task 3 blocked — complete executable persisted inactive/resume owner matrix before Plan 05
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
-- Phase 30 Plans 01-04 are COMPLETE: closed-loop lineage/capability, focused frontend ownership, exact-one issue authority, exact-family corrections, DEFAULT-only supplemental/legacy disposition, and inactive return-family fences are test-proven.
+- Phase 30 Plans 01-03 are complete. Plan 30-04 Tasks 1-2 and the return-family fences are test-proven; Task 3 remains blocked because not every applicable owner row invokes a real persisted production seam.
 - Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-05-PLAN.md`.
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
@@ -38,10 +38,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 **Last session:** 2026-08-29T21:38:43.484Z
 **Resume file:** None
 
-**Stopped at:** Remediated verifier gaps for 30-04-PLAN.md
+**Stopped at:** Plan 30-04 Task 3 real inactive-owner matrix remains incomplete
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: execute `30-05-PLAN.md`. Preserve retained migration-75 authority; no protected database mutation is authorized by Plan 30-04.
+Next workflow: finish `30-04-PLAN.md` Task 3 by adding persisted inactive/replay tests for every applicable DEFAULT and reconciliation owner. Preserve retained migration-75 authority; no protected database mutation is authorized.
 
 ## Decisions
 
@@ -85,6 +85,7 @@ Next workflow: execute `30-05-PLAN.md`. Preserve retained migration-75 authority
 - [Phase ?]: Canonical returns bind exact source family and active operation mode/version before mutation.
 - [Phase ?]: Supplemental and explicit legacy lineage disposition remain DEFAULT-only.
 - [Phase ?]: Phase 30-04 remediation: reconciliation mutation endpoints are explicitly ReconciliationOnly; warehouse transfer binds the captured operation mode/version inside its transaction.
+- [Phase ?]: Guard/metadata-only rows are not acceptable Task 3 evidence; applicable owners require real persisted inactive and canonical same-ID/version resume seams.
 
 ### Quick Tasks Completed
 
@@ -100,6 +101,7 @@ Next workflow: execute `30-05-PLAN.md`. Preserve retained migration-75 authority
 
 ### Blockers
 
+- Phase 30-04 Task 3 still lacks real persisted inactive-and-resume invocation for every applicable DEFAULT and reconciliation owner; only issue dispatch, legacy apply, and genuinely absent owner assertions are executable in the replacement matrix.
 - No Phase 29 blocker remains.
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
 
