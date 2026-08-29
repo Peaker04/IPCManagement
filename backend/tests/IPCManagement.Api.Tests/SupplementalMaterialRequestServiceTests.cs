@@ -182,6 +182,47 @@ public sealed class SupplementalMaterialRequestServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldRejectExactReconciliationSourceWhileDefaultIsActiveWithoutEffects()
+    {
+        await using var context = CreateContext();
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        var reconciliationBatchId = GuidHelper.NewId();
+        var reconciliationBatchLineId = GuidHelper.NewId();
+        var issue = context.Inventoryissues.Local.Single(item => item.IssueId.SequenceEqual(seed.IssueId));
+        var issueLine = issue.Inventoryissuelines.Single(item => item.IssueLineId.SequenceEqual(seed.IssueLineId));
+        issue.MaterialRequestId = null;
+        issue.ReconciliationBatchId = reconciliationBatchId;
+        issueLine.MaterialRequestLineId = null;
+        issueLine.ReconciliationBatchLineId = reconciliationBatchLineId;
+        await context.SaveChangesAsync();
+        var before = await CompleteLedgerSnapshotAsync(context);
+        var service = CreateService(context, requestContext: new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.Default,
+            OperationKey = "supplementalmaterialrequests.create",
+            ExpectedModeVersion = 11,
+            Disposition = OperationDisposition.Retained,
+        });
+
+        var action = () => service.CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                CommandId = "supplemental-create-exact-reconciliation-source",
+                IssueId = GuidHelper.ToGuidString(seed.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+                RequestedQty = 1m,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        await action.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*đúng nguồn nhu cầu DEFAULT*");
+        (await CompleteLedgerSnapshotAsync(context)).Should().BeEquivalentTo(before);
+        issue.ReconciliationBatchId.Should().Equal(reconciliationBatchId);
+        issueLine.ReconciliationBatchLineId.Should().Equal(reconciliationBatchLineId);
+    }
+
+    [Fact]
     public async Task PublicLifecycle_ShouldRejectWhileMaterialReconciliationIsActiveWithoutEffects()
     {
         await using var context = CreateContext();
@@ -246,6 +287,21 @@ public sealed class SupplementalMaterialRequestServiceTests
         Outbox = await context.Lifecycleoutboxmessages.CountAsync(),
         Receipts = await context.Lifecyclecommandreceipts.CountAsync(),
         State = await context.Supplementalmaterialrequests.Select(item => new { item.RequestId, item.Status, item.RequestedQty }).SingleAsync(),
+    };
+
+    private static async Task<object> CompleteLedgerSnapshotAsync(IpcManagementContext context) => new
+    {
+        Requests = await context.Supplementalmaterialrequests.CountAsync(),
+        Issues = await context.Inventoryissues.CountAsync(),
+        IssueLines = await context.Inventoryissuelines.CountAsync(),
+        PurchaseRequests = await context.Purchaserequests.CountAsync(),
+        PurchaseRequestLines = await context.Purchaserequestlines.CountAsync(),
+        Stocks = await context.Currentstocks.OrderBy(item => item.IngredientId).Select(item => new { item.WarehouseId, item.IngredientId, item.UnitId, item.CurrentQty }).ToListAsync(),
+        Movements = await context.Stockmovements.CountAsync(),
+        Audits = await context.Auditlogs.CountAsync(),
+        Transitions = await context.Lifecycletransitions.CountAsync(),
+        Outbox = await context.Lifecycleoutboxmessages.CountAsync(),
+        Receipts = await context.Lifecyclecommandreceipts.CountAsync(),
     };
 
     [Fact]
