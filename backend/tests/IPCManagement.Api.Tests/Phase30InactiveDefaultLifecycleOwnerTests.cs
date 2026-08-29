@@ -52,7 +52,7 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
 
         var result = await fixture.InvokeSupplementalAsync(owner, existing, commandId);
         var postSuccess = await fixture.CaptureCompleteCommonLedgerAsync();
-        await fixture.AssertSupplementalIntendedDeltaAsync(owner, preInactive, postSuccess, existing, result, commandId);
+        await fixture.AssertSupplementalIntendedDeltaAsync(owner, preInactive, postSuccess, postSwitchBack.Mode, existing, result, commandId);
 
         var replay = await fixture.InvokeSupplementalAsync(owner, existing, commandId);
         JsonSerializer.Serialize(replay).Should().Be(JsonSerializer.Serialize(result));
@@ -101,7 +101,7 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
         (await fixture.Context.Inventoryissuelines.AsNoTracking().SingleAsync(item => item.IssueLineId == fixture.LegacyIssueLineBytes))
             .MaterialRequestLineId.Should().Equal(fixture.MaterialRequestLineBytes);
         var postSuccess = await fixture.CaptureCompleteCommonLedgerAsync();
-        await fixture.AssertLegacyIntendedDeltaAsync(preInactive, postSuccess, approved, applied, commandId);
+        await fixture.AssertLegacyIntendedDeltaAsync(preInactive, postSuccess, postSwitchBack.Mode, approved, applied, commandId);
 
         var replay = await fixture.LegacyService.ApplyAsync(approved.DispositionId, new ApplyLegacyLineageDispositionRequest
         {
@@ -330,10 +330,11 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
                 GuidHelper.ToGuidString(audit.AuditId), audit.ChangedAt.ToString("O"));
         }
 
-        public async Task AssertSupplementalIntendedDeltaAsync(string owner, CompleteLedger before, CompleteLedger after, SupplementalMaterialRequestDto? existing, SupplementalMaterialRequestDto result, string commandId)
+        public async Task AssertSupplementalIntendedDeltaAsync(string owner, CompleteLedger before, CompleteLedger after, string expectedMode, SupplementalMaterialRequestDto? existing, SupplementalMaterialRequestDto result, string commandId)
         {
             var generated = await CaptureSupplementalGeneratedScalarsAsync(owner, result, commandId);
             result.ConcurrencyVersion.Should().Be(owner == "create" ? 1 : existing!.ConcurrencyVersion + 1);
+            after.Mode.Should().Be(expectedMode, "the persisted operation mode must remain the exact resumed DEFAULT row");
             AssertUnchangedCommon(before, after);
 
             var requestId = result.RequestId;
@@ -415,9 +416,10 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
             AssertExactRows(AddExact(before.Audits, businessAudit, lifecycleAudit), after.Audits, "audits");
         }
 
-        public async Task AssertLegacyIntendedDeltaAsync(CompleteLedger before, CompleteLedger after, LegacyLineageDispositionDto approved, LegacyLineageDispositionDto applied, string commandId)
+        public async Task AssertLegacyIntendedDeltaAsync(CompleteLedger before, CompleteLedger after, string expectedMode, LegacyLineageDispositionDto approved, LegacyLineageDispositionDto applied, string commandId)
         {
             var generated = await CaptureLifecycleGeneratedScalarsAsync(commandId, "LegacyLineageDisposition:ISSUE_LINE", GuidHelper.ToGuidString(LegacyIssueLineBytes));
+            after.Mode.Should().Be(expectedMode, "the persisted operation mode must remain the exact resumed DEFAULT row");
             var dispositionBytes = GuidHelper.ParseGuidString(approved.DispositionId)!;
             var appliedAt = (await Context.Legacylinedispositions.AsNoTracking().Where(item => item.DispositionId == dispositionBytes).Select(item => item.AppliedAt).SingleAsync())!.Value.ToString("O");
             AssertExactRows(before.MaterialRequests, after.MaterialRequests, "material requests");
