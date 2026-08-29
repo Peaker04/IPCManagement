@@ -106,6 +106,14 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
         postSuccess.Issues.Should().BeEquivalentTo(preInactive.Issues);
         postSuccess.Returns.Should().BeEquivalentTo(preInactive.Returns);
         postSuccess.Movements.Should().BeEquivalentTo(preInactive.Movements);
+        postSuccess.Stocks.Should().BeEquivalentTo(preInactive.Stocks);
+        postSuccess.Supplementals.Should().BeEquivalentTo(preInactive.Supplementals);
+        postSuccess.PurchaseRequests.Should().BeEquivalentTo(preInactive.PurchaseRequests);
+        postSuccess.Approvals.Should().BeEquivalentTo(preInactive.Approvals);
+        postSuccess.ReconciliationActuals.Should().BeEquivalentTo(preInactive.ReconciliationActuals);
+        postSuccess.ReconciliationRevisions.Should().BeEquivalentTo(preInactive.ReconciliationRevisions);
+        postSuccess.ReconciliationDispositions.Should().BeEquivalentTo(preInactive.ReconciliationDispositions);
+        postSuccess.Audits.Should().HaveCount(preInactive.Audits.Length + 1);
 
         var replay = await fixture.LegacyService.ApplyAsync(approved.DispositionId, new ApplyLegacyLineageDispositionRequest
         {
