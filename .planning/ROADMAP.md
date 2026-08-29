@@ -225,7 +225,7 @@ Plans:
 - Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
 - Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
 
-**Plans:** 3 complete + 1 partial handoff / 13 total plans / 5 conceptual product waves (executor waves 1-13)
+**Plans:** 4 complete + 1 partial handoff / 13 total plans / 5 conceptual product waves (executor waves 1-13)
 
 Plans:
 
@@ -233,7 +233,7 @@ Plans:
 - [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
 - [x] 30-03-PLAN.md — exact-one backend issue authority and retained endpoint permission matrix (wave 3; complete at `722175f2`).
 - [!] 30-04-PLAN.md — already-executed PARTIAL backend conceptual Wave 4 prerequisite/handoff (executor wave 4): verified dual-family return/correction, DEFAULT-only supplemental and explicit legacy truths preserved; MRX-04 remainder owned by dependent 30-05..08.
-- [ ] 30-05-PLAN.md — backend conceptual Wave 4 / executor wave 5 MRX-04 DEFAULT inventory owners, test-first retaining the existing `f4b47b40` issue fence unless executable evidence exposes a gap (depends on 30-04).
+- [x] 30-05-PLAN.md — backend conceptual Wave 4 / executor wave 5 MRX-04 DEFAULT inventory owners, test-first retaining the existing `f4b47b40` issue fence unless executable evidence exposes a gap (depends on 30-04).
 - [ ] 30-06-PLAN.md — backend conceptual Wave 4 / executor wave 6 MRX-04 DEFAULT lifecycle owners: supplemental create/fulfill/route/reject and pending legacy apply (depends on 30-05).
 - [ ] 30-07-PLAN.md — backend conceptual Wave 4 / executor wave 7 MRX-04 approval owner through the actual MVC filter plus handler transaction fence (depends on 30-06).
 - [ ] 30-08-PLAN.md — backend conceptual Wave 4 / executor wave 8 MRX-04 reconciliation owners and executable absent cleanup/background-owner proof (depends on 30-07).

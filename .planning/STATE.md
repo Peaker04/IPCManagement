@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: blocked
-stopped_at: Plan 30-04 partial prerequisite handed the remaining real inactive-owner matrix to Plan 30-05
-last_updated: "2026-08-30T00:00:00Z"
+stopped_at: Completed 30-05-PLAN.md
+last_updated: "2026-08-29T22:28:33.468Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 76
-  completed_plans: 63
-  percent: 83
+  completed_plans: 64
+  percent: 84
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-30 — Repaired MRX-04 execution graph: Plan 30-04 is an already-executed partial prerequisite, with dependent Plans 30-05..13 on truthful executor waves 5..13
+last_activity: "2026-08-30 — Remediated Plan 30-05 with exact full-ledger switch-back/replay proof and stale-authority coverage through all four public owners; Plan 30-06 is next"
 ---
 
 # Project State
@@ -21,13 +21,13 @@ last_activity: 2026-08-30 — Repaired MRX-04 execution graph: Plan 30-04 is an 
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Execute MRX-04 real-owner closure from prerequisite Plan 30-04 through sequential executor waves 5-8 (Plans 30-05..08), then continue Plans 30-09..13 on waves 9-13
+**Current focus:** Continue MRX-04 real-owner closure through sequential executor waves 6-8 (Plans 30-06..08), then continue Plans 30-09..13 on waves 9-13
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
-- Phase 30 Plans 01-03 are complete. Plan 30-04 is an already-executed PARTIAL prerequisite/handoff with no forward blocker: its verified return-family, DEFAULT-only supplemental and explicit legacy truths/commits remain authoritative, while dependent Plans 30-05..08 own the remaining executable inactive-owner matrix by real authority seam.
-- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-05-PLAN.md` (DEFAULT inventory transaction owners).
+- Phase 30 Plans 01-03 and 30-05 are complete. Plan 30-04 remains an already-executed PARTIAL prerequisite/handoff whose verified return-family, DEFAULT-only supplemental and explicit legacy truths/commits remain authoritative. Plan 30-05 closes all four DEFAULT inventory transaction owners through persisted public services with exact ordered full-ledger inactive, switch-back, intended-delta, replay and stale-authority proof; Plans 30-06..08 own the remaining executable inactive-owner matrix.
+- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-06-PLAN.md` (DEFAULT lifecycle owners).
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
 - Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
@@ -35,13 +35,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-29T21:38:43.484Z
+**Last session:** 2026-08-29T22:28:33.444Z
 **Resume file:** None
 
-**Stopped at:** Plan 30-04 partial prerequisite complete enough to hand off; Plan 30-05 is next on executor wave 5, followed sequentially by Plans 30-06..13
+**Stopped at:** Completed 30-05-PLAN.md
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: execute `30-05-PLAN.md` (executor wave 5), then 30-06..13 on distinct numeric waves matching their dependencies. Preserve the conceptual backend Wave 4/frontend Wave 5 grouping, all verified Plan 30-04 commits/truths and retained migration-75 authority; no protected database mutation is authorized.
+Next workflow: execute `30-06-PLAN.md` (executor wave 6), then 30-07..13 on distinct numeric waves matching their dependencies. Preserve the conceptual backend Wave 4/frontend Wave 5 grouping, all verified Plan 30-04 commits/truths and retained migration-75 authority; no protected database mutation is authorized.
 
 ## Decisions
 
@@ -86,6 +86,9 @@ Next workflow: execute `30-05-PLAN.md` (executor wave 5), then 30-06..13 on dist
 - [Phase ?]: Supplemental and explicit legacy lineage disposition remain DEFAULT-only.
 - [Phase ?]: Phase 30-04 remediation: reconciliation mutation endpoints are explicitly ReconciliationOnly; warehouse transfer binds the captured operation mode/version inside its transaction.
 - [Phase ?]: Guard/metadata-only rows are not acceptable Task 3 evidence; applicable owners require real persisted inactive and canonical same-ID/version resume seams.
+- [Phase ?]: Treat repeated issue receipt confirmation as canonical replay of the persisted received issue without duplicate effects.
+- [Phase ?]: Use real operation-mode switches and scoped request authority for DEFAULT inventory owner freeze/resume evidence.
+- [Phase 30]: Plan 30-05 verification uses deterministic ordered persisted tuples rather than row counts, and stale captured authority is behavior-tested through each of the four public inventory owners.
 
 ### Quick Tasks Completed
 
@@ -130,3 +133,4 @@ Next workflow: execute `30-05-PLAN.md` (executor wave 5), then 30-06..13 on dist
 | Phase 30 P01 | 23 min | 2 tasks | 27 files |
 | Phase 30 P02 | 27 min | 2 tasks | 27 files |
 | Phase 30 P04 | 2h | 3 tasks | 8 files |
+| Phase 30 P05 | 40min | 2 tasks | 2 files |
