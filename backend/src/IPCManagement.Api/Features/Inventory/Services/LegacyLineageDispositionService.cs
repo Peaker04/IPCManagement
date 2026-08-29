@@ -4,6 +4,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
@@ -24,9 +25,11 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
     private readonly IpcManagementContext _context;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly ILifecycleTransitionRecorder _lifecycleRecorder;
+    private readonly SystemOperationRequestContext _requestContext;
 
     public LegacyLineageDispositionService(IpcManagementContext context)
-        : this(context, new EfTransactionRunner(context), new LifecycleTransitionRecorder(context))
+        : this(context, new EfTransactionRunner(context), new LifecycleTransitionRecorder(context),
+            new SystemOperationRequestContext { Mode = SystemOperationEligibility.Default, OperationKey = "legacylineagedispositions.apply", ExpectedModeVersion = 1 })
     {
     }
 
@@ -34,16 +37,28 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         IpcManagementContext context,
         IEfTransactionRunner transactionRunner,
         ILifecycleTransitionRecorder lifecycleRecorder)
+        : this(context, transactionRunner, lifecycleRecorder,
+            new SystemOperationRequestContext { Mode = SystemOperationEligibility.Default, OperationKey = "legacylineagedispositions.apply", ExpectedModeVersion = 1 })
+    {
+    }
+
+    public LegacyLineageDispositionService(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner,
+        ILifecycleTransitionRecorder lifecycleRecorder,
+        SystemOperationRequestContext requestContext)
     {
         _context = context;
         _transactionRunner = transactionRunner;
         _lifecycleRecorder = lifecycleRecorder;
+        _requestContext = requestContext;
     }
 
     public async Task<IReadOnlyList<LegacyLineageDispositionDto>> GetAsync(
         string? status = null,
         CancellationToken cancellationToken = default)
     {
+        EnsureDefaultMode();
         var query = _context.Legacylinedispositions.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -63,6 +78,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         string legacyLineId,
         CancellationToken cancellationToken = default)
     {
+        EnsureDefaultMode();
         var type = NormalizeLegacyLineType(legacyLineType);
         var lineId = ParseId(legacyLineId, "Dòng chứng từ legacy không hợp lệ.");
         return type == IssueLineType
@@ -75,6 +91,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         string actorUserId,
         CancellationToken cancellationToken = default)
     {
+        EnsureDefaultMode();
         ArgumentNullException.ThrowIfNull(request);
         var actorId = ParseId(actorUserId, "Không xác định được Admin tạo đối soát.");
         var type = NormalizeLegacyLineType(request.LegacyLineType);
@@ -136,6 +153,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         string actorUserId,
         CancellationToken cancellationToken = default)
     {
+        EnsureDefaultMode();
         ArgumentNullException.ThrowIfNull(request);
         var disposition = await LoadForCommandAsync(dispositionId, cancellationToken);
         var aggregateType = BuildAggregateType(disposition.LegacyLineType);
@@ -187,6 +205,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         string actorUserId,
         CancellationToken cancellationToken = default)
     {
+        EnsureDefaultMode();
         ArgumentNullException.ThrowIfNull(request);
         var disposition = await LoadForCommandAsync(dispositionId, cancellationToken);
         var aggregateType = BuildAggregateType(disposition.LegacyLineType);
@@ -199,7 +218,10 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
 
         var actorId = ParseId(actorUserId, "Không xác định được Admin áp dụng đối soát.");
         var applyReason = RequireReason(request.Reason, "Cần lý do áp dụng provenance đã duyệt.");
-        return await _transactionRunner.ExecuteAsync(
+        var (operationKey, expectedModeVersion) = RequiredModeProtection();
+        return await _transactionRunner.ExecuteProtectedAsync(
+            operationKey,
+            expectedModeVersion,
             async token =>
             {
                 var tracked = await LoadTrackedAsync(disposition.DispositionId, token);
@@ -420,6 +442,21 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= 1000 ? value.Trim() : throw new ArgumentException(message);
     private static byte[] ParseId(string? value, string message) => GuidHelper.ParseGuidString(value) ?? throw new ArgumentException(message);
     private static string Serialize(LegacyLineageDispositionDto value) => JsonSerializer.Serialize(value);
+
+    private void EnsureDefaultMode()
+    {
+        if (!string.Equals(_requestContext.Mode, SystemOperationEligibility.Default, StringComparison.Ordinal))
+        {
+            throw new BusinessRuleException("Đối soát lineage legacy chỉ khả dụng trong chế độ DEFAULT.");
+        }
+    }
+
+    private (string OperationKey, long ExpectedModeVersion) RequiredModeProtection() =>
+        (_requestContext.OperationKey, _requestContext.ExpectedModeVersion) switch
+        {
+            ({ Length: > 0 } operationKey, long expectedModeVersion) => (operationKey, expectedModeVersion),
+            _ => throw new InvalidOperationException("Thiếu ngữ cảnh mode/version cho áp dụng lineage legacy.")
+        };
 
     private static void EnsureExpectedVersion(LegacyLineageDisposition disposition, long expectedVersion)
     {

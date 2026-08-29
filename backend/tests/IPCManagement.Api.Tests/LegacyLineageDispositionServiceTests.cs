@@ -6,6 +6,8 @@ using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -228,6 +230,79 @@ public sealed class LegacyLineageDispositionServiceTests
     }
 
     [Fact]
+    public async Task ApplyAsync_ShouldUseTransactionalDefaultModeVersionFence()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var created = await fixture.Service.CreateAsync(
+            CreateIssueRequest(fixture, "legacy-issue-create-protected"), GuidHelper.ToGuidString(fixture.Admin.UserId));
+        var approved = await fixture.Service.ReviewAsync(created.DispositionId, new ReviewLegacyLineageDispositionRequest
+        {
+            CommandId = "legacy-issue-review-protected",
+            ExpectedVersion = 0,
+            Approve = true,
+            Reason = "Manager approved exact evidence."
+        }, GuidHelper.ToGuidString(fixture.Manager.UserId));
+        var runner = new ProtectedTransactionRunner();
+        var requestContext = new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.Default,
+            OperationKey = "legacylineagedispositions.apply",
+            ExpectedModeVersion = 17,
+            Disposition = OperationDisposition.Retained,
+        };
+        var service = new LegacyLineageDispositionService(
+            fixture.Context, runner, new LifecycleTransitionRecorder(fixture.Context), requestContext);
+
+        var applied = await service.ApplyAsync(created.DispositionId, new ApplyLegacyLineageDispositionRequest
+        {
+            CommandId = "legacy-issue-apply-protected",
+            ExpectedVersion = approved.Version,
+            Reason = "Apply only under the captured DEFAULT authority."
+        }, GuidHelper.ToGuidString(fixture.Admin.UserId));
+
+        applied.Status.Should().Be("APPLIED");
+        runner.OperationKey.Should().Be("legacylineagedispositions.apply");
+        runner.ExpectedModeVersion.Should().Be(17);
+        runner.ProtectedExecutionCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task EveryOperation_ShouldRejectWhileMaterialReconciliationIsActiveWithoutWrites()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var before = Snapshot(fixture.Context);
+        var requestContext = new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            OperationKey = "legacylineagedispositions.create",
+            ExpectedModeVersion = 18,
+            Disposition = OperationDisposition.Retained,
+        };
+        var service = new LegacyLineageDispositionService(
+            fixture.Context, new ProtectedTransactionRunner(), new LifecycleTransitionRecorder(fixture.Context), requestContext);
+
+        var list = () => service.GetAsync();
+        var candidates = () => service.GetCandidatesAsync("ISSUE_LINE", GuidHelper.ToGuidString(fixture.IssueLine.IssueLineId));
+        var create = () => service.CreateAsync(
+            CreateIssueRequest(fixture, "legacy-issue-create-inactive"), GuidHelper.ToGuidString(fixture.Admin.UserId));
+
+        await list.Should().ThrowAsync<BusinessRuleException>();
+        await candidates.Should().ThrowAsync<BusinessRuleException>();
+        await create.Should().ThrowAsync<BusinessRuleException>();
+        Snapshot(fixture.Context).Should().BeEquivalentTo(before);
+    }
+
+    private static object Snapshot(IpcManagementContext context) => new
+    {
+        Dispositions = context.Legacylinedispositions.Count(),
+        Transitions = context.Lifecycletransitions.Count(),
+        Outbox = context.Lifecycleoutboxmessages.Count(),
+        Receipts = context.Lifecyclecommandreceipts.Count(),
+        Audits = context.Auditlogs.Count(),
+        Lineage = context.Inventoryissuelines.Single().MaterialRequestLineId,
+    };
+
+    [Fact]
     public async Task OpenProposalDatabaseFence_ShouldRejectSecondActiveProposal()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -272,6 +347,27 @@ public sealed class LegacyLineageDispositionServiceTests
             index.IsUnique && index.GetDatabaseName() == "uxLegacyLineageDispositionsOpenLine" &&
             index.Properties.Select(property => property.Name)
                 .SequenceEqual(new[] { "LegacyLineType", "LegacyLineId", "OpenDispositionKey" }));
+    }
+
+    private sealed class ProtectedTransactionRunner : IEfTransactionRunner
+    {
+        public string? OperationKey { get; private set; }
+        public long ExpectedModeVersion { get; private set; }
+        public int ProtectedExecutionCount { get; private set; }
+
+        public Task ExecuteAsync(Func<CancellationToken, Task> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
+
+        public Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
+
+        public Task<TResult> ExecuteProtectedAsync<TResult>(string operationKey, long expectedModeVersion, Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            OperationKey = operationKey;
+            ExpectedModeVersion = expectedModeVersion;
+            ProtectedExecutionCount++;
+            return operation(cancellationToken);
+        }
     }
 
     private sealed class Fixture : IAsyncDisposable, IDisposable

@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.Data;
 using System.Text.Json;
 using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using static IPCManagement.Api.Features.Inventory.Services.SupplementalMaterialRequestRules;
 namespace IPCManagement.Api.Features.Inventory.Services;
 
@@ -33,25 +34,29 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
+    private readonly SystemOperationRequestContext? _requestContext;
 
     public SupplementalMaterialRequestService(
         IpcManagementContext context,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
-        IOperationalWarehouseResolver operationalWarehouseResolver)
+        IOperationalWarehouseResolver operationalWarehouseResolver,
+        SystemOperationRequestContext? requestContext = null)
     {
         _context = context;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
         _operationalWarehouseResolver = operationalWarehouseResolver;
+        _requestContext = requestContext;
     }
 
     public async Task<PagedResponseDto<SupplementalMaterialRequestDto>> GetPagedAsync(
         SupplementalMaterialRequestFilterDto request,
         string? scopedWarehouseId = null)
     {
+        EnsureDefaultMode();
         var pageNumber = Math.Max(request.PageNumber, 1);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var query = _context.Supplementalmaterialrequests.AsNoTracking().AsQueryable();
@@ -86,6 +91,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string id,
         string? scopedWarehouseId = null)
     {
+        EnsureDefaultMode();
         var requestId = GuidHelper.ParseGuidString(id);
         if (requestId is null)
         {
@@ -109,6 +115,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        EnsureDefaultMode();
         var commandId = RequireCommandId(request.CommandId);
         var actorId = GuidHelper.ParseGuidString(actorUserId)
             ?? throw new ArgumentException("Người yêu cầu không hợp lệ.");
@@ -229,6 +236,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        EnsureDefaultMode();
         var commandId = RequireCommandId(request.CommandId);
         var actorId = ParseActor(actorUserId);
         var requestedQuantity = DecimalPolicy.RoundQuantity(request.Quantity);
@@ -337,6 +345,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        EnsureDefaultMode();
         var commandId = RequireCommandId(request.CommandId);
         var actorId = ParseActor(actorUserId);
         var requestId = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
@@ -449,6 +458,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string actorUserId,
         string? scopedWarehouseId = null)
     {
+        EnsureDefaultMode();
         var actorId = ParseActor(actorUserId);
         var entity = await LoadTrackedAsync(_context, id);
         await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
@@ -583,6 +593,15 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         if (!exactDefaultHeader || !exactDefaultLine)
         {
             throw new BusinessRuleException("Yêu cầu bổ sung chỉ áp dụng cho dòng xuất thuộc đúng nguồn nhu cầu DEFAULT.");
+        }
+    }
+
+    private void EnsureDefaultMode()
+    {
+        if (_requestContext is not null
+            && !string.Equals(_requestContext.Mode, SystemOperationEligibility.Default, StringComparison.Ordinal))
+        {
+            throw new BusinessRuleException("Yêu cầu cấp bổ sung chỉ khả dụng trong chế độ DEFAULT.");
         }
     }
 

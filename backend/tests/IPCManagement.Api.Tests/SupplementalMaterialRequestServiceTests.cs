@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 
 using IPCManagement.Api.Exceptions;
 
@@ -177,8 +178,75 @@ public sealed class SupplementalMaterialRequestServiceTests
             GuidHelper.ToGuidString(seed.WarehouseId));
 
         await action.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*cần đối soát trước khi tạo yêu cầu bổ sung*");
+            .WithMessage("*đúng nguồn nhu cầu DEFAULT*");
     }
+
+    [Fact]
+    public async Task PublicLifecycle_ShouldRejectWhileMaterialReconciliationIsActiveWithoutEffects()
+    {
+        await using var context = CreateContext();
+        var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
+        await context.SaveChangesAsync();
+        var defaultService = CreateService(context);
+        var created = await defaultService.CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                CommandId = "supplemental-create-before-switch",
+                IssueId = GuidHelper.ToGuidString(seed.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+                RequestedQty = 2m,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+        var before = await SnapshotAsync(context);
+        var inactive = CreateService(context, requestContext: new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            OperationKey = "supplementalmaterialrequests.test",
+            ExpectedModeVersion = 9,
+            Disposition = OperationDisposition.Retained,
+        });
+
+        var list = () => inactive.GetPagedAsync(new SupplementalMaterialRequestFilterDto());
+        var detail = () => inactive.GetByIdAsync(created.RequestId);
+        var create = () => inactive.CreateAsync(new CreateSupplementalMaterialRequest
+        {
+            CommandId = "supplemental-create-inactive",
+            IssueId = GuidHelper.ToGuidString(seed.IssueId),
+            IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+            RequestedQty = 1m,
+        }, GuidHelper.ToGuidString(seed.UserId), GuidHelper.ToGuidString(seed.WarehouseId));
+        var fulfill = () => inactive.FulfillAsync(created.RequestId,
+            new FulfillSupplementalMaterialRequest { CommandId = "supplemental-fulfill-inactive", ExpectedVersion = 1, Quantity = 1m },
+            GuidHelper.ToGuidString(seed.UserId), GuidHelper.ToGuidString(seed.WarehouseId));
+        var route = () => inactive.RouteToPurchasingAsync(created.RequestId,
+            new RouteSupplementalMaterialRequestToPurchasing { CommandId = "supplemental-route-inactive", ExpectedVersion = 1 },
+            GuidHelper.ToGuidString(seed.UserId), GuidHelper.ToGuidString(seed.WarehouseId));
+        var reject = () => inactive.RejectAsync(created.RequestId,
+            new RejectSupplementalMaterialRequest { Reason = "inactive" },
+            GuidHelper.ToGuidString(seed.UserId), GuidHelper.ToGuidString(seed.WarehouseId));
+
+        await list.Should().ThrowAsync<BusinessRuleException>();
+        await detail.Should().ThrowAsync<BusinessRuleException>();
+        await create.Should().ThrowAsync<BusinessRuleException>();
+        await fulfill.Should().ThrowAsync<BusinessRuleException>();
+        await route.Should().ThrowAsync<BusinessRuleException>();
+        await reject.Should().ThrowAsync<BusinessRuleException>();
+        (await SnapshotAsync(context)).Should().BeEquivalentTo(before);
+    }
+
+    private static async Task<object> SnapshotAsync(IpcManagementContext context) => new
+    {
+        Requests = await context.Supplementalmaterialrequests.CountAsync(),
+        Issues = await context.Inventoryissues.CountAsync(),
+        PurchaseRequests = await context.Purchaserequests.CountAsync(),
+        Movements = await context.Stockmovements.CountAsync(),
+        Audits = await context.Auditlogs.CountAsync(),
+        Transitions = await context.Lifecycletransitions.CountAsync(),
+        Outbox = await context.Lifecycleoutboxmessages.CountAsync(),
+        Receipts = await context.Lifecyclecommandreceipts.CountAsync(),
+        State = await context.Supplementalmaterialrequests.Select(item => new { item.RequestId, item.Status, item.RequestedQty }).SingleAsync(),
+    };
 
     [Fact]
     public async Task GetPagedAsync_ShouldSearchByIngredientName()
@@ -401,7 +469,8 @@ public sealed class SupplementalMaterialRequestServiceTests
     private static SupplementalMaterialRequestService CreateService(
         IpcManagementContext context,
         IStockLedgerService? stockLedgerService = null,
-        IEfTransactionRunner? transactionRunner = null)
+        IEfTransactionRunner? transactionRunner = null,
+        SystemOperationRequestContext? requestContext = null)
     {
         var unitOfWork = Substitute.For<IUnitOfWork>();
         unitOfWork.SaveChangesAsync().Returns(_ => context.SaveChangesAsync());
@@ -414,7 +483,8 @@ public sealed class SupplementalMaterialRequestServiceTests
             unitOfWork,
             stockLedgerService ?? Substitute.For<IStockLedgerService>(),
             transactionRunner ?? new EfTransactionRunner(context),
-            resolver);
+            resolver,
+            requestContext);
     }
 
     private sealed class DuplicateOpenIssueLineTransactionRunner : IEfTransactionRunner
