@@ -29,55 +29,63 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         fixture.SetRequestAuthority(inactiveAuthority, "inventoryissues.createasync");
         var beforeCreate = await fixture.CaptureAsync();
 
-        var inactiveCreate = () => fixture.IssueService.CreateAsync(create, fixture.ActorId);
-        await inactiveCreate.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*chế độ DEFAULT*");
+        await fixture.Invoking(item => item.IssueService.CreateAsync(create, fixture.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeCreate);
 
         var defaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT issue creation.");
         fixture.SetRequestAuthority(defaultAuthority, "inventoryissues.createasync");
-        (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeCreate, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
+        var beforeCreateSuccess = await fixture.CaptureAsync();
+        beforeCreateSuccess.Should().BeEquivalentTo(beforeCreate, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
 
         var created = await fixture.IssueService.CreateAsync(create, fixture.ActorId);
+        var afterCreateSuccess = await fixture.CaptureAsync();
+        created.Should().NotBeNull();
+        afterCreateSuccess.Issues.Should().ContainSingle(item => item.Id == created!.IssueId
+            && item.MaterialRequestId == fixture.MaterialRequestId && item.ReceivedAt == null);
+        afterCreateSuccess.IssueLines.Should().ContainSingle(item => item.ParentId == created!.IssueId
+            && item.MaterialRequestLineId == fixture.MaterialRequestLineId && item.RequestedQty == 5m && item.IssuedQty == 5m);
+        afterCreateSuccess.Stocks.Should().ContainSingle(item => item.WarehouseId == fixture.WarehouseId
+            && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId && item.Quantity == 15m);
+        afterCreateSuccess.Movements.Should().ContainSingle(item => item.Type == "ISSUE" && item.RefId == created!.IssueId
+            && item.RefTable == "inventoryissues" && item.QuantityOut == 5m && item.QuantityIn == 0m
+            && item.WarehouseId == fixture.WarehouseId && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId);
+        afterCreateSuccess.Transitions.Should().ContainSingle(item => item.AggregateType == nameof(InventoryIssue)
+            && item.AggregateId == fixture.MaterialRequestId && item.CommandId == create.CommandId
+            && item.AggregateSequence == 1 && item.ExpectedVersion == 0 && item.ToState == "ISSUED");
+        afterCreateSuccess.Outbox.Should().ContainSingle(item => item.AggregateType == nameof(InventoryIssue)
+            && item.AggregateId == fixture.MaterialRequestId && item.CommandId == create.CommandId && item.AggregateSequence == 1);
+        afterCreateSuccess.Receipts.Should().ContainSingle(item => item.AggregateType == nameof(InventoryIssue)
+            && item.AggregateId == fixture.MaterialRequestId && item.CommandId == create.CommandId);
+
         var replay = await fixture.IssueService.CreateAsync(create, fixture.ActorId);
         replay!.IssueId.Should().Be(created!.IssueId);
-        var afterCreate = await fixture.CaptureAsync();
-        afterCreate.IssueIds.Should().ContainSingle().Which.Should().Be(created.IssueId);
-        afterCreate.IssueParentIds.Should().ContainSingle().Which.Should().Be(fixture.MaterialRequestId);
-        afterCreate.IssueLineageIds.Should().ContainSingle().Which.Should().Be(fixture.MaterialRequestLineId);
-        afterCreate.StockQuantity.Should().Be(15m);
-        afterCreate.IssueMovements.Should().Be(1);
-        afterCreate.Transitions.Should().Be(1);
-        afterCreate.Outbox.Should().Be(1);
-        afterCreate.Receipts.Should().Be(1);
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(afterCreateSuccess);
 
         var receiptInactiveAuthority = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Freeze DEFAULT issue receipt.");
         fixture.SetRequestAuthority(receiptInactiveAuthority, "inventoryissues.confirmreceiptasync");
         var beforeReceipt = await fixture.CaptureAsync();
-        var inactiveReceipt = () => fixture.IssueService.ConfirmReceiptAsync(
-            created.IssueId,
-            new ConfirmInventoryIssueReceiptRequest(),
-            fixture.ActorId);
-        await inactiveReceipt.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*workflow nguồn đang hoạt động*");
+        await fixture.Invoking(item => item.IssueService.ConfirmReceiptAsync(created.IssueId, new(), fixture.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeReceipt);
 
         var receiptDefaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT issue receipt.");
         fixture.SetRequestAuthority(receiptDefaultAuthority, "inventoryissues.confirmreceiptasync");
-        var confirmed = await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new ConfirmInventoryIssueReceiptRequest(), fixture.ActorId);
-        var confirmedReplay = await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new ConfirmInventoryIssueReceiptRequest(), fixture.ActorId);
+        var beforeReceiptSuccess = await fixture.CaptureAsync();
+        beforeReceiptSuccess.Should().BeEquivalentTo(beforeReceipt, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
 
+        var confirmed = await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new(), fixture.ActorId);
+        var afterReceiptSuccess = await fixture.CaptureAsync();
         confirmed!.IssueId.Should().Be(created.IssueId);
+        afterReceiptSuccess.Issues.Should().ContainSingle(item => item.Id == created.IssueId
+            && item.ReceivedBy == fixture.ActorId && item.ReceivedAt != null);
+        afterReceiptSuccess.Movements.Should().BeEquivalentTo(beforeReceiptSuccess.Movements);
+        afterReceiptSuccess.Stocks.Should().BeEquivalentTo(beforeReceiptSuccess.Stocks);
+        afterReceiptSuccess.Audits.Should().HaveCount(beforeReceiptSuccess.Audits.Length + 1);
+
+        var confirmedReplay = await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new(), fixture.ActorId);
         confirmedReplay!.IssueId.Should().Be(created.IssueId);
-        var afterReceipt = await fixture.CaptureAsync();
-        afterReceipt.IssueIds.Should().Equal(afterCreate.IssueIds);
-        afterReceipt.ReceivedIssueIds.Should().ContainSingle().Which.Should().Be(created.IssueId);
-        afterReceipt.StockQuantity.Should().Be(afterCreate.StockQuantity);
-        afterReceipt.IssueMovements.Should().Be(afterCreate.IssueMovements);
-        afterReceipt.Audits.Should().Be(afterCreate.Audits + 1);
-        afterReceipt.Transitions.Should().Be(afterCreate.Transitions);
-        afterReceipt.Outbox.Should().Be(afterCreate.Outbox);
-        afterReceipt.Receipts.Should().Be(afterCreate.Receipts);
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(afterReceiptSuccess);
     }
 
     [Fact]
@@ -89,71 +97,118 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         var inactiveAuthority = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Freeze DEFAULT return creation.");
         fixture.SetRequestAuthority(inactiveAuthority, "inventoryreturns.createasync");
         var beforeCreate = await fixture.CaptureAsync();
-        var inactiveCreate = () => fixture.ReturnService.CreateAsync(create, fixture.ActorId);
-        await inactiveCreate.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*workflow nguồn đang hoạt động*");
+        await fixture.Invoking(item => item.ReturnService.CreateAsync(create, fixture.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeCreate);
 
         var defaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT return creation.");
         fixture.SetRequestAuthority(defaultAuthority, "inventoryreturns.createasync");
-        var created = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
-        var replay = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
+        var beforeCreateSuccess = await fixture.CaptureAsync();
+        beforeCreateSuccess.Should().BeEquivalentTo(beforeCreate, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
 
+        var created = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
+        var afterCreateSuccess = await fixture.CaptureAsync();
+        created.Should().NotBeNull();
+        afterCreateSuccess.Returns.Should().ContainSingle(item => item.Id == created!.ReturnId
+            && item.IssueId == fixture.IssueId && item.ReceivedAt == null && item.ReturnType == "RETURN");
+        afterCreateSuccess.ReturnLines.Should().ContainSingle(item => item.ParentId == created!.ReturnId
+            && item.SourceIssueLineId == fixture.IssueLineId && item.Quantity == 2m
+            && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId);
+        afterCreateSuccess.Stocks.Should().BeEquivalentTo(beforeCreateSuccess.Stocks);
+        afterCreateSuccess.Movements.Should().BeEquivalentTo(beforeCreateSuccess.Movements);
+        afterCreateSuccess.Transitions.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
+            && item.AggregateId == created!.ReturnId && item.CommandId == create.CommandId
+            && item.AggregateSequence == 0 && item.ExpectedVersion == 0 && item.ToState == "PENDING_RECEIPT");
+        afterCreateSuccess.Outbox.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
+            && item.AggregateId == created!.ReturnId && item.CommandId == create.CommandId && item.AggregateSequence == 0);
+        afterCreateSuccess.Receipts.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
+            && item.AggregateId == created!.ReturnId && item.CommandId == create.CommandId);
+
+        var replay = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
         replay!.ReturnId.Should().Be(created!.ReturnId);
-        var afterCreate = await fixture.CaptureAsync();
-        afterCreate.ReturnIds.Should().ContainSingle().Which.Should().Be(created.ReturnId);
-        afterCreate.ReturnParentIds.Should().ContainSingle().Which.Should().Be(fixture.IssueId);
-        afterCreate.ReturnSourceLineIds.Should().ContainSingle().Which.Should().Be(fixture.IssueLineId);
-        afterCreate.StockQuantity.Should().Be(20m);
-        afterCreate.ReturnMovements.Should().Be(0);
-        afterCreate.Transitions.Should().Be(1);
-        afterCreate.Outbox.Should().Be(1);
-        afterCreate.Receipts.Should().Be(1);
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(afterCreateSuccess);
 
         var receiptInactiveAuthority = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Freeze DEFAULT return receipt.");
         fixture.SetRequestAuthority(receiptInactiveAuthority, "inventoryreturns.confirmreceiptasync");
         var beforeReceipt = await fixture.CaptureAsync();
-        var confirmation = new ConfirmInventoryReturnReceiptRequest
-        {
-            CommandId = "phase30-default-return-confirm",
-            ExpectedVersion = 0,
-        };
-        var inactiveReceipt = () => fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId);
-        await inactiveReceipt.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*workflow nguồn đang hoạt động*");
+        var confirmation = new ConfirmInventoryReturnReceiptRequest { CommandId = "phase30-default-return-confirm", ExpectedVersion = 0 };
+        await fixture.Invoking(item => item.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(beforeReceipt);
 
         var receiptDefaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT return receipt.");
         fixture.SetRequestAuthority(receiptDefaultAuthority, "inventoryreturns.confirmreceiptasync");
-        (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
-        (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
+        var beforeReceiptSuccess = await fixture.CaptureAsync();
+        beforeReceiptSuccess.Should().BeEquivalentTo(beforeReceipt, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
 
-        var afterReceipt = await fixture.CaptureAsync();
-        afterReceipt.ReturnIds.Should().Equal(afterCreate.ReturnIds);
-        afterReceipt.ReceivedReturnIds.Should().ContainSingle().Which.Should().Be(created.ReturnId);
-        afterReceipt.StockQuantity.Should().Be(22m);
-        afterReceipt.ReturnMovements.Should().Be(1);
-        afterReceipt.ReturnMovementRefIds.Should().ContainSingle().Which.Should().Be(created.ReturnId);
-        afterReceipt.DefaultNetIssued.Should().Be(3m);
-        afterReceipt.ReconciliationNetIssued.Should().Be(0m);
-        afterReceipt.Transitions.Should().Be(afterCreate.Transitions + 1);
-        afterReceipt.Outbox.Should().Be(afterCreate.Outbox + 1);
-        afterReceipt.Receipts.Should().Be(afterCreate.Receipts + 1);
+        (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
+        var afterReceiptSuccess = await fixture.CaptureAsync();
+        afterReceiptSuccess.Returns.Should().ContainSingle(item => item.Id == created.ReturnId
+            && item.ReceivedBy == fixture.ActorId && item.ReceivedAt != null);
+        afterReceiptSuccess.Stocks.Should().ContainSingle(item => item.WarehouseId == fixture.WarehouseId
+            && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId && item.Quantity == 22m);
+        afterReceiptSuccess.Movements.Should().ContainSingle(item => item.Type == "RETURN" && item.RefId == created.ReturnId
+            && item.RefTable == "inventoryreturns" && item.QuantityIn == 2m && item.QuantityOut == 0m
+            && item.WarehouseId == fixture.WarehouseId && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId);
+        afterReceiptSuccess.DefaultNetIssued.Should().Be(3m);
+        afterReceiptSuccess.ReconciliationNetIssued.Should().Be(0m);
+        afterReceiptSuccess.Transitions.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
+            && item.AggregateId == created.ReturnId && item.CommandId == confirmation.CommandId
+            && item.AggregateSequence == 1 && item.ExpectedVersion == confirmation.ExpectedVersion
+            && item.FromState == "PENDING_RECEIPT" && item.ToState == "RECEIVED");
+        afterReceiptSuccess.Outbox.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
+            && item.AggregateId == created.ReturnId && item.CommandId == confirmation.CommandId && item.AggregateSequence == 1);
+        afterReceiptSuccess.Receipts.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
+            && item.AggregateId == created.ReturnId && item.CommandId == confirmation.CommandId);
+
+        (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
+        (await fixture.CaptureAsync()).Should().BeEquivalentTo(afterReceiptSuccess);
     }
 
-    [Fact]
-    public async Task StaleCapturedModeVersion_FailsBeforeAnyDurableOwnerWrite()
+    [Theory]
+    [InlineData("issue-create")]
+    [InlineData("issue-confirm")]
+    [InlineData("return-create")]
+    [InlineData("return-confirm")]
+    public async Task StaleCapturedModeVersion_FailsEachPublicOwnerWithCompleteZeroResidue(string owner)
     {
-        await using var fixture = await Fixture.CreateAsync(receivedIssue: false);
-        var staleVersion = 1L;
-        await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Advance authority beyond captured DEFAULT request.");
-        fixture.SetRequestAuthority(SystemOperationEligibility.Default, staleVersion, "inventoryissues.createasync");
+        await using var fixture = await Fixture.CreateAsync(receivedIssue: owner.StartsWith("return", StringComparison.Ordinal));
+        Func<Task> act;
+
+        if (owner == "issue-confirm")
+        {
+            fixture.SetRequestAuthority(SystemOperationEligibility.Default, 1, "inventoryissues.createasync");
+            var issue = await fixture.IssueService.CreateAsync(fixture.CreateIssueCommand("phase30-stale-issue-confirm-fixture"), fixture.ActorId);
+            act = () => fixture.IssueService.ConfirmReceiptAsync(issue!.IssueId, new(), fixture.ActorId);
+        }
+        else if (owner == "return-confirm")
+        {
+            fixture.SetRequestAuthority(SystemOperationEligibility.Default, 1, "inventoryreturns.createasync");
+            var inventoryReturn = await fixture.ReturnService.CreateAsync(fixture.CreateReturnCommand("phase30-stale-return-confirm-fixture"), fixture.ActorId);
+            var confirmation = new ConfirmInventoryReturnReceiptRequest { CommandId = "phase30-stale-return-confirm", ExpectedVersion = 0 };
+            act = () => fixture.ReturnService.ConfirmReceiptAsync(inventoryReturn!.ReturnId, confirmation, fixture.ActorId);
+        }
+        else if (owner == "return-create")
+        {
+            act = () => fixture.ReturnService.CreateAsync(fixture.CreateReturnCommand("phase30-stale-return-create"), fixture.ActorId);
+        }
+        else
+        {
+            act = () => fixture.IssueService.CreateAsync(fixture.CreateIssueCommand("phase30-stale-issue-create"), fixture.ActorId);
+        }
+
+        await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, $"Advance authority before stale {owner}.");
+        var operationKey = owner switch
+        {
+            "issue-create" => "inventoryissues.createasync",
+            "issue-confirm" => "inventoryissues.confirmreceiptasync",
+            "return-create" => "inventoryreturns.createasync",
+            _ => "inventoryreturns.confirmreceiptasync",
+        };
+        fixture.SetRequestAuthority(SystemOperationEligibility.Default, 1, operationKey);
         var before = await fixture.CaptureAsync();
 
-        var act = () => fixture.IssueService.CreateAsync(fixture.CreateIssueCommand("phase30-stale-mode-owner"), fixture.ActorId);
-        await act.Should().ThrowAsync<SystemOperationConflictException>()
-            .WithMessage("*đã thay đổi*");
-
+        await act.Should().ThrowAsync<SystemOperationConflictException>();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(before);
     }
 
@@ -196,6 +251,9 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         public byte[] IssueLineBytes { get; } = GuidHelper.NewId();
 
         public string ActorId => GuidHelper.ToGuidString(ActorBytes);
+        public string WarehouseId => GuidHelper.ToGuidString(WarehouseBytes);
+        public string IngredientId => GuidHelper.ToGuidString(IngredientBytes);
+        public string UnitId => GuidHelper.ToGuidString(UnitBytes);
         public string MaterialRequestId => GuidHelper.ToGuidString(MaterialRequestBytes);
         public string MaterialRequestLineId => GuidHelper.ToGuidString(MaterialRequestLineBytes);
         public string IssueId => GuidHelper.ToGuidString(IssueBytes);
@@ -226,20 +284,27 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
                         batchId BLOB PRIMARY KEY,
                         status TEXT NOT NULL
                     );
+                    CREATE TABLE lifecycleoutboxdeliveries (
+                        deliveryId BLOB PRIMARY KEY,
+                        outboxMessageId BLOB NOT NULL,
+                        consumerName TEXT NOT NULL,
+                        processedAt TEXT NOT NULL
+                    );
                     CREATE TABLE reconciliationactuals (
                         actualId BLOB PRIMARY KEY,
                         batchLineId BLOB NOT NULL,
                         side TEXT NOT NULL,
                         quantity TEXT NOT NULL,
                         version INTEGER NOT NULL,
-                        updatedBy BLOB NOT NULL,
-                        updatedAt TEXT NOT NULL
+                        enteredBy BLOB NOT NULL,
+                        enteredAt TEXT NOT NULL
                     );
                     CREATE TABLE reconciliationactualrevisions (
                         revisionId BLOB PRIMARY KEY,
                         actualId BLOB NOT NULL,
-                        version INTEGER NOT NULL,
-                        quantity TEXT NOT NULL,
+                        oldQuantity TEXT NOT NULL,
+                        newQuantity TEXT NOT NULL,
+                        reason TEXT NOT NULL,
                         changedBy BLOB NOT NULL,
                         changedAt TEXT NOT NULL
                     );
@@ -249,8 +314,8 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
                         category TEXT NOT NULL,
                         reason TEXT NOT NULL,
                         version INTEGER NOT NULL,
-                        updatedBy BLOB NOT NULL,
-                        updatedAt TEXT NOT NULL
+                        disposedBy BLOB NOT NULL,
+                        disposedAt TEXT NOT NULL
                     );
                     """;
                 await command.ExecuteNonQueryAsync();
@@ -430,44 +495,50 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         {
             Context.ChangeTracker.Clear();
             var mode = await Context.Systemoperationmodes.AsNoTracking().SingleAsync();
-            var issues = await Context.Inventoryissues.AsNoTracking().OrderBy(item => item.IssueCode).ToListAsync();
-            var issueLines = await Context.Inventoryissuelines.AsNoTracking().OrderBy(item => item.IssueLineId).ToListAsync();
-            var returns = await Context.Inventoryreturns.AsNoTracking().OrderBy(item => item.ReturnCode).ToListAsync();
-            var returnLines = await Context.Inventoryreturnlines.AsNoTracking().OrderBy(item => item.ReturnLineId).ToListAsync();
-            var stock = await Context.Currentstocks.AsNoTracking().SingleAsync();
-            var movements = await Context.Stockmovements.AsNoTracking().OrderBy(item => item.MovementDate).ToListAsync();
+            var requests = await Context.Materialrequests.AsNoTracking().ToListAsync();
+            var requestLines = await Context.Materialrequestlines.AsNoTracking().ToListAsync();
+            var issues = await Context.Inventoryissues.AsNoTracking().ToListAsync();
+            var issueLines = await Context.Inventoryissuelines.AsNoTracking().ToListAsync();
+            var returns = await Context.Inventoryreturns.AsNoTracking().ToListAsync();
+            var returnLines = await Context.Inventoryreturnlines.AsNoTracking().ToListAsync();
+            var stocks = await Context.Currentstocks.AsNoTracking().ToListAsync();
+            var movements = await Context.Stockmovements.AsNoTracking().ToListAsync();
             var defaultIssued = issueLines.Where(item => item.MaterialRequestLineId is not null).Sum(item => item.IssuedQty);
-            var defaultReturned = returnLines.Where(line => issueLines.Any(issueLine => issueLine.IssueLineId.SequenceEqual(line.SourceIssueLineId ?? []))).Sum(item => item.Quantity);
+            var defaultReturned = returnLines.Where(line => issueLines.Any(issueLine => Same(issueLine.IssueLineId, line.SourceIssueLineId))).Sum(item => item.Quantity);
             var reconciliationIssued = issueLines.Where(item => item.ReconciliationBatchLineId is not null).Sum(item => item.IssuedQty);
-            var reconciliationReturned = returnLines.Where(line =>
-                issueLines.Any(issueLine => issueLine.ReconciliationBatchLineId is not null && issueLine.IssueLineId.SequenceEqual(line.SourceIssueLineId ?? []))).Sum(item => item.Quantity);
+            var reconciliationReturned = returnLines.Where(line => issueLines.Any(issueLine => issueLine.ReconciliationBatchLineId is not null && Same(issueLine.IssueLineId, line.SourceIssueLineId))).Sum(item => item.Quantity);
+
             return new Ledger(
                 mode.Mode,
                 mode.Version,
-                issues.Select(item => GuidHelper.ToGuidString(item.IssueId)).ToArray(),
-                issues.Select(item => item.MaterialRequestId is null ? "" : GuidHelper.ToGuidString(item.MaterialRequestId)).ToArray(),
-                issues.Where(item => item.ReceivedAt is not null).Select(item => GuidHelper.ToGuidString(item.IssueId)).ToArray(),
-                issueLines.Select(item => item.MaterialRequestLineId is null ? "" : GuidHelper.ToGuidString(item.MaterialRequestLineId)).ToArray(),
-                returns.Select(item => GuidHelper.ToGuidString(item.ReturnId)).ToArray(),
-                returns.Select(item => GuidHelper.ToGuidString(item.IssueId)).ToArray(),
-                returns.Where(item => item.ReceivedAt is not null).Select(item => GuidHelper.ToGuidString(item.ReturnId)).ToArray(),
-                returnLines.Select(item => item.SourceIssueLineId is null ? "" : GuidHelper.ToGuidString(item.SourceIssueLineId)).ToArray(),
-                stock.CurrentQty,
-                movements.Count(item => item.MovementType == "ISSUE"),
-                movements.Count(item => item.MovementType == "RETURN"),
-                movements.Where(item => item.MovementType == "RETURN" && item.RefId is not null).Select(item => GuidHelper.ToGuidString(item.RefId!)).ToArray(),
+                requests.Select(item => new MaterialRequestValue(Id(item.RequestId), item.RequestCode, Id(item.PlanId), item.RequestDate, item.RequestScope, item.Status, Id(item.CreatedBy), Id(item.ApprovedBy), item.ApprovedAt)).OrderBy(item => item.Id).ToArray(),
+                requestLines.Select(item => new MaterialRequestLineValue(Id(item.RequestLineId), Id(item.RequestId), Id(item.PlanLineId), Id(item.IngredientId), Id(item.UnitId), Id(item.BomId), item.PriceTierAmount, item.BomScope, item.TotalServings, item.GrossQtyPerServing, item.BomRatePercent, Id(item.AppliedPortionRuleId), item.AppliedPortionRuleSource, item.AppliedPortionRatePercent, item.YieldLossPercent, item.TotalRequiredQty, item.CurrentStockQty, item.SuggestedPurchaseQty)).OrderBy(item => item.Id).ToArray(),
+                issues.Select(item => new IssueValue(Id(item.IssueId), item.IssueCode, item.IssueDate, item.ShiftName, Id(item.WarehouseId), Id(item.MaterialRequestId), Id(item.ReconciliationBatchId), Id(item.IssuedBy), Id(item.ReceivedBy), item.ReceivedAt, item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
+                issueLines.Select(item => new IssueLineValue(Id(item.IssueLineId), Id(item.IssueId), Id(item.IngredientId), Id(item.UnitId), Id(item.MaterialRequestLineId), Id(item.ReconciliationBatchLineId), item.RequestedQty, item.IssuedQty)).OrderBy(item => item.Id).ToArray(),
+                returns.Select(item => new ReturnValue(Id(item.ReturnId), item.ReturnCode, item.ReturnDate, item.ShiftName, item.ReturnType, Id(item.WarehouseId), Id(item.IssueId), item.Reason, Id(item.CreatedBy), item.CreatedAt, Id(item.ReceivedBy), item.ReceivedAt)).OrderBy(item => item.Id).ToArray(),
+                returnLines.Select(item => new ReturnLineValue(Id(item.ReturnLineId), Id(item.ReturnId), Id(item.IngredientId), Id(item.UnitId), Id(item.SourceIssueLineId), item.Quantity)).OrderBy(item => item.Id).ToArray(),
+                stocks.Select(item => new StockValue(Id(item.WarehouseId), Id(item.IngredientId), Id(item.UnitId), item.CurrentQty, item.LastUpdated, item.RowVersion)).OrderBy(item => $"{item.WarehouseId}/{item.IngredientId}/{item.UnitId}").ToArray(),
+                movements.Select(item => new MovementValue(Id(item.MovementId), item.MovementDate, Id(item.WarehouseId), Id(item.IngredientId), Id(item.UnitId), item.MovementType, item.RefTable, Id(item.RefId), item.QuantityIn, item.QuantityOut, item.BeforeQty, item.AfterQty, item.LotNumber, item.ManufactureDate, item.ExpiredDate, item.Reason, item.Note, Id(item.PerformedBy))).OrderBy(item => item.Id).ToArray(),
+                (await Context.Supplementalmaterialrequests.AsNoTracking().ToListAsync()).Select(item => new SupplementalValue(Id(item.RequestId), item.RequestCode, Id(item.IssueId), Id(item.IssueLineId), Id(item.WarehouseId), Id(item.IngredientId), Id(item.UnitId), item.RequestedQty, item.Reason, item.Status, Id(item.RequestedBy), item.RequestedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Purchaserequests.AsNoTracking().ToListAsync()).Select(item => new PurchaseRequestValue(Id(item.PurchaseRequestId), item.PurchaseRequestCode, item.RequestDate, item.PurchaseForDate, item.ShiftName, item.Status, Id(item.CreatedBy), Id(item.ApprovedBy), item.ApprovedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Purchaserequestlines.AsNoTracking().ToListAsync()).Select(item => new PurchaseRequestLineValue(Id(item.PurchaseRequestLineId), Id(item.PurchaseRequestId), Id(item.MaterialRequestLineId), Id(item.IngredientId), Id(item.SupplierId), Id(item.UnitId), item.RequiredQty, item.CurrentStockQty, item.PurchaseQty, item.EstimatedUnitPrice, item.ExpectedDeliveryDate, item.Note, item.IsLegacySupplierSnapshot)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Purchaseorders.AsNoTracking().ToListAsync()).Select(item => new PurchaseOrderValue(Id(item.PurchaseOrderId), item.PurchaseOrderCode, Id(item.PurchaseRequestId), Id(item.SupplierId), Id(item.ReceivingWarehouseId), item.PurchasingTerms, item.ProposedDeliveryDate, item.OrderDate, item.Status, Id(item.CreatedBy), item.CreatedAt, item.UpdatedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Purchaseorderlines.AsNoTracking().ToListAsync()).Select(item => new PurchaseOrderLineValue(Id(item.PurchaseOrderLineId), Id(item.PurchaseOrderId), Id(item.PurchaseRequestLineId), Id(item.IngredientId), Id(item.UnitId), item.OrderedQty, item.ReceivedQty, item.UnitPrice)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Approvalhistories.AsNoTracking().ToListAsync()).Select(item => new ApprovalValue(Id(item.ApprovalHistoryId), item.TargetType, Id(item.TargetId), item.Decision, item.OldStatus, item.NewStatus, item.Reason, Id(item.ActionBy), item.ActionAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Auditlogs.AsNoTracking().Where(item => item.BusinessArea != "SYSTEM_OPERATION").ToListAsync()).Select(item => new AuditValue(Id(item.AuditId), item.ChangedAt, Id(item.ChangedBy), item.BusinessArea, item.EntityName, Id(item.EntityId), item.FieldName, item.OldValue, item.NewValue, item.Reason, item.CorrelationId)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Reconciliationactuals.AsNoTracking().ToListAsync()).Select(item => new ActualValue(Id(item.ActualId), Id(item.BatchLineId), item.Side, item.Quantity, item.Version, Id(item.EnteredBy), item.EnteredAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Reconciliationactualrevisions.AsNoTracking().ToListAsync()).Select(item => new RevisionValue(Id(item.RevisionId), Id(item.ActualId), item.OldQuantity, item.NewQuantity, item.Reason, Id(item.ChangedBy), item.ChangedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Reconciliationdispositions.AsNoTracking().ToListAsync()).Select(item => new DispositionValue(Id(item.DispositionId), Id(item.BatchLineId), item.Category, item.Reason, item.Version, Id(item.DisposedBy), item.DisposedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Lifecycletransitions.AsNoTracking().ToListAsync()).Select(item => new TransitionValue(Id(item.TransitionId), item.AggregateType, Id(item.AggregateId), item.CommandId, item.AggregateSequence, item.FromState, item.ToState, Id(item.ActorId), item.ExpectedVersion, item.Reason, item.CorrelationId, item.CausationId, item.PayloadJson, item.SchemaVersion, item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Lifecycleoutboxmessages.AsNoTracking().ToListAsync()).Select(item => new OutboxValue(Id(item.OutboxMessageId), item.EventType, item.AggregateType, Id(item.AggregateId), item.AggregateSequence, item.CommandId, item.PayloadJson, item.Status, item.AttemptCount, item.NextAttemptAt, item.LockedAt, item.ProcessedAt, item.LastError, item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Lifecycleoutboxdeliveries.AsNoTracking().ToListAsync()).Select(item => new DeliveryValue(Id(item.DeliveryId), Id(item.OutboxMessageId), item.ConsumerName, item.ProcessedAt)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Lifecyclecommandreceipts.AsNoTracking().ToListAsync()).Select(item => new ReceiptValue(Id(item.CommandReceiptId), item.CommandId, item.AggregateType, Id(item.AggregateId), item.ResponseJson, item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
                 defaultIssued - defaultReturned,
-                reconciliationIssued - reconciliationReturned,
-                await Context.Supplementalmaterialrequests.CountAsync(),
-                await Context.Approvalhistories.CountAsync(),
-                await Context.Auditlogs.CountAsync(item => item.BusinessArea != "SYSTEM_OPERATION"),
-                await Context.Reconciliationactuals.CountAsync(),
-                await Context.Reconciliationactualrevisions.CountAsync(),
-                await Context.Reconciliationdispositions.CountAsync(),
-                await Context.Lifecycletransitions.CountAsync(),
-                await Context.Lifecycleoutboxmessages.CountAsync(),
-                await Context.Lifecyclecommandreceipts.CountAsync());
+                reconciliationIssued - reconciliationReturned);
         }
+
+        private static string? Id(byte[]? value) => value is null ? null : GuidHelper.ToGuidString(value);
+        private static bool Same(byte[] left, byte[]? right) => right is not null && left.SequenceEqual(right);
 
         public async ValueTask DisposeAsync()
         {
@@ -479,27 +550,51 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
     private sealed record Ledger(
         string Mode,
         long ModeVersion,
-        string[] IssueIds,
-        string[] IssueParentIds,
-        string[] ReceivedIssueIds,
-        string[] IssueLineageIds,
-        string[] ReturnIds,
-        string[] ReturnParentIds,
-        string[] ReceivedReturnIds,
-        string[] ReturnSourceLineIds,
-        decimal StockQuantity,
-        int IssueMovements,
-        int ReturnMovements,
-        string[] ReturnMovementRefIds,
+        MaterialRequestValue[] MaterialRequests,
+        MaterialRequestLineValue[] MaterialRequestLines,
+        IssueValue[] Issues,
+        IssueLineValue[] IssueLines,
+        ReturnValue[] Returns,
+        ReturnLineValue[] ReturnLines,
+        StockValue[] Stocks,
+        MovementValue[] Movements,
+        SupplementalValue[] SupplementalRequests,
+        PurchaseRequestValue[] PurchaseRequests,
+        PurchaseRequestLineValue[] PurchaseRequestLines,
+        PurchaseOrderValue[] PurchaseOrders,
+        PurchaseOrderLineValue[] PurchaseOrderLines,
+        ApprovalValue[] ApprovalHistories,
+        AuditValue[] Audits,
+        ActualValue[] ReconciliationActuals,
+        RevisionValue[] ReconciliationActualRevisions,
+        DispositionValue[] ReconciliationDispositions,
+        TransitionValue[] Transitions,
+        OutboxValue[] Outbox,
+        DeliveryValue[] OutboxDeliveries,
+        ReceiptValue[] Receipts,
         decimal DefaultNetIssued,
-        decimal ReconciliationNetIssued,
-        int SupplementalRequests,
-        int ApprovalHistories,
-        int Audits,
-        int ReconciliationActuals,
-        int ReconciliationActualRevisions,
-        int ReconciliationDispositions,
-        int Transitions,
-        int Outbox,
-        int Receipts);
+        decimal ReconciliationNetIssued);
+
+    private sealed record MaterialRequestValue(string? Id, string Code, string? PlanId, DateOnly Date, string Scope, string Status, string? CreatedBy, string? ApprovedBy, DateTime? ApprovedAt);
+    private sealed record MaterialRequestLineValue(string? Id, string? ParentId, string? PlanLineId, string? IngredientId, string? UnitId, string? BomId, decimal PriceTierAmount, string BomScope, int TotalServings, decimal GrossQtyPerServing, decimal BomRatePercent, string? AppliedPortionRuleId, string AppliedPortionRuleSource, decimal AppliedPortionRatePercent, decimal? YieldLossPercent, decimal TotalRequiredQty, decimal CurrentStockQty, decimal SuggestedPurchaseQty);
+    private sealed record IssueValue(string? Id, string Code, DateOnly Date, string? ShiftName, string? WarehouseId, string? MaterialRequestId, string? ReconciliationBatchId, string? IssuedBy, string? ReceivedBy, DateTime? ReceivedAt, DateTime CreatedAt);
+    private sealed record IssueLineValue(string? Id, string? ParentId, string? IngredientId, string? UnitId, string? MaterialRequestLineId, string? ReconciliationBatchLineId, decimal RequestedQty, decimal IssuedQty);
+    private sealed record ReturnValue(string? Id, string Code, DateOnly Date, string? ShiftName, string ReturnType, string? WarehouseId, string? IssueId, string? Reason, string? CreatedBy, DateTime CreatedAt, string? ReceivedBy, DateTime? ReceivedAt);
+    private sealed record ReturnLineValue(string? Id, string? ParentId, string? IngredientId, string? UnitId, string? SourceIssueLineId, decimal Quantity);
+    private sealed record StockValue(string? WarehouseId, string? IngredientId, string? UnitId, decimal Quantity, DateTime LastUpdated, DateTime RowVersion);
+    private sealed record MovementValue(string? Id, DateTime Date, string? WarehouseId, string? IngredientId, string? UnitId, string Type, string? RefTable, string? RefId, decimal QuantityIn, decimal QuantityOut, decimal BeforeQty, decimal AfterQty, string? LotNumber, DateOnly? ManufactureDate, DateOnly? ExpiredDate, string? Reason, string? Note, string? PerformedBy);
+    private sealed record SupplementalValue(string? Id, string Code, string? IssueId, string? IssueLineId, string? WarehouseId, string? IngredientId, string? UnitId, decimal RequestedQty, string? Reason, string Status, string? RequestedBy, DateTime RequestedAt);
+    private sealed record PurchaseRequestValue(string? Id, string Code, DateOnly RequestDate, DateOnly PurchaseForDate, string? ShiftName, string Status, string? CreatedBy, string? ApprovedBy, DateTime? ApprovedAt);
+    private sealed record PurchaseRequestLineValue(string? Id, string? ParentId, string? MaterialRequestLineId, string? IngredientId, string? SupplierId, string? UnitId, decimal RequiredQty, decimal CurrentStockQty, decimal PurchaseQty, decimal EstimatedUnitPrice, DateOnly? ExpectedDeliveryDate, string? Note, bool IsLegacySupplierSnapshot);
+    private sealed record PurchaseOrderValue(string? Id, string Code, string? PurchaseRequestId, string? SupplierId, string? ReceivingWarehouseId, string? PurchasingTerms, DateOnly? ProposedDeliveryDate, DateOnly OrderDate, string Status, string? CreatedBy, DateTime CreatedAt, DateTime UpdatedAt);
+    private sealed record PurchaseOrderLineValue(string? Id, string? ParentId, string? PurchaseRequestLineId, string? IngredientId, string? UnitId, decimal OrderedQty, decimal ReceivedQty, decimal UnitPrice);
+    private sealed record ApprovalValue(string? Id, string TargetType, string? TargetId, string Decision, string? OldStatus, string? NewStatus, string? Reason, string? ActionBy, DateTime ActionAt);
+    private sealed record AuditValue(string? Id, DateTime ChangedAt, string? ChangedBy, string BusinessArea, string EntityName, string? EntityId, string? FieldName, string? OldValue, string? NewValue, string? Reason, string? CorrelationId);
+    private sealed record ActualValue(string? Id, string? BatchLineId, string Side, decimal Quantity, long Version, string? EnteredBy, DateTime EnteredAt);
+    private sealed record RevisionValue(string? Id, string? ActualId, decimal OldQuantity, decimal NewQuantity, string Reason, string? ChangedBy, DateTime ChangedAt);
+    private sealed record DispositionValue(string? Id, string? BatchLineId, string Category, string Reason, long Version, string? DisposedBy, DateTime DisposedAt);
+    private sealed record TransitionValue(string? Id, string AggregateType, string? AggregateId, string CommandId, int AggregateSequence, string? FromState, string ToState, string? ActorId, long ExpectedVersion, string? Reason, string? CorrelationId, string? CausationId, string? PayloadJson, int SchemaVersion, DateTime CreatedAt);
+    private sealed record OutboxValue(string? Id, string EventType, string AggregateType, string? AggregateId, int AggregateSequence, string CommandId, string PayloadJson, string Status, int AttemptCount, DateTime? NextAttemptAt, DateTime? LockedAt, DateTime? ProcessedAt, string? LastError, DateTime CreatedAt);
+    private sealed record DeliveryValue(string? Id, string? OutboxMessageId, string ConsumerName, DateTime ProcessedAt);
+    private sealed record ReceiptValue(string? Id, string CommandId, string AggregateType, string? AggregateId, string ResponseJson, DateTime CreatedAt);
 }
