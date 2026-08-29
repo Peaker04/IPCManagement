@@ -225,14 +225,14 @@ Plans:
 - Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
 - Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
 
-**Plans:** 3/9 plans executed / 5 conceptual waves
+**Plans:** 4/9 plans executed / 5 conceptual waves
 
 Plans:
 
 - [x] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
 - [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
 - [x] 30-03-PLAN.md — exact-one backend issue authority and retained endpoint permission matrix (wave 3; complete at `722175f2`).
-- [ ] 30-04-PLAN.md — backend Wave 4 slice A: dual-family canonical return/correction, DEFAULT-only supplemental/legacy exception and inactive freeze/resume (depends on 30-03).
+- [x] 30-04-PLAN.md — backend Wave 4 slice A: dual-family canonical return/correction, DEFAULT-only supplemental/legacy exception and inactive freeze/resume (depends on 30-03).
 - [ ] 30-05-PLAN.md — backend Wave 4 slice B: exact discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-04).
 - [ ] 30-06-PLAN.md — backend Wave 4 slice C: exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-05).
 - [ ] 30-07-PLAN.md — backend Wave 4 slice D: frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-06).
