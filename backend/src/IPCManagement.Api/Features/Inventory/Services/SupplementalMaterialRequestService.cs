@@ -491,7 +491,9 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             .Include(line => line.MaterialRequestLine);
         if (!string.Equals(_context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal))
         {
-            return await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
+            var relationalSource = await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
+            EnsureDefaultSourceFamily(relationalSource);
+            return relationalSource;
         }
 
         var tracked = _context.ChangeTracker.Entries<InventoryIssueLine>()
@@ -499,10 +501,13 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             .FirstOrDefault(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
         if (tracked is not null)
         {
+            EnsureDefaultSourceFamily(tracked);
             return tracked;
         }
 
-        return (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
+        var source = (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
+        EnsureDefaultSourceFamily(source);
+        return source;
     }
 
     private async Task<string?> ResolveSourceShiftNameAsync(InventoryIssueLine source)
@@ -567,7 +572,18 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         {
             await _context.Entry(source).Reference(line => line.Unit).LoadAsync();
         }
+        EnsureDefaultSourceFamily(source);
         return source;
+    }
+
+    private static void EnsureDefaultSourceFamily(InventoryIssueLine source)
+    {
+        var exactDefaultHeader = source.Issue.MaterialRequestId is not null && source.Issue.ReconciliationBatchId is null;
+        var exactDefaultLine = source.MaterialRequestLineId is not null && source.ReconciliationBatchLineId is null;
+        if (!exactDefaultHeader || !exactDefaultLine)
+        {
+            throw new BusinessRuleException("Yêu cầu bổ sung chỉ áp dụng cho dòng xuất thuộc đúng nguồn nhu cầu DEFAULT.");
+        }
     }
 
     private async Task<SupplementalMaterialRequest?> FindOpenByIssueLineAsync(byte[] issueLineId)

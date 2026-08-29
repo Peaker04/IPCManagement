@@ -232,14 +232,18 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
         var source = await _context.Inventoryissuelines
             .SingleOrDefaultAsync(item => item.IssueLineId.SequenceEqual(legacyLineId), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy dòng xuất kho legacy.");
-        if (source.MaterialRequestLineId is not null)
+        if (source.MaterialRequestLineId is not null || source.ReconciliationBatchLineId is not null)
         {
-            throw new BusinessRuleException("Dòng xuất kho này đã có source demand-line.");
+            throw new BusinessRuleException("Dòng xuất kho này đã có source lineage.");
         }
 
         var issue = await _context.Inventoryissues.AsNoTracking()
             .SingleOrDefaultAsync(item => item.IssueId.SequenceEqual(source.IssueId), cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy phiếu xuất kho của dòng legacy.");
+        if (issue.MaterialRequestId is null || issue.ReconciliationBatchId is not null)
+        {
+            throw new BusinessRuleException("Đối soát lineage legacy chỉ áp dụng cho phiếu xuất thuộc đúng nguồn DEFAULT.");
+        }
         var targets = await _context.Materialrequestlines.AsNoTracking()
             .Where(item => item.RequestId.SequenceEqual(issue.MaterialRequestId) &&
                 item.IngredientId.SequenceEqual(source.IngredientId) && item.UnitId.SequenceEqual(source.UnitId))
@@ -301,7 +305,7 @@ public sealed class LegacyLineageDispositionService : ILegacyLineageDispositionS
             var source = await _context.Inventoryissuelines
                 .SingleOrDefaultAsync(item => item.IssueLineId.SequenceEqual(disposition.LegacyLineId), cancellationToken)
                 ?? throw new KeyNotFoundException("Không tìm thấy dòng xuất kho legacy khi áp dụng.");
-            if (source.MaterialRequestLineId is not null)
+            if (source.MaterialRequestLineId is not null || source.ReconciliationBatchLineId is not null)
             {
                 throw new BusinessRuleException("Dòng xuất kho đã có provenance; không được ghi đè.");
             }

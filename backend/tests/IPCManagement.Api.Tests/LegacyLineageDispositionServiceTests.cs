@@ -482,7 +482,8 @@ public sealed class LegacyLineageDispositionServiceTests
                     issueDate TEXT NOT NULL,
                     shiftName TEXT NULL,
                     warehouseId BLOB NOT NULL,
-                    materialRequestId BLOB NOT NULL,
+                    materialRequestId BLOB NULL,
+                    reconciliationBatchId BLOB NULL,
                     issuedBy BLOB NOT NULL,
                     receivedBy BLOB NULL,
                     receivedAt TEXT NULL,
@@ -495,6 +496,7 @@ public sealed class LegacyLineageDispositionServiceTests
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     materialRequestLineId BLOB NULL,
+                    reconciliationBatchLineId BLOB NULL,
                     requestedQty NUMERIC NOT NULL,
                     issuedQty NUMERIC NOT NULL
                 );
