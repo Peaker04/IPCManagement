@@ -36,27 +36,12 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         var defaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT issue creation.");
         fixture.SetRequestAuthority(defaultAuthority, "inventoryissues.createasync");
         var beforeCreateSuccess = await fixture.CaptureAsync();
-        beforeCreateSuccess.Should().BeEquivalentTo(beforeCreate, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
+        AssertExactModeSwitch(beforeCreate, beforeCreateSuccess, SystemOperationEligibility.Default, "Resume DEFAULT issue creation.", fixture.ActorId);
 
         var created = await fixture.IssueService.CreateAsync(create, fixture.ActorId);
         var afterCreateSuccess = await fixture.CaptureAsync();
         created.Should().NotBeNull();
-        afterCreateSuccess.Issues.Should().ContainSingle(item => item.Id == created!.IssueId
-            && item.MaterialRequestId == fixture.MaterialRequestId && item.ReceivedAt == null);
-        afterCreateSuccess.IssueLines.Should().ContainSingle(item => item.ParentId == created!.IssueId
-            && item.MaterialRequestLineId == fixture.MaterialRequestLineId && item.RequestedQty == 5m && item.IssuedQty == 5m);
-        afterCreateSuccess.Stocks.Should().ContainSingle(item => item.WarehouseId == fixture.WarehouseId
-            && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId && item.Quantity == 15m);
-        afterCreateSuccess.Movements.Should().ContainSingle(item => item.Type == "ISSUE" && item.RefId == created!.IssueId
-            && item.RefTable == "inventoryissues" && item.QuantityOut == 5m && item.QuantityIn == 0m
-            && item.WarehouseId == fixture.WarehouseId && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId);
-        afterCreateSuccess.Transitions.Should().ContainSingle(item => item.AggregateType == nameof(InventoryIssue)
-            && item.AggregateId == fixture.MaterialRequestId && item.CommandId == create.CommandId
-            && item.AggregateSequence == 1 && item.ExpectedVersion == 0 && item.ToState == "ISSUED");
-        afterCreateSuccess.Outbox.Should().ContainSingle(item => item.AggregateType == nameof(InventoryIssue)
-            && item.AggregateId == fixture.MaterialRequestId && item.CommandId == create.CommandId && item.AggregateSequence == 1);
-        afterCreateSuccess.Receipts.Should().ContainSingle(item => item.AggregateType == nameof(InventoryIssue)
-            && item.AggregateId == fixture.MaterialRequestId && item.CommandId == create.CommandId);
+        AssertExactIssueCreateDelta(beforeCreateSuccess, afterCreateSuccess, created!, create, fixture);
 
         var replay = await fixture.IssueService.CreateAsync(create, fixture.ActorId);
         replay!.IssueId.Should().Be(created!.IssueId);
@@ -72,16 +57,12 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         var receiptDefaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT issue receipt.");
         fixture.SetRequestAuthority(receiptDefaultAuthority, "inventoryissues.confirmreceiptasync");
         var beforeReceiptSuccess = await fixture.CaptureAsync();
-        beforeReceiptSuccess.Should().BeEquivalentTo(beforeReceipt, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
+        AssertExactModeSwitch(beforeReceipt, beforeReceiptSuccess, SystemOperationEligibility.Default, "Resume DEFAULT issue receipt.", fixture.ActorId);
 
         var confirmed = await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new(), fixture.ActorId);
         var afterReceiptSuccess = await fixture.CaptureAsync();
         confirmed!.IssueId.Should().Be(created.IssueId);
-        afterReceiptSuccess.Issues.Should().ContainSingle(item => item.Id == created.IssueId
-            && item.ReceivedBy == fixture.ActorId && item.ReceivedAt != null);
-        afterReceiptSuccess.Movements.Should().BeEquivalentTo(beforeReceiptSuccess.Movements);
-        afterReceiptSuccess.Stocks.Should().BeEquivalentTo(beforeReceiptSuccess.Stocks);
-        afterReceiptSuccess.Audits.Should().HaveCount(beforeReceiptSuccess.Audits.Length + 1);
+        AssertExactIssueReceiptDelta(beforeReceiptSuccess, afterReceiptSuccess, created.IssueId, fixture);
 
         var confirmedReplay = await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new(), fixture.ActorId);
         confirmedReplay!.IssueId.Should().Be(created.IssueId);
@@ -104,25 +85,12 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         var defaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT return creation.");
         fixture.SetRequestAuthority(defaultAuthority, "inventoryreturns.createasync");
         var beforeCreateSuccess = await fixture.CaptureAsync();
-        beforeCreateSuccess.Should().BeEquivalentTo(beforeCreate, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
+        AssertExactModeSwitch(beforeCreate, beforeCreateSuccess, SystemOperationEligibility.Default, "Resume DEFAULT return creation.", fixture.ActorId);
 
         var created = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
         var afterCreateSuccess = await fixture.CaptureAsync();
         created.Should().NotBeNull();
-        afterCreateSuccess.Returns.Should().ContainSingle(item => item.Id == created!.ReturnId
-            && item.IssueId == fixture.IssueId && item.ReceivedAt == null && item.ReturnType == "RETURN");
-        afterCreateSuccess.ReturnLines.Should().ContainSingle(item => item.ParentId == created!.ReturnId
-            && item.SourceIssueLineId == fixture.IssueLineId && item.Quantity == 2m
-            && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId);
-        afterCreateSuccess.Stocks.Should().BeEquivalentTo(beforeCreateSuccess.Stocks);
-        afterCreateSuccess.Movements.Should().BeEquivalentTo(beforeCreateSuccess.Movements);
-        afterCreateSuccess.Transitions.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
-            && item.AggregateId == created!.ReturnId && item.CommandId == create.CommandId
-            && item.AggregateSequence == 0 && item.ExpectedVersion == 0 && item.ToState == "PENDING_RECEIPT");
-        afterCreateSuccess.Outbox.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
-            && item.AggregateId == created!.ReturnId && item.CommandId == create.CommandId && item.AggregateSequence == 0);
-        afterCreateSuccess.Receipts.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
-            && item.AggregateId == created!.ReturnId && item.CommandId == create.CommandId);
+        AssertExactReturnCreateDelta(beforeCreateSuccess, afterCreateSuccess, created!, create, fixture);
 
         var replay = await fixture.ReturnService.CreateAsync(create, fixture.ActorId);
         replay!.ReturnId.Should().Be(created!.ReturnId);
@@ -139,27 +107,11 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         var receiptDefaultAuthority = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Resume DEFAULT return receipt.");
         fixture.SetRequestAuthority(receiptDefaultAuthority, "inventoryreturns.confirmreceiptasync");
         var beforeReceiptSuccess = await fixture.CaptureAsync();
-        beforeReceiptSuccess.Should().BeEquivalentTo(beforeReceipt, options => options.Excluding(item => item.Mode).Excluding(item => item.ModeVersion));
+        AssertExactModeSwitch(beforeReceipt, beforeReceiptSuccess, SystemOperationEligibility.Default, "Resume DEFAULT return receipt.", fixture.ActorId);
 
         (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
         var afterReceiptSuccess = await fixture.CaptureAsync();
-        afterReceiptSuccess.Returns.Should().ContainSingle(item => item.Id == created.ReturnId
-            && item.ReceivedBy == fixture.ActorId && item.ReceivedAt != null);
-        afterReceiptSuccess.Stocks.Should().ContainSingle(item => item.WarehouseId == fixture.WarehouseId
-            && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId && item.Quantity == 22m);
-        afterReceiptSuccess.Movements.Should().ContainSingle(item => item.Type == "RETURN" && item.RefId == created.ReturnId
-            && item.RefTable == "inventoryreturns" && item.QuantityIn == 2m && item.QuantityOut == 0m
-            && item.WarehouseId == fixture.WarehouseId && item.IngredientId == fixture.IngredientId && item.UnitId == fixture.UnitId);
-        afterReceiptSuccess.DefaultNetIssued.Should().Be(3m);
-        afterReceiptSuccess.ReconciliationNetIssued.Should().Be(0m);
-        afterReceiptSuccess.Transitions.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
-            && item.AggregateId == created.ReturnId && item.CommandId == confirmation.CommandId
-            && item.AggregateSequence == 1 && item.ExpectedVersion == confirmation.ExpectedVersion
-            && item.FromState == "PENDING_RECEIPT" && item.ToState == "RECEIVED");
-        afterReceiptSuccess.Outbox.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
-            && item.AggregateId == created.ReturnId && item.CommandId == confirmation.CommandId && item.AggregateSequence == 1);
-        afterReceiptSuccess.Receipts.Should().ContainSingle(item => item.AggregateType == nameof(InventoryReturn)
-            && item.AggregateId == created.ReturnId && item.CommandId == confirmation.CommandId);
+        AssertExactReturnReceiptDelta(beforeReceiptSuccess, afterReceiptSuccess, created.ReturnId, confirmation, fixture);
 
         (await fixture.ReturnService.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.ActorId)).Should().BeTrue();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(afterReceiptSuccess);
@@ -211,6 +163,246 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         await act.Should().ThrowAsync<SystemOperationConflictException>();
         (await fixture.CaptureAsync()).Should().BeEquivalentTo(before);
     }
+
+    private static void AssertExactModeSwitch(
+        Ledger before,
+        Ledger after,
+        string expectedMode,
+        string expectedReason,
+        string actorId)
+    {
+        after.Mode.Version.Should().Be(before.Mode.Version + 1);
+        after.Mode.Should().Be(new ModeValue(
+            expectedMode,
+            before.Mode.Version + 1,
+            after.Mode.UpdatedAt,
+            actorId,
+            expectedReason));
+
+        var modeAudit = SingleAdded(before.Audits, after.Audits, item => item.Id);
+        modeAudit.Should().Be(new AuditValue(
+            modeAudit.Id,
+            after.Mode.UpdatedAt,
+            actorId,
+            "SYSTEM_OPERATION",
+            "SystemOperationMode",
+            null,
+            "Mode",
+            before.Mode.Mode,
+            expectedMode,
+            expectedReason,
+            null));
+
+        var normalizedExpected = before with
+        {
+            Mode = after.Mode,
+            Audits = AddOrdered(before.Audits, modeAudit, item => item.Id),
+        };
+        after.Should().BeEquivalentTo(normalizedExpected,
+            "a real mode switch may change only the exact SystemOperationMode row and its exact SYSTEM_OPERATION audit tuple");
+    }
+
+    private static void AssertExactIssueCreateDelta(
+        Ledger before,
+        Ledger after,
+        InventoryIssueCreatedDto created,
+        CreateInventoryIssueRequest command,
+        Fixture fixture)
+    {
+        var oldRequest = before.MaterialRequests.Single(item => item.Id == fixture.MaterialRequestId);
+        var newRequest = after.MaterialRequests.Single(item => item.Id == fixture.MaterialRequestId);
+        newRequest.Should().Be(oldRequest with { Status = "EXPORTED" });
+
+        var issue = SingleAdded(before.Issues, after.Issues, item => item.Id);
+        issue.Should().Be(new IssueValue(created.IssueId, created.IssueCode, command.IssueDate, null,
+            fixture.WarehouseId, fixture.MaterialRequestId, null, fixture.ActorId, null, null, issue.CreatedAt));
+        var issueLine = SingleAdded(before.IssueLines, after.IssueLines, item => item.Id);
+        issueLine.Should().Be(new IssueLineValue(issueLine.Id, created.IssueId, fixture.IngredientId,
+            fixture.UnitId, fixture.MaterialRequestLineId, null, 5m, 5m));
+
+        var oldStock = before.Stocks.Single();
+        var newStock = after.Stocks.Single();
+        newStock.Should().Be(new StockValue(fixture.WarehouseId, fixture.IngredientId, fixture.UnitId,
+            15m, newStock.LastUpdated, newStock.RowVersion));
+        var movement = SingleAdded(before.Movements, after.Movements, item => item.Id);
+        movement.Should().Be(new MovementValue(movement.Id, movement.Date, fixture.WarehouseId,
+            fixture.IngredientId, fixture.UnitId, "ISSUE", "inventoryissues", created.IssueId,
+            0m, 5m, 20m, 15m, null, null, null, "Xuất kho sản xuất", $"Phiếu xuất {created.IssueCode}", fixture.ActorId));
+
+        var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "InventoryIssue", item => item.Id);
+        audit.Should().Be(new AuditValue(audit.Id, audit.ChangedAt, fixture.ActorId, "InventoryIssue",
+            nameof(MaterialRequest), fixture.MaterialRequestId, nameof(MaterialRequest.Status), "APPROVED", "EXPORTED",
+            "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED.", null));
+        var transition = SingleAdded(before.Transitions, after.Transitions, item => item.Id);
+        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryIssue), fixture.MaterialRequestId,
+            command.CommandId, 1, null, "ISSUED", fixture.ActorId, 0,
+            $"Tạo phiếu xuất {created.IssueCode} cho nhu cầu đã chọn.", null, null,
+            transition.PayloadJson, 1, transition.CreatedAt));
+        var lifecycleAudit = AssertLifecycleAudit(before, after, transition, fixture.ActorId);
+        var outbox = SingleAdded(before.Outbox, after.Outbox, item => item.Id);
+        var receipt = SingleAdded(before.Receipts, after.Receipts, item => item.Id);
+        AssertLifecyclePair(transition, outbox, receipt);
+
+        var expected = before with
+        {
+            MaterialRequests = ReplaceOrdered(before.MaterialRequests, oldRequest, newRequest, item => item.Id),
+            Issues = AddOrdered(before.Issues, issue, item => item.Id),
+            IssueLines = AddOrdered(before.IssueLines, issueLine, item => item.Id),
+            Stocks = ReplaceOrdered(before.Stocks, oldStock, newStock, StockKey),
+            Movements = AddOrdered(before.Movements, movement, item => item.Id),
+            Audits = AddOrdered(AddOrdered(before.Audits, audit, item => item.Id), lifecycleAudit, item => item.Id),
+            Transitions = AddOrdered(before.Transitions, transition, item => item.Id),
+            Outbox = AddOrdered(before.Outbox, outbox, item => item.Id),
+            Receipts = AddOrdered(before.Receipts, receipt, item => item.Id),
+            DefaultNetIssued = 5m,
+        };
+        after.Should().BeEquivalentTo(expected, "issue creation has one exact allow-listed full-ledger delta");
+    }
+
+    private static void AssertExactIssueReceiptDelta(Ledger before, Ledger after, string issueId, Fixture fixture)
+    {
+        var oldIssue = before.Issues.Single(item => item.Id == issueId);
+        var newIssue = after.Issues.Single(item => item.Id == issueId);
+        newIssue.Should().Be(oldIssue with { ReceivedBy = fixture.ActorId, ReceivedAt = newIssue.ReceivedAt });
+        newIssue.ReceivedAt.Should().NotBeNull();
+
+        var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "KitchenReceipt", item => item.Id);
+        AuditTimestamp(audit).Should().Be(newIssue.ReceivedAt!.Value);
+        audit.Should().Be(new AuditValue(audit.Id, newIssue.ReceivedAt.Value, fixture.ActorId,
+            "KitchenReceipt", nameof(InventoryIssue), issueId, "KitchenReceived", null,
+            audit.NewValue, $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {newIssue.Code}.", null));
+
+        var expected = before with
+        {
+            Issues = ReplaceOrdered(before.Issues, oldIssue, newIssue, item => item.Id),
+            Audits = AddOrdered(before.Audits, audit, item => item.Id),
+        };
+        after.Should().BeEquivalentTo(expected, "issue receipt confirmation updates one issue and adds its exact audit tuple only");
+    }
+
+    private static void AssertExactReturnCreateDelta(
+        Ledger before,
+        Ledger after,
+        InventoryReturnCreatedDto created,
+        CreateInventoryReturnRequest command,
+        Fixture fixture)
+    {
+        var inventoryReturn = SingleAdded(before.Returns, after.Returns, item => item.Id);
+        inventoryReturn.Should().Be(new ReturnValue(created.ReturnId, created.ReturnCode, command.ReturnDate,
+            null, "RETURN", fixture.WarehouseId, fixture.IssueId, command.Reason, fixture.ActorId,
+            inventoryReturn.CreatedAt, null, null));
+        var line = SingleAdded(before.ReturnLines, after.ReturnLines, item => item.Id);
+        line.Should().Be(new ReturnLineValue(line.Id, created.ReturnId, fixture.IngredientId, fixture.UnitId,
+            fixture.IssueLineId, 2m));
+        var transition = SingleAdded(before.Transitions, after.Transitions, item => item.Id);
+        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryReturn), created.ReturnId,
+            command.CommandId, 0, null, "PENDING_RECEIPT", fixture.ActorId, 0, command.Reason,
+            null, null, transition.PayloadJson, 1, transition.CreatedAt));
+        var lifecycleAudit = AssertLifecycleAudit(before, after, transition, fixture.ActorId);
+        var outbox = SingleAdded(before.Outbox, after.Outbox, item => item.Id);
+        var receipt = SingleAdded(before.Receipts, after.Receipts, item => item.Id);
+        AssertLifecyclePair(transition, outbox, receipt);
+
+        var expected = before with
+        {
+            Returns = AddOrdered(before.Returns, inventoryReturn, item => item.Id),
+            ReturnLines = AddOrdered(before.ReturnLines, line, item => item.Id),
+            Audits = AddOrdered(before.Audits, lifecycleAudit, item => item.Id),
+            Transitions = AddOrdered(before.Transitions, transition, item => item.Id),
+            Outbox = AddOrdered(before.Outbox, outbox, item => item.Id),
+            Receipts = AddOrdered(before.Receipts, receipt, item => item.Id),
+            DefaultNetIssued = 3m,
+        };
+        after.Should().BeEquivalentTo(expected, "return creation has one exact allow-listed full-ledger delta");
+    }
+
+    private static void AssertExactReturnReceiptDelta(
+        Ledger before,
+        Ledger after,
+        string returnId,
+        ConfirmInventoryReturnReceiptRequest command,
+        Fixture fixture)
+    {
+        var oldReturn = before.Returns.Single(item => item.Id == returnId);
+        var newReturn = after.Returns.Single(item => item.Id == returnId);
+        newReturn.Should().Be(oldReturn with { ReceivedBy = fixture.ActorId, ReceivedAt = newReturn.ReceivedAt });
+        newReturn.ReceivedAt.Should().NotBeNull();
+
+        var oldStock = before.Stocks.Single();
+        var newStock = after.Stocks.Single();
+        newStock.Should().Be(new StockValue(fixture.WarehouseId, fixture.IngredientId, fixture.UnitId,
+            22m, newStock.LastUpdated, newStock.RowVersion));
+        var movement = SingleAdded(before.Movements, after.Movements, item => item.Id);
+        movement.Should().Be(new MovementValue(movement.Id, movement.Date, fixture.WarehouseId,
+            fixture.IngredientId, fixture.UnitId, "RETURN", "inventoryreturns", returnId,
+            2m, 0m, 20m, 22m, null, null, null, "Trả nguyên liệu dư sau sản xuất",
+            $"Phiếu trả {newReturn.Code}", fixture.ActorId));
+        var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "StorekeeperReturnReceipt", item => item.Id);
+        AuditTimestamp(audit).Should().Be(newReturn.ReceivedAt!.Value);
+        audit.Should().Be(new AuditValue(audit.Id, newReturn.ReceivedAt.Value, fixture.ActorId,
+            "StorekeeperReturnReceipt", nameof(InventoryReturn), returnId, "StorekeeperReceived", null,
+            audit.NewValue, $"Thủ kho xác nhận phiếu trả {newReturn.Code}.", null));
+        var transition = SingleAdded(before.Transitions, after.Transitions, item => item.Id);
+        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryReturn), returnId,
+            command.CommandId, 1, "PENDING_RECEIPT", "RECEIVED", fixture.ActorId, command.ExpectedVersion,
+            $"Thủ kho xác nhận phiếu trả {newReturn.Code}.", null, null, transition.PayloadJson, 1, transition.CreatedAt));
+        var lifecycleAudit = AssertLifecycleAudit(before, after, transition, fixture.ActorId);
+        var outbox = SingleAdded(before.Outbox, after.Outbox, item => item.Id);
+        var receipt = SingleAdded(before.Receipts, after.Receipts, item => item.Id);
+        AssertLifecyclePair(transition, outbox, receipt);
+
+        var expected = before with
+        {
+            Returns = ReplaceOrdered(before.Returns, oldReturn, newReturn, item => item.Id),
+            Stocks = ReplaceOrdered(before.Stocks, oldStock, newStock, StockKey),
+            Movements = AddOrdered(before.Movements, movement, item => item.Id),
+            Audits = AddOrdered(AddOrdered(before.Audits, audit, item => item.Id), lifecycleAudit, item => item.Id),
+            Transitions = AddOrdered(before.Transitions, transition, item => item.Id),
+            Outbox = AddOrdered(before.Outbox, outbox, item => item.Id),
+            Receipts = AddOrdered(before.Receipts, receipt, item => item.Id),
+        };
+        after.Should().BeEquivalentTo(expected, "return receipt confirmation has one exact allow-listed full-ledger delta");
+    }
+
+    private static DateTime AuditTimestamp(AuditValue audit) =>
+        DateTime.Parse(audit.NewValue!["receivedAt=".Length..], null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+    private static AuditValue AssertLifecycleAudit(Ledger before, Ledger after, TransitionValue transition, string actorId)
+    {
+        var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "Lifecycle", item => item.Id);
+        audit.Should().Be(new AuditValue(audit.Id, transition.CreatedAt, actorId, "Lifecycle",
+            transition.AggregateType, transition.AggregateId, "Transition", transition.FromState,
+            transition.ToState, transition.Reason, transition.CorrelationId));
+        return audit;
+    }
+
+    private static void AssertLifecyclePair(TransitionValue transition, OutboxValue outbox, ReceiptValue receipt)
+    {
+        transition.PayloadJson.Should().NotBeNull();
+        outbox.Should().Be(new OutboxValue(outbox.Id, outbox.EventType, transition.AggregateType,
+            transition.AggregateId, transition.AggregateSequence, transition.CommandId, transition.PayloadJson!,
+            "PENDING", 0, null, null, null, null, transition.CreatedAt));
+        receipt.Should().Be(new ReceiptValue(receipt.Id, transition.CommandId, transition.AggregateType,
+            transition.AggregateId, transition.PayloadJson, transition.CreatedAt));
+    }
+
+    private static T SingleAdded<T>(T[] before, T[] after, Func<T, string?> key) =>
+        SingleAddedWhere(before, after, _ => true, key);
+
+    private static T SingleAddedWhere<T>(T[] before, T[] after, Func<T, bool> predicate, Func<T, string?> key)
+    {
+        var beforeKeys = before.Select(key).ToHashSet(StringComparer.Ordinal);
+        return after.Where(item => !beforeKeys.Contains(key(item)) && predicate(item)).Should().ContainSingle().Subject;
+    }
+
+    private static T[] AddOrdered<T>(T[] before, T added, Func<T, string?> key) =>
+        [.. before.Append(added).OrderBy(key, StringComparer.Ordinal)];
+
+    private static T[] ReplaceOrdered<T>(T[] before, T oldValue, T newValue, Func<T, string?> key) =>
+        [.. before.Select(item => EqualityComparer<T>.Default.Equals(item, oldValue) ? newValue : item)
+            .OrderBy(key, StringComparer.Ordinal)];
+
+    private static string? StockKey(StockValue item) => $"{item.WarehouseId}/{item.IngredientId}/{item.UnitId}";
 
     private sealed class Fixture : IAsyncDisposable
     {
@@ -509,8 +701,7 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
             var reconciliationReturned = returnLines.Where(line => issueLines.Any(issueLine => issueLine.ReconciliationBatchLineId is not null && Same(issueLine.IssueLineId, line.SourceIssueLineId))).Sum(item => item.Quantity);
 
             return new Ledger(
-                mode.Mode,
-                mode.Version,
+                new ModeValue(mode.Mode, mode.Version, mode.UpdatedAt, Id(mode.UpdatedBy), mode.Reason),
                 requests.Select(item => new MaterialRequestValue(Id(item.RequestId), item.RequestCode, Id(item.PlanId), item.RequestDate, item.RequestScope, item.Status, Id(item.CreatedBy), Id(item.ApprovedBy), item.ApprovedAt)).OrderBy(item => item.Id).ToArray(),
                 requestLines.Select(item => new MaterialRequestLineValue(Id(item.RequestLineId), Id(item.RequestId), Id(item.PlanLineId), Id(item.IngredientId), Id(item.UnitId), Id(item.BomId), item.PriceTierAmount, item.BomScope, item.TotalServings, item.GrossQtyPerServing, item.BomRatePercent, Id(item.AppliedPortionRuleId), item.AppliedPortionRuleSource, item.AppliedPortionRatePercent, item.YieldLossPercent, item.TotalRequiredQty, item.CurrentStockQty, item.SuggestedPurchaseQty)).OrderBy(item => item.Id).ToArray(),
                 issues.Select(item => new IssueValue(Id(item.IssueId), item.IssueCode, item.IssueDate, item.ShiftName, Id(item.WarehouseId), Id(item.MaterialRequestId), Id(item.ReconciliationBatchId), Id(item.IssuedBy), Id(item.ReceivedBy), item.ReceivedAt, item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
@@ -525,7 +716,7 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
                 (await Context.Purchaseorders.AsNoTracking().ToListAsync()).Select(item => new PurchaseOrderValue(Id(item.PurchaseOrderId), item.PurchaseOrderCode, Id(item.PurchaseRequestId), Id(item.SupplierId), Id(item.ReceivingWarehouseId), item.PurchasingTerms, item.ProposedDeliveryDate, item.OrderDate, item.Status, Id(item.CreatedBy), item.CreatedAt, item.UpdatedAt)).OrderBy(item => item.Id).ToArray(),
                 (await Context.Purchaseorderlines.AsNoTracking().ToListAsync()).Select(item => new PurchaseOrderLineValue(Id(item.PurchaseOrderLineId), Id(item.PurchaseOrderId), Id(item.PurchaseRequestLineId), Id(item.IngredientId), Id(item.UnitId), item.OrderedQty, item.ReceivedQty, item.UnitPrice)).OrderBy(item => item.Id).ToArray(),
                 (await Context.Approvalhistories.AsNoTracking().ToListAsync()).Select(item => new ApprovalValue(Id(item.ApprovalHistoryId), item.TargetType, Id(item.TargetId), item.Decision, item.OldStatus, item.NewStatus, item.Reason, Id(item.ActionBy), item.ActionAt)).OrderBy(item => item.Id).ToArray(),
-                (await Context.Auditlogs.AsNoTracking().Where(item => item.BusinessArea != "SYSTEM_OPERATION").ToListAsync()).Select(item => new AuditValue(Id(item.AuditId), item.ChangedAt, Id(item.ChangedBy), item.BusinessArea, item.EntityName, Id(item.EntityId), item.FieldName, item.OldValue, item.NewValue, item.Reason, item.CorrelationId)).OrderBy(item => item.Id).ToArray(),
+                (await Context.Auditlogs.AsNoTracking().ToListAsync()).Select(item => new AuditValue(Id(item.AuditId), item.ChangedAt, Id(item.ChangedBy), item.BusinessArea, item.EntityName, Id(item.EntityId), item.FieldName, item.OldValue, item.NewValue, item.Reason, item.CorrelationId)).OrderBy(item => item.Id).ToArray(),
                 (await Context.Reconciliationactuals.AsNoTracking().ToListAsync()).Select(item => new ActualValue(Id(item.ActualId), Id(item.BatchLineId), item.Side, item.Quantity, item.Version, Id(item.EnteredBy), item.EnteredAt)).OrderBy(item => item.Id).ToArray(),
                 (await Context.Reconciliationactualrevisions.AsNoTracking().ToListAsync()).Select(item => new RevisionValue(Id(item.RevisionId), Id(item.ActualId), item.OldQuantity, item.NewQuantity, item.Reason, Id(item.ChangedBy), item.ChangedAt)).OrderBy(item => item.Id).ToArray(),
                 (await Context.Reconciliationdispositions.AsNoTracking().ToListAsync()).Select(item => new DispositionValue(Id(item.DispositionId), Id(item.BatchLineId), item.Category, item.Reason, item.Version, Id(item.DisposedBy), item.DisposedAt)).OrderBy(item => item.Id).ToArray(),
@@ -548,8 +739,7 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
     }
 
     private sealed record Ledger(
-        string Mode,
-        long ModeVersion,
+        ModeValue Mode,
         MaterialRequestValue[] MaterialRequests,
         MaterialRequestLineValue[] MaterialRequestLines,
         IssueValue[] Issues,
@@ -575,6 +765,7 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         decimal DefaultNetIssued,
         decimal ReconciliationNetIssued);
 
+    private sealed record ModeValue(string Mode, long Version, DateTime UpdatedAt, string? UpdatedBy, string? Reason);
     private sealed record MaterialRequestValue(string? Id, string Code, string? PlanId, DateOnly Date, string Scope, string Status, string? CreatedBy, string? ApprovedBy, DateTime? ApprovedAt);
     private sealed record MaterialRequestLineValue(string? Id, string? ParentId, string? PlanLineId, string? IngredientId, string? UnitId, string? BomId, decimal PriceTierAmount, string BomScope, int TotalServings, decimal GrossQtyPerServing, decimal BomRatePercent, string? AppliedPortionRuleId, string AppliedPortionRuleSource, decimal AppliedPortionRatePercent, decimal? YieldLossPercent, decimal TotalRequiredQty, decimal CurrentStockQty, decimal SuggestedPurchaseQty);
     private sealed record IssueValue(string? Id, string Code, DateOnly Date, string? ShiftName, string? WarehouseId, string? MaterialRequestId, string? ReconciliationBatchId, string? IssuedBy, string? ReceivedBy, DateTime? ReceivedAt, DateTime CreatedAt);
