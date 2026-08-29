@@ -209,7 +209,7 @@ Plans:
 
 **Goal:** Refine `MATERIAL_RECONCILIATION` into one closed workflow: import/select Weekly Menu source, calculate exact material quantities, transfer one frozen issue list to Warehouse, create real source-linked inventory issue documents, then compare required versus warehouse-issued quantities on one compact reconciliation page.
 
-**Requirements:** MRX-01, MRX-02, MRX-03, MRX-04, MRX-05, MRX-06
+**Requirements:** MRX-01, MRX-02, MRX-03, MRX-04, MRX-05, MRX-06L, MRX-06P
 
 **Depends on:** Phase 29 COMPLETE and backend/FE capability commits through `40619485`
 
@@ -233,4 +233,6 @@ Plans:
 - [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
 - [ ] 30-03-PLAN.md — backend command transaction fences for server-authoritative mode/version and exact family writes (wave 3).
 - [ ] 30-04-PLAN.md — exact-family reads/aggregates/audit, immutable frozen facts and idempotent stock projection (wave 4).
-- [ ] 30-05-PLAN.md — frontend mode-version cache, URL, preload and stale-session ownership with DEFAULT round-trip (wave 5).
+- [ ] 30-05-PLAN.md — real two-tab mode authority, captured stale replay and bounded local closeout with DEFAULT round-trip (wave 5).
+
+**MRX-06 disposition:** Plans 30-03..05 may complete only `MRX-06L` using local deterministic tests and source-aware closure. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`; these local plans must not access the protected lane and cannot mark MRX-06 or MRX-06P complete.

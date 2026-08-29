@@ -62,7 +62,9 @@
 - [ ] **MRX-03:** Warehouse creates real inventory issue documents through the canonical stock-ledger transaction, and every issue line retains exact reconciliation batch-line lineage with idempotent/concurrent duplicate protection.
 - [ ] **MRX-04:** Reconciliation compares only frozen required quantity with warehouse-authoritative issued quantity; purchased concepts and manually entered issued actuals are absent from the new mode workflow, while completed Phase 29 history remains readable and immutable.
 - [ ] **MRX-05:** Every retained route/tab is reduced to mode-relevant content and 5–7 decision fields; hidden routes, tabs and default-mode owners mount no excluded query/action, and user display preferences cannot re-enable backend-excluded capability.
-- [ ] **MRX-06:** Full tests and protected headed evidence prove import/materialization → transfer → issue/stock movement → comparison/disposition/completion → reload across five desktop viewports, with zero procurement mutation/request and final mode restored to `DEFAULT`.
+- [ ] **MRX-06:** Phase 30 verification is split into independently traceable local closure and protected evidence; MRX-06 is complete only when both children are complete.
+  - [ ] **MRX-06L:** Local deterministic backend/frontend tests and source-aware ownership closure prove paired-family isolation, transactional races, retries/concurrency, frozen snapshots, permissions, stale two-tab authority and DEFAULT compatibility without any protected database/API/browser access.
+  - [ ] **MRX-06P:** After fresh explicit operator authorization, protected MySQL/API/headed-browser evidence proves import/materialization → transfer → issue/stock movement → comparison/disposition/completion → reload across five desktop viewports, with zero procurement mutation/request and final mode restored to `DEFAULT`. This child is authorization-blocked and cannot be completed by Plans 30-03..05.
 
 ## Project-wide clarity and density
 
@@ -92,4 +94,6 @@
 | OPM-01..04 | 29 | Complete |
 | MRC-01..04 | 29 | Complete |
 | CLR-01..03 | 29 | Complete |
-| MRX-01..06 | 30 | Planned |
+| MRX-01..05 | 30 | Planned |
+| MRX-06L | 30 local Plans 30-03..05 | Planned |
+| MRX-06P | 30 separately authorized protected evidence | BLOCKED — fresh operator authorization required |
