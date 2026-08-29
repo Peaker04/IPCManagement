@@ -538,9 +538,15 @@ public sealed class SupplementalMaterialRequestServiceTests
             context,
             unitOfWork,
             stockLedgerService ?? Substitute.For<IStockLedgerService>(),
-            transactionRunner ?? new EfTransactionRunner(context),
+            transactionRunner ?? new ProtectedImmediateTransactionRunner(),
             resolver,
-            requestContext);
+            requestContext ?? new SystemOperationRequestContext
+            {
+                Mode = SystemOperationEligibility.Default,
+                OperationKey = "supplementalmaterialrequests.test",
+                ExpectedModeVersion = 1,
+                Disposition = OperationDisposition.Retained,
+            });
     }
 
     private sealed class DuplicateOpenIssueLineTransactionRunner : IEfTransactionRunner
@@ -559,7 +565,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             Func<CancellationToken, Task<bool>> verifySucceeded,
             System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted,
             CancellationToken cancellationToken = default)
-            => throw new InvalidOperationException("This test double does not support protected transactions.");
+            => throw DuplicateKeyException();
 
         public Task<TResult> ExecuteAsync<TResult>(
             Func<CancellationToken, Task<TResult>> operation,
@@ -572,6 +578,16 @@ public sealed class SupplementalMaterialRequestServiceTests
             => new(
                 "Concurrent insert failed.",
                 new InvalidOperationException("Duplicate entry for key 'uxSupplementalMaterialRequestsOpenIssueLine'"));
+    }
+
+    private sealed class ProtectedImmediateTransactionRunner : IEfTransactionRunner
+    {
+        public Task ExecuteAsync(Func<CancellationToken, Task> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
+        public Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
+        public Task<TResult> ExecuteProtectedAsync<TResult>(string operationKey, long expectedModeVersion, Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+            => operation(cancellationToken);
     }
 
     private static (byte[] IssueId, byte[] IssueLineId, byte[] WarehouseId, byte[] UserId, byte[] IngredientId, byte[] UnitId, byte[] MaterialRequestId) SeedReceivedIssueLine(

@@ -62,5 +62,7 @@ public sealed class RouteSupplementalMaterialRequestToPurchasing
 
 public sealed class RejectSupplementalMaterialRequest
 {
+    public string CommandId { get; set; } = string.Empty;
+    public long ExpectedVersion { get; set; }
     public string Reason { get; set; } = string.Empty;
 }

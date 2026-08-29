@@ -147,7 +147,10 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             {
                 return DeserializeResponse(replay.ResponseJson);
             }
-            return await _transactionRunner.ExecuteAsync(
+            var (operationKey, expectedModeVersion) = RequiredModeProtection();
+            return await _transactionRunner.ExecuteProtectedAsync(
+                operationKey,
+                expectedModeVersion,
                 async _ =>
                 {
                     var source = await LoadSourceIssueLineForCreateAsync(issueLineId);
@@ -254,7 +257,10 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         {
             return DeserializeResponse(replay.ResponseJson);
         }
-        return await _transactionRunner.ExecuteAsync(
+        var (operationKey, expectedModeVersion) = RequiredModeProtection();
+        return await _transactionRunner.ExecuteProtectedAsync(
+            operationKey,
+            expectedModeVersion,
             async _ =>
             {
                 var entity = await LoadTrackedAsync(_context, id);
@@ -357,7 +363,10 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         }
         var purchaseRequestId = GuidHelper.NewId();
         var purchaseRequestCode = $"PR-SUP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
-        return await _transactionRunner.ExecuteAsync(
+        var (operationKey, expectedModeVersion) = RequiredModeProtection();
+        return await _transactionRunner.ExecuteProtectedAsync(
+            operationKey,
+            expectedModeVersion,
             async _ =>
             {
                 var entity = await LoadTrackedAsync(_context, id);
@@ -459,10 +468,15 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string? scopedWarehouseId = null)
     {
         EnsureDefaultMode();
+        var commandId = RequireCommandId(request.CommandId);
         var actorId = ParseActor(actorUserId);
-        var entity = await LoadTrackedAsync(_context, id);
-        await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
-        EnsureActionable(entity);
+        var requestId = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
+        var recorder = new LifecycleTransitionRecorder(_context);
+        var replay = await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId);
+        if (replay is not null)
+        {
+            return DeserializeResponse(replay.ResponseJson);
+        }
 
         var reason = request.Reason?.Trim();
         if (string.IsNullOrWhiteSpace(reason))
@@ -470,17 +484,40 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             throw new ArgumentException("Cần nhập lý do từ chối yêu cầu bổ sung.");
         }
 
-        var current = await MapAsync(entity);
-        if (current.FulfilledQty > 0 || current.PurchaseRequestId is not null)
-        {
-            throw new BusinessRuleException("Không thể từ chối yêu cầu đã cấp một phần hoặc đã chuyển sang thu mua.");
-        }
+        var (operationKey, expectedModeVersion) = RequiredModeProtection();
+        return await _transactionRunner.ExecuteProtectedAsync(
+            operationKey,
+            expectedModeVersion,
+            async _ =>
+            {
+                var entity = await LoadTrackedAsync(_context, id);
+                await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
+                EnsureActionable(entity);
+                var current = await MapAsync(entity);
+                if (request.ExpectedVersion != current.ConcurrencyVersion)
+                {
+                    throw new DbUpdateConcurrencyException("Yêu cầu bổ sung đã thay đổi; hãy tải lại trạng thái.");
+                }
+                if (current.FulfilledQty > 0 || current.PurchaseRequestId is not null)
+                {
+                    throw new BusinessRuleException("Không thể từ chối yêu cầu đã cấp một phần hoặc đã chuyển sang thu mua.");
+                }
 
-        var oldStatus = entity.Status;
-        entity.Status = RejectedStatus;
-        AddAudit(_context, entity, actorId, "Reject", oldStatus, RejectedStatus, reason);
-        await _context.SaveChangesAsync();
-        return await MapAsync(entity);
+                var oldStatus = entity.Status;
+                entity.Status = RejectedStatus;
+                AddAudit(_context, entity, actorId, "Reject", oldStatus, RejectedStatus, reason);
+                await _context.SaveChangesAsync();
+                var result = await MapAsync(entity);
+                result.ConcurrencyVersion = checked(request.ExpectedVersion + 1);
+                var response = JsonSerializer.Serialize(result);
+                recorder.Stage(new LifecycleTransitionRequest(
+                    AggregateType, entity.RequestId, commandId, checked((int)request.ExpectedVersion), oldStatus,
+                    RejectedStatus, actorId, request.ExpectedVersion, reason, commandId, null, response, response));
+                await _context.SaveChangesAsync();
+                return result;
+            },
+            async token => await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId, token) is not null,
+            IsolationLevel.Serializable);
     }
 
     private async Task<SupplementalMaterialRequestDto> MapAsync(
@@ -604,6 +641,15 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             throw new BusinessRuleException("Yêu cầu cấp bổ sung chỉ khả dụng trong chế độ DEFAULT.");
         }
     }
+
+    private (string OperationKey, long ExpectedModeVersion) RequiredModeProtection() =>
+        _requestContext is null
+            ? throw new InvalidOperationException("Thiếu ngữ cảnh mode/version cho yêu cầu cấp bổ sung.")
+            : (_requestContext.OperationKey, _requestContext.ExpectedModeVersion) switch
+            {
+                ({ Length: > 0 } operationKey, long expectedModeVersion) => (operationKey, expectedModeVersion),
+                _ => throw new InvalidOperationException("Thiếu ngữ cảnh mode/version cho yêu cầu cấp bổ sung.")
+            };
 
     private async Task<SupplementalMaterialRequest?> FindOpenByIssueLineAsync(byte[] issueLineId)
     {
