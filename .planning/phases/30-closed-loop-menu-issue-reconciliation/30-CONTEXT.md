@@ -79,17 +79,44 @@ This mode has no Purchasing step and assumes the operational warehouse has suffi
 - Screenshots are reviewer artifacts only; verdicts require DOM/query/request/DB/reload evidence.
 </ui_rules>
 
-<verification>
-## Required verification
+<data_isolation_decisions>
+## Locked L2 continuation decisions (E1-1 through E5-1)
 
-- Backend domain, authorization, operation-mode, migration and idempotency tests.
-- Generated OpenAPI/frontend contract parity.
-- Frontend route/capability/query-ownership tests proving removed routes/tabs produce zero requests.
-- Focused semantic tests for each retained work surface.
-- Full backend/frontend regression, lint, build, EF pending-model and hygiene gates.
-- Headed Chrome across the five current desktop viewports.
-- End-to-end evidence: Weekly Menu source → required lines → transfer → inventory issue/stock movement → reconciliation difference → disposition/completion → reload.
-- DB evidence must use raw .NET GUID storage representation and preserve final operation mode `DEFAULT`.
+- **E1-1 — exact family authority:** transactional issue ownership is permanently one of `DEFAULT` (`MaterialRequest` / `MaterialRequestLine`), `MATERIAL_RECONCILIATION` (`ReconciliationBatch` / `ReconciliationBatchLine`) or historical `LEGACY_UNCLASSIFIED`. The legacy class is audit/detail read-only and excluded from both business aggregates; no inferred backfill is allowed.
+- **E2-1 — transactional mode/version authority:** every mode-sensitive command rechecks the active server mode and expected mode version inside the same database transaction immediately before its first durable write. A race with a mode change rolls back workflow state, issue header/lines, stock movement, lifecycle/audit and idempotency response together.
+- **E3-1 — stale client handling:** frontend caches, URL scope, persisted selection and preloads are subordinate to the server mode/version. A version change clears or partitions mode-owned state and relocates invalid routes; delayed clients still lose at the backend transaction fence.
+- **E4-1 — immutable materialization:** once a reconciliation batch is materialized/READY, its source menu/version, servings contributors, BOM selection, ingredient, canonical unit, required quantity and tolerance are frozen. Later shared-master edits affect only a newly materialized batch.
+- **E5-1 — labelled audit without mixed business totals:** audit may expose all source families only with `sourceFamily` and exact source identity on every row/filter/export. Business lists, processing owners and aggregates remain family-exact and never sum across families.
+- All nine prohibitions in `30-SPEC.md` are locked. In particular: no name/code/week/date lineage inference, no record conversion on mode switch, no duplicate inventory/master authority, no permission bypass, and no protected `ipc_lane7` mutation.
+- The approved execution scope is local deterministic verification only. Protected MySQL/API/headed-browser mutation is removed from the remaining plan and remains a separately authorized activity outside this continuation.
+</data_isolation_decisions>
+
+<ownership_matrix>
+## Entity × read × write × aggregate × mode-switch ownership matrix
+
+| Entity / authority | DEFAULT reads | RECONCILIATION reads | Write owner and transactional fence | Aggregate membership | Mode-switch behavior |
+|---|---|---|---|---|---|
+| Shared Material / Unit / Dish / BOM / Customer | Retained authorized business/admin readers | Retained Admin Data BOM/material validation and exact source readers | Existing Admin Data permission owners only; mode grants no permission | Never duplicated by mode; frozen batches do not re-read them | Shared facts remain available; no workflow re-parenting |
+| Physical `CurrentStock` / `StockMovement` | Canonical Warehouse views and transactions | Canonical Warehouse views and source-linked issue transaction | Warehouse stock ledger only; mode/version + permission checked before write | Shared physical truth, but each movement contributes through one exact issue-line family | Preserved; switching mode creates no stock delta |
+| `MaterialRequest` / `MaterialRequestLine` | Business list/detail/approval/cleanup/background owners may process exact MaterialRequest lineage | Excluded from reconciliation business views; audit/detail only when family labelled | Existing DEFAULT workflow owners under DEFAULT and permission fences | DEFAULT totals only | Frozen while inactive; same IDs/version/state resume on return |
+| `ReconciliationBatch` / line / contributor snapshot | Historical labelled detail only where authorized | Primary closed-loop list/detail/transfer/completion authority | Reconciliation service commands under RECONCILIATION plus expected mode/version transaction fence | RECONCILIATION required totals only from persisted frozen lines | Frozen while inactive; no delete/copy/convert/recompute |
+| `InventoryIssue` header | Only MaterialRequest-origin business rows; legacy only labelled audit/detail | Only ReconciliationBatch-origin source list/history; legacy only labelled audit/detail | `InventoryIssueService` + canonical Warehouse permission; header has exactly one family | Classified by exact header lineage; unclassified excluded | Existing records preserved; inactive-family mutation rejected |
+| `InventoryIssueLine` | Only exact `MaterialRequestLineId` | Only exact `ReconciliationBatchLineId` | Same issue transaction; header/line family must agree before stock mutation | One line contributes to one family only | Identity and quantities preserved |
+| Return/correction linked to issue line | Net semantics for exact DEFAULT source line | Net semantics for exact reconciliation source line | Existing canonical Warehouse return/correction authority | Subtract/include only through exact original issue-line lineage; never name/date joins | Preserved and counted with original family |
+| Lifecycle command / idempotency response | Keyed to exact DEFAULT aggregate/source | Keyed to exact reconciliation aggregate/source | Staged in the same transaction as owning mutation after mode/version recheck | Replay returns original result; no second contribution | Stale replay fails or returns prior committed result; never crosses family |
+| Audit row / export | May read all authorized families with explicit labels | May read all authorized families with explicit labels | Existing audited owner; source identity is mandatory | No mixed business sum; audit grouping is family-labelled | Preserved across switches |
+| Frontend RTK cache / URL / persisted selection / preload | Partitioned or invalidated by `DEFAULT` + mode version | Partitioned or invalidated by `MATERIAL_RECONCILIATION` + mode version | Browser is never authority; mutations carry expected server version | No client-side cross-family merge | Version change clears stale selected records, blocks preload and relocates invalid routes |
+| `LEGACY_UNCLASSIFIED` issue records | Authorized audit/detail only | Authorized audit/detail only | Immutable until exact evidence is explicitly established by a separately authorized process | Excluded from both business aggregates | Preserved unchanged |
+</ownership_matrix>
+
+<verification>
+## Required verification for the approved continuation
+
+- Local deterministic backend tests at confirmed controller/service seams for exact-family read/write/aggregate behavior, in-transaction mode/version races, frozen snapshots and idempotent stock projection.
+- Generated OpenAPI/frontend contract parity when a public contract changes.
+- Frontend provider/router/cache/query-ownership tests for mode-version invalidation, URL/selection cleanup, route relocation and zero excluded preload/request ownership.
+- DEFAULT compatibility suites, full bounded backend/frontend regression, lint, build, EF pending-model and hygiene gates.
+- No database command may target `ipc_lane7`; no protected browser/API mutation is part of these plans.
 </verification>
 
 <out_of_scope>
