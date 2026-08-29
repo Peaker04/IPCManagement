@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: in_progress
-stopped_at: Completed 30-04-PLAN.md
-last_updated: "2026-08-29T21:21:47.516Z"
+stopped_at: Remediated verifier gaps for 30-04-PLAN.md
+last_updated: "2026-08-29T21:38:43.525Z"
 progress:
   total_phases: 5
   completed_phases: 4
@@ -35,10 +35,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-29T21:21:47.473Z
+**Last session:** 2026-08-29T21:38:43.484Z
 **Resume file:** None
 
-**Stopped at:** Completed 30-04-PLAN.md
+**Stopped at:** Remediated verifier gaps for 30-04-PLAN.md
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
 Next workflow: execute `30-05-PLAN.md`. Preserve retained migration-75 authority; no protected database mutation is authorized by Plan 30-04.
@@ -84,6 +84,7 @@ Next workflow: execute `30-05-PLAN.md`. Preserve retained migration-75 authority
 - [Phase ?]: Reconciliation is a route-owned no-tab page; Weekly Menu and Warehouse no longer embed or mutate reconciliation actuals.
 - [Phase ?]: Canonical returns bind exact source family and active operation mode/version before mutation.
 - [Phase ?]: Supplemental and explicit legacy lineage disposition remain DEFAULT-only.
+- [Phase ?]: Phase 30-04 remediation: reconciliation mutation endpoints are explicitly ReconciliationOnly; warehouse transfer binds the captured operation mode/version inside its transaction.
 
 ### Quick Tasks Completed
 
