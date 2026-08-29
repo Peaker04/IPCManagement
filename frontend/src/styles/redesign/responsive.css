@@ -126,6 +126,12 @@
   background: #fff;
 }
 
+/* Reconciliation schedule is the primary work surface: use the remaining viewport instead of
+   forcing an internal 520px scroll area followed by unused page space. */
+.ipc-table-viewport.ipc-weekly-menu-shell--viewport-fill {
+  max-height: calc(100dvh - 17rem);
+}
+
 .ipc-table-viewport td[class~="h-[320px]"] {
   height: 120px;
 }

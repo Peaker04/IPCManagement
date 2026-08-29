@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { CommandBar, OperationalFrame, StatusBadge } from '@/components/common'
 import { ROUTES } from '@/lib/routeConfig'
 
@@ -22,29 +23,28 @@ export function ReconciliationDashboardPage() {
         </CommandBar>
       }
     >
-      <section className="ipc-dashboard-incident" aria-labelledby="reconciliation-dashboard-title">
-        <div className="ipc-dashboard-incident-main">
-          <div className="ipc-dashboard-incident-copy">
-            <h2 id="reconciliation-dashboard-title">Luồng vận hành hiện tại</h2>
-            <p>Mỗi bước sử dụng cùng một lô định lượng; chỉ Kho được ghi nhận số đã xuất và biến động tồn kho.</p>
+      <section className="rounded-md border border-slate-200 bg-white p-4" aria-labelledby="reconciliation-workflow-title">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-3">
+          <div>
+            <h2 id="reconciliation-workflow-title" className="text-base font-bold text-slate-900">Quy trình 4 bước</h2>
+            <p className="mt-1 text-sm text-slate-600">Đi theo một chiều từ kế hoạch đến xử lý sai lệch.</p>
           </div>
-          <StatusBadge variant="success">Chế độ đối chiếu</StatusBadge>
+          <StatusBadge variant="success"><CheckCircle2 size={14} /> Chế độ đối chiếu</StatusBadge>
         </div>
-      </section>
-
-      <section className="ipc-dashboard-section" aria-labelledby="reconciliation-workflow-title">
-        <div className="ipc-dashboard-section-heading">
-          <div><h2 id="reconciliation-workflow-title">Các bước cần thực hiện</h2><p>Thực hiện lần lượt để tránh dùng sai nguồn dữ liệu.</p></div>
-        </div>
-        <div className="ipc-dashboard-gates">
+        <ol className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Các bước đối chiếu nguyên liệu">
           {steps.map((step) => (
-            <Link key={step.order} to={step.route} className="ipc-dashboard-gate">
-              <span className="ipc-dashboard-gate-order">{step.order}</span>
-              <span className="ipc-dashboard-gate-copy"><strong>{step.title}</strong><small>{step.description}</small></span>
-              <span className="ipc-dashboard-gate-next">Mở bước</span>
-            </Link>
+            <li key={step.order} className="min-w-0">
+              <Link to={step.route} className="group flex h-full min-h-28 flex-col rounded-md border border-slate-200 bg-slate-50 p-3 text-left no-underline transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-blue-700">BƯỚC {step.order}</span>
+                  <ArrowRight size={16} className="text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-700" aria-hidden="true" />
+                </span>
+                <strong className="mt-2 text-sm font-bold text-slate-900">{step.title}</strong>
+                <span className="mt-1 text-xs leading-5 text-slate-600">{step.description}</span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
     </OperationalFrame>

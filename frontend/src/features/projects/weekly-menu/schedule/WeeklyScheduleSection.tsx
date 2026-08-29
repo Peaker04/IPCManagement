@@ -10,9 +10,10 @@ type Props = {
   hasCommittedWeek: boolean
   rows: ImportedLayoutRow[]
   dishNamesById?: ReadonlyMap<string, string>
+  maxBodyHeight?: string
 }
 
-export function WeeklyScheduleSection({ scope, rows, dishNamesById }: Props) {
+export function WeeklyScheduleSection({ scope, rows, dishNamesById, maxBodyHeight }: Props) {
   return (
     <SectionPanel
       className="ipc-weekly-schedule-panel"
@@ -20,7 +21,7 @@ export function WeeklyScheduleSection({ scope, rows, dishNamesById }: Props) {
       icon={<Calendar size={18} color="var(--ipc-slate-600)" />}
       badge={<StatusBadge variant={scope.activeDayKey ? 'success' : 'warning'}>{scope.activeDayKey ? `Đang thực hiện · ${scope.activeServiceLabel}` : scope.activeServiceLabel}</StatusBadge>}
     >
-      <ImportedLayoutMatrix rows={rows} displayDays={scope.displayDays} activeDayKey={scope.activeDayKey} dishNamesById={dishNamesById} />
+      <ImportedLayoutMatrix rows={rows} displayDays={scope.displayDays} activeDayKey={scope.activeDayKey} dishNamesById={dishNamesById} maxBodyHeight={maxBodyHeight} />
     </SectionPanel>
   )
 }

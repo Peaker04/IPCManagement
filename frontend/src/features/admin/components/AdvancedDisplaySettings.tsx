@@ -37,21 +37,20 @@ import {
 interface NavigationItemConfig {
   key: NavigationPreferenceKey;
   label: string;
-  description: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 const navigationItems: ReadonlyArray<NavigationItemConfig> = [
-  { key: 'dashboard', label: 'Tổng quan', description: 'Bàn điều hành và cảnh báo trong ngày.', icon: LayoutDashboard },
-  { key: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch sản xuất và định lượng.', icon: CalendarDays },
-  { key: 'meal-orders', label: 'Điều phối suất ăn', description: 'Số suất và lịch phục vụ.', icon: Utensils },
-  { key: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ cần phê duyệt.', icon: ClipboardCheck },
-  { key: 'purchasing', label: 'Thu mua', description: 'Đề xuất và chứng từ mua.', icon: ShoppingCart },
-  { key: 'warehouse', label: 'Kho nguyên liệu', description: 'Nhập, xuất và xử lý chênh lệch.', icon: Warehouse },
-  { key: 'chef-dashboard', label: 'Bếp trưởng', description: 'Checklist và xác nhận bếp.', icon: ChefHat },
-  { key: 'reports', label: 'Báo cáo vận hành', description: 'Báo cáo biến động và đối chiếu.', icon: TrendingUp },
-  { key: 'admin-data', label: 'Quản trị dữ liệu', description: 'BOM, tồn kho và nhật ký.', icon: Database },
-  { key: 'approval-rules', label: 'Thiết lập quy trình duyệt', description: 'Quy tắc và thời hạn phê duyệt.', icon: Settings },
+  { key: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { key: 'weekly-menu', label: 'Thực đơn tuần', icon: CalendarDays },
+  { key: 'meal-orders', label: 'Điều phối suất ăn', icon: Utensils },
+  { key: 'approvals', label: 'Duyệt vận hành', icon: ClipboardCheck },
+  { key: 'purchasing', label: 'Thu mua', icon: ShoppingCart },
+  { key: 'warehouse', label: 'Kho nguyên liệu', icon: Warehouse },
+  { key: 'chef-dashboard', label: 'Bếp trưởng', icon: ChefHat },
+  { key: 'reports', label: 'Báo cáo vận hành', icon: TrendingUp },
+  { key: 'admin-data', label: 'Quản trị dữ liệu', icon: Database },
+  { key: 'approval-rules', label: 'Thiết lập quy trình duyệt', icon: Settings },
 ];
 
 const groupIcons: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -121,17 +120,14 @@ const NavigationItemCard = memo(function NavigationItemCard({
         >
           <Icon size={18} />
         </div>
-        <div className="min-w-0">
-          <span
-            className={cn(
-              'block truncate text-sm font-semibold',
-              visible ? 'text-slate-800' : 'text-slate-700 line-through decoration-slate-500'
-            )}
-          >
-            {item.label}
-          </span>
-          <p className="mt-0.5 truncate text-xs text-slate-500">{item.description}</p>
-        </div>
+        <span
+          className={cn(
+            'min-w-0 truncate text-sm font-semibold',
+            visible ? 'text-slate-800' : 'text-slate-700 line-through decoration-slate-500'
+          )}
+        >
+          {item.label}
+        </span>
       </div>
 
       <div className="flex shrink-0 items-center gap-2.5 pl-2">
@@ -232,10 +228,7 @@ const PageTabGroupCard = memo(function PageTabGroupCard({
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-slate-600">
               <Icon size={16} />
             </div>
-            <div className="min-w-0">
-              <span className="block text-sm font-semibold text-slate-800">{group.label}</span>
-              <p className="mt-0.5 truncate text-xs text-slate-700">{group.description}</p>
-            </div>
+            <span className="min-w-0 truncate text-sm font-semibold text-slate-800">{group.label}</span>
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
@@ -399,7 +392,7 @@ export function AdvancedDisplaySettings() {
   );
 
   return (
-    <div className="space-y-6 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
+    <div className="space-y-4 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
       {/* Top Actions & Summary Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
@@ -441,7 +434,6 @@ export function AdvancedDisplaySettings() {
       <SectionPanel
         title="Menu điều hướng chính (Thanh bên trái)"
         icon={<SlidersHorizontal size={18} />}
-        description="Bật hoặc tắt các khu vực nghiệp vụ hiển thị trên thanh menu chính bên trái màn hình."
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {displayedNavigationItems.map((item) => (
@@ -459,7 +451,6 @@ export function AdvancedDisplaySettings() {
       <SectionPanel
         title="Tab chức năng theo từng trang"
         icon={<Layers size={18} />}
-        description="Mở từng nhóm trang nghiệp vụ để ẩn/hiện các tab chức năng bên trong."
         badge={
           <div className="flex items-center gap-2">
             <Button

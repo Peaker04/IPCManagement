@@ -96,7 +96,7 @@ export function ReconciliationWeeklyMenuPage() {
   </div>}>
     <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={[{ label: 'danh sách khách hàng', view: customersView }, { label: 'danh mục món và BOM', view: catalogView }, { label: 'kế hoạch tuần đối chiếu', view: menuView }]} refreshLabel="Đang cập nhật kế hoạch tuần">
       <ViewSwitcher ariaLabel="Chọn góc nhìn kế hoạch tuần" tabs={[{ id: 'schedule', label: 'Kế hoạch tuần' }, { id: 'demand', label: 'Định lượng xuất kho' }]} activeTab={activeView} onTabChange={(id) => updateScope({ view: id as ReconciliationView })} />
-      <div className="relative min-h-[480px]">
+      <div className="relative min-h-0">
         {activeView === 'schedule' ? <div id="schedule-panel" role="tabpanel" aria-labelledby="schedule-tab">
           {scheduleEmptyState ? <EmptyState
             variant="uncreated"
@@ -104,7 +104,7 @@ export function ReconciliationWeeklyMenuPage() {
             description={scheduleEmptyState.description}
             action={<Button type="button" onClick={focusScheduleScope}>{scheduleEmptyState.actionLabel}</Button>}
             className="min-h-[480px]"
-          /> : <Suspense fallback={<div aria-busy="true" className="min-h-[480px] rounded-md bg-slate-50" />}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={Boolean(menu?.weekStartDate)} rows={committedRows} dishNamesById={dishNamesById} /></Suspense>}
+          /> : <Suspense fallback={<div aria-busy="true" className="min-h-[320px] rounded-md bg-slate-50" />}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={Boolean(menu?.weekStartDate)} rows={committedRows} dishNamesById={dishNamesById} maxBodyHeight="ipc-weekly-menu-shell--viewport-fill" /></Suspense>}
         </div> : <div id="demand-panel" role="tabpanel" aria-labelledby="demand-tab"><ClosedLoopTransferPanel menuVersionId={menu?.menuVersionId} scopeLabel={customer && displayedWeekStart ? `${customer.customerCode} · tuần ${formatImportDate(displayedWeekStart)}` : 'Chọn khách hàng và tuần'} /></div>}
       </div>
     </QueryViewBoundary>

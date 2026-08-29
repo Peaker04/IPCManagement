@@ -10,6 +10,8 @@ import {
   readPageTabPreferences,
 } from '@/lib/navigationPreferences';
 import { AdvancedDisplaySettings } from './AdvancedDisplaySettings';
+import advancedSettingsSource from './AdvancedDisplaySettings.tsx?raw';
+import operationModeSource from './SystemOperationModeSettings.tsx?raw';
 
 const renderComponent = () => {
   return render(
@@ -22,6 +24,17 @@ const renderComponent = () => {
 describe('AdvancedDisplaySettings Component', () => {
   beforeEach(() => {
     window.localStorage.clear();
+  });
+
+  it('keeps the settings surface scannable and presents two explicit operation modes', () => {
+    expect(advancedSettingsSource).not.toContain('Bàn điều hành và cảnh báo trong ngày.')
+    expect(advancedSettingsSource).not.toContain('Bật hoặc tắt các khu vực nghiệp vụ')
+    expect(advancedSettingsSource).not.toContain('{group.description}')
+    expect(operationModeSource).toContain("id: 'DEFAULT'")
+    expect(operationModeSource).toContain("id: 'MATERIAL_RECONCILIATION'")
+    expect(operationModeSource).toContain('data-operation-mode={mode.id}')
+    expect(operationModeSource).toContain('Chuyển sang')
+    expect(operationModeSource).toContain('Đang dùng')
   });
 
   it('renders all 10 main navigation items and summary counters', () => {

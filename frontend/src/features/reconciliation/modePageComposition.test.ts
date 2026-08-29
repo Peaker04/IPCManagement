@@ -20,6 +20,9 @@ describe('operation-mode page composition boundaries', () => {
     expect(reconciliationWeekly).toContain("label: 'Định lượng xuất kho'")
     expect(reconciliationWeekly).not.toMatch(/use(?:GetCustomerContracts|GetMenuSchedules|GetMealQuantityPlans|MaterialDemand|PurchaseSummary|MenuCost|DishMaterials)/)
     expect(reconciliationWeekly).toMatch(/activeView === 'schedule'[\s\S]*ClosedLoopTransferPanel/)
+    expect(reconciliationWeekly).toContain('className="relative min-h-0"')
+    expect(reconciliationWeekly).toContain('maxBodyHeight="ipc-weekly-menu-shell--viewport-fill"')
+    expect(reconciliationWeekly).not.toContain('className="relative min-h-[480px]"')
   })
 
   it('keeps Warehouse, Reconciliation and Admin Data dedicated', () => {
@@ -38,6 +41,9 @@ describe('operation-mode page composition boundaries', () => {
     expect(dashboardRouter).toContain('<ReconciliationDashboardPage />')
     expect(reconciliationDashboard).not.toMatch(/useWorkflowOverview|useGetOperationalKpisQuery|workflowApi|reportsApi/)
     expect(reconciliationDashboard).not.toMatch(/purchasing|reports/i)
+    expect(reconciliationDashboard).toContain('md:grid-cols-2 xl:grid-cols-4')
+    expect(reconciliationDashboard).toContain('aria-label="Các bước đối chiếu nguyên liệu"')
+    expect(reconciliationDashboard).not.toContain('ipc-dashboard-gates')
     expect(routePreloaders).toContain("mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.DASHBOARD")
   })
 })
