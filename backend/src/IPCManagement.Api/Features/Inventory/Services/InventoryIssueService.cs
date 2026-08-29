@@ -285,7 +285,7 @@ public class InventoryIssueService : IInventoryIssueService
 
                 if (issue.ReceivedAt is not null)
                 {
-                    throw new ResourceConflictException("Phiếu xuất này đã được bếp xác nhận nhận nguyên liệu.");
+                    return InventoryMapper.MapIssue(issue, includeLines: true);
                 }
 
                 var confirmedAt = DateTime.UtcNow;
