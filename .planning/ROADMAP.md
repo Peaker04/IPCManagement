@@ -225,18 +225,22 @@ Plans:
 - Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
 - Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
 
-**Plans:** 4/9 plans executed / 5 conceptual waves
+**Plans:** 3 complete + 1 partial/blocked / 13 total plans / 5 conceptual waves
 
 Plans:
 
 - [x] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
 - [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
 - [x] 30-03-PLAN.md — exact-one backend issue authority and retained endpoint permission matrix (wave 3; complete at `722175f2`).
-- [x] 30-04-PLAN.md — backend Wave 4 slice A: dual-family canonical return/correction, DEFAULT-only supplemental/legacy exception and inactive freeze/resume (depends on 30-03).
-- [ ] 30-05-PLAN.md — backend Wave 4 slice B: exact discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-04).
-- [ ] 30-06-PLAN.md — backend Wave 4 slice C: exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-05).
-- [ ] 30-07-PLAN.md — backend Wave 4 slice D: frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-06).
-- [ ] 30-08-PLAN.md — frontend Wave 5 slice A: production two-tab authority channel and sharply bounded inactive-owner cleanup (depends on 30-07).
-- [ ] 30-09-PLAN.md — frontend Wave 5 slice B: deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-08).
+- [!] 30-04-PLAN.md — PARTIAL/BLOCKED backend Wave 4 slice A: verified dual-family return/correction, DEFAULT-only supplemental and explicit legacy truths preserved; full MRX-04 owner matrix moved to 30-05..08.
+- [ ] 30-05-PLAN.md — backend Wave 4 MRX-04 DEFAULT inventory transaction owners: issue create/confirm and return create/confirm (depends on partial 30-04).
+- [ ] 30-06-PLAN.md — backend Wave 4 MRX-04 DEFAULT lifecycle owners: supplemental create/fulfill/route/reject and pending legacy apply (depends on 30-05).
+- [ ] 30-07-PLAN.md — backend Wave 4 MRX-04 approval owner through the actual MVC filter plus handler transaction fence (depends on 30-06).
+- [ ] 30-08-PLAN.md — backend Wave 4 MRX-04 reconciliation owners: transfer, issue, return, actual/disposition and completion (depends on 30-07).
+- [ ] 30-09-PLAN.md — backend Wave 4 discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-08).
+- [ ] 30-10-PLAN.md — backend Wave 4 exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-09).
+- [ ] 30-11-PLAN.md — backend Wave 4 frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-10).
+- [ ] 30-12-PLAN.md — frontend Wave 5 production two-tab authority channel and sharply bounded inactive-owner cleanup (depends on 30-11).
+- [ ] 30-13-PLAN.md — frontend Wave 5 deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-12).
 
 **MRX-06 disposition:** Plans 30-03..05 may complete only `MRX-06L` using local deterministic tests and source-aware closure. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`; these local plans must not access the protected lane and cannot mark MRX-06 or MRX-06P complete.

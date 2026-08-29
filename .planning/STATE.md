@@ -8,11 +8,11 @@ last_updated: "2026-08-30T00:00:00Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 72
-  completed_plans: 64
-  percent: 89
+  total_plans: 76
+  completed_plans: 63
+  percent: 83
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-30 — Replaced false guard-only inactive matrix with initial executable owner seams; full Task 3 matrix remains blocked
+last_activity: 2026-08-30 — Replanned the remaining MRX-04 blocker into sequential real-owner Plans 30-05..08; Plan 30-04 corrected to partial/blocked
 ---
 
 # Project State
@@ -21,13 +21,13 @@ last_activity: 2026-08-30 — Replaced false guard-only inactive matrix with ini
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 30 Plan 04 Task 3 blocked — complete executable persisted inactive/resume owner matrix before Plan 05
+**Current focus:** Execute sequential MRX-04 real-owner closure Plans 30-05 through 30-08 before the renumbered consumer plan 30-09
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
-- Phase 30 Plans 01-03 are complete. Plan 30-04 Tasks 1-2 and the return-family fences are test-proven; Task 3 remains blocked because not every applicable owner row invokes a real persisted production seam.
-- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-05-PLAN.md`.
+- Phase 30 Plans 01-03 are complete. Plan 30-04 is PARTIAL/BLOCKED: its verified return-family, DEFAULT-only supplemental and explicit legacy truths/commits remain authoritative, while the remaining executable inactive-owner matrix is split across sequential Plans 30-05..08 by real authority seam.
+- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-05-PLAN.md` (DEFAULT inventory transaction owners).
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
 - Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
@@ -38,10 +38,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 **Last session:** 2026-08-29T21:38:43.484Z
 **Resume file:** None
 
-**Stopped at:** Plan 30-04 Task 3 real inactive-owner matrix remains incomplete
+**Stopped at:** Plan 30-04 partial/blocked; four bounded MRX-04 owner plans are ready before renumbered Plan 30-09
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: finish `30-04-PLAN.md` Task 3 by adding persisted inactive/replay tests for every applicable DEFAULT and reconciliation owner. Preserve retained migration-75 authority; no protected database mutation is authorized.
+Next workflow: execute `30-05-PLAN.md`, then 30-06, 30-07 and 30-08 sequentially. Preserve all verified Plan 30-04 commits/truths and retained migration-75 authority; no protected database mutation is authorized.
 
 ## Decisions
 
@@ -101,7 +101,7 @@ Next workflow: finish `30-04-PLAN.md` Task 3 by adding persisted inactive/replay
 
 ### Blockers
 
-- Phase 30-04 Task 3 still lacks real persisted inactive-and-resume invocation for every applicable DEFAULT and reconciliation owner; only issue dispatch, legacy apply, and genuinely absent owner assertions are executable in the replacement matrix.
+- Plan 30-04 remains partial/blocked until Plans 30-05..08 invoke every applicable DEFAULT/reconciliation owner through persisted public paths. Cleanup/background rows are excluded only by executable controller/service/DI registration-set proof; guard rows cannot satisfy absence or owner evidence.
 - No Phase 29 blocker remains.
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
 
