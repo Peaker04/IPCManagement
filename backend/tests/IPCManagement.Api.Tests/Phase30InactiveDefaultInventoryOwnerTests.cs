@@ -12,6 +12,8 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using NSubstitute;
 using Xunit;
 
@@ -233,15 +235,23 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         audit.Should().Be(new AuditValue(audit.Id, audit.ChangedAt, fixture.ActorId, "InventoryIssue",
             nameof(MaterialRequest), fixture.MaterialRequestId, nameof(MaterialRequest.Status), "APPROVED", "EXPORTED",
             "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED.", null));
+        var canonicalResult = new InventoryIssueCreatedDto
+        {
+            IssueId = issue.Id!,
+            IssueCode = issue.Code,
+            ConcurrencyVersion = checked(command.ExpectedVersion + 1),
+        };
+        created.Should().BeEquivalentTo(canonicalResult);
+        var canonicalPayloadJson = JsonSerializer.Serialize(canonicalResult);
         var transition = SingleAdded(before.Transitions, after.Transitions, item => item.Id);
         transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryIssue), fixture.MaterialRequestId,
             command.CommandId, 1, null, "ISSUED", fixture.ActorId, 0,
-            $"Tạo phiếu xuất {created.IssueCode} cho nhu cầu đã chọn.", null, null,
-            transition.PayloadJson, 1, transition.CreatedAt));
+            $"Tạo phiếu xuất {issue.Code} cho nhu cầu đã chọn.", command.CorrelationId, command.CausationId,
+            canonicalPayloadJson, 1, transition.CreatedAt));
         var lifecycleAudit = AssertLifecycleAudit(before, after, transition, fixture.ActorId);
         var outbox = SingleAdded(before.Outbox, after.Outbox, item => item.Id);
         var receipt = SingleAdded(before.Receipts, after.Receipts, item => item.Id);
-        AssertLifecyclePair(transition, outbox, receipt);
+        AssertLifecyclePair(transition, outbox, receipt, canonicalResult);
 
         var expected = before with
         {
@@ -267,10 +277,10 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         newIssue.ReceivedAt.Should().NotBeNull();
 
         var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "KitchenReceipt", item => item.Id);
-        AuditTimestamp(audit).Should().Be(newIssue.ReceivedAt!.Value);
-        audit.Should().Be(new AuditValue(audit.Id, newIssue.ReceivedAt.Value, fixture.ActorId,
+        audit.Should().Be(new AuditValue(audit.Id, newIssue.ReceivedAt!.Value, fixture.ActorId,
             "KitchenReceipt", nameof(InventoryIssue), issueId, "KitchenReceived", null,
-            audit.NewValue, $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {newIssue.Code}.", null));
+            $"receivedAt={newIssue.ReceivedAt.Value:O}",
+            $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {newIssue.Code}.", null));
 
         var expected = before with
         {
@@ -294,14 +304,21 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         var line = SingleAdded(before.ReturnLines, after.ReturnLines, item => item.Id);
         line.Should().Be(new ReturnLineValue(line.Id, created.ReturnId, fixture.IngredientId, fixture.UnitId,
             fixture.IssueLineId, 2m));
+        var canonicalResult = new InventoryReturnCreatedDto
+        {
+            ReturnId = inventoryReturn.Id!,
+            ReturnCode = inventoryReturn.Code,
+        };
+        created.Should().BeEquivalentTo(canonicalResult);
+        var canonicalPayloadJson = JsonSerializer.Serialize(canonicalResult);
         var transition = SingleAdded(before.Transitions, after.Transitions, item => item.Id);
-        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryReturn), created.ReturnId,
+        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryReturn), inventoryReturn.Id,
             command.CommandId, 0, null, "PENDING_RECEIPT", fixture.ActorId, 0, command.Reason,
-            null, null, transition.PayloadJson, 1, transition.CreatedAt));
+            command.CorrelationId, command.CausationId, canonicalPayloadJson, 1, transition.CreatedAt));
         var lifecycleAudit = AssertLifecycleAudit(before, after, transition, fixture.ActorId);
         var outbox = SingleAdded(before.Outbox, after.Outbox, item => item.Id);
         var receipt = SingleAdded(before.Receipts, after.Receipts, item => item.Id);
-        AssertLifecyclePair(transition, outbox, receipt);
+        AssertLifecyclePair(transition, outbox, receipt, canonicalResult);
 
         var expected = before with
         {
@@ -338,18 +355,24 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
             2m, 0m, 20m, 22m, null, null, null, "Trả nguyên liệu dư sau sản xuất",
             $"Phiếu trả {newReturn.Code}", fixture.ActorId));
         var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "StorekeeperReturnReceipt", item => item.Id);
-        AuditTimestamp(audit).Should().Be(newReturn.ReceivedAt!.Value);
-        audit.Should().Be(new AuditValue(audit.Id, newReturn.ReceivedAt.Value, fixture.ActorId,
+        audit.Should().Be(new AuditValue(audit.Id, newReturn.ReceivedAt!.Value, fixture.ActorId,
             "StorekeeperReturnReceipt", nameof(InventoryReturn), returnId, "StorekeeperReceived", null,
-            audit.NewValue, $"Thủ kho xác nhận phiếu trả {newReturn.Code}.", null));
+            $"receivedAt={newReturn.ReceivedAt.Value:O}",
+            $"Thủ kho xác nhận phiếu trả {newReturn.Code}.", null));
+        var canonicalResult = new InventoryReturnReceiptResult(
+            newReturn.Id!,
+            newReturn.ReturnType == "WASTE" ? "RECORDED" : "RECEIVED",
+            checked(command.ExpectedVersion + 1));
+        var canonicalPayloadJson = JsonSerializer.Serialize(canonicalResult);
         var transition = SingleAdded(before.Transitions, after.Transitions, item => item.Id);
-        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryReturn), returnId,
-            command.CommandId, 1, "PENDING_RECEIPT", "RECEIVED", fixture.ActorId, command.ExpectedVersion,
-            $"Thủ kho xác nhận phiếu trả {newReturn.Code}.", null, null, transition.PayloadJson, 1, transition.CreatedAt));
+        transition.Should().Be(new TransitionValue(transition.Id, nameof(InventoryReturn), newReturn.Id,
+            command.CommandId, 1, "PENDING_RECEIPT", canonicalResult.Status, fixture.ActorId, command.ExpectedVersion,
+            command.HasDiscrepancy ? command.DiscrepancyNote?.Trim() : $"Thủ kho xác nhận phiếu trả {newReturn.Code}.",
+            command.CorrelationId, command.CausationId, canonicalPayloadJson, 1, transition.CreatedAt));
         var lifecycleAudit = AssertLifecycleAudit(before, after, transition, fixture.ActorId);
         var outbox = SingleAdded(before.Outbox, after.Outbox, item => item.Id);
         var receipt = SingleAdded(before.Receipts, after.Receipts, item => item.Id);
-        AssertLifecyclePair(transition, outbox, receipt);
+        AssertLifecyclePair(transition, outbox, receipt, canonicalResult);
 
         var expected = before with
         {
@@ -364,9 +387,6 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         after.Should().BeEquivalentTo(expected, "return receipt confirmation has one exact allow-listed full-ledger delta");
     }
 
-    private static DateTime AuditTimestamp(AuditValue audit) =>
-        DateTime.Parse(audit.NewValue!["receivedAt=".Length..], null, System.Globalization.DateTimeStyles.RoundtripKind);
-
     private static AuditValue AssertLifecycleAudit(Ledger before, Ledger after, TransitionValue transition, string actorId)
     {
         var audit = SingleAddedWhere(before.Audits, after.Audits, item => item.BusinessArea == "Lifecycle", item => item.Id);
@@ -376,10 +396,18 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         return audit;
     }
 
-    private static void AssertLifecyclePair(TransitionValue transition, OutboxValue outbox, ReceiptValue receipt)
+    private static void AssertLifecyclePair<TCanonical>(
+        TransitionValue transition,
+        OutboxValue outbox,
+        ReceiptValue receipt,
+        TCanonical canonicalResult)
     {
         transition.PayloadJson.Should().NotBeNull();
-        outbox.Should().Be(new OutboxValue(outbox.Id, outbox.EventType, transition.AggregateType,
+        JsonSerializer.Deserialize<TCanonical>(transition.PayloadJson!).Should().BeEquivalentTo(canonicalResult);
+        JsonSerializer.Deserialize<TCanonical>(outbox.PayloadJson).Should().BeEquivalentTo(canonicalResult);
+        JsonSerializer.Deserialize<TCanonical>(receipt.ResponseJson).Should().BeEquivalentTo(canonicalResult);
+
+        outbox.Should().Be(new OutboxValue(outbox.Id, $"{transition.AggregateType}.Transitioned", transition.AggregateType,
             transition.AggregateId, transition.AggregateSequence, transition.CommandId, transition.PayloadJson!,
             "PENDING", 0, null, null, null, null, transition.CreatedAt));
         receipt.Should().Be(new ReceiptValue(receipt.Id, transition.CommandId, transition.AggregateType,
@@ -704,9 +732,9 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
                 new ModeValue(mode.Mode, mode.Version, mode.UpdatedAt, Id(mode.UpdatedBy), mode.Reason),
                 requests.Select(item => new MaterialRequestValue(Id(item.RequestId), item.RequestCode, Id(item.PlanId), item.RequestDate, item.RequestScope, item.Status, Id(item.CreatedBy), Id(item.ApprovedBy), item.ApprovedAt)).OrderBy(item => item.Id).ToArray(),
                 requestLines.Select(item => new MaterialRequestLineValue(Id(item.RequestLineId), Id(item.RequestId), Id(item.PlanLineId), Id(item.IngredientId), Id(item.UnitId), Id(item.BomId), item.PriceTierAmount, item.BomScope, item.TotalServings, item.GrossQtyPerServing, item.BomRatePercent, Id(item.AppliedPortionRuleId), item.AppliedPortionRuleSource, item.AppliedPortionRatePercent, item.YieldLossPercent, item.TotalRequiredQty, item.CurrentStockQty, item.SuggestedPurchaseQty)).OrderBy(item => item.Id).ToArray(),
-                issues.Select(item => new IssueValue(Id(item.IssueId), item.IssueCode, item.IssueDate, item.ShiftName, Id(item.WarehouseId), Id(item.MaterialRequestId), Id(item.ReconciliationBatchId), Id(item.IssuedBy), Id(item.ReceivedBy), item.ReceivedAt, item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
+                issues.Select(item => new IssueValue(Id(item.IssueId), item.IssueCode, item.IssueDate, item.ShiftName, Id(item.WarehouseId), Id(item.MaterialRequestId), Id(item.ReconciliationBatchId), Id(item.IssuedBy), Id(item.ReceivedBy), AsUtc(item.ReceivedAt), item.CreatedAt)).OrderBy(item => item.Id).ToArray(),
                 issueLines.Select(item => new IssueLineValue(Id(item.IssueLineId), Id(item.IssueId), Id(item.IngredientId), Id(item.UnitId), Id(item.MaterialRequestLineId), Id(item.ReconciliationBatchLineId), item.RequestedQty, item.IssuedQty)).OrderBy(item => item.Id).ToArray(),
-                returns.Select(item => new ReturnValue(Id(item.ReturnId), item.ReturnCode, item.ReturnDate, item.ShiftName, item.ReturnType, Id(item.WarehouseId), Id(item.IssueId), item.Reason, Id(item.CreatedBy), item.CreatedAt, Id(item.ReceivedBy), item.ReceivedAt)).OrderBy(item => item.Id).ToArray(),
+                returns.Select(item => new ReturnValue(Id(item.ReturnId), item.ReturnCode, item.ReturnDate, item.ShiftName, item.ReturnType, Id(item.WarehouseId), Id(item.IssueId), item.Reason, Id(item.CreatedBy), item.CreatedAt, Id(item.ReceivedBy), AsUtc(item.ReceivedAt))).OrderBy(item => item.Id).ToArray(),
                 returnLines.Select(item => new ReturnLineValue(Id(item.ReturnLineId), Id(item.ReturnId), Id(item.IngredientId), Id(item.UnitId), Id(item.SourceIssueLineId), item.Quantity)).OrderBy(item => item.Id).ToArray(),
                 stocks.Select(item => new StockValue(Id(item.WarehouseId), Id(item.IngredientId), Id(item.UnitId), item.CurrentQty, item.LastUpdated, item.RowVersion)).OrderBy(item => $"{item.WarehouseId}/{item.IngredientId}/{item.UnitId}").ToArray(),
                 movements.Select(item => new MovementValue(Id(item.MovementId), item.MovementDate, Id(item.WarehouseId), Id(item.IngredientId), Id(item.UnitId), item.MovementType, item.RefTable, Id(item.RefId), item.QuantityIn, item.QuantityOut, item.BeforeQty, item.AfterQty, item.LotNumber, item.ManufactureDate, item.ExpiredDate, item.Reason, item.Note, Id(item.PerformedBy))).OrderBy(item => item.Id).ToArray(),
@@ -729,6 +757,8 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
         }
 
         private static string? Id(byte[]? value) => value is null ? null : GuidHelper.ToGuidString(value);
+        private static DateTime? AsUtc(DateTime? value) =>
+            value is null ? null : DateTime.SpecifyKind(value.Value, DateTimeKind.Utc);
         private static bool Same(byte[] left, byte[]? right) => right is not null && left.SequenceEqual(right);
 
         public async ValueTask DisposeAsync()
@@ -788,4 +818,8 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
     private sealed record OutboxValue(string? Id, string EventType, string AggregateType, string? AggregateId, int AggregateSequence, string CommandId, string PayloadJson, string Status, int AttemptCount, DateTime? NextAttemptAt, DateTime? LockedAt, DateTime? ProcessedAt, string? LastError, DateTime CreatedAt);
     private sealed record DeliveryValue(string? Id, string? OutboxMessageId, string ConsumerName, DateTime ProcessedAt);
     private sealed record ReceiptValue(string? Id, string CommandId, string AggregateType, string? AggregateId, string ResponseJson, DateTime CreatedAt);
+    private sealed record InventoryReturnReceiptResult(
+        [property: JsonPropertyName("returnId")] string ReturnId,
+        [property: JsonPropertyName("status")] string Status,
+        [property: JsonPropertyName("concurrencyVersion")] long ConcurrencyVersion);
 }
