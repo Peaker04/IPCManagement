@@ -63,7 +63,6 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
         if (_requestContext is null) throw new InvalidOperationException("Protected transaction context is unavailable.");
         _requestContext.OperationKey = operationKey;
         _requestContext.ExpectedModeVersion = expectedModeVersion;
-        _requestContext.Disposition = OperationDisposition.Retained;
         return ExecuteAsync(operation, verifySucceeded, isolationLevel, cancellationToken);
     }
 

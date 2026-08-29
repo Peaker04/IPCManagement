@@ -92,6 +92,9 @@ public class InventoryIssueService : IInventoryIssueService
         if (hasReconciliationSource)
             return await CreateFromReconciliationAsync(dto, userIdBytes);
 
+        EnsureOwningMode(SystemOperationEligibility.Default,
+            "Nguồn nhu cầu chỉ được xuất trong chế độ DEFAULT.");
+        var modeProtection = OptionalModeProtection(OperationDisposition.ExcludedInMaterialReconciliation);
         var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
             ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
@@ -111,7 +114,8 @@ public class InventoryIssueService : IInventoryIssueService
         var issueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
         try
         {
-            return await _transactionRunner.ExecuteAsync(
+            return await ExecuteWithOptionalModeProtectionAsync(
+                modeProtection,
                 async _ =>
                 {
                     var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
@@ -240,11 +244,29 @@ public class InventoryIssueService : IInventoryIssueService
             throw new ArgumentException("Vui lòng ghi rõ chênh lệch khi bếp nhận nguyên liệu.");
         }
 
+        var sourceFamily = await _context.Inventoryissues.AsNoTracking()
+            .Where(item => item.IssueId == issueId)
+            .Select(item => new { item.MaterialRequestId, item.ReconciliationBatchId })
+            .SingleOrDefaultAsync();
+        if (sourceFamily is null)
+            return null;
+        var isDefaultSource = sourceFamily.MaterialRequestId is not null && sourceFamily.ReconciliationBatchId is null;
+        var isReconciliationSource = sourceFamily.MaterialRequestId is null && sourceFamily.ReconciliationBatchId is not null;
+        if (!isDefaultSource && !isReconciliationSource)
+            throw new BusinessRuleException("Phiếu xuất không có đúng một source lineage để xác nhận nhận hàng.");
+        var owningMode = isDefaultSource ? SystemOperationEligibility.Default : SystemOperationEligibility.MaterialReconciliation;
+        EnsureOwningMode(owningMode, "Phiếu xuất chỉ được tiếp tục khi workflow nguồn đang hoạt động.");
+        var disposition = isDefaultSource
+            ? OperationDisposition.ExcludedInMaterialReconciliation
+            : OperationDisposition.ReconciliationOnly;
+        var modeProtection = OptionalModeProtection(disposition);
+
         // Luồng này ghi vào inventoryissues, auditlogs và supplementalmaterialrequests. Không có
         // transaction thì phiếu có thể được đánh dấu "bếp đã nhận" trong khi nhu cầu bổ sung liên quan
         // vẫn treo ở trạng thái cũ. Theo đúng khuôn mẫu transaction của CreateAsync trong cùng file.
         // Đọc phiếu nằm trong transaction để chốt chặn hai request xác nhận song song.
-        return await _transactionRunner.ExecuteAsync(
+        return await ExecuteWithOptionalModeProtectionAsync(
+            modeProtection,
             async cancellationToken =>
             {
                 var issue = await _context.Inventoryissues
@@ -376,14 +398,15 @@ public class InventoryIssueService : IInventoryIssueService
                 .AsNoTracking()
                 .AnyAsync(
                     item => item.IssueId == issueId && item.ReceivedAt != null,
-                    cancellationToken));
+                    cancellationToken),
+            IsolationLevel.ReadCommitted);
     }
 
     private async Task<InventoryIssueCreatedDto> CreateFromReconciliationAsync(CreateInventoryIssueRequest dto, byte[] actorId)
     {
         if (_context is null) throw new InvalidOperationException("Chưa cấu hình dữ liệu cho xuất kho đối chiếu.");
-        if (_requestContext is not null && !string.Equals(_requestContext.Mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal))
-            throw new BusinessRuleException("Nguồn đối chiếu chỉ được xuất trong chế độ đối chiếu nguyên liệu.");
+        EnsureOwningMode(SystemOperationEligibility.MaterialReconciliation,
+            "Nguồn đối chiếu chỉ được xuất trong chế độ đối chiếu nguyên liệu.");
         var batchId = GuidHelper.ParseGuidString(dto.ReconciliationBatchId)
             ?? throw new ArgumentException("ReconciliationBatchId không hợp lệ.");
         var commandId = dto.CommandId.Trim();
@@ -397,7 +420,7 @@ public class InventoryIssueService : IInventoryIssueService
         var issueId = GuidHelper.NewId();
         try
         {
-            var (operationKey, expectedModeVersion) = RequiredModeProtection();
+            var (operationKey, expectedModeVersion) = RequiredModeProtection(OperationDisposition.ReconciliationOnly);
             return await _transactionRunner.ExecuteProtectedAsync(operationKey, expectedModeVersion, async token =>
             {
                 var batch = await _context.Reconciliationbatches
@@ -467,12 +490,36 @@ public class InventoryIssueService : IInventoryIssueService
         }
     }
 
-    private (string OperationKey, long ExpectedModeVersion) RequiredModeProtection() =>
-        (_requestContext?.OperationKey, _requestContext?.ExpectedModeVersion) switch
+    private void EnsureOwningMode(string owningMode, string message)
+    {
+        if (_requestContext is not null && !string.Equals(_requestContext.Mode, owningMode, StringComparison.Ordinal))
+            throw new BusinessRuleException(message);
+    }
+
+    private (string OperationKey, long ExpectedModeVersion)? OptionalModeProtection(OperationDisposition disposition)
+    {
+        if (_requestContext is null)
+            return null;
+        _requestContext.Disposition = disposition;
+        return (_requestContext.OperationKey, _requestContext.ExpectedModeVersion) switch
         {
             ({ Length: > 0 } operationKey, long expectedModeVersion) => (operationKey, expectedModeVersion),
-            _ => throw new InvalidOperationException("Thiếu ngữ cảnh bảo vệ chế độ vận hành cho phiếu xuất đối chiếu.")
+            _ => throw new InvalidOperationException("Thiếu ngữ cảnh bảo vệ chế độ vận hành cho phiếu xuất kho.")
         };
+    }
+
+    private (string OperationKey, long ExpectedModeVersion) RequiredModeProtection(OperationDisposition disposition)
+        => OptionalModeProtection(disposition)
+            ?? throw new InvalidOperationException("Thiếu ngữ cảnh bảo vệ chế độ vận hành cho phiếu xuất đối chiếu.");
+
+    private Task<TResult> ExecuteWithOptionalModeProtectionAsync<TResult>(
+        (string OperationKey, long ExpectedModeVersion)? protection,
+        Func<CancellationToken, Task<TResult>> operation,
+        Func<CancellationToken, Task<bool>> verifySucceeded,
+        IsolationLevel isolationLevel)
+        => protection is { } required
+            ? _transactionRunner.ExecuteProtectedAsync(required.OperationKey, required.ExpectedModeVersion, operation, verifySucceeded, isolationLevel)
+            : _transactionRunner.ExecuteAsync(operation, verifySucceeded, isolationLevel);
 
     private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId, string commandId)
     {
