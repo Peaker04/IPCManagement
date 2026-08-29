@@ -68,8 +68,12 @@ public static class SystemOperationEligibility
         return OperationDisposition.Retained;
     }
 
-    public static bool IsAllowed(string mode, OperationDisposition disposition) =>
-        mode == Default || disposition != OperationDisposition.ExcludedInMaterialReconciliation;
+    public static bool IsAllowed(string mode, OperationDisposition disposition) => disposition switch
+    {
+        OperationDisposition.ExcludedInMaterialReconciliation => mode == Default,
+        OperationDisposition.ReconciliationOnly => mode == MaterialReconciliation,
+        _ => true,
+    };
 
     private static SystemOperationCapabilitiesDto CreateCapabilities(
         string[] navigation,
@@ -89,5 +93,6 @@ public enum OperationDisposition
 {
     Neutral,
     Retained,
-    ExcludedInMaterialReconciliation
+    ExcludedInMaterialReconciliation,
+    ReconciliationOnly
 }

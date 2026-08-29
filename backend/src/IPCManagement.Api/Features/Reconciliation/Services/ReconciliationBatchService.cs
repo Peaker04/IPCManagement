@@ -234,7 +234,10 @@ public sealed class ReconciliationBatchService(
             throw new InvalidOperationException("Chỉ chế độ đối chiếu nguyên liệu mới được chuyển danh sách sang Kho.");
         var batchId = RequiredId(id);
         _ = RequiredId(actorId);
-        var batch = await transactions.ExecuteAsync(
+        var protection = RequiredProtection();
+        var batch = await transactions.ExecuteProtectedAsync(
+            protection.OperationKey,
+            protection.ExpectedVersion,
             async operationToken =>
             {
                 var source = await context.Reconciliationbatches
