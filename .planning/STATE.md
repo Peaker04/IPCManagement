@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: blocked
-stopped_at: Plan 30-04 Task 3 real inactive-owner matrix remains incomplete
+stopped_at: Plan 30-04 partial prerequisite handed the remaining real inactive-owner matrix to Plan 30-05
 last_updated: "2026-08-30T00:00:00Z"
 progress:
   total_phases: 5
@@ -12,7 +12,7 @@ progress:
   completed_plans: 63
   percent: 83
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-30 — Replanned the remaining MRX-04 blocker into sequential real-owner Plans 30-05..08; Plan 30-04 corrected to partial/blocked
+last_activity: 2026-08-30 — Repaired MRX-04 execution graph: Plan 30-04 is an already-executed partial prerequisite, with dependent Plans 30-05..13 on truthful executor waves 5..13
 ---
 
 # Project State
@@ -21,12 +21,12 @@ last_activity: 2026-08-30 — Replanned the remaining MRX-04 blocker into sequen
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Execute sequential MRX-04 real-owner closure Plans 30-05 through 30-08 before the renumbered consumer plan 30-09
+**Current focus:** Execute MRX-04 real-owner closure from prerequisite Plan 30-04 through sequential executor waves 5-8 (Plans 30-05..08), then continue Plans 30-09..13 on waves 9-13
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
-- Phase 30 Plans 01-03 are complete. Plan 30-04 is PARTIAL/BLOCKED: its verified return-family, DEFAULT-only supplemental and explicit legacy truths/commits remain authoritative, while the remaining executable inactive-owner matrix is split across sequential Plans 30-05..08 by real authority seam.
+- Phase 30 Plans 01-03 are complete. Plan 30-04 is an already-executed PARTIAL prerequisite/handoff with no forward blocker: its verified return-family, DEFAULT-only supplemental and explicit legacy truths/commits remain authoritative, while dependent Plans 30-05..08 own the remaining executable inactive-owner matrix by real authority seam.
 - Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-05-PLAN.md` (DEFAULT inventory transaction owners).
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
@@ -38,10 +38,10 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 **Last session:** 2026-08-29T21:38:43.484Z
 **Resume file:** None
 
-**Stopped at:** Plan 30-04 partial/blocked; four bounded MRX-04 owner plans are ready before renumbered Plan 30-09
+**Stopped at:** Plan 30-04 partial prerequisite complete enough to hand off; Plan 30-05 is next on executor wave 5, followed sequentially by Plans 30-06..13
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: execute `30-05-PLAN.md`, then 30-06, 30-07 and 30-08 sequentially. Preserve all verified Plan 30-04 commits/truths and retained migration-75 authority; no protected database mutation is authorized.
+Next workflow: execute `30-05-PLAN.md` (executor wave 5), then 30-06..13 on distinct numeric waves matching their dependencies. Preserve the conceptual backend Wave 4/frontend Wave 5 grouping, all verified Plan 30-04 commits/truths and retained migration-75 authority; no protected database mutation is authorized.
 
 ## Decisions
 
@@ -101,7 +101,7 @@ Next workflow: execute `30-05-PLAN.md`, then 30-06, 30-07 and 30-08 sequentially
 
 ### Blockers
 
-- Plan 30-04 remains partial/blocked until Plans 30-05..08 invoke every applicable DEFAULT/reconciliation owner through persisted public paths. Cleanup/background rows are excluded only by executable controller/service/DI registration-set proof; guard rows cannot satisfy absence or owner evidence.
+- Plan 30-04 is a partial prerequisite/handoff, not forward-blocked. Plans 30-05..08 must invoke every applicable DEFAULT/reconciliation owner through persisted public paths. Cleanup/background absence requires the explicitly named executable controller/action/DI registration-set test; guard, capability and operation-key rows cannot satisfy it.
 - No Phase 29 blocker remains.
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
 
