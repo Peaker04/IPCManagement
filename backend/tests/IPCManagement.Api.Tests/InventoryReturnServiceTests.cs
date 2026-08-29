@@ -487,6 +487,7 @@ public class InventoryReturnServiceTests
                     IssueId = issueBytes,
                     IngredientId = ingredientBytes,
                     UnitId = unitBytes,
+                    MaterialRequestLineId = GuidHelper.NewId(),
                     RequestedQty = issuedQty,
                     IssuedQty = issuedQty
                 }
@@ -512,6 +513,7 @@ public class InventoryReturnServiceTests
                 IssueId = issue.IssueId,
                 IngredientId = ingredientBytes,
                 UnitId = unitBytes,
+                MaterialRequestLineId = GuidHelper.NewId(),
                 RequestedQty = issuedQuantity,
                 IssuedQty = issuedQuantity
             });

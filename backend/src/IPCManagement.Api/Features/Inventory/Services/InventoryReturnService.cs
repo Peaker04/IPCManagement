@@ -398,7 +398,26 @@ public class InventoryReturnService : IInventoryReturnService
         {
             throw new BusinessRuleException("Nguyên liệu hoặc đơn vị của dòng trả không khớp dòng nguồn phiếu xuất.");
         }
+
+        EnsureExactSourceFamily(issue, sourceLine);
         return sourceLine;
+    }
+
+    private static void EnsureExactSourceFamily(InventoryIssue issue, InventoryIssueLine sourceLine)
+    {
+        var headerIsDefault = issue.MaterialRequestId is not null;
+        var headerIsReconciliation = issue.ReconciliationBatchId is not null;
+        var lineIsDefault = sourceLine.MaterialRequestLineId is not null;
+        var lineIsReconciliation = sourceLine.ReconciliationBatchLineId is not null;
+
+        if (headerIsDefault == headerIsReconciliation
+            || lineIsDefault == lineIsReconciliation
+            || headerIsDefault != lineIsDefault
+            || headerIsReconciliation != lineIsReconciliation)
+        {
+            throw new BusinessRuleException(
+                "Dòng phiếu xuất gốc phải có lineage chính xác thuộc đúng một workflow family và khớp với phiếu xuất.");
+        }
     }
 
     public async Task<IReadOnlyList<InventoryReturnAllocationBalanceDto>> GetAllocationBalancesAsync(
