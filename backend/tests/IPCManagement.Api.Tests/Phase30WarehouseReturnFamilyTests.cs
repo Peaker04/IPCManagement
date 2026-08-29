@@ -178,6 +178,99 @@ public partial class Phase30WarehouseReturnFamilyTests
 public partial class WorkflowGenerationTests
 {
     [Fact]
+    public async Task Phase30WarehouseReturnFamily_DefaultCorrectionChangesStockAndNetOnlyOnceOnRetry()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var issueId = GuidHelper.NewId();
+        var issueLineId = GuidHelper.NewId();
+        var materialRequestId = GuidHelper.NewId();
+        var materialRequestLineId = GuidHelper.NewId();
+        context.Inventoryissues.Add(new InventoryIssue
+        {
+            IssueId = issueId,
+            IssueCode = "ISS-DEFAULT-RETURN",
+            IssueDate = new DateOnly(2026, 6, 15),
+            WarehouseId = fixture.WarehouseId,
+            MaterialRequestId = materialRequestId,
+            IssuedBy = fixture.UserId,
+            ReceivedBy = fixture.UserId,
+            ReceivedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryissuelines =
+            [
+                new InventoryIssueLine
+                {
+                    IssueLineId = issueLineId,
+                    IngredientId = fixture.IngredientId,
+                    UnitId = fixture.UnitId,
+                    MaterialRequestLineId = materialRequestLineId,
+                    RequestedQty = 5m,
+                    IssuedQty = 5m,
+                }
+            ]
+        });
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 10m,
+            LastUpdated = DateTime.UtcNow,
+        });
+        await context.SaveChangesAsync();
+        var service = CreateInventoryReturnService(context);
+        var command = new CreateInventoryReturnRequest
+        {
+            CommandId = "phase30-default-return-create",
+            ReturnDate = new DateOnly(2026, 6, 15),
+            ReturnType = "RETURN",
+            IssueId = GuidHelper.ToGuidString(issueId),
+            Reason = "DEFAULT family correction",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issueLineId),
+                    IngredientId = fixture.IngredientIdString,
+                    UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                    Quantity = 2m,
+                }
+            ]
+        };
+
+        var created = await service.CreateAsync(command, fixture.UserIdString);
+        var createReplay = await service.CreateAsync(command, fixture.UserIdString);
+        var confirmation = new ConfirmInventoryReturnReceiptRequest { CommandId = "phase30-default-return-confirm" };
+        await service.ConfirmReceiptAsync(created!.ReturnId, confirmation, fixture.UserIdString);
+        await service.ConfirmReceiptAsync(created.ReturnId, confirmation, fixture.UserIdString);
+
+        createReplay!.ReturnId.Should().Be(created.ReturnId);
+        (await context.Inventoryreturns.CountAsync()).Should().Be(1);
+        var persistedReturnLine = await context.Inventoryreturnlines.SingleAsync();
+        persistedReturnLine.SourceIssueLineId.Should().Equal(issueLineId);
+        (await context.Currentstocks.Select(item => item.CurrentQty).SingleAsync()).Should().Be(12m);
+        (await context.Stockmovements.CountAsync(item => item.MovementType == "RETURN")).Should().Be(1);
+        (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == "InventoryReturn")).Should().Be(2);
+
+        var defaultIssued = await context.Inventoryissuelines
+            .Where(line => line.MaterialRequestLineId == materialRequestLineId)
+            .SumAsync(line => line.IssuedQty);
+        var defaultReturned = await context.Inventoryreturnlines
+            .Where(line => line.SourceIssueLineId == issueLineId)
+            .SumAsync(line => line.Quantity);
+        var reconciliationReturned = await (
+            from returnLine in context.Inventoryreturnlines
+            join inventoryReturn in context.Inventoryreturns on returnLine.ReturnId equals inventoryReturn.ReturnId
+            join sourceIssue in context.Inventoryissues on inventoryReturn.IssueId equals sourceIssue.IssueId
+            where sourceIssue.ReconciliationBatchId != null
+            select (decimal?)returnLine.Quantity).SumAsync() ?? 0m;
+        (defaultIssued - defaultReturned).Should().Be(3m);
+        reconciliationReturned.Should().Be(0m);
+    }
+
+    [Fact]
     public async Task Phase30WarehouseReturnFamily_ReconciliationCorrectionChangesStockAndNetOnlyOnceOnRetry()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
