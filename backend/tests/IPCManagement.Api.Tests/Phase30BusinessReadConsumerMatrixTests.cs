@@ -55,6 +55,23 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
     }
 
     [Fact]
+    public async Task WorkflowDocuments_Should_ExcludeReconciliationAndLegacyIssues()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var seed = await SeedCollidingIssuesAsync(context, fixture);
+
+        var documents = await new InventoryOperationsReportService(context)
+            .GetWorkflowDocumentsAsync(new WorkflowReportQueryDto { DateFrom = "2026-06-15", DateTo = "2026-06-15", Limit = 50 });
+        var issueDocuments = documents.Where(item => item.DocumentType == "Phiếu xuất kho").ToList();
+
+        issueDocuments.Should().ContainSingle().Which.DocumentId.Should().Be(GuidHelper.ToGuidString(seed.DefaultIssueId));
+        issueDocuments.Should().NotContain(item => item.DocumentId == GuidHelper.ToGuidString(seed.ReconciliationIssueId));
+        issueDocuments.Should().NotContain(item => item.DocumentId == GuidHelper.ToGuidString(seed.LegacyIssueId));
+    }
+
+    [Fact]
     public async Task AuditAndCsv_Should_LabelEveryCollidingSourceFamily_WithExactAvailableIdentity()
     {
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
