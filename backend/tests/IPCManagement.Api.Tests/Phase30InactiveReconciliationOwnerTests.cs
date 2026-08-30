@@ -2,6 +2,8 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text;
+using System.Globalization;
+using System.Security.Cryptography;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
@@ -20,6 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using Xunit;
 
@@ -210,6 +213,120 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         Phase30FinalOracleContracts.AssertExactLifecycleRegistrationsAndCapabilities();
     }
 
+    private static CanonicalEntitySnapshot ReconstructCanonical(CanonicalEntitySnapshot before, CanonicalEntitySnapshot observed, params RowChange[] changes)
+    {
+        observed.Schema.Should().Equal(before.Schema, "the EF scalar manifest must remain closed during a checkpoint");
+        observed.SchemaHash.Should().Be(before.SchemaHash);
+        var cells = before.Cells.ToList();
+        foreach (var change in changes)
+        {
+            change.GeneratedProperties.Should().OnlyContain(property => IsGeneratedIdentityOrTimestamp(property),
+                "observed values are permitted only for isolated generated identities or timestamps");
+            var observedRow = observed.Cells.Where(cell => cell.Table == change.Table && cell.Key == change.Key).ToArray();
+            observedRow.Should().NotBeEmpty($"exact identity lookup must find {change.Table}/{change.Key}");
+            var oldRow = cells.Where(cell => cell.Table == change.Table && cell.Key == change.Key).ToArray();
+            if (change.IsNew)
+            {
+                oldRow.Should().BeEmpty($"{change.Table}/{change.Key} is an explicit addition");
+                var represented = change.Values.Keys.Concat(change.GeneratedProperties).ToHashSet(StringComparer.Ordinal);
+                observedRow.Select(cell => cell.Property).Should().BeEquivalentTo(represented,
+                    "every scalar on a new row must be reconstructed explicitly or classified as an isolated generated identity/timestamp");
+                foreach (var cell in observedRow)
+                {
+                    var value = change.Values.TryGetValue(cell.Property, out var expected) ? expected : cell.Value;
+                    cells.Add(cell with { Value = value });
+                }
+            }
+            else
+            {
+                oldRow.Should().NotBeEmpty($"{change.Table}/{change.Key} must already exist");
+                foreach (var (property, value) in change.Values)
+                {
+                    var index = cells.FindIndex(cell => cell.Table == change.Table && cell.Key == change.Key && cell.Property == property);
+                    index.Should().BeGreaterThanOrEqualTo(0, $"{property} must be a mapped scalar");
+                    cells[index] = cells[index] with { Value = value };
+                }
+                foreach (var property in change.GeneratedProperties)
+                {
+                    var observedCell = observedRow.Single(cell => cell.Property == property);
+                    var index = cells.FindIndex(cell => cell.Table == change.Table && cell.Key == change.Key && cell.Property == property);
+                    index.Should().BeGreaterThanOrEqualTo(0, $"{property} must be a mapped generated scalar");
+                    cells[index] = cells[index] with { Value = observedCell.Value };
+                }
+            }
+        }
+        return before with
+        {
+            Cells = cells.OrderBy(value => value.Table, StringComparer.Ordinal)
+                .ThenBy(value => value.Key, StringComparer.Ordinal)
+                .ThenBy(value => value.Property, StringComparer.Ordinal).ToArray()
+        };
+    }
+
+    private static RowChange ExistingKey(string table, string key, params (string Property, string Value)[] values) =>
+        new(table, key, false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), []);
+
+    private static RowChange ExistingGeneratedKey(string table, string key, string[] generatedProperties, params (string Property, string Value)[] values) =>
+        new(table, key, false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), generatedProperties);
+
+    private static string KeyFor(CanonicalEntitySnapshot snapshot, string table, params (string Property, string Value)[] identity)
+    {
+        var keys = snapshot.Cells.Where(cell => cell.Table == table).Select(cell => cell.Key).Distinct(StringComparer.Ordinal)
+            .Where(key => identity.All(expected => snapshot.Cells.Any(cell => cell.Table == table && cell.Key == key && cell.Property == expected.Property && cell.Value == expected.Value)))
+            .ToArray();
+        keys.Should().ContainSingle($"the exact composite identity for {table} must be isolated");
+        return keys[0];
+    }
+
+    private static RowChange LifecycleTransitionChange(TransitionValue value) => New("lifecycletransitions", "TransitionId", value.Id, ["TransitionId", "CreatedAt"],
+        ("AggregateType", Scalar(value.AggregateType)), ("AggregateId", GuidValue(value.AggregateId)), ("CommandId", Scalar(value.CommandId)),
+        ("AggregateSequence", Scalar(value.AggregateSequence)), ("FromState", value.FromState is null ? NullValue : Scalar(value.FromState)),
+        ("ToState", Scalar(value.ToState)), ("ActorId", GuidValue(value.ActorId)), ("ExpectedVersion", Scalar(value.ExpectedVersion)),
+        ("Reason", value.Reason is null ? NullValue : Scalar(value.Reason)), ("CorrelationId", value.CorrelationId is null ? NullValue : Scalar(value.CorrelationId)),
+        ("CausationId", value.CausationId is null ? NullValue : Scalar(value.CausationId)), ("PayloadJson", Scalar(value.PayloadJson!)),
+        ("SchemaVersion", Scalar(value.SchemaVersion)));
+
+    private static RowChange LifecycleOutboxChange(OutboxValue value) => New("lifecycleoutboxmessages", "OutboxMessageId", value.Id, ["OutboxMessageId", "CreatedAt"],
+        ("EventType", Scalar(value.EventType)), ("AggregateType", Scalar(value.AggregateType)), ("AggregateId", GuidValue(value.AggregateId)),
+        ("AggregateSequence", Scalar(value.AggregateSequence)), ("CommandId", Scalar(value.CommandId)), ("PayloadJson", Scalar(value.PayloadJson)),
+        ("Status", Scalar(value.Status)), ("AttemptCount", Scalar(value.AttemptCount)), ("NextAttemptAt", DateTimeValue(value.NextAttemptAt)),
+        ("LockedAt", DateTimeValue(value.LockedAt)), ("ProcessedAt", DateTimeValue(value.ProcessedAt)),
+        ("LastError", value.LastError is null ? NullValue : Scalar(value.LastError)));
+
+    private static RowChange LifecycleReceiptChange(ReceiptValue value) => New("lifecyclecommandreceipts", "CommandReceiptId", value.Id, ["CommandReceiptId", "CreatedAt"],
+        ("CommandId", Scalar(value.CommandId)), ("AggregateType", Scalar(value.AggregateType)), ("AggregateId", GuidValue(value.AggregateId)),
+        ("ResponseJson", Scalar(value.ResponseJson)));
+
+    private static RowChange AuditChange(AuditValue value) => New("auditlogs", "AuditId", value.Id, ["AuditId"],
+        ("BusinessArea", Scalar(value.BusinessArea)), ("ChangedAt", DateTimeValue(value.ChangedAt)), ("ChangedBy", GuidValue(value.ChangedBy)),
+        ("CorrelationId", value.CorrelationId is null ? NullValue : Scalar(value.CorrelationId)), ("EntityId", GuidValue(value.EntityId)),
+        ("EntityName", Scalar(value.EntityName)), ("FieldName", value.FieldName is null ? NullValue : Scalar(value.FieldName)),
+        ("NewValue", value.NewValue is null ? NullValue : Scalar(value.NewValue)), ("OldValue", value.OldValue is null ? NullValue : Scalar(value.OldValue)),
+        ("Reason", value.Reason is null ? NullValue : Scalar(value.Reason)));
+
+    private static RowChange Existing(string table, string keyProperty, string id, params (string Property, string Value)[] values) =>
+        new(table, $"{keyProperty}=guid:{id}", false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), []);
+
+    private static RowChange ExistingGenerated(string table, string keyProperty, string id, string[] generatedProperties, params (string Property, string Value)[] values) =>
+        new(table, $"{keyProperty}=guid:{id}", false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), generatedProperties);
+
+    private static RowChange New(string table, string keyProperty, string id, string[] generatedProperties, params (string Property, string Value)[] values) =>
+        new(table, $"{keyProperty}=guid:{id}", true, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), generatedProperties);
+
+    private static bool IsGeneratedIdentityOrTimestamp(string property) =>
+        property.EndsWith("Id", StringComparison.Ordinal) || property.EndsWith("At", StringComparison.Ordinal) ||
+        property.EndsWith("Date", StringComparison.Ordinal) || property.EndsWith("Time", StringComparison.Ordinal) ||
+        property.EndsWith("Updated", StringComparison.Ordinal) || property.Equals("RowVersion", StringComparison.Ordinal);
+
+    private static string Scalar(object value) => $"scalar:{Convert.ToString(value, CultureInfo.InvariantCulture)}";
+    private static string DecimalValue(decimal value) => $"decimal:{value.ToString("G29", CultureInfo.InvariantCulture)}";
+    private static string GuidValue(string? value) => value is null ? "null" : $"guid:{value}";
+    private static string DateValue(DateOnly value) => $"date:{value:yyyy-MM-dd}";
+    private static string DateTimeValue(DateTime? value) => value is null ? "null" : $"datetime:{DateTime.SpecifyKind(value.Value, DateTimeKind.Utc):O}";
+    private const string NullValue = "null";
+
+    private sealed record RowChange(string Table, string Key, bool IsNew, IReadOnlyDictionary<string, string> Values, string[] GeneratedProperties);
+
     private static void AssertExactSwitchBackDelta(Snapshot before, Snapshot after, SystemOperationModeDto resumed, string reason)
     {
         var mode = before.Mode with
@@ -223,10 +340,29 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var audit = after.Audits.Except(before.Audits).Should().ContainSingle().Subject;
         audit.Should().Be(new AuditValue(audit.Id, resumed.UpdatedAt, before.ActorId, "SYSTEM_OPERATION", "SystemOperationMode", null,
             "Mode", SystemOperationEligibility.Default, SystemOperationEligibility.MaterialReconciliation, reason, null));
+        var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+            ExistingKey("systemoperationmodes", "Id=scalar:1",
+                ("Mode", Scalar(SystemOperationEligibility.MaterialReconciliation)),
+                ("Version", Scalar(resumed.Version)),
+                ("UpdatedAt", DateTimeValue(resumed.UpdatedAt)),
+                ("UpdatedBy", GuidValue(before.ActorId)),
+                ("Reason", Scalar(reason))),
+            New("auditlogs", "AuditId", audit.Id, ["AuditId"],
+                ("BusinessArea", Scalar("SYSTEM_OPERATION")),
+                ("ChangedAt", DateTimeValue(resumed.UpdatedAt)),
+                ("ChangedBy", GuidValue(before.ActorId)),
+                ("CorrelationId", NullValue),
+                ("EntityId", NullValue),
+                ("EntityName", Scalar("SystemOperationMode")),
+                ("FieldName", Scalar("Mode")),
+                ("NewValue", Scalar(SystemOperationEligibility.MaterialReconciliation)),
+                ("OldValue", Scalar(SystemOperationEligibility.Default)),
+                ("Reason", Scalar(reason))));
         after.Should().BeEquivalentTo(before with
         {
             Mode = mode,
-            Audits = before.Audits.Append(audit).OrderBy(value => value.Id).ToArray()
+            Audits = before.Audits.Append(audit).OrderBy(value => value.Id).ToArray(),
+            Canonical = canonical
         });
     }
 
@@ -238,7 +374,16 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         oldBatch.Version.Should().Be(oldVersion);
         newBatch.Should().Be(oldBatch with { Status = newStatus, Version = newVersion, CompletedBy = completed ? after.ActorId : oldBatch.CompletedBy, CompletedAt = completed ? newBatch.CompletedAt : oldBatch.CompletedAt });
         if (completed) newBatch.CompletedAt.Should().NotBeNull();
-        after.Should().BeEquivalentTo(before with { Batches = Replace(before.Batches, oldBatch, newBatch, x => x.Id) });
+        var batchChange = completed
+            ? ExistingGenerated("reconciliationbatches", "BatchId", batchId, ["CompletedAt"],
+                ("Status", Scalar(newStatus)), ("Version", Scalar(newVersion)), ("CompletedBy", GuidValue(after.ActorId)))
+            : Existing("reconciliationbatches", "BatchId", batchId,
+                ("Status", Scalar(newStatus)), ("Version", Scalar(newVersion)));
+        after.Should().BeEquivalentTo(before with
+        {
+            Batches = Replace(before.Batches, oldBatch, newBatch, x => x.Id),
+            Canonical = ReconstructCanonical(before.Canonical, after.Canonical, batchChange)
+        });
     }
 
     private static void AssertExactIssueDelta(Snapshot before, Snapshot after, InventoryIssueCreatedDto created, Fixture fixture)
@@ -258,6 +403,30 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = created.IssueCode, ConcurrencyVersion = 1 });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
             1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {created.IssueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
+        var transition = lifecycle.Transitions.Except(before.Transitions).Single();
+        var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
+        var receipt = lifecycle.Receipts.Except(before.Receipts).Single();
+        var lifecycleAudit = lifecycle.Audits.Except(before.Audits).Single();
+        var stockKey = KeyFor(before.Canonical, "currentstock",
+            ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)));
+        var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+            New("inventoryissues", "IssueId", issue.Id, ["IssueId", "CreatedAt"],
+                ("IssueCode", Scalar(created.IssueCode)), ("IssueDate", DateValue(new DateOnly(2026, 8, 30))),
+                ("ShiftName", NullValue), ("WarehouseId", GuidValue(stock.WarehouseId)), ("MaterialRequestId", NullValue),
+                ("ReconciliationBatchId", GuidValue(fixture.IssueBatchId)), ("IssuedBy", GuidValue(fixture.ActorId)),
+                ("ReceivedBy", NullValue), ("ReceivedAt", NullValue)),
+            New("inventoryissuelines", "IssueLineId", line.Id, ["IssueLineId"],
+                ("IssueId", GuidValue(issue.Id)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
+                ("MaterialRequestLineId", NullValue), ("ReconciliationBatchLineId", GuidValue(fixture.IssueLineId)),
+                ("RequestedQty", DecimalValue(5m)), ("IssuedQty", DecimalValue(5m))),
+            ExistingGeneratedKey("currentstock", stockKey, ["LastUpdated", "RowVersion"], ("CurrentQty", DecimalValue(stock.Qty))),
+            New("stockmovements", "MovementId", movement.Id, ["MovementId", "MovementDate"],
+                ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
+                ("MovementType", Scalar("ISSUE")), ("RefTable", Scalar("inventoryissues")), ("RefId", GuidValue(issue.Id)),
+                ("QuantityIn", DecimalValue(0m)), ("QuantityOut", DecimalValue(5m)), ("BeforeQty", DecimalValue(20m)), ("AfterQty", DecimalValue(15m)),
+                ("LotNumber", NullValue), ("ManufactureDate", NullValue), ("ExpiredDate", NullValue),
+                ("Reason", Scalar("Xuất kho đối chiếu")), ("Note", Scalar($"Phiếu xuất {created.IssueCode}")), ("PerformedBy", GuidValue(fixture.ActorId))),
+            LifecycleTransitionChange(transition), LifecycleOutboxChange(outbox), LifecycleReceiptChange(receipt), AuditChange(lifecycleAudit));
         after.Should().BeEquivalentTo(before with
         {
             Issues = before.Issues.Append(issue).OrderBy(value => value.Id).ToArray(),
@@ -268,6 +437,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             Transitions = lifecycle.Transitions,
             Outbox = lifecycle.Outbox,
             Receipts = lifecycle.Receipts,
+            Canonical = canonical,
             ReconciliationNet = before.ReconciliationNet + 5m,
             DefaultNet = 0m
         });
@@ -286,7 +456,11 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         after.Should().BeEquivalentTo(before with
         {
             Issues = Replace(before.Issues, oldIssue, newIssue, value => value.Id),
-            Audits = before.Audits.Append(audit).OrderBy(value => value.Id).ToArray()
+            Audits = before.Audits.Append(audit).OrderBy(value => value.Id).ToArray(),
+            Canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+                Existing("inventoryissues", "IssueId", created.IssueId,
+                    ("ReceivedBy", GuidValue(fixture.ActorId)), ("ReceivedAt", DateTimeValue(newIssue.ReceivedAt))),
+                AuditChange(audit))
         });
     }
 
@@ -301,6 +475,21 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var expectedJson = JsonSerializer.Serialize(new InventoryReturnCreatedDto { ReturnId = created.ReturnId, ReturnCode = created.ReturnCode });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-return", nameof(InventoryReturn), result.Id,
             0, null, "PENDING_RECEIPT", 0, "Return exact reconciliation quantity.", fixture.ActorId, expectedJson);
+        var transition = lifecycle.Transitions.Except(before.Transitions).Single();
+        var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
+        var receipt = lifecycle.Receipts.Except(before.Receipts).Single();
+        var lifecycleAudit = lifecycle.Audits.Except(before.Audits).Single();
+        var stock = before.Stocks.Single();
+        var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+            New("inventoryreturns", "ReturnId", result.Id, ["ReturnId", "CreatedAt"],
+                ("ReturnCode", Scalar(created.ReturnCode)), ("ReturnDate", DateValue(new DateOnly(2026, 8, 30))), ("ShiftName", NullValue),
+                ("ReturnType", Scalar("RETURN")), ("WarehouseId", GuidValue(stock.WarehouseId)), ("IssueId", GuidValue(line.SourceIssueLineId is null ? null : before.IssueLines.Single(x => x.Id == line.SourceIssueLineId).IssueId)),
+                ("Reason", Scalar("Return exact reconciliation quantity.")), ("CreatedBy", GuidValue(fixture.ActorId)),
+                ("ReceivedBy", NullValue), ("ReceivedAt", NullValue)),
+            New("inventoryreturnlines", "ReturnLineId", line.Id, ["ReturnLineId"],
+                ("ReturnId", GuidValue(result.Id)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
+                ("SourceIssueLineId", GuidValue(line.SourceIssueLineId)), ("Quantity", DecimalValue(2m))),
+            LifecycleTransitionChange(transition), LifecycleOutboxChange(outbox), LifecycleReceiptChange(receipt), AuditChange(lifecycleAudit));
         after.Should().BeEquivalentTo(before with
         {
             Returns = before.Returns.Append(result).OrderBy(value => value.Id).ToArray(),
@@ -309,6 +498,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             Transitions = lifecycle.Transitions,
             Outbox = lifecycle.Outbox,
             Receipts = lifecycle.Receipts,
+            Canonical = canonical,
             ReconciliationNet = before.ReconciliationNet - 2m,
             DefaultNet = 0m
         });
@@ -331,6 +521,24 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var receiptAudit = after.Audits.Except(before.Audits).Single(value => value.BusinessArea == "StorekeeperReturnReceipt");
         receiptAudit.Should().Be(new AuditValue(receiptAudit.Id, newReturn.ReceivedAt!.Value, fixture.ActorId, "StorekeeperReturnReceipt", nameof(InventoryReturn), returnId,
             "StorekeeperReceived", null, $"receivedAt={DateTime.SpecifyKind(receiptAudit.ChangedAt, DateTimeKind.Utc):O}", reason, null));
+        var transition = lifecycle.Transitions.Except(before.Transitions).Single();
+        var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
+        var receipt = lifecycle.Receipts.Except(before.Receipts).Single();
+        var generatedAudits = lifecycle.Audits.Except(before.Audits).ToArray();
+        var stockKey = KeyFor(before.Canonical, "currentstock",
+            ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)));
+        var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+            Existing("inventoryreturns", "ReturnId", returnId,
+                ("ReceivedBy", GuidValue(fixture.ActorId)), ("ReceivedAt", DateTimeValue(newReturn.ReceivedAt))),
+            ExistingGeneratedKey("currentstock", stockKey, ["LastUpdated", "RowVersion"], ("CurrentQty", DecimalValue(stock.Qty))),
+            New("stockmovements", "MovementId", movement.Id, ["MovementId", "MovementDate"],
+                ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
+                ("MovementType", Scalar("RETURN")), ("RefTable", Scalar("inventoryreturns")), ("RefId", GuidValue(returnId)),
+                ("QuantityIn", DecimalValue(2m)), ("QuantityOut", DecimalValue(0m)), ("BeforeQty", DecimalValue(15m)), ("AfterQty", DecimalValue(17m)),
+                ("LotNumber", NullValue), ("ManufactureDate", NullValue), ("ExpiredDate", NullValue),
+                ("Reason", Scalar("Trả nguyên liệu dư sau sản xuất")), ("Note", Scalar($"Phiếu trả {returnCode}")), ("PerformedBy", GuidValue(fixture.ActorId))),
+            LifecycleTransitionChange(transition), LifecycleOutboxChange(outbox), LifecycleReceiptChange(receipt),
+            AuditChange(generatedAudits[0]), AuditChange(generatedAudits[1]));
         after.Should().BeEquivalentTo(before with
         {
             Returns = Replace(before.Returns, oldReturn, newReturn, value => value.Id),
@@ -340,6 +548,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             Transitions = lifecycle.Transitions,
             Outbox = lifecycle.Outbox,
             Receipts = lifecycle.Receipts,
+            Canonical = canonical,
             DefaultNet = 0m
         });
     }
@@ -354,7 +563,14 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         after.Should().BeEquivalentTo(before with
         {
             Actuals = Replace(before.Actuals, oldActual, newActual, value => value.Id),
-            Revisions = before.Revisions.Append(revision).OrderBy(value => value.Id).ToArray()
+            Revisions = before.Revisions.Append(revision).OrderBy(value => value.Id).ToArray(),
+            Canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+                Existing("reconciliationactuals", "ActualId", oldActual.Id,
+                    ("Quantity", DecimalValue(4m)), ("Version", Scalar(2L)),
+                    ("EnteredBy", GuidValue(fixture.ActorId)), ("EnteredAt", DateTimeValue(newActual.EnteredAt))),
+                New("reconciliationactualrevisions", "RevisionId", revision.Id, ["RevisionId", "ChangedAt"],
+                    ("ActualId", GuidValue(oldActual.Id)), ("OldQuantity", DecimalValue(5m)), ("NewQuantity", DecimalValue(4m)),
+                    ("Reason", Scalar("Correct exact manual ISSUED actual.")), ("ChangedBy", GuidValue(fixture.ActorId))))
         });
     }
 
@@ -365,7 +581,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             "Investigate exact persisted variance.", 1, fixture.ActorId, disposition.DisposedAt));
         after.Should().BeEquivalentTo(before with
         {
-            Dispositions = before.Dispositions.Append(disposition).OrderBy(value => value.Id).ToArray()
+            Dispositions = before.Dispositions.Append(disposition).OrderBy(value => value.Id).ToArray(),
+            Canonical = ReconstructCanonical(before.Canonical, after.Canonical,
+                New("reconciliationdispositions", "DispositionId", disposition.Id, ["DispositionId", "DisposedAt"],
+                    ("BatchLineId", GuidValue(fixture.ActualLineId)), ("Category", Scalar("FOLLOW_UP_REQUIRED")),
+                    ("Reason", Scalar("Investigate exact persisted variance.")), ("Version", Scalar(1L)),
+                    ("DisposedBy", GuidValue(fixture.ActorId))))
         });
     }
 
@@ -560,9 +781,129 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 (await Context.Lifecycleoutboxmessages.AsNoTracking().ToListAsync()).Select(x => new OutboxValue(Id(x.OutboxMessageId)!, x.EventType, x.AggregateType, Id(x.AggregateId)!, x.AggregateSequence, x.CommandId, x.PayloadJson, x.Status, x.AttemptCount, x.NextAttemptAt, x.LockedAt, x.ProcessedAt, x.LastError, x.CreatedAt)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Lifecyclecommandreceipts.AsNoTracking().ToListAsync()).Select(x => new ReceiptValue(Id(x.CommandReceiptId)!, x.CommandId, x.AggregateType, Id(x.AggregateId)!, x.ResponseJson, x.CreatedAt)).OrderBy(x => x.Id).ToArray(),
                 await ReadCommonLedgerAsync(),
+                await CaptureCanonicalSnapshotAsync(),
                 await Context.Systemoperationmodes.AsNoTracking().Select(x => new ModeValue(x.Mode, x.Version, x.UpdatedAt, Id(x.UpdatedBy)!, x.Reason)).SingleAsync(),
                 reconIssued - reconReturned, defaultIssued - defaultReturned);
         }
+
+        private async Task<CanonicalEntitySnapshot> CaptureCanonicalSnapshotAsync()
+        {
+            var existingTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name";
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync()) existingTables.Add(reader.GetString(0));
+            }
+
+            var mappings = Context.Model.GetEntityTypes()
+                .Where(entity => entity.GetTableName() is { } table && existingTables.Contains(table))
+                .Select(entity => new EntityMapping(entity, entity.GetTableName()!, StoreObjectIdentifier.Table(entity.GetTableName()!, entity.GetSchema())))
+                .OrderBy(mapping => mapping.Table, StringComparer.Ordinal)
+                .ThenBy(mapping => mapping.Entity.Name, StringComparer.Ordinal)
+                .ToArray();
+            mappings.Should().NotBeEmpty("the persisted oracle must be driven by the EF IModel");
+
+            var schema = mappings.SelectMany(mapping => mapping.Entity.GetProperties().Select(property =>
+                new ScalarSchema(mapping.Table, mapping.Entity.Name, property.Name, property.GetColumnName(mapping.Store)!)))
+                .OrderBy(value => value.Table, StringComparer.Ordinal)
+                .ThenBy(value => value.Entity, StringComparer.Ordinal)
+                .ThenBy(value => value.Property, StringComparer.Ordinal)
+                .ToArray();
+            schema.Should().OnlyContain(value => !string.IsNullOrWhiteSpace(value.Column),
+                "every mapped scalar property, including shadow properties, needs a relational column");
+
+            var cells = new List<ScalarCell>();
+            foreach (var mapping in mappings)
+            {
+                var properties = mapping.Entity.GetProperties().OrderBy(property => property.Name, StringComparer.Ordinal).ToArray();
+                var keys = mapping.Entity.FindPrimaryKey()?.Properties.ToArray()
+                    ?? throw new InvalidOperationException($"Persisted entity {mapping.Entity.Name} has no primary key.");
+                var columns = properties.Select(property => property.GetColumnName(mapping.Store)!).ToArray();
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"SELECT {string.Join(", ", columns.Select(Quote))} FROM {Quote(mapping.Table)}";
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var values = properties.Select((property, index) => Canonicalize(property, reader.IsDBNull(index) ? null : reader.GetValue(index))).ToArray();
+                    var key = string.Join("|", keys.Select(keyProperty =>
+                    {
+                        var index = Array.IndexOf(properties, keyProperty);
+                        return $"{keyProperty.Name}={values[index]}";
+                    }));
+                    cells.AddRange(properties.Select((property, index) =>
+                        new ScalarCell(mapping.Table, mapping.Entity.Name, key, property.Name, columns[index], values[index])));
+                }
+            }
+
+            var orderedCells = cells.OrderBy(value => value.Table, StringComparer.Ordinal)
+                .ThenBy(value => value.Key, StringComparer.Ordinal)
+                .ThenBy(value => value.Property, StringComparer.Ordinal).ToArray();
+            foreach (var mapping in mappings)
+            {
+                var represented = orderedCells.Where(cell => cell.Table == mapping.Table && cell.Entity == mapping.Entity.Name)
+                    .Select(cell => cell.Property).Distinct(StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+                var rowCount = orderedCells.Count(cell => cell.Table == mapping.Table && cell.Entity == mapping.Entity.Name &&
+                    cell.Property == mapping.Entity.FindPrimaryKey()!.Properties[0].Name);
+                if (rowCount > 0)
+                    mapping.Entity.GetProperties().Select(property => property.Name).Should().BeSubsetOf(represented,
+                        $"schema closure requires every scalar property of {mapping.Entity.Name} to be represented");
+            }
+            var manifest = string.Join("\n", schema.Select(value => $"{value.Table}|{value.Entity}|{value.Property}|{value.Column}"));
+            var schemaHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(manifest)));
+            schemaHash.Should().Be(ExpectedScalarSchemaHash,
+                "a mapped scalar addition or removal must update the explicit full-snapshot manifest and its reconstruction contract");
+            var requiredTables = new[]
+            {
+                "reconciliationbatches", "reconciliationbatchlines", "reconciliationbatchcontributors",
+                "inventoryissues", "inventoryissuelines", "inventoryreturns", "inventoryreturnlines",
+                "currentstock", "stockmovements", "reconciliationactuals", "reconciliationactualrevisions", "reconciliationdispositions",
+                "materialrequests", "materialrequestlines", "supplementalmaterialrequests",
+                "purchaserequests", "purchaserequestlines", "purchaselinesupplierdecisions", "purchasepriceexceptions", "purchaseorders", "purchaseorderlines",
+                "approvalhistories", "approvalrules", "approvalassignments", "auditlogs",
+                "lifecycletransitions", "lifecycleoutboxmessages", "lifecycleoutboxdeliveries", "lifecyclecommandreceipts",
+                "inventoryreceipts", "inventoryreceiptlines", "purchasereceiptactivelines", "systemoperationmodes"
+            };
+            requiredTables.Should().BeSubsetOf(schema.Select(value => value.Table).Distinct(StringComparer.Ordinal),
+                "the canonical oracle must close every requested batch, inventory, actual, purchasing, approval, audit, lifecycle, mode, and receipt table");
+            return new(schema, orderedCells, schemaHash);
+        }
+
+        private static string Quote(string identifier) => $"\"{identifier.Replace("\"", "\"\"")}\"";
+
+        private static string Canonicalize(IProperty property, object? value)
+        {
+            if (value is null) return "null";
+            var type = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+            if (value is byte[] bytes)
+                return type == typeof(byte[]) && bytes.Length == 16
+                    ? $"guid:{GuidHelper.ToGuidString(bytes)}" : $"blob:{Convert.ToHexString(bytes)}";
+            if (type == typeof(DateTime) || value is DateTime)
+            {
+                var dateTime = value is DateTime typed ? typed : DateTime.Parse(Convert.ToString(value, CultureInfo.InvariantCulture)!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                return $"datetime:{DateTime.SpecifyKind(dateTime, DateTimeKind.Utc):O}";
+            }
+            if (type == typeof(DateOnly) || value is DateOnly)
+            {
+                var date = value is DateOnly typed ? typed : DateOnly.Parse(Convert.ToString(value, CultureInfo.InvariantCulture)!, CultureInfo.InvariantCulture);
+                return $"date:{date:yyyy-MM-dd}";
+            }
+            if (type == typeof(decimal) || value is decimal)
+                return $"decimal:{Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString("G29", CultureInfo.InvariantCulture)}";
+            if (type == typeof(bool))
+                return $"bool:{(Convert.ToBoolean(value, CultureInfo.InvariantCulture) ? "true" : "false")}";
+            if (type.IsEnum) return $"enum:{Convert.ToString(value, CultureInfo.InvariantCulture)}";
+            return value switch
+            {
+                float single => $"float:{single.ToString("R", CultureInfo.InvariantCulture)}",
+                double number => $"double:{number.ToString("R", CultureInfo.InvariantCulture)}",
+                _ => $"scalar:{Convert.ToString(value, CultureInfo.InvariantCulture)}"
+            };
+        }
+
+        private const string ExpectedScalarSchemaHash = "A418BB491D230291E25D50C007BF3979EEB973DFC59CFB2D472B20E57767092C";
+
+        private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
         private async Task<LedgerTable[]> ReadCommonLedgerAsync()
         {
@@ -623,7 +964,7 @@ CREATE TABLE approvalassignments (assignmentId BLOB PRIMARY KEY, ruleId BLOB NOT
 """;
     }
 
-    private sealed record Snapshot(string ActorId, BatchValue[] Batches, BatchLineValue[] BatchLines, ContributorValue[] Contributors, IssueValue[] Issues, IssueLineValue[] IssueLines, ReturnValue[] Returns, ReturnLineValue[] ReturnLines, StockValue[] Stocks, MovementValue[] Movements, ActualValue[] Actuals, RevisionValue[] Revisions, DispositionValue[] Dispositions, AuditValue[] Audits, TransitionValue[] Transitions, OutboxValue[] Outbox, ReceiptValue[] Receipts, LedgerTable[] CommonLedger, ModeValue Mode, decimal ReconciliationNet, decimal DefaultNet);
+    private sealed record Snapshot(string ActorId, BatchValue[] Batches, BatchLineValue[] BatchLines, ContributorValue[] Contributors, IssueValue[] Issues, IssueLineValue[] IssueLines, ReturnValue[] Returns, ReturnLineValue[] ReturnLines, StockValue[] Stocks, MovementValue[] Movements, ActualValue[] Actuals, RevisionValue[] Revisions, DispositionValue[] Dispositions, AuditValue[] Audits, TransitionValue[] Transitions, OutboxValue[] Outbox, ReceiptValue[] Receipts, LedgerTable[] CommonLedger, CanonicalEntitySnapshot Canonical, ModeValue Mode, decimal ReconciliationNet, decimal DefaultNet);
     private sealed record BatchValue(string Id, string Status, long Version, string? CompletedBy, DateTime? CompletedAt);
     private sealed record BatchLineValue(string Id, string BatchId, decimal RequiredQuantity, long Version);
     private sealed record ContributorValue(string Id, string LineId, decimal SourceQuantity);
@@ -641,5 +982,8 @@ CREATE TABLE approvalassignments (assignmentId BLOB PRIMARY KEY, ruleId BLOB NOT
     private sealed record OutboxValue(string Id, string EventType, string AggregateType, string AggregateId, int AggregateSequence, string CommandId, string PayloadJson, string Status, int AttemptCount, DateTime? NextAttemptAt, DateTime? LockedAt, DateTime? ProcessedAt, string? LastError, DateTime CreatedAt);
     private sealed record ReceiptValue(string Id, string CommandId, string AggregateType, string AggregateId, string ResponseJson, DateTime CreatedAt);
     private sealed record LedgerTable(string Name, string[] Rows);
+    private sealed record ScalarSchema(string Table, string Entity, string Property, string Column);
+    private sealed record ScalarCell(string Table, string Entity, string Key, string Property, string Column, string Value);
+    private sealed record CanonicalEntitySnapshot(ScalarSchema[] Schema, ScalarCell[] Cells, string SchemaHash);
     private sealed record ModeValue(string Mode, long Version, DateTime UpdatedAt, string UpdatedBy, string? Reason);
 }
