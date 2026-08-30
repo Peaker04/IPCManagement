@@ -335,6 +335,11 @@ public class AuditChangeReportDto
     public string? NewValue { get; set; }
     public string? Reason { get; set; }
     public string? CorrelationId { get; set; }
+    public string? SourceFamily { get; set; }
+    public string? MaterialRequestId { get; set; }
+    public string? MaterialRequestLineId { get; set; }
+    public string? ReconciliationBatchId { get; set; }
+    public string? ReconciliationBatchLineId { get; set; }
 }
 
 public class DataQualityReportDto

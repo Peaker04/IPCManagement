@@ -321,11 +321,13 @@ public class AuditReportService : IAuditReportService
             ? issues.OrderBy(item => item.CreatedAt).ThenBy(item => item.IssueId)
             : issues.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.IssueId);
 
-        var issueRows = await orderedIssues
+        var issueDocuments = await orderedIssues
             .Take(sourceLimit)
-            .Select(item => new AuditChangeReportDto
+            .ToListAsync();
+        var issueRows = issueDocuments
+            .SelectMany(item => item.Inventoryissuelines.Select(line => new AuditChangeReportDto
             {
-                AuditId = GuidHelper.ToGuidString(item.IssueId),
+                AuditId = GuidHelper.ToGuidString(line.IssueLineId),
                 ChangedAt = item.CreatedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
                 ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
@@ -333,11 +335,44 @@ public class AuditReportService : IAuditReportService
                 EntityName = nameof(InventoryIssue),
                 EntityId = GuidHelper.ToGuidString(item.IssueId),
                 FieldName = item.ShiftName ?? "FULLDAY",
-                OldValue = GuidHelper.ToGuidString(item.MaterialRequestId),
-                NewValue = $"{item.IssueCode} - {item.Inventoryissuelines.Count} lines",
-                Reason = $"Ngày xuất {item.IssueDate:yyyy-MM-dd}"
-            })
-            .ToListAsync();
+                OldValue = item.MaterialRequestId != null
+                    ? GuidHelper.ToGuidString(item.MaterialRequestId)
+                    : item.ReconciliationBatchId != null
+                        ? GuidHelper.ToGuidString(item.ReconciliationBatchId)
+                        : null,
+                NewValue = $"{item.IssueCode} - {line.IssuedQty}",
+                Reason = $"Ngày xuất {item.IssueDate:yyyy-MM-dd}",
+                SourceFamily = item.MaterialRequestId != null &&
+                               item.ReconciliationBatchId == null &&
+                               line.MaterialRequestLineId != null &&
+                               line.ReconciliationBatchLineId == null
+                    ? "DEFAULT"
+                    : item.MaterialRequestId == null &&
+                      item.ReconciliationBatchId != null &&
+                      line.MaterialRequestLineId == null &&
+                      line.ReconciliationBatchLineId != null
+                        ? "MATERIAL_RECONCILIATION"
+                        : "LEGACY_UNCLASSIFIED",
+                MaterialRequestId = item.MaterialRequestId != null && item.ReconciliationBatchId == null
+                    ? GuidHelper.ToGuidString(item.MaterialRequestId)
+                    : null,
+                MaterialRequestLineId = item.MaterialRequestId != null &&
+                                        item.ReconciliationBatchId == null &&
+                                        line.MaterialRequestLineId != null &&
+                                        line.ReconciliationBatchLineId == null
+                    ? GuidHelper.ToGuidString(line.MaterialRequestLineId)
+                    : null,
+                ReconciliationBatchId = item.MaterialRequestId == null && item.ReconciliationBatchId != null
+                    ? GuidHelper.ToGuidString(item.ReconciliationBatchId)
+                    : null,
+                ReconciliationBatchLineId = item.MaterialRequestId == null &&
+                                            item.ReconciliationBatchId != null &&
+                                            line.MaterialRequestLineId == null &&
+                                            line.ReconciliationBatchLineId != null
+                    ? GuidHelper.ToGuidString(line.ReconciliationBatchLineId)
+                    : null
+            }))
+            .ToList();
 
         var quantityAdjustments = _context.Quantityadjustments
             .AsNoTracking()
@@ -438,7 +473,20 @@ public class AuditReportService : IAuditReportService
             .Concat(receiptRows)
             .Concat(issueRows)
             .Concat(quantityRows)
-            .Concat(bomRows);
+            .Concat(bomRows)
+            .ToList();
+
+        foreach (var row in rows)
+        {
+            row.SourceFamily ??= "NOT_APPLICABLE";
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.SourceFamily))
+        {
+            rows = rows
+                .Where(item => string.Equals(item.SourceFamily, query.SourceFamily.Trim(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
 
         return (ascending
                 ? rows.OrderBy(item => item.ChangedAt).ThenBy(item => item.AuditId)
@@ -520,6 +568,7 @@ public class AuditReportService : IAuditReportService
             BusinessArea = query.BusinessArea,
             EntityName = query.EntityName,
             FieldName = query.FieldName,
+            SourceFamily = query.SourceFamily,
             GroupBy = query.GroupBy,
             PriceTier = query.PriceTier
         };
