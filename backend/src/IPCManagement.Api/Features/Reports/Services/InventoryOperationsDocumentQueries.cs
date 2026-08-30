@@ -52,7 +52,14 @@ internal static class InventoryOperationsDocumentQueries
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
         var shiftName = NormalizeShiftName(query.ShiftName);
-        var issues = context.Inventoryissues.AsNoTracking().AsQueryable();
+        var issues = context.Inventoryissues
+            .AsNoTracking()
+            .Where(item =>
+                item.MaterialRequestId != null &&
+                item.ReconciliationBatchId == null &&
+                item.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null));
 
         if (dateFrom is not null)
         {
@@ -97,7 +104,15 @@ internal static class InventoryOperationsDocumentQueries
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
         var shiftName = NormalizeShiftName(query.ShiftName);
-        var returns = context.Inventoryreturns.AsNoTracking().AsQueryable();
+        var returns = context.Inventoryreturns
+            .AsNoTracking()
+            .Where(item =>
+                item.Issue.MaterialRequestId != null &&
+                item.Issue.ReconciliationBatchId == null &&
+                item.Inventoryreturnlines.All(line =>
+                    line.SourceIssueLineId != null &&
+                    line.SourceIssueLine.MaterialRequestLineId != null &&
+                    line.SourceIssueLine.ReconciliationBatchLineId == null));
 
         if (dateFrom is not null)
         {

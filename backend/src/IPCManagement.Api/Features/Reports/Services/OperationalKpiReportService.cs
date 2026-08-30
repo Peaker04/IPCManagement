@@ -52,7 +52,13 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
 
         var pendingKitchenConfirmationCount = await _context.Inventoryissues
             .AsNoTracking()
-            .CountAsync(issue => issue.ReceivedBy == null);
+            .CountAsync(issue =>
+                issue.ReceivedBy == null &&
+                issue.MaterialRequestId != null &&
+                issue.ReconciliationBatchId == null &&
+                issue.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null));
 
         var failedWorkflowCount =
             await _context.Materialrequests.AsNoTracking().CountAsync(request => failedStatuses.Contains(request.Status)) +
@@ -78,7 +84,12 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
                 .AsNoTracking()
                 .CountAsync(issue =>
                     issue.CreatedAt <= approvalCutoff &&
+                    issue.MaterialRequestId != null &&
+                    issue.ReconciliationBatchId == null &&
                     issue.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
+                    issue.Inventoryissuelines.All(line =>
+                        line.MaterialRequestLineId != null &&
+                        line.ReconciliationBatchLineId == null) &&
                     !_context.Approvalhistories.Any(history =>
                         history.TargetType == "inventory-issue" &&
                         history.TargetId == issue.IssueId)) +
@@ -236,6 +247,11 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
                 .ThenInclude(item => item.ReceivedByNavigation)
             .Include(item => item.Ingredient)
             .Include(item => item.Unit)
+            .Where(item =>
+                item.Issue.MaterialRequestId != null &&
+                item.Issue.ReconciliationBatchId == null &&
+                item.MaterialRequestLineId != null &&
+                item.ReconciliationBatchLineId == null)
             .AsQueryable();
 
         if (warehouseId is not null)

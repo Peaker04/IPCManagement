@@ -288,11 +288,16 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             .OrderByDescending(line =>
                 _context.Inventoryissuelines.Any(issueLine =>
                     issueLine.MaterialRequestLineId == null &&
+                    issueLine.ReconciliationBatchLineId == null &&
+                    issueLine.Issue.MaterialRequestId != null &&
+                    issueLine.Issue.ReconciliationBatchId == null &&
                     issueLine.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
                     issueLine.IngredientId.SequenceEqual(line.IngredientId) &&
                     issueLine.UnitId.SequenceEqual(line.UnitId)) ||
                 _context.Inventoryreturnlines.Any(returnLine =>
                     returnLine.SourceIssueLineId == null &&
+                    returnLine.Return.Issue.MaterialRequestId != null &&
+                    returnLine.Return.Issue.ReconciliationBatchId == null &&
                     returnLine.Return.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
                     returnLine.IngredientId.SequenceEqual(line.IngredientId) &&
                     returnLine.UnitId.SequenceEqual(line.UnitId)))
@@ -337,7 +342,12 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             var purchaseLineKeys = sourcePurchaseLines.Select(item => BuildUsageKey(item.PurchaseRequestLineId)).ToHashSet();
             var sourceOrderLines = orderLines.Where(item => purchaseLineKeys.Contains(BuildUsageKey(item.PurchaseRequestLineId))).ToList();
             var sourceIssueLines = issueLines
-                .Where(item => item.MaterialRequestLineId is not null && BuildUsageKey(item.MaterialRequestLineId) == lineKey)
+                .Where(item =>
+                    item.MaterialRequestLineId is not null &&
+                    item.ReconciliationBatchLineId is null &&
+                    item.Issue.MaterialRequestId is not null &&
+                    item.Issue.ReconciliationBatchId is null &&
+                    BuildUsageKey(item.MaterialRequestLineId) == lineKey)
                 .ToList();
             var sourceIssueLineKeys = sourceIssueLines.Select(item => BuildUsageKey(item.IssueLineId)).ToHashSet();
             var sourceSupplements = supplements.Where(item => sourceIssueLineKeys.Contains(BuildUsageKey(item.IssueLineId))).ToList();
@@ -352,18 +362,28 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
                 .Where(item => item.SourceIssueLineId is not null && sourceIssueLineKeys.Contains(BuildUsageKey(item.SourceIssueLineId)))
                 .ToList();
             var legacyIssueCount = issueLines.Count(item => item.MaterialRequestLineId is null &&
+                item.ReconciliationBatchLineId is null &&
+                item.Issue.MaterialRequestId is not null &&
+                item.Issue.ReconciliationBatchId is null &&
                 item.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
                 item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId));
             var legacyReturnCount = returnLines.Count(item => item.SourceIssueLineId is null &&
+                item.Return.Issue.MaterialRequestId is not null &&
+                item.Return.Issue.ReconciliationBatchId is null &&
                 item.Return.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
                 item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId));
             var legacyDispositionRows = issueLines
                 .Where(item => item.MaterialRequestLineId is null &&
+                    item.ReconciliationBatchLineId is null &&
+                    item.Issue.MaterialRequestId is not null &&
+                    item.Issue.ReconciliationBatchId is null &&
                     item.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
                     item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId))
                 .Select(item => MapLegacyDispositionReport("ISSUE_LINE", item.IssueLineId, lineageDispositions))
                 .Concat(returnLines
                     .Where(item => item.SourceIssueLineId is null &&
+                        item.Return.Issue.MaterialRequestId is not null &&
+                        item.Return.Issue.ReconciliationBatchId is null &&
                         item.Return.Issue.MaterialRequestId.SequenceEqual(line.RequestId) &&
                         item.IngredientId.SequenceEqual(line.IngredientId) && item.UnitId.SequenceEqual(line.UnitId))
                     .Select(item => MapLegacyDispositionReport("RETURN_LINE", item.ReturnLineId, lineageDispositions)))
@@ -432,6 +452,11 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             .Include(item => item.MaterialRequestLine!)
                 .ThenInclude(item => item.PlanLine)
                     .ThenInclude(item => item.Customer)
+            .Where(item =>
+                item.Issue.MaterialRequestId != null &&
+                item.Issue.ReconciliationBatchId == null &&
+                item.MaterialRequestLineId != null &&
+                item.ReconciliationBatchLineId == null)
             .AsQueryable();
 
         if (warehouseId is not null)
