@@ -34,7 +34,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(inactive, "reconciliation.batches.transfer", OperationDisposition.ReconciliationOnly);
         var beforeTransfer = await fixture.SnapshotAsync();
         await fixture.Invoking(x => x.BatchService.TransferToWarehouseAsync(x.TransferBatchId, new(1), x.ActorId))
-            .Should().ThrowAsync<SystemOperationUnavailableException>();
+            .Should().ThrowAsync<InvalidOperationException>().WithMessage("*chế độ đối chiếu nguyên liệu*");
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeTransfer);
 
         var active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation transfer.");
@@ -68,8 +68,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         completed.Lines.Should().ContainSingle().Which.BatchLineId.Should().Be(fixture.CompletionLineId);
         var afterComplete = await fixture.SnapshotAsync();
         AssertOnlyBatchDelta(beforeCompleteSuccess, afterComplete, fixture.CompletionBatchId, "IN_PROGRESS", "COMPLETED", 3, 4, completed: true);
-        var completedReplay = await fixture.CompletionService.CompleteAsync(fixture.CompletionBatchId, new(3), fixture.ActorId);
-        completedReplay.BatchId.Should().Be(completed.BatchId);
+        await fixture.Invoking(x => x.CompletionService.CompleteAsync(x.CompletionBatchId, new(3), x.ActorId))
+            .Should().ThrowAsync<DbUpdateConcurrencyException>();
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterComplete);
     }
 
@@ -160,7 +160,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             .Should().ThrowAsync<DbUpdateConcurrencyException>();
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterActual);
 
-        var disposition = new SetReconciliationDispositionRequest("INVESTIGATE", "Investigate exact persisted variance.", null);
+        var disposition = new SetReconciliationDispositionRequest("FOLLOW_UP_REQUIRED", "Investigate exact persisted variance.", null);
         inactive = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Freeze reconciliation disposition.");
         fixture.Authorize(inactive, "reconciliation.actuals.disposition", OperationDisposition.ReconciliationOnly);
         var beforeDisposition = await fixture.SnapshotAsync();
@@ -322,7 +322,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     {
         var disposition = after.Dispositions.Except(before.Dispositions).Should().ContainSingle().Subject;
         disposition.LineId.Should().Be(fixture.ActualLineId);
-        disposition.Category.Should().Be("INVESTIGATE");
+        disposition.Category.Should().Be("FOLLOW_UP_REQUIRED");
         disposition.Reason.Should().Be("Investigate exact persisted variance.");
         disposition.Version.Should().Be(1);
         disposition.DisposedBy.Should().Be(fixture.ActorId);
@@ -456,14 +456,14 @@ public sealed class Phase30InactiveReconciliationOwnerTests
 
         public CreateInventoryIssueRequest IssueCommand() => new()
         {
-            CommandId = "p30-recon-issue", ExpectedVersion = 2, ReconciliationBatchId = IssueBatchId, IssueDate = new DateOnly(2026, 8, 30), WarehouseId = Id(warehouse),
-            Lines = [new CreateInventoryIssueLineRequest { ReconciliationBatchLineId = IssueLineId, IngredientId = Id(ingredient), UnitId = Id(unit), RequestedQty = 5m, IssuedQty = 5m }]
+            CommandId = "p30-recon-issue", ExpectedVersion = 2, ReconciliationBatchId = IssueBatchId, IssueDate = new DateOnly(2026, 8, 30), WarehouseId = Id(warehouse)!,
+            Lines = [new CreateInventoryIssueLineRequest { ReconciliationBatchLineId = IssueLineId, IngredientId = Id(ingredient)!, UnitId = Id(unit)!, RequestedQty = 5m, IssuedQty = 5m }]
         };
 
         public CreateInventoryReturnRequest ReturnCommand(string issueId, string sourceLineId) => new()
         {
-            CommandId = "p30-recon-return", ReturnDate = new DateOnly(2026, 8, 30), ReturnType = "RETURN", WarehouseId = Id(warehouse), IssueId = issueId, Reason = "Return exact reconciliation quantity.",
-            Lines = [new CreateInventoryReturnLineRequest { SourceIssueLineId = sourceLineId, IngredientId = Id(ingredient), UnitId = Id(unit), Quantity = 2m }]
+            CommandId = "p30-recon-return", ReturnDate = new DateOnly(2026, 8, 30), ReturnType = "RETURN", WarehouseId = Id(warehouse)!, IssueId = issueId, Reason = "Return exact reconciliation quantity.",
+            Lines = [new CreateInventoryReturnLineRequest { SourceIssueLineId = sourceLineId, IngredientId = Id(ingredient)!, UnitId = Id(unit)!, Quantity = 2m }]
         };
 
         public async Task<Snapshot> SnapshotAsync()
@@ -486,7 +486,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 returns.Select(x => new ReturnValue(Id(x.ReturnId)!, Id(x.IssueId)!, Id(x.ReceivedBy), x.ReceivedAt)).OrderBy(x => x.Id).ToArray(),
                 returnLines.Select(x => new ReturnLineValue(Id(x.ReturnLineId)!, Id(x.ReturnId)!, Id(x.SourceIssueLineId)!, x.Quantity)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Currentstocks.AsNoTracking().ToListAsync()).Select(x => new StockValue(Id(x.WarehouseId)!, Id(x.IngredientId)!, Id(x.UnitId)!, x.CurrentQty)).OrderBy(x => x.IngredientId).ToArray(),
-                (await Context.Stockmovements.AsNoTracking().ToListAsync()).Select(x => new MovementValue(Id(x.MovementId)!, x.MovementType, x.RefTable, Id(x.RefId)!, x.QuantityOut, x.QuantityIn)).OrderBy(x => x.Id).ToArray(),
+                (await Context.Stockmovements.AsNoTracking().ToListAsync()).Select(x => new MovementValue(Id(x.MovementId)!, x.MovementType, x.RefTable!, Id(x.RefId)!, x.QuantityOut, x.QuantityIn)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationactuals.AsNoTracking().ToListAsync()).Select(x => new ActualValue(Id(x.ActualId)!, Id(x.BatchLineId)!, x.Side, x.Quantity, x.Version, Id(x.EnteredBy)!, x.EnteredAt)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationactualrevisions.AsNoTracking().ToListAsync()).Select(x => new RevisionValue(Id(x.RevisionId)!, Id(x.ActualId)!, x.OldQuantity, x.NewQuantity, x.Reason)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationdispositions.AsNoTracking().ToListAsync()).Select(x => new DispositionValue(Id(x.DispositionId)!, Id(x.BatchLineId)!, x.Category, x.Reason, x.Version, Id(x.DisposedBy)!, x.DisposedAt)).OrderBy(x => x.Id).ToArray(),
