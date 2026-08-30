@@ -367,6 +367,11 @@ public class DataQualityIssueDto
     public string SlaLabel { get; set; } = string.Empty;
     public string EntityName { get; set; } = string.Empty;
     public string? EntityId { get; set; }
+    public string? SourceFamily { get; set; }
+    public string? MaterialRequestId { get; set; }
+    public string? MaterialRequestLineId { get; set; }
+    public string? ReconciliationBatchId { get; set; }
+    public string? ReconciliationBatchLineId { get; set; }
     public string EntityCode { get; set; } = string.Empty;
     public string EntityLabel { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;

@@ -44,6 +44,9 @@ public partial class WorkflowGenerationTests
         var stalePurchaseRequestLineId = GuidHelper.NewId();
         var activeDraftPurchaseRequestId = GuidHelper.NewId();
         var orphanIssueId = GuidHelper.NewId();
+        var reconciliationBatchId = GuidHelper.NewId();
+        var reconciliationIssueId = GuidHelper.NewId();
+        var legacyIssueId = GuidHelper.NewId();
 
         context.Materialrequests.Add(new MaterialRequest
         {
@@ -105,6 +108,26 @@ public partial class WorkflowGenerationTests
             RequestedQty = 1,
             IssuedQty = 1
         });
+        context.Inventoryissues.AddRange(
+            new InventoryIssue
+            {
+                IssueId = reconciliationIssueId,
+                IssueCode = "ISS-CLEANUP-RECONCILIATION",
+                IssueDate = new DateOnly(2026, 6, 15),
+                WarehouseId = fixture.WarehouseId,
+                ReconciliationBatchId = reconciliationBatchId,
+                IssuedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new InventoryIssue
+            {
+                IssueId = legacyIssueId,
+                IssueCode = "ISS-CLEANUP-LEGACY",
+                IssueDate = new DateOnly(2026, 6, 15),
+                WarehouseId = fixture.WarehouseId,
+                IssuedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow
+            });
         await context.SaveChangesAsync();
 
         var commandService = new DataQualityCommandService(context);
@@ -122,6 +145,22 @@ public partial class WorkflowGenerationTests
         dryRun.RemovedInventoryIssues.Should().Be(1);
         dryRun.RemovedInventoryIssueLines.Should().Be(1);
         dryRun.AuditLogCount.Should().Be(0);
+        var reportBeforeCleanup = await new DataQualityReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto
+        {
+            ServiceDate = "2026-06-15",
+            Limit = 100
+        });
+        var orphanFinding = reportBeforeCleanup.Issues.Should().ContainSingle(issue =>
+            issue.EntityCode == "ISS-CLEANUP-ORPHAN").Subject;
+        orphanFinding.SourceFamily.Should().Be("DEFAULT");
+        orphanFinding.MaterialRequestId.Should().NotBeNullOrWhiteSpace();
+        orphanFinding.MaterialRequestLineId.Should().BeNull();
+        orphanFinding.ReconciliationBatchId.Should().BeNull();
+        orphanFinding.ReconciliationBatchLineId.Should().BeNull();
+        reportBeforeCleanup.Issues.Should().NotContain(issue =>
+            issue.EntityCode == "ISS-CLEANUP-RECONCILIATION" ||
+            issue.EntityCode == "ISS-CLEANUP-LEGACY");
+        reportBeforeCleanup.OrphanDocumentCount.Should().BeGreaterThanOrEqualTo(1);
         (await context.Materialrequests.AnyAsync(request => request.RequestId == orphanRequestId)).Should().BeTrue();
         (await context.Purchaserequests.AnyAsync(request => request.PurchaseRequestId == stalePurchaseRequestId)).Should().BeTrue();
         (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == orphanIssueId)).Should().BeTrue();
@@ -148,6 +187,8 @@ public partial class WorkflowGenerationTests
         (await context.Purchaserequestlines.AnyAsync(line => line.PurchaseRequestLineId == stalePurchaseRequestLineId)).Should().BeFalse();
         (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == orphanIssueId)).Should().BeFalse();
         (await context.Inventoryissuelines.AnyAsync(line => line.IssueId == orphanIssueId)).Should().BeFalse();
+        (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == reconciliationIssueId)).Should().BeTrue();
+        (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == legacyIssueId)).Should().BeTrue();
         (await context.Auditlogs.CountAsync(log =>
             log.BusinessArea == "DataQuality" &&
             log.FieldName == "Cleanup" &&
@@ -162,6 +203,8 @@ public partial class WorkflowGenerationTests
         report.Issues.Select(issue => issue.EntityCode).Should().NotContain("MR-CLEANUP-ORPHAN");
         report.Issues.Select(issue => issue.EntityCode).Should().NotContain("PR-CLEANUP-STALE");
         report.Issues.Select(issue => issue.EntityCode).Should().NotContain("ISS-CLEANUP-ORPHAN");
+        report.Issues.Select(issue => issue.EntityCode).Should().NotContain("ISS-CLEANUP-RECONCILIATION");
+        report.Issues.Select(issue => issue.EntityCode).Should().NotContain("ISS-CLEANUP-LEGACY");
     }
 
     [Fact]

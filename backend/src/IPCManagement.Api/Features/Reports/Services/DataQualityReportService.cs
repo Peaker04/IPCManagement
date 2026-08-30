@@ -443,7 +443,9 @@ public sealed class DataQualityReportService : IDataQualityReportService
             issue.IssueDate.ToString("yyyy-MM-dd"),
             "Phiếu xuất không còn demand/material request gốc.",
             "Kiểm tra lại workflow kho và demand đã sinh.",
-            "/warehouse")));
+            "/warehouse",
+            sourceFamily: "DEFAULT",
+            materialRequestId: GuidHelper.ToGuidString(issue.MaterialRequestId!))));
 
         var unitNormalizationReviews = await _context.Unitnormalizationreviews
             .AsNoTracking()
@@ -609,8 +611,21 @@ public sealed class DataQualityReportService : IDataQualityReportService
         string entityLabel,
         string message,
         string suggestedAction,
-        string route)
-        => DataQualityPolicy.BuildIssue(
+        string route,
+        string? sourceFamily = null,
+        string? materialRequestId = null,
+        string? materialRequestLineId = null,
+        string? reconciliationBatchId = null,
+        string? reconciliationBatchLineId = null)
+    {
+        var issue = DataQualityPolicy.BuildIssue(
             category, severity, entityName, entityId, entityCode,
             entityLabel, message, suggestedAction, route, DateTime.UtcNow);
+        issue.SourceFamily = sourceFamily;
+        issue.MaterialRequestId = materialRequestId;
+        issue.MaterialRequestLineId = materialRequestLineId;
+        issue.ReconciliationBatchId = reconciliationBatchId;
+        issue.ReconciliationBatchLineId = reconciliationBatchLineId;
+        return issue;
+    }
 }
