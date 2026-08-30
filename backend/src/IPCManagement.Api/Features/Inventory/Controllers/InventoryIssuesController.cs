@@ -56,14 +56,21 @@ public class InventoryIssuesController : ControllerBase
         string id,
         [FromQuery] string sourceFamily = InventoryIssueSourceFamilies.Default)
     {
-        var result = await _inventoryIssueService.GetByIdAsync(id, sourceFamily);
-        if (result is null)
-            return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
+        try
+        {
+            var result = await _inventoryIssueService.GetByIdAsync(id, sourceFamily);
+            if (result is null)
+                return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
 
-        if (!CanAccessWarehouse(result.WarehouseId))
-            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult("Không có quyền xem phiếu xuất kho của kho này."));
+            if (!CanAccessWarehouse(result.WarehouseId))
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult("Không có quyền xem phiếu xuất kho của kho này."));
 
-        return Ok(ApiResponse<InventoryIssueDto>.SuccessResult(result));
+            return Ok(ApiResponse<InventoryIssueDto>.SuccessResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     /// <summary>Tạo mới phiếu xuất kho.</summary>

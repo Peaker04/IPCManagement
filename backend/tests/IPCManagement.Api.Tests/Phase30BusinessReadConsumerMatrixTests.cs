@@ -88,12 +88,90 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var context = fixture.CreateContext();
-        var stockBefore = await context.Currentstocks.AsNoTracking()
-            .Select(row => new { row.WarehouseId, row.IngredientId, row.UnitId, row.CurrentQty })
-            .ToListAsync();
-        var movementsBefore = await context.Stockmovements.AsNoTracking()
-            .Select(row => new { row.MovementId, row.QuantityIn, row.QuantityOut, row.BeforeQty, row.AfterQty })
-            .ToListAsync();
+        var movementId = GuidHelper.ToBytes(Guid.Parse("30000000-0000-0000-0000-000000000010"));
+        var referenceId = GuidHelper.ToBytes(Guid.Parse("30000000-0000-0000-0000-000000000011"));
+        var physicalTimestamp = new DateTime(2026, 6, 14, 8, 30, 0, DateTimeKind.Utc);
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 12.75m,
+            LastUpdated = physicalTimestamp,
+            RowVersion = physicalTimestamp.AddTicks(17)
+        });
+        context.Stockmovements.Add(new StockMovement
+        {
+            MovementId = movementId,
+            MovementDate = physicalTimestamp,
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            MovementType = "RECEIPT",
+            RefTable = "inventoryreceipts",
+            RefId = referenceId,
+            QuantityIn = 12.75m,
+            QuantityOut = 0.25m,
+            BeforeQty = 0.25m,
+            AfterQty = 12.75m,
+            LotNumber = "LOT-PHYSICAL-30-10",
+            ManufactureDate = new DateOnly(2026, 6, 1),
+            ExpiredDate = new DateOnly(2026, 12, 1),
+            Reason = "Canonical physical receipt",
+            Note = "Shared truth across workflow families",
+            PerformedBy = fixture.UserId
+        });
+        await context.SaveChangesAsync();
+        await context.Currentstocks.ExecuteUpdateAsync(setters => setters
+            .SetProperty(row => row.RowVersion, physicalTimestamp.AddTicks(17)));
+        context.ChangeTracker.Clear();
+
+        var stockBefore = await ReadPhysicalStocksAsync(context);
+        var movementsBefore = await ReadPhysicalMovementsAsync(context);
+        stockBefore.Should().ContainSingle();
+        stockBefore.Single().Should().BeEquivalentTo(new
+        {
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+            CurrentQty = 12.75m,
+            LastUpdated = physicalTimestamp,
+            RowVersion = physicalTimestamp.AddTicks(17)
+        });
+        movementsBefore.Should().ContainSingle();
+        movementsBefore.Single().Should().BeEquivalentTo(new
+        {
+            MovementId = GuidHelper.ToGuidString(movementId),
+            MovementDate = physicalTimestamp,
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+            MovementType = "RECEIPT",
+            RefTable = "inventoryreceipts",
+            RefId = GuidHelper.ToGuidString(referenceId),
+            QuantityIn = 12.75m,
+            QuantityOut = 0.25m,
+            BeforeQty = 0.25m,
+            AfterQty = 12.75m,
+            LotNumber = "LOT-PHYSICAL-30-10",
+            ManufactureDate = new DateOnly(2026, 6, 1),
+            ExpiredDate = new DateOnly(2026, 12, 1),
+            Reason = "Canonical physical receipt",
+            Note = "Shared truth across workflow families",
+            PerformedBy = GuidHelper.ToGuidString(fixture.UserId)
+        });
+
+        var physicalReports = new StockMovementReportService(context);
+        var stockReportBefore = await physicalReports.GetCurrentStockAsync(new WorkflowReportQueryDto { Limit = 20 });
+        stockReportBefore.Should().ContainSingle().Which.CurrentQty.Should().Be(12.75m);
+        var movementReportBefore = await physicalReports.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-06-14",
+            DateTo = "2026-06-14",
+            Limit = 20
+        });
+        movementReportBefore.Should().ContainSingle().Which.MovementId.Should().Be(GuidHelper.ToGuidString(movementId));
+
         var emptyReports = new InventoryOperationsReportService(context);
         (await emptyReports.GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 20 })).Should().BeEmpty();
         (await emptyReports.GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 20 })).Should().BeEmpty();
@@ -119,14 +197,22 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         kpis.TotalKitchenIssuedQty.Should().Be(7m);
         kpis.TotalKitchenUsedQty.Should().Be(7m);
 
-        var stockAfter = await context.Currentstocks.AsNoTracking()
-            .Select(row => new { row.WarehouseId, row.IngredientId, row.UnitId, row.CurrentQty })
-            .ToListAsync();
-        var movementsAfter = await context.Stockmovements.AsNoTracking()
-            .Select(row => new { row.MovementId, row.QuantityIn, row.QuantityOut, row.BeforeQty, row.AfterQty })
-            .ToListAsync();
-        stockAfter.Should().BeEquivalentTo(stockBefore);
-        movementsAfter.Should().BeEquivalentTo(movementsBefore);
+        var stockReportAfter = await physicalReports.GetCurrentStockAsync(new WorkflowReportQueryDto { Limit = 20 });
+        stockReportAfter.Should().BeEquivalentTo(stockReportBefore,
+            "shared current-stock truth must remain visible through the real report seam regardless of workflow family");
+        var movementReportAfter = await physicalReports.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-06-14",
+            DateTo = "2026-06-14",
+            Limit = 20
+        });
+        movementReportAfter.Should().BeEquivalentTo(movementReportBefore,
+            "shared stock-movement truth must remain visible through the real report seam regardless of workflow family");
+
+        var stockAfter = await ReadPhysicalStocksAsync(context);
+        var movementsAfter = await ReadPhysicalMovementsAsync(context);
+        stockAfter.Should().BeEquivalentTo(stockBefore, options => options.WithStrictOrdering());
+        movementsAfter.Should().BeEquivalentTo(movementsBefore, options => options.WithStrictOrdering());
     }
 
     [Fact]
@@ -267,6 +353,44 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         (row.ReconciliationBatchLineId is not null).Should().Be(hasReconciliationBatchLine);
     }
 
+    private static Task<List<PhysicalStockSnapshot>> ReadPhysicalStocksAsync(IpcManagementContext context)
+        => context.Currentstocks.AsNoTracking()
+            .OrderBy(row => row.WarehouseId)
+            .ThenBy(row => row.IngredientId)
+            .ThenBy(row => row.UnitId)
+            .Select(row => new PhysicalStockSnapshot(
+                GuidHelper.ToGuidString(row.WarehouseId),
+                GuidHelper.ToGuidString(row.IngredientId),
+                GuidHelper.ToGuidString(row.UnitId),
+                row.CurrentQty,
+                row.LastUpdated,
+                row.RowVersion))
+            .ToListAsync();
+
+    private static Task<List<PhysicalMovementSnapshot>> ReadPhysicalMovementsAsync(IpcManagementContext context)
+        => context.Stockmovements.AsNoTracking()
+            .OrderBy(row => row.MovementId)
+            .Select(row => new PhysicalMovementSnapshot(
+                GuidHelper.ToGuidString(row.MovementId),
+                row.MovementDate,
+                GuidHelper.ToGuidString(row.WarehouseId),
+                GuidHelper.ToGuidString(row.IngredientId),
+                GuidHelper.ToGuidString(row.UnitId),
+                row.MovementType,
+                row.RefTable,
+                row.RefId == null ? null : GuidHelper.ToGuidString(row.RefId),
+                row.QuantityIn,
+                row.QuantityOut,
+                row.BeforeQty,
+                row.AfterQty,
+                row.LotNumber,
+                row.ManufactureDate,
+                row.ExpiredDate,
+                row.Reason,
+                row.Note,
+                GuidHelper.ToGuidString(row.PerformedBy)))
+            .ToListAsync();
+
     private static async Task<CollidingIssueSeed> SeedCollidingIssuesAsync(
         IpcManagementContext context,
         WorkflowGenerationTests.WorkflowFixture fixture)
@@ -329,6 +453,34 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
                 ]
             };
     }
+
+    private sealed record PhysicalStockSnapshot(
+        string WarehouseId,
+        string IngredientId,
+        string UnitId,
+        decimal CurrentQty,
+        DateTime LastUpdated,
+        DateTime RowVersion);
+
+    private sealed record PhysicalMovementSnapshot(
+        string MovementId,
+        DateTime MovementDate,
+        string WarehouseId,
+        string IngredientId,
+        string UnitId,
+        string MovementType,
+        string? RefTable,
+        string? RefId,
+        decimal QuantityIn,
+        decimal QuantityOut,
+        decimal BeforeQty,
+        decimal AfterQty,
+        string? LotNumber,
+        DateOnly? ManufactureDate,
+        DateOnly? ExpiredDate,
+        string? Reason,
+        string? Note,
+        string PerformedBy);
 
     private sealed record CollidingIssueSeed(
         byte[] UserId,

@@ -74,6 +74,20 @@ public class InventoryIssuesControllerTests
     }
 
     [Fact]
+    public async Task GetById_Should_ReturnBadRequest_WhenSourceFamilyIsUnknown()
+    {
+        _inventoryIssueService.GetByIdAsync("issue-id", "UNKNOWN")
+            .Returns<Task<InventoryIssueDto?>>(_ => throw new ArgumentException("Unknown inventory issue source family 'UNKNOWN'."));
+
+        var result = await CreateController().GetByIdAsync("issue-id", "UNKNOWN");
+
+        var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        badRequest.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
+        response.Message.Should().Be("Unknown inventory issue source family 'UNKNOWN'.");
+    }
+
+    [Fact]
     public async Task Create_Should_TargetMvcActionNameWithoutAsyncSuffix()
     {
         var userId = Guid.NewGuid().ToString();
