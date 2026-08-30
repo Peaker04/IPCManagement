@@ -306,7 +306,9 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         var demandIds = demands.Select(item => item.RequestId).ToList();
         var hasPurchaseOrder = purchaseIds.Count > 0 && await context.Purchaseorders.AnyAsync(item => purchaseIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
         var hasReceipt = purchaseIds.Count > 0 && await context.Inventoryreceipts.AnyAsync(item => item.PurchaseRequestId != null && purchaseIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
-        var hasIssue = demandIds.Count > 0 && await context.Inventoryissues.AnyAsync(item => demandIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
+        var hasIssue = demandIds.Count > 0 && await context.Inventoryissues.AnyAsync(item =>
+            item.MaterialRequestId != null && item.ReconciliationBatchId == null &&
+            demandIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
         var hasPhysical = hasPurchaseOrder || hasReceipt || hasIssue;
         if (hasPhysical) throw new BusinessRuleException("Đã phát sinh PO, nhập hoặc xuất; cần đối soát append-only, không thể regeneration.");
         var now = DateTime.UtcNow;
@@ -455,7 +457,9 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
         var hasPurchaseOrder = purchaseRequestIds.Count > 0 && await context.Purchaseorders.AnyAsync(item => purchaseRequestIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
         var hasReceipt = purchaseRequestIds.Count > 0 && await context.Inventoryreceipts.AnyAsync(item => item.PurchaseRequestId != null && purchaseRequestIds.Any(id => id.SequenceEqual(item.PurchaseRequestId)), cancellationToken);
         var requestIds = materialRequests.Select(item => item.RequestId).ToList();
-        var hasIssue = requestIds.Count > 0 && await context.Inventoryissues.AnyAsync(item => requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
+        var hasIssue = requestIds.Count > 0 && await context.Inventoryissues.AnyAsync(item =>
+            item.MaterialRequestId != null && item.ReconciliationBatchId == null &&
+            requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
         var requiresReconciliation = hasPurchaseOrder || hasReceipt || hasIssue;
         var documentIds = materialRequests.Select(item => GuidHelper.ToGuidString(item.RequestId)).Concat(purchaseRequestIds.Select(GuidHelper.ToGuidString)).ToArray();
         var sourceLines = await context.Materialrequestlines

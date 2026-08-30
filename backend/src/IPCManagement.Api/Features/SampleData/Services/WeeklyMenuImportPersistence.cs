@@ -267,9 +267,10 @@ internal sealed class WeeklyMenuImportPersistence(
                 line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
             cancellationToken);
         var hasIssue = await context.Inventoryissues.AnyAsync(issue =>
-            issue.MaterialRequest.Plan.PlanDate >= weekStartDate &&
-            issue.MaterialRequest.Plan.PlanDate <= weekEndDate &&
-            issue.MaterialRequest.Plan.Productionplanlines.Any(line =>
+            issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+            issue.MaterialRequest!.Plan.PlanDate >= weekStartDate &&
+            issue.MaterialRequest!.Plan.PlanDate <= weekEndDate &&
+            issue.MaterialRequest!.Plan.Productionplanlines.Any(line =>
                 line.CustomerId.SequenceEqual(customer.CustomerId)),
             cancellationToken);
 
