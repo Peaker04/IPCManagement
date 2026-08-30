@@ -40,6 +40,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation transfer.");
         fixture.Authorize(active, "reconciliation.batches.transfer", OperationDisposition.ReconciliationOnly);
         var beforeTransferSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeTransfer, beforeTransferSuccess, active, "Resume reconciliation transfer.");
         var transferred = await fixture.BatchService.TransferToWarehouseAsync(fixture.TransferBatchId, new(1), fixture.ActorId);
         transferred.BatchId.Should().Be(fixture.TransferBatchId);
         transferred.Status.Should().Be("TRANSFERRED");
@@ -61,6 +62,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation completion.");
         fixture.Authorize(active, "reconciliation.batches.complete", OperationDisposition.ReconciliationOnly);
         var beforeCompleteSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeComplete, beforeCompleteSuccess, active, "Resume reconciliation completion.");
         var completed = await fixture.CompletionService.CompleteAsync(fixture.CompletionBatchId, new(3), fixture.ActorId);
         completed.BatchId.Should().Be(fixture.CompletionBatchId);
         completed.Status.Should().Be("COMPLETED");
@@ -89,6 +91,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation warehouse issue.");
         fixture.Authorize(active, "inventoryissues.createasync", OperationDisposition.Retained);
         var beforeIssueSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeIssue, beforeIssueSuccess, active, "Resume reconciliation warehouse issue.");
         var created = await fixture.IssueService.CreateAsync(issueCommand, fixture.ActorId);
         created.Should().NotBeNull();
         var afterIssue = await fixture.SnapshotAsync();
@@ -97,8 +100,23 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         issueReplay!.IssueId.Should().Be(created!.IssueId);
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterIssue);
 
-        await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, new(), fixture.ActorId);
+        var confirmIssue = new ConfirmInventoryIssueReceiptRequest();
+        inactive = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Freeze reconciliation issue confirmation.");
+        fixture.Authorize(inactive, "inventoryissues.confirmreceiptasync", OperationDisposition.ReconciliationOnly);
+        var beforeIssueConfirm = await fixture.SnapshotAsync();
+        await fixture.Invoking(x => x.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, x.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*workflow nguồn đang hoạt động*");
+        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeIssueConfirm);
+
+        active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation issue confirmation.");
+        fixture.Authorize(active, "inventoryissues.confirmreceiptasync", OperationDisposition.ReconciliationOnly);
+        var beforeIssueConfirmSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeIssueConfirm, beforeIssueConfirmSuccess, active, "Resume reconciliation issue confirmation.");
+        await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
         var afterKitchenReceipt = await fixture.SnapshotAsync();
+        AssertExactIssueConfirmDelta(beforeIssueConfirmSuccess, afterKitchenReceipt, created, fixture);
+        await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
+        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterKitchenReceipt);
         var returnCommand = fixture.ReturnCommand(created.IssueId, afterKitchenReceipt.IssueLines.Single(x => x.ReconciliationBatchLineId == fixture.IssueLineId).Id);
 
         inactive = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Freeze reconciliation return creation.");
@@ -111,6 +129,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation return creation.");
         fixture.Authorize(active, "inventoryreturns.createasync", OperationDisposition.Retained);
         var beforeReturnSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeReturn, beforeReturnSuccess, active, "Resume reconciliation return creation.");
         var createdReturn = await fixture.ReturnService.CreateAsync(returnCommand, fixture.ActorId);
         createdReturn.Should().NotBeNull();
         var afterReturnCreate = await fixture.SnapshotAsync();
@@ -130,6 +149,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation return confirmation.");
         fixture.Authorize(active, "inventoryreturns.confirmreceiptasync", OperationDisposition.Retained);
         var beforeConfirmSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeConfirm, beforeConfirmSuccess, active, "Resume reconciliation return confirmation.");
         (await fixture.ReturnService.ConfirmReceiptAsync(createdReturn.ReturnId, confirm, fixture.ActorId)).Should().BeTrue();
         var afterConfirm = await fixture.SnapshotAsync();
         AssertExactReturnConfirmDelta(beforeConfirmSuccess, afterConfirm, createdReturn.ReturnId, fixture);
@@ -153,6 +173,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume manual ISSUED actual.");
         fixture.Authorize(active, "reconciliation.actuals.issued", OperationDisposition.ReconciliationOnly);
         var beforeActualSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeActual, beforeActualSuccess, active, "Resume manual ISSUED actual.");
         await fixture.ActualService.UpsertAsync(fixture.ActualLineId, "ISSUED", correction, fixture.ActorId);
         var afterActual = await fixture.SnapshotAsync();
         AssertExactActualDelta(beforeActualSuccess, afterActual, fixture);
@@ -171,6 +192,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation disposition.");
         fixture.Authorize(active, "reconciliation.actuals.disposition", OperationDisposition.ReconciliationOnly);
         var beforeDispositionSuccess = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeDisposition, beforeDispositionSuccess, active, "Resume reconciliation disposition.");
         await fixture.ActualService.SetDispositionAsync(fixture.ActualLineId, disposition, fixture.ActorId);
         var afterDisposition = await fixture.SnapshotAsync();
         AssertExactDispositionDelta(beforeDispositionSuccess, afterDisposition, fixture);
@@ -182,53 +204,160 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     [Fact]
     public void AbsentCleanupAndBackgroundMutationOwners_AreNotRegistered_AndLifecycleProcessorIsDeliveryOnly()
     {
-        var assembly = typeof(IPCManagement.Api.DependencyInjection).Assembly;
-        var boundedControllers = assembly.GetTypes()
-            .Where(type => !type.IsAbstract && typeof(ControllerBase).IsAssignableFrom(type))
-            .Where(type => type.Name.Contains("Reconciliation", StringComparison.OrdinalIgnoreCase)
-                || type.Name.Contains("MaterialRequest", StringComparison.OrdinalIgnoreCase)
-                || type.Name.Contains("InventoryIssue", StringComparison.OrdinalIgnoreCase)
-                || type.Name.Contains("InventoryReturn", StringComparison.OrdinalIgnoreCase)
-                || type.Name.Contains("Lifecycle", StringComparison.OrdinalIgnoreCase))
-            .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                .Where(method => method.GetCustomAttributes().Any(attribute => attribute is HttpMethodAttribute))
-                .Select(method => $"{type.Name}.{method.Name}"))
-            .OrderBy(value => value, StringComparer.Ordinal)
-            .ToArray();
-
-        boundedControllers.Should().NotContain(owner => OwnerLooksLikeCleanupOrBackgroundMutation(owner));
-
+        var productionAssembly = typeof(IPCManagement.Api.DependencyInjection).Assembly;
         var root = FindRepositoryRoot();
-        var dependencyInjectionSource = File.ReadAllText(Path.Combine(root, "backend", "src", "IPCManagement.Api", "DependencyInjection.cs"));
-        var registrationLines = dependencyInjectionSource.Split('\n')
-            .Select(line => line.Trim())
-            .Where(line => line.StartsWith("services.Add", StringComparison.Ordinal) && line.Contains('<'))
+        var productionRoot = Path.Combine(root, "backend", "src", "IPCManagement.Api");
+        var sources = Directory.GetFiles(productionRoot, "*.cs", SearchOption.AllDirectories)
+            .ToDictionary(path => path, File.ReadAllText, StringComparer.OrdinalIgnoreCase);
+        var registrations = ProductionRegistration.ReadAll(sources);
+
+        var mutationActions = productionAssembly.GetTypes()
+            .Where(type => !type.IsAbstract && typeof(ControllerBase).IsAssignableFrom(type))
+            .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                .Select(method => new { Controller = type, Method = method, Http = method.GetCustomAttributes<HttpMethodAttribute>(true).ToArray() })
+                .Where(action => action.Http.Length > 0)
+                .Where(action => action.Http.SelectMany(attribute => attribute.HttpMethods)
+                    .Any(http => http is not ("GET" or "HEAD" or "OPTIONS"))))
+            .OrderBy(action => action.Controller.FullName, StringComparer.Ordinal)
+            .ThenBy(action => action.Method.Name, StringComparer.Ordinal)
             .ToArray();
-        registrationLines.Should().NotContain(line =>
-            (line.Contains("Cleanup", StringComparison.OrdinalIgnoreCase) || line.Contains("Background", StringComparison.OrdinalIgnoreCase))
-            && (line.Contains("MaterialRequest", StringComparison.Ordinal) || line.Contains("Reconciliation", StringComparison.Ordinal)));
-        registrationLines.Should().ContainSingle(line => line.Contains("ILifecycleOutboxProcessor, LifecycleOutboxProcessor", StringComparison.Ordinal));
-        dependencyInjectionSource.Should().Contain("AddHostedService<LifecycleOutboxWorker>");
+
+        mutationActions.Should().NotBeEmpty("the oracle must enumerate every production MVC mutation action without a controller-name filter");
+        foreach (var action in mutationActions)
+        {
+            var routeSignature = string.Join("/", action.Controller.GetCustomAttributes<RouteAttribute>(true).Select(x => x.Template)
+                .Concat(action.Http.Select(x => x.Template)).Where(x => !string.IsNullOrWhiteSpace(x)));
+            var actionSignature = $"{action.Controller.FullName}.{action.Method.Name} {routeSignature} "
+                + string.Join(' ', action.Method.GetParameters().Select(parameter => parameter.ParameterType.FullName));
+            if (!LooksLikeUnattendedMutation(actionSignature)) continue;
+
+            var dependencies = action.Controller.GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+                .SelectMany(constructor => constructor.GetParameters()).Select(parameter => parameter.ParameterType)
+                .SelectMany(type => registrations.Resolve(type).DefaultIfEmpty(type)).Append(action.Controller).Distinct().ToArray();
+            dependencies.Should().OnlyContain(type => IsDeliveryOnly(type, registrations, sources, new HashSet<Type>()),
+                $"unattended mutation action {actionSignature} must only delegate to delivery-only infrastructure");
+        }
+
+        registrations.ImplementationsFor(typeof(ILifecycleOutboxProcessor)).Should().Equal(typeof(LifecycleOutboxProcessor));
+        registrations.HostedServices.Should().Contain(typeof(LifecycleOutboxWorker));
+        var consumers = registrations.ImplementationsFor(typeof(ILifecycleOutboxConsumer)).ToArray();
+        consumers.Should().NotBeEmpty("the registered processor requires an explicit delivery consumer set");
 
         typeof(ILifecycleOutboxProcessor).GetMethods().Select(method => method.Name)
             .Should().Equal(nameof(ILifecycleOutboxProcessor.ProcessBatchAsync));
-        var processorSource = File.ReadAllText(Path.Combine(root, "backend", "src", "IPCManagement.Api", "Infrastructure", "LifecycleOutbox", "LifecycleOutboxProcessor.cs"));
-        var workerSource = File.ReadAllText(Path.Combine(root, "backend", "src", "IPCManagement.Api", "Infrastructure", "LifecycleOutbox", "LifecycleOutboxWorker.cs"));
-        var lifecycleSource = processorSource + "\n" + workerSource;
-        lifecycleSource.Should().NotContain("Materialrequests");
-        lifecycleSource.Should().NotContain("Reconciliationbatches");
-        lifecycleSource.Should().NotContain("new MaterialRequest");
-        lifecycleSource.Should().NotContain("new ReconciliationBatch");
-        lifecycleSource.Should().NotContain("Inventoryreturns.Add");
-        lifecycleSource.Should().NotContain("Inventoryissues.Add");
-        lifecycleSource.Should().NotContain("CompletedAt =");
+        new[] { typeof(LifecycleOutboxProcessor), typeof(LifecycleOutboxWorker) }.Concat(consumers)
+            .Should().OnlyContain(type => IsDeliveryOnly(type, registrations, sources, new HashSet<Type>()),
+                "the worker, processor, every registered consumer, and their production dependencies must be unable to create/continue/return/complete MaterialRequest or ReconciliationBatch aggregates");
     }
 
-    private static bool OwnerLooksLikeCleanupOrBackgroundMutation(string owner) =>
-        (owner.Contains("Cleanup", StringComparison.OrdinalIgnoreCase)
-            || owner.Contains("Background", StringComparison.OrdinalIgnoreCase)
-            || owner.Contains("Process", StringComparison.OrdinalIgnoreCase))
-        && !owner.StartsWith("LifecycleOutboxController.", StringComparison.Ordinal);
+    private static bool LooksLikeUnattendedMutation(string signature)
+    {
+        var tokens = Tokenize(signature);
+        return tokens.Overlaps(new[] { "cleanup", "background", "process", "retry", "replay", "recover", "resume", "sweep", "maintenance", "worker" });
+    }
+
+    private static bool IsDeliveryOnly(Type type, RegistrationSet registrations, IReadOnlyDictionary<string, string> sources, HashSet<Type> visited)
+    {
+        if (!visited.Add(type) || type.Assembly != typeof(IPCManagement.Api.DependencyInjection).Assembly) return true;
+        var source = FindTypeSource(type, sources);
+        if (source is null) return false;
+        var normalized = StripCommentsAndStrings(source);
+        const string targetAggregate = "(?:MaterialRequest|ReconciliationBatch)(?:es|s|Lines?)?";
+        var directSetMutation = System.Text.RegularExpressions.Regex.IsMatch(normalized,
+            $@"(?:Set\s*<\s*{targetAggregate}\s*>\s*\(\s*\)|{targetAggregate})[^;]{{0,1200}}?\.\s*(?:Add(?:Async|Range)?|Update(?:Range)?|Remove(?:Range)?|ExecuteUpdateAsync|ExecuteDeleteAsync)\s*\(",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var aggregateOwnerContract = System.Text.RegularExpressions.Regex.IsMatch(type.Name, "MaterialRequest|ReconciliationBatch", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            && type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+                .Any(method => System.Text.RegularExpressions.Regex.IsMatch(method.Name, "^(?:Create|Continue|Resume|Return|Complete|Transfer|Update|Upsert|SetDisposition)", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+        var aggregateConstruction = System.Text.RegularExpressions.Regex.IsMatch(normalized,
+            $@"new\s+{targetAggregate}\s*(?:\(|\{{)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var mutatingDependencyCall = System.Text.RegularExpressions.Regex.IsMatch(normalized,
+            @"(?:MaterialRequest|ReconciliationBatch)[A-Za-z0-9_]*(?:Service|Repository)[A-Za-z0-9_]*\s*\.\s*(?:Create|Continue|Resume|Return|Complete|Transfer|Update|Upsert|SetDisposition)[A-Za-z0-9_]*\s*\(",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (directSetMutation || aggregateOwnerContract || aggregateConstruction || mutatingDependencyCall) return false;
+
+        var constructorDependencies = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .SelectMany(constructor => constructor.GetParameters()).Select(parameter => parameter.ParameterType)
+            .Where(dependency => dependency != typeof(IpcManagementContext))
+            .SelectMany(dependency => registrations.Resolve(dependency).DefaultIfEmpty(dependency));
+        return constructorDependencies.All(dependency => IsDeliveryOnly(dependency, registrations, sources, visited));
+    }
+
+    private static string? FindTypeSource(Type type, IReadOnlyDictionary<string, string> sources)
+    {
+        var declaration = new System.Text.RegularExpressions.Regex($@"\b(?:class|interface)\s+{System.Text.RegularExpressions.Regex.Escape(type.Name)}\b");
+        return sources.Where(pair => declaration.IsMatch(StripCommentsAndStrings(pair.Value)))
+            .Select(pair => ExtractTypeBlock(pair.Value, type.Name)).SingleOrDefault(value => value is not null);
+    }
+
+    private static string? ExtractTypeBlock(string source, string typeName)
+    {
+        var clean = StripCommentsAndStrings(source);
+        var match = System.Text.RegularExpressions.Regex.Match(clean,
+            $@"\b(?:class|interface)\s+{System.Text.RegularExpressions.Regex.Escape(typeName)}\b");
+        if (!match.Success) return null;
+        var open = clean.IndexOf('{', match.Index);
+        if (open < 0) return source[match.Index..];
+        var depth = 0;
+        for (var index = open; index < clean.Length; index++)
+        {
+            if (clean[index] == '{') depth++;
+            else if (clean[index] == '}' && --depth == 0) return source[match.Index..(index + 1)];
+        }
+        return null;
+    }
+
+    private static HashSet<string> Tokenize(string value) =>
+        System.Text.RegularExpressions.Regex.Matches(value, "[A-Z]?[a-z]+|[A-Z]+(?![a-z])|[0-9]+")
+            .Select(match => match.Value.ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
+
+    private static string StripCommentsAndStrings(string source) =>
+        System.Text.RegularExpressions.Regex.Replace(source,
+            "//.*?$|/\\*.*?\\*/|@?\"(?:\"\"|\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
+            " ", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+    private sealed record ProductionRegistration(Type Service, Type Implementation, bool Hosted)
+    {
+        public static RegistrationSet ReadAll(IReadOnlyDictionary<string, string> sources)
+        {
+            var assembly = typeof(IPCManagement.Api.DependencyInjection).Assembly;
+            var types = assembly.GetTypes().Where(type => type.FullName is not null)
+                .GroupBy(type => type.Name, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.OrderBy(type => type.FullName, StringComparer.Ordinal).First(), StringComparer.Ordinal);
+            var values = new List<ProductionRegistration>();
+            var generic = new System.Text.RegularExpressions.Regex(
+                @"\.(?:TryAdd|Add)(?:Scoped|Singleton|Transient|HostedService)\s*<\s*([A-Za-z0-9_]+)\s*(?:,\s*([A-Za-z0-9_]+)\s*)?>",
+                System.Text.RegularExpressions.RegexOptions.Multiline);
+            var factory = new System.Text.RegularExpressions.Regex(
+                @"\.(?:TryAdd|Add)(?:Scoped|Singleton|Transient)\s*<\s*([A-Za-z0-9_]+)\s*>\s*\([^;]*?new\s+([A-Za-z0-9_]+)",
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+            var nonGeneric = new System.Text.RegularExpressions.Regex(
+                @"\.(?:TryAdd|Add)(?:Scoped|Singleton|Transient)\s*\(\s*typeof\s*\(\s*([A-Za-z0-9_]+)\s*\)\s*,\s*typeof\s*\(\s*([A-Za-z0-9_]+)",
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+            foreach (var source in sources.Values.Select(StripCommentsAndStrings))
+            {
+                foreach (System.Text.RegularExpressions.Match match in generic.Matches(source))
+                {
+                    if (!types.TryGetValue(match.Groups[1].Value, out var service)) continue;
+                    var implementationName = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[1].Value;
+                    if (types.TryGetValue(implementationName, out var implementation))
+                        values.Add(new(service, implementation, match.Value.Contains("HostedService", StringComparison.Ordinal)));
+                }
+                foreach (var regex in new[] { factory, nonGeneric })
+                foreach (System.Text.RegularExpressions.Match match in regex.Matches(source))
+                    if (types.TryGetValue(match.Groups[1].Value, out var service) && types.TryGetValue(match.Groups[2].Value, out var implementation))
+                        values.Add(new(service, implementation, false));
+            }
+            return new RegistrationSet(values.Distinct().ToArray());
+        }
+    }
+
+    private sealed class RegistrationSet(ProductionRegistration[] values)
+    {
+        public Type[] HostedServices => values.Where(value => value.Hosted).Select(value => value.Implementation).Distinct().ToArray();
+        public IEnumerable<Type> ImplementationsFor(Type service) => values.Where(value => value.Service == service).Select(value => value.Implementation).Distinct();
+        public IEnumerable<Type> Resolve(Type service) => service.IsGenericType && service.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+            ? ImplementationsFor(service.GetGenericArguments()[0]) : ImplementationsFor(service);
+    }
 
     private static string FindRepositoryRoot()
     {
@@ -239,6 +368,26 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             current = current.Parent;
         }
         throw new DirectoryNotFoundException("Repository root was not found.");
+    }
+
+    private static void AssertExactSwitchBackDelta(Snapshot before, Snapshot after, SystemOperationModeDto resumed, string reason)
+    {
+        var mode = before.Mode with
+        {
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            Version = resumed.Version,
+            UpdatedAt = resumed.UpdatedAt,
+            UpdatedBy = before.ActorId,
+            Reason = reason
+        };
+        var audit = after.Audits.Except(before.Audits).Should().ContainSingle().Subject;
+        audit.Should().Be(new AuditValue(audit.Id, resumed.UpdatedAt, before.ActorId, "SYSTEM_OPERATION", "SystemOperationMode", null,
+            "Mode", SystemOperationEligibility.Default, SystemOperationEligibility.MaterialReconciliation, reason, null));
+        after.Should().BeEquivalentTo(before with
+        {
+            Mode = mode,
+            Audits = before.Audits.Append(audit).OrderBy(value => value.Id).ToArray()
+        });
     }
 
     private static void AssertOnlyBatchDelta(Snapshot before, Snapshot after, string batchId, string oldStatus, string newStatus, long oldVersion, long newVersion, bool completed = false)
@@ -263,14 +412,41 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         line.ReconciliationBatchLineId.Should().Be(fixture.IssueLineId);
         line.MaterialRequestLineId.Should().BeNull();
         line.IssuedQty.Should().Be(5m);
-        after.Stocks.Single().Qty.Should().Be(before.Stocks.Single().Qty - 5m);
+        var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty - 5m };
         var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
         movement.Should().Be(new MovementValue(movement.Id, "ISSUE", "inventoryissues", issue.Id, 5m, 0m));
-        after.ReconciliationNet.Should().Be(before.ReconciliationNet + 5m);
-        after.DefaultNet.Should().Be(0m);
-        after.Transitions.Length.Should().Be(before.Transitions.Length + 1);
-        after.Outbox.Length.Should().Be(before.Outbox.Length + 1);
-        after.Receipts.Length.Should().Be(before.Receipts.Length + 1);
+        var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
+            1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {created.IssueCode} từ lô đối chiếu.", fixture.ActorId);
+        after.Should().BeEquivalentTo(before with
+        {
+            Issues = before.Issues.Append(issue).OrderBy(value => value.Id).ToArray(),
+            IssueLines = before.IssueLines.Append(line).OrderBy(value => value.Id).ToArray(),
+            Stocks = [stock],
+            Movements = before.Movements.Append(movement).OrderBy(value => value.Id).ToArray(),
+            Audits = lifecycle.Audits,
+            Transitions = lifecycle.Transitions,
+            Outbox = lifecycle.Outbox,
+            Receipts = lifecycle.Receipts,
+            ReconciliationNet = before.ReconciliationNet + 5m,
+            DefaultNet = 0m
+        });
+    }
+
+    private static void AssertExactIssueConfirmDelta(Snapshot before, Snapshot after, InventoryIssueCreatedDto created, Fixture fixture)
+    {
+        var oldIssue = before.Issues.Single(value => value.Id == created.IssueId);
+        var newIssue = after.Issues.Single(value => value.Id == created.IssueId);
+        newIssue.Should().Be(oldIssue with { ReceivedBy = fixture.ActorId, ReceivedAt = newIssue.ReceivedAt });
+        newIssue.ReceivedAt.Should().NotBeNull();
+        var audit = after.Audits.Except(before.Audits).Should().ContainSingle().Subject;
+        var reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {newIssue.Code}.";
+        audit.Should().Be(new AuditValue(audit.Id, newIssue.ReceivedAt!.Value, fixture.ActorId, "KitchenReceipt", nameof(InventoryIssue), created.IssueId,
+            "KitchenReceived", null, $"receivedAt={DateTime.SpecifyKind(audit.ChangedAt, DateTimeKind.Utc):O}", reason, null));
+        after.Should().BeEquivalentTo(before with
+        {
+            Issues = Replace(before.Issues, oldIssue, newIssue, value => value.Id),
+            Audits = before.Audits.Append(audit).OrderBy(value => value.Id).ToArray()
+        });
     }
 
     private static void AssertExactReturnCreateDelta(Snapshot before, Snapshot after, InventoryReturnCreatedDto created, Fixture fixture)
@@ -281,13 +457,19 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         line.ReturnId.Should().Be(result.Id);
         line.Quantity.Should().Be(2m);
         before.IssueLines.Should().ContainSingle(x => x.Id == line.SourceIssueLineId && x.ReconciliationBatchLineId == fixture.IssueLineId);
-        after.Stocks.Should().Equal(before.Stocks);
-        after.Movements.Should().Equal(before.Movements);
-        after.ReconciliationNet.Should().Be(before.ReconciliationNet - 2m);
-        after.DefaultNet.Should().Be(0m);
-        after.Transitions.Length.Should().Be(before.Transitions.Length + 1);
-        after.Outbox.Length.Should().Be(before.Outbox.Length + 1);
-        after.Receipts.Length.Should().Be(before.Receipts.Length + 1);
+        var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-return", nameof(InventoryReturn), result.Id,
+            0, null, "PENDING_RECEIPT", 0, "Return exact reconciliation quantity.", fixture.ActorId);
+        after.Should().BeEquivalentTo(before with
+        {
+            Returns = before.Returns.Append(result).OrderBy(value => value.Id).ToArray(),
+            ReturnLines = before.ReturnLines.Append(line).OrderBy(value => value.Id).ToArray(),
+            Audits = lifecycle.Audits,
+            Transitions = lifecycle.Transitions,
+            Outbox = lifecycle.Outbox,
+            Receipts = lifecycle.Receipts,
+            ReconciliationNet = before.ReconciliationNet - 2m,
+            DefaultNet = 0m
+        });
     }
 
     private static void AssertExactReturnConfirmDelta(Snapshot before, Snapshot after, string returnId, Fixture fixture)
@@ -296,14 +478,27 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var newReturn = after.Returns.Single(x => x.Id == returnId);
         newReturn.ReceivedBy.Should().Be(fixture.ActorId);
         newReturn.ReceivedAt.Should().NotBeNull();
-        after.Stocks.Single().Qty.Should().Be(before.Stocks.Single().Qty + 2m);
+        var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty + 2m };
         var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
         movement.Should().Be(new MovementValue(movement.Id, "RETURN", "inventoryreturns", returnId, 0m, 2m));
-        after.ReconciliationNet.Should().Be(before.ReconciliationNet);
-        after.DefaultNet.Should().Be(0m);
-        after.Transitions.Length.Should().Be(before.Transitions.Length + 1);
-        after.Outbox.Length.Should().Be(before.Outbox.Length + 1);
-        after.Receipts.Length.Should().Be(before.Receipts.Length + 1);
+        var returnCode = newReturn.Code;
+        var reason = $"Thủ kho xác nhận phiếu trả {returnCode}.";
+        var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-return-confirm", nameof(InventoryReturn), returnId,
+            1, "PENDING_RECEIPT", "RECEIVED", 0, reason, fixture.ActorId, additionalAuditCount: 1);
+        var receiptAudit = after.Audits.Except(before.Audits).Single(value => value.BusinessArea == "StorekeeperReturnReceipt");
+        receiptAudit.Should().Be(new AuditValue(receiptAudit.Id, newReturn.ReceivedAt!.Value, fixture.ActorId, "StorekeeperReturnReceipt", nameof(InventoryReturn), returnId,
+            "StorekeeperReceived", null, $"receivedAt={DateTime.SpecifyKind(receiptAudit.ChangedAt, DateTimeKind.Utc):O}", reason, null));
+        after.Should().BeEquivalentTo(before with
+        {
+            Returns = Replace(before.Returns, oldReturn, newReturn, value => value.Id),
+            Stocks = [stock],
+            Movements = before.Movements.Append(movement).OrderBy(value => value.Id).ToArray(),
+            Audits = lifecycle.Audits,
+            Transitions = lifecycle.Transitions,
+            Outbox = lifecycle.Outbox,
+            Receipts = lifecycle.Receipts,
+            DefaultNet = 0m
+        });
     }
 
     private static void AssertExactActualDelta(Snapshot before, Snapshot after, Fixture fixture)
@@ -311,27 +506,52 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var oldActual = before.Actuals.Single(x => x.LineId == fixture.ActualLineId && x.Side == "ISSUED");
         var newActual = after.Actuals.Single(x => x.Id == oldActual.Id);
         newActual.Should().Be(oldActual with { Quantity = 4m, Version = 2, EnteredBy = fixture.ActorId, EnteredAt = newActual.EnteredAt });
-        after.Revisions.Except(before.Revisions).Should().ContainSingle().Which.ActualId.Should().Be(oldActual.Id);
-        after.Dispositions.Should().Equal(before.Dispositions);
-        after.Batches.Should().Equal(before.Batches);
-        after.Stocks.Should().Equal(before.Stocks);
-        after.Movements.Should().Equal(before.Movements);
+        var revision = after.Revisions.Except(before.Revisions).Should().ContainSingle().Subject;
+        revision.Should().Be(new RevisionValue(revision.Id, oldActual.Id, 5m, 4m, "Correct exact manual ISSUED actual.", fixture.ActorId, revision.ChangedAt));
+        after.Should().BeEquivalentTo(before with
+        {
+            Actuals = Replace(before.Actuals, oldActual, newActual, value => value.Id),
+            Revisions = before.Revisions.Append(revision).OrderBy(value => value.Id).ToArray()
+        });
     }
 
     private static void AssertExactDispositionDelta(Snapshot before, Snapshot after, Fixture fixture)
     {
         var disposition = after.Dispositions.Except(before.Dispositions).Should().ContainSingle().Subject;
-        disposition.LineId.Should().Be(fixture.ActualLineId);
-        disposition.Category.Should().Be("FOLLOW_UP_REQUIRED");
-        disposition.Reason.Should().Be("Investigate exact persisted variance.");
-        disposition.Version.Should().Be(1);
-        disposition.DisposedBy.Should().Be(fixture.ActorId);
-        after.Actuals.Should().Equal(before.Actuals);
-        after.Revisions.Should().Equal(before.Revisions);
-        after.Batches.Should().Equal(before.Batches);
-        after.Stocks.Should().Equal(before.Stocks);
-        after.Movements.Should().Equal(before.Movements);
+        disposition.Should().Be(new DispositionValue(disposition.Id, fixture.ActualLineId, "FOLLOW_UP_REQUIRED",
+            "Investigate exact persisted variance.", 1, fixture.ActorId, disposition.DisposedAt));
+        after.Should().BeEquivalentTo(before with
+        {
+            Dispositions = before.Dispositions.Append(disposition).OrderBy(value => value.Id).ToArray()
+        });
     }
+
+    private static LifecycleEffect AssertExactLifecycleDelta(Snapshot before, Snapshot after, string commandId, string aggregateType,
+        string aggregateId, int sequence, string? fromState, string toState, long expectedVersion, string reason, string actorId, int additionalAuditCount = 0)
+    {
+        var transition = after.Transitions.Except(before.Transitions).Should().ContainSingle().Subject;
+        transition.Should().Be(new TransitionValue(transition.Id, aggregateType, aggregateId, commandId, sequence, fromState, toState,
+            actorId, expectedVersion, reason, null, null, transition.PayloadJson, 1, transition.CreatedAt));
+        transition.PayloadJson.Should().NotBeNullOrWhiteSpace();
+        var outbox = after.Outbox.Except(before.Outbox).Should().ContainSingle().Subject;
+        outbox.Should().Be(new OutboxValue(outbox.Id, $"{aggregateType}.Transitioned", aggregateType, aggregateId, sequence, commandId,
+            transition.PayloadJson!, "PENDING", 0, null, null, null, null, transition.CreatedAt));
+        var receipt = after.Receipts.Except(before.Receipts).Should().ContainSingle().Subject;
+        receipt.Should().Be(new ReceiptValue(receipt.Id, commandId, aggregateType, aggregateId, receipt.ResponseJson, transition.CreatedAt));
+        receipt.ResponseJson.Should().NotBeNullOrWhiteSpace();
+        var generatedAudits = after.Audits.Except(before.Audits).ToArray();
+        generatedAudits.Should().HaveCount(1 + additionalAuditCount);
+        var lifecycleAudit = generatedAudits.Single(value => value.BusinessArea == "Lifecycle");
+        lifecycleAudit.Should().Be(new AuditValue(lifecycleAudit.Id, transition.CreatedAt, actorId, "Lifecycle", aggregateType, aggregateId,
+            "Transition", fromState, toState, reason, null));
+        return new(
+            before.Transitions.Append(transition).OrderBy(value => value.Id).ToArray(),
+            before.Outbox.Append(outbox).OrderBy(value => value.Id).ToArray(),
+            before.Receipts.Append(receipt).OrderBy(value => value.Id).ToArray(),
+            before.Audits.Concat(generatedAudits).OrderBy(value => value.Id).ToArray());
+    }
+
+    private sealed record LifecycleEffect(TransitionValue[] Transitions, OutboxValue[] Outbox, ReceiptValue[] Receipts, AuditValue[] Audits);
 
     private static T[] Replace<T>(T[] values, T oldValue, T newValue, Func<T, string> key) =>
         values.Select(x => EqualityComparer<T>.Default.Equals(x, oldValue) ? newValue : x).OrderBy(key).ToArray();
@@ -481,20 +701,61 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 (await Context.Reconciliationbatches.AsNoTracking().ToListAsync()).Select(x => new BatchValue(Id(x.BatchId)!, x.Status, x.Version, Id(x.CompletedBy), x.CompletedAt)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationbatchlines.AsNoTracking().ToListAsync()).Select(x => new BatchLineValue(Id(x.BatchLineId)!, Id(x.BatchId)!, x.RequiredQuantity, x.Version)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync()).Select(x => new ContributorValue(Id(x.ContributorId)!, Id(x.BatchLineId)!, x.SourceQuantity)).OrderBy(x => x.Id).ToArray(),
-                issues.Select(x => new IssueValue(Id(x.IssueId)!, Id(x.MaterialRequestId), Id(x.ReconciliationBatchId), Id(x.ReceivedBy), x.ReceivedAt)).OrderBy(x => x.Id).ToArray(),
+                issues.Select(x => new IssueValue(Id(x.IssueId)!, x.IssueCode, Id(x.MaterialRequestId), Id(x.ReconciliationBatchId), Id(x.ReceivedBy), x.ReceivedAt)).OrderBy(x => x.Id).ToArray(),
                 issueLines.Select(x => new IssueLineValue(Id(x.IssueLineId)!, Id(x.IssueId)!, Id(x.MaterialRequestLineId), Id(x.ReconciliationBatchLineId), x.IssuedQty)).OrderBy(x => x.Id).ToArray(),
-                returns.Select(x => new ReturnValue(Id(x.ReturnId)!, Id(x.IssueId)!, Id(x.ReceivedBy), x.ReceivedAt)).OrderBy(x => x.Id).ToArray(),
+                returns.Select(x => new ReturnValue(Id(x.ReturnId)!, x.ReturnCode, Id(x.IssueId)!, Id(x.ReceivedBy), x.ReceivedAt)).OrderBy(x => x.Id).ToArray(),
                 returnLines.Select(x => new ReturnLineValue(Id(x.ReturnLineId)!, Id(x.ReturnId)!, Id(x.SourceIssueLineId)!, x.Quantity)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Currentstocks.AsNoTracking().ToListAsync()).Select(x => new StockValue(Id(x.WarehouseId)!, Id(x.IngredientId)!, Id(x.UnitId)!, x.CurrentQty)).OrderBy(x => x.IngredientId).ToArray(),
                 (await Context.Stockmovements.AsNoTracking().ToListAsync()).Select(x => new MovementValue(Id(x.MovementId)!, x.MovementType, x.RefTable!, Id(x.RefId)!, x.QuantityOut, x.QuantityIn)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationactuals.AsNoTracking().ToListAsync()).Select(x => new ActualValue(Id(x.ActualId)!, Id(x.BatchLineId)!, x.Side, x.Quantity, x.Version, Id(x.EnteredBy)!, x.EnteredAt)).OrderBy(x => x.Id).ToArray(),
-                (await Context.Reconciliationactualrevisions.AsNoTracking().ToListAsync()).Select(x => new RevisionValue(Id(x.RevisionId)!, Id(x.ActualId)!, x.OldQuantity, x.NewQuantity, x.Reason)).OrderBy(x => x.Id).ToArray(),
+                (await Context.Reconciliationactualrevisions.AsNoTracking().ToListAsync()).Select(x => new RevisionValue(Id(x.RevisionId)!, Id(x.ActualId)!, x.OldQuantity, x.NewQuantity, x.Reason, Id(x.ChangedBy)!, x.ChangedAt)).OrderBy(x => x.Id).ToArray(),
                 (await Context.Reconciliationdispositions.AsNoTracking().ToListAsync()).Select(x => new DispositionValue(Id(x.DispositionId)!, Id(x.BatchLineId)!, x.Category, x.Reason, x.Version, Id(x.DisposedBy)!, x.DisposedAt)).OrderBy(x => x.Id).ToArray(),
-                (await Context.Auditlogs.AsNoTracking().ToListAsync()).Select(x => Id(x.AuditId)!).OrderBy(x => x).ToArray(),
-                (await Context.Lifecycletransitions.AsNoTracking().ToListAsync()).Select(x => Id(x.TransitionId)!).OrderBy(x => x).ToArray(),
-                (await Context.Lifecycleoutboxmessages.AsNoTracking().ToListAsync()).Select(x => Id(x.OutboxMessageId)!).OrderBy(x => x).ToArray(),
-                (await Context.Lifecyclecommandreceipts.AsNoTracking().ToListAsync()).Select(x => Id(x.CommandReceiptId)!).OrderBy(x => x).ToArray(),
+                (await Context.Auditlogs.AsNoTracking().ToListAsync()).Select(x => new AuditValue(Id(x.AuditId)!, x.ChangedAt, Id(x.ChangedBy)!, x.BusinessArea, x.EntityName, Id(x.EntityId), x.FieldName, x.OldValue, x.NewValue, x.Reason, x.CorrelationId)).OrderBy(x => x.Id).ToArray(),
+                (await Context.Lifecycletransitions.AsNoTracking().ToListAsync()).Select(x => new TransitionValue(Id(x.TransitionId)!, x.AggregateType, Id(x.AggregateId)!, x.CommandId, x.AggregateSequence, x.FromState, x.ToState, Id(x.ActorId), x.ExpectedVersion, x.Reason, x.CorrelationId, x.CausationId, x.PayloadJson, x.SchemaVersion, x.CreatedAt)).OrderBy(x => x.Id).ToArray(),
+                (await Context.Lifecycleoutboxmessages.AsNoTracking().ToListAsync()).Select(x => new OutboxValue(Id(x.OutboxMessageId)!, x.EventType, x.AggregateType, Id(x.AggregateId)!, x.AggregateSequence, x.CommandId, x.PayloadJson, x.Status, x.AttemptCount, x.NextAttemptAt, x.LockedAt, x.ProcessedAt, x.LastError, x.CreatedAt)).OrderBy(x => x.Id).ToArray(),
+                (await Context.Lifecyclecommandreceipts.AsNoTracking().ToListAsync()).Select(x => new ReceiptValue(Id(x.CommandReceiptId)!, x.CommandId, x.AggregateType, Id(x.AggregateId)!, x.ResponseJson, x.CreatedAt)).OrderBy(x => x.Id).ToArray(),
+                await ReadCommonLedgerAsync(),
+                await Context.Systemoperationmodes.AsNoTracking().Select(x => new ModeValue(x.Mode, x.Version, x.UpdatedAt, Id(x.UpdatedBy)!, x.Reason)).SingleAsync(),
                 reconIssued - reconReturned, defaultIssued - defaultReturned);
+        }
+
+        private async Task<LedgerTable[]> ReadCommonLedgerAsync()
+        {
+            var requested = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "materialrequests", "materialrequestlines", "supplementalmaterialrequests",
+                "purchaserequests", "purchaserequestlines", "purchaselinesupplierdecisions", "purchasepriceexceptions",
+                "purchaseorders", "purchaseorderlines", "purchasereceiptactivelines",
+                "approvalhistories", "approvalrules", "approvalassignments"
+            };
+            var tables = new List<LedgerTable>();
+            await using var tableCommand = connection.CreateCommand();
+            tableCommand.CommandText = "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name";
+            await using var tableReader = await tableCommand.ExecuteReaderAsync();
+            var existing = new List<string>();
+            while (await tableReader.ReadAsync())
+                if (requested.Contains(tableReader.GetString(0))) existing.Add(tableReader.GetString(0));
+            await tableReader.DisposeAsync();
+            existing.Should().BeEquivalentTo(requested, "the local schema must cover every declared supplemental, purchasing, and approval ledger");
+
+            foreach (var table in existing.OrderBy(value => value, StringComparer.Ordinal))
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = $"SELECT * FROM {table}";
+                await using var reader = await command.ExecuteReaderAsync();
+                var rows = new List<string>();
+                while (await reader.ReadAsync())
+                {
+                    var values = Enumerable.Range(0, reader.FieldCount).Select(index =>
+                    {
+                        if (reader.IsDBNull(index)) return "<NULL>";
+                        return reader.GetValue(index) is byte[] bytes ? Convert.ToHexString(bytes) : Convert.ToString(reader.GetValue(index), System.Globalization.CultureInfo.InvariantCulture)!;
+                    });
+                    rows.Add(string.Join("\u001f", values));
+                }
+                tables.Add(new LedgerTable(table, rows.OrderBy(value => value, StringComparer.Ordinal).ToArray()));
+            }
+            return tables.ToArray();
         }
 
         private static string? Id(byte[]? value) => value is null ? null : GuidHelper.ToGuidString(value);
@@ -512,20 +773,28 @@ CREATE TABLE reconciliationactualrevisions (revisionId BLOB PRIMARY KEY, actualI
 CREATE TABLE reconciliationdispositions (dispositionId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
 CREATE UNIQUE INDEX IX_reconciliationdispositions_BatchLineId ON reconciliationdispositions(batchLineId);
 CREATE TABLE lifecycleoutboxdeliveries (deliveryId BLOB PRIMARY KEY, outboxMessageId BLOB NOT NULL, consumerName TEXT NOT NULL, processedAt TEXT NOT NULL);
+CREATE TABLE approvalrules (ruleId BLOB PRIMARY KEY, ruleName TEXT NOT NULL, documentType TEXT NOT NULL, minAmount TEXT NULL, maxAmount TEXT NULL, slaHours INTEGER NULL, isActive INTEGER NOT NULL, createdAt TEXT NOT NULL);
+CREATE TABLE approvalassignments (assignmentId BLOB PRIMARY KEY, ruleId BLOB NOT NULL, sequence INTEGER NOT NULL, approverRole TEXT NOT NULL, approverUserId BLOB NULL, isRequired INTEGER NOT NULL);
 """;
     }
 
-    private sealed record Snapshot(string ActorId, BatchValue[] Batches, BatchLineValue[] BatchLines, ContributorValue[] Contributors, IssueValue[] Issues, IssueLineValue[] IssueLines, ReturnValue[] Returns, ReturnLineValue[] ReturnLines, StockValue[] Stocks, MovementValue[] Movements, ActualValue[] Actuals, RevisionValue[] Revisions, DispositionValue[] Dispositions, string[] Audits, string[] Transitions, string[] Outbox, string[] Receipts, decimal ReconciliationNet, decimal DefaultNet);
+    private sealed record Snapshot(string ActorId, BatchValue[] Batches, BatchLineValue[] BatchLines, ContributorValue[] Contributors, IssueValue[] Issues, IssueLineValue[] IssueLines, ReturnValue[] Returns, ReturnLineValue[] ReturnLines, StockValue[] Stocks, MovementValue[] Movements, ActualValue[] Actuals, RevisionValue[] Revisions, DispositionValue[] Dispositions, AuditValue[] Audits, TransitionValue[] Transitions, OutboxValue[] Outbox, ReceiptValue[] Receipts, LedgerTable[] CommonLedger, ModeValue Mode, decimal ReconciliationNet, decimal DefaultNet);
     private sealed record BatchValue(string Id, string Status, long Version, string? CompletedBy, DateTime? CompletedAt);
     private sealed record BatchLineValue(string Id, string BatchId, decimal RequiredQuantity, long Version);
     private sealed record ContributorValue(string Id, string LineId, decimal SourceQuantity);
-    private sealed record IssueValue(string Id, string? MaterialRequestId, string? ReconciliationBatchId, string? ReceivedBy, DateTime? ReceivedAt);
+    private sealed record IssueValue(string Id, string Code, string? MaterialRequestId, string? ReconciliationBatchId, string? ReceivedBy, DateTime? ReceivedAt);
     private sealed record IssueLineValue(string Id, string IssueId, string? MaterialRequestLineId, string? ReconciliationBatchLineId, decimal IssuedQty);
-    private sealed record ReturnValue(string Id, string IssueId, string? ReceivedBy, DateTime? ReceivedAt);
+    private sealed record ReturnValue(string Id, string Code, string IssueId, string? ReceivedBy, DateTime? ReceivedAt);
     private sealed record ReturnLineValue(string Id, string ReturnId, string SourceIssueLineId, decimal Quantity);
     private sealed record StockValue(string WarehouseId, string IngredientId, string UnitId, decimal Qty);
     private sealed record MovementValue(string Id, string Type, string RefTable, string RefId, decimal QuantityOut, decimal QuantityIn);
     private sealed record ActualValue(string Id, string LineId, string Side, decimal Quantity, long Version, string EnteredBy, DateTime EnteredAt);
-    private sealed record RevisionValue(string Id, string ActualId, decimal OldQuantity, decimal NewQuantity, string Reason);
+    private sealed record RevisionValue(string Id, string ActualId, decimal OldQuantity, decimal NewQuantity, string Reason, string ChangedBy, DateTime ChangedAt);
     private sealed record DispositionValue(string Id, string LineId, string Category, string Reason, long Version, string DisposedBy, DateTime DisposedAt);
+    private sealed record AuditValue(string Id, DateTime ChangedAt, string ChangedBy, string BusinessArea, string EntityName, string? EntityId, string? FieldName, string? OldValue, string? NewValue, string? Reason, string? CorrelationId);
+    private sealed record TransitionValue(string Id, string AggregateType, string AggregateId, string CommandId, int AggregateSequence, string? FromState, string ToState, string? ActorId, long ExpectedVersion, string? Reason, string? CorrelationId, string? CausationId, string? PayloadJson, int SchemaVersion, DateTime CreatedAt);
+    private sealed record OutboxValue(string Id, string EventType, string AggregateType, string AggregateId, int AggregateSequence, string CommandId, string PayloadJson, string Status, int AttemptCount, DateTime? NextAttemptAt, DateTime? LockedAt, DateTime? ProcessedAt, string? LastError, DateTime CreatedAt);
+    private sealed record ReceiptValue(string Id, string CommandId, string AggregateType, string AggregateId, string ResponseJson, DateTime CreatedAt);
+    private sealed record LedgerTable(string Name, string[] Rows);
+    private sealed record ModeValue(string Mode, long Version, DateTime UpdatedAt, string UpdatedBy, string? Reason);
 }
