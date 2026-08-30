@@ -34,6 +34,183 @@ namespace IPCManagement.Api.Tests;
 public partial class WorkflowGenerationTests
 {
     [Fact]
+    public async Task MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = fixture.WarehouseId, IngredientId = fixture.IngredientId, UnitId = fixture.UnitId,
+            CurrentQty = 250m, LastUpdated = DateTime.UtcNow, RowVersion = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var service = new MaterialDemandService(context);
+        var generated = await service.GenerateAsync(
+            new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" }, fixture.UserIdString);
+        generated.Should().NotBeNull();
+        generated!.Lines.Should().ContainSingle().Which.SuggestedPurchaseQty.Should().Be(0m);
+        var requestId = GuidHelper.ParseGuidString(generated.MaterialRequestId)!;
+        var requestLineId = await context.Materialrequestlines.Select(line => line.RequestLineId).SingleAsync();
+        await SeedCollidingIssueFamiliesAsync(context, fixture, requestId, requestLineId, includeDefault: true);
+        var frozenNonDefault = await NonDefaultIssueSnapshotAsync(context);
+
+        var staleness = await service.GetStalenessAsync("2026-06-15", fixture.CustomerIdString, "FULLDAY");
+
+        staleness.MaterialRequestId.Should().Be(generated.MaterialRequestId);
+        staleness.CanRegenerate.Should().BeFalse();
+        staleness.RegenerationBlockReason.Should().Contain("phiếu xuất kho");
+        (await context.Materialrequests.AsNoTracking().SingleAsync()).Status.Should().Be("DRAFT");
+        (await context.Materialrequestlines.AsNoTracking().SingleAsync()).SuggestedPurchaseQty.Should().Be(0m);
+        (await NonDefaultIssueSnapshotAsync(context)).Should().Be(frozenNonDefault);
+        (await context.Stockmovements.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task MenuAmendment_PublicCreateAndExecute_PreserveCollidingFamiliesAndReadySnapshot()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        (await context.Menuschedules.SingleAsync()).Status = "DRAFT";
+        await SeedCollidingIssueFamiliesAsync(context, fixture, null, null, includeDefault: false);
+        await SeedReadyReconciliationSnapshotAsync(context, fixture);
+        var frozenReady = await FrozenReadySnapshotAsync(context);
+        var frozenIssues = await NonDefaultIssueSnapshotAsync(context);
+        var versionCountBefore = await context.Menuversions.CountAsync();
+        var service = new MenuAmendmentService(context);
+        var slot = (await context.Menuitems.SingleAsync()).DishSlot ?? "main";
+
+        var amendment = await service.CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString, WeekStartDate = new DateOnly(2026, 6, 15), Reason = "Đổi món không chạm họ chứng từ khác.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = slot, NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+        amendment.RequiresReconciliation.Should().BeFalse();
+        var reviewer = await CreateApprovalActorAsync(context, "collision-reviewer");
+        var executor = await CreateApprovalActorAsync(context, "collision-executor");
+        await service.ReviewAsync(amendment.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, reviewer);
+
+        var executed = await service.ExecuteAsync(amendment.MenuAmendmentId, executor);
+
+        executed.Status.Should().Be("EXECUTED");
+        executed.AppliedMenuVersionId.Should().NotBeNullOrWhiteSpace();
+        (await FrozenReadySnapshotAsync(context)).Should().Be(frozenReady);
+        (await NonDefaultIssueSnapshotAsync(context)).Should().Be(frozenIssues);
+        (await context.Materialrequests.CountAsync()).Should().Be(0);
+        (await context.Purchaserequests.CountAsync()).Should().Be(0);
+        (await context.Stockmovements.CountAsync()).Should().Be(0);
+        (await context.Currentstocks.CountAsync()).Should().Be(0);
+        (await context.Menuversions.CountAsync()).Should().Be(versionCountBefore + 1, "changed source creates exactly one new menu version instead of mutating READY reconciliation facts");
+    }
+
+    [Fact]
+    public async Task WeeklyMenuReimport_PublicCommitPreservesReadySnapshotAndCollidingFamilies()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        (await context.Menuschedules.SingleAsync()).Status = "DRAFT";
+        await SeedCollidingIssueFamiliesAsync(context, fixture, null, null, includeDefault: false);
+        await SeedReadyReconciliationSnapshotAsync(context, fixture);
+        var frozenReady = await FrozenReadySnapshotAsync(context);
+        var frozenIssues = await NonDefaultIssueSnapshotAsync(context);
+        var customer = await context.Customers.SingleAsync();
+        var serviceDate = new DateOnly(2026, 6, 15);
+        var plan = new WeeklyMenuImportPlan("collision-reimport.xlsx", "CUS 25k", "C", serviceDate, serviceDate, 10,
+            [new WeeklyMenuImportDayColumn("D", serviceDate, "t2", "D - 15/06/2026", 7)], serviceDate)
+        { SourceChecksum = "COLLISION-REIMPORT-V2" };
+        plan.Sections.Add("MENU MẶN- CA SÁNG");
+        plan.Items.Add(new ParsedWeeklyMenuItem
+        {
+            SourceOrder = 1, ServiceDate = serviceDate, DayKey = "t2", SourceRowNumber = 9, SourceColumn = "D",
+            SectionLabel = "MENU MẶN- CA SÁNG", SectionKey = "savory-morning", SourceShift = "MORNING",
+            SourceShiftLabel = "Ca sáng", DbShiftName = "MORNING", VariantKey = "savory", VariantLabel = "Mặn",
+            Slot = "main", SlotLabel = "Món chính", DishName = "Dish with BOM"
+        });
+
+        var versionCountBefore = await context.Menuversions.CountAsync();
+        var act = () => CreateWeeklyMenuImportPersistence(context).CommitAsync(plan, customer, 25_000m, fixture.UserIdString, CancellationToken.None);
+
+        await act.Should().ThrowAsync<BusinessRuleException>().WithMessage("*Không thể import lại thực đơn tuần*");
+        context.ChangeTracker.Clear();
+        (await FrozenReadySnapshotAsync(context)).Should().Be(frozenReady);
+        (await NonDefaultIssueSnapshotAsync(context)).Should().Be(frozenIssues);
+        (await context.Materialrequests.CountAsync()).Should().Be(0);
+        (await context.Purchaserequests.CountAsync()).Should().Be(0);
+        (await context.Stockmovements.CountAsync()).Should().Be(0);
+        (await context.Menuversions.CountAsync()).Should().Be(versionCountBefore);
+    }
+
+    private static async Task SeedCollidingIssueFamiliesAsync(IpcManagementContext context, WorkflowFixture fixture, byte[]? requestId, byte[]? requestLineId, bool includeDefault)
+    {
+        var families = new List<InventoryIssue>
+        {
+            new() { IssueId = GuidHelper.NewId(), IssueCode = "ISS-RECON-COLLISION", IssueDate = new DateOnly(2026, 6, 15), WarehouseId = fixture.WarehouseId, ReconciliationBatchId = GuidHelper.NewId(), IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow },
+            new() { IssueId = GuidHelper.NewId(), IssueCode = "ISS-LEGACY-COLLISION", IssueDate = new DateOnly(2026, 6, 15), WarehouseId = fixture.WarehouseId, IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow }
+        };
+        if (includeDefault)
+            families.Add(new InventoryIssue { IssueId = GuidHelper.NewId(), IssueCode = "ISS-DEFAULT-COLLISION", IssueDate = new DateOnly(2026, 6, 15), WarehouseId = fixture.WarehouseId, MaterialRequestId = requestId, IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
+        foreach (var issue in families)
+            issue.Inventoryissuelines.Add(new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, IssuedQty = 7m, MaterialRequestLineId = issue.MaterialRequestId is null ? null : requestLineId, ReconciliationBatchLineId = issue.ReconciliationBatchId is null ? null : GuidHelper.NewId() });
+        context.Inventoryissues.AddRange(families);
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedReadyReconciliationSnapshotAsync(IpcManagementContext context, WorkflowFixture fixture)
+    {
+        await context.Database.ExecuteSqlRawAsync("""
+CREATE TABLE IF NOT EXISTS reconciliationbatches (
+ BatchId BLOB NOT NULL PRIMARY KEY, MenuVersionId BLOB NOT NULL, QuantityImportBatchId BLOB NOT NULL,
+ Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedBy BLOB NOT NULL, CreatedAt TEXT NOT NULL,
+ ReadyBy BLOB NULL, ReadyAt TEXT NULL, CompletedBy BLOB NULL, CompletedAt TEXT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS IX_reconciliationbatches_QuantityImportBatchId ON reconciliationbatches (QuantityImportBatchId);
+CREATE TABLE IF NOT EXISTS reconciliationbatchlines (
+ BatchLineId BLOB NOT NULL PRIMARY KEY, BatchId BLOB NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL,
+ RequiredQuantity TEXT NOT NULL, FrozenTolerance TEXT NOT NULL, ToleranceSourceKind TEXT NOT NULL,
+ ToleranceSourceVersion TEXT NOT NULL, Version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
+ ContributorId BLOB NOT NULL PRIMARY KEY, BatchLineId BLOB NOT NULL, MenuScheduleId BLOB NOT NULL,
+ MealQuantityPlanLineId BLOB NOT NULL, DishBomId BLOB NOT NULL, SourceQuantity TEXT NOT NULL);
+""");
+        var line = new ReconciliationBatchLine
+        {
+            BatchLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+            RequiredQuantity = 17.25m, FrozenTolerance = 0.125m, ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "frozen-v1", Version = 4,
+            Contributors = [new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = GuidHelper.NewId(), SourceQuantity = 17.25m }]
+        };
+        context.Reconciliationbatches.Add(new ReconciliationBatch
+        {
+            BatchId = GuidHelper.NewId(), MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 9,
+            CreatedBy = fixture.UserId, CreatedAt = new DateTime(2026, 6, 14, 8, 30, 0, DateTimeKind.Utc), ReadyBy = fixture.UserId,
+            ReadyAt = new DateTime(2026, 6, 14, 9, 0, 0, DateTimeKind.Utc), Lines = [line]
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task<string> FrozenReadySnapshotAsync(IpcManagementContext context)
+    {
+        context.ChangeTracker.Clear();
+        var batches = await context.Reconciliationbatches.AsNoTracking().Include(batch => batch.Lines).ThenInclude(line => line.Contributors)
+            .Where(batch => batch.Status == "READY").OrderBy(batch => batch.BatchId).ToListAsync();
+        return System.Text.Json.JsonSerializer.Serialize(batches.Select(batch => new
+        {
+            BatchId = Convert.ToHexString(batch.BatchId), MenuVersionId = Convert.ToHexString(batch.MenuVersionId), QuantityImportBatchId = Convert.ToHexString(batch.QuantityImportBatchId), batch.Status, batch.Version,
+            CreatedBy = Convert.ToHexString(batch.CreatedBy), batch.CreatedAt, ReadyBy = batch.ReadyBy == null ? null : Convert.ToHexString(batch.ReadyBy), batch.ReadyAt, CompletedBy = batch.CompletedBy == null ? null : Convert.ToHexString(batch.CompletedBy), batch.CompletedAt,
+            Lines = batch.Lines.OrderBy(line => line.BatchLineId).Select(line => new { BatchLineId = Convert.ToHexString(line.BatchLineId), BatchId = Convert.ToHexString(line.BatchId), IngredientId = Convert.ToHexString(line.IngredientId), CanonicalUnitId = Convert.ToHexString(line.CanonicalUnitId), line.RequiredQuantity, line.FrozenTolerance, line.ToleranceSourceKind, line.ToleranceSourceVersion, line.Version,
+                Contributors = line.Contributors.OrderBy(item => item.ContributorId).Select(item => new { ContributorId = Convert.ToHexString(item.ContributorId), BatchLineId = Convert.ToHexString(item.BatchLineId), MenuScheduleId = Convert.ToHexString(item.MenuScheduleId), MealQuantityPlanLineId = Convert.ToHexString(item.MealQuantityPlanLineId), DishBomId = Convert.ToHexString(item.DishBomId), item.SourceQuantity }) })
+        }));
+    }
+
+    private static async Task<string> NonDefaultIssueSnapshotAsync(IpcManagementContext context)
+    {
+        context.ChangeTracker.Clear();
+        var issues = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines)
+            .Where(issue => issue.MaterialRequestId == null).OrderBy(issue => issue.IssueCode).ToListAsync();
+        return System.Text.Json.JsonSerializer.Serialize(issues.Select(issue => new { issue.IssueCode, MaterialRequestId = issue.MaterialRequestId == null ? null : Convert.ToHexString(issue.MaterialRequestId), ReconciliationBatchId = issue.ReconciliationBatchId == null ? null : Convert.ToHexString(issue.ReconciliationBatchId), Lines = issue.Inventoryissuelines.OrderBy(line => line.IssueLineId).Select(line => new { line.IssuedQty, MaterialRequestLineId = line.MaterialRequestLineId == null ? null : Convert.ToHexString(line.MaterialRequestLineId), ReconciliationBatchLineId = line.ReconciliationBatchLineId == null ? null : Convert.ToHexString(line.ReconciliationBatchLineId) }) }));
+    }
+    [Fact]
     public async Task MenuAmendment_Should_SnapshotSafeDemandImpact_WithoutMutatingMenu()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
