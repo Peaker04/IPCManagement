@@ -18,6 +18,7 @@ import {
 import { ROUTES } from '@/lib/routeConfig';
 import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { visibleTabIds } from '@/lib/navigationPreferences';
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig';
 import {
   useGetCurrentStockQuery,
   useGetCurrentStockPageQuery,
@@ -56,6 +57,7 @@ const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWo
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
 export default function WarehousePage() {
+  const streamline = useUiStreamlinePreferences();
   const [searchParams] = useSearchParams();
   const systemOperation = useSystemOperation();
   const isMaterialReconciliationMode = systemOperation?.mode === 'MATERIAL_RECONCILIATION';
@@ -366,16 +368,6 @@ export default function WarehousePage() {
         <ContextStrip
           items={[
             {
-              label: 'Phiếu nhập',
-              value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`,
-              tone: isWorkflowDocumentError ? 'danger' : 'warning',
-            },
-            {
-              label: 'Phiếu xuất',
-              value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`,
-              tone: isWorkflowDocumentError ? 'danger' : 'warning',
-            },
-            {
               label: 'Dòng tồn kho',
               value: isCurrentStockError ? 'Chưa xác định' : currentStockRows.length.toString(),
               tone: isCurrentStockError ? 'danger' : currentStockRows.length > 0 ? 'success' : 'warning',
@@ -391,11 +383,23 @@ export default function WarehousePage() {
                     : 'Không có',
               tone: isDemandPageError || shortageCount > 0 ? 'danger' : 'success',
             },
-            {
-              label: 'Bếp nhận',
-              value: isKitchenIssueError ? 'Chưa xác định' : pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký',
-              tone: isKitchenIssueError ? 'danger' : pendingKitchenReceiptCount > 0 ? 'warning' : 'success',
-            },
+            ...(streamline.enableStreamlinedMode ? [] : [
+              {
+                label: 'Phiếu nhập',
+                value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`,
+                tone: (isWorkflowDocumentError ? 'danger' : 'warning') as 'danger' | 'warning',
+              },
+              {
+                label: 'Phiếu xuất',
+                value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`,
+                tone: (isWorkflowDocumentError ? 'danger' : 'warning') as 'danger' | 'warning',
+              },
+              {
+                label: 'Bếp nhận',
+                value: isKitchenIssueError ? 'Chưa xác định' : pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký',
+                tone: (isKitchenIssueError ? 'danger' : pendingKitchenReceiptCount > 0 ? 'warning' : 'success') as 'danger' | 'warning' | 'success',
+              },
+            ]),
           ]}
         />
       }
@@ -416,7 +420,7 @@ export default function WarehousePage() {
           Chưa tải được danh sách chứng từ kho. Danh sách phiếu hiển thị chưa đầy đủ; hãy tải lại trước khi đối chiếu chứng từ.
         </QueryErrorAlert>
       )}
-      {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
+      {streamline.showWarehouseGuidanceAlert && issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
         <InlineAlert title="Không thể tạo phiếu xuất kho mới" variant="info">
           <span id="warehouse-issue-action-guidance">{issueCreationAvailability.disabledReason}</span>
         </InlineAlert>

@@ -29,6 +29,7 @@ import {
   WorkflowDocumentsState,
 } from './ApprovalQueryPanels';
 import { visibleTabIds } from '@/lib/navigationPreferences';
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig';
 
 const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
 const ApprovalSearchField = lazy(() => import('./ApprovalSearchField').then(({ ApprovalSearchField: component }) => ({ default: component })))
@@ -36,6 +37,7 @@ const ApprovalDecisionDialog = lazy(() => import('./ApprovalDecisionDialog').the
 
 export default function ApprovalPage() {
   const { toast } = useToast();
+  const streamline = useUiStreamlinePreferences();
   const [searchParams] = useSearchParams();
   const queueFocusRef = useRef<HTMLDivElement>(null);
   const decisionTriggerRef = useRef<HTMLElement | null>(null);
@@ -296,9 +298,12 @@ export default function ApprovalPage() {
         <ContextStrip
           items={[
             { label: 'Trạng thái chính', value: approvalAvailability.statusLabel, tone: approvalAvailability.statusTone },
-            { label: 'Đơn mua', value: workflowDocumentView.phase === 'ready' ? `${purchaseDocuments.length} chứng từ` : '—', tone: 'neutral' },
-            { label: 'Nhu cầu xuất', value: approvalView.phase === 'ready' ? `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu` : '—', tone: approvalView.phase === 'ready' ? 'warning' : 'neutral' },
-            { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' },
+            { label: 'Hàng chờ duyệt', value: approvalView.phase === 'ready' ? `${approvalRecords.length} mục` : '—', tone: approvalRecords.length > 0 ? 'warning' : 'neutral' },
+            ...(streamline.enableStreamlinedMode ? [] : [
+              { label: 'Đơn mua', value: workflowDocumentView.phase === 'ready' ? `${purchaseDocuments.length} chứng từ` : '—', tone: 'neutral' as const },
+              { label: 'Nhu cầu xuất', value: approvalView.phase === 'ready' ? `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu` : '—', tone: approvalView.phase === 'ready' ? 'warning' as const : 'neutral' as const },
+              { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' as const },
+            ]),
           ]}
         />
       }
@@ -316,9 +321,11 @@ export default function ApprovalPage() {
 
       <div className="flex-1 min-h-0 flex flex-col">
         <KeepAliveTabPanel id="approval-queue" active={activeView === 'queue'}>
-          <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
-            <MenuAmendmentReconciliation />
-          </Suspense>
+          {streamline.showMenuAmendmentBanner && (
+            <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+              <MenuAmendmentReconciliation />
+            </Suspense>
+          )}
           <SplitWorkbench
             detailLabel="Chứng từ"
             detailClassName="min-h-[16rem]"

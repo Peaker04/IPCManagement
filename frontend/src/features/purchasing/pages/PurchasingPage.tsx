@@ -5,6 +5,7 @@ import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFr
 import { Button } from '@/components/ui/button';
 import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { visibleTabIds } from '@/lib/navigationPreferences';
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig';
 import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
@@ -52,6 +53,7 @@ const formatWeekRange = (week: string) => {
 };
 
 export default function PurchasingPage() {
+  const streamline = useUiStreamlinePreferences();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [selectedLineId, setSelectedLineId] = useState<string>();
@@ -228,7 +230,9 @@ export default function PurchasingPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : activeView === 'supplemental' ? 'Mua bổ sung cho bếp' : 'Quản lý báo giá nhà cung cấp'}</h2>
-            <p className="mt-2 text-body leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
+            {streamline.showPurchasingDescriptions && (
+              <p className="mt-2 text-body leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
+            )}
           </div>
           <StatusBadge variant={isPageFailure ? 'danger' : isPagePending ? 'warning' : 'success'}>
             {isPageFailure ? 'Lỗi tải dữ liệu' : isPagePending ? 'Đang tải' : 'Đã đồng bộ'}
@@ -247,43 +251,49 @@ export default function PurchasingPage() {
           onTabChange={changeView}
         />
 
-        {activeView === 'workflow' && <div className="min-h-[68px]" aria-live="polite">
-          {workbenchView.phase === 'forbidden' ? (
-            <InlineAlert title="Không có quyền xem quy trình thu mua" variant="danger">
-              <span role="alert">{workbenchView.message}</span>
-            </InlineAlert>
-          ) : workbenchView.phase === 'error' ? (
-            <InlineAlert
-              title="Không tải được quy trình thu mua"
-              variant="danger"
-              action={<Button type="button" variant="outline" size="sm" onClick={() => workbenchQuery.refetch()}>Thử lại</Button>}
-            >
-              <span role="alert">{workbenchView.message} Các lựa chọn chưa được lưu.</span>
-            </InlineAlert>
-          ) : workbenchView.phase === 'loading' ? (
-            <InlineAlert title="Đang tải quy trình thu mua" variant="info">
-              Hệ thống đang lấy dữ liệu tuần mua hàng. Nội dung sẽ được giữ ổn định trong lúc đồng bộ.
-            </InlineAlert>
-          ) : workbenchView.phase === 'ready' && nextAction.message ? (
-            <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
-              <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
-            </InlineAlert>
-          ) : null}
-        </div>}
+        {activeView === 'workflow' && (
+          <div className={streamline.showPurchasingNextActionAlert ? "min-h-[68px]" : undefined} aria-live="polite">
+            {workbenchView.phase === 'forbidden' ? (
+              <InlineAlert title="Không có quyền xem quy trình thu mua" variant="danger">
+                <span role="alert">{workbenchView.message}</span>
+              </InlineAlert>
+            ) : workbenchView.phase === 'error' ? (
+              <InlineAlert
+                title="Không tải được quy trình thu mua"
+                variant="danger"
+                action={<Button type="button" variant="outline" size="sm" onClick={() => workbenchQuery.refetch()}>Thử lại</Button>}
+              >
+                <span role="alert">{workbenchView.message} Các lựa chọn chưa được lưu.</span>
+              </InlineAlert>
+            ) : workbenchView.phase === 'loading' ? (
+              <InlineAlert title="Đang tải quy trình thu mua" variant="info">
+                Hệ thống đang lấy dữ liệu tuần mua hàng. Nội dung sẽ được giữ ổn định trong lúc đồng bộ.
+              </InlineAlert>
+            ) : streamline.showPurchasingNextActionAlert && workbenchView.phase === 'ready' && nextAction.message ? (
+              <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
+                <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
+              </InlineAlert>
+            ) : null}
+          </div>
+        )}
 
         <div className="min-h-[480px]">
           <KeepAliveTabPanel id="purchasing-workflow" active={activeView === 'workflow'} className="space-y-4">
             {workbenchView.phase === 'ready' ? (
               <>
-                <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" /></Suspense>
-                <Suspense fallback={<div aria-hidden="true" className="min-h-24 rounded-md bg-slate-50" />}>
-                  <PurchaseWorkflowGuide
-                    currentStage={activeDate?.currentStage}
-                    selectedStage={routeState.stage}
-                    stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
-                    onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
-                  />
-                </Suspense>
+                {streamline.showPurchasingDescriptions && (
+                  <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" /></Suspense>
+                )}
+                {streamline.showPurchasingGuide && (
+                  <Suspense fallback={<div aria-hidden="true" className="min-h-24 rounded-md bg-slate-50" />}>
+                    <PurchaseWorkflowGuide
+                      currentStage={activeDate?.currentStage}
+                      selectedStage={routeState.stage}
+                      stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
+                      onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
+                    />
+                  </Suspense>
+                )}
 
                 <PurchaseServiceDateWorkbench
                   serviceDates={workbenchView.data.serviceDates}

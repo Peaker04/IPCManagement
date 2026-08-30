@@ -15,6 +15,7 @@ import { ChefQueryBoundary } from '../ChefQueryBoundary'
 import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'
 import { visibleTabIds } from '@/lib/navigationPreferences'
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig'
 
 import { ChefShiftControls } from './ChefShiftControls'
 const ChefProductionSection = lazy(() => import('../production/ChefProductionSection').then(({ ChefProductionSection: component }) => ({ default: component })))
@@ -24,6 +25,7 @@ const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection'
 const chefCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 export default function ChefDashboardPage() {
+  const streamline = useUiStreamlinePreferences()
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
   const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
@@ -90,7 +92,7 @@ export default function ChefDashboardPage() {
             { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
             { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
-          <ShiftAlert isLocked={production.isLocked} />
+          {streamline.showChefShiftAlert && <ShiftAlert isLocked={production.isLocked} />}
         </>
       )}
     >
@@ -165,7 +167,7 @@ export default function ChefDashboardPage() {
             </ChefQueryBoundary>
           </KeepAliveTabPanel>
         </div>
-        {statusMessages.length > 0 && (
+        {streamline.showChefStatusBulletList && statusMessages.length > 0 && (
           <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
             <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
           </InlineAlert>

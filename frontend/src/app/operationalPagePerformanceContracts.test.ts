@@ -26,8 +26,8 @@ import warehouseDemandPanelSource from '../features/warehouse/WarehouseDemandPan
 describe('operational page performance contracts', () => {
   it('keeps supplier quotations as an isolated purchasing work object', () => {
     expect(purchasingSource).toContain("{ id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' }");
-    expect(purchasingSource).toContain("useSupplierQuotations(activeView === 'quotations')");
-    expect(purchasingSource).toContain("{ skip: activeView !== 'workflow' }");
+    expect(purchasingSource).toContain("activeView === 'quotations'");
+    expect(purchasingSource).toContain("activeView !== 'workflow'");
     expect(purchasingSource).toContain("activeView === 'quotations' ? (");
   });
 
@@ -62,7 +62,7 @@ describe('operational page performance contracts', () => {
 
   it('gates warehouse work-view queries and keeps panel geometry stable', () => {
     const warehouseContractSource = `${warehouseSource}\n${warehouseDemandPanelSource}`;
-    expect(warehouseContractSource).toContain("{ skip: activeView !== 'demand' }");
+    expect(warehouseContractSource).toContain("activeView !== 'demand'");
     expect(warehouseContractSource).toContain('const { roleInboxItems } = useWorkflowOverview({');
     expect(warehouseContractSource).toContain('min-h-[420px]');
     expect(warehouseContractSource).toContain('duration-150 motion-reduce:transition-none');

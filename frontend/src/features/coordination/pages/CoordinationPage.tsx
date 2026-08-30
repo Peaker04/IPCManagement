@@ -13,6 +13,7 @@ import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig'
 
 const HeaderInfo = lazy(() => import('../components/header-info').then(({ HeaderInfo: component }) => ({ default: component })))
 const ActionToolbar = lazy(() => import('../components/action-toolbar').then(({ ActionToolbar: component }) => ({ default: component })))
@@ -21,6 +22,7 @@ const OrderTable = lazy(() => import('../components/order-table').then(({ OrderT
 const capabilityFallback = <div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />
 
 export default function CoordinationPage() {
+  const streamline = useUiStreamlinePreferences()
   const dispatch = useAppDispatch()
   const currentShift = useCurrentShift()
   const currentServiceDate = useCoordinationSelector((state) => state.coordination.currentServiceDate)
@@ -111,7 +113,7 @@ export default function CoordinationPage() {
             { label: 'trạng thái chốt số suất', view: plansView },
           ]}
         >
-          <OrderStatusBanner status={orderStatus} />
+          {streamline.showOrderStatusBanner && <OrderStatusBanner status={orderStatus} />}
           <Suspense fallback={capabilityFallback}>
             <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
           </Suspense>

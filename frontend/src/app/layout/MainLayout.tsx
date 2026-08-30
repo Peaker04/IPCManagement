@@ -31,6 +31,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig';
 
 const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
 
@@ -72,6 +73,7 @@ const MainLayoutContent = () => {
   const systemOperation = useSystemOperation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [navigationPreferences, setNavigationPreferences] = useState(readNavigationPreferences);
+  const streamline = useUiStreamlinePreferences();
 
   const handleLogout = async () => {
     await logoutSession(dispatch, store.getState);
@@ -251,12 +253,17 @@ const MainLayoutContent = () => {
               <CalendarDays size={16} />
               <span>{serviceDate}</span>
             </div>
-            {systemOperation && <div className="ipc-header-chip" aria-label="Chế độ vận hành"><SlidersHorizontal size={16} /><span>{systemOperation.label}</span></div>}
+            {systemOperation && streamline.showOperatingModeChip && (
+              <div className="ipc-header-chip" aria-label="Chế độ vận hành">
+                <SlidersHorizontal size={16} />
+                <span>{systemOperation.label}</span>
+              </div>
+            )}
             <HeaderShiftContext
               isCoordination={location.pathname === ROUTES.MEAL_ORDERS}
               owner={workflowContext.lane.owner}
             />
-            {showHeaderState && (
+            {showHeaderState && streamline.showStatusPills && (
               location.pathname === ROUTES.WEEKLY_MENU ? (
                 <button type="button" className={`ipc-status-pill is-${statusTone}`} onClick={refreshWeeklyMenu} title="Làm mới dữ liệu kế hoạch tuần">
                   <span className="ipc-status-dot" />

@@ -31,6 +31,15 @@ import {
   type NavigationPreferenceKey,
   type PageTabGroupId,
 } from '@/lib/navigationPreferences';
+import {
+  defaultStreamlinePreferences,
+  fullVisibilityPreferences,
+  readStreamlinePreferences,
+  resetStreamlinePreferences,
+  writeStreamlinePreferences,
+  type UiStreamlinePreferences,
+} from '@/lib/uiStreamlineConfig';
+import { Sparkles } from 'lucide-react';
 
 interface NavigationItemConfig {
   key: NavigationPreferenceKey;
@@ -61,6 +70,65 @@ const groupIcons: Record<string, React.ComponentType<{ size?: number; className?
   reports: TrendingUp,
   'admin-data': Database,
 };
+
+interface StreamlineItemConfig {
+  key: keyof Omit<UiStreamlinePreferences, 'enableStreamlinedMode'>;
+  label: string;
+  description: string;
+}
+
+const streamlineItems: ReadonlyArray<StreamlineItemConfig> = [
+  {
+    key: 'showOrderStatusBanner',
+    label: 'Banner trạng thái ca điều phối',
+    description: 'Ẩn các dải thông báo nhắc nhở "Ca đã khóa", "Dữ liệu nháp" trên trang điều phối suất ăn.',
+  },
+  {
+    key: 'showMenuAmendmentBanner',
+    label: 'Khối đối chiếu thực đơn trên trang Duyệt',
+    description: 'Ẩn banner đối chiếu thay đổi thực đơn trên đầu danh sách cần duyệt.',
+  },
+  {
+    key: 'showWeeklyMenuReadiness',
+    label: 'Khối kiểm tra sẵn sàng KHSX & BOM',
+    description: 'Ẩn khối kiểm tra đồng bộ danh mục & BOM trên trang thực đơn tuần.',
+  },
+  {
+    key: 'showWeeklyMenuAlerts',
+    label: 'Banner cảnh báo thực đơn tuần',
+    description: 'Ẩn các hộp cảnh báo đơn giá BOM và danh mục trên trang thực đơn tuần.',
+  },
+  {
+    key: 'showChefShiftAlert',
+    label: 'Cảnh báo ca làm việc Bếp trưởng',
+    description: 'Ẩn banner "Lệnh sản xuất chính thức / Chưa chốt" trên trang bếp trưởng.',
+  },
+  {
+    key: 'showChefStatusBulletList',
+    label: 'Danh sách trạng thái dữ liệu bếp',
+    description: 'Ẩn hộp thoại liệt kê các trạng thái chi tiết ở cuối trang bếp trưởng.',
+  },
+  {
+    key: 'showPurchasingGuide',
+    label: 'Sơ đồ 6 bước hướng dẫn Thu mua',
+    description: 'Ẩn thanh quy trình 6 bước trên trang xử lý thu mua.',
+  },
+  {
+    key: 'showPurchasingNextActionAlert',
+    label: 'Alert gợi ý hành động tiếp theo',
+    description: 'Ẩn hộp thoại nhắc nhở bước tiếp theo trong quy trình thu mua.',
+  },
+  {
+    key: 'showStatusPills',
+    label: 'Viên thuốc trạng thái trên Header',
+    description: 'Ẩn các tag trạng thái nhỏ bên cạnh tiêu đề trang ở thanh đầu trang.',
+  },
+  {
+    key: 'showWarehouseGuidanceAlert',
+    label: 'Alert hướng dẫn xuất kho',
+    description: 'Ẩn banner hướng dẫn lý do chưa thể tạo phiếu xuất kho mới.',
+  },
+];
 
 const SwitchIndicator = memo(function SwitchIndicator({ checked }: { checked: boolean }) {
   return (
@@ -282,14 +350,91 @@ const PageTabGroupCard = memo(function PageTabGroupCard({
   );
 });
 
+interface StreamlineOptionCardProps {
+  item: StreamlineItemConfig;
+  visible: boolean;
+  onToggle: (key: keyof Omit<UiStreamlinePreferences, 'enableStreamlinedMode'>) => void;
+}
+
+const StreamlineOptionCard = memo(function StreamlineOptionCard({
+  item,
+  visible,
+  onToggle,
+}: StreamlineOptionCardProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={visible}
+      aria-label={`${item.label}, ${visible ? 'đang hiện' : 'đã ẩn'}`}
+      onClick={() => onToggle(item.key)}
+      className={cn(
+        'group relative flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border p-3.5 text-left transition-[background-color,border-color,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+        visible
+          ? 'border-slate-200 bg-white shadow-2xs hover:border-slate-300 hover:bg-slate-50/70'
+          : 'border-slate-200/80 bg-slate-50/80 hover:bg-slate-100'
+      )}
+    >
+      <div className="min-w-0">
+        <span
+          className={cn(
+            'block truncate text-sm font-semibold',
+            visible ? 'text-slate-800' : 'text-slate-600 line-through decoration-slate-400'
+          )}
+        >
+          {item.label}
+        </span>
+        <p className="mt-0.5 truncate text-xs text-slate-500">{item.description}</p>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2.5 pl-2">
+        <span className={cn('text-xs font-medium', visible ? 'text-slate-700' : 'text-slate-500')}>
+          {visible ? 'Đang hiện' : 'Đã ẩn'}
+        </span>
+        <SwitchIndicator checked={visible} />
+      </div>
+    </button>
+  );
+});
+
 export function AdvancedDisplaySettings() {
   const { toast } = useToast();
   const [preferences, setPreferences] = useState(() => readNavigationPreferences());
   const [tabPreferences, setTabPreferences] = useState(() => readPageTabPreferences());
+  const [streamlinePrefs, setStreamlinePrefs] = useState(() => readStreamlinePreferences());
   const [lastChange, setLastChange] = useState('');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(pageTabGroups.map((g) => [g.id, false]))
+  );
+
+  const toggleMasterStreamline = useCallback(() => {
+    const nextMaster = !streamlinePrefs.enableStreamlinedMode;
+    const nextPrefs = nextMaster
+      ? { ...defaultStreamlinePreferences, enableStreamlinedMode: true }
+      : { ...fullVisibilityPreferences, enableStreamlinedMode: false };
+    setStreamlinePrefs(nextPrefs);
+    writeStreamlinePreferences(nextPrefs);
+    setLastChange(nextMaster ? 'Đã bật chế độ Tinh gọn UI.' : 'Đã tắt chế độ Tinh gọn UI.');
+    toast({
+      title: nextMaster ? 'Đã bật chế độ Tinh gọn UI' : 'Đã chuyển sang chế độ Hiển thị đầy đủ',
+      description: nextMaster
+        ? 'Các thông báo, banner trạng thái và hướng dẫn rườm rà đã được ẩn gọn.'
+        : 'Tất cả banner, trạng thái và hướng dẫn đã được hiển thị lại.',
+      variant: 'success',
+    });
+  }, [streamlinePrefs.enableStreamlinedMode, toast]);
+
+  const toggleStreamlineItem = useCallback(
+    (key: keyof Omit<UiStreamlinePreferences, 'enableStreamlinedMode'>) => {
+      const nextVal = !streamlinePrefs[key];
+      const nextPrefs = { ...streamlinePrefs, [key]: nextVal };
+      setStreamlinePrefs(nextPrefs);
+      writeStreamlinePreferences(nextPrefs);
+      const itemLabel = streamlineItems.find((item) => item.key === key)?.label ?? 'Thành phần';
+      setLastChange(`${itemLabel}: ${nextVal ? 'đang hiện' : 'đã ẩn'}.`);
+    },
+    [streamlinePrefs]
   );
 
   const visibleNavCount = useMemo(() => Object.values(preferences).filter(Boolean).length, [preferences]);
@@ -376,10 +521,12 @@ export function AdvancedDisplaySettings() {
     resetNavigationPreferences();
     setTabPreferences(structuredClone(defaultPageTabPreferences));
     writePageTabPreferences(defaultPageTabPreferences);
-    setLastChange('Đã khôi phục toàn bộ khu vực và tab về mặc định.');
+    setStreamlinePrefs({ ...defaultStreamlinePreferences });
+    resetStreamlinePreferences();
+    setLastChange('Đã khôi phục toàn bộ khu vực, tab và cấu hình tinh gọn về mặc định.');
     toast({
       title: 'Đã khôi phục mặc định',
-      description: 'Tất cả khu vực menu và tab đã được hiển thị đầy đủ.',
+      description: 'Cấu hình hiển thị và chế độ tinh gọn đã được đặt lại.',
       variant: 'success',
     });
   }, [toast]);
@@ -394,6 +541,9 @@ export function AdvancedDisplaySettings() {
       {/* Top Actions & Summary Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge variant={streamlinePrefs.enableStreamlinedMode ? 'success' : 'neutral'}>
+            {streamlinePrefs.enableStreamlinedMode ? 'Chế độ Tinh gọn: BẬT' : 'Chế độ Tinh gọn: TẮT'}
+          </StatusBadge>
           <StatusBadge variant="neutral">{visibleNavCount}/{navigationItems.length} menu đang bật</StatusBadge>
           <StatusBadge variant={totalVisibleTabs === totalTabs ? 'neutral' : 'warning'}>
             {totalVisibleTabs}/{totalTabs} tab đang bật
@@ -427,6 +577,52 @@ export function AdvancedDisplaySettings() {
           }}
         />
       )}
+
+      {/* Section 0: Streamlined UI Mode */}
+      <SectionPanel
+        title="Chế độ Tinh gọn Giao diện (Streamlined Management Mode)"
+        icon={<Sparkles size={18} />}
+        description="Ẩn các banner nhắc nhở, thông báo trạng thái phụ và hướng dẫn để tập trung tối đa vào tính năng quản lý cốt lõi."
+        badge={
+          <StatusBadge variant={streamlinePrefs.enableStreamlinedMode ? 'success' : 'neutral'}>
+            {streamlinePrefs.enableStreamlinedMode ? 'Đang tinh gọn' : 'Hiển thị đầy đủ'}
+          </StatusBadge>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900">
+                {streamlinePrefs.enableStreamlinedMode ? 'Chế độ Tinh gọn: Đang BẬT' : 'Chế độ Tinh gọn: Đang TẮT (Hiển thị đầy đủ)'}
+              </h4>
+              <p className="mt-0.5 text-xs text-slate-600">
+                {streamlinePrefs.enableStreamlinedMode
+                  ? 'Giao diện đang được tối ưu hóa cho quản lý, ẩn các thành phần phụ, nhắc nhở và banner trạng thái.'
+                  : 'Đang hiển thị toàn bộ banner, thông báo trạng thái và hướng dẫn chi tiết.'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant={streamlinePrefs.enableStreamlinedMode ? 'outline' : 'default'}
+              onClick={toggleMasterStreamline}
+            >
+              {streamlinePrefs.enableStreamlinedMode ? 'Hiển thị đầy đủ (Tắt tinh gọn)' : 'Bật chế độ Tinh gọn'}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {streamlineItems.map((item) => (
+              <StreamlineOptionCard
+                key={item.key}
+                item={item}
+                visible={streamlinePrefs[item.key]}
+                onToggle={toggleStreamlineItem}
+              />
+            ))}
+          </div>
+        </div>
+      </SectionPanel>
 
       {/* Section 1: Main Navigation Sidebar */}
       <SectionPanel

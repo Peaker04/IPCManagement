@@ -51,6 +51,7 @@ import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreloa
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { useUiStreamlinePreferences } from '@/lib/uiStreamlineConfig';
 
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
@@ -59,6 +60,7 @@ import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/Quer
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
 
 const WeeklyMenuPage = () => {
+  const streamline = useUiStreamlinePreferences();
   const canPublishWeeklyMenu = useHasRole([]);
   const dispatch = useAppDispatch();
   const systemOperation = useSystemOperation();
@@ -503,7 +505,9 @@ const WeeklyMenuPage = () => {
       context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
-        <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><WeeklyMenuReadiness readiness={readiness} /></Suspense>
+        {streamline.showWeeklyMenuReadiness && (
+          <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><WeeklyMenuReadiness readiness={readiness} /></Suspense>
+        )}
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
@@ -517,16 +521,18 @@ const WeeklyMenuPage = () => {
           activeTab={resolvedSelectedView}
           onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
         />
-        <WeeklyMenuAlerts
-          invalidBomTierCount={invalidBomTierCount}
-          menuFeedback={menuFeedback}
-          purchaseFeedback={purchaseSummaryWorkflow.state.feedback}
-          isCatalogLoading={isCatalogLoading}
-          isCatalogError={isCatalogError}
-          isCatalogEmpty={isCatalogEmpty}
-          isCommittedMenuFetching={isCommittedMenuFetching}
-          hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
-        />
+        {streamline.showWeeklyMenuAlerts && (
+          <WeeklyMenuAlerts
+            invalidBomTierCount={invalidBomTierCount}
+            menuFeedback={menuFeedback}
+            purchaseFeedback={purchaseSummaryWorkflow.state.feedback}
+            isCatalogLoading={isCatalogLoading}
+            isCatalogError={isCatalogError}
+            isCatalogEmpty={isCatalogEmpty}
+            isCommittedMenuFetching={isCommittedMenuFetching}
+            hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
+          />
+        )}
 
         <div
           className={`${typography.body} relative min-h-[480px]`}
@@ -558,13 +564,15 @@ const WeeklyMenuPage = () => {
 
         {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
       </QueryViewBoundary>
-      <ReconciliationWorkspace
-        owner="weekly-menu"
-        menuVersionId={committedMenu?.menuVersionId}
-        menuVersionLabel={selectedCustomer && displayedWeekStartDate
-          ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
-          : undefined}
-      />
+      {streamline.showWeeklyReconciliation && (
+        <ReconciliationWorkspace
+          owner="weekly-menu"
+          menuVersionId={committedMenu?.menuVersionId}
+          menuVersionLabel={selectedCustomer && displayedWeekStartDate
+            ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
+            : undefined}
+        />
+      )}
     </OperationalFrame>
   );
 };
