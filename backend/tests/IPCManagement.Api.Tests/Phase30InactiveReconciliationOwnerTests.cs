@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text;
 using FluentAssertions;
 using IPCManagement.Api.Data;
@@ -204,170 +206,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     [Fact]
     public void AbsentCleanupAndBackgroundMutationOwners_AreNotRegistered_AndLifecycleProcessorIsDeliveryOnly()
     {
-        var productionAssembly = typeof(IPCManagement.Api.DependencyInjection).Assembly;
-        var root = FindRepositoryRoot();
-        var productionRoot = Path.Combine(root, "backend", "src", "IPCManagement.Api");
-        var sources = Directory.GetFiles(productionRoot, "*.cs", SearchOption.AllDirectories)
-            .ToDictionary(path => path, File.ReadAllText, StringComparer.OrdinalIgnoreCase);
-        var registrations = ProductionRegistration.ReadAll(sources);
-
-        var mutationActions = productionAssembly.GetTypes()
-            .Where(type => !type.IsAbstract && typeof(ControllerBase).IsAssignableFrom(type))
-            .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                .Select(method => new { Controller = type, Method = method, Http = method.GetCustomAttributes<HttpMethodAttribute>(true).ToArray() })
-                .Where(action => action.Http.Length > 0)
-                .Where(action => action.Http.SelectMany(attribute => attribute.HttpMethods)
-                    .Any(http => http is not ("GET" or "HEAD" or "OPTIONS"))))
-            .OrderBy(action => action.Controller.FullName, StringComparer.Ordinal)
-            .ThenBy(action => action.Method.Name, StringComparer.Ordinal)
-            .ToArray();
-
-        mutationActions.Should().NotBeEmpty("the oracle must enumerate every production MVC mutation action without a controller-name filter");
-        foreach (var action in mutationActions)
-        {
-            var routeSignature = string.Join("/", action.Controller.GetCustomAttributes<RouteAttribute>(true).Select(x => x.Template)
-                .Concat(action.Http.Select(x => x.Template)).Where(x => !string.IsNullOrWhiteSpace(x)));
-            var actionSignature = $"{action.Controller.FullName}.{action.Method.Name} {routeSignature} "
-                + string.Join(' ', action.Method.GetParameters().Select(parameter => parameter.ParameterType.FullName));
-            if (!LooksLikeUnattendedMutation(actionSignature)) continue;
-
-            var dependencies = action.Controller.GetConstructors(BindingFlags.Instance | BindingFlags.Public)
-                .SelectMany(constructor => constructor.GetParameters()).Select(parameter => parameter.ParameterType)
-                .SelectMany(type => registrations.Resolve(type).DefaultIfEmpty(type)).Append(action.Controller).Distinct().ToArray();
-            dependencies.Should().OnlyContain(type => IsDeliveryOnly(type, registrations, sources, new HashSet<Type>()),
-                $"unattended mutation action {actionSignature} must only delegate to delivery-only infrastructure");
-        }
-
-        registrations.ImplementationsFor(typeof(ILifecycleOutboxProcessor)).Should().Equal(typeof(LifecycleOutboxProcessor));
-        registrations.HostedServices.Should().Contain(typeof(LifecycleOutboxWorker));
-        var consumers = registrations.ImplementationsFor(typeof(ILifecycleOutboxConsumer)).ToArray();
-        consumers.Should().NotBeEmpty("the registered processor requires an explicit delivery consumer set");
-
-        typeof(ILifecycleOutboxProcessor).GetMethods().Select(method => method.Name)
-            .Should().Equal(nameof(ILifecycleOutboxProcessor.ProcessBatchAsync));
-        new[] { typeof(LifecycleOutboxProcessor), typeof(LifecycleOutboxWorker) }.Concat(consumers)
-            .Should().OnlyContain(type => IsDeliveryOnly(type, registrations, sources, new HashSet<Type>()),
-                "the worker, processor, every registered consumer, and their production dependencies must be unable to create/continue/return/complete MaterialRequest or ReconciliationBatch aggregates");
-    }
-
-    private static bool LooksLikeUnattendedMutation(string signature)
-    {
-        var tokens = Tokenize(signature);
-        return tokens.Overlaps(new[] { "cleanup", "background", "process", "retry", "replay", "recover", "resume", "sweep", "maintenance", "worker" });
-    }
-
-    private static bool IsDeliveryOnly(Type type, RegistrationSet registrations, IReadOnlyDictionary<string, string> sources, HashSet<Type> visited)
-    {
-        if (!visited.Add(type) || type.Assembly != typeof(IPCManagement.Api.DependencyInjection).Assembly) return true;
-        var source = FindTypeSource(type, sources);
-        if (source is null) return false;
-        var normalized = StripCommentsAndStrings(source);
-        const string targetAggregate = "(?:MaterialRequest|ReconciliationBatch)(?:es|s|Lines?)?";
-        var directSetMutation = System.Text.RegularExpressions.Regex.IsMatch(normalized,
-            $@"(?:Set\s*<\s*{targetAggregate}\s*>\s*\(\s*\)|{targetAggregate})[^;]{{0,1200}}?\.\s*(?:Add(?:Async|Range)?|Update(?:Range)?|Remove(?:Range)?|ExecuteUpdateAsync|ExecuteDeleteAsync)\s*\(",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        var aggregateOwnerContract = System.Text.RegularExpressions.Regex.IsMatch(type.Name, "MaterialRequest|ReconciliationBatch", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-            && type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
-                .Any(method => System.Text.RegularExpressions.Regex.IsMatch(method.Name, "^(?:Create|Continue|Resume|Return|Complete|Transfer|Update|Upsert|SetDisposition)", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
-        var aggregateConstruction = System.Text.RegularExpressions.Regex.IsMatch(normalized,
-            $@"new\s+{targetAggregate}\s*(?:\(|\{{)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        var mutatingDependencyCall = System.Text.RegularExpressions.Regex.IsMatch(normalized,
-            @"(?:MaterialRequest|ReconciliationBatch)[A-Za-z0-9_]*(?:Service|Repository)[A-Za-z0-9_]*\s*\.\s*(?:Create|Continue|Resume|Return|Complete|Transfer|Update|Upsert|SetDisposition)[A-Za-z0-9_]*\s*\(",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        if (directSetMutation || aggregateOwnerContract || aggregateConstruction || mutatingDependencyCall) return false;
-
-        var constructorDependencies = type.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .SelectMany(constructor => constructor.GetParameters()).Select(parameter => parameter.ParameterType)
-            .Where(dependency => dependency != typeof(IpcManagementContext))
-            .SelectMany(dependency => registrations.Resolve(dependency).DefaultIfEmpty(dependency));
-        return constructorDependencies.All(dependency => IsDeliveryOnly(dependency, registrations, sources, visited));
-    }
-
-    private static string? FindTypeSource(Type type, IReadOnlyDictionary<string, string> sources)
-    {
-        var declaration = new System.Text.RegularExpressions.Regex($@"\b(?:class|interface)\s+{System.Text.RegularExpressions.Regex.Escape(type.Name)}\b");
-        return sources.Where(pair => declaration.IsMatch(StripCommentsAndStrings(pair.Value)))
-            .Select(pair => ExtractTypeBlock(pair.Value, type.Name)).SingleOrDefault(value => value is not null);
-    }
-
-    private static string? ExtractTypeBlock(string source, string typeName)
-    {
-        var clean = StripCommentsAndStrings(source);
-        var match = System.Text.RegularExpressions.Regex.Match(clean,
-            $@"\b(?:class|interface)\s+{System.Text.RegularExpressions.Regex.Escape(typeName)}\b");
-        if (!match.Success) return null;
-        var open = clean.IndexOf('{', match.Index);
-        if (open < 0) return source[match.Index..];
-        var depth = 0;
-        for (var index = open; index < clean.Length; index++)
-        {
-            if (clean[index] == '{') depth++;
-            else if (clean[index] == '}' && --depth == 0) return source[match.Index..(index + 1)];
-        }
-        return null;
-    }
-
-    private static HashSet<string> Tokenize(string value) =>
-        System.Text.RegularExpressions.Regex.Matches(value, "[A-Z]?[a-z]+|[A-Z]+(?![a-z])|[0-9]+")
-            .Select(match => match.Value.ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
-
-    private static string StripCommentsAndStrings(string source) =>
-        System.Text.RegularExpressions.Regex.Replace(source,
-            "//.*?$|/\\*.*?\\*/|@?\"(?:\"\"|\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
-            " ", System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Singleline);
-
-    private sealed record ProductionRegistration(Type Service, Type Implementation, bool Hosted)
-    {
-        public static RegistrationSet ReadAll(IReadOnlyDictionary<string, string> sources)
-        {
-            var assembly = typeof(IPCManagement.Api.DependencyInjection).Assembly;
-            var types = assembly.GetTypes().Where(type => type.FullName is not null)
-                .GroupBy(type => type.Name, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.OrderBy(type => type.FullName, StringComparer.Ordinal).First(), StringComparer.Ordinal);
-            var values = new List<ProductionRegistration>();
-            var generic = new System.Text.RegularExpressions.Regex(
-                @"\.(?:TryAdd|Add)(?:Scoped|Singleton|Transient|HostedService)\s*<\s*([A-Za-z0-9_]+)\s*(?:,\s*([A-Za-z0-9_]+)\s*)?>",
-                System.Text.RegularExpressions.RegexOptions.Multiline);
-            var factory = new System.Text.RegularExpressions.Regex(
-                @"\.(?:TryAdd|Add)(?:Scoped|Singleton|Transient)\s*<\s*([A-Za-z0-9_]+)\s*>\s*\([^;]*?new\s+([A-Za-z0-9_]+)",
-                System.Text.RegularExpressions.RegexOptions.Singleline);
-            var nonGeneric = new System.Text.RegularExpressions.Regex(
-                @"\.(?:TryAdd|Add)(?:Scoped|Singleton|Transient)\s*\(\s*typeof\s*\(\s*([A-Za-z0-9_]+)\s*\)\s*,\s*typeof\s*\(\s*([A-Za-z0-9_]+)",
-                System.Text.RegularExpressions.RegexOptions.Singleline);
-            foreach (var source in sources.Values.Select(StripCommentsAndStrings))
-            {
-                foreach (System.Text.RegularExpressions.Match match in generic.Matches(source))
-                {
-                    if (!types.TryGetValue(match.Groups[1].Value, out var service)) continue;
-                    var implementationName = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[1].Value;
-                    if (types.TryGetValue(implementationName, out var implementation))
-                        values.Add(new(service, implementation, match.Value.Contains("HostedService", StringComparison.Ordinal)));
-                }
-                foreach (var regex in new[] { factory, nonGeneric })
-                foreach (System.Text.RegularExpressions.Match match in regex.Matches(source))
-                    if (types.TryGetValue(match.Groups[1].Value, out var service) && types.TryGetValue(match.Groups[2].Value, out var implementation))
-                        values.Add(new(service, implementation, false));
-            }
-            return new RegistrationSet(values.Distinct().ToArray());
-        }
-    }
-
-    private sealed class RegistrationSet(ProductionRegistration[] values)
-    {
-        public Type[] HostedServices => values.Where(value => value.Hosted).Select(value => value.Implementation).Distinct().ToArray();
-        public IEnumerable<Type> ImplementationsFor(Type service) => values.Where(value => value.Service == service).Select(value => value.Implementation).Distinct();
-        public IEnumerable<Type> Resolve(Type service) => service.IsGenericType && service.GetGenericTypeDefinition() == typeof(IEnumerable<>)
-            ? ImplementationsFor(service.GetGenericArguments()[0]) : ImplementationsFor(service);
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "AGENTS.md"))) return current.FullName;
-            current = current.Parent;
-        }
-        throw new DirectoryNotFoundException("Repository root was not found.");
+        Phase30FinalOracleContracts.AssertExactMutationSurface();
+        Phase30FinalOracleContracts.AssertExactLifecycleRegistrationsAndCapabilities();
     }
 
     private static void AssertExactSwitchBackDelta(Snapshot before, Snapshot after, SystemOperationModeDto resumed, string reason)
@@ -415,8 +255,9 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty - 5m };
         var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
         movement.Should().Be(new MovementValue(movement.Id, "ISSUE", "inventoryissues", issue.Id, 5m, 0m));
+        var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = created.IssueCode, ConcurrencyVersion = 1 });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
-            1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {created.IssueCode} từ lô đối chiếu.", fixture.ActorId);
+            1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {created.IssueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
         after.Should().BeEquivalentTo(before with
         {
             Issues = before.Issues.Append(issue).OrderBy(value => value.Id).ToArray(),
@@ -457,8 +298,9 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         line.ReturnId.Should().Be(result.Id);
         line.Quantity.Should().Be(2m);
         before.IssueLines.Should().ContainSingle(x => x.Id == line.SourceIssueLineId && x.ReconciliationBatchLineId == fixture.IssueLineId);
+        var expectedJson = JsonSerializer.Serialize(new InventoryReturnCreatedDto { ReturnId = created.ReturnId, ReturnCode = created.ReturnCode });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-return", nameof(InventoryReturn), result.Id,
-            0, null, "PENDING_RECEIPT", 0, "Return exact reconciliation quantity.", fixture.ActorId);
+            0, null, "PENDING_RECEIPT", 0, "Return exact reconciliation quantity.", fixture.ActorId, expectedJson);
         after.Should().BeEquivalentTo(before with
         {
             Returns = before.Returns.Append(result).OrderBy(value => value.Id).ToArray(),
@@ -483,8 +325,9 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         movement.Should().Be(new MovementValue(movement.Id, "RETURN", "inventoryreturns", returnId, 0m, 2m));
         var returnCode = newReturn.Code;
         var reason = $"Thủ kho xác nhận phiếu trả {returnCode}.";
+        var expectedJson = JsonSerializer.Serialize(new { returnId, status = "RECEIVED", concurrencyVersion = 1 });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-return-confirm", nameof(InventoryReturn), returnId,
-            1, "PENDING_RECEIPT", "RECEIVED", 0, reason, fixture.ActorId, additionalAuditCount: 1);
+            1, "PENDING_RECEIPT", "RECEIVED", 0, reason, fixture.ActorId, expectedJson, additionalAuditCount: 1);
         var receiptAudit = after.Audits.Except(before.Audits).Single(value => value.BusinessArea == "StorekeeperReturnReceipt");
         receiptAudit.Should().Be(new AuditValue(receiptAudit.Id, newReturn.ReceivedAt!.Value, fixture.ActorId, "StorekeeperReturnReceipt", nameof(InventoryReturn), returnId,
             "StorekeeperReceived", null, $"receivedAt={DateTime.SpecifyKind(receiptAudit.ChangedAt, DateTimeKind.Utc):O}", reason, null));
@@ -527,18 +370,20 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     }
 
     private static LifecycleEffect AssertExactLifecycleDelta(Snapshot before, Snapshot after, string commandId, string aggregateType,
-        string aggregateId, int sequence, string? fromState, string toState, long expectedVersion, string reason, string actorId, int additionalAuditCount = 0)
+        string aggregateId, int sequence, string? fromState, string toState, long expectedVersion, string reason, string actorId, string expectedJson, int additionalAuditCount = 0)
     {
         var transition = after.Transitions.Except(before.Transitions).Should().ContainSingle().Subject;
         transition.Should().Be(new TransitionValue(transition.Id, aggregateType, aggregateId, commandId, sequence, fromState, toState,
             actorId, expectedVersion, reason, null, null, transition.PayloadJson, 1, transition.CreatedAt));
         transition.PayloadJson.Should().NotBeNullOrWhiteSpace();
+        JsonNode.DeepEquals(JsonNode.Parse(transition.PayloadJson!), JsonNode.Parse(expectedJson)).Should().BeTrue("the lifecycle payload is reconstructed from command/result semantics, not copied from the observed row");
         var outbox = after.Outbox.Except(before.Outbox).Should().ContainSingle().Subject;
         outbox.Should().Be(new OutboxValue(outbox.Id, $"{aggregateType}.Transitioned", aggregateType, aggregateId, sequence, commandId,
             transition.PayloadJson!, "PENDING", 0, null, null, null, null, transition.CreatedAt));
         var receipt = after.Receipts.Except(before.Receipts).Should().ContainSingle().Subject;
         receipt.Should().Be(new ReceiptValue(receipt.Id, commandId, aggregateType, aggregateId, receipt.ResponseJson, transition.CreatedAt));
         receipt.ResponseJson.Should().NotBeNullOrWhiteSpace();
+        JsonNode.DeepEquals(JsonNode.Parse(receipt.ResponseJson), JsonNode.Parse(expectedJson)).Should().BeTrue("the command receipt response is independently reconstructed");
         var generatedAudits = after.Audits.Except(before.Audits).ToArray();
         generatedAudits.Should().HaveCount(1 + additionalAuditCount);
         var lifecycleAudit = generatedAudits.Single(value => value.BusinessArea == "Lifecycle");

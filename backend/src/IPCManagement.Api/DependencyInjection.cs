@@ -34,7 +34,7 @@ public static class DependencyInjection
         // câu lệnh treo giữ kết nối vô hạn.
         var commandTimeoutSeconds = configuration.GetValue<int?>("Database:CommandTimeoutSeconds") ?? 30;
 
-        services.AddDbContext<IpcManagementContext>(options =>
+        return services.AddBackendServicesCore(configuration, options =>
             options.UseMySql(
                 connectionString,
                 ServerVersion.AutoDetect(connectionString),
@@ -44,6 +44,14 @@ public static class DependencyInjection
                     .EnableRetryOnFailure()
                     .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                     .CommandTimeout(commandTimeoutSeconds)));
+    }
+
+    internal static IServiceCollection AddBackendServicesCore(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        Action<DbContextOptionsBuilder> configureProvider)
+    {
+        services.AddDbContext<IpcManagementContext>(configureProvider);
 
         // Configurations
         services.Configure<PaginationOptions>(configuration.GetSection(PaginationOptions.SectionName));
