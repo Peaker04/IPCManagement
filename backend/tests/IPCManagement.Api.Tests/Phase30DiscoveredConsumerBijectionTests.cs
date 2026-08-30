@@ -1,9 +1,11 @@
 using FluentAssertions;
 using IPCManagement.Api.Features.Planning.Services;
+using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using System.Reflection;
 
 namespace IPCManagement.Api.Tests;
@@ -30,14 +32,20 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         "/bin/", "/obj/", "/Migrations/"
     ];
 
-    private static readonly Lazy<MethodDeclarationSyntax[]> SourceMethods = new(() =>
+    private sealed record SourceCallGraph(
+        CSharpCompilation Compilation,
+        IReadOnlyDictionary<IMethodSymbol, MethodDeclarationSyntax> Declarations);
+
+    private static readonly Lazy<SourceCallGraph> RepositoryCallGraph = new(() =>
     {
         var root = ResolveRepoPath("backend");
-        return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
-            .Where(path => !IsGenerated(path))
-            .SelectMany(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), path: path).GetRoot()
-                .DescendantNodes().OfType<MethodDeclarationSyntax>())
+        var trees = new[] { Path.Combine(root, "src", "IPCManagement.Api"), Path.Combine(root, "tests", "IPCManagement.Api.Tests") }
+            .SelectMany(directory => Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
+            .Where(IsCallGraphSource)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .Select(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), path: path))
             .ToArray();
+        return CreateSourceCallGraph(trees, CreateReferences());
     });
 
     // Intentionally hand-maintained. Every owner names a real xUnit oracle and the complete set of
@@ -125,6 +133,8 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
     {
         await new WorkflowGenerationTests().CreateInventoryIssue_Should_AutoBuildLinesFromApprovedDemand_AndDecreaseStock();
         await new InventoryIssueServiceTests().ConfirmReceiptAsync_Should_UpdateReceivedAt_And_WriteAuditLog();
+        InventoryMapper.MapIssueLine(Line(materialRequestLineId: Guid.NewGuid().ToByteArray(), issuedQty: 1m))
+            .MaterialRequestLineId.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -312,11 +322,22 @@ global using System.Threading.Tasks;
     {
         var normalized = path.Replace('\\', '/');
         return GeneratedDiscoveryExclusions.Any(exclusion => normalized.Contains(exclusion, StringComparison.Ordinal)) ||
-               normalized.EndsWith(".Designer.cs", StringComparison.Ordinal) ||
-               normalized.EndsWith("ModelSnapshot.cs", StringComparison.Ordinal) ||
-               normalized.EndsWith(".g.cs", StringComparison.Ordinal) ||
-               normalized.EndsWith(".generated.cs", StringComparison.Ordinal);
+               IsGeneratedFileName(normalized);
     }
+
+    private static bool IsCallGraphSource(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        return !normalized.Contains("/bin/", StringComparison.Ordinal) &&
+               !normalized.Contains("/obj/", StringComparison.Ordinal) &&
+               !IsGeneratedFileName(normalized);
+    }
+
+    private static bool IsGeneratedFileName(string normalizedPath)
+        => normalizedPath.EndsWith(".Designer.cs", StringComparison.Ordinal) ||
+           normalizedPath.EndsWith("ModelSnapshot.cs", StringComparison.Ordinal) ||
+           normalizedPath.EndsWith(".g.cs", StringComparison.Ordinal) ||
+           normalizedPath.EndsWith(".generated.cs", StringComparison.Ordinal);
 
     [Fact]
     public void SemanticDiscovery_CoversEverySupportedSyntaxAndPersistenceOwner()
@@ -435,8 +456,10 @@ namespace Synthetic { using IPCManagement.Api.Models.Entities; public static cla
                 oracle.GetParameters().Should().BeEmpty("[Fact] oracles need a directly executable signature");
             (oracle.ReturnType == typeof(void) || oracle.ReturnType == typeof(Task) || oracle.ReturnType == typeof(ValueTask))
                 .Should().BeTrue("oracle return type must be void, Task, or ValueTask");
-            OracleSourceTransitivelyInvokesOwner(row).Should().BeTrue(
-                $"{row.OracleType.Name}.{row.OracleMethod} must demonstrate a source-aware invocation path to {row.OwnerMethod}");
+            ValidateExactInvocationMapping(
+                OracleSourceTransitivelyInvokesOwner(row),
+                $"{row.OracleType.Name}.{row.OracleMethod}",
+                row.OwnerMethod);
             row.CoveredOwnerKeys.Should().OnlyHaveUniqueItems();
             row.CoveredOwnerKeys.Should().Contain(row.OwnerMethod, "every oracle mapping must explicitly claim its row owner");
             row.CoveredOwnerKeys.Should().OnlyContain(key => discoveredKeys.Contains(key, StringComparer.Ordinal), "no oracle may claim an unknown owner");
@@ -451,51 +474,188 @@ namespace Synthetic { using IPCManagement.Api.Models.Entities; public static cla
         }
     }
 
+    [Fact]
+    public void ExactOracleCallGraphRejectsSameNameOverloadAndExtensionReceiverImpostors()
+    {
+        const string fixture = """
+namespace Synthetic {
+public sealed class TargetOwner { public void Execute(int value) { } public void Execute(string value) { } }
+public sealed class UnrelatedOwner { public void Execute(int value) { } }
+public static class OwnerExtensions { public static void Reserve(this TargetOwner owner) { } }
+public static class UnrelatedExtensions { public static void Reserve(this UnrelatedOwner owner) { } }
+public sealed class OracleFixture {
+ public void SameName() { new UnrelatedOwner().Execute(1); }
+ public void WrongOverload() { new TargetOwner().Execute("not-the-int-overload"); }
+ public void WrongExtensionReceiver() { new UnrelatedOwner().Reserve(); }
+ public void ExactOwner() { new TargetOwner().Execute(1); }
+ public void ExactExtension() { new TargetOwner().Reserve(); }
+}}
+""";
+        var tree = CSharpSyntaxTree.ParseText(fixture, path: "Synthetic/OracleFixture.cs");
+        var graph = CreateSourceCallGraph([tree], CreateReferences());
+
+        Action sameNameClaim = () => ValidateExactInvocationMapping(
+            SourceTransitivelyInvokesOwner(graph, "Synthetic.OracleFixture", "SameName", "Synthetic.TargetOwner.Execute(int)"),
+            "Synthetic.OracleFixture.SameName", "Synthetic.TargetOwner.Execute(int)");
+        Action wrongOverloadClaim = () => ValidateExactInvocationMapping(
+            SourceTransitivelyInvokesOwner(graph, "Synthetic.OracleFixture", "WrongOverload", "Synthetic.TargetOwner.Execute(int)"),
+            "Synthetic.OracleFixture.WrongOverload", "Synthetic.TargetOwner.Execute(int)");
+        Action wrongExtensionClaim = () => ValidateExactInvocationMapping(
+            SourceTransitivelyInvokesOwner(graph, "Synthetic.OracleFixture", "WrongExtensionReceiver", "Synthetic.OwnerExtensions.Reserve(Synthetic.TargetOwner)"),
+            "Synthetic.OracleFixture.WrongExtensionReceiver", "Synthetic.OwnerExtensions.Reserve(Synthetic.TargetOwner)");
+
+        sameNameClaim.Should().Throw<Exception>().WithMessage("*Synthetic.TargetOwner.Execute(int)*");
+        wrongOverloadClaim.Should().Throw<Exception>().WithMessage("*Synthetic.TargetOwner.Execute(int)*");
+        wrongExtensionClaim.Should().Throw<Exception>().WithMessage("*Synthetic.OwnerExtensions.Reserve(Synthetic.TargetOwner)*");
+        SourceTransitivelyInvokesOwner(graph, "Synthetic.OracleFixture", "ExactOwner", "Synthetic.TargetOwner.Execute(int)").Should().BeTrue();
+        SourceTransitivelyInvokesOwner(graph, "Synthetic.OracleFixture", "ExactExtension", "Synthetic.OwnerExtensions.Reserve(Synthetic.TargetOwner)").Should().BeTrue();
+    }
+
+    private static void ValidateExactInvocationMapping(bool invokesOwner, string oracleIdentity, string ownerIdentity)
+        => invokesOwner.Should().BeTrue($"{oracleIdentity} must demonstrate an exact source-symbol invocation path to {ownerIdentity}");
+
     private static bool OracleSourceTransitivelyInvokesOwner(ConsumerRow row)
     {
-        var declarations = SourceMethods.Value;
-        var oracle = declarations.SingleOrDefault(method => method.Identifier.ValueText == row.OracleMethod &&
-            method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.ValueText == row.OracleType.Name);
+        var graph = RepositoryCallGraph.Value;
+        var oracleType = (row.OracleType.FullName ?? row.OracleType.Name).Replace('+', '.');
+        var oracle = ResolveSourceMethod(graph, oracleType, row.OracleMethod);
         if (oracle is null) return false;
-        var invokedNames = new HashSet<string>(oracle.DescendantNodes().OfType<InvocationExpressionSyntax>()
-            .Select(invocation => invocation.Expression switch
-            {
-                MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
-                IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
-                _ => string.Empty
-            }).Concat(oracle.DescendantNodes().OfType<MemberAccessExpressionSyntax>()
-                .Select(member => member.Name.Identifier.ValueText))
-            .Where(name => name.Length > 0), StringComparer.Ordinal);
-        var reached = new HashSet<MethodDeclarationSyntax>();
-        var changed = true;
-        while (changed)
+
+        var targetCandidates = graph.Declarations.Keys
+            .Where(symbol => OwnerKey(symbol) == row.OwnerMethod)
+            .ToArray();
+        targetCandidates.Should().NotBeEmpty($"{row.OwnerMethod} must normalize to at least one exact source symbol");
+        return TransitivelyInvokedSymbols(graph, oracle).Any(reached =>
+            targetCandidates.Any(target => SymbolEqualityComparer.Default.Equals(reached, target)));
+    }
+
+    private static SourceCallGraph CreateSourceCallGraph(IEnumerable<SyntaxTree> syntaxTrees, IEnumerable<MetadataReference> references)
+    {
+        var trees = syntaxTrees.Append(CSharpSyntaxTree.ParseText("""
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Hosting;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
+global using Microsoft.Extensions.Logging;
+global using System;
+global using System.Collections.Generic;
+global using System.IO;
+global using System.Linq;
+global using System.Net.Http;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using Xunit;
+""", path: "Phase30.CallGraph.GlobalUsings.g.cs")).ToArray();
+        var compilation = CSharpCompilation.Create("Phase30ExactOracleCallGraph", trees, references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+        // Source-generator declarations (for example [GeneratedRegex]) are completed only by the real
+        // project build. The graph therefore fails closed at every reached invocation/method group rather
+        // than accepting or rejecting unrelated generator diagnostics from unreachable test files.
+        var declarations = new Dictionary<IMethodSymbol, MethodDeclarationSyntax>(SymbolEqualityComparer.Default);
+        foreach (var tree in trees)
         {
-            changed = false;
-            foreach (var declaration in declarations.Where(candidate => invokedNames.Contains(candidate.Identifier.ValueText)))
+            var model = compilation.GetSemanticModel(tree, ignoreAccessibility: true);
+            foreach (var declaration in tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
             {
-                if (!reached.Add(declaration)) continue;
-                changed = true;
-                foreach (var invocation in declaration.DescendantNodes().OfType<InvocationExpressionSyntax>())
-                {
-                    var name = invocation.Expression switch
-                    {
-                        MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
-                        IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
-                        _ => string.Empty
-                    };
-                    if (name.Length > 0) invokedNames.Add(name);
-                }
-                foreach (var member in declaration.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
-                    invokedNames.Add(member.Name.Identifier.ValueText);
-                foreach (var identifier in declaration.DescendantNodes().OfType<IdentifierNameSyntax>())
-                    invokedNames.Add(identifier.Identifier.ValueText);
+                var symbol = model.GetDeclaredSymbol(declaration);
+                if (symbol is not null) declarations[NormalizeMethod(symbol)] = declaration;
             }
         }
-        var split = row.OwnerMethod.LastIndexOf('.');
-        var ownerType = row.OwnerMethod[..split];
-        var ownerMethod = row.OwnerMethod[(split + 1)..];
-        return reached.Any(method => method.Identifier.ValueText == ownerMethod &&
-            method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.ValueText == ownerType);
+        return new SourceCallGraph(compilation, declarations);
+    }
+
+    private static IMethodSymbol? ResolveSourceMethod(SourceCallGraph graph, string fullyQualifiedType, string methodName)
+    {
+        var matches = graph.Declarations.Keys.Where(symbol =>
+            FullyQualifiedType(symbol.ContainingType) == fullyQualifiedType && symbol.Name == methodName).ToArray();
+        return matches.Length == 1 ? matches[0] : null;
+    }
+
+    private static HashSet<IMethodSymbol> TransitivelyInvokedSymbols(SourceCallGraph graph, IMethodSymbol root)
+    {
+        var reached = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+        var pending = new Queue<IMethodSymbol>();
+        pending.Enqueue(NormalizeMethod(root));
+        while (pending.TryDequeue(out var caller))
+        {
+            if (!graph.Declarations.TryGetValue(caller, out var declaration)) continue;
+            var model = graph.Compilation.GetSemanticModel(declaration.SyntaxTree, ignoreAccessibility: true);
+            foreach (var callee in ResolveCallees(declaration, model).SelectMany(symbol => ExactDispatchTargets(graph, symbol)))
+            {
+                if (!reached.Add(callee)) continue;
+                if (graph.Declarations.ContainsKey(callee)) pending.Enqueue(callee);
+            }
+        }
+        return reached;
+    }
+
+    private static IEnumerable<IMethodSymbol> ExactDispatchTargets(SourceCallGraph graph, IMethodSymbol called)
+    {
+        yield return called;
+        foreach (var candidate in graph.Declarations.Keys)
+        {
+            if (candidate.OverriddenMethod is not null && SymbolEqualityComparer.Default.Equals(NormalizeMethod(candidate.OverriddenMethod), called))
+            {
+                yield return candidate;
+                continue;
+            }
+            if (candidate.ExplicitInterfaceImplementations.Any(implemented =>
+                    SymbolEqualityComparer.Default.Equals(NormalizeMethod(implemented), called)))
+            {
+                yield return candidate;
+                continue;
+            }
+            if (called.ContainingType.TypeKind == TypeKind.Interface &&
+                candidate.ContainingType.FindImplementationForInterfaceMember(called) is IMethodSymbol implementation &&
+                SymbolEqualityComparer.Default.Equals(NormalizeMethod(implementation), candidate))
+                yield return candidate;
+        }
+    }
+
+    private static IEnumerable<IMethodSymbol> ResolveCallees(MethodDeclarationSyntax declaration, SemanticModel model)
+    {
+        var bodyNode = (SyntaxNode?)declaration.Body ?? declaration.ExpressionBody?.Expression;
+        if (bodyNode is null) yield break;
+        var rootOperation = model.GetOperation(bodyNode);
+        if (rootOperation is null)
+            throw new InvalidOperationException($"Unresolved method body in exact oracle call graph at {declaration.GetLocation().GetLineSpan()}");
+
+        foreach (var operation in rootOperation.DescendantsAndSelf())
+        {
+            if (operation is IInvalidOperation invalid && invalid.Syntax is InvocationExpressionSyntax or MemberAccessExpressionSyntax)
+                throw new InvalidOperationException($"Unresolved or ambiguous relevant call in exact oracle call graph at {invalid.Syntax.GetLocation().GetLineSpan()}: {invalid.Syntax}");
+            if (operation is IInvocationOperation invocation)
+                yield return NormalizeMethod(invocation.TargetMethod);
+            else if (operation is IMethodReferenceOperation methodReference)
+                yield return NormalizeMethod(methodReference.Method);
+        }
+    }
+
+    private static bool SourceTransitivelyInvokesOwner(SourceCallGraph graph, string oracleType, string oracleMethod, string exactOwnerIdentity)
+    {
+        var oracle = ResolveSourceMethod(graph, oracleType, oracleMethod);
+        oracle.Should().NotBeNull($"{oracleType}.{oracleMethod} must resolve exactly once");
+        return TransitivelyInvokedSymbols(graph, oracle!).Any(symbol => MethodIdentity(symbol) == exactOwnerIdentity);
+    }
+
+    private static IMethodSymbol NormalizeMethod(IMethodSymbol symbol)
+        => (symbol.ReducedFrom ?? symbol).OriginalDefinition;
+
+    private static string OwnerKey(IMethodSymbol symbol)
+        => $"{symbol.ContainingType.Name}.{symbol.Name}";
+
+    private static string FullyQualifiedType(INamedTypeSymbol type)
+        => type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+
+    private static string MethodIdentity(IMethodSymbol symbol)
+    {
+        var normalized = NormalizeMethod(symbol);
+        var parameters = string.Join(",", normalized.Parameters.Select(parameter =>
+            parameter.Type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
+        return $"{FullyQualifiedType(normalized.ContainingType)}.{normalized.Name}({parameters})";
     }
 
     private static string ResolveRepoPath(string relativePath)

@@ -372,6 +372,14 @@ public partial class WorkflowGenerationTests
             (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(1);
             (await context.Lifecycleoutboxmessages.CountAsync(item => item.AggregateType == nameof(InventoryIssue))).Should().Be(1);
             (await context.Auditlogs.CountAsync(item => item.EntityName == nameof(InventoryIssue) && item.BusinessArea == "Lifecycle")).Should().Be(1);
+
+            var approval = await new InventoryIssueApprovalHandler(context).HandleAsync(
+                result.IssueId,
+                new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Exact DEFAULT issue approval oracle." },
+                fixture.UserId);
+            approval.Should().NotBeNull();
+            approval!.NewStatus.Should().Be("CONFIRMED");
+            (await context.Materialrequests.AsNoTracking().SingleAsync()).Status.Should().Be("CONFIRMED");
         }
     }
 

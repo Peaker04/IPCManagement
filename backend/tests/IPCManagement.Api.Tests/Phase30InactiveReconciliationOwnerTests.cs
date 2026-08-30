@@ -129,6 +129,10 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var issueConfirmWindow = InvocationWindow.Since(issueConfirmStartedAt);
         var afterKitchenReceipt = await fixture.SnapshotAsync();
         AssertExactIssueConfirmDelta(beforeIssueConfirmSuccess, afterKitchenReceipt, created, fixture, issueConfirmWindow);
+        var projectedBatch = (await fixture.BatchService.ListAsync()).Single(batch => batch.BatchId == fixture.IssueBatchId);
+        projectedBatch.Lines.Single(line => line.BatchLineId == fixture.IssueLineId).IssuedQuantity
+            .Should().Be(afterKitchenReceipt.IssueLines.Single(line => line.ReconciliationBatchLineId == fixture.IssueLineId).IssuedQty,
+                "the public reconciliation projection must load only exact linked issue lineage");
         await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterKitchenReceipt);
         var returnCommand = fixture.ReturnCommand(created.IssueId, afterKitchenReceipt.IssueLines.Single(x => x.ReconciliationBatchLineId == fixture.IssueLineId).Id);

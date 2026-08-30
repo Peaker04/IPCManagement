@@ -47,23 +47,45 @@ public partial class WorkflowGenerationTests
         await context.SaveChangesAsync();
 
         var service = new MaterialDemandService(context);
-        var generated = await service.GenerateAsync(
+        var first = await service.GenerateAsync(
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" }, fixture.UserIdString);
-        generated.Should().NotBeNull();
-        generated!.Lines.Should().ContainSingle().Which.SuggestedPurchaseQty.Should().Be(0m);
-        var requestId = GuidHelper.ParseGuidString(generated.MaterialRequestId)!;
-        var requestLineId = await context.Materialrequestlines.Select(line => line.RequestLineId).SingleAsync();
-        await SeedCollidingIssueFamiliesAsync(context, fixture, requestId, requestLineId, includeDefault: true);
+        first.Should().NotBeNull();
+        first!.Lines.Should().ContainSingle().Which.Should().Match<MaterialDemandLineDto>(line =>
+            line.TotalRequiredQty == 200m && line.CurrentStockQty == 250m && line.SuggestedPurchaseQty == 0m);
+        var firstRequestId = GuidHelper.ParseGuidString(first.MaterialRequestId)!;
+        var firstRequestLineId = await context.Materialrequestlines.Select(line => line.RequestLineId).SingleAsync();
+
+        await SeedSecondDemandDayAsync(context, fixture);
+        await SeedCollidingIssueFamiliesAsync(context, fixture, firstRequestId, firstRequestLineId, includeDefault: true);
         var frozenNonDefault = await NonDefaultIssueSnapshotAsync(context);
 
+        var second = await service.GenerateAsync(
+            new GenerateMaterialDemandRequest { ServiceDate = "2026-06-16", Scope = "FULLDAY" }, fixture.UserIdString);
         var staleness = await service.GetStalenessAsync("2026-06-15", fixture.CustomerIdString, "FULLDAY");
 
-        staleness.MaterialRequestId.Should().Be(generated.MaterialRequestId);
+        second.Should().NotBeNull();
+        second!.Lines.Should().ContainSingle().Which.Should().Match<MaterialDemandLineDto>(line =>
+            line.TotalRequiredQty == 200m && line.CurrentStockQty == 100m && line.SuggestedPurchaseQty == 100m,
+            "the earlier DEFAULT request reserves 200 minus its exact 50 issued quantity; reconciliation and legacy collisions reserve nothing");
+        staleness.MaterialRequestId.Should().Be(first.MaterialRequestId);
         staleness.CanRegenerate.Should().BeFalse();
         staleness.RegenerationBlockReason.Should().Contain("phiếu xuất kho");
-        (await context.Materialrequests.AsNoTracking().SingleAsync()).Status.Should().Be("DRAFT");
-        (await context.Materialrequestlines.AsNoTracking().SingleAsync()).SuggestedPurchaseQty.Should().Be(0m);
-        (await NonDefaultIssueSnapshotAsync(context)).Should().Be(frozenNonDefault);
+        (await context.Materialrequests.AsNoTracking().OrderBy(request => request.RequestDate).Select(request => new { request.RequestCode, request.RequestDate, request.Status }).ToListAsync())
+            .Should().HaveCount(2).And.OnlyContain(request => request.Status == "DRAFT");
+        (await context.Materialrequestlines.AsNoTracking().OrderBy(line => line.Request.RequestDate).Select(line => new { line.TotalRequiredQty, line.CurrentStockQty, line.SuggestedPurchaseQty }).ToListAsync())
+            .Should().Equal(
+                new { TotalRequiredQty = 200m, CurrentStockQty = 250m, SuggestedPurchaseQty = 0m },
+                new { TotalRequiredQty = 200m, CurrentStockQty = 100m, SuggestedPurchaseQty = 100m });
+        (await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines).OrderBy(issue => issue.IssueCode).Select(issue => new
+        {
+            issue.IssueCode, issue.MaterialRequestId, issue.ReconciliationBatchId,
+            Lines = issue.Inventoryissuelines.Select(line => new { line.IssuedQty, line.MaterialRequestLineId, line.ReconciliationBatchLineId }).ToList()
+        }).ToListAsync()).Should().SatisfyRespectively(
+            issue => { issue.IssueCode.Should().Be("ISS-DEFAULT-COLLISION"); issue.MaterialRequestId.Should().Equal(firstRequestId); issue.ReconciliationBatchId.Should().BeNull(); issue.Lines.Should().ContainSingle().Which.IssuedQty.Should().Be(50m); },
+            issue => { issue.IssueCode.Should().Be("ISS-LEGACY-COLLISION"); issue.MaterialRequestId.Should().BeNull(); issue.ReconciliationBatchId.Should().BeNull(); issue.Lines.Should().ContainSingle().Which.IssuedQty.Should().Be(70m); },
+            issue => { issue.IssueCode.Should().Be("ISS-RECON-COLLISION"); issue.MaterialRequestId.Should().BeNull(); issue.ReconciliationBatchId.Should().NotBeNull(); issue.Lines.Should().ContainSingle().Which.IssuedQty.Should().Be(80m); });
+        (await context.Currentstocks.AsNoTracking().SingleAsync()).CurrentQty.Should().Be(250m, "reservation is an in-memory allocation and never mutates persisted stock");
+        (await NonDefaultIssueSnapshotAsync(context)).Should().Be(frozenNonDefault, "reconciliation and legacy rows must remain value-stable through generation, reservation, and staleness");
         (await context.Stockmovements.CountAsync()).Should().Be(0);
     }
 
@@ -143,18 +165,47 @@ public partial class WorkflowGenerationTests
         (await context.Menuversions.CountAsync()).Should().Be(versionCountBefore);
     }
 
+    private static async Task SeedSecondDemandDayAsync(IpcManagementContext context, WorkflowFixture fixture)
+    {
+        var firstSchedule = await context.Menuschedules.SingleAsync();
+        var firstQuantityPlan = await context.Mealquantityplans.SingleAsync();
+        var scheduleId = GuidHelper.NewId();
+        var quantityPlanId = GuidHelper.NewId();
+        context.Menuschedules.Add(new MenuSchedule
+        {
+            MenuScheduleId = scheduleId, CustomerId = firstSchedule.CustomerId, MenuId = firstSchedule.MenuId,
+            ServiceDate = new DateOnly(2026, 6, 16), WeekStartDate = firstSchedule.WeekStartDate,
+            ShiftName = firstSchedule.ShiftName, MenuPrice = firstSchedule.MenuPrice,
+            BomRatePercent = firstSchedule.BomRatePercent, Status = "ACTIVE"
+        });
+        context.Mealquantityplans.Add(new MealQuantityPlan
+        {
+            QuantityPlanId = quantityPlanId, PlanCode = "QTY-COLLISION-20260616", ServiceDate = new DateOnly(2026, 6, 16),
+            Status = firstQuantityPlan.Status, ForecastReceivedAt = firstQuantityPlan.ForecastReceivedAt,
+            ConfirmedAt = firstQuantityPlan.ConfirmedAt, ConfirmationTime = firstQuantityPlan.ConfirmationTime,
+            ConfirmedBy = firstQuantityPlan.ConfirmedBy
+        });
+        context.Mealquantityplanlines.Add(new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = quantityPlanId, MenuScheduleId = scheduleId,
+            CustomerId = firstSchedule.CustomerId, MenuId = firstSchedule.MenuId, ShiftName = firstSchedule.ShiftName,
+            ForecastServings = 100, ConfirmedServings = 100, FinalServings = 100
+        });
+        await context.SaveChangesAsync();
+    }
+
     private static async Task SeedCollidingIssueFamiliesAsync(IpcManagementContext context, WorkflowFixture fixture, byte[]? requestId, byte[]? requestLineId, bool includeDefault)
     {
-        var families = new List<InventoryIssue>
+        var families = new List<(InventoryIssue Issue, decimal Quantity)>
         {
-            new() { IssueId = GuidHelper.NewId(), IssueCode = "ISS-RECON-COLLISION", IssueDate = new DateOnly(2026, 6, 15), WarehouseId = fixture.WarehouseId, ReconciliationBatchId = GuidHelper.NewId(), IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow },
-            new() { IssueId = GuidHelper.NewId(), IssueCode = "ISS-LEGACY-COLLISION", IssueDate = new DateOnly(2026, 6, 15), WarehouseId = fixture.WarehouseId, IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow }
+            (new InventoryIssue { IssueId = GuidHelper.NewId(), IssueCode = "ISS-RECON-COLLISION", IssueDate = new DateOnly(2026, 6, 16), WarehouseId = fixture.WarehouseId, ReconciliationBatchId = GuidHelper.NewId(), IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow }, 80m),
+            (new InventoryIssue { IssueId = GuidHelper.NewId(), IssueCode = "ISS-LEGACY-COLLISION", IssueDate = new DateOnly(2026, 6, 16), WarehouseId = fixture.WarehouseId, IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow }, 70m)
         };
         if (includeDefault)
-            families.Add(new InventoryIssue { IssueId = GuidHelper.NewId(), IssueCode = "ISS-DEFAULT-COLLISION", IssueDate = new DateOnly(2026, 6, 15), WarehouseId = fixture.WarehouseId, MaterialRequestId = requestId, IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
-        foreach (var issue in families)
-            issue.Inventoryissuelines.Add(new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, IssuedQty = 7m, MaterialRequestLineId = issue.MaterialRequestId is null ? null : requestLineId, ReconciliationBatchLineId = issue.ReconciliationBatchId is null ? null : GuidHelper.NewId() });
-        context.Inventoryissues.AddRange(families);
+            families.Add((new InventoryIssue { IssueId = GuidHelper.NewId(), IssueCode = "ISS-DEFAULT-COLLISION", IssueDate = new DateOnly(2026, 6, 16), WarehouseId = fixture.WarehouseId, MaterialRequestId = requestId, IssuedBy = fixture.UserId, CreatedAt = DateTime.UtcNow }, 50m));
+        foreach (var (issue, quantity) in families)
+            issue.Inventoryissuelines.Add(new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, IssuedQty = quantity, MaterialRequestLineId = issue.MaterialRequestId is null ? null : requestLineId, ReconciliationBatchLineId = issue.ReconciliationBatchId is null ? null : GuidHelper.NewId() });
+        context.Inventoryissues.AddRange(families.Select(item => item.Issue));
         await context.SaveChangesAsync();
     }
 
@@ -208,8 +259,18 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
         context.ChangeTracker.Clear();
         var issues = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines)
             .Where(issue => issue.MaterialRequestId == null).OrderBy(issue => issue.IssueCode).ToListAsync();
-        return System.Text.Json.JsonSerializer.Serialize(issues.Select(issue => new { issue.IssueCode, MaterialRequestId = issue.MaterialRequestId == null ? null : Convert.ToHexString(issue.MaterialRequestId), ReconciliationBatchId = issue.ReconciliationBatchId == null ? null : Convert.ToHexString(issue.ReconciliationBatchId), Lines = issue.Inventoryissuelines.OrderBy(line => line.IssueLineId).Select(line => new { line.IssuedQty, MaterialRequestLineId = line.MaterialRequestLineId == null ? null : Convert.ToHexString(line.MaterialRequestLineId), ReconciliationBatchLineId = line.ReconciliationBatchLineId == null ? null : Convert.ToHexString(line.ReconciliationBatchLineId) }) }));
+        var issueProperties = context.Model.FindEntityType(typeof(InventoryIssue))!.GetProperties().OrderBy(property => property.Name).ToArray();
+        var lineProperties = context.Model.FindEntityType(typeof(InventoryIssueLine))!.GetProperties().OrderBy(property => property.Name).ToArray();
+        return System.Text.Json.JsonSerializer.Serialize(issues.Select(issue => new
+        {
+            Values = issueProperties.ToDictionary(property => property.Name, property => SnapshotScalar(property.PropertyInfo!.GetValue(issue))),
+            Lines = issue.Inventoryissuelines.OrderBy(line => Convert.ToHexString(line.IssueLineId)).Select(line =>
+                lineProperties.ToDictionary(property => property.Name, property => SnapshotScalar(property.PropertyInfo!.GetValue(line))))
+        }));
     }
+
+    private static object? SnapshotScalar(object? value)
+        => value is byte[] bytes ? Convert.ToHexString(bytes) : value;
     [Fact]
     public async Task MenuAmendment_Should_SnapshotSafeDemandImpact_WithoutMutatingMenu()
     {
