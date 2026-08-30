@@ -68,6 +68,8 @@ public sealed class ServiceRunLifecycleTests
         var scheduleId = GuidHelper.NewId();
         var requestId = GuidHelper.NewId();
         var requestLineId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
         await using (var context = new IpcManagementContext(options))
         {
             var quantityPlan = new MealQuantityPlan
@@ -108,12 +110,22 @@ public sealed class ServiceRunLifecycleTests
                     new MaterialRequestLine
                     {
                         RequestLineId = requestLineId, RequestId = requestId, PlanLineId = productionPlanLine.PlanLineId,
-                        IngredientId = GuidHelper.NewId(), UnitId = GuidHelper.NewId(), PriceTierAmount = 25000m,
+                        IngredientId = ingredientId, UnitId = unitId, PriceTierAmount = 25000m,
                         TotalServings = 120, GrossQtyPerServing = 1m, BomRatePercent = 100m, TotalRequiredQty = 120m,
                         PlanLine = productionPlanLine,
                     },
                 ],
             });
+            var defaultIssueId = GuidHelper.NewId();
+            var reconciliationIssueId = GuidHelper.NewId();
+            var legacyIssueId = GuidHelper.NewId();
+            context.Inventoryissues.AddRange(
+                new InventoryIssue { IssueId = defaultIssueId, IssueCode = "ISS-SERVICE-DEFAULT", IssueDate = new DateOnly(2026, 8, 5), WarehouseId = GuidHelper.NewId(), MaterialRequestId = requestId, ShiftName = "MORNING", IssuedBy = actorId, CreatedAt = DateTime.UtcNow,
+                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IssueId = defaultIssueId, MaterialRequestLineId = requestLineId, IngredientId = ingredientId, UnitId = unitId, RequestedQty = 120, IssuedQty = 120 }] },
+                new InventoryIssue { IssueId = reconciliationIssueId, IssueCode = "ISS-SERVICE-RECON", IssueDate = new DateOnly(2026, 8, 5), WarehouseId = GuidHelper.NewId(), MaterialRequestId = requestId, ReconciliationBatchId = GuidHelper.NewId(), ShiftName = "MORNING", IssuedBy = actorId, CreatedAt = DateTime.UtcNow,
+                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IssueId = reconciliationIssueId, ReconciliationBatchLineId = GuidHelper.NewId(), IngredientId = ingredientId, UnitId = unitId, RequestedQty = 999, IssuedQty = 999 }] },
+                new InventoryIssue { IssueId = legacyIssueId, IssueCode = "ISS-SERVICE-LEGACY", IssueDate = new DateOnly(2026, 8, 5), WarehouseId = GuidHelper.NewId(), MaterialRequestId = requestId, ReconciliationBatchId = GuidHelper.NewId(), ShiftName = "MORNING", IssuedBy = actorId, CreatedAt = DateTime.UtcNow,
+                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IssueId = legacyIssueId, IngredientId = ingredientId, UnitId = unitId, RequestedQty = 777, IssuedQty = 777 }] });
             await context.SaveChangesAsync();
         }
 
@@ -125,6 +137,12 @@ public sealed class ServiceRunLifecycleTests
         first.Should().NotBeNull();
         first!.Blockers.Should().Contain(ServiceRunBlocker.DemandNotGenerated);
         second!.ServiceRunId.Should().Be(first.ServiceRunId);
+        first.IssueCount.Should().Be(0, "non-DEFAULT collision rows must not leak into the public projection");
+        first.UnreceivedIssueCount.Should().Be(0);
+        var page = await service.GetPageAsync(new ServiceRunPageQuery { AllCustomers = true, ServiceDate = new DateOnly(2026, 8, 5), PageNumber = 1, PageSize = 20 });
+        page.Items.SelectMany(item => item.IssueCodes).Should().NotContain(["ISS-SERVICE-RECON", "ISS-SERVICE-LEGACY"]);
+        page.Items.SelectMany(item => item.IssueLineIds).Should().BeEmpty();
+        (await verificationContext.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(3);
         verificationContext.Serviceruns.Should().ContainSingle();
         verificationContext.Servicerunsourcelines.Should().ContainSingle();
         verificationContext.Lifecycletransitions.Should().ContainSingle(item => item.AggregateType == nameof(ServiceRun) && item.ToState == ServiceRunStatus.Planned);

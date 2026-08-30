@@ -127,9 +127,16 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var demandLines = await context.Materialrequestlines.AsNoTracking().Include(line => line.Request).Include(line => line.PlanLine)
             .Include(line => line.Ingredient).Include(line => line.Unit)
             .Where(line => line.Request.PlanId.SequenceEqual(run.PlanId) && line.PlanLine.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
-        var issues = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines).Include(issue => issue.Inventoryreturns)
-            .Where(issue => issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
-                            issue.MaterialRequest!.PlanId.SequenceEqual(run.PlanId) && issue.IssueDate == plan.PlanDate).ToListAsync(cancellationToken);
+        var planRequestIds = await context.Materialrequests.AsNoTracking()
+            .Where(request => request.PlanId.SequenceEqual(run.PlanId))
+            .Select(request => request.RequestId)
+            .ToListAsync(cancellationToken);
+        var issueCandidates = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines).Include(issue => issue.Inventoryreturns)
+            .Where(issue => issue.MaterialRequestId != null && issue.ReconciliationBatchId == null && issue.IssueDate == plan.PlanDate)
+            .ToListAsync(cancellationToken);
+        var issues = issueCandidates
+            .Where(issue => planRequestIds.Any(requestId => requestId.SequenceEqual(issue.MaterialRequestId!)))
+            .ToList();
         var openSupplementalCount = await context.Supplementalmaterialrequests.AsNoTracking()
             .Join(context.Inventoryissues.AsNoTracking(), request => request.IssueId, issue => issue.IssueId, (request, issue) => new { request, issue })
             .CountAsync(item => item.issue.MaterialRequestId != null && item.issue.ReconciliationBatchId == null &&
@@ -273,9 +280,17 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         foreach (var run in candidateRuns)
         {
             var lifecycle = await GetProjectionAsync(GuidHelper.ToGuidString(run.ServiceRunId), cancellationToken) ?? throw new InvalidOperationException();
-            var issues = await context.Inventoryissues.AsNoTracking().Include(item => item.Inventoryissuelines).Include(item => item.Inventoryreturns)
+            var planRequestIds = await context.Materialrequests.AsNoTracking()
+                .Where(request => request.PlanId.SequenceEqual(run.PlanId))
+                .Select(request => request.RequestId)
+                .ToListAsync(cancellationToken);
+            var issueCandidates = await context.Inventoryissues.AsNoTracking().Include(item => item.Inventoryissuelines).Include(item => item.Inventoryreturns)
                 .Where(item => item.MaterialRequestId != null && item.ReconciliationBatchId == null &&
-                               item.MaterialRequest!.PlanId.SequenceEqual(run.PlanId) && item.IssueDate == lifecycle.ServiceDate && item.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
+                               item.IssueDate == lifecycle.ServiceDate && item.ShiftName == run.ShiftName)
+                .ToListAsync(cancellationToken);
+            var issues = issueCandidates
+                .Where(issue => planRequestIds.Any(requestId => requestId.SequenceEqual(issue.MaterialRequestId!)))
+                .ToList();
             var materialRequestLines = await context.Materialrequestlines.AsNoTracking().Include(item => item.Request).Include(item => item.PlanLine)
                 .Where(item => item.Request.PlanId.SequenceEqual(run.PlanId) && item.PlanLine.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
             var materialRequestCodes = materialRequestLines.Select(item => item.Request.RequestCode).Distinct().ToList();
