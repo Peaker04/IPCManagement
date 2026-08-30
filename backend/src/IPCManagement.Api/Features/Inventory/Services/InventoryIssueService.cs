@@ -86,7 +86,9 @@ public class InventoryIssueService : IInventoryIssueService
         {
             var hasMaterialLineSource = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
             var hasReconciliationLineSource = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
-            if (hasMaterialLineSource == hasReconciliationLineSource || hasMaterialSource != hasMaterialLineSource)
+            if (hasMaterialLineSource && hasReconciliationLineSource)
+                throw new ArgumentException("Dòng xuất phải có đúng một nguồn và cùng họ nguồn với phiếu xuất.");
+            if (hasReconciliationSource != hasReconciliationLineSource)
                 throw new ArgumentException("Dòng xuất phải có đúng một nguồn và cùng họ nguồn với phiếu xuất.");
         }
         if (hasReconciliationSource)

@@ -356,6 +356,82 @@ public class InventoryIssueServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_ShouldRejectBothLineageFamiliesOnDefaultRequest()
+    {
+        var dto = new CreateInventoryIssueRequest
+        {
+            MaterialRequestId = Guid.NewGuid().ToString(),
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    MaterialRequestLineId = Guid.NewGuid().ToString(),
+                    ReconciliationBatchLineId = Guid.NewGuid().ToString()
+                }
+            ]
+        };
+
+        var act = () => _service.CreateAsync(dto, Guid.NewGuid().ToString());
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*đúng một nguồn*");
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectReconciliationLineOnDefaultRequest()
+    {
+        var dto = new CreateInventoryIssueRequest
+        {
+            MaterialRequestId = Guid.NewGuid().ToString(),
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    ReconciliationBatchLineId = Guid.NewGuid().ToString()
+                }
+            ]
+        };
+
+        var act = () => _service.CreateAsync(dto, Guid.NewGuid().ToString());
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*cùng họ nguồn*");
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectForeignDefaultSourceLine()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(GuidHelper.ParseGuidString(warehouseId)!);
+        var materialRequestId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 5m);
+
+        var act = () => _service.CreateAsync(new CreateInventoryIssueRequest
+        {
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            MaterialRequestId = materialRequestId,
+            Lines =
+            [
+                new CreateInventoryIssueLineRequest
+                {
+                    MaterialRequestLineId = Guid.NewGuid().ToString(),
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    RequestedQty = 1m,
+                    IssuedQty = 1m
+                }
+            ]
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*không nằm trong nhu cầu*");
+    }
+
+    [Fact]
     public async Task CreateAsync_ShouldBlockLegacyIssueWithoutSource_WhenDemandSourceIsAmbiguous()
     {
         var userId = Guid.NewGuid().ToString();
