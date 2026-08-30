@@ -25,7 +25,9 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
     {
         var demandLineIds = demandLines.Select(line => Convert.ToBase64String(line.RequestLineId)).ToHashSet();
         return issues
-            .Where(issue => issue.MaterialRequestId != null && issue.ReconciliationBatchId == null)
+            .Where(issue => issue.ReconciliationBatchId == null &&
+                (issue.MaterialRequestId != null || issue.Inventoryissuelines.Any(line =>
+                    line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null)))
             .SelectMany(issue => issue.Inventoryissuelines.Where(line =>
                 line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null &&
                 demandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId))))
