@@ -52,9 +52,11 @@ public class InventoryIssuesController : ControllerBase
     /// <summary>Lấy chi tiết phiếu xuất kho theo ID.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<InventoryIssueDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByIdAsync(string id)
+    public async Task<IActionResult> GetByIdAsync(
+        string id,
+        [FromQuery] string sourceFamily = InventoryIssueSourceFamilies.Default)
     {
-        var result = await _inventoryIssueService.GetByIdAsync(id);
+        var result = await _inventoryIssueService.GetByIdAsync(id, sourceFamily);
         if (result is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
 

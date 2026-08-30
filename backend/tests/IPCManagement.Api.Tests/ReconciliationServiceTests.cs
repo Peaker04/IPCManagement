@@ -275,6 +275,53 @@ public sealed class ReconciliationServiceTests
     }
 
     [Fact]
+    public async Task AggregateAndCompletion_Should_IgnoreDefaultAndLegacyCollisionQuantities()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.Inventoryissues.AddRange(
+            CollisionIssue("ISS-DEFAULT-COLLISION", GuidHelper.NewId(), null, GuidHelper.NewId(), null, 101m),
+            CollisionIssue("ISS-LEGACY-COLLISION", null, null, null, null, 303m));
+        await context.SaveChangesAsync();
+        var requestContext = ProtectedContext();
+        var batches = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), requestContext);
+
+        var projected = await batches.GetAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId));
+
+        var projectedLine = Assert.Single(projected!.Lines);
+        Assert.Equal(10m, projectedLine.IssuedQuantity);
+        var completed = await new ReconciliationCompletionService(context, batches, new ImmediateTransactionRunner(), requestContext)
+            .CompleteAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor));
+        Assert.Equal("COMPLETED", completed.Status);
+        Assert.Equal(10m, Assert.Single(completed.Lines).IssuedQuantity);
+
+        InventoryIssue CollisionIssue(
+            string code,
+            byte[]? materialRequestId,
+            byte[]? reconciliationBatchId,
+            byte[]? materialRequestLineId,
+            byte[]? reconciliationBatchLineId,
+            decimal quantity)
+        {
+            var issue = new InventoryIssue
+            {
+                IssueId = GuidHelper.NewId(), IssueCode = code, IssueDate = new DateOnly(2026, 8, 25),
+                WarehouseId = GuidHelper.NewId(), MaterialRequestId = materialRequestId,
+                ReconciliationBatchId = reconciliationBatchId, IssuedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
+            };
+            issue.Inventoryissuelines.Add(new InventoryIssueLine
+            {
+                IssueLineId = GuidHelper.NewId(), IssueId = issue.IssueId, Issue = issue,
+                IngredientId = fixture.Line.IngredientId, UnitId = fixture.Line.CanonicalUnitId,
+                RequestedQty = quantity, IssuedQty = quantity,
+                MaterialRequestLineId = materialRequestLineId,
+                ReconciliationBatchLineId = reconciliationBatchLineId
+            });
+            return issue;
+        }
+    }
+
+    [Fact]
     public async Task Stale_actual_and_disposition_writers_lose_at_the_service_boundary()
     {
         await using var context = CreateContext();

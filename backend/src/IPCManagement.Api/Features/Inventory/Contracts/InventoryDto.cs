@@ -129,6 +129,7 @@ public class CreateInventoryReceiptFromPurchaseLineRequest
 public class InventoryIssueDto
 {
     public string   IssueId           { get; set; } = string.Empty;
+    public string   SourceFamily      { get; set; } = string.Empty;
     public string   IssueCode         { get; set; } = string.Empty;
     public DateOnly IssueDate         { get; set; }
     public string?  ShiftName         { get; set; }
@@ -148,10 +149,19 @@ public class InventoryIssueDto
 
 public class InventoryIssueFilterRequestDto : PagedRequestDto
 {
+    public string SourceFamily { get; set; } = InventoryIssueSourceFamilies.Default;
+    public string? ReconciliationBatchId { get; set; }
     public string? WarehouseId { get; set; }
     public DateOnly? IssueDate { get; set; }
     public string? ShiftName { get; set; }
     public bool? IsReceived { get; set; }
+}
+
+public static class InventoryIssueSourceFamilies
+{
+    public const string Default = "DEFAULT";
+    public const string MaterialReconciliation = "MATERIAL_RECONCILIATION";
+    public const string LegacyUnclassified = "LEGACY_UNCLASSIFIED";
 }
 
 public class InventoryIssueLineDto

@@ -64,12 +64,14 @@ public class InventoryIssueService : IInventoryIssueService
             request.PageSize);
     }
 
-    public async Task<InventoryIssueDto?> GetByIdAsync(string id)
+    public async Task<InventoryIssueDto?> GetByIdAsync(
+        string id,
+        string sourceFamily = InventoryIssueSourceFamilies.Default)
     {
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;
 
-        var issue = await _issueRepository.GetByIdWithLinesAsync(bytes);
+        var issue = await _issueRepository.GetByIdWithLinesAsync(bytes, sourceFamily);
         return issue is null ? null : InventoryMapper.MapIssue(issue, includeLines: true);
     }
 

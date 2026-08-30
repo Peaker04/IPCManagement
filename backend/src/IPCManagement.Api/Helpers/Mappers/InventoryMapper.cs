@@ -56,6 +56,15 @@ public static class InventoryMapper
     public static InventoryIssueDto MapIssue(InventoryIssue issue, bool includeLines = false) => new()
     {
         IssueId = GuidHelper.ToGuidString(issue.IssueId),
+        SourceFamily = issue.MaterialRequestId is not null && issue.ReconciliationBatchId is null &&
+            issue.Inventoryissuelines.Count > 0 &&
+            issue.Inventoryissuelines.All(line => line.MaterialRequestLineId is not null && line.ReconciliationBatchLineId is null)
+                ? InventoryIssueSourceFamilies.Default
+                : issue.MaterialRequestId is null && issue.ReconciliationBatchId is not null &&
+                    issue.Inventoryissuelines.Count > 0 &&
+                    issue.Inventoryissuelines.All(line => line.MaterialRequestLineId is null && line.ReconciliationBatchLineId is not null)
+                    ? InventoryIssueSourceFamilies.MaterialReconciliation
+                    : InventoryIssueSourceFamilies.LegacyUnclassified,
         IssueCode = issue.IssueCode,
         IssueDate = issue.IssueDate,
         ShiftName = issue.ShiftName,

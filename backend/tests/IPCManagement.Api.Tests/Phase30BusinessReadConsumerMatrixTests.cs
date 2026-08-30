@@ -4,10 +4,17 @@ using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Features.Planning.Services;
+using IPCManagement.Api.Features.Reconciliation.Contracts;
+using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Shared.Contracts;
@@ -18,6 +25,110 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class Phase30BusinessReadConsumerMatrixTests
 {
+    [Fact]
+    public async Task InventoryListAndDetail_Should_RequireExactRequestedFamily_AndLabelLegacyDetail()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var seed = await SeedCollidingIssuesAsync(context, fixture);
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(fixture.WarehouseId);
+        var service = new InventoryIssueService(
+            new InventoryIssueRepository(context),
+            Substitute.For<IUnitOfWork>(),
+            Substitute.For<IStockLedgerService>(),
+            new ImmediateTransactionRunner(),
+            resolver,
+            context);
+
+        var defaultPage = await service.GetPagedAsync(new InventoryIssueFilterRequestDto
+        {
+            SourceFamily = InventoryIssueSourceFamilies.Default,
+            PageNumber = 1,
+            PageSize = 20
+        });
+        defaultPage.Items.Should().ContainSingle().Which.IssueId.Should().Be(GuidHelper.ToGuidString(seed.DefaultIssueId));
+        defaultPage.Items.Single().SourceFamily.Should().Be(InventoryIssueSourceFamilies.Default);
+
+        var reconciliationPage = await service.GetPagedAsync(new InventoryIssueFilterRequestDto
+        {
+            SourceFamily = InventoryIssueSourceFamilies.MaterialReconciliation,
+            ReconciliationBatchId = GuidHelper.ToGuidString(seed.ReconciliationBatchId),
+            PageNumber = 1,
+            PageSize = 20
+        });
+        reconciliationPage.Items.Should().ContainSingle().Which.IssueId.Should().Be(GuidHelper.ToGuidString(seed.ReconciliationIssueId));
+        reconciliationPage.Items.Single().SourceFamily.Should().Be(InventoryIssueSourceFamilies.MaterialReconciliation);
+
+        (await service.GetByIdAsync(GuidHelper.ToGuidString(seed.ReconciliationIssueId), InventoryIssueSourceFamilies.Default))
+            .Should().BeNull();
+        var reconciliationDetail = await service.GetByIdAsync(
+            GuidHelper.ToGuidString(seed.ReconciliationIssueId),
+            InventoryIssueSourceFamilies.MaterialReconciliation);
+        reconciliationDetail.Should().NotBeNull();
+        reconciliationDetail!.SourceFamily.Should().Be(InventoryIssueSourceFamilies.MaterialReconciliation);
+        reconciliationDetail.Lines.Should().ContainSingle().Which.ReconciliationBatchLineId
+            .Should().Be(GuidHelper.ToGuidString(seed.ReconciliationBatchLineId));
+
+        (await service.GetByIdAsync(GuidHelper.ToGuidString(seed.LegacyIssueId), InventoryIssueSourceFamilies.Default))
+            .Should().BeNull();
+        var legacyDetail = await service.GetByIdAsync(
+            GuidHelper.ToGuidString(seed.LegacyIssueId),
+            InventoryIssueSourceFamilies.LegacyUnclassified);
+        legacyDetail.Should().NotBeNull();
+        legacyDetail!.SourceFamily.Should().Be(InventoryIssueSourceFamilies.LegacyUnclassified);
+        legacyDetail.MaterialRequestId.Should().BeNull();
+        legacyDetail.ReconciliationBatchId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DefaultReportsKpisAndPhysicalTruth_Should_RemainInvariantWithCollidingFamilies()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var stockBefore = await context.Currentstocks.AsNoTracking()
+            .Select(row => new { row.WarehouseId, row.IngredientId, row.UnitId, row.CurrentQty })
+            .ToListAsync();
+        var movementsBefore = await context.Stockmovements.AsNoTracking()
+            .Select(row => new { row.MovementId, row.QuantityIn, row.QuantityOut, row.BeforeQty, row.AfterQty })
+            .ToListAsync();
+        var emptyReports = new InventoryOperationsReportService(context);
+        (await emptyReports.GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 20 })).Should().BeEmpty();
+        (await emptyReports.GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 20 })).Should().BeEmpty();
+        var emptyKpis = await new OperationalKpiReportService(context).GetOperationalKpisAsync(0);
+        emptyKpis.TotalKitchenIssuedQty.Should().Be(0m);
+
+        var seed = await SeedCollidingIssuesAsync(context, fixture);
+        var reports = new InventoryOperationsReportService(context);
+        var kitchen = await reports.GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 20 });
+        kitchen.Should().ContainSingle().Which.IssueId.Should().Be(GuidHelper.ToGuidString(seed.DefaultIssueId));
+        kitchen.Single().IssuedQty.Should().Be(7m);
+        var kitchenPage = await reports.GetKitchenIssuesPageAsync(new KitchenIssuePageQueryDto { PageNumber = 1, PageSize = 20 });
+        kitchenPage.TotalCount.Should().Be(1);
+        kitchenPage.Items.Single().IssuedQty.Should().Be(7m);
+        var usage = await reports.GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 20 });
+        usage.Should().ContainSingle().Which.IssuedQty.Should().Be(7m);
+        var usagePage = await reports.GetIssueVsReturnPageAsync(new IssueVsReturnPageQueryDto { PageNumber = 1, PageSize = 20 });
+        usagePage.TotalCount.Should().Be(1);
+        usagePage.Items.Single().IssuedQty.Should().Be(7m);
+
+        var kpis = await new OperationalKpiReportService(context).GetOperationalKpisAsync(0);
+        kpis.PendingKitchenConfirmationCount.Should().Be(1);
+        kpis.TotalKitchenIssuedQty.Should().Be(7m);
+        kpis.TotalKitchenUsedQty.Should().Be(7m);
+
+        var stockAfter = await context.Currentstocks.AsNoTracking()
+            .Select(row => new { row.WarehouseId, row.IngredientId, row.UnitId, row.CurrentQty })
+            .ToListAsync();
+        var movementsAfter = await context.Stockmovements.AsNoTracking()
+            .Select(row => new { row.MovementId, row.QuantityIn, row.QuantityOut, row.BeforeQty, row.AfterQty })
+            .ToListAsync();
+        stockAfter.Should().BeEquivalentTo(stockBefore);
+        movementsAfter.Should().BeEquivalentTo(movementsBefore);
+    }
+
     [Fact]
     public async Task ApprovalInboxAndHandler_Should_UseOnlyExactDefaultLineage()
     {
@@ -32,8 +143,8 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
             item.Inventoryissuelines.All(line => line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null)))
             .Should().Be(1);
         (await context.Inventoryissues.CountAsync(item =>
-            item.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
-            item.MaterialRequestId != null && item.ReconciliationBatchId == null))
+            item.MaterialRequestId != null && item.MaterialRequest != null &&
+            item.MaterialRequest.Status == "SENTTOWAREHOUSE" && item.ReconciliationBatchId == null))
             .Should().Be(1);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.Role, "Admin")], "test"));
@@ -113,8 +224,16 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         });
         filtered.Should().ContainSingle().Which.SourceFamily.Should().Be("MATERIAL_RECONCILIATION");
 
+        issueRows.Select(row => row.SourceFamily).Should().BeEquivalentTo(
+            ["DEFAULT", "MATERIAL_RECONCILIATION", "LEGACY_UNCLASSIFIED"]);
+        issueRows.GroupBy(row => row.SourceFamily).Should().OnlyContain(group => group.Count() == 1);
+        issueRows.Select(row => row.EntityId).Should().OnlyHaveUniqueItems(
+            "audit emits source rows, never one quantity-bearing aggregate merged across families");
+
+        defaultRow.Reason = "quoted \"reason\", first line\nsecond line";
         var csv = Encoding.UTF8.GetString(AuditCsvExporter.Build(issueRows));
         csv.Should().Contain("sourceFamily,MaterialRequestId,MaterialRequestLineId,ReconciliationBatchId,ReconciliationBatchLineId");
+        csv.Should().Contain("quoted \"\"reason\"\", first line\nsecond line");
         csv.Should().Contain("\"DEFAULT\"");
         csv.Should().Contain("\"MATERIAL_RECONCILIATION\"");
         csv.Should().Contain("\"LEGACY_UNCLASSIFIED\"");
