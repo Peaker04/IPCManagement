@@ -424,9 +424,16 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
     {
         var issue = await Context.Inventoryissues
             .Include(item => item.MaterialRequest)
-            .FirstOrDefaultAsync(item => item.IssueId == targetId);
+            .Include(item => item.Inventoryissuelines)
+            .FirstOrDefaultAsync(item =>
+                item.IssueId == targetId &&
+                item.MaterialRequestId != null &&
+                item.ReconciliationBatchId == null &&
+                item.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null));
 
-        if (issue is null) return null;
+        if (issue?.MaterialRequest is null) return null;
 
         var oldStatus = issue.MaterialRequest.Status;
         var newStatus = request.Status == ApprovalDecision.Approve ? "CONFIRMED" : "REJECTED";

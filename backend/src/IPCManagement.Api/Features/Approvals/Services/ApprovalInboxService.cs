@@ -466,7 +466,12 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .Include(item => item.Inventoryissuelines)
                 .ThenInclude(line => line.Unit)
             .Where(item =>
+                item.MaterialRequestId != null &&
+                item.ReconciliationBatchId == null &&
                 item.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
+                item.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null) &&
                 !_context.Approvalhistories.Any(history =>
                     history.TargetType == InventoryIssueTargetType &&
                     history.TargetId == item.IssueId &&

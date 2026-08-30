@@ -32,7 +32,7 @@ namespace IPCManagement.Api.Tests;
 
 public partial class WorkflowGenerationTests
 {
-    private sealed class WorkflowFixture : IAsyncDisposable
+    internal sealed class WorkflowFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
         private readonly DbContextOptions<IpcManagementContext> _options;

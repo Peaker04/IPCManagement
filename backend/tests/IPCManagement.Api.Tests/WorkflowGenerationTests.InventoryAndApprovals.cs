@@ -1201,6 +1201,7 @@ public partial class WorkflowGenerationTests
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
         var materialRequest = await context.Materialrequests.SingleAsync();
+        var materialRequestLineId = await context.Materialrequestlines.Select(line => line.RequestLineId).SingleAsync();
         materialRequest.Status = "MANAGERAPPROVED";
         await context.SaveChangesAsync();
 
@@ -1226,6 +1227,7 @@ public partial class WorkflowGenerationTests
                 new InventoryIssueLine
                 {
                     IssueLineId = GuidHelper.NewId(),
+                    MaterialRequestLineId = materialRequestLineId,
                     IngredientId = fixture.IngredientId,
                     UnitId = fixture.UnitId,
                     RequestedQty = 4,
@@ -1272,6 +1274,7 @@ public partial class WorkflowGenerationTests
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
         var materialRequest = await context.Materialrequests.SingleAsync();
+        var materialRequestLineId = await context.Materialrequestlines.Select(line => line.RequestLineId).SingleAsync();
         materialRequest.Status = "MANAGERAPPROVED";
         await context.SaveChangesAsync();
 
@@ -1323,6 +1326,7 @@ public partial class WorkflowGenerationTests
                 new InventoryIssueLine
                 {
                     IssueLineId = GuidHelper.NewId(),
+                    MaterialRequestLineId = materialRequestLineId,
                     IngredientId = fixture.IngredientId,
                     UnitId = fixture.UnitId,
                     RequestedQty = 4,
