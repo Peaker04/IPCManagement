@@ -564,7 +564,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
                 }
             ]
         };
-        return new(service, ledger, request, actorId, actor, ingredientId, unitId);
+        return new(service, repository, unitOfWork, ledger, warehouseResolver, new SystemOperationRequestContext(), request, actorId, actor, ingredientId, unitId);
     }
 
     private static CreateInventoryIssueRequest CloneRequest(CreateInventoryIssueRequest source) => new()

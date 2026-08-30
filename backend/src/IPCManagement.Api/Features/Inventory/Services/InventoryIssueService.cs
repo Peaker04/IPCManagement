@@ -17,6 +17,11 @@ using System.Text.Json;
 
 namespace IPCManagement.Api.Features.Inventory.Services;
 
+public interface IInventoryIssuePreWriteGate
+{
+    Task WaitAsync(CancellationToken token);
+}
+
 public class InventoryIssueService : IInventoryIssueService
 {
     private static readonly HashSet<string> IssuableDemandStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -33,6 +38,8 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly IpcManagementContext? _context;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly SystemOperationRequestContext? _requestContext;
+    private readonly SystemOperationModeGuard? _modeGuard;
+    private readonly IInventoryIssuePreWriteGate? _preWriteGate;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
@@ -41,7 +48,9 @@ public class InventoryIssueService : IInventoryIssueService
         IEfTransactionRunner transactionRunner,
         IOperationalWarehouseResolver operationalWarehouseResolver,
         IpcManagementContext? context = null,
-        SystemOperationRequestContext? requestContext = null)
+        SystemOperationRequestContext? requestContext = null,
+        SystemOperationModeGuard? modeGuard = null,
+        IInventoryIssuePreWriteGate? preWriteGate = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
@@ -50,6 +59,8 @@ public class InventoryIssueService : IInventoryIssueService
         _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
         _requestContext = requestContext;
+        _modeGuard = modeGuard;
+        _preWriteGate = preWriteGate;
     }
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request)
@@ -461,6 +472,12 @@ public class InventoryIssueService : IInventoryIssueService
                     throw new ResourceConflictException("Một dòng đối chiếu đã có phiếu xuất kho liên kết.");
                 await InventoryIssueStockValidator.EnsureAvailableAsync(_context, warehouseId, dto.IssueDate, batchId,
                     $"REC-{GuidHelper.ToGuidString(batchId)}", resolved.Select(item => new InventoryIssueStockLine(item.Source.IngredientId, item.Source.CanonicalUnitId, item.Quantity)));
+
+                if (_preWriteGate is not null)
+                    await _preWriteGate.WaitAsync(token);
+                if (_modeGuard is not null)
+                    await _modeGuard.ValidateAsync(operationKey, expectedModeVersion, OperationDisposition.ReconciliationOnly, token);
+
                 var issue = new InventoryIssue
                 {
                     IssueId = issueId, IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
