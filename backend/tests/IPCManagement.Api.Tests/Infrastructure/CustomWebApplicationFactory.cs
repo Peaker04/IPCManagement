@@ -153,7 +153,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted,
             CancellationToken cancellationToken = default)
         {
-            if (string.Equals(operationKey, "approvals.executeasync", StringComparison.Ordinal))
+            if (string.Equals(operationKey, "approvals.execute", StringComparison.Ordinal))
             {
                 await barrier.WaitAsync(cancellationToken);
             }

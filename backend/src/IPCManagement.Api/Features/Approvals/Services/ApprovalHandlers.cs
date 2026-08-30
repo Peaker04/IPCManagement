@@ -5,6 +5,7 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 
 using IPCManagement.Api.Exceptions;
@@ -16,13 +17,16 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
 {
     protected readonly IpcManagementContext Context;
     private readonly IEfTransactionRunner _transactionRunner;
+    private readonly SystemOperationRequestContext? _systemOperationRequestContext;
 
     protected ApprovalHandlerBase(
         IpcManagementContext context,
-        IEfTransactionRunner transactionRunner)
+        IEfTransactionRunner transactionRunner,
+        SystemOperationRequestContext? systemOperationRequestContext = null)
     {
         Context = context;
         _transactionRunner = transactionRunner;
+        _systemOperationRequestContext = systemOperationRequestContext;
     }
 
     public abstract ApprovalTargetType TargetType { get; }
@@ -36,28 +40,37 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
         }
 
         ApprovalResultDto? transactionResult = null;
-        return await _transactionRunner.ExecuteAsync(
-            async _ =>
+        async Task<ApprovalResultDto?> ExecuteAsync(CancellationToken _)
+        {
+            transactionResult = await HandleCoreAsync(entityId, request, actorId);
+            if (transactionResult is null)
             {
-                transactionResult = await HandleCoreAsync(entityId, request, actorId);
-                if (transactionResult is null)
-                {
-                    return null;
-                }
+                return null;
+            }
 
-                await Context.SaveChangesAsync();
-                return transactionResult;
-            },
-            async cancellationToken =>
-            {
-                var historyId = GuidHelper.ParseGuidString(transactionResult?.HistoryId);
-                return historyId is not null &&
-                       await Context.Approvalhistories
-                           .AsNoTracking()
-                           .AnyAsync(
-                               history => history.ApprovalHistoryId == historyId,
-                               cancellationToken);
-            });
+            await Context.SaveChangesAsync();
+            return transactionResult;
+        }
+
+        async Task<bool> VerifySucceededAsync(CancellationToken cancellationToken)
+        {
+            var historyId = GuidHelper.ParseGuidString(transactionResult?.HistoryId);
+            return historyId is not null &&
+                   await Context.Approvalhistories
+                       .AsNoTracking()
+                       .AnyAsync(
+                           history => history.ApprovalHistoryId == historyId,
+                           cancellationToken);
+        }
+
+        return _systemOperationRequestContext is
+            { OperationKey: { } operationKey, ExpectedModeVersion: { } expectedModeVersion }
+            ? await _transactionRunner.ExecuteProtectedAsync(
+                operationKey,
+                expectedModeVersion,
+                ExecuteAsync,
+                VerifySucceededAsync)
+            : await _transactionRunner.ExecuteAsync(ExecuteAsync, VerifySucceededAsync);
     }
 
     protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId);
@@ -275,6 +288,12 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
 
     public MaterialDemandApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
         : base(context, transactionRunner) { }
+
+    public MaterialDemandApprovalHandler(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner,
+        SystemOperationRequestContext systemOperationRequestContext)
+        : base(context, transactionRunner, systemOperationRequestContext) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.MaterialDemand;
 

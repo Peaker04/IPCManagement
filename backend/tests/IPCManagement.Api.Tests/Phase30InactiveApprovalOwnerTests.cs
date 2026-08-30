@@ -39,7 +39,8 @@ public sealed class Phase30InactiveApprovalOwnerTests
         var response = await approval.WaitAsync(TimeSpan.FromSeconds(5));
         response.IsSuccessStatusCode.Should().BeFalse();
         var responseBody = await response.Content.ReadAsStringAsync();
-        responseBody.Should().Contain("Vui lòng thử lại");
+        using var responseJson = JsonDocument.Parse(responseBody);
+        responseJson.RootElement.GetProperty("message").GetString().Should().Contain("Vui lòng thử lại");
         (await SnapshotDatabaseAsync(host.Connection)).Should().Equal(afterModeSwitch);
 
         afterModeSwitch.Should().Contain(item => item.Contains("systemoperationmodes:") && item.Contains("mode=MATERIAL_RECONCILIATION"));
