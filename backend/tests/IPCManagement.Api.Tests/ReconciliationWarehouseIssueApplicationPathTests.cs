@@ -20,6 +20,72 @@ namespace IPCManagement.Api.Tests;
 public sealed class ReconciliationWarehouseIssueApplicationPathTests
 {
     [Fact]
+    public async Task Ready_snapshot_remains_exact_after_shared_master_edits_and_only_new_version_reflects_authority()
+    {
+        await using var context = CreateContext();
+        var actor = GuidHelper.NewId();
+        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var warehouse = new Warehouse { WarehouseId = GuidHelper.NewId(), WarehouseCode = "WH", WarehouseName = "Kho", WarehouseType = "MAIN", IsOperationalActive = true };
+        var ingredient = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "MAT-OLD", IngredientName = "Vật tư cũ", UnitId = unit.UnitId, Unit = unit, WarehouseId = warehouse.WarehouseId, Warehouse = warehouse, IsActive = true };
+        var batch = new ReconciliationBatch
+        {
+            BatchId = GuidHelper.NewId(), MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "READY", Version = 2, CreatedBy = actor, CreatedAt = DateTime.UtcNow,
+        };
+        var line = new ReconciliationBatchLine
+        {
+            BatchLineId = GuidHelper.NewId(), BatchId = batch.BatchId, Batch = batch, IngredientId = ingredient.IngredientId,
+            Ingredient = ingredient, CanonicalUnitId = unit.UnitId, CanonicalUnit = unit, RequiredQuantity = 12.345678m,
+            FrozenTolerance = 0.125m, ToleranceSourceKind = "INGREDIENT", ToleranceSourceVersion = "4", Version = 1,
+        };
+        line.Contributors.Add(new ReconciliationBatchContributor
+        {
+            ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line,
+            MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = GuidHelper.NewId(), SourceQuantity = 12.345678m,
+        });
+        batch.Lines.Add(line);
+        context.AddRange(unit, warehouse, ingredient, batch);
+        await context.SaveChangesAsync();
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        var before = await CaptureFrozenSnapshotAsync(context, batch.BatchId);
+        ingredient.IngredientCode = "MAT-NEW";
+        ingredient.IngredientName = "Vật tư mới";
+        unit.UnitName = "kg changed";
+        unit.ConvertRateToBase = 2;
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var reloaded = await service.GetAsync(GuidHelper.ToGuidString(batch.BatchId));
+        var after = await CaptureFrozenSnapshotAsync(context, batch.BatchId);
+        Assert.NotNull(reloaded);
+        Assert.Equal(before, after);
+
+        var newBatch = new ReconciliationBatch
+        {
+            BatchId = GuidHelper.NewId(), MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 2,
+            CreatedBy = actor, CreatedAt = DateTime.UtcNow,
+            Lines =
+            [
+                new ReconciliationBatchLine
+                {
+                    BatchLineId = GuidHelper.NewId(), IngredientId = ingredient.IngredientId, CanonicalUnitId = unit.UnitId,
+                    RequiredQuantity = 24.691356m, FrozenTolerance = 0.25m, ToleranceSourceKind = "INGREDIENT", ToleranceSourceVersion = "5", Version = 1,
+                }
+            ]
+        };
+        context.Reconciliationbatches.Add(newBatch);
+        await context.SaveChangesAsync();
+        var next = await CaptureFrozenSnapshotAsync(context, newBatch.BatchId);
+
+        Assert.NotEqual(before.MenuVersionId, next.MenuVersionId);
+        Assert.NotEqual(before.QuantityImportBatchId, next.QuantityImportBatchId);
+        Assert.NotEqual(before.RequiredQuantity, next.RequiredQuantity);
+        Assert.Equal(before.IngredientId, next.IngredientId);
+        Assert.Equal(before.CanonicalUnitId, next.CanonicalUnitId);
+    }
+
+    [Fact]
     public async Task Frozen_batch_transfers_without_stock_mutation_then_real_issue_projects_exact_issued_quantity()
     {
         await using var context = CreateContext();
@@ -533,6 +599,33 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             return await operation(cancellationToken);
         }
     }
+
+    private static async Task<FrozenSnapshot> CaptureFrozenSnapshotAsync(IpcManagementContext context, byte[] batchId)
+    {
+        var batch = await context.Reconciliationbatches.AsNoTracking().SingleAsync(item => item.BatchId == batchId);
+        var line = await context.Reconciliationbatchlines.AsNoTracking().SingleAsync(item => item.BatchId == batchId);
+        var contributors = await context.Reconciliationbatchcontributors.AsNoTracking()
+            .Where(item => item.BatchLineId == line.BatchLineId)
+            .OrderBy(item => item.ContributorId)
+            .Select(item => $"{Convert.ToHexString(item.ContributorId)}:{Convert.ToHexString(item.MenuScheduleId)}:{Convert.ToHexString(item.MealQuantityPlanLineId)}:{Convert.ToHexString(item.DishBomId)}:{item.SourceQuantity}")
+            .ToListAsync();
+        return new FrozenSnapshot(
+            Convert.ToHexString(batch.MenuVersionId), Convert.ToHexString(batch.QuantityImportBatchId), Convert.ToHexString(line.BatchLineId),
+            Convert.ToHexString(line.IngredientId), Convert.ToHexString(line.CanonicalUnitId), line.RequiredQuantity, line.FrozenTolerance,
+            line.ToleranceSourceKind, line.ToleranceSourceVersion, line.Version, string.Join('|', contributors));
+    }
+
+    private static SystemOperationRequestContext ProtectedContext() => new()
+    {
+        Mode = SystemOperationEligibility.MaterialReconciliation,
+        OperationKey = "reconciliationbatches.read",
+        ExpectedModeVersion = 7,
+        Disposition = OperationDisposition.ReconciliationOnly,
+    };
+
+    private sealed record FrozenSnapshot(
+        string MenuVersionId, string QuantityImportBatchId, string BatchLineId, string IngredientId, string CanonicalUnitId,
+        decimal RequiredQuantity, decimal FrozenTolerance, string ToleranceSourceKind, string ToleranceSourceVersion, long Version, string Contributors);
 
     private static IpcManagementContext CreateContext()
     {
