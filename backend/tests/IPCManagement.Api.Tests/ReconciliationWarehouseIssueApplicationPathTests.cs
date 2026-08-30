@@ -403,6 +403,33 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
+    public async Task Reconciliation_issue_loses_pre_first_write_mode_race_with_exact_zero_ledger()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gate = new DeterministicPreWriteGate(entered, release);
+        var guard = new SystemOperationModeGuard(context);
+        var service = new InventoryIssueService(
+            fixture.Repository, fixture.UnitOfWork, fixture.Ledger, new ImmediateTransactionRunner(), fixture.Warehouse,
+            context, fixture.RequestContext, guard, gate);
+        var before = CaptureCompleteLedger(context);
+
+        var command = service.CreateAsync(fixture.Request, fixture.ActorId);
+        await entered.Task;
+        var authority = await context.Systemoperationmodes.SingleAsync();
+        authority.Version++;
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        release.SetResult();
+
+        await Assert.ThrowsAsync<SystemOperationConflictException>(() => command);
+        Assert.Equal(before with { ModeVersion = before.ModeVersion + 1 }, CaptureCompleteLedger(context));
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
     public async Task Reconciliation_issue_rechecks_mode_version_inside_transaction_before_commit()
     {
         await using var context = CreateContext();
@@ -478,7 +505,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
                 }
             ]
         };
-        return new(service, ledger, request, actorId, actor, ingredientId, unitId);
+        return new(service, repository, unitOfWork, ledger, warehouse, requestContext, request, actorId, actor, ingredientId, unitId);
     }
 
     private static async Task<ReconciliationIssueFixture> CreateDefaultIssueFixtureAsync(IpcManagementContext context)
@@ -567,12 +594,38 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
 
     private sealed record ReconciliationIssueFixture(
         InventoryIssueService Service,
+        IInventoryIssueRepository Repository,
+        IUnitOfWork UnitOfWork,
         IStockLedgerService Ledger,
+        IOperationalWarehouseResolver Warehouse,
+        SystemOperationRequestContext RequestContext,
         CreateInventoryIssueRequest Request,
         string ActorId,
         byte[] Actor,
         byte[] IngredientId,
         byte[] UnitId);
+
+    private static CompleteLedger CaptureCompleteLedger(IpcManagementContext context)
+    {
+        var effects = CaptureEffects(context);
+        var batch = context.Reconciliationbatches.AsNoTracking().Single();
+        var mode = context.Systemoperationmodes.AsNoTracking().Single();
+        return new CompleteLedger(effects.Issues, effects.Lines, effects.Movements, effects.Stock, effects.Audits,
+            effects.Lifecycle, effects.Replays, batch.Status, batch.Version, mode.Version);
+    }
+
+    private sealed record CompleteLedger(
+        int Issues, int Lines, int Movements, string Stock, int Audits, int Lifecycle, string Replays,
+        string BatchStatus, long BatchVersion, long ModeVersion);
+
+    private sealed class DeterministicPreWriteGate(TaskCompletionSource entered, TaskCompletionSource release) : IInventoryIssuePreWriteGate
+    {
+        public async Task WaitAsync(CancellationToken token)
+        {
+            entered.TrySetResult();
+            await release.Task.WaitAsync(token);
+        }
+    }
 
     private sealed class ModeRacingTransactionRunner(
         IpcManagementContext context,
