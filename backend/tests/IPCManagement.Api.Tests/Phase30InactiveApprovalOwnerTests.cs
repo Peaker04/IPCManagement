@@ -18,6 +18,36 @@ namespace IPCManagement.Api.Tests;
 public sealed class Phase30InactiveApprovalOwnerTests
 {
     [Fact]
+    public async Task Reject_when_mode_changes_after_MVC_admission_before_handler_persistence_with_zero_residue()
+    {
+        var barrier = new ApprovalAdmissionBarrier();
+        await using var host = await CustomWebApplicationFactory.CreateApprovalOwnerHostAsync(barrier);
+        var fixture = await SeedDemandAsync(host, "DRAFT");
+        var before = await SnapshotDatabaseAsync(host.Connection);
+        using var client = host.CreateClient(fixture.ActorId);
+
+        var approval = PostApprovalAsync(client, fixture.RequestId);
+        await barrier.Admitted.WaitAsync(TimeSpan.FromSeconds(5));
+        await ChangeModeAsync(
+            host,
+            SystemOperationEligibility.MaterialReconciliation,
+            expectedVersion: 1,
+            fixture.ActorId);
+        var afterModeSwitch = await SnapshotDatabaseAsync(host.Connection);
+        barrier.Release();
+
+        var response = await approval.WaitAsync(TimeSpan.FromSeconds(5));
+        response.IsSuccessStatusCode.Should().BeFalse();
+        var responseBody = await response.Content.ReadAsStringAsync();
+        responseBody.Should().Contain("Vui lòng thử lại");
+        (await SnapshotDatabaseAsync(host.Connection)).Should().Equal(afterModeSwitch);
+
+        afterModeSwitch.Should().Contain(item => item.Contains("systemoperationmodes:") && item.Contains("mode=MATERIAL_RECONCILIATION"));
+        before.Where(item => item.StartsWith("materialrequests:") || item.StartsWith("approvalhistories:"))
+            .Should().Equal(afterModeSwitch.Where(item => item.StartsWith("materialrequests:") || item.StartsWith("approvalhistories:")));
+    }
+
+    [Fact]
     public async Task Resume_identical_approval_after_DEFAULT_preserves_multistep_history_and_retry_is_idempotent()
     {
         await using var host = await CustomWebApplicationFactory.CreateApprovalOwnerHostAsync();
