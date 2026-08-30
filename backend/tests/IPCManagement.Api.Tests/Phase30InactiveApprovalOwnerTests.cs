@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Approvals.Contracts;
@@ -16,6 +17,51 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class Phase30InactiveApprovalOwnerTests
 {
+    [Fact]
+    public async Task Resume_identical_approval_after_DEFAULT_preserves_multistep_history_and_retry_is_idempotent()
+    {
+        await using var host = await CustomWebApplicationFactory.CreateApprovalOwnerHostAsync();
+        var fixture = await SeedDemandAsync(host, "DRAFT", withTwoStepRule: true);
+        await ChangeModeAsync(host, SystemOperationEligibility.MaterialReconciliation, 1, fixture.ActorId);
+        using var actorOne = host.CreateClient(fixture.ActorId);
+        var rejected = await PostApprovalAsync(actorOne, fixture.RequestId);
+        rejected.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        await ChangeModeAsync(host, SystemOperationEligibility.Default, 2, fixture.ActorId);
+        var firstStep = await PostApprovalAsync(actorOne, fixture.RequestId);
+        firstStep.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstPayload = await ReadApprovalPayloadAsync(firstStep);
+        firstPayload.Status.Should().Be("PENDING_NEXT_APPROVAL");
+
+        using var actorTwo = host.CreateClient(fixture.SecondActorId!);
+        var finalStep = await PostApprovalAsync(actorTwo, fixture.RequestId);
+        finalStep.StatusCode.Should().Be(HttpStatusCode.OK);
+        var finalPayload = await ReadApprovalPayloadAsync(finalStep);
+        finalPayload.Status.Should().Be("APPROVE");
+        var terminalLedger = await SnapshotDatabaseAsync(host.Connection);
+
+        var retry = await PostApprovalAsync(actorTwo, fixture.RequestId);
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        var retryPayload = await ReadApprovalPayloadAsync(retry);
+        retryPayload.Should().Be(finalPayload);
+        (await SnapshotDatabaseAsync(host.Connection)).Should().Equal(terminalLedger);
+
+        await using var scope = host.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<IpcManagementContext>();
+        var requestId = GuidHelper.ParseGuidString(fixture.RequestId)!;
+        var request = await context.Materialrequests.AsNoTracking()
+            .SingleAsync(item => item.RequestId == requestId);
+        request.Status.Should().Be("MANAGERAPPROVED");
+        request.ApprovedBy.Should().Equal(GuidHelper.ParseGuidString(fixture.SecondActorId!)!);
+        var history = await context.Approvalhistories.AsNoTracking()
+            .Where(item => item.TargetType == "material-demand" && item.TargetId == requestId)
+            .OrderBy(item => item.ActionAt)
+            .ToListAsync();
+        history.Select(item => item.Decision).Should().Equal("STEP_APPROVED", "STEP_APPROVED", "APPROVE");
+        history.Select(item => GuidHelper.ToGuidString(item.ActionBy)).Should()
+            .Equal(fixture.ActorId, fixture.SecondActorId!, fixture.SecondActorId!);
+    }
+
     [Fact]
     public async Task Reject_inactive_material_demand_approval_through_MVC_filter_with_exact_ledger_unchanged()
     {
@@ -43,9 +89,13 @@ public sealed class Phase30InactiveApprovalOwnerTests
         after.Should().Equal(before);
     }
 
-    private static async Task<DemandFixture> SeedDemandAsync(ApprovalOwnerTestHost host, string status)
+    private static async Task<DemandFixture> SeedDemandAsync(
+        ApprovalOwnerTestHost host,
+        string status,
+        bool withTwoStepRule = false)
     {
         var actorId = GuidHelper.NewId();
+        var secondActorId = withTwoStepRule ? GuidHelper.NewId() : null;
         var requestId = GuidHelper.NewId();
         await using var scope = host.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<IpcManagementContext>();
@@ -67,10 +117,34 @@ public sealed class Phase30InactiveApprovalOwnerTests
             Status = status,
             CreatedBy = actorId
         });
+        if (withTwoStepRule)
+        {
+            var ruleId = GuidHelper.NewId();
+            context.Approvalrules.Add(new ApprovalRule
+            {
+                RuleId = ruleId,
+                RuleName = "Phase 30 two-step material approval",
+                DocumentType = "material-demand",
+                IsActive = true,
+                CreatedAt = new DateTime(2026, 8, 30, 0, 0, 0, DateTimeKind.Utc)
+            });
+            context.Approvalassignments.AddRange(
+                new ApprovalAssignment
+                {
+                    AssignmentId = GuidHelper.NewId(), RuleId = ruleId, Sequence = 1,
+                    ApproverRole = "Manager", IsRequired = true
+                },
+                new ApprovalAssignment
+                {
+                    AssignmentId = GuidHelper.NewId(), RuleId = ruleId, Sequence = 2,
+                    ApproverRole = "Manager", IsRequired = true
+                });
+        }
         await context.SaveChangesAsync();
         return new DemandFixture(
             GuidHelper.ToGuidString(requestId),
-            GuidHelper.ToGuidString(actorId));
+            GuidHelper.ToGuidString(actorId),
+            secondActorId is null ? null : GuidHelper.ToGuidString(secondActorId));
     }
 
     private static async Task<SystemOperationModeDto> ChangeModeAsync(
@@ -87,6 +161,20 @@ public sealed class Phase30InactiveApprovalOwnerTests
                 Confirmed: true,
                 Reason: "Phase 30 approval owner test"),
             actorId);
+    }
+
+    private static Task<HttpResponseMessage> PostApprovalAsync(HttpClient client, string requestId) =>
+        client.PostAsJsonAsync(
+            $"/api/approvals/material-demand/{requestId}",
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Nhu cầu hợp lệ" });
+
+    private static async Task<ApprovalPayload> ReadApprovalPayloadAsync(HttpResponseMessage response)
+    {
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var data = json.RootElement.GetProperty("data");
+        return new ApprovalPayload(
+            data.GetProperty("status").GetString()!,
+            data.GetProperty("historyId").GetString()!);
     }
 
     private static async Task<IReadOnlyList<string>> SnapshotDatabaseAsync(SqliteConnection connection)
@@ -128,5 +216,6 @@ public sealed class Phase30InactiveApprovalOwnerTests
         _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty
     };
 
-    private sealed record DemandFixture(string RequestId, string ActorId);
+    private sealed record DemandFixture(string RequestId, string ActorId, string? SecondActorId);
+    private sealed record ApprovalPayload(string Status, string HistoryId);
 }

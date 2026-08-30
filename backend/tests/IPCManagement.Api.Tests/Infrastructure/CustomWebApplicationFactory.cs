@@ -119,10 +119,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             CREATE TABLE approvalrules (
                 ruleId BLOB PRIMARY KEY, ruleName TEXT NOT NULL, documentType TEXT NOT NULL,
                 minAmount TEXT NULL, maxAmount TEXT NULL, slaHours INTEGER NULL,
-                isActive INTEGER NOT NULL, createdAt TEXT NOT NULL);
+                isActive INTEGER NOT NULL DEFAULT 1, createdAt TEXT NOT NULL);
             CREATE TABLE approvalassignments (
                 assignmentId BLOB PRIMARY KEY, ruleId BLOB NOT NULL, sequence INTEGER NOT NULL,
-                approverRole TEXT NULL, approverUserId BLOB NULL, isRequired INTEGER NOT NULL);
+                approverRole TEXT NULL, approverUserId BLOB NULL, isRequired INTEGER NOT NULL DEFAULT 1);
             """;
         await command.ExecuteNonQueryAsync();
     }
