@@ -16,7 +16,8 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         string[] SourceKeys,
         bool MutatesIssueFamily,
         Type OracleType,
-        string OracleMethod);
+        string OracleMethod,
+        string[] CoveredOwnerKeys);
 
     private static readonly HashSet<string> LineageMembers =
     [
@@ -29,66 +30,81 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         "/bin/", "/obj/", "/Migrations/"
     ];
 
-    // Intentionally hand-maintained. The semantic discovery side is independent, so duplicate,
-    // stale, and missing rows all fail the same exact set comparison with Type.Method diagnostics.
+    private static readonly Lazy<MethodDeclarationSyntax[]> SourceMethods = new(() =>
+    {
+        var root = ResolveRepoPath("backend");
+        return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !IsGenerated(path))
+            .SelectMany(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), path: path).GetRoot()
+                .DescendantNodes().OfType<MethodDeclarationSyntax>())
+            .ToArray();
+    });
+
+    // Intentionally hand-maintained. Every owner names a real xUnit oracle and the complete set of
+    // owners that oracle covers. Shared oracles are valid only when every row repeats the same exact set.
+    private static readonly string[] DataQualityOwners =
+    ["DataQualityCommandService.CleanupDataQualityAsync", "DataQualityReportService.GetDataQualityAsync"];
+    private static readonly string[] DefaultIssueOwners =
+    ["InventoryIssueApprovalHandler.HandleCoreAsync", "InventoryIssueLineResolver.BuildIssuedBySourceLine", "InventoryIssueRepository.GetIssuedLinesForMaterialRequestAsync", "InventoryIssueService.ConfirmReceiptAsync", "InventoryIssueService.CreateAsync", "InventoryMapper.MapIssue", "InventoryMapper.MapIssueLine"];
+    private static readonly string[] ReconciliationIssueOwners = ["InventoryIssueService.CreateFromReconciliationAsync"];
+    private static readonly string[] ReturnReportOwners =
+    ["InventoryOperationsReportService.GetSupplyLineReconciliationAsync", "InventoryOperationsReportService.MapKitchenIssue", "InventoryOperationsReportService.QueryIssueLines", "InventoryReturnService.EnsureExactSourceFamily", "InventoryReturnService.EnsureOwningFamilyActive", "InventoryReturnService.GetAllocationBalancesAsync", "InventoryReturnService.LoadScopedSourceLinesAsync"];
+    private static readonly string[] LegacyOwners = ["LegacyLineageDispositionService.ApplyProvenanceAsync", "LegacyLineageDispositionService.GetIssueLineCandidatesAsync"];
+    private static readonly string[] DemandOwners = ["MaterialDemandService.EnsureMaterialRequestAsync", "MaterialDemandService.GetStalenessAsync", "MaterialDemandStockReservation.ReserveAsync"];
+    private static readonly string[] AmendmentOwners = ["MenuAmendmentService.CreateAsync", "MenuAmendmentService.ExecuteCoreAsync"];
+    private static readonly string[] ServiceRunOwners = ["ServiceRunService.GetPageAsync", "ServiceRunService.GetProjectionAsync", "ServiceRunService.SelectRelevantIssueLines"];
+    private static readonly string[] SupplementalOwners = ["SupplementalMaterialRequestService.CreateAsync", "SupplementalMaterialRequestService.EnsureDefaultSourceFamily", "SupplementalMaterialRequestService.FulfillAsync", "SupplementalMaterialRequestService.LoadSourceLineAsync", "SupplementalMaterialRequestService.ResolveSourceShiftNameAsync", "SupplementalMaterialRequestService.RouteToPurchasingAsync"];
+
     private static readonly ConsumerRow[] Matrix =
     [
-        Row("ApprovalInboxService.BuildInventoryIssueItemsAsync", "FAMILY_PRESERVING_READ"),
-        Row("AuditReportService.GetAuditChangesAsync", "FAMILY_LABELLED_AUDIT"),
-        Row("DataQualityCommandService.CleanupDataQualityAsync", "DEFAULT_ONLY_COMMAND", "WorkflowGenerationTests.DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments"),
-        Row("DataQualityReportService.GetDataQualityAsync", "FAMILY_LABELLED_REPORT", "WorkflowGenerationTests.DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments"),
-        Row("InventoryIssueApprovalHandler.HandleCoreAsync", "FAMILY_PRESERVING_COMMAND"),
-        Row("InventoryIssueLineResolver.BuildIssuedBySourceLine", "EXACT_ONE_LINE_RESOLUTION"),
-        Row("InventoryIssueRepository.GetIssuedLinesForMaterialRequestAsync", "DEFAULT_ONLY_READ"),
-        Row("InventoryIssueService.ConfirmReceiptAsync", "FAMILY_PRESERVING_COMMAND"),
-        Row("InventoryIssueService.CreateAsync", "DEFAULT_COMPATIBLE_EXACT_ONE"),
-        Row("InventoryIssueService.CreateFromReconciliationAsync", "RECONCILIATION_ONLY_COMMAND"),
-        Row("InventoryMapper.MapIssue", "FAMILY_LABELLED_MAPPING"),
-        Row("InventoryMapper.MapIssueLine", "FAMILY_LABELLED_MAPPING"),
-        Row("InventoryOperationsReportService.GetSupplyLineReconciliationAsync", "FAMILY_LABELLED_REPORT"),
-        Row("InventoryOperationsReportService.MapKitchenIssue", "FAMILY_LABELLED_MAPPING"),
-        Row("InventoryOperationsReportService.QueryIssueLines", "FAMILY_LABELLED_REPORT"),
-        Row("InventoryReturnService.EnsureExactSourceFamily", "EXACT_ONE_VALIDATION"),
-        Row("InventoryReturnService.EnsureOwningFamilyActive", "FAMILY_STATUS_VALIDATION"),
-        Row("InventoryReturnService.GetAllocationBalancesAsync", "FAMILY_PRESERVING_READ"),
-        Row("InventoryReturnService.LoadScopedSourceLinesAsync", "FAMILY_SCOPED_READ"),
-        Row("LegacyLineageDispositionService.ApplyProvenanceAsync", "LEGACY_REMEDIATION_COMMAND"),
-        Row("LegacyLineageDispositionService.GetIssueLineCandidatesAsync", "LEGACY_REMEDIATION_READ"),
-        Row("MaterialDemandService.EnsureMaterialRequestAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("MaterialDemandService.GetStalenessAsync", "DEFAULT_ONLY_READ"),
-        Row("MaterialDemandStockReservation.ReserveAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("MenuAmendmentService.CreateAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("MenuAmendmentService.ExecuteCoreAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("OperationalKpiReportService.GetOperationalKpisAsync", "FAMILY_LABELLED_REPORT"),
-        Row("ReconciliationBatchService.LoadLinkedIssuedQuantitiesAsync", "RECONCILIATION_ONLY_READ"),
-        Row("ServiceRunService.GetPageAsync", "DEFAULT_ONLY_READ", "ServiceRunLifecycleTests.OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence"),
-        Row("ServiceRunService.GetProjectionAsync", "DEFAULT_ONLY_READ", "ServiceRunLifecycleTests.OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence"),
-        Row("ServiceRunService.SelectRelevantIssueLines", "DEFAULT_ONLY_PROJECTION", "ServiceRunLifecycleTests.OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence"),
-        Row("SupplementalMaterialRequestService.CreateAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("SupplementalMaterialRequestService.EnsureDefaultSourceFamily", "DEFAULT_ONLY_VALIDATION"),
-        Row("SupplementalMaterialRequestService.FulfillAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("SupplementalMaterialRequestService.LoadSourceLineAsync", "DEFAULT_ONLY_READ"),
-        Row("SupplementalMaterialRequestService.ResolveSourceShiftNameAsync", "DEFAULT_ONLY_READ"),
-        Row("SupplementalMaterialRequestService.RouteToPurchasingAsync", "DEFAULT_ONLY_COMMAND"),
-        Row("WeeklyMenuImportPersistence.RequireNoIrreversibleDownstreamDocumentsAsync", "DEFAULT_ONLY_VALIDATION")
+        Row("ApprovalInboxService.BuildInventoryIssueItemsAsync", "FAMILY_PRESERVING_READ", typeof(MaterialDemandAndPriceExceptionApprovalTests), nameof(MaterialDemandAndPriceExceptionApprovalTests.Inbox_ManagerSeesPendingMaterialDemandOnceWithOperationalContext), ["ApprovalInboxService.BuildInventoryIssueItemsAsync"]),
+        Row("AuditReportService.GetAuditChangesAsync", "FAMILY_LABELLED_AUDIT", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.AuditChanges_Should_ReturnCursorPage_AndSupportAscendingSort), ["AuditReportService.GetAuditChangesAsync"]),
+        Row("DataQualityCommandService.CleanupDataQualityAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments), DataQualityOwners),
+        Row("DataQualityReportService.GetDataQualityAsync", "FAMILY_LABELLED_REPORT", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments), DataQualityOwners),
+        Row("InventoryIssueApprovalHandler.HandleCoreAsync", "FAMILY_PRESERVING_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryIssueLineResolver.BuildIssuedBySourceLine", "EXACT_ONE_LINE_RESOLUTION", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryIssueRepository.GetIssuedLinesForMaterialRequestAsync", "DEFAULT_ONLY_READ", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryIssueService.ConfirmReceiptAsync", "FAMILY_PRESERVING_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryIssueService.CreateAsync", "DEFAULT_COMPATIBLE_EXACT_ONE", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryIssueService.CreateFromReconciliationAsync", "RECONCILIATION_ONLY_COMMAND", typeof(ReconciliationWarehouseIssueApplicationPathTests), nameof(ReconciliationWarehouseIssueApplicationPathTests.Reconciliation_issue_rejects_line_from_another_batch_with_atomic_zero_effects), ReconciliationIssueOwners),
+        Row("InventoryMapper.MapIssue", "FAMILY_LABELLED_MAPPING", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryMapper.MapIssueLine", "FAMILY_LABELLED_MAPPING", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
+        Row("InventoryOperationsReportService.GetSupplyLineReconciliationAsync", "FAMILY_LABELLED_REPORT", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("InventoryOperationsReportService.MapKitchenIssue", "FAMILY_LABELLED_MAPPING", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("InventoryOperationsReportService.QueryIssueLines", "FAMILY_LABELLED_REPORT", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("InventoryReturnService.EnsureExactSourceFamily", "EXACT_ONE_VALIDATION", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("InventoryReturnService.EnsureOwningFamilyActive", "FAMILY_STATUS_VALIDATION", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("InventoryReturnService.GetAllocationBalancesAsync", "FAMILY_PRESERVING_READ", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("InventoryReturnService.LoadScopedSourceLinesAsync", "FAMILY_SCOPED_READ", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet), ReturnReportOwners),
+        Row("LegacyLineageDispositionService.ApplyProvenanceAsync", "LEGACY_REMEDIATION_COMMAND", typeof(LegacyLineageDispositionServiceTests), nameof(LegacyLineageDispositionServiceTests.IssueDisposition_ShouldRequireIndependentManagerThenApplyOnlyReviewedProvenance), LegacyOwners),
+        Row("LegacyLineageDispositionService.GetIssueLineCandidatesAsync", "LEGACY_REMEDIATION_READ", typeof(LegacyLineageDispositionServiceTests), nameof(LegacyLineageDispositionServiceTests.IssueDisposition_ShouldRequireIndependentManagerThenApplyOnlyReviewedProvenance), LegacyOwners),
+        Row("MaterialDemandService.EnsureMaterialRequestAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies), DemandOwners),
+        Row("MaterialDemandService.GetStalenessAsync", "DEFAULT_ONLY_READ", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies), DemandOwners),
+        Row("MaterialDemandStockReservation.ReserveAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies), DemandOwners),
+        Row("MenuAmendmentService.CreateAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MenuAmendment_PublicCreateAndExecute_PreserveCollidingFamiliesAndReadySnapshot), AmendmentOwners),
+        Row("MenuAmendmentService.ExecuteCoreAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MenuAmendment_PublicCreateAndExecute_PreserveCollidingFamiliesAndReadySnapshot), AmendmentOwners),
+        Row("OperationalKpiReportService.GetOperationalKpisAsync", "FAMILY_LABELLED_REPORT", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.GetOperationalKpisAsync_Should_SurfaceProductionMonitoringAlerts), ["OperationalKpiReportService.GetOperationalKpisAsync"]),
+        Row("ReconciliationBatchService.LoadLinkedIssuedQuantitiesAsync", "RECONCILIATION_ONLY_READ", typeof(Phase30InactiveReconciliationOwnerTests), nameof(Phase30InactiveReconciliationOwnerTests.Inventory_IssueAndReturn_FreezeThenResumeExactReconciliationLineageOnce), ["ReconciliationBatchService.LoadLinkedIssuedQuantitiesAsync"]),
+        Row("ServiceRunService.GetPageAsync", "DEFAULT_ONLY_READ", typeof(ServiceRunLifecycleTests), nameof(ServiceRunLifecycleTests.OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence), ServiceRunOwners),
+        Row("ServiceRunService.GetProjectionAsync", "DEFAULT_ONLY_READ", typeof(ServiceRunLifecycleTests), nameof(ServiceRunLifecycleTests.OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence), ServiceRunOwners),
+        Row("ServiceRunService.SelectRelevantIssueLines", "DEFAULT_ONLY_PROJECTION", typeof(ServiceRunLifecycleTests), nameof(ServiceRunLifecycleTests.OpenAndVarianceCommands_Should_BeIdempotent_AndRecordCompleteLifecycleEvidence), ServiceRunOwners),
+        Row("SupplementalMaterialRequestService.CreateAsync", "DEFAULT_ONLY_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet), SupplementalOwners),
+        Row("SupplementalMaterialRequestService.EnsureDefaultSourceFamily", "DEFAULT_ONLY_VALIDATION", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet), SupplementalOwners),
+        Row("SupplementalMaterialRequestService.FulfillAsync", "DEFAULT_ONLY_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet), SupplementalOwners),
+        Row("SupplementalMaterialRequestService.LoadSourceLineAsync", "DEFAULT_ONLY_READ", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet), SupplementalOwners),
+        Row("SupplementalMaterialRequestService.ResolveSourceShiftNameAsync", "DEFAULT_ONLY_READ", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet), SupplementalOwners),
+        Row("SupplementalMaterialRequestService.RouteToPurchasingAsync", "DEFAULT_ONLY_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet), SupplementalOwners),
+        Row("WeeklyMenuImportPersistence.RequireNoIrreversibleDownstreamDocumentsAsync", "DEFAULT_ONLY_VALIDATION", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.WeeklyMenuReimport_PublicCommitPreservesReadySnapshotAndCollidingFamilies), ["WeeklyMenuImportPersistence.RequireNoIrreversibleDownstreamDocumentsAsync"])
     ];
 
-    private static ConsumerRow Row(string ownerMethod, string disposition, string? publicOracle = null)
-    {
-        var oracle = publicOracle ?? "Phase30DiscoveredConsumerBijectionTests.RegistryDispositionOracle";
-        var split = oracle.LastIndexOf('.');
-        var typeName = split < 0 ? oracle : oracle[..split];
-        var methodName = split < 0 ? nameof(RegistryDispositionOracle) : oracle[(split + 1)..];
-        var type = typeof(Phase30DiscoveredConsumerBijectionTests).Assembly.GetTypes()
-            .Single(candidate => candidate.Name == typeName || candidate.FullName?.EndsWith($".{typeName}", StringComparison.Ordinal) == true);
-        return new ConsumerRow(ownerMethod, disposition,
+    private static ConsumerRow Row(string ownerMethod, string disposition, Type oracleType, string oracleMethod, string[] coveredOwnerKeys)
+        => new(ownerMethod, disposition,
             disposition.StartsWith("RECONCILIATION", StringComparison.Ordinal)
                 ? ["ReconciliationBatchId", "ReconciliationBatchLineId"]
                 : disposition.StartsWith("DEFAULT", StringComparison.Ordinal)
                     ? ["MaterialRequestId", "MaterialRequestLineId"]
                     : ["MaterialRequestId", "MaterialRequestLineId", "ReconciliationBatchId", "ReconciliationBatchLineId"],
-            false, type, methodName);
-    }
+            false, oracleType, oracleMethod, coveredOwnerKeys);
 
     [Fact]
     public void DiscoveredProductionOwnerMethods_AndTypedMatrix_AreAnExactBijection()
@@ -97,13 +113,36 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         var matrixOwners = Matrix.Select(row => row.OwnerMethod).ToArray();
 
         matrixOwners.Should().OnlyHaveUniqueItems("duplicate Type.Method rows hide ambiguous lineage authority");
-        discovered.Should().BeEquivalentTo(matrixOwners,
-            "semantic production discovery and the typed matrix must fail exactly for every duplicate, stale, or missing Type.Method row. Actual: {0}", string.Join(", ", discovered));
+        ValidateRegistry(Matrix, discovered);
         Matrix.Should().OnlyContain(row =>
             !string.IsNullOrWhiteSpace(row.FamilyDisposition) &&
             row.SourceKeys.Distinct(StringComparer.Ordinal).Count() == row.SourceKeys.Length &&
-            !row.MutatesIssueFamily &&
-            ResolveOracle(row) != null);
+            !row.MutatesIssueFamily);
+    }
+
+    [Fact]
+    public async Task DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet()
+    {
+        await new WorkflowGenerationTests().CreateInventoryIssue_Should_AutoBuildLinesFromApprovedDemand_AndDecreaseStock();
+        await new InventoryIssueServiceTests().ConfirmReceiptAsync_Should_UpdateReceivedAt_And_WriteAuditLog();
+    }
+
+    [Fact]
+    public async Task ReturnAndReports_PublicOraclesExerciseCompleteOwnerSet()
+    {
+        var tests = new WorkflowGenerationTests();
+        await tests.InventoryReturnAndWaste_Should_RecordProductionVariance_AndFeedUsageReport();
+        await tests.ConfirmInventoryIssueReceipt_Should_MarkKitchenReceipt_AndCreateDiscrepancyIssue();
+        await tests.AllocationBalance_Should_PreserveExactSourceLine_And_DefaultDenyDisposition();
+    }
+
+    [Fact]
+    public async Task Supplemental_PublicLifecycleOraclesExerciseCompleteOwnerSet()
+    {
+        var tests = new SupplementalMaterialRequestServiceTests();
+        await tests.CreateAsync_ShouldPersistPendingRequestFromReceivedIssueLine();
+        await tests.FulfillAsync_ShouldCreateSupplementalIssue_DecreaseStock_AndExposeRemainingQuantity();
+        await tests.RouteToPurchasingAsync_ShouldCreateTraceableDraftForOnlyMissingQuantity();
     }
 
     [Fact]
@@ -185,7 +224,7 @@ global using System.Threading.Tasks;
                 if (!TryResolveLineageProperty(node, model, out _)) continue;
                 var method = node.AncestorsAndSelf().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
                 var type = node.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().FirstOrDefault();
-                if (method is null || type is null || type.Identifier.ValueText.EndsWith("Configuration", StringComparison.Ordinal)) continue;
+                if (method is null || type is null || IsSemanticallyDeclarativeConfiguration(method, type, model)) continue;
                 var methodName = method switch
                 {
                     MethodDeclarationSyntax declaration => declaration.Identifier.ValueText,
@@ -196,6 +235,35 @@ global using System.Threading.Tasks;
             }
         }
         return owners.ToArray();
+    }
+
+    private static bool IsSemanticallyDeclarativeConfiguration(BaseMethodDeclarationSyntax method, TypeDeclarationSyntax type, SemanticModel model)
+    {
+        if (method is not MethodDeclarationSyntax declaration || declaration.Identifier.ValueText != "Configure") return false;
+        var typeSymbol = model.GetDeclaredSymbol(type);
+        if (typeSymbol is null || !typeSymbol.AllInterfaces.Any(candidate =>
+                candidate.OriginalDefinition.ToDisplayString() == "Microsoft.EntityFrameworkCore.IEntityTypeConfiguration<TEntity>"))
+            return false;
+        var parameter = declaration.ParameterList.Parameters.SingleOrDefault();
+        var parameterSymbol = parameter is null ? null : model.GetDeclaredSymbol(parameter);
+        if (parameterSymbol?.Type.OriginalDefinition.ToDisplayString() != "Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity>")
+            return false;
+        var statements = declaration.Body?.Statements.ToArray() ?? [];
+        return statements.Length > 0 && statements.All(statement =>
+            statement is ExpressionStatementSyntax { Expression: InvocationExpressionSyntax invocation } &&
+            IsInvocationRootedIn(invocation, parameter!.Identifier.ValueText));
+    }
+
+    private static bool IsInvocationRootedIn(InvocationExpressionSyntax invocation, string parameterName)
+    {
+        SyntaxNode? cursor = invocation.Expression;
+        while (cursor is MemberAccessExpressionSyntax member) cursor = member.Expression;
+        while (cursor is InvocationExpressionSyntax nested)
+        {
+            cursor = nested.Expression;
+            while (cursor is MemberAccessExpressionSyntax member) cursor = member.Expression;
+        }
+        return cursor is IdentifierNameSyntax identifier && identifier.Identifier.ValueText == parameterName;
     }
 
     private static bool TryResolveLineageProperty(SyntaxNode node, SemanticModel model, out IPropertySymbol property)
@@ -213,8 +281,10 @@ global using System.Threading.Tasks;
             _ => null
         };
         if (symbol is IAliasSymbol alias) symbol = alias.Target;
-        property = symbol as IPropertySymbol;
-        return property?.ContainingType.Name is nameof(InventoryIssue) or nameof(InventoryIssueLine);
+        if (symbol is not IPropertySymbol candidate || candidate.ContainingType.Name is not (nameof(InventoryIssue) or nameof(InventoryIssueLine)))
+            return false;
+        property = candidate;
+        return true;
     }
 
     private static IPropertySymbol? ResolveEfPropertyTarget(InvocationExpressionSyntax invocation, string propertyName, SemanticModel model)
@@ -232,7 +302,11 @@ global using System.Threading.Tasks;
         .Select(path => MetadataReference.CreateFromFile(path)).ToArray();
 
     private static MethodInfo? ResolveOracle(ConsumerRow row)
-        => row.OracleType.GetMethod(row.OracleMethod, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+    {
+        var overloads = row.OracleType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+            .Where(method => method.Name == row.OracleMethod).ToArray();
+        return overloads.Length == 1 ? overloads[0] : null;
+    }
 
     private static bool IsGenerated(string path)
     {
@@ -260,12 +334,51 @@ public static class PersistenceOwner {
  public static bool Recursive(I x) => x is { MaterialRequestId.Length: > 0 };
  public static object? EfString(I x) => EF.Property<byte[]>(x, "MaterialRequestId");
  public static bool Query(I[] xs) => (from x in xs where x.ReconciliationBatchId == null select x).Any();
+ public static int Conditional(I? x) => x?.MaterialRequestId?.Length ?? 0;
 }}
+namespace Synthetic.Services {
+using I = IPCManagement.Api.Models.Entities.InventoryIssue;
+public static class ServiceOwner { public static bool Member(I x) => x.MaterialRequestId != null; }
+public static class ArbitraryConfiguration { public static bool Executable(I x) => x.ReconciliationBatchId != null; }
+}
 """;
         var tree = CSharpSyntaxTree.ParseText(fixture, path: "Synthetic/Persistence/PersistenceOwner.cs");
         DiscoverOwners([tree], CreateReferences()).Should().BeEquivalentTo(
             "PersistenceOwner.Member", "PersistenceOwner.Identifier", "PersistenceOwner.PropertyPattern",
-            "PersistenceOwner.Recursive", "PersistenceOwner.EfString", "PersistenceOwner.Query");
+            "PersistenceOwner.Recursive", "PersistenceOwner.EfString", "PersistenceOwner.Query", "PersistenceOwner.Conditional",
+            "ServiceOwner.Member", "ArbitraryConfiguration.Executable");
+    }
+
+    public static TheoryData<string, string, string> MissingMatrixMutationCases => new()
+    {
+        { "Synthetic/Persistence/PersistenceMutation.cs", "PersistenceMutation", "public static bool Owner(InventoryIssue issue) => issue.MaterialRequestId != null;" },
+        { "Synthetic/Services/ServiceMutation.cs", "ServiceMutation", "public static bool Owner(InventoryIssue issue) => issue.MaterialRequestId != null;" },
+        { "Synthetic/Services/ArbitraryConfiguration.cs", "ArbitraryConfiguration", "public static bool Owner(InventoryIssue issue) => issue.MaterialRequestId != null;" },
+        { "Synthetic/Services/MemberMutation.cs", "MemberMutation", "public static bool Owner(InventoryIssue issue) => issue.MaterialRequestId != null;" },
+        { "Synthetic/Services/PropertyPatternMutation.cs", "PropertyPatternMutation", "public static bool Owner(InventoryIssue issue) => issue is { ReconciliationBatchId: not null };" },
+        { "Synthetic/Services/RecursivePatternMutation.cs", "RecursivePatternMutation", "public static bool Owner(InventoryIssue issue) => issue is { MaterialRequestId.Length: > 0 };" },
+        { "Synthetic/Services/QueryMutation.cs", "QueryMutation", "public static bool Owner(InventoryIssue[] issues) => (from issue in issues where issue.ReconciliationBatchId != null select issue).Any();" },
+        { "Synthetic/Services/ConditionalMutation.cs", "ConditionalMutation", "public static int Owner(InventoryIssue? issue) => issue?.MaterialRequestId?.Length ?? 0;" },
+        { "Synthetic/Services/AliasMutation.cs", "AliasMutation", "public static bool Owner(IssueAlias issue) { var MaterialRequestId = issue.MaterialRequestId; return MaterialRequestId != null; }" },
+        { "Synthetic/Services/EfPropertyMutation.cs", "EfPropertyMutation", "public static object? Owner(InventoryIssue issue) => EF.Property<byte[]>(issue, \"MaterialRequestId\");" }
+    };
+
+    [Theory]
+    [MemberData(nameof(MissingMatrixMutationCases))]
+    public void AugmentedProductionSyntax_EachNewOwnerForcesExactMissingMatrixFailure(string path, string typeName, string body)
+    {
+        var fixture = $$"""
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using IssueAlias = IPCManagement.Api.Models.Entities.InventoryIssue;
+namespace IPCManagement.Api.Models.Entities { public class InventoryIssue { public byte[]? MaterialRequestId {get;set;} public byte[]? ReconciliationBatchId {get;set;} } }
+namespace Synthetic { using IPCManagement.Api.Models.Entities; public static class {{typeName}} { {{body}} } }
+""";
+        var discovered = DiscoverOwners([CSharpSyntaxTree.ParseText(fixture, path: path)], CreateReferences());
+        discovered.Should().Equal($"{typeName}.Owner");
+
+        var act = () => ValidateRegistry(Array.Empty<ConsumerRow>(), discovered);
+        act.Should().Throw<Exception>().WithMessage($"*{typeName}.Owner*");
     }
 
     [Fact]
@@ -303,15 +416,86 @@ public static class PersistenceOwner {
     private static void ValidateRegistry(IEnumerable<ConsumerRow> rows, IEnumerable<string> discovered)
     {
         var materialized = rows.ToArray();
-        materialized.Select(row => row.OwnerMethod).Should().OnlyHaveUniqueItems();
-        materialized.Select(row => row.OwnerMethod).Should().BeEquivalentTo(discovered);
-        materialized.Should().OnlyContain(row => ResolveOracle(row) != null);
+        var discoveredKeys = discovered.OrderBy(key => key, StringComparer.Ordinal).ToArray();
+        materialized.Select(row => row.OwnerMethod).Should().OnlyHaveUniqueItems("each discovered owner has exactly one registry row");
+        materialized.Select(row => row.OwnerMethod).Should().BeEquivalentTo(discoveredKeys,
+            "registry owner keys must be the exact reverse coverage of semantic discovery. Registry: {0}; discovered: {1}",
+            string.Join(", ", materialized.Select(row => row.OwnerMethod)), string.Join(", ", discoveredKeys));
+
+        foreach (var row in materialized)
+        {
+            var oracle = ResolveOracle(row);
+            oracle.Should().NotBeNull($"{row.OwnerMethod} must resolve one unique public oracle overload");
+            oracle!.GetCustomAttributes().Any(attribute =>
+                attribute.GetType().FullName == "Xunit.FactAttribute" || attribute.GetType().FullName == "Xunit.TheoryAttribute")
+                .Should().BeTrue($"{row.OracleType.Name}.{row.OracleMethod} must be an executable xUnit test");
+            oracle.IsAbstract.Should().BeFalse();
+            oracle.ContainsGenericParameters.Should().BeFalse();
+            if (oracle.GetCustomAttributes().Any(attribute => attribute.GetType().FullName == "Xunit.FactAttribute"))
+                oracle.GetParameters().Should().BeEmpty("[Fact] oracles need a directly executable signature");
+            (oracle.ReturnType == typeof(void) || oracle.ReturnType == typeof(Task) || oracle.ReturnType == typeof(ValueTask))
+                .Should().BeTrue("oracle return type must be void, Task, or ValueTask");
+            OracleSourceTransitivelyInvokesOwner(row).Should().BeTrue(
+                $"{row.OracleType.Name}.{row.OracleMethod} must demonstrate a source-aware invocation path to {row.OwnerMethod}");
+            row.CoveredOwnerKeys.Should().OnlyHaveUniqueItems();
+            row.CoveredOwnerKeys.Should().Contain(row.OwnerMethod, "every oracle mapping must explicitly claim its row owner");
+            row.CoveredOwnerKeys.Should().OnlyContain(key => discoveredKeys.Contains(key, StringComparer.Ordinal), "no oracle may claim an unknown owner");
+        }
+
+        foreach (var oracleGroup in materialized.GroupBy(row => (row.OracleType, row.OracleMethod)))
+        {
+            var declaredSets = oracleGroup.Select(row => string.Join("\n", row.CoveredOwnerKeys.OrderBy(key => key, StringComparer.Ordinal))).Distinct().ToArray();
+            declaredSets.Should().ContainSingle("a shared oracle must repeat one explicit complete owner-key declaration on every row");
+            oracleGroup.Select(row => row.OwnerMethod).Should().BeEquivalentTo(oracleGroup.First().CoveredOwnerKeys,
+                "shared oracle reverse coverage must be exact, with no hidden or unclaimed owner");
+        }
     }
 
-    [Fact]
-    public static void RegistryDispositionOracle()
+    private static bool OracleSourceTransitivelyInvokesOwner(ConsumerRow row)
     {
-        Matrix.Should().OnlyContain(row => row.SourceKeys.Length > 0 && !row.MutatesIssueFamily);
+        var declarations = SourceMethods.Value;
+        var oracle = declarations.SingleOrDefault(method => method.Identifier.ValueText == row.OracleMethod &&
+            method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.ValueText == row.OracleType.Name);
+        if (oracle is null) return false;
+        var invokedNames = new HashSet<string>(oracle.DescendantNodes().OfType<InvocationExpressionSyntax>()
+            .Select(invocation => invocation.Expression switch
+            {
+                MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
+                IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+                _ => string.Empty
+            }).Concat(oracle.DescendantNodes().OfType<MemberAccessExpressionSyntax>()
+                .Select(member => member.Name.Identifier.ValueText))
+            .Where(name => name.Length > 0), StringComparer.Ordinal);
+        var reached = new HashSet<MethodDeclarationSyntax>();
+        var changed = true;
+        while (changed)
+        {
+            changed = false;
+            foreach (var declaration in declarations.Where(candidate => invokedNames.Contains(candidate.Identifier.ValueText)))
+            {
+                if (!reached.Add(declaration)) continue;
+                changed = true;
+                foreach (var invocation in declaration.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                {
+                    var name = invocation.Expression switch
+                    {
+                        MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
+                        IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+                        _ => string.Empty
+                    };
+                    if (name.Length > 0) invokedNames.Add(name);
+                }
+                foreach (var member in declaration.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+                    invokedNames.Add(member.Name.Identifier.ValueText);
+                foreach (var identifier in declaration.DescendantNodes().OfType<IdentifierNameSyntax>())
+                    invokedNames.Add(identifier.Identifier.ValueText);
+            }
+        }
+        var split = row.OwnerMethod.LastIndexOf('.');
+        var ownerType = row.OwnerMethod[..split];
+        var ownerMethod = row.OwnerMethod[(split + 1)..];
+        return reached.Any(method => method.Identifier.ValueText == ownerMethod &&
+            method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.ValueText == ownerType);
     }
 
     private static string ResolveRepoPath(string relativePath)
