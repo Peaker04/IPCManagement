@@ -403,6 +403,39 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
+    public async Task Reconciliation_issue_response_loss_replay_and_synchronized_duplicate_are_exactly_once()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        var first = await fixture.Service.CreateAsync(CloneRequest(fixture.Request), fixture.ActorId);
+        var afterFirst = CaptureEffects(context);
+
+        var replay = await fixture.Service.CreateAsync(CloneRequest(fixture.Request), fixture.ActorId);
+        Assert.Equal(first!.IssueId, replay!.IssueId);
+        Assert.Equal(afterFirst, CaptureEffects(context));
+
+        using var arrival = new Barrier(2);
+        using var serial = new SemaphoreSlim(1, 1);
+        async Task<InventoryIssueCreatedDto?> Submit()
+        {
+            await Task.Run(() => arrival.SignalAndWait());
+            await serial.WaitAsync();
+            try { return await fixture.Service.CreateAsync(CloneRequest(fixture.Request), fixture.ActorId); }
+            finally { serial.Release(); }
+        }
+        var duplicates = await Task.WhenAll(Submit(), Submit());
+        Assert.All(duplicates, result => Assert.Equal(first.IssueId, result!.IssueId));
+        Assert.Equal(afterFirst, CaptureEffects(context));
+        Assert.Single(context.Inventoryissues);
+        Assert.Single(context.Inventoryissuelines);
+        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
+            Arg.Any<byte[]>(),
+            Arg.Is<byte[]>(id => id.SequenceEqual(fixture.IngredientId)),
+            Arg.Is<byte[]>(id => id.SequenceEqual(fixture.UnitId)), 2m, "ISSUE", "inventoryissues",
+            Arg.Any<byte[]>(), Arg.Is<byte[]>(id => id.SequenceEqual(fixture.Actor)), Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
     public async Task Reconciliation_issue_loses_pre_first_write_mode_race_with_exact_zero_ledger()
     {
         await using var context = CreateContext();
