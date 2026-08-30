@@ -39,7 +39,7 @@ export function KeepAliveTabPanel({
       aria-labelledby={`${id}-tab`}
       hidden={!active}
       style={{ display: active ? undefined : 'none' }}
-      className={cn('flex-1 min-h-0 flex flex-col', !active && 'hidden', className)}
+      className={cn('flex-1 min-h-0 flex flex-col', active && 'ipc-tab-panel-enter', !active && 'hidden', className)}
     >
       {shouldRenderContent ? children : fallback}
     </div>

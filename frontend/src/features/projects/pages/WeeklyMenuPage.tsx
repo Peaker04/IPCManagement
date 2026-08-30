@@ -510,6 +510,7 @@ const WeeklyMenuPage = () => {
         )}
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
+          isPending={isViewPending}
           tabs={[
             { id: 'schedule', label: 'Kế hoạch tuần' },
             { id: 'demand', label: 'Nhu cầu' },

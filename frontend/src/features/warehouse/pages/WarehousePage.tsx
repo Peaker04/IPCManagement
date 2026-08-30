@@ -12,6 +12,7 @@ import {
   QueryErrorAlert,
   SectionPanel,
   StatusBadge,
+  TabContentSkeleton,
   TableViewport,
   ViewSwitcher,
 } from '@/components/common';
@@ -664,11 +665,12 @@ export default function WarehousePage() {
         )}
       </SectionPanel>
 
-      <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehouseReceiptLifecyclePanel /></Suspense>
+      <Suspense fallback={<TabContentSkeleton columns={6} rows={6} message="Đang tải vòng đời chứng từ kho..." />}><WarehouseReceiptLifecyclePanel /></Suspense>
 
       <ViewSwitcher
         compact
         ariaLabel="Chọn góc nhìn kho"
+        isPending={isViewPending}
         tabs={[
           { id: 'warehouse-movement', label: 'Luân chuyển' },
           { id: 'warehouse-demand', label: 'Nhu cầu xuất' },
@@ -711,7 +713,7 @@ export default function WarehousePage() {
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
           <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" /></Suspense>
-          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <Suspense fallback={<TabContentSkeleton columns={6} rows={6} message="Đang tải nhu cầu xuất kho..." />}>
             <WarehouseDemandPanel
               demandSearch={demandSearch}
             onDemandSearchChange={(value) => {
@@ -753,7 +755,7 @@ export default function WarehousePage() {
         )}
 
         <KeepAliveTabPanel id="warehouse-exceptions" active={activeView === 'exceptions'}>
-          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <Suspense fallback={<TabContentSkeleton columns={5} rows={5} message="Đang tải danh sách chênh lệch kho..." />}>
             <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
           </Suspense>
         </KeepAliveTabPanel>

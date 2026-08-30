@@ -7,7 +7,8 @@
  */
 
 import { cn } from '@/lib/utils'
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
+import { Loader2 } from 'lucide-react'
 
 export interface ViewTab {
   /** Unique tab identifier (e.g. "warehouse-movement") */
@@ -24,6 +25,10 @@ export interface ViewSwitcherProps {
   compact?: boolean
   /** Accessible label for the tablist */
   ariaLabel: string; uiOwnership?: import('./OperationalFrame').UiOwnershipMarker
+  /** Whether the active tab or any tab is pending / loading */
+  isPending?: boolean
+  /** Specific tab ID currently loading (optional) */
+  loadingTabId?: string
 }
 
 export function ViewSwitcher({
@@ -32,8 +37,11 @@ export function ViewSwitcher({
   onTabChange,
   compact = false,
   ariaLabel, uiOwnership,
+  isPending = false,
+  loadingTabId,
 }: ViewSwitcherProps) {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const [switchingTabId, setSwitchingTabId] = useState<string | null>(null)
   const ownershipFor = (tab: ViewTab) => tab.uiOwnership ?? uiOwnership ?? viewOwnershipBindings[`${ariaLabel}\0${tab.id}`]; const activeOwnership = ownershipFor(tabs.find((tab) => tab.id === activeTab) ?? tabs[0])
   const moveFocus = (index: number) => {
     const targetTab = tabs[index]
@@ -72,28 +80,40 @@ export function ViewSwitcher({
       aria-label={ariaLabel}
       aria-orientation="horizontal" data-ui-owner={activeOwnership?.ownerId} data-ui-floorplan={activeOwnership?.floorplanId} data-ui-region={activeOwnership?.regionId}
     >
-      {tabs.map((tab, index) => (
-        <button
-          ref={(node) => { tabRefs.current[index] = node }}
-          key={tab.id}
-          id={`${tab.id}-tab`}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          aria-controls={`${tab.id}-panel`}
-          tabIndex={activeTab === tab.id ? 0 : -1}
-          className={cn('ipc-view-tab', activeTab === tab.id && 'is-active')}
-          onClick={() => {
-            if (tab.id !== activeTab) onTabChange(tab.id)
-          }}
-          onKeyDown={(event) => handleKeyDown(event, index)}
-          data-ui-owner={ownershipFor(tab)?.ownerId}
-          data-ui-floorplan={ownershipFor(tab)?.floorplanId}
-          data-ui-region={ownershipFor(tab)?.regionId}
-        >
-          {tab.label}
-        </button>
-      ))}
+      {tabs.map((tab, index) => {
+        const isThisTabLoading = (loadingTabId && loadingTabId === tab.id) || (isPending && activeTab === tab.id) || (switchingTabId === tab.id);
+        return (
+          <button
+            ref={(node) => { tabRefs.current[index] = node }}
+            key={tab.id}
+            id={`${tab.id}-tab`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`${tab.id}-panel`}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            className={cn('ipc-view-tab', activeTab === tab.id && 'is-active')}
+            onClick={() => {
+              if (tab.id !== activeTab) {
+                setSwitchingTabId(tab.id);
+                onTabChange(tab.id);
+                window.setTimeout(() => {
+                  setSwitchingTabId(null);
+                }, 280);
+              }
+            }}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+            data-ui-owner={ownershipFor(tab)?.ownerId}
+            data-ui-floorplan={ownershipFor(tab)?.floorplanId}
+            data-ui-region={ownershipFor(tab)?.regionId}
+          >
+            {isThisTabLoading && (
+              <Loader2 aria-hidden="true" className="mr-1.5 inline-block size-3.5 animate-spin text-blue-600 shrink-0" />
+            )}
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   )
 }

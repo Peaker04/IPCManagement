@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { Database, PackageCheck, SlidersHorizontal, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { CommandBar, ContextStrip, OperationalFrame, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, OperationalFrame, TabContentSkeleton, ViewSwitcher } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
 import { useAdminDataPageModel } from './admin-data/useAdminDataPageModel';
 import type { AdminView } from './admin-data/adminDataPageTypes';
@@ -13,7 +13,7 @@ const AdminContractsPanel = lazy(() => import('./admin-data/AdminContractsPanel'
 const AdminEmployeesPanel = lazy(() => import('./admin-data/AdminEmployeesPanel').then(({ AdminEmployeesPanel: component }) => ({ default: component })))
 const AdminInventoryPanel = lazy(() => import('./admin-data/AdminInventoryPanel').then(({ AdminInventoryPanel: component }) => ({ default: component })))
 const AdminStatisticsPanel = lazy(() => import('./admin-data/AdminStatisticsPanel').then(({ AdminStatisticsPanel: component }) => ({ default: component })))
-const AdminPanelFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
+const AdminPanelFallback = <TabContentSkeleton columns={6} rows={6} message="Đang tải dữ liệu quản trị..." />
 
 export default function AdminDataPage() {
   const model = useAdminDataPageModel();
@@ -64,6 +64,7 @@ return (
         <ViewSwitcher
           compact
           ariaLabel="Chọn góc nhìn quản trị dữ liệu"
+          isPending={isViewPending}
           tabs={adminTabs}
           activeTab={`admin-${effectiveActiveView}`}
           onTabChange={(id) => activateView(id.replace('admin-', '') as AdminView)}

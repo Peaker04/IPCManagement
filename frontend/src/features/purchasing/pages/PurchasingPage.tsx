@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, TabContentSkeleton, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { ReconciliationWorkspace } from '@/features/reconciliation/ReconciliationWorkspace';
 import { visibleTabIds } from '@/lib/navigationPreferences';
@@ -26,7 +26,7 @@ const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRun
 const PurchaseWorkflowGuide = lazy(() => import('../PurchaseWorkflowGuide').then(({ PurchaseWorkflowGuide: component }) => ({ default: component })))
 const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
 const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection').then(({ SupplierQuotationSection: component }) => ({ default: component })))
-const purchasingCapabilityFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
+const purchasingCapabilityFallback = <TabContentSkeleton columns={6} rows={6} message="Đang tải dữ liệu thu mua..." />
 
 const emptyStageCounts: PurchaseWorkflowStageCounts = {
   demand: 0,
@@ -317,11 +317,7 @@ export default function PurchasingPage() {
                 </PurchaseServiceDateWorkbench>
               </>
             ) : (
-              <div className="min-h-[420px] rounded-lg border border-slate-200 bg-white p-4 space-y-4 motion-reduce:animate-none" aria-busy="true">
-                <div className="h-10 w-full animate-pulse rounded bg-slate-100" />
-                <div className="h-12 w-full animate-pulse rounded bg-slate-50" />
-                <div className="h-64 w-full animate-pulse rounded bg-slate-50" />
-              </div>
+              <TabContentSkeleton columns={7} rows={6} message="Đang tải quy trình xử lý thu mua..." />
             )}
           </KeepAliveTabPanel>
 

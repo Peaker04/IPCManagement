@@ -12,6 +12,7 @@ import { SectionPanel } from '@/components/common/SectionPanel';
 import { useToast } from '@/components/common/useToast';
 import { ViewSwitcher } from '@/components/common/ViewSwitcher';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
+import { TabContentSkeleton } from '@/components/common/TabContentSkeleton';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';
@@ -320,7 +321,11 @@ export default function ApprovalPage() {
       />
 
       <div className="flex-1 min-h-0 flex flex-col">
-        <KeepAliveTabPanel id="approval-queue" active={activeView === 'queue'}>
+        <KeepAliveTabPanel
+          id="approval-queue"
+          active={activeView === 'queue'}
+          fallback={<TabContentSkeleton variant="split" message="Đang tải hàng chờ duyệt..." />}
+        >
           {streamline.showMenuAmendmentBanner && (
             <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
               <MenuAmendmentReconciliation />
@@ -366,7 +371,11 @@ export default function ApprovalPage() {
           </SplitWorkbench>
         </KeepAliveTabPanel>
 
-        <KeepAliveTabPanel id="approval-history" active={activeView === 'history'}>
+        <KeepAliveTabPanel
+          id="approval-history"
+          active={activeView === 'history'}
+          fallback={<TabContentSkeleton variant="split" message="Đang tải lịch sử duyệt..." />}
+        >
           <SplitWorkbench
             detailLabel="Tiến trình phê duyệt"
             detail={

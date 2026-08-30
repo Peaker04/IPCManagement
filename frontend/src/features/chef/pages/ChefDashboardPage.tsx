@@ -2,7 +2,7 @@
 
 import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
 import { ShieldAlert, ShieldCheck } from 'lucide-react'
-import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher } from '@/components/common'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import type { ShiftType } from '@/types/coordination'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
@@ -22,7 +22,7 @@ const ChefProductionSection = lazy(() => import('../production/ChefProductionSec
 const ServiceRunSection = lazy(() => import('../production/ServiceRunSection').then(({ ServiceRunSection: component }) => ({ default: component })))
 const KitchenReceiptSection = lazy(() => import('../receipts/KitchenReceiptSection').then(({ KitchenReceiptSection: component }) => ({ default: component })))
 const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection').then(({ ChefDocumentsSection: component }) => ({ default: component })))
-const chefCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
+const chefCapabilityFallback = <TabContentSkeleton columns={6} rows={6} message="Đang tải dữ liệu bếp trưởng..." />
 
 export default function ChefDashboardPage() {
   const streamline = useUiStreamlinePreferences()
@@ -101,6 +101,7 @@ export default function ChefDashboardPage() {
         <ViewSwitcher
           compact
           ariaLabel="Chọn góc nhìn bếp trưởng"
+          isPending={isViewPending}
           tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }].filter((tab) => chefTabIds.includes(tab.id.replace('chef-', '') as 'production' | 'documents'))}
           activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
           onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}

@@ -22,6 +22,7 @@ import {
   TableViewport,
   SectionPanel,
   StatusBadge,
+  TabContentSkeleton,
 } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/routeConfig';
@@ -49,7 +50,7 @@ const ReportsDataQualityPanel = lazy(() => import('./ReportsDataQualityPanel').t
 const ReportsFilters = lazy(() => import('./ReportsFilters').then(({ ReportsFilters: component }) => ({ default: component })))
 const ServiceRunReportPanel = lazy(() => import('./ServiceRunReportPanel').then(({ ServiceRunReportPanel: component }) => ({ default: component })))
 const LegacyLineageDispositionPanel = lazy(() => import('../LegacyLineageDispositionPanel').then(({ LegacyLineageDispositionPanel: component }) => ({ default: component })))
-const reportCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
+const reportCapabilityFallback = <TabContentSkeleton columns={7} rows={7} message="Đang tải báo cáo vận hành..." />
 
 const reconciliationTone = (disposition: string) => {
   if (disposition === 'MATCHED') return 'success' as const;
