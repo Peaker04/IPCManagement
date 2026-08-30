@@ -18,11 +18,11 @@ namespace IPCManagement.Api.Tests;
 public sealed class Phase30InactiveApprovalOwnerTests
 {
     [Fact]
-    public async Task Reject_when_mode_changes_after_MVC_admission_before_handler_persistence_with_zero_residue()
+    public async Task Reject_when_mode_changes_after_MVC_admission_before_required_step_persistence_with_zero_residue()
     {
         var barrier = new ApprovalAdmissionBarrier();
         await using var host = await CustomWebApplicationFactory.CreateApprovalOwnerHostAsync(barrier);
-        var fixture = await SeedDemandAsync(host, "DRAFT");
+        var fixture = await SeedDemandAsync(host, "DRAFT", withTwoStepRule: true);
         var before = await SnapshotDatabaseAsync(host.Connection);
         using var client = host.CreateClient(fixture.ActorId);
 
@@ -46,6 +46,7 @@ public sealed class Phase30InactiveApprovalOwnerTests
         afterModeSwitch.Should().Contain(item => item.Contains("systemoperationmodes:") && item.Contains("mode=MATERIAL_RECONCILIATION"));
         before.Where(item => item.StartsWith("materialrequests:") || item.StartsWith("approvalhistories:"))
             .Should().Equal(afterModeSwitch.Where(item => item.StartsWith("materialrequests:") || item.StartsWith("approvalhistories:")));
+        afterModeSwitch.Should().NotContain(item => item.Contains("decision=STEP_APPROVED"));
     }
 
     [Fact]

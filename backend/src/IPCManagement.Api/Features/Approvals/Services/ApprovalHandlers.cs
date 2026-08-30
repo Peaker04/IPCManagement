@@ -5,7 +5,6 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
-using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 
 using IPCManagement.Api.Exceptions;
@@ -17,16 +16,13 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
 {
     protected readonly IpcManagementContext Context;
     private readonly IEfTransactionRunner _transactionRunner;
-    private readonly SystemOperationRequestContext? _systemOperationRequestContext;
 
     protected ApprovalHandlerBase(
         IpcManagementContext context,
-        IEfTransactionRunner transactionRunner,
-        SystemOperationRequestContext? systemOperationRequestContext = null)
+        IEfTransactionRunner transactionRunner)
     {
         Context = context;
         _transactionRunner = transactionRunner;
-        _systemOperationRequestContext = systemOperationRequestContext;
     }
 
     public abstract ApprovalTargetType TargetType { get; }
@@ -63,14 +59,7 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
                            cancellationToken);
         }
 
-        return _systemOperationRequestContext is
-            { OperationKey: { } operationKey, ExpectedModeVersion: { } expectedModeVersion }
-            ? await _transactionRunner.ExecuteProtectedAsync(
-                operationKey,
-                expectedModeVersion,
-                ExecuteAsync,
-                VerifySucceededAsync)
-            : await _transactionRunner.ExecuteAsync(ExecuteAsync, VerifySucceededAsync);
+        return await _transactionRunner.ExecuteAsync(ExecuteAsync, VerifySucceededAsync);
     }
 
     protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId);
@@ -276,7 +265,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
         };
 }
 
-public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<MaterialRequest>
+public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<MaterialRequest>, IApprovalTargetPersistenceHandler
 {
     private const string MaterialDemandTargetType = "material-demand";
     private const string PendingStatus = "DRAFT";
@@ -289,13 +278,16 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
     public MaterialDemandApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
         : base(context, transactionRunner) { }
 
-    public MaterialDemandApprovalHandler(
-        IpcManagementContext context,
-        IEfTransactionRunner transactionRunner,
-        SystemOperationRequestContext systemOperationRequestContext)
-        : base(context, transactionRunner, systemOperationRequestContext) { }
-
     public override ApprovalTargetType TargetType => ApprovalTargetType.MaterialDemand;
+
+    async Task<ApprovalResultDto?> IApprovalTargetPersistenceHandler.StageAsync(
+        string targetId,
+        ApprovalRequest request,
+        byte[] actorId)
+    {
+        var entityId = GuidHelper.ParseGuidString(targetId);
+        return entityId is null ? null : await HandleCoreAsync(entityId, request, actorId);
+    }
 
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(
         byte[] targetId,

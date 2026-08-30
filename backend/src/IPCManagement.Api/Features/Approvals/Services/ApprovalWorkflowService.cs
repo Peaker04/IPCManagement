@@ -1,11 +1,13 @@
 using IPCManagement.Api.Security;
 using System.Security.Claims;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 
 namespace IPCManagement.Api.Features.Approvals.Services;
 
@@ -24,6 +26,8 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
     private readonly IReadOnlyDictionary<ApprovalTargetType, IApprovalTargetHandler> _handlers;
     private readonly IpcManagementContext? _context;
     private readonly IApprovalRoutingService? _routingService;
+    private readonly IEfTransactionRunner? _transactionRunner;
+    private readonly SystemOperationRequestContext? _systemOperationRequestContext;
 
     public ApprovalWorkflowService(IEnumerable<IApprovalTargetHandler> handlers)
     {
@@ -35,6 +39,18 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
     {
         _context = context;
         _routingService = routingService;
+    }
+
+    public ApprovalWorkflowService(
+        IpcManagementContext context,
+        IApprovalRoutingService routingService,
+        IEnumerable<IApprovalTargetHandler> handlers,
+        IEfTransactionRunner transactionRunner,
+        SystemOperationRequestContext systemOperationRequestContext)
+        : this(context, routingService, handlers)
+    {
+        _transactionRunner = transactionRunner;
+        _systemOperationRequestContext = systemOperationRequestContext;
     }
 
     public async Task<ApprovalResultDto?> ExecuteAsync(
@@ -73,8 +89,40 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
             throw new UnauthorizedAccessException("Chỉ Quản lý được duyệt phiếu nhập kho sau khi kiểm tra chất lượng.");
         }
 
+        if (normalizedTargetType == ApprovalTargetType.MaterialDemand &&
+            handler is IApprovalTargetPersistenceHandler persistenceHandler &&
+            _context is not null &&
+            _transactionRunner is not null &&
+            _systemOperationRequestContext is
+                { OperationKey: { } operationKey, ExpectedModeVersion: { } expectedModeVersion })
+        {
+            ApprovalResultDto? transactionResult = null;
+            return await _transactionRunner.ExecuteProtectedAsync(
+                operationKey,
+                expectedModeVersion,
+                async _ =>
+                {
+                    transactionResult = await RecordRequiredApprovalStepAsync(
+                        normalizedTargetType.Value, targetId, request, actorId, actor, saveChanges: false);
+                    transactionResult ??= await persistenceHandler.StageAsync(targetId, request, actorId);
+                    if (transactionResult is not null)
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                    return transactionResult;
+                },
+                async cancellationToken =>
+                {
+                    var historyId = GuidHelper.ParseGuidString(transactionResult?.HistoryId);
+                    return historyId is not null &&
+                           await _context.Approvalhistories.AsNoTracking().AnyAsync(
+                               history => history.ApprovalHistoryId == historyId,
+                               cancellationToken);
+                });
+        }
+
         var stepResult = await RecordRequiredApprovalStepAsync(
-            normalizedTargetType.Value, targetId, request, actorId, actor);
+            normalizedTargetType.Value, targetId, request, actorId, actor, saveChanges: true);
         if (stepResult is not null)
         {
             return stepResult;
@@ -88,7 +136,8 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
         string targetId,
         ApprovalRequest request,
         byte[] actorId,
-        ClaimsPrincipal? actor)
+        ClaimsPrincipal? actor,
+        bool saveChanges)
     {
         if (_context is null || _routingService is null || actor is null || request.Status != ApprovalDecision.Approve)
         {
@@ -127,7 +176,10 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
         var now = DateTime.UtcNow;
         var step = new ApprovalHistory { ApprovalHistoryId = GuidHelper.NewId(), TargetType = targetTypeName, TargetId = targetIdBytes, Decision = "STEP_APPROVED", OldStatus = next.Sequence.ToString(), NewStatus = "PENDING", Reason = request.Reason, ActionBy = actorId, ActionAt = now };
         _context.Approvalhistories.Add(step);
-        await _context.SaveChangesAsync();
+        if (saveChanges)
+        {
+            await _context.SaveChangesAsync();
+        }
         return history.Count + 1 < assignments.Count
             ? new ApprovalResultDto { TargetType = targetTypeName, TargetId = targetId, Status = "PENDING_NEXT_APPROVAL", OldStatus = next.Sequence.ToString(), NewStatus = "PENDING", HistoryId = GuidHelper.ToGuidString(step.ApprovalHistoryId), ActionAt = now }
             : null;
