@@ -271,7 +271,9 @@ public class MaterialDemandService : IMaterialDemandService
             }
             else if (await _context.Inventoryissues
                          .AsNoTracking()
-                         .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(materialRequest.RequestId), cancellationToken))
+                         .AnyAsync(issue =>
+                             issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                             issue.MaterialRequestId.SequenceEqual(materialRequest.RequestId), cancellationToken))
             {
                 regenerationBlockReason =
                     "Nhu cầu đã phát sinh phiếu xuất kho nên được giữ ở chế độ chỉ đọc. Hãy dùng luồng điều chỉnh riêng.";
@@ -845,7 +847,9 @@ public class MaterialDemandService : IMaterialDemandService
 
             var hasInventoryIssue = await _context.Inventoryissues
                 .AsNoTracking()
-                .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(existing.RequestId), cancellationToken);
+                .AnyAsync(issue =>
+                    issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                    issue.MaterialRequestId.SequenceEqual(existing.RequestId), cancellationToken);
             if (hasInventoryIssue)
             {
                 throw new BusinessRuleException(

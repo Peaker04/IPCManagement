@@ -48,9 +48,11 @@ internal static class MaterialDemandStockReservation
             .Where(line => line.Issue.IssueDate <= serviceDate)
             .ToListAsync(cancellationToken);
         var issuedByRequestItem = issuedLines
-            .Where(line => committedRequestKeys.Contains(BuildKey(line.Issue.MaterialRequestId)))
+            .Where(line =>
+                line.Issue.MaterialRequestId != null && line.Issue.ReconciliationBatchId == null &&
+                committedRequestKeys.Contains(BuildKey(line.Issue.MaterialRequestId!)))
             .GroupBy(line => BuildReservationKey(
-                line.Issue.MaterialRequestId,
+                line.Issue.MaterialRequestId!,
                 line.IngredientId,
                 line.UnitId))
             .ToDictionary(
