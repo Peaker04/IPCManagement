@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text;
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
@@ -46,13 +47,15 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "reconciliation.batches.transfer", OperationDisposition.ReconciliationOnly);
         var beforeTransferSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeTransfer, beforeTransferSuccess, active, "Resume reconciliation transfer.");
+        var transferStartedAt = DateTime.UtcNow.AddSeconds(-1);
         var transferred = await fixture.BatchService.TransferToWarehouseAsync(fixture.TransferBatchId, new(1), fixture.ActorId);
+        var transferWindow = InvocationWindow.Since(transferStartedAt);
         transferred.BatchId.Should().Be(fixture.TransferBatchId);
         transferred.Status.Should().Be("TRANSFERRED");
         transferred.SourceVersion.Should().Be(2);
         transferred.Lines.Should().ContainSingle().Which.BatchLineId.Should().Be(fixture.TransferLineId);
         var afterTransfer = await fixture.SnapshotAsync();
-        AssertOnlyBatchDelta(beforeTransferSuccess, afterTransfer, fixture.TransferBatchId, "READY", "TRANSFERRED", 1, 2);
+        AssertOnlyBatchDelta(beforeTransferSuccess, afterTransfer, fixture.TransferBatchId, "READY", "TRANSFERRED", 1, 2, transferWindow);
         var transferReplay = await fixture.BatchService.TransferToWarehouseAsync(fixture.TransferBatchId, new(1), fixture.ActorId);
         transferReplay.BatchId.Should().Be(transferred.BatchId);
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterTransfer);
@@ -68,13 +71,15 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "reconciliation.batches.complete", OperationDisposition.ReconciliationOnly);
         var beforeCompleteSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeComplete, beforeCompleteSuccess, active, "Resume reconciliation completion.");
+        var completionStartedAt = DateTime.UtcNow.AddSeconds(-1);
         var completed = await fixture.CompletionService.CompleteAsync(fixture.CompletionBatchId, new(3), fixture.ActorId);
+        var completionWindow = InvocationWindow.Since(completionStartedAt);
         completed.BatchId.Should().Be(fixture.CompletionBatchId);
         completed.Status.Should().Be("COMPLETED");
         completed.Version.Should().Be(4);
         completed.Lines.Should().ContainSingle().Which.BatchLineId.Should().Be(fixture.CompletionLineId);
         var afterComplete = await fixture.SnapshotAsync();
-        AssertOnlyBatchDelta(beforeCompleteSuccess, afterComplete, fixture.CompletionBatchId, "IN_PROGRESS", "COMPLETED", 3, 4, completed: true);
+        AssertOnlyBatchDelta(beforeCompleteSuccess, afterComplete, fixture.CompletionBatchId, "IN_PROGRESS", "COMPLETED", 3, 4, completionWindow, completed: true);
         await fixture.Invoking(x => x.CompletionService.CompleteAsync(x.CompletionBatchId, new(3), x.ActorId))
             .Should().ThrowAsync<DbUpdateConcurrencyException>();
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterComplete);
@@ -97,10 +102,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "inventoryissues.createasync", OperationDisposition.Retained);
         var beforeIssueSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeIssue, beforeIssueSuccess, active, "Resume reconciliation warehouse issue.");
+        var issueStartedAt = DateTime.UtcNow.AddSeconds(-1);
         var created = await fixture.IssueService.CreateAsync(issueCommand, fixture.ActorId);
+        var issueWindow = InvocationWindow.Since(issueStartedAt);
         created.Should().NotBeNull();
         var afterIssue = await fixture.SnapshotAsync();
-        AssertExactIssueDelta(beforeIssueSuccess, afterIssue, created!, fixture);
+        AssertExactIssueDelta(beforeIssueSuccess, afterIssue, created!, fixture, issueWindow);
         var issueReplay = await fixture.IssueService.CreateAsync(issueCommand, fixture.ActorId);
         issueReplay!.IssueId.Should().Be(created!.IssueId);
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterIssue);
@@ -117,9 +124,11 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "inventoryissues.confirmreceiptasync", OperationDisposition.ReconciliationOnly);
         var beforeIssueConfirmSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeIssueConfirm, beforeIssueConfirmSuccess, active, "Resume reconciliation issue confirmation.");
+        var issueConfirmStartedAt = DateTime.UtcNow.AddSeconds(-1);
         await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
+        var issueConfirmWindow = InvocationWindow.Since(issueConfirmStartedAt);
         var afterKitchenReceipt = await fixture.SnapshotAsync();
-        AssertExactIssueConfirmDelta(beforeIssueConfirmSuccess, afterKitchenReceipt, created, fixture);
+        AssertExactIssueConfirmDelta(beforeIssueConfirmSuccess, afterKitchenReceipt, created, fixture, issueConfirmWindow);
         await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterKitchenReceipt);
         var returnCommand = fixture.ReturnCommand(created.IssueId, afterKitchenReceipt.IssueLines.Single(x => x.ReconciliationBatchLineId == fixture.IssueLineId).Id);
@@ -135,10 +144,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "inventoryreturns.createasync", OperationDisposition.Retained);
         var beforeReturnSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeReturn, beforeReturnSuccess, active, "Resume reconciliation return creation.");
+        var returnStartedAt = DateTime.UtcNow.AddSeconds(-1);
         var createdReturn = await fixture.ReturnService.CreateAsync(returnCommand, fixture.ActorId);
+        var returnWindow = InvocationWindow.Since(returnStartedAt);
         createdReturn.Should().NotBeNull();
         var afterReturnCreate = await fixture.SnapshotAsync();
-        AssertExactReturnCreateDelta(beforeReturnSuccess, afterReturnCreate, createdReturn!, fixture);
+        AssertExactReturnCreateDelta(beforeReturnSuccess, afterReturnCreate, createdReturn!, fixture, returnWindow);
         var returnReplay = await fixture.ReturnService.CreateAsync(returnCommand, fixture.ActorId);
         returnReplay!.ReturnId.Should().Be(createdReturn!.ReturnId);
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterReturnCreate);
@@ -155,9 +166,11 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "inventoryreturns.confirmreceiptasync", OperationDisposition.Retained);
         var beforeConfirmSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeConfirm, beforeConfirmSuccess, active, "Resume reconciliation return confirmation.");
+        var returnConfirmStartedAt = DateTime.UtcNow.AddSeconds(-1);
         (await fixture.ReturnService.ConfirmReceiptAsync(createdReturn.ReturnId, confirm, fixture.ActorId)).Should().BeTrue();
+        var returnConfirmWindow = InvocationWindow.Since(returnConfirmStartedAt);
         var afterConfirm = await fixture.SnapshotAsync();
-        AssertExactReturnConfirmDelta(beforeConfirmSuccess, afterConfirm, createdReturn.ReturnId, fixture);
+        AssertExactReturnConfirmDelta(beforeConfirmSuccess, afterConfirm, createdReturn.ReturnId, fixture, returnConfirmWindow);
         (await fixture.ReturnService.ConfirmReceiptAsync(createdReturn.ReturnId, confirm, fixture.ActorId)).Should().BeTrue();
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterConfirm);
     }
@@ -179,9 +192,11 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "reconciliation.actuals.issued", OperationDisposition.ReconciliationOnly);
         var beforeActualSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeActual, beforeActualSuccess, active, "Resume manual ISSUED actual.");
+        var actualStartedAt = DateTime.UtcNow.AddSeconds(-1);
         await fixture.ActualService.UpsertAsync(fixture.ActualLineId, "ISSUED", correction, fixture.ActorId);
+        var actualWindow = InvocationWindow.Since(actualStartedAt);
         var afterActual = await fixture.SnapshotAsync();
-        AssertExactActualDelta(beforeActualSuccess, afterActual, fixture);
+        AssertExactActualDelta(beforeActualSuccess, afterActual, fixture, actualWindow);
         await fixture.Invoking(x => x.ActualService.UpsertAsync(x.ActualLineId, "ISSUED", correction, x.ActorId))
             .Should().ThrowAsync<DbUpdateConcurrencyException>();
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterActual);
@@ -198,9 +213,11 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(active, "reconciliation.actuals.disposition", OperationDisposition.ReconciliationOnly);
         var beforeDispositionSuccess = await fixture.SnapshotAsync();
         AssertExactSwitchBackDelta(beforeDisposition, beforeDispositionSuccess, active, "Resume reconciliation disposition.");
+        var dispositionStartedAt = DateTime.UtcNow.AddSeconds(-1);
         await fixture.ActualService.SetDispositionAsync(fixture.ActualLineId, disposition, fixture.ActorId);
+        var dispositionWindow = InvocationWindow.Since(dispositionStartedAt);
         var afterDisposition = await fixture.SnapshotAsync();
-        AssertExactDispositionDelta(beforeDispositionSuccess, afterDisposition, fixture);
+        AssertExactDispositionDelta(beforeDispositionSuccess, afterDisposition, fixture, dispositionWindow);
         await fixture.Invoking(x => x.ActualService.SetDispositionAsync(x.ActualLineId, disposition, x.ActorId))
             .Should().ThrowAsync<DbUpdateConcurrencyException>();
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterDisposition);
@@ -218,22 +235,23 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         observed.Schema.Should().Equal(before.Schema, "the EF scalar manifest must remain closed during a checkpoint");
         observed.SchemaHash.Should().Be(before.SchemaHash);
         var cells = before.Cells.ToList();
+        var generatedGroups = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var change in changes)
         {
-            change.GeneratedProperties.Should().OnlyContain(property => IsGeneratedIdentityOrTimestamp(property),
-                "observed values are permitted only for isolated generated identities or timestamps");
             var observedRow = observed.Cells.Where(cell => cell.Table == change.Table && cell.Key == change.Key).ToArray();
             observedRow.Should().NotBeEmpty($"exact identity lookup must find {change.Table}/{change.Key}");
             var oldRow = cells.Where(cell => cell.Table == change.Table && cell.Key == change.Key).ToArray();
             if (change.IsNew)
             {
                 oldRow.Should().BeEmpty($"{change.Table}/{change.Key} is an explicit addition");
-                var represented = change.Values.Keys.Concat(change.GeneratedProperties).ToHashSet(StringComparer.Ordinal);
+                var represented = change.Values.Keys.Concat(change.GeneratedExpectations.Keys).ToHashSet(StringComparer.Ordinal);
                 observedRow.Select(cell => cell.Property).Should().BeEquivalentTo(represented,
-                    "every scalar on a new row must be reconstructed explicitly or classified as an isolated generated identity/timestamp");
+                    "every scalar on a new row must be reconstructed explicitly or covered by a typed generated-value contract");
                 foreach (var cell in observedRow)
                 {
-                    var value = change.Values.TryGetValue(cell.Property, out var expected) ? expected : cell.Value;
+                    var value = change.Values.TryGetValue(cell.Property, out var expected)
+                        ? expected
+                        : ValidateGenerated(before, change, cell, generatedGroups);
                     cells.Add(cell with { Value = value });
                 }
             }
@@ -246,12 +264,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                     index.Should().BeGreaterThanOrEqualTo(0, $"{property} must be a mapped scalar");
                     cells[index] = cells[index] with { Value = value };
                 }
-                foreach (var property in change.GeneratedProperties)
+                foreach (var property in change.GeneratedExpectations.Keys)
                 {
                     var observedCell = observedRow.Single(cell => cell.Property == property);
                     var index = cells.FindIndex(cell => cell.Table == change.Table && cell.Key == change.Key && cell.Property == property);
                     index.Should().BeGreaterThanOrEqualTo(0, $"{property} must be a mapped generated scalar");
-                    cells[index] = cells[index] with { Value = observedCell.Value };
+                    cells[index] = cells[index] with { Value = ValidateGenerated(before, change, observedCell, generatedGroups) };
                 }
             }
         }
@@ -263,11 +281,22 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         };
     }
 
-    private static RowChange ExistingKey(string table, string key, params (string Property, string Value)[] values) =>
-        new(table, key, false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), []);
+    private static string ValidateGenerated(CanonicalEntitySnapshot before, RowChange change, ScalarCell cell, Dictionary<string, string> groups)
+    {
+        change.GeneratedExpectations.TryGetValue(cell.Property, out var expectation).Should().BeTrue(
+            $"{change.Table}/{cell.Property} must have an explicitly registered generated-value contract");
+        expectation!.Validate(new GeneratedContext(before, change.Table, change.Key, cell.Property, cell.Value, groups));
+        return cell.Value;
+    }
 
-    private static RowChange ExistingGeneratedKey(string table, string key, string[] generatedProperties, params (string Property, string Value)[] values) =>
-        new(table, key, false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), generatedProperties);
+    private static RowChange ExistingKey(string table, string key, params (string Property, string Value)[] values) =>
+        new(table, key, false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), NoGenerated);
+
+    private static RowChange ExistingGeneratedKey(string table, string key, GeneratedExpectation[] generated, params (string Property, string Value)[] values) =>
+        new(table, key, false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), GeneratedMap(generated));
+
+    private static string CellValue(CanonicalEntitySnapshot snapshot, string table, string key, string property) =>
+        snapshot.Cells.Single(cell => cell.Table == table && cell.Key == key && cell.Property == property).Value;
 
     private static string KeyFor(CanonicalEntitySnapshot snapshot, string table, params (string Property, string Value)[] identity)
     {
@@ -278,7 +307,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         return keys[0];
     }
 
-    private static RowChange LifecycleTransitionChange(TransitionValue value) => New("lifecycletransitions", "TransitionId", value.Id, ["TransitionId", "CreatedAt"],
+    private static RowChange LifecycleTransitionChange(TransitionValue value, InvocationWindow window, string timeGroup) => New("lifecycletransitions", "TransitionId", value.Id, [GeneratedGuid("TransitionId", value.Id), GeneratedUtc("CreatedAt", window, timeGroup)],
         ("AggregateType", Scalar(value.AggregateType)), ("AggregateId", GuidValue(value.AggregateId)), ("CommandId", Scalar(value.CommandId)),
         ("AggregateSequence", Scalar(value.AggregateSequence)), ("FromState", value.FromState is null ? NullValue : Scalar(value.FromState)),
         ("ToState", Scalar(value.ToState)), ("ActorId", GuidValue(value.ActorId)), ("ExpectedVersion", Scalar(value.ExpectedVersion)),
@@ -286,18 +315,18 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         ("CausationId", value.CausationId is null ? NullValue : Scalar(value.CausationId)), ("PayloadJson", Scalar(value.PayloadJson!)),
         ("SchemaVersion", Scalar(value.SchemaVersion)));
 
-    private static RowChange LifecycleOutboxChange(OutboxValue value) => New("lifecycleoutboxmessages", "OutboxMessageId", value.Id, ["OutboxMessageId", "CreatedAt"],
+    private static RowChange LifecycleOutboxChange(OutboxValue value, InvocationWindow window, string timeGroup) => New("lifecycleoutboxmessages", "OutboxMessageId", value.Id, [GeneratedGuid("OutboxMessageId", value.Id), GeneratedUtc("CreatedAt", window, timeGroup)],
         ("EventType", Scalar(value.EventType)), ("AggregateType", Scalar(value.AggregateType)), ("AggregateId", GuidValue(value.AggregateId)),
         ("AggregateSequence", Scalar(value.AggregateSequence)), ("CommandId", Scalar(value.CommandId)), ("PayloadJson", Scalar(value.PayloadJson)),
         ("Status", Scalar(value.Status)), ("AttemptCount", Scalar(value.AttemptCount)), ("NextAttemptAt", DateTimeValue(value.NextAttemptAt)),
         ("LockedAt", DateTimeValue(value.LockedAt)), ("ProcessedAt", DateTimeValue(value.ProcessedAt)),
         ("LastError", value.LastError is null ? NullValue : Scalar(value.LastError)));
 
-    private static RowChange LifecycleReceiptChange(ReceiptValue value) => New("lifecyclecommandreceipts", "CommandReceiptId", value.Id, ["CommandReceiptId", "CreatedAt"],
+    private static RowChange LifecycleReceiptChange(ReceiptValue value, InvocationWindow window, string timeGroup) => New("lifecyclecommandreceipts", "CommandReceiptId", value.Id, [GeneratedGuid("CommandReceiptId", value.Id), GeneratedUtc("CreatedAt", window, timeGroup)],
         ("CommandId", Scalar(value.CommandId)), ("AggregateType", Scalar(value.AggregateType)), ("AggregateId", GuidValue(value.AggregateId)),
         ("ResponseJson", Scalar(value.ResponseJson)));
 
-    private static RowChange AuditChange(AuditValue value) => New("auditlogs", "AuditId", value.Id, ["AuditId"],
+    private static RowChange AuditChange(AuditValue value) => New("auditlogs", "AuditId", value.Id, [GeneratedGuid("AuditId", value.Id)],
         ("BusinessArea", Scalar(value.BusinessArea)), ("ChangedAt", DateTimeValue(value.ChangedAt)), ("ChangedBy", GuidValue(value.ChangedBy)),
         ("CorrelationId", value.CorrelationId is null ? NullValue : Scalar(value.CorrelationId)), ("EntityId", GuidValue(value.EntityId)),
         ("EntityName", Scalar(value.EntityName)), ("FieldName", value.FieldName is null ? NullValue : Scalar(value.FieldName)),
@@ -305,18 +334,70 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         ("Reason", value.Reason is null ? NullValue : Scalar(value.Reason)));
 
     private static RowChange Existing(string table, string keyProperty, string id, params (string Property, string Value)[] values) =>
-        new(table, $"{keyProperty}=guid:{id}", false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), []);
+        new(table, $"{keyProperty}=guid:{id}", false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), NoGenerated);
 
-    private static RowChange ExistingGenerated(string table, string keyProperty, string id, string[] generatedProperties, params (string Property, string Value)[] values) =>
-        new(table, $"{keyProperty}=guid:{id}", false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), generatedProperties);
+    private static RowChange ExistingGenerated(string table, string keyProperty, string id, GeneratedExpectation[] generated, params (string Property, string Value)[] values) =>
+        new(table, $"{keyProperty}=guid:{id}", false, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), GeneratedMap(generated));
 
-    private static RowChange New(string table, string keyProperty, string id, string[] generatedProperties, params (string Property, string Value)[] values) =>
-        new(table, $"{keyProperty}=guid:{id}", true, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), generatedProperties);
+    private static RowChange New(string table, string keyProperty, string id, GeneratedExpectation[] generated, params (string Property, string Value)[] values) =>
+        new(table, $"{keyProperty}=guid:{id}", true, values.ToDictionary(value => value.Property, value => value.Value, StringComparer.Ordinal), GeneratedMap(generated));
 
-    private static bool IsGeneratedIdentityOrTimestamp(string property) =>
-        property.EndsWith("Id", StringComparison.Ordinal) || property.EndsWith("At", StringComparison.Ordinal) ||
-        property.EndsWith("Date", StringComparison.Ordinal) || property.EndsWith("Time", StringComparison.Ordinal) ||
-        property.EndsWith("Updated", StringComparison.Ordinal) || property.Equals("RowVersion", StringComparison.Ordinal);
+    private static IReadOnlyDictionary<string, GeneratedExpectation> GeneratedMap(GeneratedExpectation[] values) =>
+        values.ToDictionary(value => value.Property, StringComparer.Ordinal);
+
+    private static readonly IReadOnlyDictionary<string, GeneratedExpectation> NoGenerated =
+        new Dictionary<string, GeneratedExpectation>(StringComparer.Ordinal);
+
+    private static GeneratedExpectation GeneratedGuid(string property, string expectedId) => new(property, context =>
+    {
+        Guid.TryParse(expectedId, out var expected).Should().BeTrue($"{property} must expose a valid GUID");
+        expected.Should().NotBe(Guid.Empty, $"{property} must not be the default GUID");
+        context.Value.Should().Be(GuidValue(expectedId), $"{context.Table}/{property} must persist the validated generated GUID");
+        context.Before.Cells.Should().NotContain(cell => cell.Value == context.Value,
+            $"{context.Table}/{property} must be unique against every pre-success persisted GUID");
+        context.Groups.TryAdd($"generated-guid:{context.Value}", $"{context.Table}/{context.Key}/{property}").Should().BeTrue(
+            $"{context.Table}/{property} must also be unique among rows generated by this success action");
+    });
+
+    private static GeneratedExpectation GeneratedUtc(string property, InvocationWindow window, string? equalityGroup = null) => new(property, context =>
+    {
+        var value = ParseUtc(context.Value, $"{context.Table}/{property}");
+        value.Should().BeOnOrAfter(window.UtcStart).And.BeOnOrBefore(window.UtcEnd);
+        if (equalityGroup is not null)
+        {
+            if (context.Groups.TryGetValue(equalityGroup, out var existing))
+                context.Value.Should().Be(existing, $"generated timestamp group '{equalityGroup}' must be exact across rows");
+            else
+                context.Groups.Add(equalityGroup, context.Value);
+        }
+    });
+
+    private static GeneratedExpectation GeneratedExact(string property, string expected, string semantics) => new(property, context =>
+        context.Value.Should().Be(expected, semantics));
+
+    private static string AssertGeneratedDocumentCode(string code, string prefix, InvocationWindow window, IEnumerable<string> preSuccessCodes)
+    {
+        code.Should().NotBeNullOrWhiteSpace().And.NotBe($"{prefix}-00000000-000000-0000");
+        code.Should().HaveLength(24).And.MatchRegex($"^{Regex.Escape(prefix)}-[0-9]{{8}}-[0-9]{{6}}-[0-9A-F]{{4}}$",
+            "production emits an exact uppercase four-hex entropy suffix after a local wall-clock timestamp");
+        preSuccessCodes.Should().NotContain(code, "the generated document code must be unique against pre-success rows");
+        DateTime.TryParseExact(code.Substring(4, 15), "yyyyMMdd-HHmmss", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var encodedLocal).Should().BeTrue("the code must contain the complete production local timestamp");
+        var localStart = TimeZoneInfo.ConvertTimeFromUtc(window.UtcStart, TimeZoneInfo.Local).AddSeconds(-1);
+        var localEnd = TimeZoneInfo.ConvertTimeFromUtc(window.UtcEnd, TimeZoneInfo.Local).AddSeconds(1);
+        encodedLocal.Should().BeOnOrAfter(localStart).And.BeOnOrBefore(localEnd,
+            "the encoded document timestamp must fall inside the bounded production invocation window");
+        return code;
+    }
+
+    private static DateTime ParseUtc(string canonical, string label)
+    {
+        canonical.Should().StartWith("datetime:", $"{label} must be a canonical timestamp");
+        DateTimeOffset.TryParseExact(canonical[9..], "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
+            .Should().BeTrue($"{label} must use the exact round-trip format");
+        parsed.Offset.Should().Be(TimeSpan.Zero, $"{label} must be UTC");
+        return parsed.UtcDateTime;
+    }
 
     private static string Scalar(object value) => $"scalar:{Convert.ToString(value, CultureInfo.InvariantCulture)}";
     private static string DecimalValue(decimal value) => $"decimal:{value.ToString("G29", CultureInfo.InvariantCulture)}";
@@ -325,7 +406,13 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     private static string DateTimeValue(DateTime? value) => value is null ? "null" : $"datetime:{DateTime.SpecifyKind(value.Value, DateTimeKind.Utc):O}";
     private const string NullValue = "null";
 
-    private sealed record RowChange(string Table, string Key, bool IsNew, IReadOnlyDictionary<string, string> Values, string[] GeneratedProperties);
+    private sealed record RowChange(string Table, string Key, bool IsNew, IReadOnlyDictionary<string, string> Values, IReadOnlyDictionary<string, GeneratedExpectation> GeneratedExpectations);
+    private sealed record GeneratedExpectation(string Property, Action<GeneratedContext> Validate);
+    private sealed record GeneratedContext(CanonicalEntitySnapshot Before, string Table, string Key, string Property, string Value, Dictionary<string, string> Groups);
+    private sealed record InvocationWindow(DateTime UtcStart, DateTime UtcEnd)
+    {
+        public static InvocationWindow Since(DateTime utcStart) => new(utcStart, DateTime.UtcNow.AddSeconds(1));
+    }
 
     private static void AssertExactSwitchBackDelta(Snapshot before, Snapshot after, SystemOperationModeDto resumed, string reason)
     {
@@ -347,7 +434,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 ("UpdatedAt", DateTimeValue(resumed.UpdatedAt)),
                 ("UpdatedBy", GuidValue(before.ActorId)),
                 ("Reason", Scalar(reason))),
-            New("auditlogs", "AuditId", audit.Id, ["AuditId"],
+            New("auditlogs", "AuditId", audit.Id, [GeneratedGuid("AuditId", audit.Id)],
                 ("BusinessArea", Scalar("SYSTEM_OPERATION")),
                 ("ChangedAt", DateTimeValue(resumed.UpdatedAt)),
                 ("ChangedBy", GuidValue(before.ActorId)),
@@ -366,7 +453,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         });
     }
 
-    private static void AssertOnlyBatchDelta(Snapshot before, Snapshot after, string batchId, string oldStatus, string newStatus, long oldVersion, long newVersion, bool completed = false)
+    private static void AssertOnlyBatchDelta(Snapshot before, Snapshot after, string batchId, string oldStatus, string newStatus, long oldVersion, long newVersion, InvocationWindow window, bool completed = false)
     {
         var oldBatch = before.Batches.Single(x => x.Id == batchId);
         var newBatch = after.Batches.Single(x => x.Id == batchId);
@@ -375,7 +462,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         newBatch.Should().Be(oldBatch with { Status = newStatus, Version = newVersion, CompletedBy = completed ? after.ActorId : oldBatch.CompletedBy, CompletedAt = completed ? newBatch.CompletedAt : oldBatch.CompletedAt });
         if (completed) newBatch.CompletedAt.Should().NotBeNull();
         var batchChange = completed
-            ? ExistingGenerated("reconciliationbatches", "BatchId", batchId, ["CompletedAt"],
+            ? ExistingGenerated("reconciliationbatches", "BatchId", batchId, [GeneratedUtc("CompletedAt", window)],
                 ("Status", Scalar(newStatus)), ("Version", Scalar(newVersion)), ("CompletedBy", GuidValue(after.ActorId)))
             : Existing("reconciliationbatches", "BatchId", batchId,
                 ("Status", Scalar(newStatus)), ("Version", Scalar(newVersion)));
@@ -386,10 +473,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         });
     }
 
-    private static void AssertExactIssueDelta(Snapshot before, Snapshot after, InventoryIssueCreatedDto created, Fixture fixture)
+    private static void AssertExactIssueDelta(Snapshot before, Snapshot after, InventoryIssueCreatedDto created, Fixture fixture, InvocationWindow window)
     {
         var issue = after.Issues.Except(before.Issues).Should().ContainSingle().Subject;
         issue.Id.Should().Be(created.IssueId);
+        var issueCode = AssertGeneratedDocumentCode(created.IssueCode, "ISS", window, before.Issues.Select(value => value.Code));
+        issue.Code.Should().Be(issueCode, "the DTO and persisted canonical issue row must carry the same validated code");
         issue.ReconciliationBatchId.Should().Be(fixture.IssueBatchId);
         issue.MaterialRequestId.Should().BeNull();
         var line = after.IssueLines.Except(before.IssueLines).Should().ContainSingle().Subject;
@@ -400,9 +489,9 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty - 5m };
         var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
         movement.Should().Be(new MovementValue(movement.Id, "ISSUE", "inventoryissues", issue.Id, 5m, 0m));
-        var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = created.IssueCode, ConcurrencyVersion = 1 });
+        var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = issueCode, ConcurrencyVersion = 1 });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
-            1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {created.IssueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
+            1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {issueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
         var transition = lifecycle.Transitions.Except(before.Transitions).Single();
         var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
         var receipt = lifecycle.Receipts.Except(before.Receipts).Single();
@@ -410,23 +499,23 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var stockKey = KeyFor(before.Canonical, "currentstock",
             ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)));
         var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
-            New("inventoryissues", "IssueId", issue.Id, ["IssueId", "CreatedAt"],
-                ("IssueCode", Scalar(created.IssueCode)), ("IssueDate", DateValue(new DateOnly(2026, 8, 30))),
+            New("inventoryissues", "IssueId", issue.Id, [GeneratedGuid("IssueId", issue.Id), GeneratedUtc("CreatedAt", window)],
+                ("IssueCode", Scalar(issueCode)), ("IssueDate", DateValue(new DateOnly(2026, 8, 30))),
                 ("ShiftName", NullValue), ("WarehouseId", GuidValue(stock.WarehouseId)), ("MaterialRequestId", NullValue),
                 ("ReconciliationBatchId", GuidValue(fixture.IssueBatchId)), ("IssuedBy", GuidValue(fixture.ActorId)),
                 ("ReceivedBy", NullValue), ("ReceivedAt", NullValue)),
-            New("inventoryissuelines", "IssueLineId", line.Id, ["IssueLineId"],
+            New("inventoryissuelines", "IssueLineId", line.Id, [GeneratedGuid("IssueLineId", line.Id)],
                 ("IssueId", GuidValue(issue.Id)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("MaterialRequestLineId", NullValue), ("ReconciliationBatchLineId", GuidValue(fixture.IssueLineId)),
                 ("RequestedQty", DecimalValue(5m)), ("IssuedQty", DecimalValue(5m))),
-            ExistingGeneratedKey("currentstock", stockKey, ["LastUpdated", "RowVersion"], ("CurrentQty", DecimalValue(stock.Qty))),
-            New("stockmovements", "MovementId", movement.Id, ["MovementId", "MovementDate"],
+            ExistingGeneratedKey("currentstock", stockKey, [GeneratedUtc("LastUpdated", window, "issue-stock-time"), GeneratedExact("RowVersion", CellValue(before.Canonical, "currentstock", stockKey, "RowVersion"), "SQLite fixture preserves the MySQL-generated rowversion")], ("CurrentQty", DecimalValue(stock.Qty))),
+            New("stockmovements", "MovementId", movement.Id, [GeneratedGuid("MovementId", movement.Id), GeneratedUtc("MovementDate", window, "issue-stock-time")],
                 ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("MovementType", Scalar("ISSUE")), ("RefTable", Scalar("inventoryissues")), ("RefId", GuidValue(issue.Id)),
                 ("QuantityIn", DecimalValue(0m)), ("QuantityOut", DecimalValue(5m)), ("BeforeQty", DecimalValue(20m)), ("AfterQty", DecimalValue(15m)),
                 ("LotNumber", NullValue), ("ManufactureDate", NullValue), ("ExpiredDate", NullValue),
-                ("Reason", Scalar("Xuất kho đối chiếu")), ("Note", Scalar($"Phiếu xuất {created.IssueCode}")), ("PerformedBy", GuidValue(fixture.ActorId))),
-            LifecycleTransitionChange(transition), LifecycleOutboxChange(outbox), LifecycleReceiptChange(receipt), AuditChange(lifecycleAudit));
+                ("Reason", Scalar("Xuất kho đối chiếu")), ("Note", Scalar($"Phiếu xuất {issueCode}")), ("PerformedBy", GuidValue(fixture.ActorId))),
+            LifecycleTransitionChange(transition, window, "issue-lifecycle-time"), LifecycleOutboxChange(outbox, window, "issue-lifecycle-time"), LifecycleReceiptChange(receipt, window, "issue-lifecycle-time"), AuditChange(lifecycleAudit));
         after.Should().BeEquivalentTo(before with
         {
             Issues = before.Issues.Append(issue).OrderBy(value => value.Id).ToArray(),
@@ -443,12 +532,13 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         });
     }
 
-    private static void AssertExactIssueConfirmDelta(Snapshot before, Snapshot after, InventoryIssueCreatedDto created, Fixture fixture)
+    private static void AssertExactIssueConfirmDelta(Snapshot before, Snapshot after, InventoryIssueCreatedDto created, Fixture fixture, InvocationWindow window)
     {
         var oldIssue = before.Issues.Single(value => value.Id == created.IssueId);
         var newIssue = after.Issues.Single(value => value.Id == created.IssueId);
         newIssue.Should().Be(oldIssue with { ReceivedBy = fixture.ActorId, ReceivedAt = newIssue.ReceivedAt });
         newIssue.ReceivedAt.Should().NotBeNull();
+        newIssue.ReceivedAt!.Value.Should().BeOnOrAfter(window.UtcStart).And.BeOnOrBefore(window.UtcEnd);
         var audit = after.Audits.Except(before.Audits).Should().ContainSingle().Subject;
         var reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {newIssue.Code}.";
         audit.Should().Be(new AuditValue(audit.Id, newIssue.ReceivedAt!.Value, fixture.ActorId, "KitchenReceipt", nameof(InventoryIssue), created.IssueId,
@@ -464,15 +554,17 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         });
     }
 
-    private static void AssertExactReturnCreateDelta(Snapshot before, Snapshot after, InventoryReturnCreatedDto created, Fixture fixture)
+    private static void AssertExactReturnCreateDelta(Snapshot before, Snapshot after, InventoryReturnCreatedDto created, Fixture fixture, InvocationWindow window)
     {
         var result = after.Returns.Except(before.Returns).Should().ContainSingle().Subject;
         result.Id.Should().Be(created.ReturnId);
+        var returnCode = AssertGeneratedDocumentCode(created.ReturnCode, "RET", window, before.Returns.Select(value => value.Code));
+        result.Code.Should().Be(returnCode, "the DTO and persisted canonical return row must carry the same validated code");
         var line = after.ReturnLines.Except(before.ReturnLines).Should().ContainSingle().Subject;
         line.ReturnId.Should().Be(result.Id);
         line.Quantity.Should().Be(2m);
         before.IssueLines.Should().ContainSingle(x => x.Id == line.SourceIssueLineId && x.ReconciliationBatchLineId == fixture.IssueLineId);
-        var expectedJson = JsonSerializer.Serialize(new InventoryReturnCreatedDto { ReturnId = created.ReturnId, ReturnCode = created.ReturnCode });
+        var expectedJson = JsonSerializer.Serialize(new InventoryReturnCreatedDto { ReturnId = created.ReturnId, ReturnCode = returnCode });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-return", nameof(InventoryReturn), result.Id,
             0, null, "PENDING_RECEIPT", 0, "Return exact reconciliation quantity.", fixture.ActorId, expectedJson);
         var transition = lifecycle.Transitions.Except(before.Transitions).Single();
@@ -481,15 +573,15 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var lifecycleAudit = lifecycle.Audits.Except(before.Audits).Single();
         var stock = before.Stocks.Single();
         var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
-            New("inventoryreturns", "ReturnId", result.Id, ["ReturnId", "CreatedAt"],
-                ("ReturnCode", Scalar(created.ReturnCode)), ("ReturnDate", DateValue(new DateOnly(2026, 8, 30))), ("ShiftName", NullValue),
+            New("inventoryreturns", "ReturnId", result.Id, [GeneratedGuid("ReturnId", result.Id), GeneratedUtc("CreatedAt", window)],
+                ("ReturnCode", Scalar(returnCode)), ("ReturnDate", DateValue(new DateOnly(2026, 8, 30))), ("ShiftName", NullValue),
                 ("ReturnType", Scalar("RETURN")), ("WarehouseId", GuidValue(stock.WarehouseId)), ("IssueId", GuidValue(line.SourceIssueLineId is null ? null : before.IssueLines.Single(x => x.Id == line.SourceIssueLineId).IssueId)),
                 ("Reason", Scalar("Return exact reconciliation quantity.")), ("CreatedBy", GuidValue(fixture.ActorId)),
                 ("ReceivedBy", NullValue), ("ReceivedAt", NullValue)),
-            New("inventoryreturnlines", "ReturnLineId", line.Id, ["ReturnLineId"],
+            New("inventoryreturnlines", "ReturnLineId", line.Id, [GeneratedGuid("ReturnLineId", line.Id)],
                 ("ReturnId", GuidValue(result.Id)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("SourceIssueLineId", GuidValue(line.SourceIssueLineId)), ("Quantity", DecimalValue(2m))),
-            LifecycleTransitionChange(transition), LifecycleOutboxChange(outbox), LifecycleReceiptChange(receipt), AuditChange(lifecycleAudit));
+            LifecycleTransitionChange(transition, window, "return-lifecycle-time"), LifecycleOutboxChange(outbox, window, "return-lifecycle-time"), LifecycleReceiptChange(receipt, window, "return-lifecycle-time"), AuditChange(lifecycleAudit));
         after.Should().BeEquivalentTo(before with
         {
             Returns = before.Returns.Append(result).OrderBy(value => value.Id).ToArray(),
@@ -504,12 +596,13 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         });
     }
 
-    private static void AssertExactReturnConfirmDelta(Snapshot before, Snapshot after, string returnId, Fixture fixture)
+    private static void AssertExactReturnConfirmDelta(Snapshot before, Snapshot after, string returnId, Fixture fixture, InvocationWindow window)
     {
         var oldReturn = before.Returns.Single(x => x.Id == returnId);
         var newReturn = after.Returns.Single(x => x.Id == returnId);
         newReturn.ReceivedBy.Should().Be(fixture.ActorId);
         newReturn.ReceivedAt.Should().NotBeNull();
+        newReturn.ReceivedAt!.Value.Should().BeOnOrAfter(window.UtcStart).And.BeOnOrBefore(window.UtcEnd);
         var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty + 2m };
         var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
         movement.Should().Be(new MovementValue(movement.Id, "RETURN", "inventoryreturns", returnId, 0m, 2m));
@@ -530,14 +623,14 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
             Existing("inventoryreturns", "ReturnId", returnId,
                 ("ReceivedBy", GuidValue(fixture.ActorId)), ("ReceivedAt", DateTimeValue(newReturn.ReceivedAt))),
-            ExistingGeneratedKey("currentstock", stockKey, ["LastUpdated", "RowVersion"], ("CurrentQty", DecimalValue(stock.Qty))),
-            New("stockmovements", "MovementId", movement.Id, ["MovementId", "MovementDate"],
+            ExistingGeneratedKey("currentstock", stockKey, [GeneratedUtc("LastUpdated", window, "return-stock-time"), GeneratedExact("RowVersion", CellValue(before.Canonical, "currentstock", stockKey, "RowVersion"), "SQLite fixture preserves the MySQL-generated rowversion")], ("CurrentQty", DecimalValue(stock.Qty))),
+            New("stockmovements", "MovementId", movement.Id, [GeneratedGuid("MovementId", movement.Id), GeneratedUtc("MovementDate", window, "return-stock-time")],
                 ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("MovementType", Scalar("RETURN")), ("RefTable", Scalar("inventoryreturns")), ("RefId", GuidValue(returnId)),
                 ("QuantityIn", DecimalValue(2m)), ("QuantityOut", DecimalValue(0m)), ("BeforeQty", DecimalValue(15m)), ("AfterQty", DecimalValue(17m)),
                 ("LotNumber", NullValue), ("ManufactureDate", NullValue), ("ExpiredDate", NullValue),
                 ("Reason", Scalar("Trả nguyên liệu dư sau sản xuất")), ("Note", Scalar($"Phiếu trả {returnCode}")), ("PerformedBy", GuidValue(fixture.ActorId))),
-            LifecycleTransitionChange(transition), LifecycleOutboxChange(outbox), LifecycleReceiptChange(receipt),
+            LifecycleTransitionChange(transition, window, "return-confirm-lifecycle-time"), LifecycleOutboxChange(outbox, window, "return-confirm-lifecycle-time"), LifecycleReceiptChange(receipt, window, "return-confirm-lifecycle-time"),
             AuditChange(generatedAudits[0]), AuditChange(generatedAudits[1]));
         after.Should().BeEquivalentTo(before with
         {
@@ -553,11 +646,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         });
     }
 
-    private static void AssertExactActualDelta(Snapshot before, Snapshot after, Fixture fixture)
+    private static void AssertExactActualDelta(Snapshot before, Snapshot after, Fixture fixture, InvocationWindow window)
     {
         var oldActual = before.Actuals.Single(x => x.LineId == fixture.ActualLineId && x.Side == "ISSUED");
         var newActual = after.Actuals.Single(x => x.Id == oldActual.Id);
         newActual.Should().Be(oldActual with { Quantity = 4m, Version = 2, EnteredBy = fixture.ActorId, EnteredAt = newActual.EnteredAt });
+        newActual.EnteredAt.Should().BeOnOrAfter(window.UtcStart).And.BeOnOrBefore(window.UtcEnd);
         var revision = after.Revisions.Except(before.Revisions).Should().ContainSingle().Subject;
         revision.Should().Be(new RevisionValue(revision.Id, oldActual.Id, 5m, 4m, "Correct exact manual ISSUED actual.", fixture.ActorId, revision.ChangedAt));
         after.Should().BeEquivalentTo(before with
@@ -568,13 +662,13 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 Existing("reconciliationactuals", "ActualId", oldActual.Id,
                     ("Quantity", DecimalValue(4m)), ("Version", Scalar(2L)),
                     ("EnteredBy", GuidValue(fixture.ActorId)), ("EnteredAt", DateTimeValue(newActual.EnteredAt))),
-                New("reconciliationactualrevisions", "RevisionId", revision.Id, ["RevisionId", "ChangedAt"],
+                New("reconciliationactualrevisions", "RevisionId", revision.Id, [GeneratedGuid("RevisionId", revision.Id), GeneratedUtc("ChangedAt", window)],
                     ("ActualId", GuidValue(oldActual.Id)), ("OldQuantity", DecimalValue(5m)), ("NewQuantity", DecimalValue(4m)),
                     ("Reason", Scalar("Correct exact manual ISSUED actual.")), ("ChangedBy", GuidValue(fixture.ActorId))))
         });
     }
 
-    private static void AssertExactDispositionDelta(Snapshot before, Snapshot after, Fixture fixture)
+    private static void AssertExactDispositionDelta(Snapshot before, Snapshot after, Fixture fixture, InvocationWindow window)
     {
         var disposition = after.Dispositions.Except(before.Dispositions).Should().ContainSingle().Subject;
         disposition.Should().Be(new DispositionValue(disposition.Id, fixture.ActualLineId, "FOLLOW_UP_REQUIRED",
@@ -583,7 +677,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         {
             Dispositions = before.Dispositions.Append(disposition).OrderBy(value => value.Id).ToArray(),
             Canonical = ReconstructCanonical(before.Canonical, after.Canonical,
-                New("reconciliationdispositions", "DispositionId", disposition.Id, ["DispositionId", "DisposedAt"],
+                New("reconciliationdispositions", "DispositionId", disposition.Id, [GeneratedGuid("DispositionId", disposition.Id), GeneratedUtc("DisposedAt", window)],
                     ("BatchLineId", GuidValue(fixture.ActualLineId)), ("Category", Scalar("FOLLOW_UP_REQUIRED")),
                     ("Reason", Scalar("Investigate exact persisted variance.")), ("Version", Scalar(1L)),
                     ("DisposedBy", GuidValue(fixture.ActorId))))
