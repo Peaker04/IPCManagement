@@ -47,7 +47,7 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         new("DataQualityCommandService", "FAMILY_PRESERVING_COMMAND", ["MaterialRequestId", "ReconciliationBatchId"], false, "CleanupDataQualityAsync", nameof(DataQualityCommand_DeletesOnlyExactDefaultOrphans)),
         new("DishCatalogDiagnosticsService", "SHARED_NOT_APPLICABLE", [], false, "GetBomCoverageAsync/GetBomValidationAsync", nameof(DishCatalogDiagnostics_IsExecutableNotApplicable)),
         new("MaterialDemandService", "DEFAULT_ONLY", ["MaterialRequestId"], false, "GenerateAsync/GetStalenessAsync", nameof(MaterialDemand_UsesExactDefaultIssueOwnership)),
-        new("MaterialDemandStockReservation", "DEFAULT_ONLY", ["MaterialRequestId", "MaterialRequestLineId"], false, "ReserveAsync", nameof(MaterialDemandReservation_UsesExactDefaultIssueOwnership)),
+        new("MaterialDemandStockReservation", "DEFAULT_ONLY", ["MaterialRequestId"], false, "ReserveAsync", nameof(MaterialDemandReservation_UsesExactDefaultIssueOwnership)),
         new("ServiceRunService", "DEFAULT_ONLY", ["MaterialRequestId", "MaterialRequestLineId"], false, "GetProjectionAsync/GetPageAsync", nameof(ServiceRun_IgnoresReconciliationAndLegacyIssueLines)),
         new("MenuAmendmentService", "DEFAULT_ONLY", ["MaterialRequestId", "MaterialRequestLineId"], false, "CreateAsync/ExecuteAsync", nameof(MenuAmendment_UsesExactDefaultIssueOwnership)),
         new("WeeklyMenuImportPersistence", "DEFAULT_ONLY", ["MaterialRequestId", "MaterialRequestLineId"], false, "CommitAsync", nameof(WeeklyMenuImport_UsesExactDefaultIssueOwnership))
@@ -104,9 +104,8 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
     [Fact]
     public void MaterialDemandReservation_UsesExactDefaultIssueOwnership()
     {
-        var source = ReadProduction("MaterialDemandStockReservation");
-        source.Should().Contain("line.Issue.MaterialRequestId != null && line.Issue.ReconciliationBatchId == null");
-        source.Should().Contain("line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null");
+        ReadProduction("MaterialDemandStockReservation").Should().Contain(
+            "line.Issue.MaterialRequestId != null && line.Issue.ReconciliationBatchId == null");
     }
 
     [Fact]

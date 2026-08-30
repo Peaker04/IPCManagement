@@ -427,7 +427,9 @@ public sealed class DataQualityReportService : IDataQualityReportService
 
         var orphanIssues = await _context.Inventoryissues
             .AsNoTracking()
-            .Where(issue => !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
+            .Where(issue =>
+                issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
             .OrderBy(issue => issue.IssueCode)
             .Take(limit)
             .ToListAsync();
