@@ -86,9 +86,12 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
             {
                 var lineIsMaterial = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
                 var lineIsReconciliation = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
-                if (lineIsMaterial == lineIsReconciliation || lineIsMaterial != headerIsMaterial)
+                var validForHeader = headerIsMaterial
+                    ? !lineIsReconciliation
+                    : lineIsReconciliation && !lineIsMaterial;
+                if (!validForHeader)
                 {
-                    context.AddFailure(nameof(request.Lines), "Mỗi dòng xuất phải có đúng một nguồn và cùng loại với nguồn phiếu xuất.");
+                    context.AddFailure(nameof(request.Lines), "Dòng DEFAULT có thể suy ra nguồn chuẩn; dòng đối chiếu phải có đúng nguồn đối chiếu và cùng loại với phiếu xuất.");
                     break;
                 }
             }
@@ -103,8 +106,8 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
     public CreateInventoryIssueLineDtoValidator()
     {
         RuleFor(x => x).Must(x =>
-                !string.IsNullOrWhiteSpace(x.MaterialRequestLineId) ^ !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
-            .WithMessage("Dòng xuất phải có đúng một loại dòng nguồn.");
+                string.IsNullOrWhiteSpace(x.MaterialRequestLineId) || string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
+            .WithMessage("Dòng xuất không được đồng thời tham chiếu cả hai loại dòng nguồn.");
         When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestLineId), () =>
             RuleFor(x => x.MaterialRequestLineId).Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
         When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId), () =>
