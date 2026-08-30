@@ -10,6 +10,7 @@ using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -403,63 +404,88 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
-    public async Task Reconciliation_issue_response_loss_replay_and_synchronized_duplicate_are_exactly_once()
+    public async Task Reconciliation_issue_response_loss_replay_and_true_relational_duplicate_are_exactly_once()
     {
-        await using var context = CreateContext();
-        var fixture = await CreateReconciliationIssueFixtureAsync(context);
-        var first = await fixture.Service.CreateAsync(CloneRequest(fixture.Request), fixture.ActorId);
-        var afterFirst = CaptureEffects(context);
-
-        var replay = await fixture.Service.CreateAsync(CloneRequest(fixture.Request), fixture.ActorId);
-        Assert.Equal(first!.IssueId, replay!.IssueId);
-        Assert.Equal(afterFirst, CaptureEffects(context));
-
-        using var arrival = new Barrier(2);
-        using var serial = new SemaphoreSlim(1, 1);
-        async Task<InventoryIssueCreatedDto?> Submit()
+        var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-phase30-duplicate-{Guid.NewGuid():N}.db");
+        try
         {
-            await Task.Run(() => arrival.SignalAndWait());
-            await serial.WaitAsync();
-            try { return await fixture.Service.CreateAsync(CloneRequest(fixture.Request), fixture.ActorId); }
-            finally { serial.Release(); }
+            var source = await SeedRelationalIssueDatabaseAsync(databasePath, "phase30-relational-duplicate");
+            using var barrier = new Barrier(2);
+            await using var first = await CreateRelationalIssueServiceAsync(databasePath, source, new BarrierPreWriteGate(barrier));
+            await using var second = await CreateRelationalIssueServiceAsync(databasePath, source, new BarrierPreWriteGate(barrier));
+
+            static async Task<(InventoryIssueCreatedDto? Result, Exception? Error)> Submit(RelationalIssueService service)
+            {
+                try { return (await service.Service.CreateAsync(CloneRequest(service.Source.Request), service.Source.ActorId), null); }
+                catch (Exception error) { return (null, error); }
+            }
+
+            var results = await Task.WhenAll(Submit(first), Submit(second));
+            Assert.Single(results, result => result.Result is not null);
+            Assert.Single(results, result => result.Error is DbUpdateException or ResourceConflictException or SqliteException);
+
+            await using var verify = CreateRelationalContext(databasePath);
+            var winner = await verify.Inventoryissues.AsNoTracking().SingleAsync();
+            var response = results.Single(result => result.Result is not null).Result!;
+            Assert.Equal(GuidHelper.ToGuidString(winner.IssueId), response.IssueId);
+            Assert.Single(await verify.Inventoryissuelines.AsNoTracking().ToListAsync());
+            Assert.Single(await verify.Stockmovements.AsNoTracking().ToListAsync());
+            Assert.Equal(18m, await verify.Currentstocks.AsNoTracking().Select(stock => stock.CurrentQty).SingleAsync());
+            Assert.Single(await verify.Lifecycletransitions.AsNoTracking().ToListAsync());
+            Assert.Single(await verify.Lifecyclecommandreceipts.AsNoTracking().ToListAsync());
+
+            await using var replayService = await CreateRelationalIssueServiceAsync(databasePath, source);
+            var replay = await replayService.Service.CreateAsync(CloneRequest(source.Request), source.ActorId);
+            Assert.Equal(response.IssueId, replay!.IssueId);
+            Assert.Equal(1, await verify.Inventoryissues.CountAsync());
+            Assert.Equal(1, await verify.Stockmovements.CountAsync());
+            Assert.Equal(18m, await verify.Currentstocks.Select(stock => stock.CurrentQty).SingleAsync());
         }
-        var duplicates = await Task.WhenAll(Submit(), Submit());
-        Assert.All(duplicates, result => Assert.Equal(first.IssueId, result!.IssueId));
-        Assert.Equal(afterFirst, CaptureEffects(context));
-        Assert.Single(context.Inventoryissues);
-        Assert.Single(context.Inventoryissuelines);
-        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
-            Arg.Any<byte[]>(),
-            Arg.Is<byte[]>(id => id.SequenceEqual(fixture.IngredientId)),
-            Arg.Is<byte[]>(id => id.SequenceEqual(fixture.UnitId)), 2m, "ISSUE", "inventoryissues",
-            Arg.Any<byte[]>(), Arg.Is<byte[]>(id => id.SequenceEqual(fixture.Actor)), Arg.Any<string>(), Arg.Any<string>());
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(databasePath);
+        }
     }
 
     [Fact]
-    public async Task Reconciliation_issue_loses_pre_first_write_mode_race_with_exact_zero_ledger()
+    public async Task Reconciliation_issue_loses_separate_context_mode_change_with_relational_zero_ledger()
     {
-        await using var context = CreateContext();
-        var fixture = await CreateReconciliationIssueFixtureAsync(context);
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var gate = new DeterministicPreWriteGate(entered, release);
-        var guard = new SystemOperationModeGuard(context);
-        var service = new InventoryIssueService(
-            fixture.Repository, fixture.UnitOfWork, fixture.Ledger, new ImmediateTransactionRunner(), fixture.Warehouse,
-            context, fixture.RequestContext, guard, gate);
-        var before = CaptureCompleteLedger(context);
+        var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-phase30-mode-{Guid.NewGuid():N}.db");
+        try
+        {
+            var source = await SeedRelationalIssueDatabaseAsync(databasePath, "phase30-relational-mode");
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await using var authorityRead = CreateRelationalContext(databasePath);
+            await using var command = await CreateRelationalIssueServiceAsync(
+                databasePath, source, new DeterministicPreWriteGate(entered, release), new SystemOperationModeGuard(authorityRead));
+            await using var beforeContext = CreateRelationalContext(databasePath);
+            var before = await CaptureCompleteLedgerAsync(beforeContext);
 
-        var command = service.CreateAsync(fixture.Request, fixture.ActorId);
-        await entered.Task;
-        var authority = await context.Systemoperationmodes.SingleAsync();
-        authority.Version++;
-        await context.SaveChangesAsync();
-        context.ChangeTracker.Clear();
-        release.SetResult();
+            var pending = command.Service.CreateAsync(CloneRequest(source.Request), source.ActorId);
+            await entered.Task;
+            await using (var authorityContext = CreateRelationalContext(databasePath))
+            {
+                var authority = new SystemOperationModeService(
+                    authorityContext, new SystemOperationModeGuard(authorityContext), new EfTransactionRunner(authorityContext));
+                await authority.ChangeAsync(
+                    new IPCManagement.Api.Features.SystemOperation.Contracts.ChangeSystemOperationModeRequest(
+                        SystemOperationEligibility.Default, source.ModeVersion, true, "Deterministic phase 30 race"),
+                    source.ActorId);
+            }
+            release.SetResult();
 
-        await Assert.ThrowsAsync<SystemOperationConflictException>(() => command);
-        Assert.Equal(before with { ModeVersion = before.ModeVersion + 1 }, CaptureCompleteLedger(context));
-        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+            await Assert.ThrowsAsync<SystemOperationConflictException>(() => pending);
+            await using var afterContext = CreateRelationalContext(databasePath);
+            var after = await CaptureCompleteLedgerAsync(afterContext);
+            Assert.Equal(before with { Audits = before.Audits + 1, ModeVersion = before.ModeVersion + 1 }, after);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(databasePath);
+        }
     }
 
     [Fact]
@@ -473,6 +499,219 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
 
         Assert.Equal(before, CaptureEffects(context));
         await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    private static async Task<RelationalIssueSource> SeedRelationalIssueDatabaseAsync(string databasePath, string commandId)
+    {
+        await using var context = CreateRelationalContext(databasePath);
+        await context.Database.EnsureDeletedAsync();
+        await context.Database.EnsureCreatedAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF;");
+
+        var actor = GuidHelper.NewId();
+        var actorId = GuidHelper.ToGuidString(actor);
+        var batchId = GuidHelper.NewId();
+        var lineId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        var warehouseId = GuidHelper.NewId();
+        var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
+        var warehouse = new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH-R", WarehouseName = "Relational warehouse", WarehouseType = "MAIN", IsOperationalActive = true };
+        var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "ING-R", IngredientName = "Relational ingredient", UnitId = unitId, WarehouseId = warehouseId, Unit = unit, Warehouse = warehouse, IsActive = true };
+        context.AddRange(unit, warehouse, ingredient,
+            new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20 },
+            new SystemOperationMode { Id = 1, Mode = SystemOperationEligibility.MaterialReconciliation, Version = 7, UpdatedAt = DateTime.UtcNow, UpdatedBy = actor },
+            new ReconciliationBatch
+            {
+                BatchId = batchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(),
+                Status = "TRANSFERRED", Version = 3, CreatedBy = actor, CreatedAt = DateTime.UtcNow,
+                Lines =
+                [
+                    new ReconciliationBatchLine
+                    {
+                        BatchLineId = lineId, IngredientId = ingredientId, CanonicalUnitId = unitId,
+                        RequiredQuantity = 2, FrozenTolerance = 0.1m, ToleranceSourceKind = "SYSTEM_DEFAULT",
+                        ToleranceSourceVersion = "1", Version = 1
+                    }
+                ]
+            });
+        await context.SaveChangesAsync();
+
+        return new RelationalIssueSource(
+            actorId, 7,
+            new CreateInventoryIssueRequest
+            {
+                CommandId = commandId,
+                ExpectedVersion = 3,
+                IssueDate = new DateOnly(2026, 8, 26),
+                ReconciliationBatchId = GuidHelper.ToGuidString(batchId),
+                Lines =
+                [
+                    new CreateInventoryIssueLineRequest
+                    {
+                        ReconciliationBatchLineId = GuidHelper.ToGuidString(lineId),
+                        IngredientId = GuidHelper.ToGuidString(ingredientId),
+                        UnitId = GuidHelper.ToGuidString(unitId),
+                        RequestedQty = 2,
+                        IssuedQty = 2
+                    }
+                ]
+            });
+    }
+
+    private static async Task<RelationalIssueService> CreateRelationalIssueServiceAsync(
+        string databasePath,
+        RelationalIssueSource source,
+        IInventoryIssuePreWriteGate? gate = null,
+        SystemOperationModeGuard? guard = null)
+    {
+        var context = CreateRelationalContext(databasePath);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000;");
+        var requestContext = new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            OperationKey = "inventory.issues.create.reconciliation",
+            ExpectedModeVersion = source.ModeVersion,
+            Disposition = OperationDisposition.ReconciliationOnly,
+        };
+        var resolvedGuard = guard ?? new SystemOperationModeGuard(context);
+        var service = new InventoryIssueService(
+            new InventoryIssueRepository(context),
+            new UnitOfWork(context),
+            new StockLedgerService(new CurrentStockRepository(context), new StockMovementRepository(context)),
+            new SqliteDeferredTransactionRunner(context, requestContext, resolvedGuard),
+            new FixedWarehouseResolver(await context.Warehouses.AsNoTracking().Select(item => item.WarehouseId).SingleAsync()),
+            context,
+            requestContext,
+            resolvedGuard,
+            gate);
+        return new RelationalIssueService(context, service, source);
+    }
+
+    private static RelationalIssueContext CreateRelationalContext(string databasePath)
+    {
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Private,
+            Pooling = false,
+            DefaultTimeout = 5,
+            ForeignKeys = false,
+        }.ToString();
+        return new RelationalIssueContext(new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite(connectionString).Options);
+    }
+
+    private static async Task<CompleteLedger> CaptureCompleteLedgerAsync(IpcManagementContext context)
+    {
+        var batch = await context.Reconciliationbatches.AsNoTracking().SingleAsync();
+        var stocks = await context.Currentstocks.AsNoTracking().OrderBy(item => item.IngredientId).Select(item => item.CurrentQty).ToListAsync();
+        return new CompleteLedger(
+            await context.Inventoryissues.CountAsync(),
+            await context.Inventoryissuelines.CountAsync(),
+            await context.Stockmovements.CountAsync(),
+            string.Join('|', stocks.Select(item => $"{item:F6}")),
+            await context.Auditlogs.CountAsync(),
+            await context.Lifecycletransitions.CountAsync(),
+            string.Join('|', await context.Lifecyclecommandreceipts.AsNoTracking().OrderBy(item => item.CommandId).Select(item => item.CommandId).ToListAsync()),
+            batch.Status,
+            batch.Version,
+            await context.Systemoperationmodes.Select(item => item.Version).SingleAsync());
+    }
+
+    private sealed class SqliteDeferredTransactionRunner(
+        RelationalIssueContext context,
+        SystemOperationRequestContext requestContext,
+        SystemOperationModeGuard modeGuard) : IEfTransactionRunner
+    {
+        public Task ExecuteAsync(Func<CancellationToken, Task> operation, Func<CancellationToken, Task<bool>> verifySucceeded,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default) =>
+            ExecuteAsync(async token => { await operation(token); return true; }, verifySucceeded, isolationLevel, cancellationToken);
+
+        public Task<TResult> ExecuteProtectedAsync<TResult>(string operationKey, long expectedModeVersion,
+            Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            requestContext.OperationKey = operationKey;
+            requestContext.ExpectedModeVersion = expectedModeVersion;
+            return ExecuteAsync(operation, verifySucceeded, isolationLevel, cancellationToken);
+        }
+
+        public async Task<TResult> ExecuteAsync<TResult>(Func<CancellationToken, Task<TResult>> operation,
+            Func<CancellationToken, Task<bool>> verifySucceeded,
+            System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
+        {
+            await context.Database.OpenConnectionAsync(cancellationToken);
+            var connection = (SqliteConnection)context.Database.GetDbConnection();
+            await using var transaction = connection.BeginTransaction(System.Data.IsolationLevel.Serializable, deferred: true);
+            await context.Database.UseTransactionAsync(transaction, cancellationToken);
+            try
+            {
+                await modeGuard.ValidateAsync(
+                    requestContext.OperationKey ?? throw new InvalidOperationException("Operation key is required."),
+                    requestContext.ExpectedModeVersion ?? throw new InvalidOperationException("Expected mode version is required."),
+                    requestContext.Disposition,
+                    cancellationToken);
+                var result = await operation(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+            finally
+            {
+                await context.Database.UseTransactionAsync(null, cancellationToken);
+                await context.Database.CloseConnectionAsync();
+            }
+        }
+    }
+
+    private sealed class BarrierPreWriteGate(Barrier barrier) : IInventoryIssuePreWriteGate
+    {
+        public Task WaitAsync(CancellationToken cancellationToken) => Task.Run(() =>
+        {
+            if (!barrier.SignalAndWait(TimeSpan.FromSeconds(10), cancellationToken))
+                throw new TimeoutException("Both relational submissions did not reach the pre-write barrier.");
+        }, cancellationToken);
+    }
+
+    private sealed class FixedWarehouseResolver(byte[] warehouseId) : IOperationalWarehouseResolver
+    {
+        public Task<byte[]> ResolveAsync(CancellationToken cancellationToken = default) => Task.FromResult(warehouseId);
+    }
+
+    private sealed class RelationalIssueContext(DbContextOptions<IpcManagementContext> options) : IpcManagementContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.UseCollation("BINARY");
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+                foreach (var index in entity.GetIndexes())
+                    index.SetDatabaseName($"{entity.GetTableName()}_{index.GetDatabaseName()}");
+            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(entity => entity.GetProperties()))
+            {
+                if (property.GetColumnType()?.StartsWith("enum(", StringComparison.OrdinalIgnoreCase) == true)
+                    property.SetColumnType("TEXT");
+                if (property.GetCollation()?.Contains("utf8mb4", StringComparison.OrdinalIgnoreCase) == true)
+                    property.SetCollation("BINARY");
+                if (property.GetDefaultValueSql()?.Contains("CURRENT_TIMESTAMP(6)", StringComparison.OrdinalIgnoreCase) == true)
+                    property.SetDefaultValueSql("CURRENT_TIMESTAMP");
+            }
+        }
+    }
+
+    private sealed record RelationalIssueSource(string ActorId, long ModeVersion, CreateInventoryIssueRequest Request);
+
+    private sealed class RelationalIssueService(RelationalIssueContext context, InventoryIssueService service, RelationalIssueSource source) : IAsyncDisposable
+    {
+        public InventoryIssueService Service { get; } = service;
+        public RelationalIssueSource Source { get; } = source;
+        public ValueTask DisposeAsync() => context.DisposeAsync();
     }
 
     private static async Task<ReconciliationIssueFixture> CreateReconciliationIssueFixtureAsync(

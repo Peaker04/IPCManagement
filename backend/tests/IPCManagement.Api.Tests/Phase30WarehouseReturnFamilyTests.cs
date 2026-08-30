@@ -5,6 +5,8 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Reconciliation.Contracts;
+using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -280,6 +282,37 @@ public partial class WorkflowGenerationTests
         var issueLineId = GuidHelper.NewId();
         var reconciliationBatchId = GuidHelper.NewId();
         var reconciliationBatchLineId = GuidHelper.NewId();
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
+            CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
+            CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, sourceQuantity TEXT NOT NULL);
+            CREATE TABLE reconciliationactuals (actualId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, side TEXT NOT NULL, quantity TEXT NOT NULL, version INTEGER NOT NULL, enteredBy BLOB NOT NULL, enteredAt TEXT NOT NULL);
+            CREATE TABLE reconciliationdispositions (dispositionId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
+            """);
+        context.Reconciliationbatches.Add(new ReconciliationBatch
+        {
+            BatchId = reconciliationBatchId,
+            MenuVersionId = GuidHelper.NewId(),
+            QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "IN_PROGRESS",
+            Version = 1,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Lines =
+            [
+                new ReconciliationBatchLine
+                {
+                    BatchLineId = reconciliationBatchLineId,
+                    IngredientId = fixture.IngredientId,
+                    CanonicalUnitId = fixture.UnitId,
+                    RequiredQuantity = 3m,
+                    FrozenTolerance = 100m,
+                    ToleranceSourceKind = "SYSTEM_DEFAULT",
+                    ToleranceSourceVersion = "1",
+                    Version = 1,
+                }
+            ]
+        });
         context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = issueId,
@@ -361,5 +394,22 @@ public partial class WorkflowGenerationTests
             .SumAsync(line => line.Quantity);
         defaultReturned.Should().Be(0m);
         (reconciliationIssued - reconciliationReturned).Should().Be(3m);
+
+        var requestContext = new SystemOperationRequestContext
+        {
+            Mode = SystemOperationEligibility.MaterialReconciliation,
+            OperationKey = "reconciliation.batches.complete",
+            ExpectedModeVersion = 3,
+            Disposition = OperationDisposition.ReconciliationOnly,
+        };
+        var transactions = new ImmediateTransactionRunner();
+        var batches = new ReconciliationBatchService(context, transactions, requestContext);
+        var completed = await new ReconciliationCompletionService(context, batches, transactions, requestContext)
+            .CompleteAsync(GuidHelper.ToGuidString(reconciliationBatchId), new CompleteReconciliationBatchRequest(1), fixture.UserIdString);
+
+        completed.Status.Should().Be("COMPLETED");
+        completed.Lines.Single().IssuedQuantity.Should().Be(3m);
+        (await context.Inventoryissuelines.Where(line => line.MaterialRequestLineId != null).SumAsync(line => (decimal?)line.IssuedQty) ?? 0m)
+            .Should().Be(0m);
     }
 }

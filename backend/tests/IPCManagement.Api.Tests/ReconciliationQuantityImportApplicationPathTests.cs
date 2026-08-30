@@ -1,5 +1,10 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Caching;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Services;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.Reconciliation.Controllers;
 using IPCManagement.Api.Features.Reconciliation.Services;
@@ -12,6 +17,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
 
@@ -77,6 +83,47 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         var ready = Payload<ReconciliationBatchDto>(await controller.Ready(
             first.ReconciliationBatchId, new ReadyReconciliationBatchRequest(readback.Version), default));
         Assert.Equal("READY", ready.Status);
+    }
+
+    [Fact]
+    public async Task Ready_projection_is_frozen_after_authorized_master_edits_and_new_source_version_uses_new_authority()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Frozen authority source"), default));
+        var committed = Payload<QuantityImportCommitDto>(await fixture.Controller.CommitQuantityImport(
+            new(preview.Token, preview.ContentFingerprint, "Frozen authority source"), default));
+        var draft = Payload<ReconciliationBatchDto>(await fixture.Controller.Get(committed.ReconciliationBatchId, default));
+        var ready = Payload<ReconciliationBatchDto>(await fixture.Controller.Ready(
+            draft.BatchId, new ReadyReconciliationBatchRequest(draft.Version), default));
+        Assert.Equal("READY", ready.Status);
+        var frozen = await fixture.PersistedIdentityProjectionAsync(committed.ReconciliationBatchId);
+
+        var warehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
+        warehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(fixture.WarehouseId);
+        await new IngredientService(new IngredientRepository(fixture.Context), warehouseResolver).UpdateAsync(
+            GuidHelper.ToGuidString(fixture.IngredientId), new UpdateIngredientRequest { IngredientName = "Ingredient edited", ReferencePrice = 999m });
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        await new DishCatalogService(new DishRepository(fixture.Context), fixture.Context, cache).UpdateAsync(
+            GuidHelper.ToGuidString(fixture.DishId), new UpdateDishRequest { DishName = "Dish edited" });
+        await new DishBomService(fixture.Context, cache).UpdateBomLineAsync(
+            GuidHelper.ToGuidString(fixture.DishId), GuidHelper.ToGuidString(fixture.BomId),
+            new UpdateDishBomLineRequest { GrossQtyPerServing = 0.2m, EffectiveFrom = new DateOnly(2026, 8, 26), Reason = "Phase 30 frozen snapshot proof" },
+            GuidHelper.ToGuidString(fixture.ActorId));
+
+        Assert.Equal(frozen, await fixture.PersistedIdentityProjectionAsync(committed.ReconciliationBatchId));
+
+        var newVersionId = await fixture.CreateNextMenuSourceVersionAsync();
+        var nextPreview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(newVersionId), "New authority source"), default));
+        var nextCommit = Payload<QuantityImportCommitDto>(await fixture.Controller.CommitQuantityImport(
+            new(nextPreview.Token, nextPreview.ContentFingerprint, "New authority source"), default));
+        var next = Payload<ReconciliationBatchDto>(await fixture.Controller.Get(nextCommit.ReconciliationBatchId, default));
+
+        Assert.NotEqual(committed.ImportBatchId, nextCommit.ImportBatchId);
+        Assert.NotEqual(committed.ReconciliationBatchId, nextCommit.ReconciliationBatchId);
+        Assert.Equal(2m, Assert.Single(next.Lines).RequiredQuantity);
+        Assert.Equal(1m, Assert.Single(ready.Lines).RequiredQuantity);
     }
 
     [Fact]
@@ -191,8 +238,12 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         public ReconciliationBatchesController Controller { get; }
         public byte[] MenuVersionId { get; }
         public byte[] ActorId { get; }
+        public byte[] IngredientId { get; }
+        public byte[] DishId { get; }
+        public byte[] BomId { get; }
+        public byte[] WarehouseId { get; }
 
-        private Fixture(SqliteConnection connection, ServiceProvider serviceProvider, ImportTestContext context, ReconciliationBatchesController controller, byte[] menuVersionId, byte[] actorId)
+        private Fixture(SqliteConnection connection, ServiceProvider serviceProvider, ImportTestContext context, ReconciliationBatchesController controller, byte[] menuVersionId, byte[] actorId, byte[] ingredientId, byte[] dishId, byte[] bomId, byte[] warehouseId)
         {
             this.connection = connection;
             this.serviceProvider = serviceProvider;
@@ -200,6 +251,10 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             Controller = controller;
             MenuVersionId = menuVersionId;
             ActorId = actorId;
+            IngredientId = ingredientId;
+            DishId = dishId;
+            BomId = bomId;
+            WarehouseId = warehouseId;
         }
 
         public static async Task<Fixture> CreateAsync()
@@ -217,7 +272,8 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             var planId = GuidHelper.NewId();
             var actorId = GuidHelper.NewId();
             var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram", BaseUnitCode = "KG", ConvertRateToBase = 1m };
-            var ingredient = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "ING-1", IngredientName = "Ingredient", UnitId = unit.UnitId, WarehouseId = GuidHelper.NewId(), ReferencePrice = 1m, IsActive = true, Unit = unit };
+            var warehouseId = GuidHelper.NewId();
+            var ingredient = new Ingredient { IngredientId = GuidHelper.NewId(), IngredientCode = "ING-1", IngredientName = "Ingredient", UnitId = unit.UnitId, WarehouseId = warehouseId, ReferencePrice = 1m, IsActive = true, Unit = unit };
             var dish = new Dish { DishId = GuidHelper.NewId(), DishCode = "DISH-1", DishName = "Dish", IsActive = true };
             var menu = new Menu { MenuId = menuId, MenuCode = "MENU-1", MenuName = "Menu", IsActive = true };
             var menuItem = new MenuItem { MenuItemId = GuidHelper.NewId(), MenuId = menuId, Menu = menu, DishId = dish.DishId, Dish = dish, DisplayOrder = 1 };
@@ -244,7 +300,68 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             services.AddSingleton<ICurrentUserService>(new StubCurrentUser(GuidHelper.ToGuidString(actorId)));
             var serviceProvider = services.BuildServiceProvider();
             var controller = serviceProvider.GetRequiredService<ReconciliationBatchesController>();
-            return new Fixture(connection, serviceProvider, context, controller, menuVersionId, actorId);
+            return new Fixture(connection, serviceProvider, context, controller, menuVersionId, actorId, ingredient.IngredientId, dish.DishId, bom.BomId, warehouseId);
+        }
+
+        public async Task<IReadOnlyList<string>> PersistedIdentityProjectionAsync(string batchId)
+        {
+            var parsed = GuidHelper.ParseGuidString(batchId)!;
+            var batch = await Context.Reconciliationbatches.AsNoTracking().SingleAsync(item => item.BatchId == parsed);
+            var lines = await Context.Reconciliationbatchlines.AsNoTracking()
+                .Where(line => line.BatchId == parsed)
+                .OrderBy(line => line.BatchLineId)
+                .Select(line => new
+                {
+                    line.BatchLineId, line.BatchId, line.IngredientId, line.CanonicalUnitId, line.RequiredQuantity,
+                    line.FrozenTolerance, line.ToleranceSourceKind, line.ToleranceSourceVersion, line.Version
+                }).ToListAsync();
+            var contributors = await Context.Reconciliationbatchcontributors.AsNoTracking()
+                .Where(item => lines.Select(line => line.BatchLineId).Contains(item.BatchLineId))
+                .OrderBy(item => item.ContributorId)
+                .Select(item => new { item.ContributorId, item.BatchLineId, item.MenuScheduleId, item.MealQuantityPlanLineId, item.DishBomId, item.SourceQuantity })
+                .ToListAsync();
+            return
+            [
+                $"B|{GuidHelper.ToGuidString(batch.BatchId)}|{GuidHelper.ToGuidString(batch.MenuVersionId)}|{GuidHelper.ToGuidString(batch.QuantityImportBatchId)}|{batch.Status}|{batch.Version}|{batch.CreatedAt:O}|{Convert.ToHexString(batch.CreatedBy)}",
+                .. lines.Select(line => $"L|{Convert.ToHexString(line.BatchLineId)}|{Convert.ToHexString(line.BatchId)}|{Convert.ToHexString(line.IngredientId)}|{Convert.ToHexString(line.CanonicalUnitId)}|{line.RequiredQuantity:F6}|{line.FrozenTolerance:F6}|{line.ToleranceSourceKind}|{line.ToleranceSourceVersion}|{line.Version}"),
+                .. contributors.Select(item => $"C|{Convert.ToHexString(item.ContributorId)}|{Convert.ToHexString(item.BatchLineId)}|{Convert.ToHexString(item.MenuScheduleId)}|{Convert.ToHexString(item.MealQuantityPlanLineId)}|{Convert.ToHexString(item.DishBomId)}|{item.SourceQuantity:F6}")
+            ];
+        }
+
+        public async Task<byte[]> CreateNextMenuSourceVersionAsync()
+        {
+            var existingVersion = await Context.Menuversions.AsNoTracking().SingleAsync(item => item.MenuVersionId == MenuVersionId);
+            var existingSchedule = await Context.Menuschedules.AsNoTracking().SingleAsync(item => item.MenuVersionId == MenuVersionId);
+            var existingLine = await Context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == existingSchedule.MenuScheduleId);
+            var versionId = GuidHelper.NewId();
+            var scheduleId = GuidHelper.NewId();
+            var planId = GuidHelper.NewId();
+            var serviceDate = existingSchedule.ServiceDate.AddDays(7);
+            var version = new MenuVersion
+            {
+                MenuVersionId = versionId, CustomerId = existingVersion.CustomerId, WeekStartDate = existingVersion.WeekStartDate.AddDays(7),
+                VersionNo = existingVersion.VersionNo + 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            };
+            var schedule = new MenuSchedule
+            {
+                MenuScheduleId = scheduleId, CustomerId = existingSchedule.CustomerId, MenuId = existingSchedule.MenuId,
+                MenuVersionId = versionId, MenuVersion = version, MenuPrice = existingSchedule.MenuPrice, ServiceDate = serviceDate,
+                WeekStartDate = existingSchedule.WeekStartDate.AddDays(7), ShiftName = existingSchedule.ShiftName, Status = "ACTIVE"
+            };
+            var plan = new MealQuantityPlan
+            {
+                QuantityPlanId = planId, PlanCode = "QTY-2", ServiceDate = serviceDate, Status = "COMPLETED",
+                CompletedAt = DateTime.UtcNow, RowVersion = DateTime.UtcNow
+            };
+            var line = new MealQuantityPlanLine
+            {
+                QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan,
+                MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = existingLine.CustomerId, MenuId = existingLine.MenuId,
+                ShiftName = existingLine.ShiftName, ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow
+            };
+            Context.AddRange(version, schedule, plan, line);
+            await Context.SaveChangesAsync();
+            return versionId;
         }
 
         public async Task<IReadOnlyList<string>> PersistedProjectionAsync()
