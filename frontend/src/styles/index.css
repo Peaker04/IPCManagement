@@ -614,12 +614,125 @@ code {
 
 .ipc-table-shell {
   min-width: 0;
-  border: 1px solid #d8e2ef;
+  border: 1px solid #e2e8f0;
   border-radius: var(--ipc-radius-md);
   background: #ffffff;
   overflow-x: auto;
   overflow-y: visible;
   overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+[data-slot="table-container"],
+.ipc-table-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar,
+.ipc-table-viewport::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-track,
+.ipc-table-viewport::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-thumb,
+.ipc-table-viewport::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+[data-slot="table-container"]::-webkit-scrollbar-thumb:hover,
+.ipc-table-viewport::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.ipc-erp-grid-table,
+.ipc-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+}
+
+.ipc-erp-grid-table thead,
+.ipc-data-table thead {
+  background-color: #f1f5f9;
+}
+
+.ipc-erp-grid-table th,
+.ipc-data-table th {
+  background-color: #f1f5f9;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: #334155;
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+
+.ipc-erp-grid-table td,
+.ipc-data-table td {
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  color: #1e293b;
+}
+
+.ipc-erp-grid-table tr:hover td,
+.ipc-data-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+.ipc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.ipc-status-badge.is-success {
+  color: #047857 !important;
+  font-weight: 600;
+}
+
+.ipc-status-badge.is-warning {
+  color: #b45309 !important;
+  font-weight: 600;
+}
+
+.ipc-status-badge.is-danger {
+  color: #b91c1c !important;
+  font-weight: 600;
+}
+
+.ipc-status-badge.is-info {
+  color: #1d4ed8 !important;
+  font-weight: 600;
+}
+
+.ipc-status-badge.is-neutral {
+  color: #475569 !important;
+  font-weight: 500;
+}
+
+.ipc-status-badge-dot {
+  display: none !important;
 }
 
 .ipc-section-panel > .ipc-table-shell,

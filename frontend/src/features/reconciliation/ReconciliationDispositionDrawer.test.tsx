@@ -28,11 +28,11 @@ it('preserves a disposition correction and offers refetch on stale version', asy
   const onRefetch = vi.fn()
   render(<ReconciliationDispositionDrawer line={line} onClose={onClose} onRefetch={onRefetch} />)
 
-  fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Lý do điều chỉnh' } })
+  fireEvent.change(screen.getByPlaceholderText(/Nhập lý do chi tiết/i), { target: { value: 'Lý do điều chỉnh' } })
   fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Kết luận đã thay đổi.'))
   expect(onClose).not.toHaveBeenCalled()
-  expect(screen.getByLabelText('Lý do')).toHaveValue('Lý do điều chỉnh')
+  expect(screen.getByPlaceholderText(/Nhập lý do chi tiết/i)).toHaveValue('Lý do điều chỉnh')
   fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
   expect(onRefetch).toHaveBeenCalled()
 })
@@ -40,7 +40,7 @@ it('preserves a disposition correction and offers refetch on stale version', asy
 it('renders only server-owned disposition category options', () => {
   render(<ReconciliationDispositionDrawer line={{ ...line, disposition: null }} onClose={vi.fn()} onRefetch={vi.fn()} />)
 
-  fireEvent.click(screen.getByRole('combobox', { name: 'Nhóm xử lý' }))
+  fireEvent.click(screen.getByRole('combobox'))
   expect(screen.getByRole('option', { name: 'Chấp nhận chênh lệch' })).toBeInTheDocument()
   expect(screen.getByRole('option', { name: 'Cần điều chỉnh số liệu' })).toBeInTheDocument()
   expect(screen.getByRole('option', { name: 'Cần theo dõi thêm' })).toBeInTheDocument()

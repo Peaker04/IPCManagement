@@ -243,6 +243,48 @@ export const formatLegacyDispositionStatus = (status?: string) => {
     ?? 'Cần kiểm tra trạng thái';
 };
 
+const reconciliationBatchStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
+  DRAFT: { label: 'Bản nháp', tone: 'neutral' },
+  READY: { label: 'Sẵn sàng', tone: 'neutral' },
+  INPROGRESS: { label: 'Đang đối chiếu', tone: 'warning' },
+  IN_PROGRESS: { label: 'Đang đối chiếu', tone: 'warning' },
+  COMPLETED: { label: 'Hoàn tất', tone: 'neutral' },
+};
+
+export const getReconciliationBatchStatusPresentation = (status?: string): WorkflowStatusPresentation => {
+  const value = status?.trim();
+  if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
+  return reconciliationBatchStatusPresentations[normalizeStatusCode(value)]
+    ?? { label: value, tone: 'neutral' };
+};
+
+export const formatReconciliationBatchStatus = (status?: string) =>
+  getReconciliationBatchStatusPresentation(status).label;
+
+const reconciliationLineStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
+  MATCHED: { label: 'Khớp', tone: 'neutral' },
+  NEEDSREVIEW: { label: 'Cần kiểm tra', tone: 'warning' },
+  NEEDS_REVIEW: { label: 'Cần kiểm tra', tone: 'warning' },
+  INCOMPLETE: { label: 'Chưa đủ số liệu', tone: 'neutral' },
+};
+
+export const getReconciliationLineStatusPresentation = (status?: string): WorkflowStatusPresentation => {
+  const value = status?.trim();
+  if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
+  return reconciliationLineStatusPresentations[normalizeStatusCode(value)]
+    ?? { label: value, tone: 'neutral' };
+};
+
+export const formatReconciliationLineStatus = (status?: string) =>
+  getReconciliationLineStatusPresentation(status).label;
+
+export const formatOperationMode = (mode?: string) => {
+  const normalized = normalizeStatusCode(mode ?? '');
+  if (normalized === 'MATERIALRECONCILIATION') return 'Đối chiếu nguyên liệu';
+  if (normalized === 'DEFAULT') return 'Mặc định';
+  return mode?.trim() || 'Mặc định';
+};
+
 export const toneFromStatus = (status?: string): WorkflowTone => getWorkflowStatusPresentation(status).tone;
 
 export const formatWorkflowStatus = (status?: string) => {

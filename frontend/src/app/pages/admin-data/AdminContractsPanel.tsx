@@ -194,16 +194,16 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
               <div className="grid gap-4">
                 <TableViewport caption="Danh sách hợp đồng khách hàng" ariaLabel="Bảng hợp đồng khách hàng">
-                  <table className="ipc-data-table text-sm">
+                  <table className="ipc-erp-grid-table w-full text-sm">
                     <thead>
                       <tr>
-                        <th>Khách hàng</th>
-                        <th>Ngày làm việc</th>
-                        <th>Ca</th>
-                        <th>Hiệu lực</th>
+                        <th className="text-left">Khách hàng</th>
+                        <th className="text-left">Ngày làm việc</th>
+                        <th className="text-left">Ca</th>
+                        <th className="text-left">Hiệu lực</th>
                         <th className="text-right">Đơn giá</th>
                         <th className="text-right">BOM áp dụng</th>
-                        <th>Trạng thái</th>
+                        <th className="text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>

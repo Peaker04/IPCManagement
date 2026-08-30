@@ -55,10 +55,18 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
         </label>
       </div>
       <TableViewport ariaLabel="Nhóm dòng đơn mua chờ nhập kho" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để kiểm tra và ghi nhận nhập kho.">
-      <table className="ipc-data-table min-w-[900px]">
-        <thead><tr><th>Nguyên liệu</th><th className="text-right">Đã nhận / đặt</th><th className="text-right">Đơn giá đặt</th><th>Bằng chứng bắt buộc</th><th className="text-right">Thao tác</th></tr></thead>
+      <table className="ipc-erp-grid-table w-full min-w-[900px]">
+        <thead>
+          <tr>
+            <th className="text-left">Nguyên liệu</th>
+            <th className="text-right">Đã nhận / đặt</th>
+            <th className="text-right">Đơn giá đặt</th>
+            <th className="text-left">Bằng chứng bắt buộc</th>
+            <th className="text-right">Thao tác</th>
+          </tr>
+        </thead>
         <tbody>
-          {groups.length === 0 ? <tr><td colSpan={5} className="h-40 text-center text-slate-600">Không có dòng đơn mua khớp bộ lọc.</td></tr> : groups.flatMap((group) => {
+          {groups.length === 0 ? <tr><td colSpan={5} className="h-40 text-center text-slate-500">Không có dòng đơn mua khớp bộ lọc.</td></tr> : groups.flatMap((group) => {
             const expanded = expandedGroupKey === group.key;
             const remaining = Math.max(group.orderedQty - group.receivedQty, 0);
             const prices = group.lines.map((line) => line.unitPrice);

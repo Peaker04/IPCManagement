@@ -71,7 +71,7 @@ describe('ReconciliationWorkspace lifecycle', () => {
     previewState = { isLoading: false, isError: false, data: await previewQuantityImport.mock.results[0].value.unwrap() }
     view.rerender(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" menuVersionLabel="ANV · tuần 25/08/2026" />)
     expect(screen.getByText('1 kế hoạch · 1 dòng nguồn')).toBeInTheDocument()
-    expect(screen.getByText('AAAAAAAAAAAA')).toBeInTheDocument()
+    expect(screen.getByText(/AAAAAAAAAAAAAAAA/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cam kết nguồn số suất' }))
     const dialog = screen.getByRole('dialog', { name: 'Cam kết nguồn số suất?' })
     expect(dialog).toHaveTextContent('ANV · tuần 25/08/2026')
@@ -81,7 +81,7 @@ describe('ReconciliationWorkspace lifecycle', () => {
 
     batches = [draft]
     view.rerender(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" menuVersionLabel="ANV · tuần 25/08/2026" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sẵn sàng đối chiếu' }))
+    fireEvent.click(screen.getByRole('button', { name: /Sẵn sàng đối chiếu/i }))
     await waitFor(() => expect(ready).toHaveBeenCalledWith({ id: 'batch-1', expectedVersion: 1 }))
   })
 
@@ -119,21 +119,22 @@ describe('ReconciliationWorkspace lifecycle', () => {
 
     render(<ReconciliationWorkspace owner="weekly-menu" menuVersionId="menu-1" />)
 
-    const batchButton = screen.getByRole('button', { name: new RegExp(batchId) })
+    const batchButton = screen.getByRole('button', { name: new RegExp(`Lô.*${batchId}`) })
     expect(batchButton).toHaveTextContent(batchId)
     expect(batchButton).toHaveAttribute('title', `Lô đối chiếu ${batchId}`)
+    expect(screen.getByRole('button', { name: `Sao chép mã lô ${batchId}` })).toBeInTheDocument()
   })
 
   it('gates completion and disposition to manager/admin while preserving read access', () => {
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [triggeredLine] }]
     const view = render(<ReconciliationWorkspace owner="reports" />)
-    expect(screen.queryByRole('button', { name: 'Hoàn tất đối chiếu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Hoàn tất đối chiếu/i })).not.toBeInTheDocument()
     expect(screen.getByText('Cần kiểm tra')).toBeInTheDocument()
 
     role = 'quanly'
     view.rerender(<ReconciliationWorkspace owner="reports" />)
-    expect(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Hoàn tất đối chiếu/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Xử lý chênh lệch/i })).toBeInTheDocument()
   })
 
   it('recovers an actual correction after conflict by hydrating the refreshed version', async () => {
@@ -144,17 +145,18 @@ describe('ReconciliationWorkspace lifecycle', () => {
       .mockReturnValueOnce(unwrap())
     const view = render(<ReconciliationWorkspace owner="purchasing" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cập nhật số liệu' }))
-    fireEvent.change(screen.getByLabelText('Lý do điều chỉnh'), { target: { value: 'Theo hóa đơn đầu tiên' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }))
+    fireEvent.click(screen.getByRole('button', { name: /Cập nhật số liệu/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Nhập lý do điều chỉnh/i), { target: { value: 'Theo hóa đơn đầu tiên' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu số lượng' }))
     await screen.findByRole('alert')
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
 
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [{ ...triggeredLine, purchasedQuantity: 13, purchasedVersion: 5 }] }]
     view.rerender(<ReconciliationWorkspace owner="purchasing" />)
-    expect(screen.getByLabelText('Số lượng')).toHaveValue(13)
-    fireEvent.change(screen.getByLabelText('Lý do điều chỉnh'), { target: { value: 'Theo hóa đơn mới' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu' }))
+    fireEvent.click(screen.getByRole('button', { name: /Cập nhật số liệu/i }))
+    expect(screen.getByRole('spinbutton')).toHaveValue(13)
+    fireEvent.change(screen.getByPlaceholderText(/Nhập lý do điều chỉnh/i), { target: { value: 'Theo hóa đơn mới' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu số lượng' }))
     await waitFor(() => expect(setActual).toHaveBeenLastCalledWith({ lineId: 'line-1', side: 'purchased', quantity: 13, confirmZero: false, expectedVersion: 5, correctionReason: 'Theo hóa đơn mới' }))
   })
 
@@ -167,16 +169,17 @@ describe('ReconciliationWorkspace lifecycle', () => {
       .mockReturnValueOnce(unwrap())
     const view = render(<ReconciliationWorkspace owner="reports" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sửa xử lý' }))
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Lý do xung đột' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sửa xử lý/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Nhập lý do chi tiết/i), { target: { value: 'Lý do xung đột' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
     await screen.findByRole('alert')
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
 
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [{ ...triggeredLine, disposition: { ...oldDisposition, reason: 'Kết luận máy chủ', version: 4 } }] }]
     view.rerender(<ReconciliationWorkspace owner="reports" />)
-    expect(screen.getByLabelText('Lý do')).toHaveValue('Kết luận máy chủ')
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Kết luận sau tải lại' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sửa xử lý/i }))
+    expect(screen.getByPlaceholderText(/Nhập lý do chi tiết/i)).toHaveValue('Kết luận máy chủ')
+    fireEvent.change(screen.getByPlaceholderText(/Nhập lý do chi tiết/i), { target: { value: 'Kết luận sau tải lại' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
     await waitFor(() => expect(setDisposition).toHaveBeenLastCalledWith({ lineId: 'line-1', category: 'ACCEPTED_VARIANCE', reason: 'Kết luận sau tải lại', expectedVersion: 4 }))
   })
@@ -185,20 +188,20 @@ describe('ReconciliationWorkspace lifecycle', () => {
     role = 'admin'
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [triggeredLine] }]
     const view = render(<ReconciliationWorkspace owner="reports" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Xử lý chênh lệch' }))
-    fireEvent.click(screen.getByRole('combobox', { name: 'Nhóm xử lý' }))
+    fireEvent.click(screen.getByRole('button', { name: /Xử lý chênh lệch/i }))
+    fireEvent.click(screen.getByRole('combobox'))
     fireEvent.click(screen.getByRole('option', { name: 'Chấp nhận chênh lệch' }))
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đã xác minh chứng từ' } })
+    fireEvent.change(screen.getByPlaceholderText(/Nhập lý do chi tiết/i), { target: { value: 'Đã xác minh chứng từ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận xử lý' }))
     await waitFor(() => expect(setDisposition).toHaveBeenCalledWith({ lineId: 'line-1', category: 'ACCEPTED_VARIANCE', reason: 'Đã xác minh chứng từ', expectedVersion: undefined }))
 
     batches = [{ ...draft, status: 'IN_PROGRESS', lines: [{ ...triggeredLine, disposition: { category: 'ACCEPTED_VARIANCE', reason: 'Đã xác minh chứng từ', version: 2, disposedAt: '2026-08-25' } }] }]
     view.rerender(<ReconciliationWorkspace owner="reports" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Sửa xử lý' }))
-    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Đã kiểm tra lại hóa đơn' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sửa xử lý/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Nhập lý do chi tiết/i), { target: { value: 'Đã kiểm tra lại hóa đơn' } })
     fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
     await waitFor(() => expect(setDisposition).toHaveBeenLastCalledWith({ lineId: 'line-1', category: 'ACCEPTED_VARIANCE', reason: 'Đã kiểm tra lại hóa đơn', expectedVersion: 2 }))
-    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+    fireEvent.click(screen.getByRole('button', { name: /Hoàn tất đối chiếu/i }))
     expect(complete).toHaveBeenCalledWith({ id: 'batch-1', expectedVersion: 1 })
   })
 })

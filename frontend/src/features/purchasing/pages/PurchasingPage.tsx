@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from 'lucide-react';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
 import {
   getPurchasingErrorMessage,
   isPurchasingStage,
@@ -54,11 +55,22 @@ export default function PurchasingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [selectedLineId, setSelectedLineId] = useState<string>();
+  const systemOperation = useSystemOperation();
+  const isMaterialReconciliationMode = systemOperation?.mode === 'MATERIAL_RECONCILIATION';
+
+  const purchasingTabIds = useMemo(() => {
+    const locallyVisibleTabs = visibleTabIds('purchasing') as PurchasingView[];
+    const backendTabs = systemOperation?.capabilities.pageTabs['purchasing'];
+    if (!backendTabs) {
+      return locallyVisibleTabs;
+    }
+    return locallyVisibleTabs.filter((tabId) => backendTabs.includes(tabId));
+  }, [systemOperation?.capabilities.pageTabs]);
+
   const requestedView = searchParams.get('view');
-  const purchasingTabIds = useMemo(() => visibleTabIds('purchasing') as PurchasingView[], []);
   const requestedPurchasingView: PurchasingView = requestedView === 'quotations' || requestedView === 'supplemental' ? requestedView : 'workflow';
   const activeView: PurchasingView = purchasingTabIds.includes(requestedPurchasingView) ? requestedPurchasingView : purchasingTabIds[0] ?? 'workflow';
-  const quotationWorkflow = useSupplierQuotations(activeView === 'quotations');
+  const quotationWorkflow = useSupplierQuotations(!isMaterialReconciliationMode && activeView === 'quotations');
   const requestedStage = searchParams.get('stage');
   const initialRoute = resolvePurchasingRouteState(
     {
@@ -76,7 +88,7 @@ export default function PurchasingPage() {
     stage: rawStage,
     page,
     pageSize: 8,
-  }, { skip: activeView !== 'workflow' });
+  }, { skip: isMaterialReconciliationMode || activeView !== 'workflow' });
   const workbenchView = toQueryView(workbenchQuery, {
     instruction: 'Mở tab Xử lý thu mua để tải quy trình theo tuần.',
     retry: () => workbenchQuery.refetch(),
@@ -118,101 +130,85 @@ export default function PurchasingPage() {
     ? isFetching
     : activeView === 'quotations' && isQuotationPending;
 
-  useEffect(() => {
-    if (activeView !== 'workflow') return;
-    if (!workbench && workbenchView.phase !== 'error') return;
-
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      next.set('week', routeState.week);
-      if (current.has('date')) {
-        if (routeState.date) next.set('date', routeState.date);
-        else next.delete('date');
-      }
-      if (current.has('stage')) next.set('stage', routeState.stage);
-      return next.toString() === current.toString() ? current : next;
-    }, { replace: true });
-  }, [activeView, routeState.date, routeState.stage, routeState.week, setSearchParams, workbench, workbenchView.phase]);
-
-  const changeView = (id: string) => {
-    const view: PurchasingView = id === 'purchasing-quotations'
-      ? 'quotations'
-      : id === 'purchasing-supplemental'
-        ? 'supplemental'
-        : 'workflow';
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      if (view === 'workflow') next.delete('view');
-      else next.set('view', view);
-      return next;
-    });
+  const replaceRouteContext = (next: { date?: string; stage?: PurchasingStageId }) => {
+    const params = new URLSearchParams(searchParams);
+    if (next.date) params.set('date', next.date);
+    else params.delete('date');
+    if (next.stage) params.set('stage', next.stage);
+    else params.delete('stage');
+    setSearchParams(params, { replace: true });
   };
 
-  const replaceRouteContext = (nextContext: {
-    week?: string;
-    date?: string;
-    stage?: PurchasingStageId;
-  }) => {
-    const next = new URLSearchParams(searchParams);
-    if (nextContext.week) next.set('week', nextContext.week);
-    if (nextContext.date) next.set('date', nextContext.date);
-    else if (nextContext.week) next.delete('date');
-    if (nextContext.stage) next.set('stage', nextContext.stage);
-    else if (nextContext.week) next.delete('stage');
+  const changeWeek = (direction: -7 | 7) => {
+    const nextWeek = shiftIsoWeek(routeState.week, direction);
+    const params = new URLSearchParams(searchParams);
+    params.set('week', nextWeek);
+    params.delete('date');
+    params.delete('stage');
     setPage(1);
     setSelectedLineId(undefined);
-    setSearchParams(next);
+    setSearchParams(params);
   };
 
-  const moveWeek = (days: number) => replaceRouteContext({ week: shiftIsoWeek(routeState.week, days) });
-  const focusDecisionPanel = () => {
-    if (nextAction.kind === 'recovery') {
-      void workbenchQuery.refetch();
-      return;
-    }
-    document.getElementById('purchase-decision-panel')?.focus();
+  const changeView = (nextTabId: string) => {
+    const view = nextTabId.replace('purchasing-', '') as PurchasingView;
+    const params = new URLSearchParams(searchParams);
+    if (view === 'workflow') params.delete('view');
+    else params.set('view', view);
+    setSearchParams(params);
   };
+
+  if (isMaterialReconciliationMode || purchasingTabIds.length === 0) {
+    return (
+      <OperationalFrame className="ipc-purchasing-page">
+        <ReconciliationWorkspace owner="purchasing" />
+      </OperationalFrame>
+    );
+  }
 
   return (
     <OperationalFrame
+      className="ipc-purchasing-page"
       command={
         <CommandBar
-          actionsClassName="ipc-purchasing-actions"
-          actions={activeView === 'workflow' ? <>
-            <Button variant="outline" size="icon" className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9" aria-label="Tuần trước" onClick={() => moveWeek(-7)}>
-              <ChevronLeft aria-hidden="true" />
-            </Button>
-            <Button variant="outline" className="min-h-11 sm:min-h-9" onClick={() => replaceRouteContext({ week: resolvePurchasingRouteState({}, []).week })}>
-              <RotateCcw aria-hidden="true" />
-              Tuần hiện tại
-            </Button>
-            <Button variant="outline" size="icon" className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9" aria-label="Tuần sau" onClick={() => moveWeek(7)}>
-              <ChevronRight aria-hidden="true" />
-            </Button>
-            {nextAction.label ? (
-              <Button
-                variant={nextAction.kind === 'recovery' ? 'outline' : 'default'}
-                className="min-h-11 min-w-[10.25rem] sm:min-h-9"
-                onClick={focusDecisionPanel}
-                disabled={isFetching && nextAction.kind !== 'recovery'}
-              >
-                {nextAction.label}
-              </Button>
-            ) : (
-              <span className="hidden min-w-[10.25rem] sm:inline-block" aria-hidden="true" />
-            )}
-          </> : undefined}
+          actions={
+            activeView === 'workflow' ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Tuần trước"
+                  onClick={() => changeWeek(-7)}
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Tuần sau"
+                  onClick={() => changeWeek(7)}
+                >
+                  <ChevronRight size={16} />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Tải lại tuần hiện tại"
+                  onClick={() => workbenchQuery.refetch()}
+                >
+                  <RotateCcw size={16} />
+                </Button>
+              </div>
+            ) : null
+          }
         >
-          {activeView === 'workflow' ? (
-            <>
-              <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Tuần mua hàng: {formatWeekRange(routeState.week)}</span>
-              <span className="ipc-command-meta"><CalendarDays size={16} aria-hidden="true" />Cả ngày (FULLDAY)</span>
-            </>
-          ) : activeView === 'supplemental' ? (
-            <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Yêu cầu mua bổ sung từ bếp</span>
-          ) : (
-            <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Danh mục báo giá nhà cung cấp</span>
-          )}
+          <div className="flex items-center gap-2 text-sm text-slate-700">
+            <CalendarDays size={16} className="text-slate-500" />
+            <span className="font-medium">Tuần: {formatWeekRange(routeState.week)}</span>
+          </div>
         </CommandBar>
       }
       context={
@@ -257,7 +253,11 @@ export default function PurchasingPage() {
               <span role="alert">{workbenchView.message}</span>
             </InlineAlert>
           ) : workbenchView.phase === 'error' ? (
-            <InlineAlert title="Không tải được quy trình thu mua" variant="danger">
+            <InlineAlert
+              title="Không tải được quy trình thu mua"
+              variant="danger"
+              action={<Button type="button" variant="outline" size="sm" onClick={() => workbenchQuery.refetch()}>Thử lại</Button>}
+            >
               <span role="alert">{workbenchView.message} Các lựa chọn chưa được lưu.</span>
             </InlineAlert>
           ) : workbenchView.phase === 'loading' ? (

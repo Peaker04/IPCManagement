@@ -1,4 +1,4 @@
-import { lazy, Suspense, useDeferredValue, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react';
 import { PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
@@ -47,6 +47,7 @@ import { addIsoDays } from '../warehouseDateRange';
 import { typography } from '@/lib/typography';
 import { WarehouseMovementPanel } from './WarehouseMovementPanel';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
 const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
@@ -56,10 +57,19 @@ const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then((
 const EMPTY_QUERY_ROWS: never[] = [];
 export default function WarehousePage() {
   const [searchParams] = useSearchParams();
+  const systemOperation = useSystemOperation();
+  const isMaterialReconciliationMode = systemOperation?.mode === 'MATERIAL_RECONCILIATION';
   const canReceivePurchases = useHasRole(['dieuphoi']);
   const canCreateInventoryIssues = useHasRole(['thukho']);
   const canDispositionReturns = useHasRole([]);
-  const warehouseTabIds = visibleTabIds('warehouse') as Array<'movement' | 'demand' | 'exceptions'>;
+  const warehouseTabIds = useMemo(() => {
+    const locallyVisibleTabs = visibleTabIds('warehouse') as Array<'movement' | 'demand' | 'exceptions'>;
+    const backendTabs = systemOperation?.capabilities.pageTabs['warehouse'];
+    if (!backendTabs) {
+      return locallyVisibleTabs;
+    }
+    return locallyVisibleTabs.filter((tabId) => backendTabs.includes(tabId));
+  }, [systemOperation?.capabilities.pageTabs]);
   const [selectedView, setSelectedView] = useState<'movement' | 'demand' | 'exceptions'>(() => warehouseTabIds[0] ?? 'movement');
   const activeView = useDeferredValue(selectedView);
   const isViewPending = selectedView !== activeView;
@@ -86,7 +96,7 @@ export default function WarehousePage() {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const { data: workflowDocuments = [], isError: isWorkflowDocumentError, isFetching: isFetchingWorkflowDocuments, refetch: refetchWorkflowDocuments } = useGetWorkflowDocumentsQuery({ limit: 20 });
+  const { data: workflowDocuments = [], isError: isWorkflowDocumentError, isFetching: isFetchingWorkflowDocuments, refetch: refetchWorkflowDocuments } = useGetWorkflowDocumentsQuery({ limit: 20 }, { skip: isMaterialReconciliationMode });
   const {
     data: purchaseOrderPageResponse,
     isFetching: isFetchingPurchaseOrders,
@@ -95,8 +105,8 @@ export default function WarehousePage() {
   } = useGetPurchaseOrdersPageQuery({
     pageNumber: purchaseOrderPageNumber,
     pageSize: 8,
-  });
-  const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery();
+  }, { skip: isMaterialReconciliationMode });
+  const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery(undefined, { skip: isMaterialReconciliationMode });
   const operationalWarehouseContext = resolveOperationalWarehouseContext(receiptWarehouses);
   const selectedWarehouseId = operationalWarehouseContext.warehouse?.warehouseId ?? '';
   const requestedDemandDate = searchParams.get('date');
@@ -116,7 +126,7 @@ export default function WarehousePage() {
       dateTo: demandDateTo,
       searchKeyword: deferredDemandSearch || undefined,
     },
-    { skip: activeView !== 'demand' },
+    { skip: isMaterialReconciliationMode || activeView !== 'demand' },
   );
   const demandLines = demandPageResponse?.items ?? [];
   const {
@@ -128,7 +138,7 @@ export default function WarehousePage() {
     purpose: 'issue',
     pageNumber: issueCandidatePageNumber,
     pageSize: 8,
-  });
+  }, { skip: isMaterialReconciliationMode });
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementQuery = useGetStockMovementPageQuery(
     {
@@ -139,7 +149,7 @@ export default function WarehousePage() {
       limit: 8,
       sortDirection: 'desc',
     },
-    { skip: activeView !== 'movement' },
+    { skip: isMaterialReconciliationMode || activeView !== 'movement' },
   );
   const stockMovementView = toQueryView(stockMovementQuery, {
     instruction: 'Mở tab Luân chuyển để xem sổ kho.',
@@ -154,7 +164,7 @@ export default function WarehousePage() {
       pageNumber: currentStockPage,
       pageSize: 8,
     },
-    { skip: activeView !== 'movement' },
+    { skip: isMaterialReconciliationMode || activeView !== 'movement' },
   );
   const currentStockView = toQueryView(currentStockQuery, {
     instruction: 'Mở tab Luân chuyển để xem tồn kho hiện tại.',
@@ -168,7 +178,7 @@ export default function WarehousePage() {
   const { data: kitchenIssueRows = [], isError: isKitchenIssueError, isFetching: isFetchingKitchenIssues, refetch: refetchKitchenIssues } = useGetKitchenIssuesQuery({ limit: 500 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
   const { roleInboxItems } = useWorkflowOverview({
-    skip: activeView !== 'demand',
+    skip: isMaterialReconciliationMode || activeView !== 'demand',
   });
   const warehouseDocuments = [...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'), ...workflowDocuments.filter((document) => document.type === 'Phiếu xuất')];
   const warehouseInbox = roleInboxItems.filter((item) => item.laneId === 'warehouse');
@@ -306,6 +316,14 @@ export default function WarehousePage() {
       setSelectedView('exceptions');
     }
   };
+
+  if (isMaterialReconciliationMode || warehouseTabIds.length === 0) {
+    return (
+      <OperationalFrame className="ipc-warehouse-page">
+        <ReconciliationWorkspace owner="warehouse" />
+      </OperationalFrame>
+    );
+  }
 
   return (
     <OperationalFrame
@@ -554,15 +572,15 @@ export default function WarehousePage() {
           caption="Danh sách đơn mua và tiến độ nhập kho"
           className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
         >
-          <table className="ipc-data-table min-w-[1060px] !table-auto">
+          <table className="ipc-erp-grid-table ipc-data-table min-w-[1060px] !table-auto">
             <thead>
               <tr>
-                <th className="min-w-[280px]">Đơn mua</th>
-                <th className="min-w-[160px]">Nhà cung cấp</th>
-                <th className="min-w-[220px]">Đề xuất mua</th>
-                <th className="min-w-[140px]">Trạng thái</th>
-                <th className="min-w-[130px]">Tiến độ dòng</th>
-                <th className="min-w-[130px] text-right">Thao tác</th>
+                <th className="text-left min-w-[280px]">Đơn mua</th>
+                <th className="text-left min-w-[160px]">Nhà cung cấp</th>
+                <th className="text-left min-w-[220px]">Đề xuất mua</th>
+                <th className="text-center min-w-[140px]">Trạng thái</th>
+                <th className="text-center min-w-[130px]">Tiến độ dòng</th>
+                <th className="text-right min-w-[130px]">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -586,15 +604,15 @@ export default function WarehousePage() {
                   const isSelected = isPurchaseOrderDetailsOpen && selectedPurchaseOrderId === order.purchaseOrderId;
                   return (
                     <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
-                      <td className="font-semibold text-slate-900 whitespace-nowrap">{order.purchaseOrderCode}</td>
-                      <td>{order.supplierName}</td>
-                      <td className="whitespace-nowrap text-slate-600">{order.purchaseRequestCode}</td>
-                      <td className="ipc-badge-cell whitespace-nowrap">
-                        <StatusBadge variant={order.status === 'COMPLETED' ? 'success' : order.status === 'ORDERED' ? 'info' : order.status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
+                      <td className="text-left font-semibold text-slate-900 whitespace-nowrap">{order.purchaseOrderCode}</td>
+                      <td className="text-left text-slate-800">{order.supplierName}</td>
+                      <td className="text-left whitespace-nowrap text-slate-600">{order.purchaseRequestCode}</td>
+                      <td className="text-center whitespace-nowrap">
+                        <StatusBadge variant={order.status === 'COMPLETED' ? 'success' : order.status === 'ORDERED' ? 'info' : order.status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral'}>
                           {formatWorkflowStatus(order.status)}
                         </StatusBadge>
                       </td>
-                      <td className="whitespace-nowrap">
+                      <td className="text-center tabular-nums whitespace-nowrap text-slate-700">
                         {completedLines}/{order.lines.length} dòng đã đủ
                       </td>
                       <td className="text-right">

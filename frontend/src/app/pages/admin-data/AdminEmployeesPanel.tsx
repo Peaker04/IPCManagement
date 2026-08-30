@@ -148,14 +148,14 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 </FieldRow>
 
                 <PaginatedTableFrame ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
-                  <table className="ipc-data-table ipc-admin-employee-table text-sm">
+                  <table className="ipc-erp-grid-table ipc-admin-employee-table w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="min-w-[150px]">Họ tên</th>
-                        <th className="w-[120px]">Tài khoản</th>
-                        <th className="w-[110px]">Vai trò</th>
-                        <th className="w-[150px] whitespace-nowrap">Trạng thái</th>
-                        <th className="w-[110px]">Ngày tạo</th>
+                        <th className="min-w-[150px] text-left">Họ tên</th>
+                        <th className="w-[120px] text-left">Tài khoản</th>
+                        <th className="w-[110px] text-left">Vai trò</th>
+                        <th className="w-[150px] text-center whitespace-nowrap">Trạng thái</th>
+                        <th className="w-[110px] text-center">Ngày tạo</th>
                         <th className="w-[130px] text-right">Thao tác</th>
                       </tr>
                     </thead>
@@ -170,23 +170,23 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                         <EmptyRow colSpan={6} />
                       ) : (
                         employeeRows.map((employee) => (
-                          <tr key={employee.userId} className="align-top hover:bg-slate-50">
-                            <td className="font-semibold text-slate-900">{employee.fullName}</td>
-                            <td className={`${typography.code} text-slate-600`}>{employee.username}</td>
-                            <td>
-                              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                          <tr key={employee.userId} className="align-top">
+                            <td className="text-left font-semibold text-slate-900">{employee.fullName}</td>
+                            <td className={`${typography.code} text-left text-slate-600`}>{employee.username}</td>
+                            <td className="text-left">
+                              <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                                 {employee.roleName}
                               </span>
                             </td>
-                            <td className="ipc-badge-cell whitespace-nowrap">
-                              <StatusBadge variant={employee.isActive ? 'success' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
+                            <td className="text-center whitespace-nowrap">
+                              <StatusBadge variant={employee.isActive ? 'success' : 'neutral'} size="sm">
                                 {employee.isActive ? 'Đang hoạt động' : 'Đã khóa'}
                               </StatusBadge>
                             </td>
-                            <td className="text-slate-500">
+                            <td className="text-center tabular-nums text-slate-500">
                               {employee.createdAt ? formatDateOnly(employee.createdAt) : '—'}
                             </td>
-                            <td>
+                            <td className="text-right">
                               <div className="flex flex-wrap justify-end gap-2">
                                 <Button
                                   type="button"

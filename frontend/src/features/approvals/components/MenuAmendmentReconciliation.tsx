@@ -4,7 +4,7 @@ import {
   useGetCoordinationCustomersQuery,
   useGetMenuAmendmentDecisionPageQuery,
 } from '@/api/coordinationApi'
-import { EmptyState, QueryErrorAlert, StatusBadge, TableViewport } from '@/components/common'
+import { EmptyState, QueryErrorAlert, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -88,16 +88,34 @@ export function MenuAmendmentReconciliation() {
       ) : decisionQuery.isError ? (
         <div className="mt-3"><QueryErrorAlert title="Không tải được yêu cầu đối soát" onRetry={decisionQuery.refetch}>Chưa thể xác định danh sách đang trống. Hãy tải lại trước khi xử lý.</QueryErrorAlert></div>
       ) : decisionQuery.isLoading ? (
-        <p role="status" className="mt-3 text-sm text-slate-600">Đang tải yêu cầu đối soát...</p>
+        <div className="mt-3"><TableSkeleton columns={7} rows={4} ariaLabel="Đang tải yêu cầu đối soát..." /></div>
       ) : items.length === 0 ? (
-        <EmptyState title={`${scopeLabel ?? 'Phạm vi này'} chưa có yêu cầu cần đối soát`} className="!min-h-0 !p-4" />
+        <EmptyState title={`${scopeLabel ?? 'Phạm vi này'} chưa có yêu cầu cần đối soát`} className="!min-h-0 !p-4 mt-3" />
       ) : (
-        <TableViewport ariaLabel="Danh sách yêu cầu đối soát điều chỉnh thực đơn" caption="Danh sách phân trang theo khách hàng; mở từng dòng để xem chứng từ và ghi nhận điều chỉnh." className="mt-3 rounded-md border border-slate-200">
-          <table className="ipc-data-table min-w-[900px] text-left text-sm">
-            <thead className="bg-slate-50 text-slate-700"><tr><th className="px-3 py-2">Khách hàng / thời điểm</th><th className="px-3 py-2">Chứng từ liên quan</th><th className="px-3 py-2">Lý do</th><th className="px-3 py-2">Phụ trách</th><th className="px-3 py-2">Hạn xử lý</th><th className="px-3 py-2">Trạng thái</th><th className="px-3 py-2 text-right">Thao tác</th></tr></thead>
+        <TableViewport ariaLabel="Danh sách yêu cầu đối soát điều chỉnh thực đơn" caption="Danh sách phân trang theo khách hàng; mở từng dòng để xem chứng từ và ghi nhận điều chỉnh." className="mt-3">
+          <table className="ipc-erp-grid-table w-full min-w-[900px]">
+            <thead>
+              <tr>
+                <th className="text-left">Khách hàng / thời điểm</th>
+                <th className="text-left">Chứng từ liên quan</th>
+                <th className="text-left">Lý do</th>
+                <th className="text-left">Phụ trách</th>
+                <th className="text-center">Hạn xử lý</th>
+                <th className="text-center">Trạng thái</th>
+                <th className="text-right">Thao tác</th>
+              </tr>
+            </thead>
             <tbody>{items.map((item) => {
               const presentation = amendmentDecisionStatus(item.status)
-              return <tr key={item.decisionItemId} className="border-t border-slate-100"><td className="px-3 py-2"><strong>{item.customerName}</strong><br /><span className="text-xs text-slate-600">{formatDateOnly(item.serviceDate)} · {formatShiftName(item.shiftName)} · {item.priceTierAmount == null ? 'Chưa xác định mức giá' : formatCurrency(item.priceTierAmount)}</span></td><td className="px-3 py-2">{item.documentIds.length ? `${item.documentIds.length} chứng từ` : 'Chưa có chứng từ'}<br /><span className="text-xs text-slate-600">{item.sourceLineIds.length} dòng chứng từ</span></td><td className="px-3 py-2">{item.reason}</td><td className="px-3 py-2">{item.accountableRole}</td><td className="whitespace-nowrap px-3 py-2">{formatDateTime(item.dueAt)}</td><td className="px-3 py-2"><StatusBadge variant={presentation.tone}>{presentation.label}</StatusBadge></td><td className="px-3 py-2 text-right"><Button size="sm" onClick={() => setSelected(item)}>Xem chi tiết</Button></td></tr>
+              return <tr key={item.decisionItemId}>
+                <td className="text-left"><strong>{item.customerName}</strong><br /><span className="text-xs text-slate-500">{formatDateOnly(item.serviceDate)} · {formatShiftName(item.shiftName)} · {item.priceTierAmount == null ? 'Chưa xác định mức giá' : formatCurrency(item.priceTierAmount)}</span></td>
+                <td className="text-left">{item.documentIds.length ? `${item.documentIds.length} chứng từ` : 'Chưa có chứng từ'}<br /><span className="text-xs text-slate-500">{item.sourceLineIds.length} dòng chứng từ</span></td>
+                <td className="text-left text-slate-700">{item.reason}</td>
+                <td className="text-left text-slate-700">{item.accountableRole}</td>
+                <td className="text-center whitespace-nowrap text-slate-600">{formatDateTime(item.dueAt)}</td>
+                <td className="text-center"><StatusBadge variant={presentation.tone} size="sm">{presentation.label}</StatusBadge></td>
+                <td className="text-right"><Button size="sm" onClick={() => setSelected(item)}>Xem chi tiết</Button></td>
+              </tr>
             })}</tbody>
           </table>
         </TableViewport>

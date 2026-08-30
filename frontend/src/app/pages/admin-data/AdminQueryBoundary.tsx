@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { QueryErrorAlert, InlineAlert } from '@/components/common';
+import { QueryErrorAlert, InlineAlert, TableSkeleton } from '@/components/common';
 import type { QueryView } from '@/lib/queryView';
 import { cn } from '@/lib/utils';
 
@@ -78,13 +78,9 @@ export function AdminQueryBoundary({
     }
 
     return (
-      <div
-        className={cn('relative flex flex-col items-center justify-center rounded-lg border border-slate-200/60 bg-slate-50/50 p-8 text-center', minHeight)}
-        aria-busy="true"
-      >
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mb-3" />
-        <p className="text-sm font-medium text-slate-700">Đang tải {loading.label}</p>
-        <p className="text-xs text-slate-400 mt-1">Dữ liệu đang được đồng bộ, vui lòng đợi...</p>
+      <div className={cn('relative flex flex-col gap-2', minHeight)} aria-busy="true">
+        <p className="text-xs font-medium text-slate-600">Đang tải {loading.label}</p>
+        <TableSkeleton columns={6} rows={6} ariaLabel={`Đang tải ${loading.label}...`} />
       </div>
     );
   }

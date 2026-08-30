@@ -9,9 +9,6 @@ import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'
 import { Input } from '@/components/ui/input'
 import { Link } from 'react-router-dom'
 
-const tableHeadClass = 'text-center'
-const tableCellClass = 'text-center'
-
 const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflow }) => {
   const { actions, presentation, queryView, state } = workflow
   return (
@@ -49,49 +46,56 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
         className="ipc-cost-table-shell"
         ariaLabel={presentation.usesDemand ? 'Bảng đề xuất mua theo từng ngày trong tuần' : 'Bảng BOM dự kiến tổng cả tuần'}
       >
-        <table className={cn('ipc-data-table ipc-cost-table table-fixed w-full', presentation.usesDemand && 'ipc-status-action-table')}>
+        <table className="ipc-erp-grid-table w-full">
           <thead>{presentation.usesDemand ? <tr>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ngày</th>
-            <th style={{ width: '14%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
-            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món sử dụng</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Cần</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Tồn khả dụng</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Chênh lệch</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Trạng thái</th>
-            <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-center whitespace-nowrap`}>Tiếp theo</th>
+            <th style={{ width: '11%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Ngày</th>
+            <th style={{ width: '14%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
+            <th style={{ width: '20%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Món sử dụng</th>
+            <th style={{ width: '11%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Cần</th>
+            <th style={{ width: '11%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Tồn khả dụng</th>
+            <th style={{ width: '11%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Chênh lệch</th>
+            <th style={{ width: '11%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Trạng thái</th>
+            <th style={{ width: '11%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Tiếp theo</th>
           </tr> : <tr>
-            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
-            <th style={{ width: '8%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>ĐV</th>
-            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>LT cả tuần</th>
-            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>TT cả tuần</th>
-            <th style={{ width: '30%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món trong kế hoạch</th>
-            <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Đơn giá</th>
-            <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap`}>Thành tiền</th>
+            <th style={{ width: '20%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
+            <th style={{ width: '8%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">ĐV</th>
+            <th style={{ width: '10%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">LT cả tuần</th>
+            <th style={{ width: '10%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">TT cả tuần</th>
+            <th style={{ width: '30%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Món trong kế hoạch</th>
+            <th style={{ width: '10%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Đơn giá</th>
+            <th style={{ width: '12%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Thành tiền</th>
           </tr>}</thead>
           <tbody>
             {presentation.demandRows.map((line, index) => {
               const available = line.available - line.reserved
               const variance = available - line.required
-              return <tr key={`${line.id}-${presentation.pageIndex}-${index}`} className="table-row">
-                <td className={`${tableCellClass} whitespace-nowrap`}>{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>
-                <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
-                <td className={`${tableCellClass} text-right tabular-nums`}>{formatQuantityWithUnit(line.required, line.unit)}</td><td className={`${tableCellClass} text-right tabular-nums`}>{formatQuantityWithUnit(available, line.unit)}</td>
-                <td className={`${tableCellClass} text-right tabular-nums font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{formatQuantityVariance(variance, line.unit)}</td>
-                <td className="ipc-badge-cell">
-                  <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
+              return <tr key={`${line.id}-${presentation.pageIndex}-${index}`}>
+                <td className="text-center whitespace-nowrap text-slate-600">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>
+                <td className="text-left font-medium text-slate-900">{line.material}</td>
+                <td className="text-left text-slate-700">{line.source}</td>
+                <td className="text-right tabular-nums">{formatQuantityWithUnit(line.required, line.unit)}</td>
+                <td className="text-right tabular-nums">{formatQuantityWithUnit(available, line.unit)}</td>
+                <td className={cn('text-right tabular-nums font-semibold', variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700')}>{formatQuantityVariance(variance, line.unit)}</td>
+                <td className="text-center">
+                  <StatusBadge variant={line.tone} size="sm">
                     {line.tone === 'success' ? 'Đủ hàng' : line.status}
                   </StatusBadge>
-                </td><td className={`${tableCellClass} ${line.tone === 'success' ? 'text-slate-600' : 'font-semibold text-slate-800'}`}>
+                </td>
+                <td className="text-center">
                   {line.actionHref
-                    ? <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={line.actionHref}>{line.nextAction}</Link>
-                    : <span>{line.nextAction}</span>}
+                    ? <Link className="ipc-button ipc-button-primary ipc-button-compact" to={line.actionHref}>{line.nextAction}</Link>
+                    : <span className="text-xs text-slate-500">{line.nextAction}</span>}
                 </td>
               </tr>
             })}
-            {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey} className="table-row">
-              <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td><td className={`${tableCellClass} text-right tabular-nums`}>{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
-              <td className={`${tableCellClass} text-right tabular-nums font-bold text-[var(--ipc-primary-600)]`}>{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
-              <td className={`${tableCellClass} text-right tabular-nums`}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} text-right tabular-nums font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
+            {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey}>
+              <td className="text-left font-medium text-slate-900">{data.ingredientName}</td>
+              <td className="text-center text-slate-600">{data.unit}</td>
+              <td className="text-right tabular-nums">{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
+              <td className="text-right tabular-nums font-semibold text-blue-700">{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
+              <td className="text-left text-slate-700" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
+              <td className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
+              <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
             </tr>)}
             {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 8 : 7}>Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.</td></tr>}
           </tbody>

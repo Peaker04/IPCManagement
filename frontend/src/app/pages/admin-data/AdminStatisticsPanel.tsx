@@ -33,88 +33,88 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
       ]}>
         <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
           <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
-            <table className="ipc-data-table ipc-status-action-table ipc-admin-statistics-table">
+            <table className="ipc-erp-grid-table ipc-admin-statistics-table w-full">
               <thead>
                 <tr>
-                  <th>Nhóm thống kê</th>
+                  <th className="text-left">Nhóm thống kê</th>
                   <th className="text-right">Chỉ số</th>
-                  <th>Ý nghĩa vận hành</th>
-                  <th>Trạng thái</th>
-                  <th>Chuyển xử lý</th>
+                  <th className="text-left">Ý nghĩa vận hành</th>
+                  <th className="text-center">Trạng thái</th>
+                  <th className="text-center">Chuyển xử lý</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="font-semibold">Workflow thất bại</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
-                  <td className="text-left">Dữ liệu nhập, nhu cầu hoặc mua hàng đang bị lỗi và cần điều tra.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Workflow thất bại</td>
+                  <td className="text-right tabular-nums">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
+                  <td className="text-left text-slate-600">Dữ liệu nhập, nhu cầu hoặc mua hàng đang bị lỗi và cần điều tra.</td>
+                  <td className="text-center">
                     {renderKpiStatus(Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Vấn đề dữ liệu nghiêm trọng</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
-                  <td className="text-left">Lỗi dữ liệu cần xử lý trước khi tiếp tục vận hành.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Vấn đề dữ liệu nghiêm trọng</td>
+                  <td className="text-right tabular-nums">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
+                  <td className="text-left text-slate-600">Lỗi dữ liệu cần xử lý trước khi tiếp tục vận hành.</td>
+                  <td className="text-center">
                     {renderKpiStatus(Boolean(operationalKpis?.criticalDataQualityCount), 'Đang chặn', 'Đạt')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở vấn đề dữ liệu</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở vấn đề dữ liệu</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Approval chờ lâu</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
-                  <td className="text-left">Phiếu chưa có quyết định sau 24 giờ hoặc đã qua ngày yêu cầu.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Approval chờ lâu</td>
+                  <td className="text-right tabular-nums">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
+                  <td className="text-left text-slate-600">Phiếu chưa có quyết định sau 24 giờ hoặc đã qua ngày yêu cầu.</td>
+                  <td className="text-center">
                     {renderKpiStatus(Boolean(operationalKpis?.overdueApprovalCount), 'Quá SLA', 'Trong SLA', 'warning')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.APPROVALS}>Mở phê duyệt</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.APPROVALS}>Mở phê duyệt</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Nhu cầu nguyên liệu</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{shortageCount} dòng thiếu</td>
-                  <td className="text-left">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Nhu cầu nguyên liệu</td>
+                  <td className="text-right tabular-nums">{shortageCount} dòng thiếu</td>
+                  <td className="text-left text-slate-600">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
+                  <td className="text-center">
                     {renderKpiStatus(Boolean(shortageCount), `${shortageCount} thiếu`, 'Đủ tồn', 'warning')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WEEKLY_MENU}>Mở KHSX/BOM</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WEEKLY_MENU}>Mở KHSX/BOM</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Kế hoạch thu mua</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalPurchaseQty)} SL thiếu</td>
-                  <td className="text-left">Đề xuất mua cho các ngày thiếu nguyên liệu sau kiểm tồn.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Kế hoạch thu mua</td>
+                  <td className="text-right tabular-nums">{formatQuantity(totalPurchaseQty)} SL thiếu</td>
+                  <td className="text-left text-slate-600">Đề xuất mua cho các ngày thiếu nguyên liệu sau kiểm tồn.</td>
+                  <td className="text-center">
                     {renderKpiStatus(Boolean(totalPurchaseQty), 'Có đề xuất mua', 'Không cần mua', 'warning')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Mở thu mua</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Mở thu mua</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Xuất bếp</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalIssuedQty)} đã xuất</td>
-                  <td className="text-left">Tổng số lượng đã xuất cho bếp theo ca trong ngày.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Xuất bếp</td>
+                  <td className="text-right tabular-nums">{formatQuantity(totalIssuedQty)} đã xuất</td>
+                  <td className="text-left text-slate-600">Tổng số lượng đã xuất cho bếp theo ca trong ngày.</td>
+                  <td className="text-center">
                     {renderKpiStatus(!totalIssuedQty, 'Chưa xuất bếp', 'Đã xuất', 'neutral')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Thực tế sử dụng tại bếp</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalUsedQty)} đã dùng</td>
-                  <td className="text-left">Số lượng bếp thực tế đã nấu và ghi nhận.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Thực tế sử dụng tại bếp</td>
+                  <td className="text-right tabular-nums">{formatQuantity(totalUsedQty)} đã dùng</td>
+                  <td className="text-left text-slate-600">Số lượng bếp thực tế đã nấu và ghi nhận.</td>
+                  <td className="text-center">
                     {renderKpiStatus(!totalUsedQty, 'Chưa ghi nhận dùng', 'Đã ghi nhận', 'neutral')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.CHEF_DASHBOARD}>Mở bếp trưởng</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.CHEF_DASHBOARD}>Mở bếp trưởng</Link></td>
                 </tr>
                 <tr>
-                  <td className="font-semibold">Hoàn kho từ bếp</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantity(totalReturnedQty)} hoàn kho</td>
-                  <td className="text-left">Nguyên liệu thừa được lập phiếu hoàn về kho.</td>
-                  <td className="ipc-badge-cell">
+                  <td className="text-left font-semibold text-slate-900">Hoàn kho từ bếp</td>
+                  <td className="text-right tabular-nums">{formatQuantity(totalReturnedQty)} hoàn kho</td>
+                  <td className="text-left text-slate-600">Nguyên liệu thừa được lập phiếu hoàn về kho.</td>
+                  <td className="text-center">
                     {renderKpiStatus(Boolean(totalReturnedQty), 'Có hoàn kho', 'Không hoàn kho', 'neutral')}
                   </td>
-                  <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                 </tr>
               </tbody>
             </table>
@@ -123,22 +123,22 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
 
         <SectionPanel title="Snapshot tồn kho hiện tại" icon={<PackageCheck size={18} />}>
           <PaginatedTableFrame ariaLabel="Bảng snapshot tồn kho trong trang admin">
-            <table className="ipc-data-table">
+            <table className="ipc-erp-grid-table w-full">
               <thead>
                 <tr>
-                  <th>Kho</th>
-                  <th>Nguyên liệu</th>
+                  <th className="text-left">Kho</th>
+                  <th className="text-left">Nguyên liệu</th>
                   <th className="text-right">Số lượng</th>
-                  <th>Cập nhật</th>
+                  <th className="text-center">Cập nhật</th>
                 </tr>
               </thead>
               <tbody>
                 {currentStockRows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.map((row) => (
                   <tr key={`${row.warehouseId}-${row.ingredientId}`}>
-                    <td>{row.warehouse}</td>
-                    <td>{row.ingredient}</td>
-                    <td className="ipc-numeric-cell text-right tabular-nums font-medium">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
-                    <td>{formatDateTime(row.lastUpdated)}</td>
+                    <td className="text-left text-slate-700">{row.warehouse}</td>
+                    <td className="text-left font-medium text-slate-900">{row.ingredient}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
+                    <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -154,11 +154,11 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
 
         <SectionPanel title={`Cảnh báo biến động giá (${priceWarningCount} cảnh báo)`} icon={<TrendingUp size={18} />}>
           <PaginatedTableFrame ariaLabel="Bảng cảnh báo biến động giá trong trang admin">
-            <table className="ipc-data-table">
+            <table className="ipc-erp-grid-table w-full">
               <thead>
                 <tr>
-                  <th>Nguyên liệu</th>
-                  <th>Nhà cung cấp</th>
+                  <th className="text-left">Nguyên liệu</th>
+                  <th className="text-left">Nhà cung cấp</th>
                   <th className="text-right">Giá trước</th>
                   <th className="text-right">Giá hiện tại</th>
                   <th className="text-right">Mức tăng</th>
@@ -167,11 +167,11 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
               <tbody>
                 {priceWarnings.length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
-                    <td>{row.name}</td>
-                    <td>{row.supplier}</td>
-                    <td className="ipc-numeric-cell text-right tabular-nums">{formatCurrency(row.pricePrev)}</td>
-                    <td className="ipc-numeric-cell text-right tabular-nums">{formatCurrency(row.priceCurrent)}</td>
-                    <td className="ipc-numeric-cell text-right tabular-nums font-bold text-[var(--ipc-danger)]">+{formatPercent(row.change, 1)}</td>
+                    <td className="text-left font-medium text-slate-900">{row.name}</td>
+                    <td className="text-left text-slate-700">{row.supplier}</td>
+                    <td className="text-right tabular-nums text-slate-600">{formatCurrency(row.pricePrev)}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(row.priceCurrent)}</td>
+                    <td className="text-right tabular-nums font-bold text-red-600">+{formatPercent(row.change, 1)}</td>
                   </tr>
                 ))}
               </tbody>

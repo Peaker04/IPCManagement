@@ -136,15 +136,15 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
               </label>
             </div>
             <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
-              <table className="ipc-data-table ipc-report-table min-w-[760px]">
+              <table className="ipc-erp-grid-table w-full min-w-[760px]">
                 <thead>
                   <tr>
-                    <th>Tên nguyên liệu</th>
-                    <th>Nguồn nhập</th>
-                    <th>Số lượng</th>
-                    <th>Giá tham chiếu</th>
-                    <th>Giá nhập</th>
-                    <th>Biến động</th>
+                    <th className="text-left">Tên nguyên liệu</th>
+                    <th className="text-left">Nguồn nhập</th>
+                    <th className="text-right">Số lượng</th>
+                    <th className="text-right">Giá tham chiếu</th>
+                    <th className="text-right">Giá nhập</th>
+                    <th className="text-right">Biến động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -152,37 +152,40 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                     <EmptyRow colSpan={6} isError={priceVarianceResult.isError} />
                   ) : (
                     priceVarianceRows.map((item, index) => (
-                      <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
-                          <span className="ipc-report-material">
-                            {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="var(--ipc-slate-600)" />}
-                            <span className="ipc-report-material-copy">
-                              <span>{item.name}</span>
-                              <span className="text-xs font-normal text-slate-600">{item.supplier}</span>
+                      <tr key={`${item.id}-${pricePage}-${index}`}>
+                        <td className="text-left">
+                          <span className="flex items-center gap-2">
+                            {item.warning ? <AlertTriangle size={14} className="text-red-600 shrink-0" /> : <TrendingUp size={14} className="text-slate-500 shrink-0" />}
+                            <span>
+                              <span className="block font-medium text-slate-900">{item.name}</span>
+                              <span className="block text-xs text-slate-500">{item.supplier}</span>
                             </span>
                           </span>
                         </td>
-                        <td><div className="font-medium text-slate-800">{item.receiptCode}</div><div className="text-xs text-slate-500">{formatDateOnly(item.receiptDate)}</div></td>
-                        <td className="ipc-numeric-cell">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
-                        <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>
+                        <td className="text-left">
+                          <div className="font-medium text-slate-800">{item.receiptCode}</div>
+                          <div className="text-xs text-slate-500">{formatDateOnly(item.receiptDate)}</div>
+                        </td>
+                        <td className="text-right tabular-nums">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
+                        <td className="text-right tabular-nums text-slate-600">{formatCurrency(item.pricePrev)}</td>
+                        <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(item.priceCurrent)}</td>
                         <td className="text-right">
-                          <span className={item.warning ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-warning)]' : 'inline-flex w-full items-center justify-end gap-1 text-slate-600'}>
+                          <span className={item.warning ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-red-600 tabular-nums' : item.change > 0 ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-amber-600 tabular-nums' : 'inline-flex w-full items-center justify-end gap-1 text-slate-600 tabular-nums'}>
                             {item.change > 0 && <span className="inline-block text-xs text-inherit">▲</span>}
                             {item.change > 0 ? `+${formatPercent(item.change)}` : '0%'}
                           </span>
                           <div className="mt-1 flex items-center justify-end gap-2">
                             {item.warning ? (
-                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                              <StatusBadge variant="danger" size="sm">Vượt ngưỡng</StatusBadge>
                             ) : item.change > 0 ? (
-                              <StatusBadge variant="warning" className="ipc-table-badge ipc-table-badge--status">Theo dõi</StatusBadge>
+                              <StatusBadge variant="warning" size="sm">Theo dõi</StatusBadge>
                             ) : (
-                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                              <StatusBadge variant="success" size="sm">Ổn định</StatusBadge>
                             )}
                             {item.warning && (
                             <button
                               type="button"
-                              className="whitespace-nowrap text-xs font-semibold text-[var(--ipc-danger)] underline underline-offset-2"
+                              className="whitespace-nowrap text-xs font-semibold text-red-600 underline underline-offset-2"
                               style={{ overflowWrap: 'normal' }}
                               aria-controls="reports-price-warning-detail"
                               aria-expanded={selectedWarning?.id === item.id}
@@ -242,15 +245,15 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
             <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
-              <table className="ipc-data-table min-w-[720px]">
+              <table className="ipc-erp-grid-table w-full min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nguyên liệu / Nhà cung cấp</th>
-                    <th>Số lần nhập</th>
-                    <th>Giá TB</th>
-                    <th>Khoảng giá</th>
-                    <th>Giá tham chiếu</th>
-                    <th>Biến động</th>
+                    <th className="text-left">Nguyên liệu / Nhà cung cấp</th>
+                    <th className="text-right">Số lần nhập</th>
+                    <th className="text-right">Giá TB</th>
+                    <th className="text-right">Khoảng giá</th>
+                    <th className="text-right">Giá tham chiếu</th>
+                    <th className="text-right">Biến động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -258,17 +261,17 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                     <EmptyRow colSpan={6} isError={priceVarianceBySupplierResult.isError} />
                   ) : (
                     priceVarianceBySupplierRows.map((row) => (
-                      <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td><div className="font-medium text-slate-800">{row.ingredientName}</div><div className="text-xs text-slate-500">{row.supplierName}</div></td>
-                        <td className="ipc-numeric-cell">{row.receiptCount}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                        <td className="ipc-numeric-cell"><div>{formatCurrency(row.minUnitPrice)}</div><div className="text-xs text-slate-500">đến {formatCurrency(row.maxUnitPrice)}</div></td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.referencePrice)}</td>
-                        <td className="text-right"><div className="tabular-nums">{formatPercent(row.variancePercent)}</div><div className="mt-1 flex justify-end">
+                      <tr key={`${row.ingredientId}-${row.supplierId}`}>
+                        <td className="text-left"><div className="font-medium text-slate-900">{row.ingredientName}</div><div className="text-xs text-slate-500">{row.supplierName}</div></td>
+                        <td className="text-right tabular-nums">{row.receiptCount}</td>
+                        <td className="text-right tabular-nums font-semibold">{formatCurrency(row.avgUnitPrice)}</td>
+                        <td className="text-right tabular-nums"><div>{formatCurrency(row.minUnitPrice)}</div><div className="text-xs text-slate-500">đến {formatCurrency(row.maxUnitPrice)}</div></td>
+                        <td className="text-right tabular-nums text-slate-600">{formatCurrency(row.referencePrice)}</td>
+                        <td className="text-right"><div className="tabular-nums font-semibold">{formatPercent(row.variancePercent)}</div><div className="mt-1 flex justify-end">
                           {row.isWarning ? (
-                            <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                            <StatusBadge variant="danger" size="sm">Vượt ngưỡng</StatusBadge>
                           ) : (
-                            <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                            <StatusBadge variant="success" size="sm">Ổn định</StatusBadge>
                           )}
                         </div></td>
                       </tr>
@@ -295,15 +298,15 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
             <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
-              <table className="ipc-data-table min-w-[720px]">
+              <table className="ipc-erp-grid-table w-full min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nguyên liệu</th>
-                    <th>Tháng</th>
-                    <th>Giá TB</th>
-                    <th>% so với tham chiếu</th>
-                    <th>% so với tháng trước</th>
-                    <th>Đánh giá</th>
+                    <th className="text-left">Nguyên liệu</th>
+                    <th className="text-center">Tháng</th>
+                    <th className="text-right">Giá TB</th>
+                    <th className="text-right">% so với tham chiếu</th>
+                    <th className="text-right">% so với tháng trước</th>
+                    <th className="text-center">Đánh giá</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -311,19 +314,19 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                     <EmptyRow colSpan={6} isError={priceVarianceByPeriodResult.isError} />
                   ) : (
                     priceVarianceByPeriodRows.map((row) => (
-                      <tr key={`${row.ingredientId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td>{row.ingredientName}</td>
-                        <td>{row.periodLabel}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                        <td className="ipc-numeric-cell">{formatPercent(row.variancePercentVsReference)}</td>
-                        <td className="ipc-numeric-cell">
+                      <tr key={`${row.ingredientId}-${row.periodLabel}`}>
+                        <td className="text-left font-medium text-slate-900">{row.ingredientName}</td>
+                        <td className="text-center text-slate-700">{row.periodLabel}</td>
+                        <td className="text-right tabular-nums font-semibold">{formatCurrency(row.avgUnitPrice)}</td>
+                        <td className="text-right tabular-nums">{formatPercent(row.variancePercentVsReference)}</td>
+                        <td className="text-right tabular-nums">
                           {row.variancePercentVsPreviousPeriod == null ? '—' : formatPercent(row.variancePercentVsPreviousPeriod)}
                         </td>
-                        <td className="ipc-badge-cell">
+                        <td className="text-center">
                           {row.isWarning ? (
-                            <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                            <StatusBadge variant="danger" size="sm">Vượt ngưỡng</StatusBadge>
                           ) : (
-                            <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                            <StatusBadge variant="success" size="sm">Ổn định</StatusBadge>
                           )}
                         </td>
                       </tr>
@@ -350,14 +353,14 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
             <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
-              <table className="ipc-data-table min-w-[720px]">
+              <table className="ipc-erp-grid-table w-full min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nhóm món</th>
-                    <th>Số nguyên liệu</th>
-                    <th>Số NL vượt ngưỡng</th>
-                    <th>% biến động (có trọng số)</th>
-                    <th>Nguyên liệu ảnh hưởng nhiều nhất</th>
+                    <th className="text-left">Nhóm món</th>
+                    <th className="text-right">Số nguyên liệu</th>
+                    <th className="text-right">Số NL vượt ngưỡng</th>
+                    <th className="text-right">% biến động (có trọng số)</th>
+                    <th className="text-left">Nguyên liệu ảnh hưởng nhiều nhất</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -365,12 +368,12 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                     <EmptyRow colSpan={5} isError={priceVarianceByDishGroupResult.isError} />
                   ) : (
                     priceVarianceByDishGroupRows.map((row) => (
-                      <tr key={row.dishGroup} className={row.warningIngredientCount > 0 ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td>{row.dishGroup}</td>
-                        <td className="ipc-numeric-cell">{row.ingredientCount}</td>
-                        <td className="ipc-numeric-cell">{row.warningIngredientCount}</td>
-                        <td className="ipc-numeric-cell">{formatPercent(row.weightedAvgVariancePercent)}</td>
-                        <td className="text-left">
+                      <tr key={row.dishGroup}>
+                        <td className="text-left font-medium text-slate-900">{row.dishGroup}</td>
+                        <td className="text-right tabular-nums">{row.ingredientCount}</td>
+                        <td className="text-right tabular-nums text-red-600 font-semibold">{row.warningIngredientCount}</td>
+                        <td className="text-right tabular-nums font-semibold">{formatPercent(row.weightedAvgVariancePercent)}</td>
+                        <td className="text-left text-slate-700">
                           {row.topIngredients.map((ingredient) => `${ingredient.ingredientName} (${formatPercent(ingredient.variancePercent)})`).join(', ')}
                         </td>
                       </tr>

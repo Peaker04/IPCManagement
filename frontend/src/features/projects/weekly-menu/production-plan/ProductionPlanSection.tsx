@@ -1,5 +1,5 @@
 import { CalendarDays, Scale } from 'lucide-react'
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton } from '@/components/common'
 import { PageStepper } from '@/components/common/PageStepper'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
@@ -64,7 +64,15 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
             isRetrying={status.isRetrying}
           />
         ) : !state.selectedServiceDate && status.isLoading ? (
-          <div className="py-8 text-center text-slate-500">Đang tải kế hoạch sản xuất cả tuần...</div>
+          <TableSkeleton
+            columns={[
+              { width: '20%', align: 'left' },
+              { width: '50%', align: 'left' },
+              { width: '30%', align: 'right' },
+            ]}
+            rows={4}
+            ariaLabel="Đang tải kế hoạch sản xuất..."
+          />
         ) : presentation.pages.length === 0 ? (
           <EmptyState
             title="Chưa có kế hoạch sản xuất nào."
@@ -92,7 +100,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                     className="ipc-production-plan-table"
                     size="weekly"
                   >
-                    <table className="ipc-data-table">
+                    <table className="ipc-erp-grid-table w-full">
                       <thead>
                         <tr>
                           <th className="w-[20%] text-left">Ca</th>
@@ -103,9 +111,9 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                       <tbody>
                         {plan.lines.map((line) => (
                           <tr key={line.planLineId}>
-                            <td>{getShiftLabel(line.shiftName ?? undefined)}</td>
-                            <td>{line.dishName ?? '-'}</td>
-                            <td className="text-right tabular-nums font-medium">{formatNumber(line.totalServings)} suất</td>
+                            <td className="text-slate-600">{getShiftLabel(line.shiftName ?? undefined)}</td>
+                            <td className="font-medium text-slate-900">{line.dishName ?? '-'}</td>
+                            <td className="text-right tabular-nums font-semibold text-slate-800">{formatNumber(line.totalServings)} suất</td>
                           </tr>
                         ))}
                       </tbody>

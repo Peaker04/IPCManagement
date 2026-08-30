@@ -38,28 +38,28 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
         ]} />
 
         <TableViewport caption={`Giá vốn món ngày ${activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}`} size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
-          <table className="ipc-data-table ipc-cost-table table-fixed w-full">
+          <table className="ipc-erp-grid-table w-full">
             <thead><tr>
-              <th style={{ width: '10%' }} className="sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap">Ca</th>
-              <th style={{ width: '14%' }} className="sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap">Dòng</th>
-              <th style={{ width: showBomStatus ? '27%' : '35%' }} className="sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap">Món trong kế hoạch</th>
-              <th style={{ width: '12%' }} className="sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap">Suất</th>
-              <th style={{ width: '16%' }} className="sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap">Đơn giá vốn</th>
-              <th style={{ width: '18%' }} className="sticky top-0 z-10 bg-slate-100 text-right whitespace-nowrap">Thành tiền</th>
-              {showBomStatus && <th style={{ width: '13%' }} className="sticky top-0 z-10 bg-slate-100 text-center whitespace-nowrap">BOM</th>}
+              <th style={{ width: '10%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Ca</th>
+              <th style={{ width: '14%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Dòng</th>
+              <th style={{ width: showBomStatus ? '27%' : '35%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Món trong kế hoạch</th>
+              <th style={{ width: '12%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Suất</th>
+              <th style={{ width: '16%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Đơn giá vốn</th>
+              <th style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Thành tiền</th>
+              {showBomStatus && <th style={{ width: '13%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">BOM</th>}
             </tr></thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={`cost-${row.key}`} className="table-row">
-                  <td className="text-left">{row.shiftLabel}</td>
-                  <td className="text-left">{row.slotLabel}</td>
-                  <td className="text-left font-semibold text-slate-900">{row.dishName}</td>
-                  <td className="text-right tabular-nums">{formatNumber(row.portions)}</td>
+                <tr key={`cost-${row.key}`}>
+                  <td className="text-left text-slate-600">{row.shiftLabel}</td>
+                  <td className="text-left text-slate-600">{row.slotLabel}</td>
+                  <td className="text-left font-medium text-slate-900">{row.dishName}</td>
+                  <td className="text-right tabular-nums font-medium">{formatNumber(row.portions)}</td>
                   <td className="text-right tabular-nums">{row.hasCatalogBom ? formatCurrency(row.unitCost) : '—'}</td>
                   <td className="text-right tabular-nums font-semibold text-slate-900">{row.hasCatalogBom ? formatCurrency(row.unitCost * row.portions) : '—'}</td>
                   {showBomStatus && <td className="text-center">{row.hasCatalogBom
-                    ? <span className="ipc-inline-status"><CheckCircle2 size={15} aria-hidden="true" />Đã có BOM</span>
-                    : <span className="ipc-inline-status is-warning"><TriangleAlert size={15} aria-hidden="true" />Chưa có BOM</span>}
+                    ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} aria-hidden="true" />Đã có BOM</span>
+                    : <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700"><TriangleAlert size={14} aria-hidden="true" />Chưa có BOM</span>}
                   </td>}
                 </tr>
               ))}
@@ -74,27 +74,27 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
             <span>{materialCount} nguyên liệu · {formatCurrency(presentation.materialTotal)} <ChevronDown size={16} aria-hidden="true" /></span>
           </summary>
           <TableViewport caption="Nguyên liệu theo món đang hiển thị trong ngày" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
-            <table className="ipc-data-table ipc-cost-table">
+            <table className="ipc-erp-grid-table w-full">
               <thead><tr>
-                <th className="sticky top-0 z-10 bg-slate-100 text-left">Nguyên liệu</th>
-                <th className="sticky top-0 z-10 bg-slate-100 text-center">ĐVT</th>
-                <th className="sticky top-0 z-10 bg-slate-100 text-right">LT ngày</th>
-                <th className="sticky top-0 z-10 bg-slate-100 text-right">TT ngày</th>
-                <th className="sticky top-0 z-10 bg-slate-100 text-left">Món trong kế hoạch</th>
-                <th className="sticky top-0 z-10 bg-slate-100 text-right">Đơn giá</th>
-                <th className="sticky top-0 z-10 bg-slate-100 text-right">Thành tiền ngày</th>
+                <th className="sticky top-0 z-10 text-left">Nguyên liệu</th>
+                <th className="sticky top-0 z-10 text-center">ĐVT</th>
+                <th className="sticky top-0 z-10 text-right">LT ngày</th>
+                <th className="sticky top-0 z-10 text-right">TT ngày</th>
+                <th className="sticky top-0 z-10 text-left">Món trong kế hoạch</th>
+                <th className="sticky top-0 z-10 text-right">Đơn giá</th>
+                <th className="sticky top-0 z-10 text-right">Thành tiền ngày</th>
               </tr></thead>
               <tbody>
                 {Object.entries(materialSummary).map(([identityKey, data]) => {
                   if (data.theory === 0) return null
-                  return <tr key={`day-material-${identityKey}`} className="table-row">
-                    <td className="text-left font-bold text-slate-900">{data.ingredientName}</td>
-                    <td className="text-center">{data.unit}</td>
+                  return <tr key={`day-material-${identityKey}`}>
+                    <td className="text-left font-medium text-slate-900">{data.ingredientName}</td>
+                    <td className="text-center text-slate-600">{data.unit}</td>
                     <td className="text-right tabular-nums">{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
-                    <td className="text-right tabular-nums font-bold text-[var(--ipc-primary-600)]">{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
-                    <td className="text-left font-medium text-slate-800" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
+                    <td className="text-right tabular-nums font-semibold text-blue-700">{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
+                    <td className="text-left text-slate-700" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
                     <td className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
-                    <td className="text-right tabular-nums font-bold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
                   </tr>
                 })}
                 {materialCount === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra định lượng nguyên liệu của các món.</td></tr>}

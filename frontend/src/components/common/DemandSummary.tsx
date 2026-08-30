@@ -63,7 +63,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
   return (
     <div className={cn('ipc-demand-summary', className)}>
       <TableViewport className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu" caption={showServiceDate ? 'Tổng hợp theo từng ngày trong khoảng đang xem' : 'Tổng hợp trong ngày đang xem'}>
-        <table className="ipc-data-table ipc-demand-table ipc-status-action-table table-fixed w-full">
+        <table className="ipc-erp-grid-table w-full">
           <thead>
             <tr>
               {showServiceDate && <th style={{ width: '11%' }} className="whitespace-nowrap text-left">Ngày</th>}
@@ -84,38 +84,35 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
               return (
                 <tr key={`${line.id}-${index}`}>
                   {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>}
-                  <td className="truncate" title={line.material}>{line.material}</td>
-                  <td className="truncate" title={line.source}>{line.source}</td>
-                  <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
+                  <td className="truncate font-medium text-slate-900" title={line.material}>{line.material}</td>
+                  <td className="truncate text-slate-600" title={line.source}>{line.source}</td>
+                  <td className="text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
-                  <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
+                  <td className="text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(availableAfterReserve, line.unit)}
                   </td>
                   <td className={cn(
-                    'ipc-numeric-cell text-right tabular-nums whitespace-nowrap font-semibold',
+                    'text-right tabular-nums whitespace-nowrap font-semibold',
                     variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700',
                   )}>
                     {formatVariance(variance, line.unit)}
                   </td>
-                  <td className="ipc-badge-cell text-center whitespace-nowrap">
-                    <StatusBadge
-                      variant={line.tone}
-                      className="ipc-table-badge ipc-table-badge--status ipc-demand-status-badge"
-                    >
-                      <span title={line.status}>{shortenStatus(line.status)}</span>
+                  <td className="text-center">
+                    <StatusBadge variant={line.tone} size="sm" tooltip={line.status}>
+                      {shortenStatus(line.status)}
                     </StatusBadge>
                   </td>
-                  <td className="text-center whitespace-nowrap">
-                    {renderAction?.(line) ?? (line.actionHref ? (
-                      <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={line.actionHref}>
-                        {shortenNextAction(line.nextAction)}
-                      </Link>
-                    ) : (
-                      <span className={cn('ipc-demand-next-action', `is-${line.tone}`)} title={line.nextAction}>
-                        {shortenNextAction(line.nextAction)}
-                      </span>
-                    ))}
+                  <td className="text-center">
+                    {(renderAction ? renderAction(line) : undefined) ?? (
+                      line.actionHref ? (
+                        <Link className="ipc-button ipc-button-primary ipc-button-compact" to={line.actionHref}>
+                          {shortenNextAction(line.nextAction)}
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-slate-500">{shortenNextAction(line.nextAction)}</span>
+                      )
+                    )}
                   </td>
                 </tr>
               );

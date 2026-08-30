@@ -32,14 +32,14 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
           )}
 
           <PaginatedTableFrame ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
-            <table className="ipc-data-table ipc-admin-quality-table text-sm">
+            <table className="ipc-erp-grid-table ipc-admin-quality-table w-full text-sm">
               <thead>
                 <tr>
-                  <th>Vấn đề</th>
-                  <th>Ưu tiên</th>
-                  <th>Trạng thái xử lý</th>
-                  <th>Phụ trách</th>
-                  <th>Đối tượng</th>
+                  <th className="text-left">Vấn đề</th>
+                  <th className="text-center">Ưu tiên</th>
+                  <th className="text-center">Trạng thái xử lý</th>
+                  <th className="text-left">Phụ trách</th>
+                  <th className="text-left">Đối tượng</th>
                   <th className="text-right">Thao tác</th>
                 </tr>
               </thead>

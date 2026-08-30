@@ -69,15 +69,15 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
         )}
       </div>
       <TableViewport ariaLabel="Bảng vấn đề dữ liệu trước khi vận hành">
-        <table className="ipc-data-table ipc-reports-quality-table">
+        <table className="ipc-erp-grid-table w-full min-w-[800px]">
           <thead>
             <tr>
-              <th>Mức độ</th>
-              <th>SLA và trạng thái</th>
-              <th>{uiCopy.reports.owner}</th>
-              <th>Nhóm lỗi và đối tượng</th>
-              <th>Vấn đề</th>
-              <th>Cách xử lý</th>
+              <th className="text-center">Mức độ</th>
+              <th className="text-left">SLA và trạng thái</th>
+              <th className="text-left">{uiCopy.reports.owner}</th>
+              <th className="text-left">Nhóm lỗi và đối tượng</th>
+              <th className="text-left">Vấn đề</th>
+              <th className="text-left">Cách xử lý</th>
               <th className="text-right">Thao tác</th>
             </tr>
           </thead>

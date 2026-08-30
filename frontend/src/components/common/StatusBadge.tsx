@@ -16,25 +16,25 @@ interface StatusBadgeProps {
 export type StatusBadgeSize = 'sm' | 'default' | 'lg';
 
 const badgeClasses = {
-  neutral: 'is-neutral bg-slate-100 text-slate-700 border-slate-200',
-  info: 'is-info bg-blue-50 text-blue-700 border-blue-200',
-  success: 'is-success bg-emerald-50 text-emerald-700 border-emerald-200',
-  warning: 'is-warning bg-amber-50 text-amber-800 border-amber-200',
-  danger: 'is-danger bg-red-50 text-red-700 border-red-200',
+  neutral: 'is-neutral text-slate-700 font-medium bg-transparent border-0',
+  info: 'is-info text-blue-700 font-semibold bg-transparent border-0',
+  success: 'is-success text-emerald-700 font-semibold bg-transparent border-0',
+  warning: 'is-warning text-amber-800 font-semibold bg-transparent border-0',
+  danger: 'is-danger text-red-700 font-semibold bg-transparent border-0',
 };
 
 const dotClasses = {
-  neutral: 'bg-slate-400',
-  info: 'bg-blue-500',
-  success: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  danger: 'bg-red-500',
+  neutral: 'bg-slate-400 hidden',
+  info: 'bg-blue-500 hidden',
+  success: 'bg-emerald-500 hidden',
+  warning: 'bg-amber-500 hidden',
+  danger: 'bg-red-500 hidden',
 };
 
 const sizeClasses: Record<StatusBadgeSize, string> = {
-  sm: 'gap-1 px-1.5 py-0.5 text-xs',
-  default: 'gap-1.5 px-2 py-0.5',
-  lg: 'gap-2 px-2.5 py-1 text-sm',
+  sm: 'gap-1 text-xs',
+  default: 'gap-1.5 text-xs',
+  lg: 'gap-2 text-sm',
 };
 
 /**
@@ -101,7 +101,7 @@ export function StatusBadge({
       data-layout-owner="status-badge"
       className={cn(
         typography.label,
-        'ipc-status-badge inline-flex min-h-5 min-w-0 items-center justify-center rounded-md border font-medium whitespace-nowrap select-none transition-colors duration-150',
+        'ipc-status-badge inline-flex min-h-5 min-w-0 items-center justify-center font-medium whitespace-nowrap select-none',
         sizeClasses[size],
         badgeClasses[variant],
         className

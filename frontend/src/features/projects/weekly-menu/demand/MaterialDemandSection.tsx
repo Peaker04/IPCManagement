@@ -14,8 +14,6 @@ import type { DemandLine } from '@/types/workflow'
 import type { MaterialDemandWorkflow } from './useMaterialDemand'
 import { getDemandActionPresentation } from './demandModel'
 import { typography } from '@/lib/typography'
-const tableHeadClass = 'text-center'
-const tableCellClass = 'text-center'
 export function MaterialDemandSection({
   workflow,
   scheduleWorkflow,
@@ -207,36 +205,39 @@ export function MaterialDemandSection({
             <span className="ipc-demand-disclosure-state">{isKhsxComplete ? 'Đã hoàn tất' : 'Cần xử lý'}<ChevronDown size={16} aria-hidden="true" /></span>
           </summary>
           <TableViewport caption={`Kế hoạch sản xuất ngày ${activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}`} size="weekly" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
-          <table className="ipc-data-table ipc-material-demand-table table-fixed w-full">
+          <table className="ipc-erp-grid-table w-full">
             <thead><tr>
-              <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Nhóm</th>
-              <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
-              <th style={{ width: '36%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món theo kế hoạch tuần</th>
-              <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
-              <th style={{ width: '14%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>
+              <th style={{ width: '16%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Nhóm</th>
+              <th style={{ width: '16%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Dòng</th>
+              <th style={{ width: '36%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Món theo kế hoạch tuần</th>
+              <th style={{ width: '18%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Suất</th>
+              <th style={{ width: '14%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">BOM</th>
             </tr></thead>
             <tbody>
               {activeShiftGroups.map((group) => (
                 <Fragment key={group.key}>
-                  <tr className="ipc-demand-shift-row">
-                    <td colSpan={5}><strong>{group.label}</strong><span>{group.rows.length} dòng · {(group.quickServingRow?.isCompleted ?? group.rows.every((row) => row.portions > 0)) ? 'Đã hoàn tất số suất' : 'Chưa hoàn tất số suất'}</span></td>
+                  <tr className="ipc-demand-shift-row bg-slate-100/70 font-semibold">
+                    <td colSpan={5} className="p-2 px-3 text-slate-800">
+                      <strong>{group.label}</strong>
+                      <span className="ml-2 font-normal text-xs text-slate-500">{group.rows.length} dòng · {(group.quickServingRow?.isCompleted ?? group.rows.every((row) => row.portions > 0)) ? 'Đã hoàn tất số suất' : 'Chưa hoàn tất số suất'}</span>
+                    </td>
                   </tr>
                   {group.rows.map((row) => {
                     const quickServingRow = scheduleWorkflow.presentation.getQuickServingRow(presentation.activeQuickServingRows, row)
                     return (
-                      <tr key={row.key} className="table-row">
-                    <td className={tableCellClass}>{row.menuTypeLabel}</td>
-                    <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
-                    <td className={`${tableCellClass} text-left font-semibold text-slate-900`}>{row.dishName}</td>
-                    <td className={tableCellClass} title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
-                      {quickServingRow?.isCompleted ? <span className="font-semibold text-slate-800">{formatNumber(row.portions)}</span> : quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
-                        <span className="inline-flex flex-col items-center gap-0.5"><span className="font-semibold text-amber-700">Chưa chốt</span></span>
-                      ) : (
-                        <span className="inline-flex flex-col items-center gap-0.5"><span>{formatNumber(row.portions)}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
-                      )}
-                    </td>
-                    <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-slate-700' : 'font-semibold text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa có'}</td>
-                  </tr>
+                      <tr key={row.key}>
+                        <td className="text-center">{row.menuTypeLabel}</td>
+                        <td className="text-left text-slate-600">{row.slotLabel}</td>
+                        <td className="text-left font-medium text-slate-900">{row.dishName}</td>
+                        <td className="text-center" title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
+                          {quickServingRow?.isCompleted ? <span className="font-semibold text-slate-800 tabular-nums">{formatNumber(row.portions)}</span> : quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
+                            <span className="inline-flex flex-col items-center gap-0.5"><span className="font-semibold text-amber-700">Chưa chốt</span></span>
+                          ) : (
+                            <span className="inline-flex flex-col items-center gap-0.5"><span className="tabular-nums">{formatNumber(row.portions)}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
+                          )}
+                        </td>
+                        <td className={cn('text-center font-medium', row.hasCatalogBom ? 'text-slate-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa có'}</td>
+                      </tr>
                     )
                   })}
                 </Fragment>

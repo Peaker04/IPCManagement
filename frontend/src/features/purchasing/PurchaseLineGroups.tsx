@@ -73,21 +73,21 @@ export function PurchaseLineGroups({
         </label>
       </div>
       <TableViewport ariaLabel="Nhóm dòng nguyên liệu cần mua" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để xử lý từng dòng chứng từ.">
-      <table className="ipc-data-table min-w-[900px] table-fixed">
+      <table className="ipc-erp-grid-table w-full min-w-[900px]">
         <thead>
           <tr>
-            <th>Nguyên liệu</th>
+            <th className="text-left">Nguyên liệu</th>
             <th className="text-right">Số lượng mua</th>
-            <th>Nhà cung cấp</th>
-            <th>Bằng chứng hiện tại</th>
+            <th className="text-left">Nhà cung cấp</th>
+            <th className="text-left">Bằng chứng hiện tại</th>
             <th className="text-right">Giá đề xuất</th>
-            <th>Ngày giao</th>
+            <th className="text-center">Ngày giao</th>
             <th className="text-right">Thao tác</th>
           </tr>
         </thead>
         <tbody>
           {groups.length === 0 ? (
-            <tr><td colSpan={7} className="h-[320px] text-center text-slate-600">Không có dòng nguyên liệu khớp bộ lọc.</td></tr>
+            <tr><td colSpan={7} className="h-[320px] text-center text-slate-500">Không có dòng nguyên liệu khớp bộ lọc.</td></tr>
           ) : groups.flatMap((group) => {
             const expanded = expandedGroupKey === group.key;
             const readyCount = group.lines.filter((line) => line.currentSupplierDecision).length;

@@ -1,4 +1,4 @@
-import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
 import type { IngredientLookup } from '@/api/dishCatalogApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,7 +98,10 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                 isRetrying={workflow.quotationView.isRetrying}
               />
             ) : workflow.quotationView.phase === 'loading' ? (
-              <InlineAlert title="Đang tải báo giá" variant="info">Bảng báo giá đang được đồng bộ.</InlineAlert>
+              <div className="space-y-2">
+                <InlineAlert title="Đang tải báo giá" variant="info">Bảng báo giá đang được đồng bộ.</InlineAlert>
+                <TableSkeleton columns={7} rows={4} ariaLabel="Đang tải danh sách báo giá..." />
+              </div>
             ) : null}
             {workflow.quotationView.phase === 'ready' && workflow.quotationView.isRefreshing && (
               <InlineAlert title="Đang cập nhật báo giá" variant="info">
@@ -106,17 +109,27 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
               </InlineAlert>
             )}
             <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu" caption="Danh sách báo giá theo nguyên liệu">
-              <table className="ipc-data-table min-w-[760px]">
-                <thead><tr><th>Nhà cung cấp</th><th className="text-right">Đơn giá (VNĐ)</th><th>Hiệu lực từ</th><th>Hiệu lực đến</th><th>Ghi chú</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
+              <table className="ipc-erp-grid-table w-full min-w-[760px]">
+                <thead>
+                  <tr>
+                    <th className="text-left">Nhà cung cấp</th>
+                    <th className="text-right">Đơn giá (VNĐ)</th>
+                    <th className="text-center">Hiệu lực từ</th>
+                    <th className="text-center">Hiệu lực đến</th>
+                    <th className="text-left">Ghi chú</th>
+                    <th className="text-center">Trạng thái</th>
+                    <th className="text-right">Thao tác</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {workflow.rows.map((quotation) => (
                     <tr key={quotation.quotationId} className={quotation.isBestPrice ? 'bg-emerald-50/60' : ''}>
                       <td className="font-medium text-slate-900">{quotation.supplierName}{quotation.isBestPrice && <span className="ml-2 inline-flex items-center rounded-sm bg-emerald-100 px-1.5 py-0.5 text-xs font-semibold text-emerald-800">Tốt nhất</span>}</td>
                       <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(quotation.unitPrice)}</td>
-                      <td className="tabular-nums text-slate-700">{formatDateOnly(quotation.effectiveFrom)}</td>
-                      <td className="tabular-nums text-slate-700">{quotation.effectiveTo ? formatDateOnly(quotation.effectiveTo) : '—'}</td>
+                      <td className="text-center tabular-nums text-slate-700">{formatDateOnly(quotation.effectiveFrom)}</td>
+                      <td className="text-center tabular-nums text-slate-700">{quotation.effectiveTo ? formatDateOnly(quotation.effectiveTo) : '—'}</td>
                       <td className="text-slate-600">{quotation.note || '—'}</td>
-                      <td>
+                      <td className="text-center">
                         <StatusBadge variant={quotation.isActive ? 'success' : 'neutral'}>
                           {quotation.isActive ? 'Đang hoạt động' : 'Đã ngừng'}
                         </StatusBadge>
@@ -128,7 +141,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                     </tr>
                   ))}
                   {workflow.quotationView.phase === 'ready' && workflow.rows.length === 0 && !workflow.quotationView.isRefreshing && (
-                    <tr><td colSpan={7} className="py-4 text-center text-slate-600">Chưa có báo giá nào cho nguyên liệu này</td></tr>
+                    <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>
                   )}
                 </tbody>
               </table>

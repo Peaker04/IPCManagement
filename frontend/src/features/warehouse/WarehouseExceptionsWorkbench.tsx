@@ -282,18 +282,28 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         </div>
         <QueryViewBoundary queries={[{ label: 'yêu cầu cấp bổ sung', view: supplementalView }]} refreshLabel="Đang cập nhật yêu cầu cấp bổ sung">
         <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Trạng thái và eligibility thao tác do máy chủ cung cấp.">
-          <table className="ipc-data-table min-w-[980px]">
-            <thead><tr><th>Yêu cầu</th><th>Nguyên liệu</th><th className="text-right">Đã cấp / yêu cầu</th><th className="text-right">Tồn khả dụng</th><th>Trạng thái</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
+          <table className="ipc-erp-grid-table w-full min-w-[980px]">
+            <thead>
+              <tr>
+                <th className="text-left">Yêu cầu</th>
+                <th className="text-left">Nguyên liệu</th>
+                <th className="text-right">Đã cấp / yêu cầu</th>
+                <th className="text-right">Tồn khả dụng</th>
+                <th className="text-center">Trạng thái</th>
+                <th className="text-left">Hướng xử lý</th>
+                <th className="text-right">Thao tác</th>
+              </tr>
+            </thead>
             <tbody>
               {supplementalItems.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
+                <tr><td colSpan={7} className="text-center text-slate-500">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
               ) : supplementalItems.map((item) => (
                 <tr key={item.requestId}>
-                  <td><span className="block font-semibold text-slate-950">{item.requestCode}</span><span className="text-xs text-slate-600">Từ {item.issueCode}</span></td>
-                  <td><span className="block font-medium text-slate-900">{item.ingredientName}</span><span className="text-xs text-slate-600">{item.reason || 'Không có ghi chú'}</span></td>
+                  <td><span className="block font-semibold text-slate-950">{item.requestCode}</span><span className="text-xs text-slate-500">Từ {item.issueCode}</span></td>
+                  <td><span className="block font-medium text-slate-900">{item.ingredientName}</span><span className="text-xs text-slate-500">{item.reason || 'Không có ghi chú'}</span></td>
                   <td className="text-right tabular-nums">{formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })} / {formatQuantityWithUnit(item.requestedQty, item.unitName, { maximumFractionDigits: 6 })}</td>
                   <td className="text-right tabular-nums">{formatQuantityWithUnit(item.availableQty, item.unitName, { maximumFractionDigits: 6 })}</td>
-                  <td>{formatWorkflowStatus(item.status)}{item.purchaseRequestCode && <span className="block text-xs text-slate-600">{item.purchaseRequestCode}: {formatWorkflowStatus(item.purchaseRequestStatus || '')}</span>}</td>
+                  <td className="text-center">{formatWorkflowStatus(item.status)}{item.purchaseRequestCode && <span className="block text-xs text-slate-500">{item.purchaseRequestCode}: {formatWorkflowStatus(item.purchaseRequestStatus || '')}</span>}</td>
                   <td className="max-w-[240px] text-xs text-slate-700">
                     {item.remainingQty > 0 && <span className="block font-medium text-slate-900">Còn thiếu {formatQuantityWithUnit(item.remainingQty, item.unitName, { maximumFractionDigits: 6 })}</span>}
                     {item.actionDisabledReason || (item.availableQty >= item.remainingQty ? 'Cấp đủ phần còn thiếu.' : 'Cấp phần đang có, chuyển phần thiếu sang thu mua.')}
@@ -319,10 +329,30 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       <SectionPanel title="Đối soát nguyên liệu đã xuất" icon={<Undo2 size={18} aria-hidden="true" />} description="Theo dõi nguyên liệu đã trả, hao hụt và còn dư theo đúng khách hàng, ngày, ca và mức suất.">
         <QueryViewBoundary queries={[{ label: 'đối soát nguyên liệu theo dòng chứng từ', view: allocationView }]} refreshLabel="Đang cập nhật số liệu đối soát">
           <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Quyết định điều chuyển giữa khách hàng chỉ xuất hiện khi hệ thống xác nhận đủ điều kiện.">
-            <table className="ipc-data-table min-w-[1120px]">
-              <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Đã xuất</th><th className="text-right">Đã trả</th><th className="text-right">Hao hụt</th><th className="text-right">Còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
-              <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationRows.map((row) => (
-                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.issuedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.returnedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.wastedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.excessQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
+            <table className="ipc-erp-grid-table w-full min-w-[1120px]">
+              <thead>
+                <tr>
+                  <th className="text-left">Khách hàng và ca phục vụ</th>
+                  <th className="text-left">Nguyên liệu</th>
+                  <th className="text-right">Đã xuất</th>
+                  <th className="text-right">Đã trả</th>
+                  <th className="text-right">Hao hụt</th>
+                  <th className="text-right">Còn dư</th>
+                  <th className="text-left">Hướng xử lý</th>
+                  <th className="text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-500">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationRows.map((row) => (
+                <tr key={row.sourceIssueLineId}>
+                  <td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-500">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td>
+                  <td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td>
+                  <td className="text-right tabular-nums">{formatQuantityWithUnit(row.issuedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td>
+                  <td className="text-right tabular-nums">{formatQuantityWithUnit(row.returnedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td>
+                  <td className="text-right tabular-nums">{formatQuantityWithUnit(row.wastedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td>
+                  <td className="text-right tabular-nums font-semibold text-blue-700">{formatQuantityWithUnit(row.excessQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td>
+                  <td className="text-slate-700">{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td>
+                  <td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td>
+                </tr>
               ))}</tbody>
             </table>
           </TableViewport>
@@ -343,19 +373,29 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         </div>
         <QueryViewBoundary queries={[{ label: 'phiếu trả', view: returnsView }]} refreshLabel="Đang cập nhật phiếu trả">
         <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Kho mở từng phiếu để kiểm đếm số thực nhận.">
-          <table className="ipc-data-table min-w-[820px]">
-            <thead><tr><th>Phiếu trả</th><th>Loại</th><th>Phiếu xuất gốc</th><th>Ngày/ca</th><th>Lý do</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
+          <table className="ipc-erp-grid-table w-full min-w-[820px]">
+            <thead>
+              <tr>
+                <th className="text-left">Phiếu trả</th>
+                <th className="text-left">Loại</th>
+                <th className="text-left">Phiếu xuất gốc</th>
+                <th className="text-center">Ngày/ca</th>
+                <th className="text-left">Lý do</th>
+                <th className="text-center">Trạng thái</th>
+                <th className="text-right">Thao tác</th>
+              </tr>
+            </thead>
             <tbody>
               {returnItems.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600">Không có phiếu trả hoặc hao hụt đang chờ kho.</td></tr>
+                <tr><td colSpan={7} className="text-center text-slate-500">Không có phiếu trả hoặc hao hụt đang chờ kho.</td></tr>
               ) : returnItems.map((item) => (
                 <tr key={item.returnId}>
                   <td className="font-semibold text-slate-950">{item.returnCode}</td>
                   <td>{item.returnType === 'WASTE' ? 'Hao hụt / hủy' : 'Trả lại kho'}</td>
-                  <td>{item.issueCode || item.issueId}</td>
-                  <td>{item.returnDate}{item.shiftName ? ` · ${item.shiftName}` : ''}</td>
-                  <td className="max-w-[280px]">{item.reason}</td>
-                  <td>{formatWorkflowStatus(item.status)}</td>
+                  <td className="text-slate-600">{item.issueCode || item.issueId}</td>
+                  <td className="text-center tabular-nums text-slate-700">{item.returnDate}{item.shiftName ? ` · ${item.shiftName}` : ''}</td>
+                  <td className="max-w-[280px] text-slate-600">{item.reason}</td>
+                  <td className="text-center">{formatWorkflowStatus(item.status)}</td>
                   <td className="text-right"><Button type="button" size="sm" disabled={!canManage} onClick={() => { setFeedback(undefined); setDiscrepancyValidation(undefined); setAdjustedQuantityErrors({}); setReturnError(undefined); setSelectedReturnId(item.returnId); setAdjustedQuantities({}); setHasDiscrepancy(false); setDiscrepancyNote(''); }}><PackageCheck size={15} aria-hidden="true" /> Tiếp nhận</Button></td>
                 </tr>
               ))}

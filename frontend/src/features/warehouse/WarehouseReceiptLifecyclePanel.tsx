@@ -229,15 +229,22 @@ export function WarehouseReceiptLifecyclePanel() {
         </QueryErrorAlert>
       ) : (
         <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="max-h-[220px]">
-          <table className="ipc-data-table min-w-[760px]">
-            <thead><tr><th>Phiếu</th><th>Nhà cung cấp</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
+          <table className="ipc-erp-grid-table w-full min-w-[760px]">
+            <thead>
+              <tr>
+                <th className="text-left">Phiếu</th>
+                <th className="text-left">Nhà cung cấp</th>
+                <th className="text-center">Trạng thái</th>
+                <th className="text-right">Thao tác</th>
+              </tr>
+            </thead>
             <tbody>
-              {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Đang tải phiếu nhập…</td></tr>
-                  : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
+              {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-500">Đang tải phiếu nhập…</td></tr>
+                  : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-500">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
                   : canonicalReceipts.map((item) => <tr key={item.receiptId} className={item.receiptId === activeReceiptId ? 'bg-blue-50/60' : undefined}>
                     <td className={cn(typography.code, 'font-semibold text-slate-900')}>{item.receiptCode}</td>
-                    <td>{item.supplierName ?? '—'}</td>
-                    <td>{statusLabel(item.status, item.qualityStatus)}</td>
+                    <td className="text-slate-700">{item.supplierName ?? '—'}</td>
+                    <td className="text-center">{statusLabel(item.status, item.qualityStatus)}</td>
                     <td className="text-right"><Button type="button" size="sm" variant="outline" onClick={() => { setSelectedReceiptId(item.receiptId); setFeedback(undefined); }}>Xem trạng thái</Button></td>
                   </tr>)}
             </tbody>

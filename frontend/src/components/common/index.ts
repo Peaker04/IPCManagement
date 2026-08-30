@@ -24,6 +24,8 @@ export type { ContextStripItem } from './ContextStrip';
 export { SkeletonTableRow } from './SkeletonTableRow';
 export { Num } from './Num';
 export { QueryViewBoundary } from './QueryViewBoundary';
+export { TableSkeleton } from './TableSkeleton';
+export { TableEmptyState } from './TableEmptyState';
 export type { ColumnSkeletonDef } from './SkeletonTableRow';
 export type { QueryViewEntry } from './QueryViewBoundary';
 export type { EmptyStateVariant } from './EmptyState';

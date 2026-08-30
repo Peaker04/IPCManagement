@@ -92,12 +92,34 @@ export function WarehouseMovementPanel({
           {currentStockView.phase === 'error' && <EmptyState variant="error" className="mb-3" title="Không tải được tồn kho hiện tại" description="Vui lòng thử tải lại hoặc kiểm tra kết nối mạng." onRetry={() => currentStockView.retry?.()} isRetrying={currentStockView.isRetrying} />}
           {currentStockView.phase === 'ready' && currentStockView.isRefreshing && <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm border border-slate-200 bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">Đang cập nhật...</span>}
           <TableViewport className="ipc-warehouse-table-shell min-h-[27rem]" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
-            <table className="ipc-data-table">
-              <thead><tr><th>Kho</th><th>Nguyên liệu</th><th className="text-right">Số lượng</th><th>Cập nhật</th></tr></thead>
+            <table className="ipc-erp-grid-table w-full">
+              <thead>
+                <tr>
+                  <th className="text-left">Kho</th>
+                  <th className="text-left">Nguyên liệu</th>
+                  <th className="text-right">Số lượng</th>
+                  <th className="text-center">Cập nhật</th>
+                </tr>
+              </thead>
               <tbody>
-                {currentStockView.phase === 'loading' ? Array.from({ length: 8 }).map((_, index) => <tr key={`stock-skel-${index}`}><td colSpan={4} className="p-2"><div className="ipc-table-skeleton-cell h-8 w-full" /></td></tr>) : currentStockRows.length === 0 ? (
+                {currentStockView.phase === 'loading' ? (
+                  Array.from({ length: 8 }).map((_, index) => (
+                    <tr key={`stock-skel-${index}`}>
+                      <td colSpan={4} className="p-2.5">
+                        <div className="h-4 animate-pulse rounded bg-slate-100" />
+                      </td>
+                    </tr>
+                  ))
+                ) : currentStockRows.length === 0 ? (
                   <tr><td colSpan={4} className="py-6 text-center text-slate-500">{currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}</td></tr>
-                ) : currentStockRows.map((row) => <tr key={row.id}><td>{row.warehouse}</td><td>{row.ingredient}</td><td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td><td>{formatDateTime(row.lastUpdated)}</td></tr>)}
+                ) : currentStockRows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="text-slate-700">{row.warehouse}</td>
+                    <td className="font-medium text-slate-900">{row.ingredient}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                    <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </TableViewport>

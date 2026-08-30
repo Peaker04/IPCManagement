@@ -20,6 +20,8 @@ import { useReportsKitchenUsageViewModel } from './useReportsKitchenUsageViewMod
 import { useReportsPriceViewModel } from './useReportsPriceViewModel';
 import { useReportsStockMovementViewModel } from './useReportsStockMovementViewModel';
 
+import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+
 export {
   movementTypeLabel,
   pricePageSizeOptions,
@@ -40,6 +42,8 @@ export const useReportsPageModel = ({
 }: ReportsPagePermissions) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isViewPending, startViewTransition] = useTransition();
+  const systemOperation = useSystemOperation();
+  const isMaterialReconciliationMode = systemOperation?.mode === 'MATERIAL_RECONCILIATION';
   const initialView = searchParams.get('view');
   const initialPage = readPositiveInteger(searchParams.get('page'), 1);
   const [requestedView, setRequestedView] = useState<ReportView>(
@@ -50,7 +54,14 @@ export const useReportsPageModel = ({
     priceSubViewTabs.some((tab) => tab.id === initialPriceSubView) ? initialPriceSubView as PriceSubView : 'lines',
   );
   const canReadReceiptPriceVariance = canReadPurchaseReports || canReadWarehouseReports;
-  const preferredReportViews = useMemo(() => visibleTabIds('reports') as ReportView[], []);
+  const preferredReportViews = useMemo(() => {
+    const local = visibleTabIds('reports') as ReportView[];
+    const backendTabs = systemOperation?.capabilities.pageTabs['reports'];
+    if (!backendTabs) {
+      return local;
+    }
+    return local.filter((tabId) => backendTabs.includes(tabId));
+  }, [systemOperation?.capabilities.pageTabs]);
   const preferredPriceSubViews = useMemo(() => priceSubViewTabs.map((tab) => tab.id), []);
   const visibleReportViews = useMemo<ReportView[]>(() => validReportViews.filter((view) => {
     if (!preferredReportViews.includes(view)) return false;
@@ -220,6 +231,7 @@ export const useReportsPageModel = ({
     ...auditQualityModel,
     activeReportView,
     activeView,
+    isMaterialReconciliationMode,
     canReadAuditChanges,
     canReadPurchaseReports,
     canReadReceiptPriceVariance,

@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { DishMaterialsWorkflow } from './useDishMaterials'
 
-const tableHeadClass = 'text-center'
-const tableCellClass = 'text-center'
 const EMPTY_DISH_VALUE = '__empty-dish__'
 
 const normalizeDishSearch = (value: string) => value
@@ -90,20 +88,24 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
         { label: 'Lợi nhuận gộp dự kiến', value: formatCurrency(Math.round(grossProfit)), tone: grossProfit >= 0 ? 'neutral' : 'danger' },
       ]} />
       <TableViewport caption="Giá vốn nguyên liệu cho một khay" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
-        <table className="ipc-data-table ipc-cost-table table-fixed w-full">
+        <table className="ipc-erp-grid-table w-full">
           <thead><tr>
-            <th style={{ width: '28%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Nguyên liệu</th>
-            <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn vị</th>
-            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right`}>Định lượng / suất</th>
-            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right`}>Đơn giá</th>
-            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-right`}>Thành tiền / khay</th>
+            <th style={{ width: '28%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
+            <th style={{ width: '16%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Đơn vị</th>
+            <th style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Định lượng / suất</th>
+            <th style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Đơn giá</th>
+            <th style={{ width: '20%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Thành tiền / khay</th>
           </tr></thead>
           <tbody>
-            {ingredients.map((ingredient) => <tr key={ingredient.key} className="table-row">
-              <td className={`${tableCellClass} text-left font-bold`}>{ingredient.name}</td><td className={tableCellClass}>{ingredient.unit}</td>
-              <td className={`${tableCellClass} text-right tabular-nums font-semibold text-[var(--ipc-primary-600)]`}>{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
-              <td className={`${tableCellClass} text-right tabular-nums`}>{formatCurrency(ingredient.supplierPrice)}</td><td className={`${tableCellClass} text-right tabular-nums font-bold text-slate-950`}>{formatCurrency(Math.round(ingredient.cost))}</td>
-            </tr>)}
+            {ingredients.map((ingredient) => (
+              <tr key={ingredient.key}>
+                <td className="text-left font-medium text-slate-900">{ingredient.name}</td>
+                <td className="text-center text-slate-600">{ingredient.unit}</td>
+                <td className="text-right tabular-nums">{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
+                <td className="text-right tabular-nums">{formatCurrency(ingredient.supplierPrice)}</td>
+                <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(Math.round(ingredient.cost))}</td>
+              </tr>
+            ))}
             {ingredients.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có BOM phù hợp khách hàng, định mức và ngày áp dụng cho món đang chọn.</td></tr>}
           </tbody>
         </table>

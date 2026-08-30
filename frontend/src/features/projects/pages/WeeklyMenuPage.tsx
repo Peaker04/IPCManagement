@@ -216,7 +216,10 @@ const WeeklyMenuPage = () => {
 
   const weeklyMenuTabIds = useMemo(() => {
     const locallyVisibleTabs = visibleTabIds('weekly-menu') as WeeklyMenuView[];
-    const backendTabs = systemOperation?.capabilities.pageTabs['weekly-menu'] ?? [];
+    const backendTabs = systemOperation?.capabilities.pageTabs['weekly-menu'];
+    if (!backendTabs) {
+      return locallyVisibleTabs;
+    }
     return locallyVisibleTabs.filter((tabId) => backendTabs.includes(tabId));
   }, [systemOperation?.capabilities.pageTabs]);
   const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() => weeklyMenuTabIds[0] ?? 'schedule');

@@ -74,12 +74,12 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
 
   return (
     <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
-      <table className="ipc-data-table ipc-schedule-table ipc-imported-layout-matrix">
+      <table className="ipc-erp-grid-table w-full">
         <thead>
           <tr>
-            <th className="w-[190px] min-w-[190px] border-r border-slate-200 bg-slate-100 text-left">Bố cục / dòng</th>
-            {displayDays.map((day, index) => (
-              <th key={day.key} className={cn('text-center border-r border-slate-200 transition-colors', index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-50', day.key === activeDayKey && 'bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200')}>
+            <th className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
+            {displayDays.map((day) => (
+              <th key={day.key} className={cn('text-center transition-colors', day.key === activeDayKey && 'bg-blue-100/70 text-blue-900')}>
                 <div className="flex flex-col items-center justify-center gap-0.5 py-1">
                   <span className="text-xs font-bold text-slate-800">{day.label}</span>
                   <span className="text-xs font-medium text-slate-500">{day.date}</span>
