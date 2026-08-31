@@ -5,6 +5,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateTime, formatUnit } from '@/lib/formatters'
+import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
@@ -15,17 +16,28 @@ import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const batchesQuery = useListReconciliationBatchesQuery()
-  const requestedId = searchParams.get('batchId') ?? ''
+  const persistedSelection = readReconciliationSelection()
+  const requestedId = searchParams.get('batchId') ?? persistedSelection.batchId ?? ''
   const batches = useMemo(() => batchesQuery.currentData ?? batchesQuery.data ?? [], [batchesQuery.currentData, batchesQuery.data])
-  const selectedId = batches.some((item) => item.batchId === requestedId) ? requestedId : ''
+  const selectedId = batches.some((item) => item.batchId === requestedId)
+    ? requestedId
+    : batches[0]?.batchId ?? ''
   const batchesView = toLabeledQueryView(batchesQuery, 'danh sách lô đối chiếu', { instruction: 'Tải lại danh sách lô để chọn đúng phạm vi cần đối chiếu.' })
   const batchQuery = useGetReconciliationBatchQuery(selectedId, { skip: !selectedId })
   const batchView = toLabeledQueryView(batchQuery, 'lô đối chiếu đã chọn', { instruction: 'Chọn một lô để xem số cần xuất và số kho đã xuất.' })
 
   useEffect(() => {
-    if (!batchesQuery.isSuccess || requestedId || batches.length === 0) return
-    setSearchParams({ batchId: batches[0].batchId }, { replace: true })
-  }, [batches, batchesQuery.isSuccess, requestedId, setSearchParams])
+    if (!batchesQuery.isSuccess || !selectedId || searchParams.get('batchId') === selectedId) return
+    setSearchParams({ batchId: selectedId }, { replace: true })
+  }, [batchesQuery.isSuccess, searchParams, selectedId, setSearchParams])
+
+  useEffect(() => {
+    writeReconciliationSelection({
+      ...readReconciliationSelection(),
+      batchId: selectedId || undefined,
+    })
+  }, [selectedId])
+
   const [showAll, setShowAll] = useState(false)
   const [detailLine, setDetailLine] = useState<ReconciliationLine>()
   const [disposingLine, setDisposingLine] = useState<ReconciliationLine>()

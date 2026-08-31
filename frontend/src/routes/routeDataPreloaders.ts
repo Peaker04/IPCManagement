@@ -104,5 +104,10 @@ export async function prefetchRouteData(path: string, mode: SystemOperationMode 
     store.dispatch(coordinationApi.util.prefetch('getCoordinationCustomers', undefined, dataPrefetchOptions));
     return;
   }
+  if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.WAREHOUSE) {
+    const { warehouseApi } = await import('@/api/warehouseApi');
+    store.dispatch(warehouseApi.util.prefetch('getWarehouseSelector', undefined, dataPrefetchOptions));
+    return;
+  }
   await (routeDataPreloaders[path]?.() ?? Promise.resolve());
 }

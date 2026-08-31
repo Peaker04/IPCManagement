@@ -49,6 +49,48 @@ export const writeNavigationPreferences = (preferences: NavigationPreferences, s
 
 export const resetNavigationPreferences = (storage?: Storage) => writeNavigationPreferences(defaultNavigationPreferences, storage);
 
+export const RECONCILIATION_SELECTION_STORAGE_KEY = 'ipc.reconciliation-selection.v1';
+export type ReconciliationWarehouseView = 'demand' | 'movement';
+export interface ReconciliationSelectionPreferences {
+  batchId?: string;
+  warehouseView?: ReconciliationWarehouseView;
+}
+
+export const readReconciliationSelection = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage): ReconciliationSelectionPreferences => {
+  if (!storage) return {};
+  try {
+    const parsed: unknown = JSON.parse(storage.getItem(RECONCILIATION_SELECTION_STORAGE_KEY) ?? '{}');
+    if (!parsed || typeof parsed !== 'object') return {};
+    const batchId = typeof (parsed as Record<string, unknown>).batchId === 'string'
+      ? (parsed as Record<string, string>).batchId.trim()
+      : '';
+    const warehouseView = (parsed as Record<string, unknown>).warehouseView;
+    return {
+      ...(batchId ? { batchId } : {}),
+      ...(warehouseView === 'demand' || warehouseView === 'movement' ? { warehouseView } : {}),
+    };
+  } catch {
+    return {};
+  }
+};
+
+export const writeReconciliationSelection = (selection: ReconciliationSelectionPreferences, storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
+  if (!storage) return;
+  const next: ReconciliationSelectionPreferences = {
+    ...(selection.batchId?.trim() ? { batchId: selection.batchId.trim() } : {}),
+    ...(selection.warehouseView ? { warehouseView: selection.warehouseView } : {}),
+  };
+  if (Object.keys(next).length === 0) {
+    storage.removeItem(RECONCILIATION_SELECTION_STORAGE_KEY);
+    return;
+  }
+  storage.setItem(RECONCILIATION_SELECTION_STORAGE_KEY, JSON.stringify(next));
+};
+
+export const clearReconciliationSelection = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
+  storage?.removeItem(RECONCILIATION_SELECTION_STORAGE_KEY);
+};
+
 export type AdminTabPreferenceKey = 'bom-import' | 'contracts' | 'cleanup' | 'inventory' | 'statistics' | 'audit' | 'employees';
 export const ADMIN_TAB_PREFERENCES_STORAGE_KEY = 'ipc.admin-tab-preferences.v1';
 export const defaultAdminTabPreferences: Record<AdminTabPreferenceKey, boolean> = {

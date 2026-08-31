@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { OperationalFrame, SectionPanel, StatusBadge, TableViewport, ViewSwitcher } from '@/components/common'
 import { Button } from '@/components/ui/button'
@@ -6,27 +6,59 @@ import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi'
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
+import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility'
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext'
-import { visibleTabIds } from '@/lib/navigationPreferences'
 import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationIssueHistoryQuery } from '@/features/reconciliation/reconciliationApi'
+
+const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 
 export default function ReconciliationWarehousePage() {
   const operation = useSystemOperation()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const batchId = searchParams.get('batchId') ?? ''
   const tabs = eligiblePageTabs('MATERIAL_RECONCILIATION', 'warehouse', operation?.capabilities.pageTabs.warehouse ?? [], visibleTabIds('warehouse'))
-  const [selectedView, setSelectedView] = useState(() => tabs[0] ?? 'demand')
-  const activeView = tabs.includes(selectedView) ? selectedView : tabs[0]
+  const persistedSelection = readReconciliationSelection()
+  const requestedView = searchParams.get('view') ?? persistedSelection.warehouseView
+  const activeView = tabs.includes(requestedView ?? '') && isReconciliationWarehouseView(requestedView)
+    ? requestedView
+    : (tabs[0] as ReconciliationWarehouseView | undefined)
   const batchQuery = useGetReconciliationBatchQuery(batchId, { skip: !batchId })
   const historyQuery = useListReconciliationIssueHistoryQuery(batchId, { skip: !batchId || activeView !== 'movement' })
   const { data: warehouses = [], isError: warehouseError } = useGetWarehouseSelectorQuery()
   const warehouse = resolveOperationalWarehouseContext(warehouses)
   const [createIssue, { isLoading: isCreating }] = useCreateReconciliationIssueMutation()
-  const [feedback, setFeedback] = useState<string>()
   const batch = batchQuery.currentData ?? batchQuery.data
   const remainingLines = useMemo(() => batch?.lines.filter((line) => line.requiredQuantity - (line.issuedQuantity ?? 0) > 0) ?? [], [batch?.lines])
+  const [feedback, setFeedback] = useState<string>()
+
+  const updateRoute = (updates: { view?: ReconciliationWarehouseView; batchId?: string }) => {
+    const next = new URLSearchParams(searchParams)
+    if (updates.batchId !== undefined) {
+      if (updates.batchId) next.set('batchId', updates.batchId)
+      else next.delete('batchId')
+    }
+    if (updates.view !== undefined) {
+      next.set('view', updates.view)
+    }
+    setSearchParams(next, { replace: true })
+  }
+
+  useEffect(() => {
+    if (!activeView || searchParams.get('view') === activeView) return
+    const next = new URLSearchParams(searchParams)
+    next.set('view', activeView)
+    setSearchParams(next, { replace: true })
+  }, [activeView, searchParams, setSearchParams])
+
+  useEffect(() => {
+    writeReconciliationSelection({
+      ...readReconciliationSelection(),
+      batchId: batchId || undefined,
+      warehouseView: activeView,
+    })
+  }, [activeView, batchId])
 
   const create = async () => {
     if (!batch || !warehouse.warehouse?.warehouseId || remainingLines.length === 0) return
@@ -48,7 +80,7 @@ export default function ReconciliationWarehousePage() {
       }).unwrap()
       setFeedback('Đã tạo phiếu xuất kho từ đúng lô đối chiếu. Số đã xuất đang được cập nhật từ phiếu liên kết.')
       await batchQuery.refetch()
-      setSelectedView('movement')
+      updateRoute({ view: 'movement' })
     } catch {
       setFeedback('Chưa tạo được phiếu xuất. Kiểm tra tồn kho vận hành và tải lại lô trước khi thử lại.')
     }
@@ -65,8 +97,8 @@ export default function ReconciliationWarehousePage() {
       {feedback && <p role="status" className="rounded-md border border-slate-200 bg-white p-3 text-sm">{feedback}</p>}
       {warehouseError && <p role="alert" className="text-sm text-red-700">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</p>}
       {!batchId && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Chưa chọn lô cần xuất</h2><p className="mt-2 text-sm text-slate-600">Mở Định lượng xuất kho từ Thực đơn tuần để giữ đúng phạm vi khách hàng và tuần.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
-      {batchId && <>
-        <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => setSelectedView(id.replace('warehouse-', ''))} />
+      {batchId && activeView && <>
+        <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => updateRoute({ view: id.replace('warehouse-', '') as ReconciliationWarehouseView })} />
         {activeView === 'demand' && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><SectionPanel title="Danh sách cần xuất" description="Số còn lại được tính từ định lượng chốt trừ số trên phiếu xuất liên kết.">
           <TableViewport ariaLabel="Danh sách nguyên liệu cần xuất" caption="Danh sách nguyên liệu của đúng lô đối chiếu">
             <table className="ipc-data-table"><thead><tr><th>Nguyên liệu</th><th className="text-right">Cần xuất</th><th className="text-right">Đã xuất</th><th className="text-right">Còn lại</th><th>Trạng thái</th></tr></thead><tbody>{(batch?.lines ?? []).map((line) => { const remaining = line.requiredQuantity - (line.issuedQuantity ?? 0); return <tr key={line.batchLineId}><td><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span><span className="text-xs text-slate-600">{line.ingredientCode || ''}</span></td><td className="text-right tabular-nums">{formatQuantityWithUnit(line.requiredQuantity, line.canonicalUnitName ?? '')}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(line.issuedQuantity ?? 0, line.canonicalUnitName ?? '')}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(remaining, line.canonicalUnitName ?? '')}</td><td><StatusBadge variant={remaining <= 0 ? 'success' : 'warning'}>{remaining <= 0 ? 'Đã xuất đủ' : 'Cần xuất'}</StatusBadge></td></tr> })}</tbody></table>

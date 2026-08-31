@@ -18,6 +18,78 @@ export type QuantityImportCommit = components['schemas']['QuantityImportCommitDt
 export type PreviewQuantityImportRequest = components['schemas']['PreviewQuantityImportRequest']
 export type CommitQuantityImportRequest = components['schemas']['CommitQuantityImportRequest']
 
+export const reconciliationOwnedQueryEndpointNames = new Set([
+  'getReconciliationWeeklyMenu',
+  'listReconciliationBatches',
+  'listReconciliationDraftSources',
+  'listReconciliationDispositionCategories',
+  'getReconciliationBatch',
+  'listReconciliationIssueHistory',
+])
+
+export const reconciliationOwnedMutationEndpointNames = new Set([
+  'previewReconciliationQuantityImport',
+  'commitReconciliationQuantityImport',
+  'createReconciliationDraft',
+  'readyReconciliationBatch',
+  'transferReconciliationBatch',
+  'createReconciliationIssue',
+  'completeReconciliationBatch',
+  'setReconciliationActual',
+  'setReconciliationDisposition',
+])
+
+type ApiStateBucket = {
+  queries?: Record<string, { endpointName?: string; originalArgs?: unknown }>
+  mutations?: Record<string, { endpointName?: string; requestId?: string; fixedCacheKey?: string }>
+}
+
+type RunningRequest = {
+  endpointName?: string
+  abort?: () => void
+}
+
+export const clearReconciliationApiResidue = (dispatch: (action: unknown) => unknown, state: unknown) => {
+  const apiState = (state as Record<string, ApiStateBucket | undefined>)[apiSlice.reducerPath]
+  if (!apiState) return
+
+  for (const query of Object.values(apiState.queries ?? {})) {
+    if (!query.endpointName || !reconciliationOwnedQueryEndpointNames.has(query.endpointName)) continue
+    const runningQuery = dispatch(apiSlice.util.getRunningQueryThunk(query.endpointName as never, query.originalArgs as never)) as RunningRequest | undefined
+    runningQuery?.abort?.()
+  }
+
+  for (const mutation of Object.values(apiState.mutations ?? {})) {
+    if (!mutation.requestId || !mutation.endpointName || !reconciliationOwnedMutationEndpointNames.has(mutation.endpointName)) {
+      continue
+    }
+    const runningMutation = dispatch(
+      apiSlice.util.getRunningMutationThunk(mutation.endpointName as never, (mutation.fixedCacheKey ?? mutation.requestId) as never),
+    ) as RunningRequest | undefined
+    runningMutation?.abort?.()
+  }
+
+  const internalActions = (apiSlice as typeof apiSlice & {
+    internalActions: {
+      removeQueryResult: (payload: { queryCacheKey: string }) => unknown
+      removeMutationResult: (payload: { requestId: string; fixedCacheKey?: string }) => unknown
+    }
+  }).internalActions
+
+  for (const [queryCacheKey, query] of Object.entries(apiState.queries ?? {})) {
+    if (query.endpointName && reconciliationOwnedQueryEndpointNames.has(query.endpointName)) {
+      dispatch(internalActions.removeQueryResult({ queryCacheKey }))
+    }
+  }
+
+  for (const mutation of Object.values(apiState.mutations ?? {})) {
+    if (!mutation.requestId || !mutation.endpointName || !reconciliationOwnedMutationEndpointNames.has(mutation.endpointName)) {
+      continue
+    }
+    dispatch(internalActions.removeMutationResult({ requestId: mutation.requestId, fixedCacheKey: mutation.fixedCacheKey }))
+  }
+}
+
 export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder => ({
   listReconciliationBatches: builder.query<ReconciliationBatch[], void>({ query: () => '/reconciliation/batches', transformResponse: (r: ApiResponse<ReconciliationBatch[]>) => r.data ?? [], providesTags: ['ReconciliationBatches'] }),
   listReconciliationDraftSources: builder.query<ReconciliationDraftSource[], void>({ query: () => '/reconciliation/batches/draft-sources', transformResponse: (r: ApiResponse<ReconciliationDraftSource[]>) => r.data ?? [], providesTags: ['ReconciliationBatches'] }),

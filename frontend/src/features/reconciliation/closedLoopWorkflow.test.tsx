@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { ReconciliationComparisonTable } from './ReconciliationComparisonTable'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { ROUTES } from '@/lib/routeConfig'
 import { isRouteEligible, retainedRoutes } from '@/features/system-operation/systemOperationEligibility'
+import { ReconciliationComparisonTable } from './ReconciliationComparisonTable'
 import type { ReconciliationLine } from './reconciliationApi'
 import weeklyMenuPageSource from '@/features/projects/pages/WeeklyMenuPage.tsx?raw'
 
@@ -23,7 +24,23 @@ const line: ReconciliationLine = {
   version: 1,
 }
 
+
 describe('closed-loop reconciliation frontend contract', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    const NativeRequest = globalThis.Request
+    vi.stubGlobal('Request', class extends NativeRequest {
+      constructor(input: RequestInfo | URL, init?: RequestInit) {
+        super(typeof input === 'string' && input.startsWith('/') ? `http://localhost${input}` : input, init)
+      }
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    window.localStorage.clear()
+  })
+
   it('keeps exactly the five workflow routes and blocks excluded direct access', () => {
     expect(retainedRoutes('MATERIAL_RECONCILIATION')).toEqual([
       ROUTES.DASHBOARD,

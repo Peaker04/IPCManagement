@@ -1,11 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { defaultNavigationPreferences, pageTabGroups, readNavigationPreferences, readPageTabPreferences, visibleTabIds, writeNavigationPreferences, writePageTabPreferences } from './navigationPreferences';
+import {
+  defaultNavigationPreferences,
+  pageTabGroups,
+  readNavigationPreferences,
+  readPageTabPreferences,
+  readReconciliationSelection,
+  visibleTabIds,
+  writeNavigationPreferences,
+  writePageTabPreferences,
+  writeReconciliationSelection,
+  clearReconciliationSelection,
+} from './navigationPreferences';
 
 const storage = () => {
   const values = new Map<string, string>();
   return {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
   } as unknown as Storage;
 };
 
@@ -20,6 +32,15 @@ describe('navigation display preferences', () => {
     expect(readNavigationPreferences(target).reports).toBe(false);
     target.setItem('ipc.navigation-preferences.v1', '{"reports":"false","unknown":false}');
     expect(readNavigationPreferences(target).reports).toBe(true);
+  });
+
+  it('round-trips and clears reconciliation-only selection separately from DEFAULT preferences', () => {
+    const target = storage();
+    writeReconciliationSelection({ batchId: 'batch-1', warehouseView: 'movement' }, target);
+    expect(readReconciliationSelection(target)).toEqual({ batchId: 'batch-1', warehouseView: 'movement' });
+
+    clearReconciliationSelection(target);
+    expect(readReconciliationSelection(target)).toEqual({});
   });
 
   it('covers every shared ViewSwitcher group without allowing an empty group', () => {
