@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { configureStore } from '@reduxjs/toolkit'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
