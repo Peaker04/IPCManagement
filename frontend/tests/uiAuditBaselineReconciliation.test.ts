@@ -33,19 +33,19 @@ const cloneInputs = () => structuredClone(loadInputs()) as ReconciliationInput[]
 const dashboard = (inputs: ReconciliationInput[]) => inputs.find(({ name }) => name === 'ui-audit-phase28-dashboard-query-states.json')!;
 
 describe('Phase 28 final baseline reconciliation', () => {
-  it('uses canonical source-owned actor and owner fields for all exact 2,142 identities', () => {
+  it('uses canonical source-owned actor and owner fields for all exact 2,205 identities', () => {
     const rows = expandUiAuditInventory();
-    expect(rows).toHaveLength(2142);
-    expect(new Set(rows.map(identityKey)).size).toBe(2142);
+    expect(rows).toHaveLength(2205);
+    expect(new Set(rows.map(identityKey)).size).toBe(2205);
     for (const row of rows) expect(row).toMatchObject(UI_AUDIT_ROUTE_AUTHORITIES[row.route]);
   });
 
   it('reconciles every artifact byte-exact and seals honest NEEDS_EVIDENCE separately from outcomes', () => {
     const { combined, manifest } = reconcilePhase28Baseline(loadInputs(), 'test-commit');
-    expect(manifest).toMatchObject({ sealStatus: 'SEALED', identityCount: 2142, findingCountPerIdentity: 32, missingIdentityCount: 0, duplicateIdentityCount: 0, extraIdentityCount: 0, nonGetOrHeadObservedRequestCount: 0, ownerlessFailCount: 0, guessedPassCount: 0, syntheticProductionRouteMeasuredCount: 0, genericAdapterReasonCount: 0 });
-    expect(combined.records).toHaveLength(2142);
+    expect(manifest).toMatchObject({ sealStatus: 'SEALED', identityCount: 2205, findingCountPerIdentity: 32, missingIdentityCount: 0, duplicateIdentityCount: 0, extraIdentityCount: 0, nonGetOrHeadObservedRequestCount: 0, ownerlessFailCount: 0, guessedPassCount: 0, syntheticProductionRouteMeasuredCount: 0, genericAdapterReasonCount: 0 });
+    expect(combined.records).toHaveLength(2205);
     expect(combined.records.every(({ findings }) => findings.length === 32)).toBe(true);
-    expect(manifest.counts.measuredIdentityCount + manifest.counts.notApplicableIdentityCount + manifest.counts.needsEvidenceIdentityCount).toBe(2142);
+    expect(manifest.counts.measuredIdentityCount + manifest.counts.notApplicableIdentityCount + manifest.counts.needsEvidenceIdentityCount).toBe(2205);
     expect(manifest.counts.needsEvidenceIdentityCount).toBeGreaterThan(0);
     expect(Object.values(manifest.needsEvidenceReasonTotals).reduce((sum, count) => sum + count, 0)).toBe(manifest.counts.needsEvidenceIdentityCount);
     expect(Object.keys(manifest.needsEvidenceReasonTotals)).not.toContain('production-state-adapter-not-yet-implemented');

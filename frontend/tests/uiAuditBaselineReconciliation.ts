@@ -177,7 +177,7 @@ export function reconcilePhase28Baseline(inputs: readonly ReconciliationInput[],
   const inputNames = inputs.map(({ name }) => name);
   if (inputNames.length !== expectedNames.size || new Set(inputNames).size !== inputNames.length || inputNames.some((name) => !expectedNames.has(name as never))) throw new Error('source artifact set is missing, duplicate, or extra');
   const inventory = expandUiAuditInventory();
-  if (inventory.length !== 2142) throw new Error(`inventory must contain exactly 2,142 identities; received ${inventory.length}`);
+  if (inventory.length !== 2205) throw new Error(`inventory must contain exactly 2,205 identities; received ${inventory.length}`);
   const inventoryKeys = new Set(inventory.map(identityKey));
   const recordsByIdentity = new Map(inventory.map((identity) => [identityKey(identity), fallbackRecord(identity)]));
   const productionEvidenceIdentities = new Set<string>();

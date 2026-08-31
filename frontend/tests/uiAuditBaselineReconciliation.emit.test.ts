@@ -12,7 +12,7 @@ describe('Phase 28 baseline reconciliation artifact writer', () => {
     try {
       const { manifest } = reconcilePhase28BaselineFromDisk(process.cwd(), evidenceRoot, outputRoot);
       expect(manifest.sealStatus).toBe('SEALED');
-      expect(manifest.identityCount).toBe(2142);
+      expect(manifest.identityCount).toBe(2205);
     } finally {
       rmSync(outputRoot, { recursive: true, force: true });
     }

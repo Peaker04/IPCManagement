@@ -79,7 +79,7 @@ describe('operational page performance contracts', () => {
 
   it('does not build hidden admin dialogs or query inactive datasets', () => {
     const adminContractSource = `${adminSource}\n${adminModelSource}\n${adminBomModelSource}\n${adminContractsModelSource}\n${adminBomSource}`;
-    expect(adminContractSource).toContain("{ skip: activeView !== 'contracts' || !selectedContract?.customerId }");
+    expect(adminContractSource).toContain("{ skip: !enabled || activeView !== 'contracts' || !selectedContract?.customerId }");
     expect(adminContractSource).toContain('if (!isBomView) return [];');
     expect(adminContractSource).toContain('{isBomDialogOpen && <Dialog open');
     expect(adminContractSource).toContain('{closingBom && <ConfirmDialog open');
