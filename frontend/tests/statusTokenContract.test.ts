@@ -25,7 +25,7 @@ describe('Status Token Contract Test (Rule 0.3.7, 3.6)', () => {
     expect(tokenRem).toBeGreaterThanOrEqual(7.75);
 
     const uniqueLabels = new Set(matches);
-    expect(uniqueLabels.size, `Status label inventory drifted; review token sizing for all ${uniqueLabels.size} labels`).toBe(18);
+    expect(uniqueLabels.size, `Expected unique status labels <= 15 (Rule UI-Q13, STATUS_LABEL_MAX=15), got ${uniqueLabels.size}`).toBeLessThanOrEqual(15);
 
     for (const label of matches) {
       // Each character in standard Vietnamese UI takes <= 0.45rem + 1.8rem fixed padding & dot

@@ -10,6 +10,10 @@ describe('workflow status presentation', () => {
     ['CANCELLED', 'Đã hủy', 'danger'],
     ['ROLLED_BACK', 'Đang mở', 'warning'],
     ['ERROR', 'Bị chặn', 'danger'],
+    ['PUBLISHED', 'Hoàn tất', 'neutral'],
+    ['READY', 'Sẵn sàng', 'neutral'],
+    ['TRANSFERRED', 'Hoàn tất', 'neutral'],
+    ['IN_PROGRESS', 'Đang mở', 'warning'],
   ] as const)('maps %s explicitly', (status, label, tone) => {
     expect(getWorkflowStatusPresentation(status)).toEqual({ label, tone })
   })

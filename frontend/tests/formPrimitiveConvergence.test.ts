@@ -23,11 +23,9 @@ const pathExceptionLocations = [
   'src/components/ui/input.tsx:93',
   'src/components/ui/textarea.tsx:7',
   'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
-  'src/features/projects/pages/ReconciliationWeeklyMenuPage.tsx:94',
-  'src/features/projects/pages/ReconciliationWeeklyMenuPage.tsx:95',
   'src/features/chef/production/ServiceRunSection.tsx:157',
   'src/features/chef/production/ServiceRunSection.tsx:174',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:384',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:389',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
