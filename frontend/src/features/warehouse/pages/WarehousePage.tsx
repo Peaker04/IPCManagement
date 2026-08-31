@@ -1,17 +1,9 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
-import {
-  InlineAlert,
-  KeepAliveTabPanel,
-  OperationalFrame,
-  PaginationBar,
-  QueryErrorAlert,
-  ViewSwitcher,
-} from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, OperationalFrame, PaginationBar, QueryErrorAlert, ViewSwitcher } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
-import ReconciliationWarehousePage from './ReconciliationWarehousePage';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
   useGetCurrentStockQuery,
@@ -38,10 +30,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addIsoDays } from '../warehouseDateRange';
 import { typography } from '@/lib/typography';
-import { WarehouseMovementPanel } from './WarehouseMovementPanel';
-import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
 import { buildWarehousePageHeader } from './WarehousePageHeader';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';
+const WarehousePurchaseOrdersPanel = lazy(() => import('./WarehousePurchaseOrdersPanel').then(({ WarehousePurchaseOrdersPanel: component }) => ({ default: component })))
+const WarehouseMovementPanel = lazy(() => import('./WarehouseMovementPanel').then(({ WarehouseMovementPanel: component }) => ({ default: component })))
+const ReconciliationWarehousePage = lazy(() => import('./ReconciliationWarehousePage'))
 const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
@@ -476,7 +469,7 @@ function DefaultWarehousePage() {
         </InlineAlert>
       )}
 
-      <WarehousePurchaseOrdersPanel
+      <Suspense fallback={<div aria-busy="true" className="min-h-48 rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehousePurchaseOrdersPanel
         canReceivePurchases={canReceivePurchases}
         purchaseOrders={purchaseOrders}
         isFetchingPurchaseOrders={isFetchingPurchaseOrders}
@@ -493,7 +486,7 @@ function DefaultWarehousePage() {
           setSelectedReceiptLine(undefined);
         }}
         onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
-      />
+      /></Suspense>
 
       <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehouseReceiptLifecyclePanel /></Suspense>
 
@@ -516,28 +509,30 @@ function DefaultWarehousePage() {
           </span>
         )}
         <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
-          <WarehouseMovementPanel
-            documents={warehouseDocuments}
-            currentStockSearch={currentStockSearch}
-            onCurrentStockSearchChange={(value) => { setCurrentStockSearch(value); setCurrentStockPage(1); }}
-            currentStockView={currentStockView}
-            currentStockRows={currentStockRows}
-            currentStockPage={currentStockPageResponse?.pageNumber ?? currentStockPage}
-            currentStockPageSize={currentStockPageResponse?.pageSize ?? 8}
-            currentStockTotalItems={currentStockPageResponse?.totalCount ?? 0}
-            onCurrentStockPageChange={setCurrentStockPage}
-            stockMovementSearch={stockMovementSearch}
-            onStockMovementSearchChange={(value) => { setStockMovementSearch(value); setStockMovementCursors([]); }}
-            stockMovementView={stockMovementView}
-            stockMovements={stockMovementPage?.items ?? EMPTY_QUERY_ROWS}
-            stockMovementPage={stockMovementCursors.length + 1}
-            stockMovementHasNext={stockMovementPage?.hasNext ?? false}
-            onStockMovementPrevious={() => setStockMovementCursors((current) => current.slice(0, -1))}
-            onStockMovementNext={() => {
-              const nextCursor = toNextReportCursor(stockMovementPage);
-              if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
-            }}
-          />
+          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <WarehouseMovementPanel
+              documents={warehouseDocuments}
+              currentStockSearch={currentStockSearch}
+              onCurrentStockSearchChange={(value) => { setCurrentStockSearch(value); setCurrentStockPage(1); }}
+              currentStockView={currentStockView}
+              currentStockRows={currentStockRows}
+              currentStockPage={currentStockPageResponse?.pageNumber ?? currentStockPage}
+              currentStockPageSize={currentStockPageResponse?.pageSize ?? 8}
+              currentStockTotalItems={currentStockPageResponse?.totalCount ?? 0}
+              onCurrentStockPageChange={setCurrentStockPage}
+              stockMovementSearch={stockMovementSearch}
+              onStockMovementSearchChange={(value) => { setStockMovementSearch(value); setStockMovementCursors([]); }}
+              stockMovementView={stockMovementView}
+              stockMovements={stockMovementPage?.items ?? EMPTY_QUERY_ROWS}
+              stockMovementPage={stockMovementCursors.length + 1}
+              stockMovementHasNext={stockMovementPage?.hasNext ?? false}
+              onStockMovementPrevious={() => setStockMovementCursors((current) => current.slice(0, -1))}
+              onStockMovementNext={() => {
+                const nextCursor = toNextReportCursor(stockMovementPage);
+                if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
+              }}
+            />
+          </Suspense>
         </KeepAliveTabPanel>
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
@@ -595,5 +590,7 @@ function DefaultWarehousePage() {
 
 export default function WarehousePage() {
   const operation = useSystemOperation();
-  return operation?.mode === 'MATERIAL_RECONCILIATION' ? <ReconciliationWarehousePage /> : <DefaultWarehousePage />;
+  return operation?.mode === 'MATERIAL_RECONCILIATION'
+    ? <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><ReconciliationWarehousePage /></Suspense>
+    : <DefaultWarehousePage />;
 }

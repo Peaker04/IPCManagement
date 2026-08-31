@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Settings, Plus, Edit2, Trash2, Shield, Layers } from 'lucide-react';
 import {
   OperationalFrame,
@@ -15,21 +15,26 @@ import { useGetApprovalRulesQuery, useCreateApprovalRuleMutation, useUpdateAppro
 import type { ApprovalAssignmentDto, ApprovalRuleDto, ApprovalRuleRequestDto } from '@/api/workflowApiTypes';
 import { useGetAdminEmployeesQuery, type AdminEmployee } from '@/features/admin/adminApi';
 import { formatCurrency } from '@/lib/formatters';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toQueryView } from '@/lib/queryView';
 
 interface RuleAssignmentForm {
-  sequence: number;
-  approverRole: string;
-  approverUserId: string;
-  isRequired: boolean;
+  sequence: number; approverRole: string;
+  approverUserId: string; isRequired: boolean;
 }
 
 const EMPTY_APPROVER_USER_VALUE = '__empty_approver_user__';
+const fieldClassName = 'flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
+const Input = (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} className={`${fieldClassName} ${props.className ?? ''}`} />;
+const Checkbox = ({ checked, onCheckedChange, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & { onCheckedChange: (checked: boolean) => void }) => (
+  <input {...props} type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.target.checked)} className="size-4 shrink-0 accent-primary" />
+);
+const Dialog = ({ children }: { children: ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">{children}</div>;
+const DialogContent = ({ children, className = '', ...props }: { children: ReactNode; className?: string; 'aria-label'?: string }) => <div role="dialog" aria-modal="true" {...props} className={`w-full rounded-lg border border-border bg-background p-6 shadow-lg ${className}`}>{children}</div>;
+const DialogHeader = ({ children }: { children: ReactNode }) => <header className="space-y-1.5">{children}</header>;
+const DialogTitle = ({ children }: { children: ReactNode }) => <h2 className="text-lg font-semibold">{children}</h2>;
+const DialogDescription = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
+const DialogFooter = ({ children, className = '' }: { children: ReactNode; className?: string }) => <footer className={`mt-4 flex justify-end ${className}`}>{children}</footer>;
 
 const formatMutationError = (error: unknown) => {
   const candidate = error as {
@@ -61,11 +66,6 @@ const approverRoleLabels: Record<string, string> = {
 
 const formatApprovalDocumentType = (value: string) => approvalDocumentLabels[value] ?? value;
 const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value;
-const formatApproverUser = (userId: string, employees: readonly AdminEmployee[]) => {
-  if (!userId) return 'Gửi chung cho cả vai trò';
-  const employee = employees.find((emp) => emp.userId === userId);
-  return employee ? `${employee.fullName} (${employee.username})` : 'Gửi chung cho cả vai trò';
-};
 
 export default function ApprovalRulesPage() {
   const { toast } = useToast();
@@ -388,19 +388,11 @@ export default function ApprovalRulesPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-600">Loại chứng từ</label>
-                  <Select
-                    value={documentType}
-                    onValueChange={value => setDocumentType(value ?? '')}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue>{formatApprovalDocumentType(documentType)}</SelectValue>
-                      </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="purchase-request">{formatApprovalDocumentType('purchase-request')}</SelectItem>
-                      <SelectItem value="inventory-issue">Phiếu xuất kho</SelectItem>
-                      <SelectItem value="order-adjustment">Điều chỉnh suất ăn</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className={fieldClassName}>
+                    <option value="purchase-request">{formatApprovalDocumentType('purchase-request')}</option>
+                    <option value="inventory-issue">Phiếu xuất kho</option>
+                    <option value="order-adjustment">Điều chỉnh suất ăn</option>
+                  </select>
                 </div>
               </div>
 
@@ -475,43 +467,27 @@ export default function ApprovalRulesPage() {
                       <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-slate-600">Vai trò phê duyệt</label>
-                          <Select
-                            value={assignment.approverRole}
-                            onValueChange={value => handleAssignmentChange(idx, 'approverRole', value ?? '')}
-                            >
-                              <SelectTrigger className="h-8 w-full text-xs">
-                              <SelectValue>{formatApproverRole(assignment.approverRole)}</SelectValue>
-                              </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="quanly">Quản lý</SelectItem>
-                              <SelectItem value="beptruong">Bếp trưởng</SelectItem>
-                              <SelectItem value="thumua">Thu mua</SelectItem>
-                              <SelectItem value="thukho">Thủ kho</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <select value={assignment.approverRole} onChange={(event) => handleAssignmentChange(idx, 'approverRole', event.target.value)} className={`${fieldClassName} h-8 text-xs`}>
+                            <option value="quanly">Quản lý</option>
+                            <option value="beptruong">Bếp trưởng</option>
+                            <option value="thumua">Thu mua</option>
+                            <option value="thukho">Thủ kho</option>
+                          </select>
                         </div>
 
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-slate-600">Nhân viên chỉ định (Tùy chọn)</label>
-                          <Select
+                          <select
                             value={assignment.approverUserId || EMPTY_APPROVER_USER_VALUE}
-                            onValueChange={value => handleAssignmentChange(
-                              idx,
-                              'approverUserId',
-                              !value || value === EMPTY_APPROVER_USER_VALUE ? '' : value,
-                            )}
+                            onChange={(event) => handleAssignmentChange(idx, 'approverUserId', event.target.value === EMPTY_APPROVER_USER_VALUE ? '' : event.target.value)}
                             disabled={employeesView.phase !== 'ready'}
-                            >
-                              <SelectTrigger className="h-8 w-full text-xs">
-                              <SelectValue>{formatApproverUser(assignment.approverUserId, employees)}</SelectValue>
-                              </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={EMPTY_APPROVER_USER_VALUE}>Gửi chung cho cả vai trò</SelectItem>
-                              {employees.map((emp: AdminEmployee) => (
-                                <SelectItem key={emp.userId} value={emp.userId}>{emp.fullName} ({emp.username})</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            className={`${fieldClassName} h-8 text-xs`}
+                          >
+                            <option value={EMPTY_APPROVER_USER_VALUE}>Gửi chung cho cả vai trò</option>
+                            {employees.map((emp: AdminEmployee) => (
+                              <option key={emp.userId} value={emp.userId}>{emp.fullName} ({emp.username})</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
 

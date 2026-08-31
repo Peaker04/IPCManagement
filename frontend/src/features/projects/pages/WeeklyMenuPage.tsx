@@ -45,15 +45,16 @@ import { useMenuCost } from '../weekly-menu/cost/useMenuCost';
 import { usePurchaseSummary } from '../weekly-menu/purchasing/usePurchaseSummary';
 import { useDishMaterials } from '../weekly-menu/dish-materials/useDishMaterials';
 import { buildWeeklyPlanRows } from '../weekly-menu/cost/weeklyPlanRowsModel';
-import { WeeklyMenuCommandBar, WeeklyMenuPricingContext } from '../weekly-menu/shell/WeeklyMenuCommandBar';
+import { WeeklyMenuPricingContext } from '../weekly-menu/shell/WeeklyMenuPricingContext';
 import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
-import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
 import { useSystemOperation } from '@/lib/systemOperationContext';
-import { ReconciliationWeeklyMenuPage } from './ReconciliationWeeklyMenuPage';
 
+const WeeklyMenuCommandBar = lazy(() => import('../weekly-menu/shell/WeeklyMenuCommandBar').then(({ WeeklyMenuCommandBar: component }) => ({ default: component })))
+const WeeklyMenuViewContent = lazy(() => import('../weekly-menu/shell/WeeklyMenuViewContent').then(({ WeeklyMenuViewContent: component }) => ({ default: component })))
+const ReconciliationWeeklyMenuPage = lazy(() => import('./ReconciliationWeeklyMenuPage').then(({ ReconciliationWeeklyMenuPage: component }) => ({ default: component })))
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
 const WeeklyScheduleEditorDialog = lazy(() => import('../weekly-menu/schedule/WeeklyScheduleEditorDialog').then(({ WeeklyScheduleEditorDialog: component }) => ({ default: component })))
@@ -473,7 +474,7 @@ const DefaultWeeklyMenuPage = () => {
 
     <OperationalFrame
 
-      command={<WeeklyMenuCommandBar
+      command={<Suspense fallback={<div aria-busy="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}><WeeklyMenuCommandBar
         customers={customers}
         selectedCustomerId={selectedMenuCustomerId}
         weekStartDate={displayedWeekStartDate}
@@ -498,7 +499,7 @@ const DefaultWeeklyMenuPage = () => {
           if (normalizedWeekStartDate) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
           else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
         }}
-      />}
+      /></Suspense>}
       context={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
@@ -537,7 +538,7 @@ const DefaultWeeklyMenuPage = () => {
               Đang cập nhật
             </span>
           )}
-          <WeeklyMenuViewContent
+          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WeeklyMenuViewContent
             activeView={activeView}
             scope={weeklyScheduleScope}
             hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
@@ -550,7 +551,7 @@ const DefaultWeeklyMenuPage = () => {
             menuCostWorkflow={menuCostWorkflow}
             purchaseSummaryWorkflow={purchaseSummaryWorkflow}
             dishMaterialsWorkflow={dishMaterialsWorkflow}
-          />
+          /></Suspense>
           {isMaterialReconciliationMode && activeView === 'demand' && <ClosedLoopTransferPanel
             menuVersionId={committedMenu?.menuVersionId}
             scopeLabel={selectedCustomer && displayedWeekStartDate
@@ -570,6 +571,6 @@ const DefaultWeeklyMenuPage = () => {
 export default function WeeklyMenuPage() {
   const operation = useSystemOperation();
   return operation?.mode === 'MATERIAL_RECONCILIATION'
-    ? <ReconciliationWeeklyMenuPage />
+    ? <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><ReconciliationWeeklyMenuPage /></Suspense>
     : <DefaultWeeklyMenuPage />;
 }

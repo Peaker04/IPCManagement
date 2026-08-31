@@ -207,7 +207,7 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.getAllByText(/Không tải được quy trình thu mua/).length).toBeGreaterThan(0);
   });
 
-  it('keeps authoritative workbench data rendered while refreshing', () => {
+  it('keeps authoritative workbench data rendered while refreshing', async () => {
     mocks.getWorkbench.mockReturnValue(queryResult({
       data: workbench,
       currentData: workbench,
@@ -226,7 +226,7 @@ describe('PurchasingPage query state boundary', () => {
       pageSize: 8,
     }, { skip: false });
     expect(screen.getByTestId('service-date-workbench')).toHaveTextContent('service dates: 1');
-    expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('purchase-decision-panel')).toBeInTheDocument();
     expect(screen.getByTestId('supplemental-workbench').closest('[hidden]')).not.toBeNull();
   });
 

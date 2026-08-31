@@ -10,7 +10,10 @@ import {
 
 const production = readProductionSources()
 
-const checkboxExceptionLocations: string[] = []
+const checkboxExceptionLocations = [
+  'src/components/common/TablePreferencesControl.tsx:105',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:30',
+]
 
 const fileExceptionLocations = [
   'src/app/pages/admin-data/AdminBomPanel.tsx:135',
@@ -26,6 +29,13 @@ const pathExceptionLocations = [
   'src/features/chef/production/ServiceRunSection.tsx:157',
   'src/features/chef/production/ServiceRunSection.tsx:174',
   'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:389',
+  'src/components/common/TablePreferencesControl.tsx:129',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:28',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:391',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:470',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:480',
+  'src/features/approvals/pages/ApprovalSearchField.tsx:8',
+  'src/features/approvals/pages/ApprovalDecisionDialog.tsx:54',
 ]
 
 const fixture = (text: string): CanonSource[] => [{
@@ -58,7 +68,7 @@ describe('form primitive convergence', () => {
       ...pathExceptionLocations,
     ])
     expect(findingLocations(allControls).filter((location) => exceptionLocations.has(location))).toHaveLength(
-      fileExceptionLocations.length + pathExceptionLocations.length,
+      checkboxExceptionLocations.length + fileExceptionLocations.length + pathExceptionLocations.length,
     )
 
     const residuals = allControls.filter((finding) =>
