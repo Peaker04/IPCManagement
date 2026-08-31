@@ -10,7 +10,6 @@ import {
 } from '@/components/common';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { StockMovementTable } from '@/components/common/StockMovementTable';
-import { Input } from '@/components/ui/input';
 import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import type { CurrentStockRow } from '@/api/workflowApiTypes';
 import type { StockMovement, WorkflowDocument } from '@/types/workflow';
@@ -85,7 +84,7 @@ export function WarehouseMovementPanel({
             Tìm trong snapshot tồn kho hiện tại
             <span className="relative block">
               <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <Input id="warehouse-current-stock-search" type="search" value={currentStockSearch} onChange={(event) => onCurrentStockSearchChange(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 pl-9" />
+              <input id="warehouse-current-stock-search" type="search" value={currentStockSearch} onChange={(event) => onCurrentStockSearchChange(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-200" />
             </span>
           </label>
           {currentStockView.phase === 'forbidden' && <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">{currentStockView.message}</InlineAlert>}
@@ -109,7 +108,7 @@ export function WarehouseMovementPanel({
             Tìm bút toán theo chứng từ nguồn
             <span className="relative block">
               <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <Input id="warehouse-stock-movement-search" type="search" value={stockMovementSearch} onChange={(event) => onStockMovementSearchChange(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" className="h-9 pl-9" />
+              <input id="warehouse-stock-movement-search" type="search" value={stockMovementSearch} onChange={(event) => onStockMovementSearchChange(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-200" />
             </span>
           </label>
           {stockMovementView.phase === 'forbidden' && <InlineAlert title="Không có quyền xem sổ luân chuyển kho" variant="danger" className="mb-3">{stockMovementView.message}</InlineAlert>}

@@ -2,6 +2,7 @@ import { lazy, Suspense, useDeferredValue, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
 import { InlineAlert, KeepAliveTabPanel, OperationalFrame, PaginationBar, QueryErrorAlert, ViewSwitcher } from '@/components/common';
+import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 import { visibleTabIds } from '@/lib/navigationPreferences';
@@ -33,12 +34,11 @@ import { typography } from '@/lib/typography';
 import { buildWarehousePageHeader } from './WarehousePageHeader';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';
 import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
-const WarehouseMovementPanel = lazy(() => import('./WarehouseMovementPanel').then(({ WarehouseMovementPanel: component }) => ({ default: component })))
+import { WarehouseMovementPanel } from './WarehouseMovementPanel';
+import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
 const ReconciliationWarehousePage = lazy(() => import('./ReconciliationWarehousePage'))
-const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
-const WarehouseReceiptLifecyclePanel = lazy(() => import('../WarehouseReceiptLifecyclePanel').then(({ WarehouseReceiptLifecyclePanel: component }) => ({ default: component })))
 const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
@@ -488,7 +488,7 @@ function DefaultWarehousePage() {
         onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
       />
 
-      <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehouseReceiptLifecyclePanel /></Suspense>
+      <WarehouseReceiptLifecyclePanel />
 
       <ViewSwitcher
         compact
@@ -509,7 +509,6 @@ function DefaultWarehousePage() {
           </span>
         )}
         <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
-          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
             <WarehouseMovementPanel
               documents={warehouseDocuments}
               currentStockSearch={currentStockSearch}
@@ -532,11 +531,10 @@ function DefaultWarehousePage() {
                 if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
               }}
             />
-          </Suspense>
         </KeepAliveTabPanel>
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
-          <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" /></Suspense>
+          <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
           <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
             <WarehouseDemandPanel
               demandSearch={demandSearch}

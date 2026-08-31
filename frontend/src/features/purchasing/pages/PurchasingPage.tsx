@@ -8,8 +8,10 @@ import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
 import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
+import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
+import { PurchaseWorkflowGuide } from '../PurchaseWorkflowGuide';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
 import {
   getPurchasingErrorMessage,
@@ -19,8 +21,6 @@ import {
   type PurchasingStageId,
 } from '../purchasingModel';
 
-const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
-const PurchaseWorkflowGuide = lazy(() => import('../PurchaseWorkflowGuide').then(({ PurchaseWorkflowGuide: component }) => ({ default: component })))
 const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
 const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection').then(({ SupplierQuotationSection: component }) => ({ default: component })))
 const purchasingCapabilityFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
@@ -274,15 +274,13 @@ export default function PurchasingPage() {
           <KeepAliveTabPanel id="purchasing-workflow" active={activeView === 'workflow'} className="space-y-4">
             {workbenchView.phase === 'ready' ? (
               <>
-                <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" /></Suspense>
-                <Suspense fallback={<div aria-hidden="true" className="min-h-24 rounded-md bg-slate-50" />}>
-                  <PurchaseWorkflowGuide
-                    currentStage={activeDate?.currentStage}
-                    selectedStage={routeState.stage}
-                    stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
-                    onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
-                  />
-                </Suspense>
+                <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
+                <PurchaseWorkflowGuide
+                  currentStage={activeDate?.currentStage}
+                  selectedStage={routeState.stage}
+                  stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
+                  onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
+                />
 
                 <PurchaseServiceDateWorkbench
                   serviceDates={workbenchView.data.serviceDates}

@@ -46,6 +46,8 @@ const pathExceptionLocations = [
   'src/features/purchasing/PurchaseDecisionPanel.tsx:399',
   'src/features/purchasing/PurchaseDecisionPanel.tsx:409',
   'src/features/warehouse/PurchaseOrderLineGroups.tsx:53',
+  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:87',
+  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:111',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

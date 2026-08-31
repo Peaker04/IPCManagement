@@ -1,5 +1,6 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { WeeklyMenuCommandBar } from '../weekly-menu/shell/WeeklyMenuCommandBar';
+import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
@@ -55,7 +56,6 @@ import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopT
 import { useSystemOperation } from '@/lib/systemOperationContext';
 
 const ReconciliationWeeklyMenuPage = lazy(() => import('./ReconciliationWeeklyMenuPage').then(({ ReconciliationWeeklyMenuPage: component }) => ({ default: component })))
-const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
 const WeeklyScheduleEditorDialog = lazy(() => import('../weekly-menu/schedule/WeeklyScheduleEditorDialog').then(({ WeeklyScheduleEditorDialog: component }) => ({ default: component })))
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
@@ -503,7 +503,7 @@ const DefaultWeeklyMenuPage = () => {
       context={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
-        <Suspense fallback={<div aria-hidden="true" className="min-h-20 rounded-md bg-slate-50" />}><WeeklyMenuReadiness readiness={readiness} /></Suspense>
+        <WeeklyMenuReadiness readiness={readiness} />
         <ViewSwitcher
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
