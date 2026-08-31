@@ -29,10 +29,10 @@ import {
   WorkflowDocumentsState,
 } from './ApprovalQueryPanels';
 import { visibleTabIds } from '@/lib/navigationPreferences';
+import { ApprovalSearchField } from './ApprovalSearchField';
+import { ApprovalDecisionDialog } from './ApprovalDecisionDialog';
 
 const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
-const ApprovalSearchField = lazy(() => import('./ApprovalSearchField').then(({ ApprovalSearchField: component }) => ({ default: component })))
-const ApprovalDecisionDialog = lazy(() => import('./ApprovalDecisionDialog').then(({ ApprovalDecisionDialog: component }) => ({ default: component })))
 
 export default function ApprovalPage() {
   const { toast } = useToast();

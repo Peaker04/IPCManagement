@@ -1,7 +1,8 @@
-import { lazy, Suspense, useId, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { typography } from '@/lib/typography';
 import { readTablePreferences, resetTablePreferences, resolveTablePreferenceColumns, writeTablePreferences, type TablePreferenceConfig, type TablePreferenceState } from './tablePreferences';
+import { TablePreferencesControl } from './TablePreferencesControl';
 
 interface TableViewportProps {
   children: ReactNode | ((preferences: { columns: ReturnType<typeof resolveTablePreferenceColumns>; density: TableDensity }) => ReactNode);
@@ -17,8 +18,6 @@ interface TableViewportProps {
 
 export type { TableDensity } from './tablePreferences';
 import type { TableDensity } from './tablePreferences';
-
-const TablePreferencesControl = lazy(() => import('./TablePreferencesControl').then(({ TablePreferencesControl: component }) => ({ default: component })))
 
 const viewportSizeClasses = {
   default: '',
@@ -81,9 +80,7 @@ export function TableViewport({
   return (
     <div className="min-w-0 w-full">
       <div role="toolbar" aria-label="Tùy chỉnh bảng" className="mb-3 flex min-h-8 justify-end">
-        <Suspense fallback={<span aria-hidden="true" className="h-8 w-24 rounded-sm bg-slate-50" />}>
-          <TablePreferencesControl config={preferences.config} state={preferenceState} onChange={updatePreferences} onReset={resetPreferences} />
-        </Suspense>
+        <TablePreferencesControl config={preferences.config} state={preferenceState} onChange={updatePreferences} onReset={resetPreferences} />
       </div>
       {viewport}
     </div>
