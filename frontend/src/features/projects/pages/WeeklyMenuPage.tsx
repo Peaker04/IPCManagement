@@ -1,4 +1,6 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { WeeklyMenuCommandBar } from '../weekly-menu/shell/WeeklyMenuCommandBar';
+import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
@@ -52,8 +54,6 @@ import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 
-const WeeklyMenuCommandBar = lazy(() => import('../weekly-menu/shell/WeeklyMenuCommandBar').then(({ WeeklyMenuCommandBar: component }) => ({ default: component })))
-const WeeklyMenuViewContent = lazy(() => import('../weekly-menu/shell/WeeklyMenuViewContent').then(({ WeeklyMenuViewContent: component }) => ({ default: component })))
 const ReconciliationWeeklyMenuPage = lazy(() => import('./ReconciliationWeeklyMenuPage').then(({ ReconciliationWeeklyMenuPage: component }) => ({ default: component })))
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
@@ -474,7 +474,7 @@ const DefaultWeeklyMenuPage = () => {
 
     <OperationalFrame
 
-      command={<Suspense fallback={<div aria-busy="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}><WeeklyMenuCommandBar
+      command={<WeeklyMenuCommandBar
         customers={customers}
         selectedCustomerId={selectedMenuCustomerId}
         weekStartDate={displayedWeekStartDate}
@@ -499,7 +499,7 @@ const DefaultWeeklyMenuPage = () => {
           if (normalizedWeekStartDate) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
           else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
         }}
-      /></Suspense>}
+      />}
       context={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
@@ -538,7 +538,7 @@ const DefaultWeeklyMenuPage = () => {
               Đang cập nhật
             </span>
           )}
-          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WeeklyMenuViewContent
+          <WeeklyMenuViewContent
             activeView={activeView}
             scope={weeklyScheduleScope}
             hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
@@ -551,7 +551,7 @@ const DefaultWeeklyMenuPage = () => {
             menuCostWorkflow={menuCostWorkflow}
             purchaseSummaryWorkflow={purchaseSummaryWorkflow}
             dishMaterialsWorkflow={dishMaterialsWorkflow}
-          /></Suspense>
+          />
           {isMaterialReconciliationMode && activeView === 'demand' && <ClosedLoopTransferPanel
             menuVersionId={committedMenu?.menuVersionId}
             scopeLabel={selectedCustomer && displayedWeekStartDate

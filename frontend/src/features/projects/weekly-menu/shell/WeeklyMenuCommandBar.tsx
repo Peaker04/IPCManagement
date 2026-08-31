@@ -1,11 +1,7 @@
 import { Edit, Send, Upload } from 'lucide-react'
 import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
-
-const EMPTY_CUSTOMER_VALUE = '__empty-customer__'
 
 type CommandProps = {
   customers: CoordinationCustomerOption[]
@@ -38,11 +34,6 @@ export const WeeklyMenuCommandBar = ({
   onCustomerChange,
   onWeekChange,
 }: CommandProps) => {
-  const selectedCustomer = customers.find((customer) => customer.customerId === selectedCustomerId)
-  const selectedCustomerLabel = selectedCustomer
-    ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}`
-    : 'Chọn khách hàng'
-
   return (
   <CommandBar actions={<>
     <button type="button" onClick={onEdit} className="ipc-button ipc-button-ghost font-semibold whitespace-nowrap">
@@ -64,20 +55,29 @@ export const WeeklyMenuCommandBar = ({
     </button>}
   </>}>
     <FieldRow label="Khách hàng">
-      <Select value={selectedCustomerId || EMPTY_CUSTOMER_VALUE} onValueChange={(value) => onCustomerChange(value === EMPTY_CUSTOMER_VALUE || value === null ? '' : value)} disabled={isCustomerLoading}>
-        <SelectTrigger aria-label="Chọn khách hàng" className="min-w-[200px]"><SelectValue>{selectedCustomerLabel}</SelectValue></SelectTrigger>
-        <SelectContent>
-          <SelectItem value={EMPTY_CUSTOMER_VALUE}>Chọn khách hàng</SelectItem>
-          {customers.map((customer) => (
-            <SelectItem key={customer.customerId} value={customer.customerId}>
-              {customer.customerCode} - {customer.customerName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <select
+        aria-label="Chọn khách hàng"
+        value={selectedCustomerId}
+        onChange={(event) => onCustomerChange(event.target.value)}
+        disabled={isCustomerLoading}
+        className="ipc-native-control min-h-9 min-w-[200px] rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+      >
+        <option value="">Chọn khách hàng</option>
+        {customers.map((customer) => (
+          <option key={customer.customerId} value={customer.customerId}>
+            {customer.customerCode} - {customer.customerName}
+          </option>
+        ))}
+      </select>
     </FieldRow>
     <FieldRow label="Tuần bắt đầu">
-      <Input aria-label="Tuần bắt đầu" type="date" weekStartOnly value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} className="placeholder:text-slate-600!" />
+      <input
+        aria-label="Tuần bắt đầu"
+        type="date"
+        value={weekStartDate}
+        onChange={(event) => onWeekChange(event.target.value)}
+        className="ipc-native-control min-h-9 rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+      />
     </FieldRow>
   </CommandBar>
   )

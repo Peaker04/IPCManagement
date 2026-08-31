@@ -100,7 +100,7 @@ describe('Phase 28 non-admin route-owner remediation inventory', () => {
   it('locks exact selector-proven names, contrast, and local table semantics', () => {
     expect(weeklyMenuCommandBarSource).toContain('aria-label="Chọn khách hàng"');
     expect(materialDemandSectionSource).toContain('is-warning [&>dt]:text-slate-800!');
-    expect(quickServingCellSource).toContain('text-center text-slate-700');
+    expect(quickServingCellSource).toContain('text-center text-sm text-slate-700');
     expect(uiRedesignSource).toContain('#report-filter-from');
     expect(uiRedesignSource).toContain('#coordination-order-search');
     expect(uiRedesignSource).toContain('color: #475569 !important');

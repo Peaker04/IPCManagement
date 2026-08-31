@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { WeeklyMenuCommandBar } from './WeeklyMenuCommandBar'
@@ -43,10 +43,9 @@ describe('WeeklyMenuCommandBar select labels', () => {
     )
 
     const trigger = screen.getByRole('combobox')
-    await user.click(trigger)
-    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'true'))
-
-    expect(await screen.findByRole('option', { name: 'ANV - AMANN' })).toBeVisible()
+    expect(screen.getByRole('option', { name: 'ANV - AMANN' })).toBeInTheDocument()
+    await user.selectOptions(trigger, 'customer-1')
+    expect(screen.getByRole('option', { name: 'ANV - AMANN' })).toBeInTheDocument()
   })
 })
 
@@ -69,12 +68,11 @@ it('keeps the active week independent from customer selection', async () => {
     />,
   )
 
-  await user.click(screen.getByRole('combobox'))
-  await user.click(await screen.findByRole('option', { name: 'ANV - AMANN' }))
+  await user.selectOptions(screen.getByRole('combobox'), 'customer-1')
 
   expect(onCustomerChange).toHaveBeenCalledWith('customer-1')
   expect(onWeekChange).not.toHaveBeenCalled()
-  expect(screen.getByRole('textbox', { name: 'Tuần bắt đầu' })).toHaveValue('10/08/2026')
+  expect(screen.getByLabelText('Tuần bắt đầu')).toHaveValue('2026-08-10')
 })
 
 it('offers a guarded publish action for a draft weekly menu', async () => {

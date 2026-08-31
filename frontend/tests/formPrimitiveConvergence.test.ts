@@ -36,6 +36,16 @@ const pathExceptionLocations = [
   'src/features/admin/pages/ApprovalRulesPage.tsx:480',
   'src/features/approvals/pages/ApprovalSearchField.tsx:8',
   'src/features/approvals/pages/ApprovalDecisionDialog.tsx:54',
+  // Route-critical controls intentionally stay native to avoid pulling Base UI field closures into eager chunks.
+  'src/features/projects/weekly-menu/schedule/QuickServingCell.tsx:7',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:58',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:74',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:317',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:385',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:389',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:399',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:409',
+  'src/features/warehouse/PurchaseOrderLineGroups.tsx:53',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

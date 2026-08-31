@@ -11,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { ROUTES } from '@/lib/routeConfig';
@@ -46,8 +44,6 @@ type Confirmation =
   | { type: 'create-request'; materialRequestId: string }
   | { type: 'submit-request'; purchaseRequestId: string }
   | { type: 'create-orders'; purchaseRequestId: string };
-
-const EMPTY_DEMAND_SELECT_VALUE = '__no-approved-demand__';
 
 const evidenceLabel = (candidate: SupplierEvidenceCandidate) =>
   candidate.evidenceType === 'EffectiveQuotation'
@@ -318,26 +314,19 @@ export function PurchaseDecisionPanel({
         {selectedStage === 'demand' ? (
           <div className="space-y-3">
             <label className="block text-body font-semibold text-slate-900" htmlFor="approved-demand-selection">Nhu cầu nguyên liệu đã duyệt</label>
-            <Select
-              value={selectedDemandId || EMPTY_DEMAND_SELECT_VALUE}
-              onValueChange={(value) => setSelectedDemandId(value === EMPTY_DEMAND_SELECT_VALUE ? '' : (value ?? ''))}
+            <select
+              id="approved-demand-selection"
+              value={selectedDemandId}
+              onChange={(event) => setSelectedDemandId(event.target.value)}
+              className="min-h-11 w-full rounded-sm border border-slate-300 bg-white px-3 text-body text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:min-h-9"
             >
-              <SelectTrigger id="approved-demand-selection" className="min-h-11 w-full sm:min-h-9">
-                <SelectValue>
-                  {selectedDemand
-                    ? `${selectedDemand.requestCode} - ${selectedDemand.shortageLineCount} dòng thiếu`
-                    : 'Chọn nhu cầu để tạo đề xuất'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EMPTY_DEMAND_SELECT_VALUE}>Chọn nhu cầu để tạo đề xuất</SelectItem>
+              <option value="">Chọn nhu cầu để tạo đề xuất</option>
               {serviceDate.approvedDemands.map((demand) => (
-                <SelectItem key={demand.materialRequestId} value={demand.materialRequestId}>
+                <option key={demand.materialRequestId} value={demand.materialRequestId}>
                   {demand.requestCode} - {demand.shortageLineCount} dòng thiếu
-                </SelectItem>
+                </option>
               ))}
-              </SelectContent>
-            </Select>
+            </select>
             <p id="purchase-demand-action-guidance" className="text-caption text-slate-600">
               {selectedDemand
                 ? `${selectedDemand.requestCode}. ${formatDateOnly(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).`
@@ -393,11 +382,11 @@ export function PurchaseDecisionPanel({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Giá đề xuất</span>
-                        <Input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
+                        <input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
                       </label>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Ngày giao</span>
-                        <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
+                        <input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
                       </label>
                       <div className="space-y-2 text-body text-slate-900">
                         <span className="font-semibold">Kho vận hành</span>
@@ -407,7 +396,7 @@ export function PurchaseDecisionPanel({
                       </div>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Điều khoản mua</span>
-                        <Input value={purchasingTerms} onChange={(event) => setPurchasingTerms(event.target.value)} />
+                        <input value={purchasingTerms} onChange={(event) => setPurchasingTerms(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
                       </label>
                     </div>
                     {warehouseQuery.isError || warehouseContext.state === 'blocked' ? (
@@ -417,7 +406,7 @@ export function PurchaseDecisionPanel({
                     ) : null}
                     <label className="block space-y-2 text-body font-semibold text-slate-900">
                       <span>Ghi chú quyết định</span>
-                      <Input aria-label="Ghi chú quyết định" value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} />
+                      <input aria-label="Ghi chú quyết định" value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
                     </label>
                   </>
                 ) : null}

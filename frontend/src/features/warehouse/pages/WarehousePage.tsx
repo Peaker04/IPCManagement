@@ -32,7 +32,7 @@ import { addIsoDays } from '../warehouseDateRange';
 import { typography } from '@/lib/typography';
 import { buildWarehousePageHeader } from './WarehousePageHeader';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';
-const WarehousePurchaseOrdersPanel = lazy(() => import('./WarehousePurchaseOrdersPanel').then(({ WarehousePurchaseOrdersPanel: component }) => ({ default: component })))
+import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
 const WarehouseMovementPanel = lazy(() => import('./WarehouseMovementPanel').then(({ WarehouseMovementPanel: component }) => ({ default: component })))
 const ReconciliationWarehousePage = lazy(() => import('./ReconciliationWarehousePage'))
 const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
@@ -469,7 +469,7 @@ function DefaultWarehousePage() {
         </InlineAlert>
       )}
 
-      <Suspense fallback={<div aria-busy="true" className="min-h-48 rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehousePurchaseOrdersPanel
+      <WarehousePurchaseOrdersPanel
         canReceivePurchases={canReceivePurchases}
         purchaseOrders={purchaseOrders}
         isFetchingPurchaseOrders={isFetchingPurchaseOrders}
@@ -486,7 +486,7 @@ function DefaultWarehousePage() {
           setSelectedReceiptLine(undefined);
         }}
         onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
-      /></Suspense>
+      />
 
       <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehouseReceiptLifecyclePanel /></Suspense>
 

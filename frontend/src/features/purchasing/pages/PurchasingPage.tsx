@@ -9,6 +9,7 @@ import { toQueryView } from '@/lib/queryView';
 import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
 import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
+import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
 import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
 import {
   getPurchasingErrorMessage,
@@ -18,7 +19,6 @@ import {
   type PurchasingStageId,
 } from '../purchasingModel';
 
-const PurchaseDecisionPanel = lazy(() => import('../PurchaseDecisionPanel').then(({ PurchaseDecisionPanel: component }) => ({ default: component })))
 const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const PurchaseWorkflowGuide = lazy(() => import('../PurchaseWorkflowGuide').then(({ PurchaseWorkflowGuide: component }) => ({ default: component })))
 const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
@@ -296,15 +296,13 @@ export default function PurchasingPage() {
                   onLineChange={setSelectedLineId}
                   onPageChange={setPage}
                 >
-                  <Suspense fallback={<div aria-busy="true" className="min-h-48 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
-                    <PurchaseDecisionPanel
+                  <PurchaseDecisionPanel
                       key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
                       week={routeState.week}
                       selectedStage={routeState.stage}
                       serviceDate={activeDate}
                       selectedLine={selectedLine}
-                    />
-                  </Suspense>
+                  />
                 </PurchaseServiceDateWorkbench>
               </>
             ) : (

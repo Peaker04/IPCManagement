@@ -262,7 +262,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: allAvailable(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:46-59',
-      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:52-55',
+      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:42-46',
       'backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs:19,166',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],
@@ -281,7 +281,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-116',
       'frontend/src/features/projects/pages/WeeklyMenuPage.tsx:440-460',
-      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:56-61',
+      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:47-51',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],
