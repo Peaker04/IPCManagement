@@ -4351,10 +4351,12 @@ export interface paths {
                     readonly IssueDate?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
+                    readonly ReconciliationBatchId?: string;
                     readonly SearchKeyword?: string;
                     readonly ShiftName?: string;
                     readonly SortBy?: string;
                     readonly SortDesc?: boolean;
+                    readonly SourceFamily?: string;
                     readonly WarehouseId?: string;
                 };
                 readonly header?: never;
@@ -4420,7 +4422,9 @@ export interface paths {
         };
         readonly get: {
             readonly parameters: {
-                readonly query?: never;
+                readonly query?: {
+                    readonly sourceFamily?: string;
+                };
                 readonly header?: never;
                 readonly path: {
                     readonly id: string;
@@ -9173,6 +9177,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9233,6 +9238,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9289,6 +9295,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9349,6 +9356,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9412,6 +9420,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9472,6 +9481,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9621,6 +9631,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9681,6 +9692,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9744,6 +9756,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9806,6 +9819,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9866,6 +9880,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9928,6 +9943,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -9988,6 +10004,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10050,6 +10067,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10113,6 +10131,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10210,6 +10229,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10270,6 +10290,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10332,6 +10353,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10392,6 +10414,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10454,6 +10477,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10514,6 +10538,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10576,6 +10601,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10636,6 +10662,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10696,6 +10723,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10759,6 +10787,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10819,6 +10848,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10882,6 +10912,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -10942,6 +10973,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11002,6 +11034,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11063,6 +11096,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11123,6 +11157,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11185,6 +11220,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11243,6 +11279,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11303,6 +11340,7 @@ export interface paths {
                     readonly ServiceDate?: string;
                     readonly ShiftName?: string;
                     readonly SortDirection?: string;
+                    readonly SourceFamily?: string;
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
@@ -11623,9 +11661,14 @@ export interface components {
             readonly entityId?: string | null;
             readonly entityName: string;
             readonly fieldName?: string | null;
+            readonly materialRequestId?: string | null;
+            readonly materialRequestLineId?: string | null;
             readonly newValue?: string | null;
             readonly oldValue?: string | null;
             readonly reason?: string | null;
+            readonly reconciliationBatchId?: string | null;
+            readonly reconciliationBatchLineId?: string | null;
+            readonly sourceFamily?: string | null;
         };
         readonly AuditChangeReportDtoCursorPageDto: {
             readonly hasNext: boolean;
@@ -12477,10 +12520,14 @@ export interface components {
             readonly entityLabel: string;
             readonly entityName: string;
             readonly issueId: string;
+            readonly materialRequestId?: string | null;
+            readonly materialRequestLineId?: string | null;
             readonly message: string;
             readonly owner: string;
             /** Format: int32 */
             readonly priorityRank: number;
+            readonly reconciliationBatchId?: string | null;
+            readonly reconciliationBatchLineId?: string | null;
             /** Format: date-time */
             readonly remediationAt?: string | null;
             readonly remediationByName?: string | null;
@@ -12493,6 +12540,7 @@ export interface components {
             /** Format: int32 */
             readonly slaHours: number;
             readonly slaLabel: string;
+            readonly sourceFamily?: string | null;
             readonly suggestedAction: string;
         };
         readonly DataQualityIssueDtoPagedResponseDto: {
@@ -13092,6 +13140,7 @@ export interface components {
             readonly receivedByName?: string | null;
             readonly reconciliationBatchId?: string | null;
             readonly shiftName?: string | null;
+            readonly sourceFamily: string;
             readonly warehouseId: string;
             readonly warehouseName?: string | null;
         };
@@ -15625,6 +15674,9 @@ export interface components {
             readonly reason: string;
         };
         readonly RejectSupplementalMaterialRequest: {
+            readonly commandId: string;
+            /** Format: int64 */
+            readonly expectedVersion: number;
             readonly reason: string;
         };
         readonly RemediateMenuAmendmentDecisionFanRequest: {

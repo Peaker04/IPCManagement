@@ -5759,6 +5759,20 @@
         ],
         "parameters": [
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ReconciliationBatchId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "WarehouseId",
             "in": "query",
             "schema": {
@@ -5907,6 +5921,14 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "sourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "DEFAULT"
             }
           }
         ],
@@ -12116,6 +12138,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -12298,6 +12327,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -12492,6 +12528,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -12657,6 +12700,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -12861,6 +12911,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -13078,6 +13135,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -13289,6 +13353,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -13477,6 +13548,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -13659,6 +13737,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -13869,6 +13954,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -14051,6 +14143,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -14261,6 +14360,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -14449,6 +14555,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -14631,6 +14744,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -14848,6 +14968,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -15030,6 +15157,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -15240,6 +15374,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -15422,6 +15563,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -15632,6 +15780,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -15814,6 +15969,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -16024,6 +16186,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -16212,6 +16381,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -16394,6 +16570,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -16611,6 +16794,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -16793,6 +16983,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -16987,6 +17184,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -17169,6 +17373,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -17386,6 +17597,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -17568,6 +17786,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -17769,6 +17994,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -17957,6 +18189,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -18139,6 +18378,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -18362,6 +18608,13 @@
             }
           },
           {
+            "name": "SourceFamily",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "GroupBy",
             "in": "query",
             "schema": {
@@ -18567,6 +18820,13 @@
           },
           {
             "name": "MovementType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SourceFamily",
             "in": "query",
             "schema": {
               "type": "string"
@@ -19741,6 +20001,26 @@
             "nullable": true
           },
           "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "materialRequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "materialRequestLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchLineId": {
             "type": "string",
             "nullable": true
           }
@@ -22896,6 +23176,26 @@
             "type": "string",
             "nullable": true
           },
+          "sourceFamily": {
+            "type": "string",
+            "nullable": true
+          },
+          "materialRequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "materialRequestLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reconciliationBatchLineId": {
+            "type": "string",
+            "nullable": true
+          },
           "entityCode": {
             "type": "string"
           },
@@ -25009,11 +25309,15 @@
           "issuedBy",
           "issueId",
           "lines",
+          "sourceFamily",
           "warehouseId"
         ],
         "type": "object",
         "properties": {
           "issueId": {
+            "type": "string"
+          },
+          "sourceFamily": {
             "type": "string"
           },
           "issueCode": {
@@ -33753,10 +34057,19 @@
       },
       "RejectSupplementalMaterialRequest": {
         "required": [
+          "commandId",
+          "expectedVersion",
           "reason"
         ],
         "type": "object",
         "properties": {
+          "commandId": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
           "reason": {
             "type": "string"
           }
