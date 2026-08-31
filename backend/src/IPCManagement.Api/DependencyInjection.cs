@@ -119,6 +119,7 @@ public static class DependencyInjection
         services.AddScoped<IDishBomService, DishBomService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
+        services.AddScoped<IMaterialRequestCompletionTransitionService, MaterialRequestCompletionTransitionService>();
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();
         services.AddScoped<ISupplementalMaterialRequestService, SupplementalMaterialRequestService>();
         services.AddScoped<IInventoryReturnService, InventoryReturnService>();

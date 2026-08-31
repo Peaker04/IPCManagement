@@ -55,7 +55,7 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
     private static readonly string[] ApprovalBusinessOwners =
     ["ApprovalInboxService.BuildInventoryIssueItemsAsync", "InventoryIssueApprovalHandler.HandleCoreAsync"];
     private static readonly string[] DefaultIssueOwners =
-    ["InventoryIssueLineResolver.BuildIssuedBySourceLine", "InventoryIssueRepository.GetIssuedLinesForMaterialRequestAsync", "InventoryIssueService.ConfirmReceiptAsync", "InventoryIssueService.CreateAsync", "InventoryMapper.MapIssue", "InventoryMapper.MapIssueLine"];
+    ["InventoryIssueLineResolver.BuildIssuedBySourceLine", "InventoryIssueRepository.GetIssuedLinesForMaterialRequestAsync", "InventoryIssueService.ConfirmReceiptAsync", "InventoryIssueService.CreateAsync", "InventoryMapper.MapIssue", "InventoryMapper.MapIssueLine", "MaterialRequestCompletionTransitionService.Stage"];
     private static readonly string[] ReconciliationIssueOwners = ["InventoryIssueService.CreateFromReconciliationAsync"];
     private static readonly string[] InventoryReadOwners = ["InventoryIssueRepository.ApplyExactSourceFamily", "InventoryIssueRepository.GetPagedAsync"];
     private static readonly string[] SupplyReturnOwners =
@@ -99,6 +99,7 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         Row("MaterialDemandService.EnsureMaterialRequestAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies), DemandOwners),
         Row("MaterialDemandService.GetStalenessAsync", "DEFAULT_ONLY_READ", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies), DemandOwners),
         Row("MaterialDemandStockReservation.ReserveAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MaterialDemand_PublicGenerationStalenessAndReservation_IgnoreCollidingIssueFamilies), DemandOwners),
+        Row("MaterialRequestCompletionTransitionService.Stage", "DEFAULT_ONLY_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
         Row("MenuAmendmentService.CreateAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MenuAmendment_PublicCreateAndExecute_PreserveCollidingFamiliesAndReadySnapshot), AmendmentOwners),
         Row("MenuAmendmentService.ExecuteCoreAsync", "DEFAULT_ONLY_COMMAND", typeof(WorkflowGenerationTests), nameof(WorkflowGenerationTests.MenuAmendment_PublicCreateAndExecute_PreserveCollidingFamiliesAndReadySnapshot), AmendmentOwners),
         Row("OperationalKpiReportService.GetOperationalKpisAsync", "DEFAULT_ONLY_READ", typeof(Phase30BusinessReadConsumerMatrixTests), nameof(Phase30BusinessReadConsumerMatrixTests.DefaultReportsKpisAndPhysicalTruth_Should_RemainInvariantWithCollidingFamilies), BusinessReadOwners),

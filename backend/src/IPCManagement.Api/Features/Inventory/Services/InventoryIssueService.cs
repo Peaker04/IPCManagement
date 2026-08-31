@@ -15,10 +15,7 @@ using IPCManagement.Api.Features.SystemOperation.Services;
 using System.Data;
 using System.Text.Json;
 namespace IPCManagement.Api.Features.Inventory.Services;
-public interface IInventoryIssuePreWriteGate
-{
-    Task WaitAsync(CancellationToken token);
-}
+public interface IInventoryIssuePreWriteGate { Task WaitAsync(CancellationToken token); }
 public class InventoryIssueService : IInventoryIssueService
 {
     private static readonly HashSet<string> IssuableDemandStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -36,6 +33,7 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly SystemOperationRequestContext? _requestContext;
     private readonly SystemOperationModeGuard? _modeGuard;
     private readonly IInventoryIssuePreWriteGate? _preWriteGate;
+    private readonly IMaterialRequestCompletionTransitionService? _materialRequestCompletionTransition;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
@@ -46,7 +44,8 @@ public class InventoryIssueService : IInventoryIssueService
         IpcManagementContext? context = null,
         SystemOperationRequestContext? requestContext = null,
         SystemOperationModeGuard? modeGuard = null,
-        IInventoryIssuePreWriteGate? preWriteGate = null)
+        IInventoryIssuePreWriteGate? preWriteGate = null,
+        IMaterialRequestCompletionTransitionService? materialRequestCompletionTransition = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
@@ -57,6 +56,8 @@ public class InventoryIssueService : IInventoryIssueService
         _requestContext = requestContext;
         _modeGuard = modeGuard;
         _preWriteGate = preWriteGate;
+        _materialRequestCompletionTransition = materialRequestCompletionTransition ??
+            (context is null ? null : new MaterialRequestCompletionTransitionService(context));
     }
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request)
@@ -179,10 +180,8 @@ public class InventoryIssueService : IInventoryIssueService
                         MaterialRequestLineId = line.MaterialRequestLineId
                     }).ToList();
 
-                    // Add issue using sync change tracking
                     _issueRepository.Add(issue);
 
-                    // Cập nhật tồn kho hiện tại + ghi nhận stock movements
                     foreach (var line in issue.Inventoryissuelines)
                     {
                         await _stockLedgerService.RemoveStockWithCheckAsync(
@@ -198,7 +197,10 @@ public class InventoryIssueService : IInventoryIssueService
                             $"Phiếu xuất {issue.IssueCode}");
                     }
 
-                    InventoryIssueLineResolver.UpdateMaterialRequestStatusIfCompleted(_context!, materialRequest, issuedLines, issueLines, userIdBytes);
+                    var completionLines = issueLines.Select(line =>
+                        new MaterialRequestCompletionIssueLine(line.MaterialRequestLineId, line.IssuedQty)).ToList();
+                    _materialRequestCompletionTransition?.Stage(new(
+                        materialRequest, issuedLines, completionLines, userIdBytes));
 
                     await _unitOfWork.SaveChangesAsync();
 
