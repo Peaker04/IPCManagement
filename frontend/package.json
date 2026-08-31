@@ -12,6 +12,7 @@
     "test:source-ownership:unit": "vitest run --run tests/uiSourceOwnershipLeakage.test.ts",
     "test:source-ownership:e2e": "playwright test tests/ui-source-ownership.spec.ts",
     "test:unit:watch": "vitest",
+    "generate:phase30-request-contract": "vitest run --update -- src/features/reconciliation/reconciliationRequestContract.fixture.test.ts --maxWorkers=1",
     "test:coverage": "vitest run --coverage",
     "test:controls": "playwright test tests/control-surface.spec.ts",
     "test:ui-audit": "npm run test:ui-measurements",
