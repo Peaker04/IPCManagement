@@ -202,6 +202,20 @@ describe('WarehouseExceptionsWorkbench', () => {
     }))
   })
 
+  it('rejects a supplemental request with lifecycle concurrency identity', async () => {
+    render(<WarehouseExceptionsWorkbench canManage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Từ chối' }))
+    fireEvent.change(screen.getByLabelText('Lý do từ chối'), { target: { value: 'Không đúng nhu cầu thực tế' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận từ chối' }))
+
+    await waitFor(() => expect(mocks.reject).toHaveBeenCalledWith({
+      requestId: 'supplemental-1',
+      commandId: expect.any(String),
+      expectedVersion: 1,
+      reason: 'Không đúng nhu cầu thực tế',
+    }))
+  })
+
   it('lets warehouse confirm actual return quantity and discrepancy semantics', async () => {
     render(<WarehouseExceptionsWorkbench canManage />);
 

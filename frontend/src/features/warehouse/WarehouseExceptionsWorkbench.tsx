@@ -179,7 +179,12 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       return;
     }
     try {
-      await reject({ requestId: rejecting.requestId, reason: rejectReason.trim() }).unwrap();
+      await reject({
+        requestId: rejecting.requestId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: rejecting.concurrencyVersion,
+        reason: rejectReason.trim(),
+      }).unwrap();
       setRejecting(undefined);
       setRejectReason('');
       setFeedback({ title: 'Đã từ chối yêu cầu', message: 'Lý do đã được lưu vào lịch sử nghiệp vụ.', variant: 'info' });
