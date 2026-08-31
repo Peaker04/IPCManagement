@@ -42,7 +42,11 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
   const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, isExportingAudit, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
     <KeepAliveTabPanel id="admin-audit" active={effectiveActiveView === 'audit'} className="flex flex-col gap-4">
-      <SectionPanel title="Nhật ký thay đổi hệ thống" icon={<History size={18} />}>
+      <SectionPanel
+        title="Nhật ký thay đổi hệ thống"
+        icon={<History size={18} />}
+        description="Tra cứu lịch sử thao tác, thay đổi dữ liệu và đối tượng ảnh hưởng trên toàn hệ thống."
+      >
         <div className="flex flex-col gap-4">
           {/* Bộ lọc Audit log */}
           <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">

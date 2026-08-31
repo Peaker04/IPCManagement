@@ -16,6 +16,21 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
       title="Tổng hợp nhu cầu mua"
       headingLevel={2}
       icon={<ShoppingCart size={18} color="var(--ipc-slate-600)" />}
+      description="Tổng hợp nguyên liệu cần thu mua theo toàn bộ tuần phục vụ dựa trên nhu cầu thực tế và tồn kho."
+      actions={
+        <div className="relative w-64 max-w-full">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            id="weekly-purchase-search"
+            type="search"
+            value={state.search}
+            onChange={(event) => actions.setSearch(event.target.value)}
+            placeholder="Tìm tên hoặc mã nguyên liệu..."
+            className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+            aria-label="Tìm nguyên liệu trong tuần của khách hàng đang chọn"
+          />
+        </div>
+      }
     >
       <div className="mb-3">
         <ContextStrip items={[
@@ -27,13 +42,6 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           { label: 'Giá trị định lượng', value: formatCurrency(presentation.totalCost), tone: 'info' },
         ]} />
       </div>
-      <label htmlFor="weekly-purchase-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-        Tìm nguyên liệu trong tuần của khách hàng đang chọn
-        <span className="relative block">
-          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <Input id="weekly-purchase-search" type="search" value={state.search} onChange={(event) => actions.setSearch(event.target.value)} placeholder="Tên hoặc mã nguyên liệu" className="h-9 pl-9" />
-        </span>
-      </label>
       <QueryViewBoundary
         queries={queryView ? [{ label: 'tổng hợp mua của tuần', view: queryView }] : []}
         refreshLabel="Đang cập nhật tổng hợp tuần"

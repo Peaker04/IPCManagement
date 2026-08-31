@@ -27,18 +27,12 @@ const formatBomScope = (scope?: string | null) => (scope ? (bomScopeLabels[scope
 export function ChefProductionSection({ lines, isSending, isLoading, isError, totalPlans, sentPlans, onReceivePlan }: Props) {
   const isComplete = totalPlans > 0 && sentPlans >= totalPlans;
   const canReceivePlan = !isLoading && !isError && totalPlans > 0 && !isComplete;
-  const blockedReason = isLoading
-    ? 'Đang kiểm tra kế hoạch sản xuất.'
-    : isError
-      ? 'Chưa tải được kế hoạch sản xuất. Thử lại trước khi xác nhận.'
-      : totalPlans === 0
-        ? 'Chưa có kế hoạch sản xuất cho ngày/ca này.'
-        : undefined;
 
   return (
     <SectionPanel
       title="Kế hoạch điều phối trong ngày"
       icon={<ClipboardList size={18} />}
+      description="Kế hoạch sản xuất và phân bổ số suất theo từng ca phục vụ trong ngày của bếp."
       badge={
         isComplete ? (
           <StatusBadge variant="success">Kế hoạch đã đồng bộ</StatusBadge>
@@ -50,11 +44,6 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
         )
       }
     >
-      {blockedReason ? (
-        <p className="mb-3 text-caption leading-[1.4] text-slate-600" role="status">
-          {blockedReason}
-        </p>
-      ) : null}
       <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch điều phối trong ngày" caption="Kế hoạch điều phối trong ngày">
         <table className="ipc-erp-grid-table w-full min-w-[900px]">
           <thead>

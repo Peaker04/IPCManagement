@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Copy, Check, SlidersHorizontal } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
-import { ConfirmDialog } from '@/components/common'
+import { ConfirmDialog, InfoNote } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { useSystemOperation } from '@/features/system-operation/systemOperationContext'
 import { ReconciliationBatchTable } from './ReconciliationBatchTable'
@@ -128,9 +128,12 @@ function ActiveReconciliationWorkspace({ owner, menuVersionId, menuVersionLabel 
       {owner === 'weekly-menu' && canCoordinate && (
         <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50/50 p-4" aria-label="Nguồn số suất đối chiếu">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
+            <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-slate-900">{sourceLabel}</p>
-              <p className="text-sm text-slate-600">Kiểm tra số suất hoàn tất trước khi tạo lô đối chiếu nháp.</p>
+              <InfoNote
+                title="Hướng dẫn nguồn số suất"
+                content="Kiểm tra số suất hoàn tất trước khi tạo lô đối chiếu nháp."
+              />
             </div>
             <Button
               type="button"

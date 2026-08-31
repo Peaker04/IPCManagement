@@ -24,7 +24,11 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
           { label: 'hợp đồng khách hàng', view: queryViews.contracts },
           ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
         ]}>
-          <SectionPanel title="Hợp đồng khách hàng và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
+          <SectionPanel
+            title="Hợp đồng khách hàng và quy tắc suất ăn"
+            icon={<CalendarCheck size={18} />}
+            description="Quản lý thông tin hợp đồng khách hàng, quy tắc suất ăn, các ca áp dụng và phiên bản lịch thực đơn."
+          >
             <ContextStrip
               items={[
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },

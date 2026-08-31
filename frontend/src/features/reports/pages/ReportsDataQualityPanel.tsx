@@ -13,8 +13,6 @@ import { formatDataQualityRemediationStatus, formatPriorityLabel } from '@/lib/w
 import { uiCopy } from '@/lib/uiCopy';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { standardPageSizeOptions, type ReportsPageModel } from './useReportsPageModel';
-import { typography } from '@/lib/typography';
-import { cn } from '@/lib/utils';
 
 export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) => {
   const {
@@ -32,41 +30,40 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
   } = model;
 
   return (
-    <SectionPanel title={uiCopy.reports.preProductionQuality} icon={<AlertTriangle size={18} />}>
-      <ContextStrip
-        items={[
-          { label: 'Tổng vấn đề', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
-          { label: uiCopy.reports.error, value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
-          { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
-          { label: 'Vấn đề ưu tiên SLA', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
-          { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
-          { label: 'Thiếu định lượng', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
-          { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
-        ]}
-      />
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <label className={cn(typography.label, 'grid min-w-[280px] flex-1 gap-1 text-slate-600')} htmlFor="report-data-quality-search">
-          Tìm vấn đề dữ liệu
-          <div className="relative max-w-xl">
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              id="report-data-quality-search"
-              type="search"
-              value={dataQualitySearch}
-              onChange={(event) => {
-                setDataQualitySearch(event.target.value);
-                setDataQualityPage(1);
-              }}
-              placeholder="Mã, đối tượng, nhóm lỗi, người phụ trách hoặc nội dung"
-              className="h-9 bg-white pl-9"
-            />
-          </div>
-        </label>
-        {dataQualitySearch.trim() && (
-          <span className={cn(typography.caption, 'pb-2 text-slate-500')} aria-live="polite">
-            {dataQualityResult.data?.page.totalCount ?? 0} kết quả
-          </span>
-        )}
+    <SectionPanel
+      title={uiCopy.reports.preProductionQuality}
+      icon={<AlertTriangle size={18} />}
+      description="Tổng hợp các điểm dữ liệu bất thường hoặc thiếu sót định mức trước khi đưa vào sản xuất."
+      actions={
+        <div className="relative w-64 max-w-full">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            id="report-data-quality-search"
+            type="search"
+            value={dataQualitySearch}
+            onChange={(event) => {
+              setDataQualitySearch(event.target.value);
+              setDataQualityPage(1);
+            }}
+            placeholder="Tìm mã, nhóm lỗi, nội dung..."
+            className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+            aria-label="Tìm vấn đề dữ liệu"
+          />
+        </div>
+      }
+    >
+      <div className="mb-4">
+        <ContextStrip
+          items={[
+            { label: 'Tổng vấn đề', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
+            { label: uiCopy.reports.error, value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
+            { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
+            { label: 'Vấn đề ưu tiên SLA', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
+            { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
+            { label: 'Thiếu định lượng', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
+            { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
+          ]}
+        />
       </div>
       <TableViewport ariaLabel="Bảng vấn đề dữ liệu trước khi vận hành">
         <table className="ipc-erp-grid-table w-full min-w-[800px]">

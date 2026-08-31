@@ -268,14 +268,25 @@ const ReportsPage = () => {
 
       <KeepAliveTabPanel id="reports-stock" active={activeView === 'stock'}>
         <ReportQueryBoundary view={reportViews.stock}>
-          <SectionPanel title="Tồn kho hiện tại theo kho" icon={<Warehouse size={18} />}>
-            <label htmlFor="report-stock-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-              Tìm trong snapshot tồn kho hiện tại
-              <span className="relative block">
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input id="report-stock-search" type="search" value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 pl-9" />
-              </span>
-            </label>
+          <SectionPanel
+            title="Tồn kho hiện tại theo kho"
+            icon={<Warehouse size={18} />}
+            description="Theo dõi số lượng tồn và cập nhật gần nhất của từng nguyên liệu theo các kho."
+            actions={
+              <div className="relative w-64 max-w-full">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  id="report-stock-search"
+                  type="search"
+                  value={stockSearch}
+                  onChange={(event) => setStockSearch(event.target.value)}
+                  placeholder="Kho, mã, nguyên liệu..."
+                  className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+                  aria-label="Tìm trong snapshot tồn kho hiện tại"
+                />
+              </div>
+            }
+          >
             <TableViewport ariaLabel="Bảng tồn kho hiện tại">
               <table className="ipc-erp-grid-table w-full min-w-[720px]">
                 <thead>
@@ -316,14 +327,25 @@ const ReportsPage = () => {
 
       <KeepAliveTabPanel id="reports-movement" active={activeView === 'movement'}>
         <ReportQueryBoundary view={reportViews.movement}>
-          <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày" icon={<ArrowLeftRight size={18} />}>
-            <label htmlFor="report-movement-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-              Tìm bút toán trong khoảng ngày
-              <span className="relative block">
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input id="report-movement-search" type="search" value={movementSearch} onChange={(event) => setMovementSearch(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" className="h-9 pl-9" />
-              </span>
-            </label>
+          <SectionPanel
+            title="Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày"
+            icon={<ArrowLeftRight size={18} />}
+            description="Tra cứu tất cả các bút toán luân chuyển kho phát sinh trong khoảng thời gian đã chọn."
+            actions={
+              <div className="relative w-64 max-w-full">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  id="report-movement-search"
+                  type="search"
+                  value={movementSearch}
+                  onChange={(event) => setMovementSearch(event.target.value)}
+                  placeholder="Kho, nguyên liệu, lý do..."
+                  className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+                  aria-label="Tìm bút toán trong khoảng ngày"
+                />
+              </div>
+            }
+          >
             <StockMovementTable
               movements={stockMovementRows}
               cursorPagination={{

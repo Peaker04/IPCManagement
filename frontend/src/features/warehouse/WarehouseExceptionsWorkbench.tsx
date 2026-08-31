@@ -1,5 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react';
-import { ArrowRight, PackageCheck, RefreshCw, Undo2 } from 'lucide-react';
+import { ArrowRight, PackageCheck, RefreshCw, Search, Undo2 } from 'lucide-react';
 import {
   InlineAlert,
   PaginationBar,
@@ -272,14 +272,21 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         title="Yêu cầu cấp nguyên liệu bổ sung"
         icon={<RefreshCw size={18} aria-hidden="true" />}
         description="Kho xử lý theo tồn thực tế; phần thiếu được chuyển thành đề xuất mua có thể truy vết."
+        actions={
+          <div className="relative w-64 max-w-full">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              id="warehouse-supplemental-search"
+              type="search"
+              value={supplementalSearch}
+              onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }}
+              placeholder="Tìm yêu cầu, nguyên liệu..."
+              className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+              aria-label="Tìm yêu cầu, nguyên liệu hoặc trạng thái"
+            />
+          </div>
+        }
       >
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-supplemental-search">
-            Tìm yêu cầu, nguyên liệu hoặc trạng thái
-            <Input id="warehouse-supplemental-search" value={supplementalSearch} onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }} placeholder="Nhập mã hoặc tên nguyên liệu" className="h-9 max-w-md" />
-          </label>
-          {supplementalSearch.trim() && supplementalData && <span className="pb-2 text-xs text-slate-500">{supplementalData.totalCount} kết quả</span>}
-        </div>
         <QueryViewBoundary queries={[{ label: 'yêu cầu cấp bổ sung', view: supplementalView }]} refreshLabel="Đang cập nhật yêu cầu cấp bổ sung">
         <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Trạng thái và eligibility thao tác do máy chủ cung cấp.">
           <table className="ipc-erp-grid-table w-full min-w-[980px]">
@@ -363,14 +370,21 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         title="Phiếu trả dư và hao hụt chờ kho tiếp nhận"
         icon={<Undo2 size={18} aria-hidden="true" />}
         description="Nguyên liệu trả lại được cộng tồn theo số thực nhận; hao hụt chỉ được ghi vào lịch sử, không cộng tồn."
+        actions={
+          <div className="relative w-64 max-w-full">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              id="warehouse-return-search"
+              type="search"
+              value={returnSearch}
+              onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }}
+              placeholder="Tìm phiếu trả, lý do..."
+              className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+              aria-label="Tìm phiếu trả, ngày hoặc lý do"
+            />
+          </div>
+        }
       >
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-return-search">
-            Tìm phiếu trả, ngày hoặc lý do
-            <Input id="warehouse-return-search" value={returnSearch} onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }} placeholder="Nhập mã phiếu hoặc nội dung" className="h-9 max-w-md" />
-          </label>
-          {returnSearch.trim() && returnsData && <span className="pb-2 text-xs text-slate-500">{returnsData.totalCount} kết quả</span>}
-        </div>
         <QueryViewBoundary queries={[{ label: 'phiếu trả', view: returnsView }]} refreshLabel="Đang cập nhật phiếu trả">
         <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Kho mở từng phiếu để kiểm đếm số thực nhận.">
           <table className="ipc-erp-grid-table w-full min-w-[820px]">

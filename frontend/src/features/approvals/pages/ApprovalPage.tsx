@@ -336,22 +336,27 @@ export default function ApprovalPage() {
             detailClassName="min-h-[16rem]"
             detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
           >
-            <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
-              <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                <label htmlFor="approval-inbox-search" className="grid gap-1 text-xs font-semibold text-slate-700">
-                  Tìm chứng từ hoặc nguyên liệu
-                  <Suspense fallback={<span aria-hidden="true" className="block h-9 rounded-md bg-slate-50" />}>
-                    <ApprovalSearchField
-                      value={approvalSearch}
-                      onChange={(value) => {
-                        setApprovalSearch(value);
-                        setApprovalPagination({ scopeKey: '', cursors: [] });
-                      }}
-                    />
-                  </Suspense>
-                </label>
-                <p className="text-xs text-slate-600 md:pb-2">Phạm vi: {approvalScopeLabel}</p>
-              </div>
+            <SectionPanel
+              title="Danh sách cần duyệt"
+              icon={<ClipboardCheck size={18} />}
+              description="Danh sách các đề xuất thu mua và phiếu nhập kho chờ Quản lý phê duyệt."
+              actions={
+                <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                  <span className="text-xs text-slate-500 whitespace-nowrap hidden md:inline">Phạm vi: {approvalScopeLabel}</span>
+                  <div className="w-64 max-w-full">
+                    <Suspense fallback={<span aria-hidden="true" className="block h-8 rounded-md bg-slate-50" />}>
+                      <ApprovalSearchField
+                        value={approvalSearch}
+                        onChange={(value) => {
+                          setApprovalSearch(value);
+                          setApprovalPagination({ scopeKey: '', cursors: [] });
+                        }}
+                      />
+                    </Suspense>
+                  </div>
+                </div>
+              }
+            >
               <ApprovalQueueState
                 view={approvalView}
                 records={approvalRecords}

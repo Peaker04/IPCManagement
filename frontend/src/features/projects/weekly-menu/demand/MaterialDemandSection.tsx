@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, ChevronDown, ClipboardList, PackageSearch, Scale, ShoppingCart, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
-import { ConfirmDialog, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ConfirmDialog, DocumentRail, EmptyState, InfoNote, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { DemandSummary } from '@/components/common/DemandSummary'
 import { ActionGuard } from '@/components/common/ActionGuard'
 import { Button } from '@/components/ui/button'
@@ -294,7 +294,13 @@ export function MaterialDemandSection({
         ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
           <section className="ipc-demand-inventory-section" aria-label="Phạm vi ngày đang xem: tổng hợp nguyên liệu">
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
+                <InfoNote
+                  title="Tổng hợp nguyên liệu theo ngày"
+                  content="Theo dõi nhu cầu nguyên liệu sinh ra từ KHSX, đối chiếu với tồn kho thực tế và phát hiện phần thiếu cần mua."
+                />
+              </div>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>
             {status.isFetchingAggregate && !presentation.aggregatePage ? <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div> : (

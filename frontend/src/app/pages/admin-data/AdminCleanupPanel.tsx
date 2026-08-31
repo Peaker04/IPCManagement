@@ -15,7 +15,11 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
   const { dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, effectiveActiveView, handleDataQualityRemediation, qualityPage, queryViews, setActiveView, setQualityPage, updateDataQualityIssueRemediationState } = model;
   return (
     <KeepAliveTabPanel id="admin-cleanup" active={effectiveActiveView === 'cleanup'} className="flex flex-col gap-4">
-      <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
+      <SectionPanel
+        title="Kiểm tra dữ liệu lỗi"
+        icon={<XCircle size={18} />}
+        description="Phát hiện và xử lý các điểm dữ liệu bất thường, thiếu liên kết hoặc vi phạm SLA trong hệ thống."
+      >
         <AdminQueryBoundary queries={[{ label: 'chất lượng dữ liệu', view: queryViews.dataQuality }]}>
           <ContextStrip
             items={[

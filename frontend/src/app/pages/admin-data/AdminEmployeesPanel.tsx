@@ -52,7 +52,11 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
           { label: 'danh sách vai trò', view: queryViews.roles },
         ]}>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
-            <SectionPanel title={editingEmployeeId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'} icon={<UserPlus size={18} />}>
+            <SectionPanel
+              title={editingEmployeeId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}
+              icon={<UserPlus size={18} />}
+              description="Thiết lập thông tin tài khoản, mật khẩu và phân quyền vai trò nhân viên."
+            >
               <form ref={employeeFormRef} className="flex flex-col gap-3" onSubmit={onFormSubmit}>
                 {employeeNotice && (
                   <div role="alert">
@@ -129,24 +133,28 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
               </form>
             </SectionPanel>
 
-            <SectionPanel title="Danh sách nhân viên" icon={<Users size={18} />}>
+            <SectionPanel
+              title="Danh sách nhân viên"
+              icon={<Users size={18} />}
+              description="Quản lý trạng thái hoạt động và quyền truy cập của nhân viên trên hệ thống."
+              actions={
+                <div className="relative w-64 max-w-full">
+                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    id="employee-search"
+                    className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+                    value={employeeSearch}
+                    onChange={(event) => {
+                      setEmployeeSearch(event.target.value);
+                      setEmployeePage(1);
+                    }}
+                    placeholder="Tìm theo tên, tài khoản, vai trò..."
+                    aria-label="Tìm kiếm nhân viên"
+                  />
+                </div>
+              }
+            >
               <div className="flex flex-col gap-3">
-                <FieldRow label="Tìm kiếm" htmlFor="employee-search">
-                  <div className="relative">
-                    <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      id="employee-search"
-                      className="pl-9"
-                      value={employeeSearch}
-                      onChange={(event) => {
-                        setEmployeeSearch(event.target.value);
-                        setEmployeePage(1);
-                      }}
-                      placeholder="Tìm theo tên, tài khoản, vai trò"
-                    />
-                  </div>
-                </FieldRow>
-
                 <PaginatedTableFrame ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
                   <table className="ipc-erp-grid-table ipc-admin-employee-table w-full text-sm">
                     <thead>

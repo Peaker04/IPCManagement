@@ -29,6 +29,8 @@ export { TableEmptyState } from './TableEmptyState';
 export type { ColumnSkeletonDef } from './SkeletonTableRow';
 export { TabContentSkeleton } from './TabContentSkeleton';
 export type { TabContentSkeletonProps } from './TabContentSkeleton';
+export { InfoNote } from './InfoNote';
+export type { InfoNoteProps } from './InfoNote';
 export type { QueryViewEntry } from './QueryViewBoundary';
 export type { EmptyStateVariant } from './EmptyState';
 

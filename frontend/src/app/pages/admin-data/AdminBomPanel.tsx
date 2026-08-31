@@ -28,7 +28,11 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
           { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
           { label: 'hợp đồng khách hàng', view: queryViews.contracts },
         ]}>
-          <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
+          <SectionPanel
+            title="Import BOM theo đơn giá"
+            icon={<Upload size={18} />}
+            description="Tải lên tệp định mức BOM chuẩn theo từng mức giá suất ăn và áp dụng cho các khách hàng."
+          >
             <div className="grid min-w-0 gap-4" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
               <div className="grid w-full min-w-0 max-w-full self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                 <FieldRow label="Đơn giá BOM">

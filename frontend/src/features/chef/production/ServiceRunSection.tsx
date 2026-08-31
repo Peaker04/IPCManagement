@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
-import { StatusBadge } from '@/components/common'
+import { InfoNote, StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -52,8 +52,14 @@ export function ServiceRunSection({ plans, shiftName, scope }: Props) {
   const visiblePlans = showAll ? scopedPlans : scopedPlans.slice(0, INITIAL_VISIBLE_RUNS)
 
   return <section className="rounded-md border border-slate-200 bg-slate-50 p-3" aria-label="Ca phục vụ thực tế">
-    <div className="mb-1 flex items-center gap-2"><Play className="size-4 text-slate-700" /><h2 className="text-sm font-semibold text-slate-800">Ca phục vụ thực tế</h2></div>
-    <p className="mb-3 text-xs text-slate-600">Theo dõi riêng kế hoạch, vật tư, phục vụ và đối soát. Bếp đã nhận vật tư chưa có nghĩa là ca đã đóng.</p>
+    <div className="mb-3 flex items-center gap-2">
+      <Play className="size-4 text-slate-700" />
+      <h2 className="text-sm font-semibold text-slate-800">Ca phục vụ thực tế</h2>
+      <InfoNote
+        title="Hướng dẫn ca phục vụ"
+        content="Theo dõi riêng kế hoạch, vật tư, phục vụ và đối soát. Bếp đã nhận vật tư chưa có nghĩa là ca đã đóng."
+      />
+    </div>
     {scopedPlans.length === 0 ? <p className="text-sm text-slate-600">Chưa có KHSX để mở Ca phục vụ.</p> : <div className="space-y-3">
       {scope?.allCustomers && <p className="rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900" role="status">{describeServiceRunScope(scope)}. Chọn một dòng phạm vi chính xác trước khi thao tác.</p>}
       {visiblePlans.map((plan) => <ServiceRunCard key={plan.planId} plan={plan} shiftName={shiftName} scope={scope ?? getPlanScope(plan, shiftName)} />)}

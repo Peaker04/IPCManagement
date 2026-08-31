@@ -16,7 +16,12 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
     ? scope.displayDays.find((day) => day.key === state.selectedDayKey)?.label ?? 'Chọn ngày'
     : 'Cả tuần'
   return (
-    <SectionPanel title="Kế hoạch sản xuất" headingLevel={2} icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
+    <SectionPanel
+      title="Kế hoạch sản xuất"
+      headingLevel={2}
+      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      description="Kế hoạch sản xuất được sinh từ thực đơn tuần, phân bổ số suất theo từng ca và món ăn."
+    >
       <div className="relative flex flex-col gap-3">
         {status.isRefreshing && (
           <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">

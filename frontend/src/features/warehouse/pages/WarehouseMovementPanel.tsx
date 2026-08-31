@@ -80,14 +80,25 @@ export function WarehouseMovementPanel({
       )}
     >
       <div className="flex flex-col gap-4">
-        <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-          <label htmlFor="warehouse-current-stock-search" className="mb-3 grid gap-1 text-xs font-semibold text-slate-700">
-            Tìm trong snapshot tồn kho hiện tại
-            <span className="relative block">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <Input id="warehouse-current-stock-search" type="search" value={currentStockSearch} onChange={(event) => onCurrentStockSearchChange(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 pl-9" />
-            </span>
-          </label>
+        <SectionPanel
+          title="Tồn kho hiện tại"
+          icon={<Warehouse size={18} />}
+          description="Tra cứu số lượng tồn thực tế của từng nguyên liệu theo các kho."
+          actions={
+            <div className="relative w-64 max-w-full">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="warehouse-current-stock-search"
+                type="search"
+                value={currentStockSearch}
+                onChange={(event) => onCurrentStockSearchChange(event.target.value)}
+                placeholder="Tìm kho, mã, nguyên liệu..."
+                className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+                aria-label="Tìm trong snapshot tồn kho hiện tại"
+              />
+            </div>
+          }
+        >
           {currentStockView.phase === 'forbidden' && <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">{currentStockView.message}</InlineAlert>}
           {currentStockView.phase === 'error' && <EmptyState variant="error" className="mb-3" title="Không tải được tồn kho hiện tại" description="Vui lòng thử tải lại hoặc kiểm tra kết nối mạng." onRetry={() => currentStockView.retry?.()} isRetrying={currentStockView.isRetrying} />}
           {currentStockView.phase === 'ready' && currentStockView.isRefreshing && <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm border border-slate-200 bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">Đang cập nhật...</span>}

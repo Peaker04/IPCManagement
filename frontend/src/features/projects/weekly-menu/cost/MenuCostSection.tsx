@@ -12,7 +12,12 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
   const materialCount = Object.values(materialSummary).filter((item) => item.theory > 0).length
 
   return (
-    <SectionPanel title="Giá vốn theo ngày từ kế hoạch tuần" headingLevel={2} icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
+    <SectionPanel
+      title="Giá vốn theo ngày từ kế hoạch tuần"
+      headingLevel={2}
+      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      description="Tính toán giá vốn chi tiết dựa trên định mức BOM của từng món ăn và đơn giá nguyên liệu hiện hành."
+    >
       <div className="flex flex-col gap-3">
         <section className="ipc-fiori-command" aria-label="Điều hướng ngày tính giá vốn">
           <div className="ipc-fiori-object">

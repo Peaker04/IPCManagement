@@ -4,7 +4,7 @@ import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { InlineAlert, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
+import { InfoNote, InlineAlert, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatReceiptLifecycleStatus } from '@/lib/workflowConfig';
 import { typography } from '@/lib/typography';
@@ -219,9 +219,12 @@ export function WarehouseReceiptLifecyclePanel() {
       aria-busy={isLifecycleBusy}
       data-testid="receipt-lifecycle-panel"
     >
-      <div>
+      <div className="flex items-center gap-2">
         <h3 id="receipt-lifecycle-title" className={cn(typography.sectionTitle, 'text-slate-950')}>Xử lý phiếu nhập</h3>
-        <p className={cn(typography.caption, 'mt-1 text-slate-600')}>Tạo phiếu → kiểm tra chất lượng → Quản lý duyệt → Quản trị viên ghi sổ kho. Tồn kho chỉ thay đổi khi ghi sổ kho.</p>
+        <InfoNote
+          title="Quy trình xử lý phiếu nhập"
+          content="Tạo phiếu → kiểm tra chất lượng → Quản lý duyệt → Quản trị viên ghi sổ kho. Tồn kho chỉ thay đổi khi ghi sổ kho."
+        />
       </div>
       {isError ? (
         <QueryErrorAlert title="Không tải được phiếu nhập cần xử lý" onRetry={() => void refetch()}>

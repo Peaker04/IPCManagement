@@ -37,7 +37,12 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
     {foodCostPercent > 85 && <InlineAlert title="Cảnh báo: Tỷ lệ giá vốn (Food Cost %) vượt ngưỡng quy định!" variant="danger" className="mb-4">
       Tỉ lệ giá vốn hiện tại đạt <b>{formatPercent(foodCostPercent, 1)}</b>, vượt ngưỡng an toàn tối đa (85%). Kiểm tra lại BOM theo tier, giá nguyên liệu hoặc đơn giá bán suất ăn của ca này.
     </InlineAlert>}
-    <SectionPanel title="Phân tích nguyên liệu món" headingLevel={2} icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
+    <SectionPanel
+      title="Phân tích nguyên liệu món"
+      headingLevel={2}
+      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      description="Xem định mức nguyên liệu theo BOM và phân tích chi phí món ăn."
+    >
       <div className="flex flex-col gap-3">
       <section className="ipc-fiori-command" aria-label="Món đang phân tích">
         <div className="ipc-fiori-object">

@@ -118,23 +118,25 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
         )}
 
         <ReportQueryBoundary view={activePriceView}>
-          <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-            <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
-              <label className="grid max-w-xl gap-1 text-xs font-semibold text-slate-600" htmlFor="price-variance-search">
-                Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập
-                <span className="relative block">
-                  <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-                  <Input
-                    id="price-variance-search"
-                    type="search"
-                    value={priceSearch}
-                    onChange={(event) => setPriceSearch(event.target.value)}
-                    placeholder="Ví dụ: Bún, SUP-001, PN-20260729..."
-                    className="h-9 bg-white pl-9"
-                  />
-                </span>
-              </label>
-            </div>
+          <SectionPanel
+            title="Bảng biến động giá nguyên liệu"
+            icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}
+            description="Theo dõi sự thay đổi giữa giá nhập thực tế và giá tham chiếu của từng nguyên liệu."
+            actions={
+              <div className="relative w-64 max-w-full">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  id="price-variance-search"
+                  type="search"
+                  value={priceSearch}
+                  onChange={(event) => setPriceSearch(event.target.value)}
+                  placeholder="Tìm nguyên liệu, NCC, mã phiếu..."
+                  className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+                  aria-label="Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập"
+                />
+              </div>
+            }
+          >
             <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
               <table className="ipc-erp-grid-table w-full min-w-[760px]">
                 <thead>
@@ -243,7 +245,11 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
 
       <KeepAliveTabPanel id="price-sub-supplier" active={priceSubView === 'supplier'}>
         <ReportQueryBoundary view={activePriceView}>
-          <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
+          <SectionPanel
+            title="Biến động giá theo nhà cung cấp"
+            icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}
+            description="So sánh đơn giá nhập giữa các nhà cung cấp khác nhau cho cùng một loại nguyên liệu."
+          >
             <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
               <table className="ipc-erp-grid-table w-full min-w-[720px]">
                 <thead>
@@ -296,7 +302,11 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
 
       <KeepAliveTabPanel id="price-sub-period" active={priceSubView === 'period'}>
         <ReportQueryBoundary view={activePriceView}>
-          <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
+          <SectionPanel
+            title="Biến động giá theo thời gian (theo tháng)"
+            icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}
+            description="Báo cáo xu hướng biến động giá nguyên liệu qua các tháng phục vụ."
+          >
             <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
               <table className="ipc-erp-grid-table w-full min-w-[720px]">
                 <thead>

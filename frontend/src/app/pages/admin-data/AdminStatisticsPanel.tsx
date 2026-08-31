@@ -31,7 +31,11 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
         { label: 'tồn kho hiện tại', view: queryViews.currentStock },
         { label: 'cảnh báo giá', view: queryViews.priceVariance },
       ]}>
-        <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
+        <SectionPanel
+          title="Thống kê vận hành cho Admin"
+          icon={<BarChart3 size={18} />}
+          description="Tổng hợp các chỉ số KPI vận hành, tỷ lệ giao hàng đúng hạn và cảnh báo biến động giá."
+        >
           <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
             <table className="ipc-erp-grid-table ipc-admin-statistics-table w-full">
               <thead>
