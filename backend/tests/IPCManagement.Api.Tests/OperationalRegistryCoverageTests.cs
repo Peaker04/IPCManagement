@@ -6,6 +6,7 @@ using IPCManagement.Api.Features.Coordination.Controllers;
 using IPCManagement.Api.Features.Inventory.Controllers;
 using IPCManagement.Api.Features.Planning.Controllers;
 using IPCManagement.Api.Features.Purchasing.Controllers;
+using IPCManagement.Api.Features.Reconciliation.Controllers;
 using IPCManagement.Api.Features.SampleData.Controllers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -236,6 +237,13 @@ public sealed class OperationalRegistryCoverageTests
             "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
             "[HttpPost(\"{id}/approve\")]");
         validated.Add("MaterialDemand");
+
+        GetActionPolicy<ReconciliationBatchesController>("Complete")
+            .Should().Be(AuthorizationPolicies.ReconciliationCompleteAccess);
+        AssertUniqueSourceFragment(
+            "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+            "SystemOperation(\"reconciliation.batches.complete\", OperationDisposition.ReconciliationOnly)");
+        validated.Add("MaterialReconciliation");
 
         GetControllerPolicy<ProductionPlansController>()
             .Should().Be(AuthorizationPolicies.ProductionAccess);

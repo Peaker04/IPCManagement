@@ -11,14 +11,20 @@ public class FeatureDependencyConventionTests
     private static readonly HashSet<FeatureEdge> PreferredEdges =
     [
         new("Approvals", "Purchasing"),
+        new("Approvals", "SystemOperation"),
         new("Catalog", "Coordination"),
         new("Catalog", "SampleData"),
         new("Coordination", "Approvals"),
         new("Coordination", "Purchasing"),
+        new("Inventory", "SystemOperation"),
         new("Planning", "Purchasing"),
         new("Purchasing", "Inventory"),
+        new("Reconciliation", "SampleData"),
+        new("Reconciliation", "SystemOperation"),
         new("Reports", "Purchasing"),
+        new("Reports", "SystemOperation"),
         new("SampleData", "Coordination"),
+        new("SampleData", "SystemOperation"),
     ];
 
     // Pre-existing non-preferred edges are frozen at their observed reference count.
