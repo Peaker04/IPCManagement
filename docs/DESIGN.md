@@ -146,3 +146,50 @@ Red oracle
 
 Thiếu bất kỳ mục nào thì implementation chưa sẵn sàng. Không dùng browser audit cuối để khám phá lại kiến trúc
 mà lẽ ra phải được khóa trước khi code.
+
+## 8. Contract áp dụng khi hợp nhất hoặc chuẩn hóa UI
+
+Các thay đổi presentation từ một branch khác chỉ được nhận sau khi đối chiếu với business authority và phase
+contract hiện hành. Không dùng tiêu chí “giao diện mới hơn” để thay thế route, query, mutation hoặc state owner đã
+được khóa.
+
+### 8.1 State và operation-mode visibility
+
+- Preference trong browser chỉ được điều chỉnh presentation không mang quyết định. Nó **không được ẩn** operation
+  mode, permission/forbidden state, readiness/prerequisite, blocker, error, stale-data warning hoặc next action đang
+  được actor sử dụng để ra quyết định.
+- Không tạo “streamlined mode” dùng `localStorage` để tắt hàng loạt state surface. Nếu một vùng thật sự dư thừa,
+  phải chứng minh bằng owner inventory và sửa/xóa tại owner thấp nhất cho mọi người dùng phù hợp.
+- Capability từ server và permission vẫn là authority cho route, tab, query và action. CSS, local preference hoặc
+  điều kiện presentation không được mount query owner đã bị mode loại trừ.
+- Với `MATERIAL_RECONCILIATION`, composition phải giữ đúng closed loop hiện hành: Weekly Menu → Warehouse issue
+  → Reconciliation; Purchasing và Reports không được trở thành reconciliation owner phụ.
+
+### 8.2 Loading, empty và informational copy
+
+- Skeleton phải mô phỏng geometry của nội dung sắp xuất hiện; table dùng row/column skeleton, split workbench dùng
+  split skeleton, control compact không dùng placeholder cao như workspace.
+- Empty state chỉ xuất hiện sau khi query đã resolve `ready-empty`; không thay loading, error, forbidden hoặc
+  prerequisite bằng cùng một câu “chưa có dữ liệu”.
+- `InfoNote` chỉ dùng cho giải thích bổ sung không quyết định. Không dùng nó thay alert, blocker, permission,
+  readiness, validation diagnostic hoặc audit state.
+- Mỗi region giữ một state message và tối đa một next action hợp lệ; không thêm description nếu nó chỉ lặp heading
+  hoặc dữ liệu đã hiện trong bảng.
+
+### 8.3 Search và table presentation
+
+- Search của một bảng có thể đặt trong `SectionPanel.actions` khi nó trực tiếp chi phối bảng đó, giữ geometry
+  `compact`, có accessible name và vẫn nằm cùng visual group với heading/content. Search phạm vi trang hoặc nhiều
+  work object phải ở `CommandBar`, không nhét vào header của một bảng bất kỳ.
+- Cột text/name căn trái; quantity/currency căn phải với `tabular-nums`; date/status/action căn theo contract bảng
+  đã khóa. Main table ưu tiên 5–7 decision fields, provenance kỹ thuật chuyển vào detail/drawer.
+- Ingredient/business name là primary, code là secondary. UUID ẩn mặc định nhưng full identity phải còn khả năng
+  inspect/copy/search khi contract yêu cầu; presentation không được thay đổi API/export/audit lineage.
+- Status phải đi qua vocabulary/formatter dùng chung; không render raw enum chỉ vì branch presentation có badge mới.
+
+### 8.4 Merge verification
+
+Trước khi chấp nhận một UI merge phải tối thiểu có: source-ownership check cho mode-sensitive pages, focused
+behavior tests ở public seam, lint, production build và `git diff --check`. Test được mang từ branch khác nhưng dùng
+API/import/owner đã bị phase sau thay thế phải bị loại bỏ hoặc viết lại theo contract hiện hành; không sửa production
+để làm xanh một test stale.

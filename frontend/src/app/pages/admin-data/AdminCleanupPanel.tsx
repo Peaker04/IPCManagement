@@ -15,7 +15,11 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
   const { dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, effectiveActiveView, handleDataQualityRemediation, qualityPage, queryViews, setActiveView, setQualityPage, updateDataQualityIssueRemediationState } = model;
   return (
     <KeepAliveTabPanel id="admin-cleanup" active={effectiveActiveView === 'cleanup'} className="flex flex-col gap-4">
-      <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
+      <SectionPanel
+        title="Kiểm tra dữ liệu lỗi"
+        icon={<XCircle size={18} />}
+        description="Phát hiện và xử lý các điểm dữ liệu bất thường, thiếu liên kết hoặc vi phạm SLA trong hệ thống."
+      >
         <AdminQueryBoundary queries={[{ label: 'chất lượng dữ liệu', view: queryViews.dataQuality }]}>
           <ContextStrip
             items={[
@@ -32,14 +36,14 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
           )}
 
           <PaginatedTableFrame ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
-            <table className="ipc-data-table ipc-admin-quality-table text-sm">
+            <table className="ipc-data-table ipc-erp-grid-table ipc-admin-quality-table w-full text-sm">
               <thead>
                 <tr>
-                  <th>Vấn đề</th>
-                  <th>Ưu tiên</th>
-                  <th>Trạng thái xử lý</th>
-                  <th>Phụ trách</th>
-                  <th>Đối tượng</th>
+                  <th className="text-left">Vấn đề</th>
+                  <th className="text-center">Ưu tiên</th>
+                  <th className="text-center">Trạng thái xử lý</th>
+                  <th className="text-left">Phụ trách</th>
+                  <th className="text-left">Đối tượng</th>
                   <th className="text-right">Thao tác</th>
                 </tr>
               </thead>

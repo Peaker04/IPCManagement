@@ -52,7 +52,11 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
           { label: 'danh sách vai trò', view: queryViews.roles },
         ]}>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
-            <SectionPanel title={editingEmployeeId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'} icon={<UserPlus size={18} />}>
+            <SectionPanel
+              title={editingEmployeeId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}
+              icon={<UserPlus size={18} />}
+              description="Thiết lập thông tin tài khoản, mật khẩu và phân quyền vai trò nhân viên."
+            >
               <form ref={employeeFormRef} className="flex flex-col gap-3" onSubmit={onFormSubmit}>
                 {employeeNotice && (
                   <div role="alert">
@@ -129,33 +133,37 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
               </form>
             </SectionPanel>
 
-            <SectionPanel title="Danh sách nhân viên" icon={<Users size={18} />}>
+            <SectionPanel
+              title="Danh sách nhân viên"
+              icon={<Users size={18} />}
+              description="Quản lý trạng thái hoạt động và quyền truy cập của nhân viên trên hệ thống."
+              actions={
+                <div className="relative w-64 max-w-full">
+                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    id="employee-search"
+                    className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+                    value={employeeSearch}
+                    onChange={(event) => {
+                      setEmployeeSearch(event.target.value);
+                      setEmployeePage(1);
+                    }}
+                    placeholder="Tìm theo tên, tài khoản, vai trò..."
+                    aria-label="Tìm kiếm nhân viên"
+                  />
+                </div>
+              }
+            >
               <div className="flex flex-col gap-3">
-                <FieldRow label="Tìm kiếm" htmlFor="employee-search">
-                  <div className="relative">
-                    <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      id="employee-search"
-                      className="pl-9"
-                      value={employeeSearch}
-                      onChange={(event) => {
-                        setEmployeeSearch(event.target.value);
-                        setEmployeePage(1);
-                      }}
-                      placeholder="Tìm theo tên, tài khoản, vai trò"
-                    />
-                  </div>
-                </FieldRow>
-
                 <PaginatedTableFrame ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
-                  <table className="ipc-data-table ipc-admin-employee-table text-sm">
+                  <table className="ipc-data-table ipc-erp-grid-table ipc-admin-employee-table w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="min-w-[150px]">Họ tên</th>
-                        <th className="w-[120px]">Tài khoản</th>
-                        <th className="w-[110px]">Vai trò</th>
-                        <th className="w-[150px] whitespace-nowrap">Trạng thái</th>
-                        <th className="w-[110px]">Ngày tạo</th>
+                        <th className="min-w-[150px] text-left">Họ tên</th>
+                        <th className="w-[120px] text-left">Tài khoản</th>
+                        <th className="w-[110px] text-left">Vai trò</th>
+                        <th className="w-[150px] text-center whitespace-nowrap">Trạng thái</th>
+                        <th className="w-[110px] text-center">Ngày tạo</th>
                         <th className="w-[130px] text-right">Thao tác</th>
                       </tr>
                     </thead>
@@ -170,23 +178,23 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                         <EmptyRow colSpan={6} />
                       ) : (
                         employeeRows.map((employee) => (
-                          <tr key={employee.userId} className="align-top hover:bg-slate-50">
-                            <td className="font-semibold text-slate-900">{employee.fullName}</td>
-                            <td className={`${typography.code} text-slate-600`}>{employee.username}</td>
-                            <td>
-                              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                          <tr key={employee.userId} className="align-top">
+                            <td className="text-left font-semibold text-slate-900">{employee.fullName}</td>
+                            <td className={`${typography.code} text-left text-slate-600`}>{employee.username}</td>
+                            <td className="text-left">
+                              <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                                 {employee.roleName}
                               </span>
                             </td>
-                            <td className="ipc-badge-cell whitespace-nowrap">
-                              <StatusBadge variant={employee.isActive ? 'success' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
+                            <td className="text-center whitespace-nowrap">
+                              <StatusBadge variant={employee.isActive ? 'success' : 'neutral'} size="sm">
                                 {employee.isActive ? 'Đang hoạt động' : 'Đã khóa'}
                               </StatusBadge>
                             </td>
-                            <td className="text-slate-500">
+                            <td className="text-center tabular-nums text-slate-500">
                               {employee.createdAt ? formatDateOnly(employee.createdAt) : '—'}
                             </td>
-                            <td>
+                            <td className="text-right">
                               <div className="flex flex-wrap justify-end gap-2">
                                 <Button
                                   type="button"

@@ -24,7 +24,11 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
           { label: 'hợp đồng khách hàng', view: queryViews.contracts },
           ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
         ]}>
-          <SectionPanel title="Hợp đồng khách hàng và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
+          <SectionPanel
+            title="Hợp đồng khách hàng và quy tắc suất ăn"
+            icon={<CalendarCheck size={18} />}
+            description="Quản lý thông tin hợp đồng khách hàng, quy tắc suất ăn, các ca áp dụng và phiên bản lịch thực đơn."
+          >
             <ContextStrip
               items={[
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
@@ -194,16 +198,16 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
               <div className="grid gap-4">
                 <TableViewport caption="Danh sách hợp đồng khách hàng" ariaLabel="Bảng hợp đồng khách hàng">
-                  <table className="ipc-data-table text-sm">
+                  <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full text-sm">
                     <thead>
                       <tr>
-                        <th>Khách hàng</th>
-                        <th>Ngày làm việc</th>
-                        <th>Ca</th>
-                        <th>Hiệu lực</th>
+                        <th className="text-left">Khách hàng</th>
+                        <th className="text-left">Ngày làm việc</th>
+                        <th className="text-left">Ca</th>
+                        <th className="text-left">Hiệu lực</th>
                         <th className="text-right">Đơn giá</th>
                         <th className="text-right">BOM áp dụng</th>
-                        <th>Trạng thái</th>
+                        <th className="text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>

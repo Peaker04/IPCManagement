@@ -24,6 +24,14 @@ workbook:
 
 # Memory hiện hành
 
+## Hợp nhất `origin/feature/dat-fe` · 31/08/2026
+
+- `origin/feature/dat-fe` đã được hợp nhất có kiểm soát vào `feature/menu-amendment-reconciliation`: nhận các cải tiến presentation tương thích (compact search, table hierarchy, `InfoNote`, skeleton/loading geometry), nhưng giữ Phase 30 làm authority cuối cho route/query/mutation/state và closed loop Weekly Menu → Warehouse issue → Reconciliation.
+- Đã loại bỏ toàn bộ `uiStreamlineConfig` vì browser preference không được ẩn operation mode, readiness, blocker hoặc decision-bearing state; không phục hồi purchased quantity, issued quantity nhập tay hay ownership Thu mua/Báo cáo trong `MATERIAL_RECONCILIATION`.
+- Đã loại khỏi merge các artifact không an toàn/không liên quan: SQL seed/password, database dump, workbook runtime và các reconciliation test theo contract Phase 29 đã bị Phase 30 thay thế. Test/evidence hiện hành của nhánh được giữ; không hạ source-owner, performance hoặc sealed recovery gate để baseline lại UI.
+- Gate merge hiện xanh: frontend lint PASS; production build PASS với 2.313 modules; full unit suite **205 files / 1.282 tests PASS**; focused source-ownership/state-purity/primitive contracts PASS; `git diff --check`, staged check, conflict-marker và unmerged-file scan PASS.
+- `docs/DESIGN.md` đã thêm contract hợp nhất UI toàn hệ thống. Công việc này không truy cập runtime/database/protected lane và không thay đổi trạng thái protected-blocked của MRX-06P.
+
 ## Lean process standardization · 28/08/2026
 
 - GSD remains the sole state/closeout owner, but execution now uses three lean lanes from `docs/LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`: L0 direct, L1 focused and L2 controlled. L0/L1 default to inline work with no subagent fan-out; full planner/executor/reviewer orchestration is reserved for protected data, migrations, trust boundaries or genuinely independent workstreams.

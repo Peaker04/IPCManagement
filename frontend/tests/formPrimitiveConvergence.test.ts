@@ -16,7 +16,7 @@ const checkboxExceptionLocations = [
 ]
 
 const fileExceptionLocations = [
-  'src/app/pages/admin-data/AdminBomPanel.tsx:135',
+  'src/app/pages/admin-data/AdminBomPanel.tsx:139',
   'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:81',
 ]
 
@@ -40,14 +40,13 @@ const pathExceptionLocations = [
   'src/features/projects/weekly-menu/schedule/QuickServingCell.tsx:7',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:58',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:74',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:317',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:385',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:389',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:399',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:409',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:323',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:391',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:395',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:405',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:415',
   'src/features/warehouse/PurchaseOrderLineGroups.tsx:53',
-  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:87',
-  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:111',
+  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:145',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

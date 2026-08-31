@@ -31,7 +31,11 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
           { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
           ...(!isReconciliationMode ? [{ label: 'hợp đồng khách hàng', view: queryViews.contracts }] : []),
         ]}>
-          <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
+          <SectionPanel
+            title="Import BOM theo đơn giá"
+            icon={<Upload size={18} />}
+            description="Tải lên tệp định mức BOM chuẩn theo từng mức giá suất ăn và áp dụng cho các khách hàng."
+          >
             <div className="grid min-w-0 gap-4" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
               <div className="grid w-full min-w-0 max-w-full self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                 <FieldRow label="Đơn giá BOM">
@@ -220,7 +224,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 <KeepAliveTabPanel id="bom-current" active={bomPanelMode === 'current'} className="min-w-0">
                   <div className="min-w-0 max-w-full" style={{ width: 'calc(100vw - 2rem)' }}>
                     <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
-                      <table className="ipc-data-table ipc-bom-current-table table-fixed">
+                      <table className="ipc-data-table ipc-erp-grid-table ipc-bom-current-table w-full table-fixed">
                     <colgroup>
                       <col className="w-[16%]" />
                       <col className="w-[22%]" />
@@ -233,28 +237,28 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     </colgroup>
                     <thead>
                       <tr>
-                        <th>Món</th>
-                        <th>Nguyên liệu</th>
-                        <th>ĐVT</th>
-                        <th>Định lượng/suất</th>
-                        <th>Hao hụt</th>
-                        <th>Hiệu lực</th>
-                        <th>Trạng thái</th>
-                        <th className="whitespace-nowrap text-right">Thao tác</th>
+                        <th className="text-left">Món</th>
+                        <th className="text-left">Nguyên liệu</th>
+                        <th className="text-center">ĐVT</th>
+                        <th className="text-right">Định lượng/suất</th>
+                        <th className="text-right">Hao hụt</th>
+                        <th className="text-left">Hiệu lực</th>
+                        <th className="text-center">Trạng thái</th>
+                        <th className="whitespace-nowrap text-center">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(currentBomPagination?.rows ?? []).map(({ dish, line }) => (
                         <tr key={line.bomId}>
-                          <td className="align-top"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
-                          <td className="align-top"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
-                          <td className="align-top whitespace-nowrap">{formatUnit(line.unit)}</td>
+                          <td className="align-top text-left"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
+                          <td className="align-top text-left"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
+                          <td className="align-top whitespace-nowrap text-center text-slate-600">{formatUnit(line.unit)}</td>
                           <td className="align-top text-right font-semibold tabular-nums">{line.grossQtyPerServing}</td>
                           <td className="align-top text-right tabular-nums">{line.wasteRatePercent}%</td>
-                          <td className="align-top"><div>{line.effectiveFrom}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div></td>
-                          <td className="align-top"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>{line.bomStatusLabel || getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
-                          <td className="align-top">
-                            <div className="flex flex-wrap justify-end gap-1">
+                          <td className="align-top text-left text-slate-700"><div>{line.effectiveFrom}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div></td>
+                          <td className="align-top text-center"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">{line.bomStatusLabel || getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
+                          <td className="align-top text-center">
+                            <div className="flex flex-wrap justify-center gap-1">
                               <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
                                 <Pencil size={14} /> Sửa
                               </Button>
@@ -283,17 +287,17 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
 
                 <KeepAliveTabPanel id="bom-preview" active={bomPanelMode === 'preview'} className="min-w-0">
                   <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
-                  <table className="ipc-data-table">
+                  <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
                     <thead>
                       <tr>
-                        <th className="w-16">Dòng</th>
-                        <th>Món ăn</th>
-                        <th>Nguyên liệu</th>
-                        <th>ĐVT</th>
+                        <th className="w-16 text-center">Dòng</th>
+                        <th className="text-left">Món ăn</th>
+                        <th className="text-left">Nguyên liệu</th>
+                        <th className="text-center">ĐVT</th>
                         <th className="text-right">Định lượng/suất</th>
                         <th className="text-right">Hao hụt</th>
-                        <th>Thao tác</th>
-                        <th>Trạng thái</th>
+                        <th className="text-left">Thao tác</th>
+                        <th className="text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>

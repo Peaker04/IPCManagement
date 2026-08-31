@@ -285,8 +285,14 @@ export function PurchaseDecisionPanel({
 
   if (!serviceDate) {
     return (
-      <SectionPanel title="Quyết định thu mua" icon={<ReceiptText size={18} aria-hidden="true" />}>
-        <p className="text-body text-slate-600">Chọn một ngày phục vụ để xem hành động tiếp theo.</p>
+      <SectionPanel
+        title="Quyết định thu mua"
+        icon={<ReceiptText size={18} aria-hidden="true" />}
+        description="Chọn một ngày phục vụ từ danh sách để xem hành động tiếp theo, xác nhận nhà cung cấp và xử lý đơn mua."
+      >
+        <div className="py-4 text-center text-sm text-slate-500">
+          Chưa chọn ngày phục vụ.
+        </div>
       </SectionPanel>
     );
   }
@@ -419,7 +425,7 @@ export function PurchaseDecisionPanel({
                   Xác nhận nhà cung cấp
                 </Button>
               </div>
-            ) : <p className="text-body text-slate-600">Chọn một dòng nguyên liệu trong bảng để xem bằng chứng.</p>}
+            ) : <div className="py-4 text-center text-sm text-slate-500">Chưa chọn dòng nguyên liệu trong bảng.</div>}
 
             {canSubmitPurchaseRequest ? (
               <div className="rounded-[3px] border border-emerald-300 bg-emerald-50 px-3 py-3">

@@ -110,21 +110,21 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
       <TableViewport ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell" caption="Danh sách biến động kho">
-        <table className="ipc-data-table ipc-stock-table ipc-status-action-table">
+        <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
           <thead>
             <tr>
               <th className="text-left">Chứng từ</th>
-              <th>Loại</th>
-              <th>Nguyên liệu</th>
+              <th className="text-center">Loại</th>
+              <th className="text-left">Nguyên liệu</th>
               <th className="text-right">Số lượng</th>
-              <th>Phụ trách</th>
-              <th>Trạng thái</th>
-              <th>Tiếp theo</th>
+              <th className="text-left">Phụ trách</th>
+              <th className="text-center">Trạng thái</th>
+              <th className="text-left">Tiếp theo</th>
             </tr>
           </thead>
           <tbody>
             {visibleMovements.map((movement) => (
-              <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
+              <tr key={movement.id}>
                 <td className={cn(typography.code, 'text-sm font-semibold text-left text-slate-700')}>
                   <div className="flex items-center gap-1.5 justify-start">
                     <span title={movement.documentNo}>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChefHat } from 'lucide-react';
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
@@ -141,7 +141,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
     );
   }
   if (isLoading) {
-    return <InlineAlert title="Đang tải nhu cầu mua bổ sung" variant="info">Đang đồng bộ yêu cầu bếp và đề xuất mua liên kết.</InlineAlert>;
+    return <TableSkeleton columns={6} rows={4} ariaLabel="Đang tải nhu cầu mua bổ sung..." />;
   }
   if (supplementalItems.length === 0) {
     return (
@@ -171,8 +171,17 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
       )}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <TableViewport ariaLabel="Danh sách nhu cầu mua bổ sung từ bếp" caption="Danh sách nhu cầu mua bổ sung từ bếp">
-          <table className="ipc-data-table min-w-[760px]">
-            <thead><tr><th>Yêu cầu bếp</th><th>Nguyên liệu</th><th className="text-right">Còn thiếu</th><th>Đề xuất mua</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
+          <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
+            <thead>
+              <tr>
+                <th className="text-left">Yêu cầu bếp</th>
+                <th className="text-left">Nguyên liệu</th>
+                <th className="text-right">Còn thiếu</th>
+                <th className="text-left">Đề xuất mua</th>
+                <th className="text-center">Trạng thái</th>
+                <th className="text-right">Thao tác</th>
+              </tr>
+            </thead>
             <tbody>{supplementalItems.map((item) => {
               const purchase = purchaseRequests.find((candidate) => candidate.purchaseRequestId === item.purchaseRequestId);
               const selected = item.requestId === effectiveSelectedRequestId;

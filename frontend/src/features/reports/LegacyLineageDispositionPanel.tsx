@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, ClipboardCheck, Link2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { QueryErrorAlert, StatusBadge } from '@/components/common';
+import { InfoNote, QueryErrorAlert, StatusBadge } from '@/components/common';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHasRole } from '@/lib/useHasRole';
 import {
@@ -116,14 +116,15 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
   return (
     <section className="mt-4 rounded-lg border border-slate-200 bg-slate-50/80 p-4" aria-labelledby="legacy-lineage-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="flex items-center gap-2">
           <h3 id="legacy-lineage-title" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Link2 size={16} aria-hidden="true" />
             Đối soát liên kết chứng từ lịch sử
           </h3>
-          <p className="mt-1 max-w-3xl text-xs text-slate-600">
-            Mỗi dòng phải được đối chiếu bằng chứng riêng. Không liên kết theo tên nguyên liệu; mọi thao tác đều lưu lý do và nhật ký.
-          </p>
+          <InfoNote
+            title="Quy tắc đối soát liên kết chứng từ"
+            content="Mỗi dòng phải được đối chiếu bằng chứng riêng. Không liên kết theo tên nguyên liệu; mọi thao tác đều lưu lý do và nhật ký."
+          />
         </div>
         <label className="min-w-[260px] text-xs font-semibold text-slate-600" htmlFor="legacy-disposition-reason">
           Lý do xử lý

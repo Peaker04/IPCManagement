@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { InlineAlert, QueryErrorAlert } from '@/components/common';
+import { InlineAlert, QueryErrorAlert, TableSkeleton } from '@/components/common';
 import type { QueryView } from '@/lib/queryView';
 
 interface ReportQueryBoundaryProps {
@@ -31,22 +31,11 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
   }
   if (view.phase === 'loading') {
     return (
-      <div className="min-h-[560px] rounded-md border border-slate-200 bg-white p-4" role="status" aria-label="Đang tải dữ liệu báo cáo">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="ipc-table-skeleton-cell w-48 h-6" />
-          <div className="ipc-table-skeleton-cell w-28 h-6" />
-        </div>
-        <div className="space-y-2.5">
-          <div className="ipc-table-skeleton-cell h-9 w-full !bg-slate-100" />
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="ipc-table-skeleton-cell h-10 w-full" />
-          ))}
-        </div>
-        <div className="mt-4 flex items-center justify-between pt-2 border-t border-slate-100">
-          <div className="ipc-table-skeleton-cell w-32 h-5" />
-          <div className="ipc-table-skeleton-cell w-48 h-8" />
-        </div>
-      </div>
+      <TableSkeleton
+        columns={6}
+        rows={8}
+        ariaLabel="Đang tải dữ liệu báo cáo..."
+      />
     );
   }
 

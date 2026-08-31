@@ -27,18 +27,12 @@ const formatBomScope = (scope?: string | null) => (scope ? (bomScopeLabels[scope
 export function ChefProductionSection({ lines, isSending, isLoading, isError, totalPlans, sentPlans, onReceivePlan }: Props) {
   const isComplete = totalPlans > 0 && sentPlans >= totalPlans;
   const canReceivePlan = !isLoading && !isError && totalPlans > 0 && !isComplete;
-  const blockedReason = isLoading
-    ? 'Đang kiểm tra kế hoạch sản xuất.'
-    : isError
-      ? 'Chưa tải được kế hoạch sản xuất. Thử lại trước khi xác nhận.'
-      : totalPlans === 0
-        ? 'Chưa có kế hoạch sản xuất cho ngày/ca này.'
-        : undefined;
 
   return (
     <SectionPanel
       title="Kế hoạch điều phối trong ngày"
       icon={<ClipboardList size={18} />}
+      description="Kế hoạch sản xuất và phân bổ số suất theo từng ca phục vụ trong ngày của bếp."
       badge={
         isComplete ? (
           <StatusBadge variant="success">Kế hoạch đã đồng bộ</StatusBadge>
@@ -50,23 +44,18 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
         )
       }
     >
-      {blockedReason ? (
-        <p className="mb-3 text-caption leading-[1.4] text-slate-600" role="status">
-          {blockedReason}
-        </p>
-      ) : null}
       <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch điều phối trong ngày" caption="Kế hoạch điều phối trong ngày">
-        <table className="ipc-data-table ipc-status-action-table ipc-chef-production-table">
+        <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
           <thead>
             <tr>
-              <th>Kế hoạch</th>
-              <th>Khách hàng</th>
-              <th>Món</th>
-              <th>Ca</th>
+              <th className="text-left">Kế hoạch</th>
+              <th className="text-left">Khách hàng</th>
+              <th className="text-left">Món</th>
+              <th className="text-left">Ca</th>
               <th className="text-right">Số suất</th>
-              <th>Định lượng</th>
+              <th className="text-left">Định lượng</th>
               <th className="text-right">Mua dự kiến</th>
-              <th>Trạng thái</th>
+              <th className="text-center">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
@@ -81,14 +70,14 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
                 const readiness = getChefReadiness(line);
                 return (
                   <tr key={`${line.planCode}-${line.planLineId}`}>
-                    <td>{line.planCode}</td>
-                    <td>{line.customerName ?? '-'}</td>
-                    <td>{line.dishName ?? line.dishId}</td>
-                    <td>{formatShiftName(line.shiftName ?? undefined)}</td>
-                    <td className="ipc-numeric-cell text-right tabular-nums">{line.totalServings}</td>
-                    <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
-                    <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
-                    <td className="ipc-badge-cell">
+                    <td className="text-left font-semibold text-slate-900">{line.planCode}</td>
+                    <td className="text-left text-slate-800">{line.customerName ?? '-'}</td>
+                    <td className="text-left text-slate-800">{line.dishName ?? line.dishId}</td>
+                    <td className="text-left text-slate-700">{formatShiftName(line.shiftName ?? undefined)}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{line.totalServings}</td>
+                    <td className="text-left text-slate-700">{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
+                    <td className="text-right tabular-nums text-slate-700">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                    <td className="text-center">
                       <StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge>
                     </td>
                   </tr>

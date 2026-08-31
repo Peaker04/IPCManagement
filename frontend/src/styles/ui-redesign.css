@@ -424,3 +424,18 @@
 .ipc-redesign-shell .ipc-material-demand-table {
   min-width: 760px;
 }
+
+@keyframes ipcTabFadeIn {
+  0% {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ipc-tab-panel-enter {
+  animation: ipcTabFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

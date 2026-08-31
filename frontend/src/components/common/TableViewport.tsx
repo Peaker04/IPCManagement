@@ -13,6 +13,8 @@ interface TableViewportProps {
   density?: TableDensity;
   stickyHeader?: boolean;
   frozenFirstIdentifier?: boolean;
+  loading?: boolean;
+  skeleton?: ReactNode;
   preferences?: { accountId?: string; config: TablePreferenceConfig };
 }
 
@@ -38,6 +40,8 @@ export function TableViewport({
   density = 'standard',
   stickyHeader = true,
   frozenFirstIdentifier = true,
+  loading = false,
+  skeleton,
   preferences,
 }: TableViewportProps) {
   const captionId = useId();
@@ -58,9 +62,11 @@ export function TableViewport({
     ? preferences ? children({ columns: resolveTablePreferenceColumns(preferences.config, preferenceState), density: resolvedDensity }) : null
     : children;
 
+  const content = loading && skeleton ? skeleton : renderedChildren;
+
   const viewport = (
     <div
-      className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain', viewportSizeClasses[size], className)}
+      className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain rounded-md border border-slate-200 bg-white shadow-xs', viewportSizeClasses[size], className)}
       data-table-viewport="true"
       data-density={resolvedDensity}
       data-sticky-header={stickyHeader}
@@ -71,7 +77,7 @@ export function TableViewport({
       tabIndex={0}
     >
       {caption ? <div id={captionId} className="sr-only">{caption}</div> : null}
-      {renderedChildren}
+      {content}
     </div>
   );
 

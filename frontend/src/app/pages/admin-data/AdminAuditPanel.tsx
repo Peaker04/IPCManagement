@@ -43,7 +43,11 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
   const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, isExportingAudit, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
     <KeepAliveTabPanel id="admin-audit" active={effectiveActiveView === 'audit'} className="flex flex-col gap-4">
-      <SectionPanel title="Nhật ký thay đổi hệ thống" icon={<History size={18} />}>
+      <SectionPanel
+        title="Nhật ký thay đổi hệ thống"
+        icon={<History size={18} />}
+        description="Tra cứu lịch sử thao tác, thay đổi dữ liệu và đối tượng ảnh hưởng trên toàn hệ thống."
+      >
         <div className="flex flex-col gap-4">
           {/* Bộ lọc Audit log */}
           <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
@@ -136,10 +140,10 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
 
           <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
             <TableViewport ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell" preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}>
-              {({ columns }) => <table className="ipc-data-table ipc-admin-audit-table text-xs">
+              {({ columns }) => <table className="ipc-data-table ipc-erp-grid-table ipc-admin-audit-table w-full text-xs">
                 <thead>
                   <tr>
-                    {columns.map((column) => <th scope="col" key={column.id} className={column.id === 'timestamp' || column.id === 'reason' ? 'text-left' : undefined}>{column.label}</th>)}
+                    {columns.map((column) => <th scope="col" key={column.id} className={column.id === 'timestamp' || column.id === 'reason' || column.id === 'actor' || column.id === 'area' || column.id === 'field' ? 'text-left' : 'text-center'}>{column.label}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -147,13 +151,13 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                     const cells: Record<string, React.ReactNode> = {
                       timestamp: <span className={`${typography.code} text-left text-slate-500`}>{formatDateTime(log.timestamp)}</span>,
                       actor: <span className="font-semibold text-slate-800">{log.actor}</span>,
-                      area: log.businessArea,
+                      area: <span className="text-slate-700">{log.businessArea}</span>,
                       field: <span className="font-medium text-blue-700">{log.fieldAffected}</span>,
                       oldValue: <span className={`${typography.code} text-slate-500 ipc-admin-audit-value`}>{log.oldValue}</span>,
                       newValue: <span className={`${typography.code} font-bold text-slate-900 ipc-admin-audit-value`}>{log.newValue}</span>,
                       reason: <span className="ipc-admin-audit-reason text-left text-slate-600">{log.reason}</span>,
                     };
-                    return <tr key={log.id} className="hover:bg-slate-50 transition-colors">{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
+                    return <tr key={log.id}>{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
                   })}
                 </tbody>
               </table>

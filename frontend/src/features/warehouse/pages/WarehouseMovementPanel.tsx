@@ -10,6 +10,7 @@ import {
 } from '@/components/common';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { StockMovementTable } from '@/components/common/StockMovementTable';
+import { Input } from '@/components/ui/input';
 import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import type { CurrentStockRow } from '@/api/workflowApiTypes';
 import type { StockMovement, WorkflowDocument } from '@/types/workflow';
@@ -79,24 +80,57 @@ export function WarehouseMovementPanel({
       )}
     >
       <div className="flex flex-col gap-4">
-        <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-          <label htmlFor="warehouse-current-stock-search" className="mb-3 grid gap-1 text-xs font-semibold text-slate-700">
-            Tìm trong snapshot tồn kho hiện tại
-            <span className="relative block">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input id="warehouse-current-stock-search" type="search" value={currentStockSearch} onChange={(event) => onCurrentStockSearchChange(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm shadow-sm outline-none transition-colors focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-200" />
-            </span>
-          </label>
+        <SectionPanel
+          title="Tồn kho hiện tại"
+          icon={<Warehouse size={18} />}
+          description="Tra cứu số lượng tồn thực tế của từng nguyên liệu theo các kho."
+          actions={
+            <div className="relative w-64 max-w-full">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="warehouse-current-stock-search"
+                type="search"
+                value={currentStockSearch}
+                onChange={(event) => onCurrentStockSearchChange(event.target.value)}
+                placeholder="Tìm kho, mã, nguyên liệu..."
+                className="h-8 border-slate-300 bg-slate-50 pl-8 text-xs focus:bg-white"
+                aria-label="Tìm trong snapshot tồn kho hiện tại"
+              />
+            </div>
+          }
+        >
           {currentStockView.phase === 'forbidden' && <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">{currentStockView.message}</InlineAlert>}
           {currentStockView.phase === 'error' && <EmptyState variant="error" className="mb-3" title="Không tải được tồn kho hiện tại" description="Vui lòng thử tải lại hoặc kiểm tra kết nối mạng." onRetry={() => currentStockView.retry?.()} isRetrying={currentStockView.isRetrying} />}
           {currentStockView.phase === 'ready' && currentStockView.isRefreshing && <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm border border-slate-200 bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">Đang cập nhật...</span>}
           <TableViewport className="ipc-warehouse-table-shell min-h-[27rem]" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
-            <table className="ipc-data-table">
-              <thead><tr><th>Kho</th><th>Nguyên liệu</th><th className="text-right">Số lượng</th><th>Cập nhật</th></tr></thead>
+            <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
+              <thead>
+                <tr>
+                  <th className="text-left">Kho</th>
+                  <th className="text-left">Nguyên liệu</th>
+                  <th className="text-right">Số lượng</th>
+                  <th className="text-center">Cập nhật</th>
+                </tr>
+              </thead>
               <tbody>
-                {currentStockView.phase === 'loading' ? Array.from({ length: 8 }).map((_, index) => <tr key={`stock-skel-${index}`}><td colSpan={4} className="p-2"><div className="ipc-table-skeleton-cell h-8 w-full" /></td></tr>) : currentStockRows.length === 0 ? (
+                {currentStockView.phase === 'loading' ? (
+                  Array.from({ length: 8 }).map((_, index) => (
+                    <tr key={`stock-skel-${index}`}>
+                      <td colSpan={4} className="p-2.5">
+                        <div className="h-4 animate-pulse rounded bg-slate-100" />
+                      </td>
+                    </tr>
+                  ))
+                ) : currentStockRows.length === 0 ? (
                   <tr><td colSpan={4} className="py-6 text-center text-slate-500">{currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}</td></tr>
-                ) : currentStockRows.map((row) => <tr key={row.id}><td>{row.warehouse}</td><td>{row.ingredient}</td><td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td><td>{formatDateTime(row.lastUpdated)}</td></tr>)}
+                ) : currentStockRows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="text-slate-700">{row.warehouse}</td>
+                    <td className="font-medium text-slate-900">{row.ingredient}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                    <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </TableViewport>

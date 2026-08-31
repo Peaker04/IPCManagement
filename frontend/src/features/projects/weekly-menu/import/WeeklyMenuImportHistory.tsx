@@ -17,18 +17,23 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
   }, [history, search])
 
   return (
-    <SectionPanel title="Lịch sử import thực đơn tuần">
-      <QueryViewBoundary preserveFallback={history.length > 0} queries={[{ label: 'lịch sử import thực đơn tuần', view: workflow.historyDataState }]} refreshLabel="Đang cập nhật lịch sử import">
-        <div className="relative mb-3 max-w-md">
-          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+    <SectionPanel
+      title="Lịch sử import thực đơn tuần"
+      description="Danh sách các phiên import thực đơn đã thực hiện, trạng thái và khả năng hủy phiên."
+      actions={
+        <div className="relative w-64 max-w-full">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm khách hàng, tuần, phiên bản hoặc người tạo"
+            placeholder="Tìm khách hàng, tuần, phiên bản..."
             aria-label="Tìm trong lịch sử import thực đơn"
-            className="pl-9"
+            className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
           />
         </div>
+      }
+    >
+      <QueryViewBoundary preserveFallback={history.length > 0} queries={[{ label: 'lịch sử import thực đơn tuần', view: workflow.historyDataState }]} refreshLabel="Đang cập nhật lịch sử import">
         <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần" frozenFirstIdentifier={false}>
           <table className="ipc-data-table table-fixed">
             <thead>
