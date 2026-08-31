@@ -12,23 +12,13 @@
   },
   "findings": [
     {
-      "id": "frontend:frontend/src/features/warehouse/pages/WarehousePage.tsx",
-      "kind": "frontend",
-      "name": "frontend/src/features/warehouse/pages/WarehousePage.tsx",
-      "files": [
-        "frontend/src/features/warehouse/pages/WarehousePage.tsx"
-      ],
-      "lines": 741,
-      "level": "WARNING"
-    },
-    {
       "id": "service:MaterialDemandService",
       "kind": "service",
       "name": "MaterialDemandService",
       "files": [
         "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
       ],
-      "lines": 1410,
+      "lines": 1384,
       "level": "PLAN_REQUIRED"
     },
     {
@@ -40,16 +30,6 @@
       ],
       "lines": 1152,
       "level": "PLAN_REQUIRED"
-    },
-    {
-      "id": "service:DataQualityReportService",
-      "kind": "service",
-      "name": "DataQualityReportService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Reports/Services/DataQualityReportService.cs"
-      ],
-      "lines": 615,
-      "level": "WARNING"
     }
   ]
 }
