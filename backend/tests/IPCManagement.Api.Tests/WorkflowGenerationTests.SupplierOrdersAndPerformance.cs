@@ -30,6 +30,7 @@ using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
+[Collection(nameof(WorkflowGenerationPerformanceCollection))]
 public partial class WorkflowGenerationTests
 {
     [Fact]
