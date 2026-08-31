@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { buildFrontendUnitNpmArgs } from './frontend-unit-runner-args.mjs'
 
 const npmExecPath = process.env.npm_execpath
 
@@ -8,7 +9,7 @@ if (!npmExecPath) {
 
 const child = spawn(
   process.execPath,
-  [npmExecPath, 'run', 'test:unit', '-w', 'frontend', '--', ...process.argv.slice(2)],
+  [npmExecPath, ...buildFrontendUnitNpmArgs(process.argv.slice(2))],
   {
     stdio: 'inherit',
     env: {
