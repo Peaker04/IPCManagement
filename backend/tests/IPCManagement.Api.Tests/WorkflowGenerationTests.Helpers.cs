@@ -270,6 +270,7 @@ public partial class WorkflowGenerationTests
                 new StockMovementRepository(context)),
             new EfTransactionRunner(context),
             CreateOperationalWarehouseResolver(context),
+            new MaterialRequestCompletionTransitionService(context),
             context);
 
     private static InventoryReceiptService CreateInventoryReceiptService(IpcManagementContext context)

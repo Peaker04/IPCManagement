@@ -450,7 +450,7 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
             var runner = new EfTransactionRunner(context, RequestContext, Guard);
             var unitOfWork = new UnitOfWork(context);
             var stockLedger = new StockLedgerService(new CurrentStockRepository(context), new StockMovementRepository(context));
-            IssueService = new InventoryIssueService(issueRepository, unitOfWork, stockLedger, runner, warehouseResolver, context, RequestContext);
+            IssueService = new InventoryIssueService(issueRepository, unitOfWork, stockLedger, runner, warehouseResolver, new MaterialRequestCompletionTransitionService(context), context, RequestContext);
             ReturnService = new InventoryReturnService(new InventoryReturnRepository(context), issueRepository, unitOfWork, stockLedger, runner, warehouseResolver, context, RequestContext);
         }
 

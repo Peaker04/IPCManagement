@@ -114,6 +114,7 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
             new StockLedgerService(new CurrentStockRepository(context), new StockMovementRepository(context)),
             new ImmediateTransactionRunner(),
             new FixedWarehouseResolver(warehouseId),
+            new MaterialRequestCompletionTransitionService(context),
             context,
             requestContext,
             guard);

@@ -158,7 +158,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             ExpectedModeVersion = 1,
             Disposition = OperationDisposition.Retained
         };
-        var issues = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouse, context, issueRequestContext);
+        var issues = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouse, new MaterialRequestCompletionTransitionService(context), context, issueRequestContext);
         if (!context.Currentstocks.Local.Any())
             context.Currentstocks.Add(new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20, Ingredient = ingredient, Unit = unit, Warehouse = warehouseEntity });
         Assert.Equal(20m, Assert.Single(context.Currentstocks.Local).CurrentQty);
@@ -582,6 +582,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             new StockLedgerService(new CurrentStockRepository(context), new StockMovementRepository(context)),
             new SqliteDeferredTransactionRunner(context, requestContext, resolvedGuard),
             new FixedWarehouseResolver(await context.Warehouses.AsNoTracking().Select(item => item.WarehouseId).SingleAsync()),
+            new MaterialRequestCompletionTransitionService(context),
             context,
             requestContext,
             resolvedGuard,
@@ -763,7 +764,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         IEfTransactionRunner runner = raceModeVersion
             ? new ModeRacingTransactionRunner(context, requestContext)
             : new ImmediateTransactionRunner();
-        var service = new InventoryIssueService(repository, unitOfWork, ledger, runner, warehouse, context, requestContext);
+        var service = new InventoryIssueService(repository, unitOfWork, ledger, runner, warehouse, new MaterialRequestCompletionTransitionService(context), context, requestContext);
         var request = new CreateInventoryIssueRequest
         {
             CommandId = $"phase30-{Guid.NewGuid():N}", ExpectedVersion = 3,
@@ -822,7 +823,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var ledger = Substitute.For<IStockLedgerService>();
         var warehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
         warehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
-        var service = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouseResolver, context);
+        var service = new InventoryIssueService(repository, unitOfWork, ledger, new ImmediateTransactionRunner(), warehouseResolver, new MaterialRequestCompletionTransitionService(context), context);
         var request = new CreateInventoryIssueRequest
         {
             CommandId = $"phase30-default-{Guid.NewGuid():N}", ExpectedVersion = 0,

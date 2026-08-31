@@ -36,12 +36,27 @@ public class InventoryIssueServiceTests
         _transactionRunner = new ImmediateTransactionRunner();
         _operationalWarehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
 
-        _service = new InventoryIssueService(
+        _service = InventoryIssueServiceTestFactory.Create(
             _issueRepository,
             _unitOfWork,
             _stockLedgerService,
             _transactionRunner,
             _operationalWarehouseResolver);
+    }
+
+    [Fact]
+    public void Constructor_WhenCompletionTransitionIsMissing_FailsFast()
+    {
+        var action = () => new InventoryIssueService(
+            _issueRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            _transactionRunner,
+            _operationalWarehouseResolver,
+            null!);
+
+        action.Should().Throw<ArgumentNullException>()
+            .WithParameterName("materialRequestCompletionTransition");
     }
 
     [Fact]
@@ -747,6 +762,7 @@ public class InventoryIssueServiceTests
             _stockLedgerService,
             new EfTransactionRunner(context),
             _operationalWarehouseResolver,
+            new MaterialRequestCompletionTransitionService(context),
             context);
 
         var materialRequestId = GuidHelper.NewId();
@@ -825,6 +841,7 @@ public class InventoryIssueServiceTests
             _stockLedgerService,
             new EfTransactionRunner(context),
             _operationalWarehouseResolver,
+            new MaterialRequestCompletionTransitionService(context),
             context);
 
         var issueId = GuidHelper.NewId();
@@ -877,6 +894,7 @@ public class InventoryIssueServiceTests
             _stockLedgerService,
             new EfTransactionRunner(context),
             _operationalWarehouseResolver,
+            new MaterialRequestCompletionTransitionService(context),
             context);
         var issueId = GuidHelper.NewId();
         var requestId = GuidHelper.NewId();

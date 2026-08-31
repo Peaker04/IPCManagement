@@ -40,6 +40,7 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
             Substitute.For<IStockLedgerService>(),
             new ImmediateTransactionRunner(),
             resolver,
+            new MaterialRequestCompletionTransitionService(context),
             context);
 
         var defaultPage = await service.GetPagedAsync(new InventoryIssueFilterRequestDto

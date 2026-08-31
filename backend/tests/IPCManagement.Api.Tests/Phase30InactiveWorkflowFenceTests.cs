@@ -58,7 +58,7 @@ public sealed class Phase30InactiveWorkflowFenceTests
         };
         var runner = new RecordingProtectedTransactionRunner(requestContext);
         var service = new InventoryIssueService(
-            issueRepository, unitOfWork, stockLedger, runner, warehouse, requestContext: requestContext);
+            issueRepository, unitOfWork, stockLedger, runner, warehouse, Substitute.For<IMaterialRequestCompletionTransitionService>(), requestContext: requestContext);
 
         await service.CreateAsync(new CreateInventoryIssueRequest
         {

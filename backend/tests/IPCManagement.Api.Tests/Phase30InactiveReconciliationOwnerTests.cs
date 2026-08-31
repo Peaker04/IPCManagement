@@ -753,7 +753,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             BatchService = new(context, runner, RequestContext);
             CompletionService = new(context, BatchService, runner, RequestContext);
             ActualService = new(context, runner, RequestContext);
-            IssueService = new(issueRepository, unitOfWork, ledger, runner, warehouseResolver, context, RequestContext);
+            IssueService = new(issueRepository, unitOfWork, ledger, runner, warehouseResolver, new MaterialRequestCompletionTransitionService(context), context, RequestContext);
             ReturnService = new(new InventoryReturnRepository(context), issueRepository, unitOfWork, ledger, runner, warehouseResolver, context, RequestContext);
         }
 

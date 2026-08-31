@@ -34,7 +34,9 @@ public sealed class MaterialRequestCompletionTransitionServiceTests
         var actor = GuidHelper.NewId();
         var service = new MaterialRequestCompletionTransitionService(context);
 
+        var before = DateTime.UtcNow;
         var result = service.Stage(Input(fixture, currentQty: 10m, actor));
+        var after = DateTime.UtcNow;
 
         result.Should().Be(new MaterialRequestCompletionTransitionResult(
             MaterialRequestCompletionTransitionOutcome.Transitioned,
@@ -49,6 +51,9 @@ public sealed class MaterialRequestCompletionTransitionServiceTests
         audit.FieldName.Should().Be(nameof(MaterialRequest.Status));
         audit.OldValue.Should().Be("SENTTOWAREHOUSE");
         audit.NewValue.Should().Be("EXPORTED");
+        audit.Reason.Should().Be("Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED.");
+        audit.ChangedAt.Kind.Should().Be(DateTimeKind.Utc);
+        audit.ChangedAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
     }
 
     [Fact]
@@ -62,6 +67,75 @@ public sealed class MaterialRequestCompletionTransitionServiceTests
         var result = service.Stage(Input(fixture, currentQty: 10m));
 
         result.Outcome.Should().Be(MaterialRequestCompletionTransitionOutcome.AlreadyCompleted);
+        context.ChangeTracker.Entries<AuditLog>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Stage_WhenPersistedExportedRequestIsReloadedAndRetried_DoesNotStageSecondAudit()
+    {
+        await using var context = CreateInMemoryContext();
+        var fixture = CreateRequest(totalRequiredQty: 10m);
+        context.Entry(fixture.Request).State = EntityState.Added;
+        await context.SaveChangesAsync();
+        var service = new MaterialRequestCompletionTransitionService(context);
+
+        service.Stage(Input(fixture, currentQty: 10m));
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var reloaded = await context.Materialrequests
+            .SingleAsync(request => request.RequestId == fixture.Request.RequestId);
+        var retry = service.Stage(new MaterialRequestCompletionTransitionInput(
+            reloaded,
+            [],
+            [new MaterialRequestCompletionIssueLine(fixture.Line.RequestLineId, 10m)],
+            GuidHelper.NewId()));
+        await context.SaveChangesAsync();
+
+        retry.Outcome.Should().Be(MaterialRequestCompletionTransitionOutcome.AlreadyCompleted);
+        (await context.Auditlogs.AsNoTracking().ToListAsync()).Should().ContainSingle(audit =>
+            audit.Reason == "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED.");
+    }
+
+    [Fact]
+    public void Stage_WhenSameRequestPriorIssueCarriesReconciliationBatchAndLineLineage_RejectsWithoutForeignRequestMasking()
+    {
+        using var context = CreateInMemoryContext();
+        var fixture = CreateRequest(totalRequiredQty: 10m);
+        var priorIssue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "ISS-SAME-REQUEST-RECONCILIATION",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = GuidHelper.NewId(),
+            MaterialRequestId = fixture.Request.RequestId,
+            ReconciliationBatchId = GuidHelper.NewId(),
+            IssuedBy = GuidHelper.NewId(),
+            CreatedAt = DateTime.UtcNow
+        };
+        var priorLine = new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(),
+            IssueId = priorIssue.IssueId,
+            IngredientId = fixture.Line.IngredientId,
+            UnitId = fixture.Line.UnitId,
+            RequestedQty = 10m,
+            IssuedQty = 10m,
+            MaterialRequestLineId = fixture.Line.RequestLineId,
+            ReconciliationBatchLineId = GuidHelper.NewId(),
+            Issue = priorIssue
+        };
+        var service = new MaterialRequestCompletionTransitionService(context);
+
+        var action = () => service.Stage(new MaterialRequestCompletionTransitionInput(
+            fixture.Request,
+            [priorLine],
+            [],
+            GuidHelper.NewId()));
+
+        action.Should().Throw<BusinessRuleException>()
+            .WithMessage("*exact MaterialRequest lineage*");
+        fixture.Request.Status.Should().Be("SENTTOWAREHOUSE");
         context.ChangeTracker.Entries<AuditLog>().Should().BeEmpty();
     }
 

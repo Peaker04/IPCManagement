@@ -33,7 +33,7 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly SystemOperationRequestContext? _requestContext;
     private readonly SystemOperationModeGuard? _modeGuard;
     private readonly IInventoryIssuePreWriteGate? _preWriteGate;
-    private readonly IMaterialRequestCompletionTransitionService? _materialRequestCompletionTransition;
+    private readonly IMaterialRequestCompletionTransitionService _materialRequestCompletionTransition;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
@@ -41,11 +41,11 @@ public class InventoryIssueService : IInventoryIssueService
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
         IOperationalWarehouseResolver operationalWarehouseResolver,
+        IMaterialRequestCompletionTransitionService materialRequestCompletionTransition,
         IpcManagementContext? context = null,
         SystemOperationRequestContext? requestContext = null,
         SystemOperationModeGuard? modeGuard = null,
-        IInventoryIssuePreWriteGate? preWriteGate = null,
-        IMaterialRequestCompletionTransitionService? materialRequestCompletionTransition = null)
+        IInventoryIssuePreWriteGate? preWriteGate = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
@@ -57,7 +57,7 @@ public class InventoryIssueService : IInventoryIssueService
         _modeGuard = modeGuard;
         _preWriteGate = preWriteGate;
         _materialRequestCompletionTransition = materialRequestCompletionTransition ??
-            (context is null ? null : new MaterialRequestCompletionTransitionService(context));
+            throw new ArgumentNullException(nameof(materialRequestCompletionTransition));
     }
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request)
@@ -199,7 +199,7 @@ public class InventoryIssueService : IInventoryIssueService
 
                     var completionLines = issueLines.Select(line =>
                         new MaterialRequestCompletionIssueLine(line.MaterialRequestLineId, line.IssuedQty)).ToList();
-                    _materialRequestCompletionTransition?.Stage(new(
+                    _materialRequestCompletionTransition.Stage(new(
                         materialRequest, issuedLines, completionLines, userIdBytes));
 
                     await _unitOfWork.SaveChangesAsync();
