@@ -406,13 +406,13 @@ export const PC_PROJECTED_REGISTRY_ROWS: readonly PcProjectedRegistryRow[] = [
     expectedControl: {
       role: 'button',
       name: 'Tạo phiếu xuất kho',
-      source: 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350',
+      source: 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50',
       route: '/warehouse',
     },
     source: [
       'frontend/tests/operationalStateActionRegistry.test.ts:460-489',
       'frontend/src/lib/actionEligibility.ts:49-69',
-      `frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350 — ${UNKNOWN}: operation remains page-local`,
+      `frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50 — ${UNKNOWN}: operation remains page-local`,
       'backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs:1',
     ],
     disposition: 'Operation, actor, entity and permissions remain unresolved; no synthetic canonical operation.',

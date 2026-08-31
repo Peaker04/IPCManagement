@@ -8,9 +8,9 @@ import { formatQuantityWithUnit } from '@/lib/formatters'
 import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
 import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
-import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility'
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext'
-import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationIssueHistoryQuery } from '@/features/reconciliation/reconciliationApi'
+import { eligiblePageTabs } from '@/lib/systemOperationEligibility'
+import { useSystemOperation } from '@/lib/systemOperationContext'
+import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationIssueHistoryQuery } from '@/api/reconciliationApi'
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 

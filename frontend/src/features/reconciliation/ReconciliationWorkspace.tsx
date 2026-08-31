@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ReconciliationBatchTable } from './ReconciliationBatchTable'
 import { ReconciliationComparisonTable } from './ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from './ReconciliationDispositionDrawer'
-import { useListReconciliationBatchesQuery, type ReconciliationLine } from './reconciliationApi'
+import { useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
 
 /** Route-owned closed-loop workspace. Retained for focused tests and composition; pages no longer switch mutation authority by owner. */
 export function ReconciliationWorkspace() {

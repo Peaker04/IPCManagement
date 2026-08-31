@@ -1,6 +1,6 @@
 import { store } from '../app/store';
 import { ROUTES } from '@/lib/routeConfig';
-import { isRouteEligible, type SystemOperationMode } from '@/features/system-operation/systemOperationEligibility';
+import { isRouteEligible, type SystemOperationMode } from '@/lib/systemOperationEligibility';
 
 const dataPrefetchOptions = { ifOlderThan: 5 * 60 } as const;
 

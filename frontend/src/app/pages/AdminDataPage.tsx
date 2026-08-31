@@ -5,7 +5,7 @@ import { CommandBar, ContextStrip, OperationalFrame, ViewSwitcher } from '@/comp
 import { ROUTES } from '@/lib/routeConfig';
 import { useAdminDataPageModel } from './admin-data/useAdminDataPageModel';
 import type { AdminView } from './admin-data/adminDataPageTypes';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { useSystemOperation } from '@/lib/systemOperationContext';
 import { ReconciliationAdminDataPage } from './admin-data/ReconciliationAdminDataPage';
 
 const AdminAuditPanel = lazy(() => import('./admin-data/AdminAuditPanel').then(({ AdminAuditPanel: component }) => ({ default: component })))

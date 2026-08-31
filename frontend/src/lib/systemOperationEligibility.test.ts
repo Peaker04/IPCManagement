@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTES } from '@/lib/routeConfig'
-import { eligiblePageTabs, getCapabilityConfigurationError, isRouteEligible, modeLabels, retainedRoutes } from './systemOperationEligibility'
+import { eligiblePageTabs, getCapabilityConfigurationError, isRouteEligible, modeLabels, retainedRoutes } from '@/lib/systemOperationEligibility'
 
 describe('system operation route matrix', () => {
   it('keeps the explicit default golden path', () => {

@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { apiSlice } from '@/api/apiSlice'
-import { reconciliationApi, type CreateReconciliationIssueRequest } from './reconciliationApi'
+import { reconciliationApi, type CreateReconciliationIssueRequest } from '@/api/reconciliationApi'
 
 const fixturePath = resolve(import.meta.dirname, '../../../../contracts/phase30/reconciliation-stale-request.json')
 const forbiddenHeaderPattern = /authorization|cookie|api[-_]?key|host|origin|referer|forwarded|token|secret/i

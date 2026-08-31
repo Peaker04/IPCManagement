@@ -1,5 +1,5 @@
 import { ROUTES } from '@/lib/routeConfig'
-import { isRouteEligible, type SystemOperationMode } from './systemOperationEligibility'
+import { isRouteEligible, type SystemOperationMode } from '@/lib/systemOperationEligibility'
 
 export const normalizeAuthorityLocation = (mode: SystemOperationMode, pathname: string, search: string) => {
   if (!isRouteEligible(mode, pathname)) return ROUTES.DASHBOARD

@@ -3,8 +3,8 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { ReconciliationActualDrawer } from './ReconciliationActualDrawer'
 
 const save = vi.fn()
-vi.mock('./reconciliationApi', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./reconciliationApi')>()),
+vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/api/reconciliationApi')>()),
   useSetReconciliationActualMutation: () => [save, { isLoading: false }],
 }))
 

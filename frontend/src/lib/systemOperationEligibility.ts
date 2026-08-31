@@ -1,6 +1,7 @@
 import { ROUTES } from '@/lib/routeConfig'
+import type { SystemOperationMode } from './systemOperationTypes'
 
-export type SystemOperationMode = 'DEFAULT' | 'MATERIAL_RECONCILIATION'
+export type { SystemOperationMode } from './systemOperationTypes'
 export const modeLabels: Record<SystemOperationMode, string> = { DEFAULT: 'Mặc định', MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu' }
 
 const reconciliationWorkflowRoutes = [

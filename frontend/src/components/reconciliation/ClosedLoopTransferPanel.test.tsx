@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { ClosedLoopTransferPanel } from './ClosedLoopTransferPanel'
+import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel'
 
 const batches = [
   { batchId: 'batch-other', menuVersionId: 'menu-other', status: 'TRANSFERRED', version: 1 },
@@ -9,8 +9,8 @@ const batches = [
 ]
 const transfer = vi.fn()
 
-vi.mock('./reconciliationApi', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./reconciliationApi')>()),
+vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/api/reconciliationApi')>()),
   useListReconciliationBatchesQuery: () => ({ data: batches, isLoading: false, isError: false, refetch: vi.fn() }),
   useTransferReconciliationBatchMutation: () => [transfer, { isLoading: false }],
 }))

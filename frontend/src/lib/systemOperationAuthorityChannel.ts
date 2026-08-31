@@ -1,5 +1,4 @@
-import type { SystemOperationMode } from './systemOperationEligibility'
-import type { SystemOperationSnapshot } from './systemOperationApi'
+import type { SystemOperationMode, SystemOperationSnapshot } from './systemOperationTypes'
 
 export const SYSTEM_OPERATION_AUTHORITY_STORAGE_KEY = 'ipc.system-operation-authority.v1'
 const CHANNEL_NAME = 'ipc.system-operation-authority'

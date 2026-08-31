@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatQuantity } from '@/lib/formatters'
-import type { ReconciliationLine } from './reconciliationApi'
+import type { ReconciliationLine } from '@/api/reconciliationApi'
 
 const quantityWithUnit = (quantity: number | null | undefined, unit?: string | null) => quantity == null
   ? 'Chưa xuất'

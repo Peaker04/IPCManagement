@@ -1,6 +1,6 @@
 import { createElement, lazy, type ComponentType } from 'react';
 import { ROUTES } from '@/lib/routeConfig';
-import { isRouteEligible, type SystemOperationMode } from '@/features/system-operation/systemOperationEligibility';
+import { isRouteEligible, type SystemOperationMode } from '@/lib/systemOperationEligibility';
 
 type PageModule = { default: ComponentType };
 

@@ -16,7 +16,7 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'The Admin mode setting owns one singleton query and renders explicit loading/error/current authority before allowing mutation.',
     requiredMarkers: ['useGetSystemOperationModeQuery', 'Không tải được chế độ vận hành', 'useChangeSystemOperationModeMutation'],
   },
-  'src/features/reconciliation/ClosedLoopTransferPanel.tsx': {
+  'src/components/reconciliation/ClosedLoopTransferPanel.tsx': {
     rationale: 'The transfer card owns one batch collection and explicitly distinguishes loading, error, missing-scope and no-batch-for-scope states.',
     requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Phạm vi đang chọn chưa có lô định lượng'],
   },
@@ -28,7 +28,7 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'The drawer loads the server-owned category vocabulary and blocks submission with an explicit retryable error when that contract is unavailable.',
     requiredMarkers: ['useListReconciliationDispositionCategoriesQuery', 'Không tải được nhóm xử lý', 'refetchCategories'],
   },
-  'src/features/system-operation/SystemOperationProvider.tsx': {
+  'src/app/providers/SystemOperationProvider.tsx': {
     rationale: 'The provider is the authenticated singleton bootstrap boundary; authority failure is exposed to route guards and never treated as DEFAULT or empty data.',
     requiredMarkers: ['useGetSystemOperationModeQuery', 'Không thể xác định chế độ vận hành', 'isLoading'],
   },

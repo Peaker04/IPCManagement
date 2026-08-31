@@ -40,11 +40,11 @@ describe('project-wide presentation surface inventory', () => {
       switchers: items.reduce((sum, item) => sum + item.switchers, 0),
       fingerprint: fingerprint(items),
     }).toEqual({
-      owners: 60,
+      owners: 61,
       tables: 51,
       dialogs: 36,
       switchers: 10,
-      fingerprint: '83d92956c9829ec11a5d774506c4bc8edccb4552ee0283295b8c965f8ba55859',
+      fingerprint: '29dfaf6a76adf7799705751236ff970898cd1f5f55373e80a5fc0496c072425c',
     })
   })
 
@@ -64,7 +64,7 @@ describe('project-wide presentation surface inventory', () => {
       actions: actions.reduce((sum, item) => sum + item.count, 0),
       drawerOwners: drawers.length,
       drawers: drawers.reduce((sum, item) => sum + item.count, 0),
-    }).toEqual({ routeOwners: 1, routes: 15, actionOwners: 74, actions: 245, drawerOwners: 0, drawers: 0 })
+    }).toEqual({ routeOwners: 1, routes: 15, actionOwners: 76, actions: 245, drawerOwners: 0, drawers: 0 })
   })
 
   it('keeps document reload out of production UI', () => {

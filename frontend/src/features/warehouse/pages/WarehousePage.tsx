@@ -1,22 +1,16 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
-import { PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
 import {
-  CommandBar,
-  ContextStrip,
   InlineAlert,
   KeepAliveTabPanel,
   OperationalFrame,
   PaginationBar,
   QueryErrorAlert,
-  SectionPanel,
-  StatusBadge,
-  TableViewport,
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { useSystemOperation } from '@/lib/systemOperationContext';
 import ReconciliationWarehousePage from './ReconciliationWarehousePage';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import {
@@ -34,12 +28,10 @@ import { useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext';
-import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -47,6 +39,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { addIsoDays } from '../warehouseDateRange';
 import { typography } from '@/lib/typography';
 import { WarehouseMovementPanel } from './WarehouseMovementPanel';
+import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
+import { buildWarehousePageHeader } from './WarehousePageHeader';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';
 const ServiceRunBlockerPanel = lazy(() => import('@/components/common/ServiceRunBlockerPanel').then(({ ServiceRunBlockerPanel: component }) => ({ default: component })))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
@@ -226,7 +220,6 @@ function DefaultWarehousePage() {
     else next.delete('purchaseOrderId');
     return `${ROUTES.WAREHOUSE}?${next.toString()}`;
   };
-
   const openIssueDialog = () => {
     setIssueCandidatePageNumber(1);
     setSelectedMaterialRequestId('');
@@ -234,10 +227,8 @@ function DefaultWarehousePage() {
     setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
     setIsIssueDialogOpen(true);
   };
-
   const handleCreateInventoryIssue = async () => {
     setWarehouseFeedback(null);
-
     if (isIssueAllocationRefreshing) {
       setWarehouseFeedback({
         title: 'Đang đồng bộ số lượng còn lại',
@@ -246,7 +237,6 @@ function DefaultWarehousePage() {
       });
       return;
     }
-
     if (!selectedIssueCandidate) {
       setWarehouseFeedback({
         title: 'Chưa có nhu cầu xuất kho',
@@ -310,80 +300,27 @@ function DefaultWarehousePage() {
 
   return (
     <OperationalFrame
-      command={
-        <CommandBar
-          actionsClassName="ipc-warehouse-actions"
-          actions={
-            <>
-              <button
-                className="ipc-button ipc-button-primary"
-                type="button"
-                onClick={openIssueDialog}
-                disabled={!issueCreationAvailability.canCreate}
-                aria-describedby={issueCreationAvailability.disabledReason ? 'warehouse-issue-action-guidance' : undefined}
-                title={issueCreationAvailability.disabledReason ?? undefined}
-              >
-                {isFetchingIssueCandidates ? 'Đang kiểm tra nhu cầu' : 'Tạo phiếu xuất kho'}
-              </button>
-              <Link className="ipc-button ipc-button-success" to={ROUTES.REPORTS}>
-                Xem tồn kho
-              </Link>
-              <Link className="ipc-button ipc-button-primary" to={ROUTES.CHEF_DASHBOARD}>
-                <PackageOpen size={16} />
-                Bàn giao cho bếp
-              </Link>
-              <Link className="ipc-button ipc-button-ghost" to={ROUTES.PURCHASING}>
-                Quay lại thu mua
-              </Link>
-            </>
-          }
-        >
-          <span className="ipc-command-meta">
-            <Warehouse size={16} />
-            {warehouseName}
-          </span>
-          <span className="ipc-command-meta">Bàn giao bếp: {issueDocument?.title ?? 'Chưa có phiếu xuất'}</span>
-        </CommandBar>
-      }
-      context={
-        <ContextStrip
-          items={[
-            {
-              label: 'Phiếu nhập',
-              value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`,
-              tone: isWorkflowDocumentError ? 'danger' : 'warning',
-            },
-            {
-              label: 'Phiếu xuất',
-              value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`,
-              tone: isWorkflowDocumentError ? 'danger' : 'warning',
-            },
-            {
-              label: 'Dòng tồn kho',
-              value: isCurrentStockError ? 'Chưa xác định' : currentStockRows.length.toString(),
-              tone: isCurrentStockError ? 'danger' : currentStockRows.length > 0 ? 'success' : 'warning',
-            },
-            {
-              label: 'Thiếu hàng',
-              value: isDemandPageError
-                ? 'Chưa xác định'
-                : shortageLine
-                  ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}`
-                  : shortageCount > 0
-                    ? `${shortageCount} dòng thiếu`
-                    : 'Không có',
-              tone: isDemandPageError || shortageCount > 0 ? 'danger' : 'success',
-            },
-            {
-              label: 'Bếp nhận',
-              value: isKitchenIssueError ? 'Chưa xác định' : pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký',
-              tone: isKitchenIssueError ? 'danger' : pendingKitchenReceiptCount > 0 ? 'warning' : 'success',
-            },
-          ]}
-        />
-      }
-    >
-      {isPurchaseOrderError && (
+      {...buildWarehousePageHeader({
+        warehouseName,
+        issueDocumentTitle: issueDocument?.title,
+        canCreateIssue: issueCreationAvailability.canCreate,
+        issueDisabledReason: issueCreationAvailability.disabledReason ?? undefined,
+        isFetchingIssueCandidates,
+        onOpenIssueDialog: openIssueDialog,
+        receiptCountLabel: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`,
+        issueCountLabel: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`,
+        stockCountLabel: isCurrentStockError ? 'Chưa xác định' : currentStockRows.length.toString(),
+        shortageLabel: isDemandPageError ? 'Chưa xác định' : shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : shortageCount > 0 ? `${shortageCount} dòng thiếu` : 'Không có',
+        kitchenReceiptLabel: isKitchenIssueError ? 'Chưa xác định' : pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký',
+        workflowDocumentError: isWorkflowDocumentError,
+        currentStockError: isCurrentStockError,
+        hasCurrentStock: currentStockRows.length > 0,
+        demandError: isDemandPageError,
+        hasShortage: shortageCount > 0,
+        kitchenIssueError: isKitchenIssueError,
+        hasPendingKitchenReceipt: pendingKitchenReceiptCount > 0,
+      })}
+    >      {isPurchaseOrderError && (
         <QueryErrorAlert title="Không tải được đơn mua chờ nhập kho" isRetrying={isFetchingPurchaseOrders} onRetry={refetchPurchaseOrders}>
           Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
         </QueryErrorAlert>
@@ -539,109 +476,24 @@ function DefaultWarehousePage() {
         </InlineAlert>
       )}
 
-      <SectionPanel
-        title="Đơn mua chờ nhập kho"
-        icon={<ReceiptText size={18} aria-hidden="true" />}
-        description="Chọn đúng đơn và dòng thực nhận để đối chiếu số lượng thực tế từ nhà cung cấp."
-        className="min-w-0 overflow-hidden"
-      >
-        {!canReceivePurchases && (
-          <InlineAlert title="Chế độ chỉ đọc" variant="info" className="mb-3">
-            Chỉ vai trò Warehouse được ghi nhận phiếu nhập. Bạn vẫn có thể theo dõi tiến độ đơn mua.
-          </InlineAlert>
-        )}
-        <TableViewport
-          ariaLabel="Danh sách đơn mua và tiến độ nhập kho"
-          caption="Danh sách đơn mua và tiến độ nhập kho"
-          className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
-        >
-          <table className="ipc-data-table min-w-[1060px] !table-auto">
-            <thead>
-              <tr>
-                <th className="min-w-[280px]">Đơn mua</th>
-                <th className="min-w-[160px]">Nhà cung cấp</th>
-                <th className="min-w-[220px]">Đề xuất mua</th>
-                <th className="min-w-[140px]">Trạng thái</th>
-                <th className="min-w-[130px]">Tiến độ dòng</th>
-                <th className="min-w-[130px] text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isFetchingPurchaseOrders && purchaseOrders.length === 0 ? (
-                Array.from({ length: 8 }, (_, index) => (
-                  <tr key={`purchase-order-skeleton-${index}`} aria-hidden="true">
-                    <td colSpan={6}>
-                      <div className="h-5 animate-pulse rounded-sm bg-slate-200 motion-reduce:animate-none" />
-                    </td>
-                  </tr>
-                ))
-              ) : purchaseOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="h-[320px] text-center text-slate-600">
-                    Chưa có đơn mua để theo dõi nhập kho.
-                  </td>
-                </tr>
-              ) : (
-                purchaseOrders.map((order) => {
-                  const completedLines = order.lines.filter((line) => line.receivedQty >= line.orderedQty).length;
-                  const isSelected = isPurchaseOrderDetailsOpen && selectedPurchaseOrderId === order.purchaseOrderId;
-                  return (
-                    <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
-                      <td className="font-semibold text-slate-900 whitespace-nowrap">{order.purchaseOrderCode}</td>
-                      <td>{order.supplierName}</td>
-                      <td className="whitespace-nowrap text-slate-600">{order.purchaseRequestCode}</td>
-                      <td className="ipc-badge-cell whitespace-nowrap">
-                        <StatusBadge variant={order.status === 'COMPLETED' ? 'success' : order.status === 'ORDERED' ? 'info' : order.status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
-                          {formatWorkflowStatus(order.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className="whitespace-nowrap">
-                        {completedLines}/{order.lines.length} dòng đã đủ
-                      </td>
-                      <td className="text-right">
-                        <Link className="ipc-button ipc-button-ghost" aria-expanded={isSelected} to={purchaseOrderDetailsHref(isSelected ? null : order.purchaseOrderId)}>
-                          {isSelected ? 'Đóng chi tiết' : 'Xem dòng nhận'}
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </TableViewport>
-        <PaginationBar
-          page={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
-          pageSize={purchaseOrderPageResponse?.page.pageSize ?? 8}
-          totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
-          onPageChange={(page) => {
-            setPurchaseOrderPageNumber(page);
-            setSelectedReceiptLine(undefined);
-          }}
-        />
-
-        {selectedPurchaseOrder && (
-          <div className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-950">Chi tiết {selectedPurchaseOrder.purchaseOrderCode}</h3>
-                <p className="mt-1 text-xs text-slate-600">Số lượng và đơn giá thực nhận được xác nhận riêng cho từng dòng.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-slate-600">{selectedPurchaseOrder.orderDate}</span>
-                {canReceivePurchases && selectedPurchaseOrder.lines.some((line) => line.receivedQty < line.orderedQty) && (
-                  <Button type="button" size="sm" onClick={() => setIsBatchReceiptOpen(true)}>
-                    Nhận toàn bộ dòng còn lại
-                  </Button>
-                )}
-              </div>
-            </div>
-            <TableViewport ariaLabel={`Chi tiết đơn mua ${selectedPurchaseOrder.purchaseOrderCode}`} caption="Các dòng và yêu cầu bằng chứng nhập kho do máy chủ cung cấp." className="max-h-[320px]">
-              <PurchaseOrderLineGroups lines={selectedPurchaseOrder.lines} canReceive={canReceivePurchases} onReceive={setSelectedReceiptLine} />
-            </TableViewport>
-          </div>
-        )}
-      </SectionPanel>
+      <WarehousePurchaseOrdersPanel
+        canReceivePurchases={canReceivePurchases}
+        purchaseOrders={purchaseOrders}
+        isFetchingPurchaseOrders={isFetchingPurchaseOrders}
+        isPurchaseOrderDetailsOpen={isPurchaseOrderDetailsOpen}
+        selectedPurchaseOrderId={selectedPurchaseOrderId}
+        selectedPurchaseOrder={selectedPurchaseOrder}
+        purchaseOrderDetailsHref={purchaseOrderDetailsHref}
+        onSelectReceiptLine={setSelectedReceiptLine}
+        pageNumber={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
+        pageSize={purchaseOrderPageResponse?.page.pageSize ?? 8}
+        totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
+        onPageChange={(page) => {
+          setPurchaseOrderPageNumber(page);
+          setSelectedReceiptLine(undefined);
+        }}
+        onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
+      />
 
       <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><WarehouseReceiptLifecyclePanel /></Suspense>
 

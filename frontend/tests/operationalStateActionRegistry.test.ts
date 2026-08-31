@@ -464,7 +464,7 @@ const warehouseFulfilmentRegistry = [
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/lib/actionEligibility.ts:49-69',
-      `frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350 — ${UNKNOWN}: operation remains page-local`,
+      `frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50 — ${UNKNOWN}: operation remains page-local`,
       'frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx:44',
       'backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs:1',
     ],
@@ -565,7 +565,7 @@ const componentLocalDebt = [
   {
     id: 'WarehouseOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350',
+    source: 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50',
     sourceText: warehousePageSource,
     fragment: 'resolveIssueCreationAvailability',
   },

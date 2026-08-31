@@ -2,8 +2,8 @@ import { CheckCircle2, Layers3, RefreshCw, SlidersHorizontal } from 'lucide-reac
 import { SectionPanel, StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useGetSystemOperationModeQuery, useChangeSystemOperationModeMutation } from '@/features/system-operation/systemOperationApi'
-import type { SystemOperationMode } from '@/features/system-operation/systemOperationEligibility'
+import { useGetSystemOperationModeQuery, useChangeSystemOperationModeMutation } from '@/api/systemOperationApi'
+import type { SystemOperationMode } from '@/lib/systemOperationEligibility'
 
 const modes: ReadonlyArray<{
   id: SystemOperationMode

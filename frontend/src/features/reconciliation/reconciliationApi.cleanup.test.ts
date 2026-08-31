@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiSlice } from '@/api/apiSlice'
 import { warehouseApi } from '@/api/warehouseApi'
 import authReducer from '@/lib/auth/authSlice'
-import { clearReconciliationApiResidue, reconciliationApi } from './reconciliationApi'
+import { clearReconciliationApiResidue, reconciliationApi } from '@/api/reconciliationApi'
 
 const createTestStore = () => configureStore({
   reducer: {

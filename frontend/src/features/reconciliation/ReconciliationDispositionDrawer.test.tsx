@@ -3,8 +3,8 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { ReconciliationDispositionDrawer } from './ReconciliationDispositionDrawer'
 
 const save = vi.fn()
-vi.mock('./reconciliationApi', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./reconciliationApi')>()),
+vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/api/reconciliationApi')>()),
   useSetReconciliationDispositionMutation: () => [save, { isLoading: false }],
   useListReconciliationDispositionCategoriesQuery: () => ({
     data: [

@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReconciliationWorkspace } from './ReconciliationWorkspace'
-import type { ReconciliationBatch } from './reconciliationApi'
+import type { ReconciliationBatch } from '@/api/reconciliationApi'
 
 let batches: ReconciliationBatch[] = []
 const refetch = vi.fn()
-vi.mock('./reconciliationApi', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./reconciliationApi')>()),
+vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/api/reconciliationApi')>()),
   useListReconciliationBatchesQuery: () => ({ data: batches, isLoading: false, isError: false, refetch }),
   useSetReconciliationDispositionMutation: () => [vi.fn(), { isLoading: false }],
   useListReconciliationDispositionCategoriesQuery: () => ({ data: [], isLoading: false, isError: false, refetch }),

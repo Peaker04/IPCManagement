@@ -9,7 +9,7 @@ import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/type
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
 import { ROUTES } from '@/lib/routeConfig';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { useSystemOperation } from '@/lib/systemOperationContext';
 import { ReconciliationDashboardPage } from './ReconciliationDashboardPage';
 
 const queuePriority: Record<WorkflowTone, number> = {

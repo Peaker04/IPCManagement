@@ -11,9 +11,9 @@ import { apiSlice } from '@/api/apiSlice';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
 import { readNavigationPreferences, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
-import { SystemOperationProvider } from '@/features/system-operation/SystemOperationProvider';
-import { isRouteEligible } from '@/features/system-operation/systemOperationEligibility';
+import { useSystemOperation } from '@/lib/systemOperationContext';
+import { SystemOperationProvider } from '@/app/providers/SystemOperationProvider';
+import { isRouteEligible } from '@/lib/systemOperationEligibility';
 import {
   ChefHat,
   LayoutDashboard,

@@ -22,7 +22,7 @@ const commandBarExceptionLocations = [
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:62',
   'src/features/reports/pages/ReportsPage.tsx:77',
   'src/features/reports/pages/ReportsPage.tsx:86',
-  'src/features/warehouse/pages/WarehousePage.tsx:318',
+  'src/features/warehouse/pages/WarehousePageHeader.tsx:31',
 ]
 
 const adapterExceptionLocations = [

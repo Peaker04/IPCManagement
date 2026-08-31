@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTES } from '@/lib/routeConfig'
-import { normalizeAuthorityLocation } from './systemOperationLocation'
+import { normalizeAuthorityLocation } from '@/lib/systemOperationLocation'
 
 describe('SystemOperationProvider authority relocation', () => {
   it('relocates inaccessible reconciliation routes to a safe DEFAULT entry point', () => {

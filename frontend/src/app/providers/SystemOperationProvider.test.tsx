@@ -9,9 +9,9 @@ import { coordinationReducer } from '@/features/coordination'
 import authReducer from '@/lib/auth/authSlice'
 import { ROUTES } from '@/lib/routeConfig'
 import { SystemOperationProvider } from './SystemOperationProvider'
-import { authorityFromSnapshot, createSystemOperationAuthorityChannel } from './systemOperationAuthorityChannel'
-import { useSystemOperation } from './systemOperationContext'
-import type { SystemOperationSnapshot } from './systemOperationApi'
+import { authorityFromSnapshot, createSystemOperationAuthorityChannel } from '@/lib/systemOperationAuthorityChannel'
+import { useSystemOperation } from '@/lib/systemOperationContext'
+import type { SystemOperationSnapshot } from '@/api/systemOperationApi'
 
 const mockAuthorityRuntime = vi.hoisted(() => {
   const snapshots = new Map<string, SystemOperationSnapshot>()
@@ -68,7 +68,7 @@ const mockAuthorityRuntime = vi.hoisted(() => {
   }
 })
 
-vi.mock('./systemOperationApi', async () => {
+vi.mock('@/api/systemOperationApi', async () => {
   const React = await import('react')
   const { useStore } = await import('react-redux')
 

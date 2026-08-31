@@ -12,8 +12,8 @@ import { useAdminEmployeesPanelModel } from './useAdminEmployeesPanelModel';
 import { useAdminInventoryPanelModel } from './useAdminInventoryPanelModel';
 import { useAdminStatisticsPanelModel } from './useAdminStatisticsPanelModel';
 import { readPageTabPreferences, visibleTabIds } from '@/lib/navigationPreferences';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
-import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility';
+import { useSystemOperation } from '@/lib/systemOperationContext';
+import { eligiblePageTabs } from '@/lib/systemOperationEligibility';
 
 export function useAdminDataPageModel() {
   const [isViewPending, startViewTransition] = useTransition();

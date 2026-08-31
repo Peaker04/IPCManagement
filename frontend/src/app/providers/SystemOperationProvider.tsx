@@ -3,18 +3,18 @@ import { useStore } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppDispatch } from '@/app/hooks'
 import { clearReconciliationSelection } from '@/lib/navigationPreferences'
-import { clearReconciliationApiResidue } from '@/features/reconciliation/reconciliationApi'
-import { useGetSystemOperationModeQuery, type SystemOperationSnapshot } from './systemOperationApi'
-import { SystemOperationContext } from './systemOperationContext'
-import { getCapabilityConfigurationError } from './systemOperationEligibility'
-import { normalizeAuthorityLocation } from './systemOperationLocation'
+import { clearReconciliationApiResidue } from '@/api/reconciliationApi'
+import { useGetSystemOperationModeQuery, type SystemOperationSnapshot } from '@/api/systemOperationApi'
+import { SystemOperationContext } from '@/lib/systemOperationContext'
+import { getCapabilityConfigurationError } from '@/lib/systemOperationEligibility'
+import { normalizeAuthorityLocation } from '@/lib/systemOperationLocation'
 import {
   authorityFromSnapshot,
   getSystemOperationAuthorityChannel,
   isSystemOperationAuthorityNewer,
   type SystemOperationAuthorityChannel,
   type SystemOperationAuthorityLike,
-} from './systemOperationAuthorityChannel'
+} from '@/lib/systemOperationAuthorityChannel'
 
 const loadingFrame = (message = 'Đang tải chế độ vận hành...') => (
   <div className="ipc-operational-frame" aria-busy="true"><span className="sr-only">{message}</span></div>

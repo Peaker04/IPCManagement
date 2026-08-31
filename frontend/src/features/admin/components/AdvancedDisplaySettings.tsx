@@ -19,8 +19,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, SectionPanel, StatusBadge, useToast } from '@/components/common';
 import { cn } from '@/lib/utils';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
-import { eligibleCapabilityIds, eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility';
+import { useSystemOperation } from '@/lib/systemOperationContext';
+import { eligibleCapabilityIds, eligiblePageTabs } from '@/lib/systemOperationEligibility';
 import {
   defaultNavigationPreferences,
   readNavigationPreferences,

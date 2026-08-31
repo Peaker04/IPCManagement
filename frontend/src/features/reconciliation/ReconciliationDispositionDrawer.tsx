@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import type { ReconciliationLine } from './reconciliationApi'
-import { useListReconciliationDispositionCategoriesQuery, useSetReconciliationDispositionMutation } from './reconciliationApi'
+import type { ReconciliationLine } from '@/api/reconciliationApi'
+import { useListReconciliationDispositionCategoriesQuery, useSetReconciliationDispositionMutation } from '@/api/reconciliationApi'
 import { describeReconciliationError } from './reconciliationErrors'
 
 export function ReconciliationDispositionDrawer({ line, onClose, onRefetch }: { line: ReconciliationLine; onClose: () => void; onRefetch: () => void }) {

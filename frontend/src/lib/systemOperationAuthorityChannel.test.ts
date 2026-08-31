@@ -3,7 +3,7 @@ import {
   createSystemOperationAuthorityChannel,
   isSystemOperationAuthorityNewer,
   type SystemOperationAuthorityMessage,
-} from './systemOperationAuthorityChannel'
+} from '@/lib/systemOperationAuthorityChannel'
 
 class FakeBroadcastChannel {
   static channels = new Map<string, Set<FakeBroadcastChannel>>()

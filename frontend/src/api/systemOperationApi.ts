@@ -1,22 +1,9 @@
 import { apiSlice } from '@/api/apiSlice'
 import type { ApiResponse } from '@/types/api'
-import type { SystemOperationMode } from './systemOperationEligibility'
-import { publishSystemOperationAuthority } from './systemOperationAuthorityChannel'
+import { publishSystemOperationAuthority } from '@/lib/systemOperationAuthorityChannel'
+import type { ChangeSystemOperationMode, SystemOperationSnapshot } from '@/lib/systemOperationTypes'
 
-export interface SystemOperationCapabilities {
-  navigation: readonly string[]
-  pageTabs: Readonly<Record<string, readonly string[]>>
-}
-
-export interface SystemOperationSnapshot {
-  mode: SystemOperationMode
-  label: string
-  version: number
-  updatedAt: string
-  reasonRequired: boolean
-  capabilities: SystemOperationCapabilities
-}
-export interface ChangeSystemOperationMode { mode: SystemOperationMode; expectedVersion: number; confirmed: boolean; reason?: string }
+export type { ChangeSystemOperationMode, SystemOperationCapabilities, SystemOperationSnapshot } from '@/lib/systemOperationTypes'
 
 const publishAuthoritySnapshot = async (queryFulfilled: Promise<{ data: SystemOperationSnapshot }>, dispatch: (action: unknown) => unknown) => {
   try {

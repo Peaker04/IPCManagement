@@ -9,7 +9,7 @@ import { readReconciliationSelection, writeReconciliationSelection } from '@/lib
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
-import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '../reconciliationApi'
+import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 

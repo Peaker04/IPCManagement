@@ -147,7 +147,7 @@ const historicalControlSource = new Map<string, string>([
   ['frontend/src/features/coordination/components/order-table.tsx:358', 'frontend/src/features/coordination/components/order-table.tsx:327'],
   ['frontend/src/features/coordination/components/order-table.tsx:388', 'frontend/src/features/coordination/components/order-table.tsx:355'],
   ['frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129', 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128'],
-  ['frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320'],
+  ['frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320'],
   ['frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:56-61', 'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:236-315'],
 ])
 

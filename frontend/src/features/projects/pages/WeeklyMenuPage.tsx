@@ -7,7 +7,7 @@ import { typography } from '@/lib/typography';
 import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
 import { visibleTabIds } from '@/lib/navigationPreferences';
-import { eligiblePageTabs } from '@/features/system-operation/systemOperationEligibility';
+import { eligiblePageTabs } from '@/lib/systemOperationEligibility';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/reportsApi';
 import {
@@ -50,8 +50,8 @@ import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
-import { ClosedLoopTransferPanel } from '@/features/reconciliation/ClosedLoopTransferPanel';
-import { useSystemOperation } from '@/features/system-operation/systemOperationContext';
+import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
+import { useSystemOperation } from '@/lib/systemOperationContext';
 import { ReconciliationWeeklyMenuPage } from './ReconciliationWeeklyMenuPage';
 
 const WeeklyMenuReadiness = lazy(() => import('../weekly-menu/shell/WeeklyMenuReadiness').then(({ WeeklyMenuReadiness: component }) => ({ default: component })))

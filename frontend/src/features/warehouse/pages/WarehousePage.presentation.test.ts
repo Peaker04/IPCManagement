@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import warehousePageSource from './WarehousePage.tsx?raw';
+import warehousePurchaseOrdersPanelSource from './WarehousePurchaseOrdersPanel.tsx?raw';
 import { formatIssueCandidateLabel } from '../warehouseIssueAllocation';
 
 describe('WarehousePage presentation', () => {
@@ -16,7 +16,7 @@ describe('WarehousePage presentation', () => {
   });
 
   it('lets long purchase-order identifiers size their column instead of overflowing fixed cells', () => {
-    expect(warehousePageSource).toContain('ipc-data-table min-w-[1060px] !table-auto');
-    expect(warehousePageSource).not.toContain('ipc-data-table min-w-[1060px] table-fixed');
+    expect(warehousePurchaseOrdersPanelSource).toContain('ipc-data-table min-w-[1060px] !table-auto');
+    expect(warehousePurchaseOrdersPanelSource).not.toContain('ipc-data-table min-w-[1060px] table-fixed');
   });
 });

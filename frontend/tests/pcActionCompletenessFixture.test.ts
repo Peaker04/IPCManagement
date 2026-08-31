@@ -52,7 +52,7 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 const controlSourceFragment = (row: typeof PC_PROJECTED_REGISTRY_ROWS[number]) => {
   if (row.family === 'ApprovalDocument') return "openDecisionModal(record, 'Approve')"
-  if (row.family === 'WarehouseFulfilment') return 'onClick={openIssueDialog}'
+  if (row.family === 'WarehouseFulfilment') return 'onClick={props.onOpenIssueDialog}'
   if (row.family === 'CoordinationOrderScopeLifecycle') {
     if (row.operation === 'update-forecast') return 'aria-label={`Suất dự kiến của ${order.customerName}`}'
     if (row.operation === 'request-adjustment') return 'aria-label={`Suất thực tế của ${order.customerName}`}'

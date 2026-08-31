@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getDateTimeFormat } from '@/lib/formatters'
-import type { ReconciliationBatch } from './reconciliationApi'
+import type { ReconciliationBatch } from '@/api/reconciliationApi'
 
 const createdAtFormat = getDateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 

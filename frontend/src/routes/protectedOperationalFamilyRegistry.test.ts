@@ -248,7 +248,7 @@ export const protectedOperationalFamilies: readonly ProtectedOperationalFamily[]
   {
     routeKey: 'WAREHOUSE', page: 'WarehousePage', ownerSource: 'frontend/src/features/warehouse/pages/WarehousePage.tsx',
     classification: 'object-family', families: ['WarehouseFulfilment', 'WarehousePurchaseReceipt'],
-    stateSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-350'),
+    stateSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50'),
     roleSource: source('literal-guarded', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:61-63'),
     operationSource: source('literal-guarded', 'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx:62-173'),
     backendEnforcementSource: unknown('frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx:44', 'Workbench mutations do not expose backend policy metadata.'),

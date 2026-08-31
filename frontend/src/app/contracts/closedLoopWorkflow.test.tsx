@@ -3,9 +3,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ROUTES } from '@/lib/routeConfig'
-import { isRouteEligible, retainedRoutes } from '@/features/system-operation/systemOperationEligibility'
-import { ReconciliationComparisonTable } from './ReconciliationComparisonTable'
-import type { ReconciliationLine } from './reconciliationApi'
+import { isRouteEligible, retainedRoutes } from '@/lib/systemOperationEligibility'
+import { ReconciliationComparisonTable } from '@/features/reconciliation/ReconciliationComparisonTable'
+import type { ReconciliationLine } from '@/api/reconciliationApi'
 import weeklyMenuPageSource from '@/features/projects/pages/WeeklyMenuPage.tsx?raw'
 
 const line: ReconciliationLine = {

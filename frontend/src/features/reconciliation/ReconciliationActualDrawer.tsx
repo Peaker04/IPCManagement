@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import type { ReconciliationLine } from './reconciliationApi'
-import { useSetReconciliationActualMutation } from './reconciliationApi'
+import type { ReconciliationLine } from '@/api/reconciliationApi'
+import { useSetReconciliationActualMutation } from '@/api/reconciliationApi'
 import { describeReconciliationError } from './reconciliationErrors'
 
 export function ReconciliationActualDrawer({ line, side, onClose, onRefetch }: { line: ReconciliationLine; side: 'purchased' | 'issued'; onClose: () => void; onRefetch: () => void }) {
