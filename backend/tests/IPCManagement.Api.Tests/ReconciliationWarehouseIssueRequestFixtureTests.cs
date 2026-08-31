@@ -55,37 +55,44 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
         var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
         var warehouse = new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH-FIXTURE", WarehouseName = "Fixture warehouse", WarehouseType = "MAIN", IsOperationalActive = true };
         var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "ING-FIXTURE", IngredientName = "Fixture ingredient", UnitId = unitId, WarehouseId = warehouseId, Unit = unit, Warehouse = warehouse, IsActive = true };
+        var batch = new ReconciliationBatch
+        {
+            BatchId = batchId,
+            MenuVersionId = GuidHelper.NewId(),
+            QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "TRANSFERRED",
+            Version = request.ExpectedVersion,
+            CreatedBy = actor,
+            CreatedAt = DateTime.UtcNow,
+        };
+        var line = new ReconciliationBatchLine
+        {
+            BatchLineId = batchLineId,
+            BatchId = batchId,
+            Batch = batch,
+            IngredientId = ingredientId,
+            Ingredient = ingredient,
+            CanonicalUnitId = unitId,
+            CanonicalUnit = unit,
+            RequiredQuantity = sourceLine.RequestedQty,
+            FrozenTolerance = 0.1m,
+            ToleranceSourceKind = "SYSTEM_DEFAULT",
+            ToleranceSourceVersion = "1",
+            Version = 1,
+        };
+        batch.Lines.Add(line);
         context.AddRange(
             unit,
             warehouse,
             ingredient,
             new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20 },
             new SystemOperationMode { Id = 1, Mode = SystemOperationEligibility.MaterialReconciliation, Version = 7, UpdatedAt = DateTime.UtcNow, UpdatedBy = actor },
-            new ReconciliationBatch
-            {
-                BatchId = batchId,
-                MenuVersionId = GuidHelper.NewId(),
-                QuantityImportBatchId = GuidHelper.NewId(),
-                Status = "TRANSFERRED",
-                Version = request.ExpectedVersion,
-                CreatedBy = actor,
-                CreatedAt = DateTime.UtcNow,
-                Lines =
-                [
-                    new ReconciliationBatchLine
-                    {
-                        BatchLineId = batchLineId,
-                        IngredientId = ingredientId,
-                        CanonicalUnitId = unitId,
-                        RequiredQuantity = sourceLine.RequestedQty,
-                        FrozenTolerance = 0.1m,
-                        ToleranceSourceKind = "SYSTEM_DEFAULT",
-                        ToleranceSourceVersion = "1",
-                        Version = 1,
-                    },
-                ],
-            });
+            batch);
         await context.SaveChangesAsync();
+
+        var storedLine = await context.Reconciliationbatchlines.AsNoTracking().SingleAsync();
+        Assert.True(storedLine.BatchLineId.SequenceEqual(batchLineId));
+        Assert.Equal(sourceLine.ReconciliationBatchLineId, GuidHelper.ToGuidString(storedLine.BatchLineId));
 
         var requestContext = new SystemOperationRequestContext
         {
@@ -99,7 +106,6 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
         await modeService.ChangeAsync(
             new ChangeSystemOperationModeRequest(SystemOperationEligibility.Default, 7, true, "Fixture stale replay"),
             actorId);
-        context.ChangeTracker.Clear();
         var before = CaptureLedger(context);
 
         var service = new InventoryIssueService(
@@ -115,7 +121,8 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
         currentUser.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(actorId);
         var controller = new InventoryIssuesController(service, currentUser);
 
-        await Assert.ThrowsAsync<SystemOperationConflictException>(() => controller.CreateAsync(request));
+        var conflict = await Assert.ThrowsAsync<SystemOperationConflictException>(() => controller.CreateAsync(request));
+        Assert.Contains("thay đổi", conflict.Message, StringComparison.OrdinalIgnoreCase);
 
         context.ChangeTracker.Clear();
         Assert.Equal(before, CaptureLedger(context));
