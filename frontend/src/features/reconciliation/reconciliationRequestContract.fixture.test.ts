@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -105,7 +105,8 @@ describe('production reconciliation issue request fixture', () => {
   it('is credential-free and byte-identical to current RTK serialization', async () => {
     const fresh = await captureProductionRequest()
 
-    if (process.argv.includes('--update')) {
+    if (process.env.UPDATE_PHASE30_REQUEST_CONTRACT === '1') {
+      await mkdir(resolve(fixturePath, '..'), { recursive: true })
       await writeFile(fixturePath, fresh, 'utf8')
     }
 
