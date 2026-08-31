@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
 status: blocked
-stopped_at: Completed 30-06-PLAN.md
-last_updated: "2026-08-29T23:22:33.506Z"
+stopped_at: Completed 30-13-PLAN.md; MRX-06P BLOCKED
+last_updated: "2026-08-31T13:47:54Z"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 76
-  completed_plans: 65
-  percent: 86
+  completed_plans: 73
+  percent: 96
 current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-30 — Remediated Plan 30-06 stale DEFAULT transaction-local rejection and exact full-ledger success/replay evidence
+last_activity: 2026-08-31 — Phase 30 local closure verified at 6bfbd9f9; MRX-06P remains authorization-blocked
 ---
 
 # Project State
@@ -21,13 +21,13 @@ last_activity: 2026-08-30 — Remediated Plan 30-06 stale DEFAULT transaction-lo
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Continue MRX-04 real-owner closure through sequential executor waves 6-8 (Plans 30-06..08), then continue Plans 30-09..13 on waves 9-13
+**Current focus:** Phase 30 local execution is complete through Plan 30-13; await fresh authorization for protected MRX-06P only.
 
 ## Current Status
 
 - Phases 27, 27.1, 28 and 29 are COMPLETE.
-- Phase 30 Plans 01-03 and 30-05..06 are complete. Plan 30-04 remains an already-executed PARTIAL prerequisite/handoff whose verified return-family, DEFAULT-only supplemental and explicit legacy truths/commits remain authoritative. Plan 30-05 closes all four DEFAULT inventory transaction owners; Plan 30-06 closes supplemental create/fulfill/route/reject and legacy apply through persisted five-checkpoint public-service ledgers. Plans 30-07..08 own the remaining executable inactive-owner matrix.
-- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains generated and SQL-inspected only; it was not applied to any database. Next action is `30-07-PLAN.md`.
+- Phase 30 Plans 01-13 are locally complete. Plan 30-04 remains a truthful historical partial handoff, and its dependent local owner matrix was completed by Plans 30-05..08. Final local remediation/certification through `6bfbd9f9` closes MRX-06L.
+- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains unapplied to protected `ipc_lane7`. MRX-06P is BLOCKED pending fresh operator authorization; The entire final local closeout performed no protected API, database, browser, reset, seed, or `ipc_lane7` access.
 - Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
 - Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
 - Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
@@ -35,13 +35,13 @@ See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.m
 
 ## Session Continuity
 
-**Last session:** 2026-08-30T06:40:00Z
+**Last session:** 2026-08-31T13:47:54Z
 **Resume file:** None
 
-**Stopped at:** Completed 30-06-PLAN.md
+**Stopped at:** Completed 30-13-PLAN.md; MRX-06P BLOCKED
 **Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Next workflow: execute `30-07-PLAN.md` (executor wave 7), then 30-08..13 on distinct numeric waves matching their dependencies. Preserve the conceptual backend Wave 4/frontend Wave 5 grouping, all verified Plan 30-04 commits/truths and retained migration-75 authority; no protected database mutation is authorized.
+Next workflow: obtain fresh operator authorization before any MRX-06P protected lane work. Preserve the verified local gate matrix, tracked request fixture, failed-attempt history, and retained protected migration-75 authority; no protected database mutation is currently authorized.
 
 ## Decisions
 
@@ -92,6 +92,15 @@ Next workflow: execute `30-07-PLAN.md` (executor wave 7), then 30-08..13 on dist
 - [Phase 30]: Supplemental create, fulfill, route, and reject consume the captured DEFAULT operation key and mode version inside their owning transactions.
 - [Phase 30]: Supplemental rejection is versioned and receipt-backed so replay returns the canonical persisted response without duplicate effects.
 - [Phase 30]: Legacy disposition production remained unchanged because its existing protected apply passed the persisted public-service race proof.
+- [Phase ?]: Plan 30-07 binds material-demand approval persistence to the operation key and mode revision observed by the MVC request, without changing route, filter, authorization, registration, or permissions.
+- [Phase ?]: The deterministic approval race barrier uses ASP.NET Core's MVC-generated action key approvals.execute because the Async suffix is suppressed.
+- [Phase ?]: Plan 30-08 retained production reconciliation services unchanged because the persisted public-owner matrix exposed no missing mode/version fence.
+- [Phase ?]: Warehouse issue/return stock authority remains distinct from manual ISSUED reconciliation actual-row authority.
+- [Phase ?]: Absent cleanup/background ownership is proven from executable controller actions, DI source, and lifecycle processor contract/source, independently of keys and capability metadata.
+- [Phase ?]: Plan 30-11: Revalidate protected mode/version immediately before the first reconciliation issue mutation after any deterministic pre-write gate.
+- [Phase ?]: Plan 30-11: Preserve READY reconciliation facts immutably; changed shared authority requires a new materialized batch/version.
+- [Phase ?]: Plan 30-13 captures the production RTK Request at fetch transport and tracks only canonical credential-free request bytes.
+- [Phase ?]: Plan 30-13 replays the exact tracked fixture through InventoryIssuesController and InventoryIssueService after a mode revision, comparing a complete post-change ledger.
 
 ### Quick Tasks Completed
 
@@ -107,7 +116,7 @@ Next workflow: execute `30-07-PLAN.md` (executor wave 7), then 30-08..13 on dist
 
 ### Blockers
 
-- Plan 30-04 is a partial prerequisite/handoff, not forward-blocked. Plans 30-05..08 must invoke every applicable DEFAULT/reconciliation owner through persisted public paths. Cleanup/background absence requires the explicitly named executable controller/action/DI registration-set test; guard, capability and operation-key rows cannot satisfy it.
+- Phase 30 local work is closed. The only Phase 30 blocker is MRX-06P: fresh operator authorization is required before backup-first protected `ipc_lane7` migration/API/browser evidence. Populated reconciliation-dialog focus remains NEEDS_EVIDENCE until that protected run.
 - No Phase 29 blocker remains.
 - The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
 
@@ -138,3 +147,7 @@ Next workflow: execute `30-07-PLAN.md` (executor wave 7), then 30-08..13 on dist
 | Phase 30 P04 | 2h | 3 tasks | 8 files |
 | Phase 30 P05 | 40min | 2 tasks | 2 files |
 | Phase 30 P06 | 1h | 2 tasks | 4 files |
+| Phase 30 P07 | 35min | 2 tasks | 3 files |
+| Phase 30 P08 | 35min | 3 tasks | 1 files |
+| Phase 30 P11 | 15min | 3 tasks | 2 files |
+| Phase 30 P13 | 45min | 2 tasks | 5 files |

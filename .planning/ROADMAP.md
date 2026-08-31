@@ -205,7 +205,7 @@ Plans:
 
 ## Phase 30: Closed-loop menu issue reconciliation
 
-**Status:** IN PROGRESS — base closed loop and backend authority boundary complete; bounded local data-isolation slices remain in conceptual waves 4 and 5
+**Status:** LOCAL CLOSED — all 13 plans executed and local gates verified at `6bfbd9f9`; protected MRX-06P remains BLOCKED pending fresh authorization
 
 **Goal:** Refine `MATERIAL_RECONCILIATION` into one closed workflow: import/select Weekly Menu source, calculate exact material quantities, transfer one frozen issue list to Warehouse, create real source-linked inventory issue documents, then compare required versus warehouse-issued quantities on one compact reconciliation page.
 
@@ -225,22 +225,22 @@ Plans:
 - Retained pages remove unrelated default-mode content and hidden owners produce zero requests.
 - Historical completed Phase 29 batches remain immutable/readable; no guessed legacy lineage or destructive rewrite.
 
-**Plans:** 5 complete + 1 partial handoff / 13 total plans / 5 conceptual product waves (executor waves 1-13)
+**Plans:** 13/13 plans executed
 
 Plans:
 
 - [x] 30-01-PLAN.md — authority tracer: capability, exact Warehouse issue lineage, transfer and required-versus-issued projection (wave 1).
 - [x] 30-02-PLAN.md — focused work surfaces: new route, trimmed Weekly Menu/Warehouse/Admin content and zero hidden query ownership (wave 2).
 - [x] 30-03-PLAN.md — exact-one backend issue authority and retained endpoint permission matrix (wave 3; complete at `722175f2`).
-- [!] 30-04-PLAN.md — already-executed PARTIAL backend conceptual Wave 4 prerequisite/handoff (executor wave 4): verified dual-family return/correction, DEFAULT-only supplemental and explicit legacy truths preserved; MRX-04 remainder owned by dependent 30-05..08.
+- [x] 30-04-PLAN.md — historical PARTIAL prerequisite/handoff retained truthfully; dependent Plans 30-05..08 completed its remaining local owner matrix without rewriting the handoff record.
 - [x] 30-05-PLAN.md — backend conceptual Wave 4 / executor wave 5 MRX-04 DEFAULT inventory owners, test-first retaining the existing `f4b47b40` issue fence unless executable evidence exposes a gap (depends on 30-04).
 - [x] 30-06-PLAN.md — backend conceptual Wave 4 / executor wave 6 MRX-04 DEFAULT lifecycle owners: supplemental create/fulfill/route/reject and pending legacy apply (depends on 30-05).
-- [ ] 30-07-PLAN.md — backend conceptual Wave 4 / executor wave 7 MRX-04 approval owner through the actual MVC filter plus handler transaction fence (depends on 30-06).
-- [ ] 30-08-PLAN.md — backend conceptual Wave 4 / executor wave 8 MRX-04 reconciliation owners and executable absent cleanup/background-owner proof (depends on 30-07).
-- [ ] 30-09-PLAN.md — backend conceptual Wave 4 / executor wave 9 discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-08).
-- [ ] 30-10-PLAN.md — backend conceptual Wave 4 / executor wave 10 exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-09).
-- [ ] 30-11-PLAN.md — backend conceptual Wave 4 / executor wave 11 frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-10).
-- [ ] 30-12-PLAN.md — frontend conceptual Wave 5 / executor wave 12 production two-tab authority channel and sharply bounded inactive-owner cleanup (depends on 30-11).
-- [ ] 30-13-PLAN.md — frontend conceptual Wave 5 / executor wave 13 deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-12).
+- [x] 30-07-PLAN.md — backend conceptual Wave 4 / executor wave 7 MRX-04 approval owner through the actual MVC filter plus handler transaction fence (depends on 30-06).
+- [x] 30-08-PLAN.md — backend conceptual Wave 4 / executor wave 8 MRX-04 reconciliation owners and executable absent cleanup/background-owner proof (depends on 30-07).
+- [x] 30-09-PLAN.md — backend conceptual Wave 4 / executor wave 9 discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-08).
+- [x] 30-10-PLAN.md — backend conceptual Wave 4 / executor wave 10 exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-09).
+- [x] 30-11-PLAN.md — backend conceptual Wave 4 / executor wave 11 frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-10).
+- [x] 30-12-PLAN.md — frontend conceptual Wave 5 / executor wave 12 production two-tab authority channel and sharply bounded inactive-owner cleanup (depends on 30-11).
+- [x] 30-13-PLAN.md — frontend conceptual Wave 5 / executor wave 13 deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-12).
 
-**MRX-06 disposition:** Plans 30-03..05 may complete only `MRX-06L` using local deterministic tests and source-aware closure. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`; these local plans must not access the protected lane and cannot mark MRX-06 or MRX-06P complete.
+**MRX-06 disposition:** `MRX-06L` is **COMPLETE** at verified HEAD `6bfbd9f9` after the final canonical local gate matrix. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`. No Phase 30 protected migration or final protected-mode run was performed; aggregate `MRX-06` remains BLOCKED. See `30-VERIFICATION.md`.
