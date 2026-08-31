@@ -120,6 +120,26 @@
       ]
     },
     {
+      "id": "MaterialReconciliation",
+      "disposition": "debt",
+      "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+      "debt": {
+        "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
+        "reason": "Reconciliation state and disposition operations are query-owned while the server remains the lifecycle authority.",
+        "sources": [
+          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-80",
+          "frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46"
+        ]
+      },
+      "backendBacked": true,
+      "backendEvidence": [
+        {
+          "kind": "policy",
+          "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs"
+        }
+      ]
+    },
+    {
       "id": "ProductionPlan",
       "disposition": "debt",
       "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
@@ -172,7 +192,7 @@
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
           "frontend/src/features/reports/pages/ReportsPage.tsx:60-85",
-          "frontend/src/features/reports/pages/ReportsPage.tsx:114"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:113"
         ]
       },
       "backendBacked": false,

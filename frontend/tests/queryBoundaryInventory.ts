@@ -17,8 +17,8 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     requiredMarkers: ['useGetSystemOperationModeQuery', 'Không tải được chế độ vận hành', 'useChangeSystemOperationModeMutation'],
   },
   'src/features/reconciliation/ClosedLoopTransferPanel.tsx': {
-    rationale: 'The transfer card owns one batch collection and explicitly distinguishes loading, error and no-ready-batch states.',
-    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Chưa có lô định lượng sẵn sàng'],
+    rationale: 'The transfer card owns one batch collection and explicitly distinguishes loading, error, missing-scope and no-batch-for-scope states.',
+    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Phạm vi đang chọn chưa có lô định lượng'],
   },
   'src/features/reconciliation/ReconciliationWorkspace.tsx': {
     rationale: 'The retained-work-area reconciliation workspace owns one batch collection and preserves loading, error and genuinely empty states.',

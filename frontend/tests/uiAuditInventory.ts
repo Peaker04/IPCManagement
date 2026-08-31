@@ -7,13 +7,13 @@ export const UI_AUDIT_VIEWPORTS = [
   { id: '1280x900', width: 1280, height: 900 }, { id: '320x900', width: 320, height: 900 },
   { id: '320x900@200%', width: 320, height: 900, textZoomPercent: 200 },
 ] as const;
-export const UI_AUDIT_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/admin-data', '/admin/rules', '/admin/advanced-settings', '/login', '/403'] as const;
+export const UI_AUDIT_ROUTES = ['/', '/weekly-menu', '/reports', '/meal-orders', '/chef-dashboard', '/approvals', '/purchasing', '/warehouse', '/reconciliation', '/admin-data', '/admin/rules', '/admin/advanced-settings', '/login', '/403'] as const;
 export const CANONICAL_QUERY_STATES = ['initial-loading', 'populated', 'refreshing', 'truly-empty', 'no-results', 'error-no-data', 'partial-error-stale', 'mutation-in-flight', 'mutation-failure'] as const;
 export const REGION_INVENTORY = {
   '/': ['dashboard-shift-status','dashboard-workflow-exceptions'], '/weekly-menu': ['weekly-schedule','weekly-demand','weekly-purchase-summary','weekly-cost','weekly-dish-materials'],
   '/reports': ['report-demand','report-purchase-plan','report-current-stock','report-movements','report-price-variance'], '/meal-orders': ['coordination-orders'],
   '/chef-dashboard': ['chef-production','chef-material-checklist','chef-documents'], '/approvals': ['approval-queue','approval-history','approval-purchase-requests'],
-  '/purchasing': ['purchase-workflow','purchase-supplemental','purchase-quotes'], '/warehouse': ['warehouse-current-stock','warehouse-purchase-receipts','warehouse-issues','warehouse-movements'],
+  '/purchasing': ['purchase-workflow','purchase-supplemental','purchase-quotes'], '/warehouse': ['warehouse-current-stock','warehouse-purchase-receipts','warehouse-issues','warehouse-movements'], '/reconciliation': ['reconciliation-workspace'],
   '/admin-data': ['admin-entities','admin-imports','admin-data-quality','admin-cleanup'], '/admin/rules': ['approval-rules'], '/admin/advanced-settings': ['advanced-settings-form'],
   '/login': ['login-form'], '/403': ['forbidden-panel'],
 } as const;
@@ -33,6 +33,7 @@ export const UI_AUDIT_ROUTE_AUTHORITIES: Record<UiAuditRoute, { actor: string; l
   '/approvals': { actor: 'manager', lowestOwner: 'ApprovalPage' },
   '/purchasing': { actor: 'purchasing', lowestOwner: 'PurchasingPage' },
   '/warehouse': { actor: 'warehouse-keeper', lowestOwner: 'WarehousePage' },
+  '/reconciliation': { actor: 'warehouse-keeper', lowestOwner: 'ReconciliationPage' },
   '/admin-data': { actor: 'administrator', lowestOwner: 'AdminDataPage' },
   '/admin/rules': { actor: 'administrator', lowestOwner: 'ApprovalRulesPage' },
   '/admin/advanced-settings': { actor: 'administrator', lowestOwner: 'AdvancedDisplaySettings' },

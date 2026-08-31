@@ -6,9 +6,9 @@ import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS } from './uiAuditOracleRegistr
 import { computeRunFingerprint, isLedgerRequest } from './uiAuditEvidence';
 
 describe('Phase 28 closed UI audit inventory', () => {
-  it('matches exactly 13 AppRouter page routes and excludes the wildcard', () => {
+  it('matches exactly 14 AppRouter page routes and excludes the wildcard', () => {
     expect(parseProductionRouteSet()).toEqual([...UI_AUDIT_ROUTES].sort());
-    expect(UI_AUDIT_ROUTES).toHaveLength(13); expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
+    expect(UI_AUDIT_ROUTES).toHaveLength(14); expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
   });
   it('closes rule fixtures and every six-part region fixture exactly once', () => {
     expect(() => validateUiAuditRegistries()).not.toThrow();

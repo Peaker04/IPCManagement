@@ -26,6 +26,8 @@ import approvalRulesPageSource from '../src/features/admin/pages/ApprovalRulesPa
 import dashboardPageSource from '../src/features/dashboard/pages/DashboardPage.tsx?raw'
 import forbiddenPageSource from '../src/features/auth/pages/ForbiddenPage.tsx?raw'
 import reportsPageSource from '../src/features/reports/pages/ReportsPage.tsx?raw'
+import reconciliationPageSource from '../src/features/reconciliation/pages/ReconciliationPage.tsx?raw'
+import reconciliationDispositionSource from '../src/features/reconciliation/ReconciliationDispositionDrawer.tsx?raw'
 import chefProductionModelSource from '../src/features/chef/production/chefProductionModel.ts?raw'
 import chefProductionSectionSource from '../src/features/chef/production/ChefProductionSection.tsx?raw'
 import warehouseReceiptSource from '../src/features/warehouse/WarehousePurchaseReceiptDialog.tsx?raw'
@@ -78,6 +80,8 @@ const manifestDebtRawSources: Record<string, string> = {
   'frontend/src/features/chef/production/ChefProductionSection.tsx': chefProductionSectionSource,
   'frontend/src/features/chef/production/chefProductionModel.ts': chefProductionModelSource,
   'frontend/src/features/dashboard/pages/DashboardPage.tsx': dashboardPageSource,
+  'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx': reconciliationPageSource,
+  'frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx': reconciliationDispositionSource,
   'frontend/src/features/reports/pages/ReportsPage.tsx': reportsPageSource,
   'frontend/src/features/warehouse/WarehousePurchaseReceiptDialog.tsx': warehouseReceiptSource,
 }
@@ -124,12 +128,22 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'onClick={() => void onReceivePlan()}',
     ],
   },
+  MaterialReconciliation: {
+    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-80': [
+      'export default function ReconciliationPage()',
+      '<ReconciliationComparisonTable lines={batch.lines}'
+    ],
+    'frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46': [
+      'export function ReconciliationDispositionDrawer(',
+      'useSetReconciliationDispositionMutation()',
+    ],
+  },
   Reports: {
     'frontend/src/features/reports/pages/ReportsPage.tsx:60-85': [
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:114': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:113': [
       '<ReportQueryBoundary view={reportViews.demand}>',
     ],
   },

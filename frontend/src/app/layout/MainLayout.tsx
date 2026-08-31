@@ -307,10 +307,10 @@ const routeOwnership = {
    [ROUTES.FORBIDDEN]: { ownerId: 'uio-h', floorplanId: 'uif-h', regionId: 'uir-h' },
    [ROUTES.MEAL_ORDERS]: { ownerId: 'uio-j', floorplanId: 'uif-j', regionId: 'uir-j' },
    [ROUTES.PURCHASING]: { ownerId: 'uio-k', floorplanId: 'uif-k', regionId: 'uir-k' },
-   [ROUTES.REPORTS]: { ownerId: 'uio-s', floorplanId: 'uif-s', regionId: 'uir-s' },
-   [ROUTES.RECONCILIATION]: { ownerId: 'uio-rx', floorplanId: 'uif-rx', regionId: 'uir-rx' },
-   [ROUTES.WAREHOUSE]: { ownerId: 'uio-12', floorplanId: 'uif-12', regionId: 'uir-12' },
-   [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-16', floorplanId: 'uif-16', regionId: 'uir-16' },
+   [ROUTES.REPORTS]: { ownerId: 'uio-t', floorplanId: 'uif-t', regionId: 'uir-t' },
+   [ROUTES.RECONCILIATION]: { ownerId: 'uio-o', floorplanId: 'uif-o', regionId: 'uir-o' },
+   [ROUTES.WAREHOUSE]: { ownerId: 'uio-13', floorplanId: 'uif-13', regionId: 'uir-13' },
+   [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-17', floorplanId: 'uif-17', regionId: 'uir-17' },
 } as const;
 
 const ownershipForRoute = (pathname: string) => routeOwnership[pathname as keyof typeof routeOwnership] ?? routeOwnership[ROUTES.DASHBOARD];

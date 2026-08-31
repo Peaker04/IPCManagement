@@ -10,11 +10,11 @@ describe('MainLayout ownership and behavior contract', () => {
 
   it('locks navigation, permissions, preload and DOM-visible behavior', () => {
     expect(currentLayoutSource).toContain('item.requiredPermissions.some');
-    expect(currentLayoutSource).toContain('preloadRoute(path)');
-    expect(currentLayoutSource).toContain('preloadRouteData(path)');
-    expect(currentLayoutSource).toContain('onPointerEnter={() => preloadNavigationTarget(item.path)}');
-    expect(currentLayoutSource).toContain('onFocus={() => preloadNavigationTarget(item.path)}');
-    expect(currentLayoutSource).toContain('onTouchStart={() => preloadNavigationTarget(item.path)}');
+    expect(currentLayoutSource).toContain('preloadRoute(path, mode)');
+    expect(currentLayoutSource).toContain('preloadRouteData(path, mode)');
+    expect(currentLayoutSource).toContain("onPointerEnter={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}");
+    expect(currentLayoutSource).toContain("onFocus={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}");
+    expect(currentLayoutSource).toContain("onTouchStart={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}");
     expect(currentLayoutSource).toContain('aria-current={isActive ? \'page\' : undefined}');
     expect(currentLayoutSource).toContain('id="ipc-main-content"');
     expect(currentLayoutSource).toContain('<Outlet />');
