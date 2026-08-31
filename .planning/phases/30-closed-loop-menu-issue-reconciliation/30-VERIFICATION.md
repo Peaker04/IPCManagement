@@ -2,7 +2,9 @@
 
 **Verified code HEAD:** `6bfbd9f96046b28a200056916b3d2a1b7afe3a8d`
 
-**Canonical-artifact base HEAD:** `e7187df5870956bdba12e36cc1af4f88a07d6ac6` (docs-only descendant of the verified code HEAD)
+**Preceding state-closeout HEAD:** `e7187df5870956bdba12e36cc1af4f88a07d6ac6` (docs-only descendant of the verified code HEAD)
+
+**Canonical closeout-artifact HEAD:** `0efb8012f4979ee17e61fa11e717b6bdde1c753d` (docs-only descendant that committed this verification record and the canonical closeout summaries)
 
 **Local verdict:** **PASS / CLOSED**
 
@@ -84,4 +86,4 @@ The canonical final verifier reports are `.artifacts/runtime/phase30-final-route
 
 ## Final verdict
 
-Phase 30 deterministic local code work is closed at `6bfbd9f9`; the canonical closeout artifacts are being committed from docs-only descendant `e7187df5`. No protected claim is made. The next and only Phase 30 checkpoint is an explicit human authorization decision for MRX-06P; until then the protected migration remains unapplied, populated focus remains NEEDS_EVIDENCE, final protected mode is not newly tested, and aggregate MRX-06 stays BLOCKED.
+Phase 30 deterministic local code work is closed at `6bfbd9f9`; the preceding state closeout is committed at `e7187df5`, and the canonical closeout artifacts are committed at docs-only descendant `0efb8012f4979ee17e61fa11e717b6bdde1c753d`. No protected claim is made. The next and only Phase 30 checkpoint is an explicit human authorization decision for MRX-06P; until then the protected migration remains unapplied, populated focus remains NEEDS_EVIDENCE, final protected mode is not newly tested, and aggregate MRX-06 stays BLOCKED.
