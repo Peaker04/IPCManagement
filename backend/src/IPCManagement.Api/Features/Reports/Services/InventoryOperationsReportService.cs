@@ -156,7 +156,7 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
 
         var issueIds = lines
             .Select(item => item.IssueId)
-            .Distinct(ByteArrayComparer.Instance)
+            .Distinct(ByteArrayValueComparer.Instance)
             .ToList();
         var returnLines = await _context.Inventoryreturnlines
             .AsNoTracking()
@@ -223,7 +223,7 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
 
         var issueIds = lines
             .Select(item => item.IssueId)
-            .Distinct(ByteArrayComparer.Instance)
+            .Distinct(ByteArrayValueComparer.Instance)
             .ToList();
         var returnLines = await _context.Inventoryreturnlines
             .AsNoTracking()
@@ -587,22 +587,4 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             _ => null
         };
 
-    private sealed class ByteArrayComparer : IEqualityComparer<byte[]>
-    {
-        public static readonly ByteArrayComparer Instance = new();
-
-        public bool Equals(byte[]? x, byte[]? y)
-            => ReferenceEquals(x, y) || (x is not null && y is not null && x.SequenceEqual(y));
-
-        public int GetHashCode(byte[] obj)
-        {
-            var hash = new HashCode();
-            foreach (var value in obj)
-            {
-                hash.Add(value);
-            }
-
-            return hash.ToHashCode();
-        }
-    }
 }

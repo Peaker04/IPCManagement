@@ -8,32 +8,13 @@ using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using static IPCManagement.Api.Features.Planning.Services.ServiceRunRules;
-
 namespace IPCManagement.Api.Features.Planning.Services;
-
 public sealed class ServiceRunService(IpcManagementContext context) : IServiceRunService
 {
-    internal static IQueryable<MaterialRequestLine> SelectRequestSourceLines(
-        IQueryable<MaterialRequestLine> sourceLines,
-        byte[] requestId)
-        => sourceLines.Where(line => line.RequestId.SequenceEqual(requestId));
-
-    internal static IReadOnlyList<InventoryIssueLine> SelectRelevantIssueLines(
-        IEnumerable<InventoryIssue> issues,
-        IEnumerable<MaterialRequestLine> demandLines,
-        string shiftName)
-    {
-        var demandLineIds = demandLines.Select(line => Convert.ToBase64String(line.RequestLineId)).ToHashSet();
-        return issues
-            .Where(issue => issue.ReconciliationBatchId == null &&
-                (issue.MaterialRequestId != null || issue.Inventoryissuelines.Any(line =>
-                    line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null)))
-            .SelectMany(issue => issue.Inventoryissuelines.Where(line =>
-                line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null &&
-                demandLineIds.Contains(Convert.ToBase64String(line.MaterialRequestLineId))))
-            .ToList();
-    }
-
+    internal static IQueryable<MaterialRequestLine> SelectRequestSourceLines(IQueryable<MaterialRequestLine> sourceLines, byte[] requestId)
+        => ServiceRunSourceSelection.SelectRequestSourceLines(sourceLines, requestId);
+    internal static IReadOnlyList<InventoryIssueLine> SelectRelevantIssueLines(IEnumerable<InventoryIssue> issues, IEnumerable<MaterialRequestLine> demandLines, string shiftName)
+        => ServiceRunSourceSelection.SelectRelevantIssueLines(issues, demandLines);
     public async Task<ServiceRunLifecycleProjectionDto?> OpenAsync(OpenServiceRunRequest request, string? userId, CancellationToken cancellationToken = default)
     {
         var planId = GuidHelper.ParseGuidString(request.PlanId) ?? throw new ArgumentException("Kế hoạch sản xuất không hợp lệ.");
@@ -48,7 +29,6 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
             ?? throw new ArgumentException("Phải chọn khách hàng cho Ca phục vụ.");
         if (!plan.Productionplanlines.Any(line => line.ShiftName == shiftName && line.CustomerId.SequenceEqual(requestedCustomerId)))
             throw new ArgumentException("Kế hoạch sản xuất không có ca phục vụ của khách hàng đã chọn.");
-
         var requestIds = await context.Materialrequests
             .Where(request => request.PlanId.SequenceEqual(planId))
             .Select(request => request.RequestId)
@@ -71,7 +51,6 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var scopedSourceLines = sourceLines.Where(item => item.PriceTierAmount == priceTier).ToList();
         if (scopedSourceLines.Count == 0)
             throw await CreateScopeDecisionAsync(plan, requestedCustomerId, shiftName, priceTier, "Không có source-line material khớp customer/date/shift/tier.", cancellationToken);
-
         var run = await context.Serviceruns.FirstOrDefaultAsync(item =>
             item.CustomerId != null && item.CustomerId.SequenceEqual(requestedCustomerId) && item.ServiceDate == plan.PlanDate && item.ShiftName == shiftName && item.PriceTierAmount == priceTier,
             cancellationToken);
@@ -93,7 +72,6 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         }
         return await GetProjectionAsync(GuidHelper.ToGuidString(run.ServiceRunId), cancellationToken);
     }
-
     private async Task<BusinessRuleException> CreateScopeDecisionAsync(ProductionPlan plan, byte[] customerId, string shiftName, decimal? priceTierAmount, string reason, CancellationToken cancellationToken)
     {
         var existing = await context.Servicerundecisionitems.FirstOrDefaultAsync(item =>

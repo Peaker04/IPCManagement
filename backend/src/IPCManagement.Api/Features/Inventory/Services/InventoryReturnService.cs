@@ -65,7 +65,6 @@ public class InventoryReturnService : IInventoryReturnService
             ? null
             : InventoryMapper.MapReturn(inventoryReturn, includeLines: true);
     }
-
     public async Task<InventoryReturnCreatedDto?> CreateAsync(CreateInventoryReturnRequest dto, string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -75,20 +74,17 @@ public class InventoryReturnService : IInventoryReturnService
             : RequireText(dto.CommandId, "Mã lệnh tạo phiếu không được để trống.", 128);
         const string aggregateType = "InventoryReturn";
         var recorder = _context is null ? null : new LifecycleTransitionRecorder(_context);
-
         var canonicalWarehouseId = await ResolveCanonicalWarehouseAsync(
             _operationalWarehouseResolver,
             dto.WarehouseId);
         var warehouseBytes = canonicalWarehouseId;
         var issueBytes = GuidHelper.ParseGuidString(dto.IssueId)
             ?? throw new ArgumentException("IssueId không hợp lệ.");
-
         var returnType = NormalizeReturnType(dto.ReturnType);
         if (string.IsNullOrWhiteSpace(dto.Reason))
         {
             throw new ArgumentException("Cần ghi lý do trả kho hoặc hao hụt thực tế.");
         }
-
         var returnId = GuidHelper.NewId();
         var returnCode = $"{ResolveReturnCodePrefix(returnType)}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
         return await ExecuteModeProtectedAsync(
@@ -104,21 +100,17 @@ public class InventoryReturnService : IInventoryReturnService
                 var issue = await _issueRepository.GetByIdWithLinesAsync(issueBytes)
                     ?? throw new KeyNotFoundException($"Không tìm thấy phiếu xuất kho với ID: {dto.IssueId}");
                 EnsureOwningFamilyActive(issue);
-
                 if (!issue.WarehouseId.SequenceEqual(canonicalWarehouseId))
                 {
                     throw new BusinessRuleException("Phiếu trả phải thuộc cùng kho với phiếu xuất gốc.");
                 }
-
                 if (issue.ReceivedAt is null)
                 {
                     throw new BusinessRuleException(
                         "Bếp cần xác nhận đã nhận phiếu xuất gốc trước khi tạo phiếu trả hoặc khai báo hao hụt.");
                 }
-
                 var accountedQuantities = await _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(issueBytes);
                 var sourceLineIds = new HashSet<string>(StringComparer.Ordinal);
-
                 var inventoryReturn = new InventoryReturn
                 {
                     ReturnId = returnId,
@@ -132,7 +124,6 @@ public class InventoryReturnService : IInventoryReturnService
                     CreatedBy = userIdBytes,
                     CreatedAt = DateTime.UtcNow
                 };
-
                 inventoryReturn.Inventoryreturnlines = dto.Lines.Select(line =>
                 {
                     var ingredientBytes = GuidHelper.ParseGuidString(line.IngredientId)
@@ -145,10 +136,8 @@ public class InventoryReturnService : IInventoryReturnService
                     {
                         throw new BusinessRuleException("Mỗi dòng nguồn của phiếu xuất chỉ được trả/ghi hao hụt một lần trên cùng chứng từ.");
                     }
-
                     var quantity = DecimalPolicy.RoundQuantity(line.Quantity);
                     ValidateReturnQuantity(sourceLine, accountedQuantities.GetValueOrDefault(sourceLineId), quantity);
-
                     return new InventoryReturnLine
                     {
                         ReturnLineId = GuidHelper.NewId(),
@@ -159,7 +148,6 @@ public class InventoryReturnService : IInventoryReturnService
                         Quantity = quantity
                     };
                 }).ToList();
-
                 _returnRepository.Add(inventoryReturn);
 
                 var result = new InventoryReturnCreatedDto
@@ -455,14 +443,14 @@ public class InventoryReturnService : IInventoryReturnService
         CancellationToken cancellationToken = default)
     {
         EnsureAllocationContext(_context);
-        var sourceLines = await LoadScopedSourceLinesAsync(query, cancellationToken);
+        var sourceLines = await InventoryReturnScopeLoader.LoadScopedAsync(_context!, query, cancellationToken);
         var customers = (await _context!.Customers.AsNoTracking().ToListAsync(cancellationToken))
             .ToDictionary(item => Convert.ToHexString(item.CustomerId));
         var ingredients = (await _context.Ingredients.AsNoTracking().ToListAsync(cancellationToken))
             .ToDictionary(item => Convert.ToHexString(item.IngredientId));
         var units = (await _context.Units.AsNoTracking().ToListAsync(cancellationToken))
             .ToDictionary(item => Convert.ToHexString(item.UnitId));
-        var actorIsAdmin = await IsAdminAsync(userId, cancellationToken);
+        var actorIsAdmin = await InventoryReturnScopeLoader.IsAdminAsync(_context!, userId, cancellationToken);
         var sourceIds = sourceLines.Select(item => item.Line.IssueLineId).ToList();
         var returnedAndWasted = await _context!.Inventoryreturnlines.AsNoTracking()
             .Include(item => item.Return)
@@ -525,7 +513,7 @@ public class InventoryReturnService : IInventoryReturnService
     {
         EnsureAllocationContext(_context);
         var actorId = GuidHelper.ParseGuidString(userId) ?? throw new UnauthorizedAccessException("Không xác định được người thực hiện disposition.");
-        if (!await IsAdminAsync(userId, cancellationToken)) throw new UnauthorizedAccessException("Chỉ Admin được điều phối excess giữa khách hàng.");
+        if (!await InventoryReturnScopeLoader.IsAdminAsync(_context!, userId, cancellationToken)) throw new UnauthorizedAccessException("Chỉ Admin được điều phối excess giữa khách hàng.");
         var sourceId = ParseRequiredId(request.SourceIssueLineId, "SourceIssueLineId không hợp lệ.");
         var destinationId = ParseRequiredId(request.DestinationSourceLineId, "DestinationSourceLineId không hợp lệ.");
         if (sourceId.SequenceEqual(destinationId)) throw new BusinessRuleException("Dòng nguồn và dòng đích phải khác nhau.");
@@ -539,8 +527,8 @@ public class InventoryReturnService : IInventoryReturnService
 
         return await _transactionRunner.ExecuteAsync(async token =>
         {
-            var source = await LoadSourceLineAsync(sourceId, token);
-            var destination = await LoadSourceLineAsync(destinationId, token);
+            var source = await InventoryReturnScopeLoader.LoadSourceAsync(_context!, sourceId, token);
+            var destination = await InventoryReturnScopeLoader.LoadSourceAsync(_context!, destinationId, token);
             EnsureCompatibleCrossCustomerScope(source, destination);
             var balances = await GetAllocationBalancesAsync(new InventoryReturnAllocationBalanceQuery(), userId, token);
             var sourceBalance = balances.SingleOrDefault(item => item.SourceIssueLineId == GuidHelper.ToGuidString(sourceId))
@@ -602,43 +590,6 @@ public class InventoryReturnService : IInventoryReturnService
         }
     }
 
-    private async Task<List<SourceLineScope>> LoadScopedSourceLinesAsync(
-        InventoryReturnAllocationBalanceQuery query,
-        CancellationToken cancellationToken)
-    {
-        var items = await (
-            from line in _context!.Inventoryissuelines.AsNoTracking()
-            join issue in _context.Inventoryissues.AsNoTracking() on line.IssueId equals issue.IssueId
-            join material in _context.Materialrequestlines.AsNoTracking() on line.MaterialRequestLineId equals material.RequestLineId
-            join planLine in _context.Productionplanlines.AsNoTracking() on material.PlanLineId equals planLine.PlanLineId
-            join plan in _context.Productionplans.AsNoTracking() on planLine.PlanId equals plan.PlanId
-            where line.MaterialRequestLineId != null
-                && (query.CustomerId == null || planLine.CustomerId.SequenceEqual(ParseRequiredId(query.CustomerId, "CustomerId không hợp lệ.")))
-                && (query.ServiceDate == null || plan.PlanDate == query.ServiceDate)
-                && (query.ShiftName == null || planLine.ShiftName == query.ShiftName)
-                && (query.PriceTierAmount == null || material.PriceTierAmount == query.PriceTierAmount)
-            select new SourceLineScope(line, issue, material, planLine, plan)).ToListAsync(cancellationToken);
-        return items;
-    }
-
-    private async Task<SourceLineScope> LoadSourceLineAsync(byte[] sourceIssueLineId, CancellationToken cancellationToken)
-    {
-        var result = await LoadScopedSourceLinesAsync(new InventoryReturnAllocationBalanceQuery(), cancellationToken);
-        return result.SingleOrDefault(item => item.Line.IssueLineId.SequenceEqual(sourceIssueLineId))
-            ?? throw new BusinessRuleException("Dòng nguồn thiếu hoặc không có lineage material/customer/date/shift/tier.");
-    }
-
-    private async Task<bool> IsAdminAsync(string? userId, CancellationToken cancellationToken)
-    {
-        var actorId = GuidHelper.ParseGuidString(userId);
-        if (actorId is null || _context is null) return false;
-        var roleName = await (
-            from user in _context.Users.AsNoTracking()
-            join role in _context.Roles.AsNoTracking() on user.RoleId equals role.RoleId
-            where user.UserId.SequenceEqual(actorId)
-            select role.RoleName).SingleOrDefaultAsync(cancellationToken);
-        return AuthorizationPolicies.IsAdminRole(roleName);
-    }
 
 
 

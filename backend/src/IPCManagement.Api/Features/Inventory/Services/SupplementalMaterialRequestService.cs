@@ -153,7 +153,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 expectedModeVersion,
                 async _ =>
                 {
-                    var source = await LoadSourceIssueLineForCreateAsync(issueLineId);
+                    var source = await SupplementalMaterialRequestSourceLoader.LoadForCreateAsync(_context, issueLineId);
                     if (!source.IssueId.SequenceEqual(issueId))
                     {
                         throw new BusinessRuleException("Dòng nguyên liệu không thuộc phiếu xuất đã chọn.");
@@ -268,7 +268,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
-                var sourceShiftName = await ResolveSourceShiftNameAsync(source);
+                var sourceShiftName = await SupplementalMaterialRequestSourceLoader.ResolveShiftNameAsync(_context, source);
                 var current = await MapAsync(entity, source);
                 if (request.ExpectedVersion != current.ConcurrencyVersion)
                 {
@@ -374,7 +374,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 EnsureActionable(entity);
 
                 var source = await LoadSourceLineAsync(entity);
-                var sourceShiftName = await ResolveSourceShiftNameAsync(source);
+                var sourceShiftName = await SupplementalMaterialRequestSourceLoader.ResolveShiftNameAsync(_context, source);
                 var current = await MapAsync(entity, source);
                 if (request.ExpectedVersion != current.ConcurrencyVersion)
                 {
@@ -539,7 +539,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         if (!string.Equals(_context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal))
         {
             var relationalSource = await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
-            EnsureDefaultSourceFamily(relationalSource);
+            SupplementalMaterialRequestSourceLoader.EnsureDefaultSourceFamily(relationalSource);
             return relationalSource;
         }
 
@@ -548,89 +548,13 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             .FirstOrDefault(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
         if (tracked is not null)
         {
-            EnsureDefaultSourceFamily(tracked);
+            SupplementalMaterialRequestSourceLoader.EnsureDefaultSourceFamily(tracked);
             return tracked;
         }
 
         var source = (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
-        EnsureDefaultSourceFamily(source);
+        SupplementalMaterialRequestSourceLoader.EnsureDefaultSourceFamily(source);
         return source;
-    }
-
-    private async Task<string?> ResolveSourceShiftNameAsync(InventoryIssueLine source)
-    {
-        if (source.MaterialRequestLineId is null)
-        {
-            return source.Issue.ShiftName;
-        }
-
-        var materialLine = source.MaterialRequestLine ?? await _context.Materialrequestlines
-            .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.RequestLineId == source.MaterialRequestLineId);
-        if (materialLine is null)
-        {
-            return source.Issue.ShiftName;
-        }
-
-        var trackedPlanLine = _context.ChangeTracker.Entries<ProductionPlanLine>()
-            .Select(entry => entry.Entity)
-            .FirstOrDefault(item => item.PlanLineId.SequenceEqual(materialLine.PlanLineId));
-        var sourceShift = trackedPlanLine?.ShiftName;
-        if (sourceShift is null && !IsInMemory(_context))
-        {
-            sourceShift = await _context.Productionplanlines.AsNoTracking()
-                .Where(item => item.PlanLineId == materialLine.PlanLineId)
-                .Select(item => item.ShiftName)
-                .FirstOrDefaultAsync();
-        }
-
-        return string.IsNullOrWhiteSpace(sourceShift) ? source.Issue.ShiftName : sourceShift;
-    }
-
-    private async Task<InventoryIssueLine> LoadSourceIssueLineForCreateAsync(byte[] issueLineId)
-    {
-        InventoryIssueLine? source;
-        if (IsInMemory(_context))
-        {
-            source = await _context.Inventoryissuelines.FindAsync(issueLineId);
-        }
-        else
-        {
-            source = await _context.Inventoryissuelines
-                .Include(line => line.Issue)
-                .Include(line => line.Ingredient)
-                .Include(line => line.Unit)
-                .FirstOrDefaultAsync(line => line.IssueLineId == issueLineId);
-        }
-
-        if (source is null)
-        {
-            throw new BusinessRuleException("Không tìm thấy dòng nguyên liệu trên phiếu xuất.");
-        }
-        if (source.Issue is null)
-        {
-            await _context.Entry(source).Reference(line => line.Issue).LoadAsync();
-        }
-        if (source.Ingredient is null)
-        {
-            await _context.Entry(source).Reference(line => line.Ingredient).LoadAsync();
-        }
-        if (source.Unit is null)
-        {
-            await _context.Entry(source).Reference(line => line.Unit).LoadAsync();
-        }
-        EnsureDefaultSourceFamily(source);
-        return source;
-    }
-
-    private static void EnsureDefaultSourceFamily(InventoryIssueLine source)
-    {
-        var exactDefaultHeader = source.Issue.MaterialRequestId is not null && source.Issue.ReconciliationBatchId is null;
-        var exactDefaultLine = source.MaterialRequestLineId is not null && source.ReconciliationBatchLineId is null;
-        if (!exactDefaultHeader || !exactDefaultLine)
-        {
-            throw new BusinessRuleException("Yêu cầu bổ sung chỉ áp dụng cho dòng xuất thuộc đúng nguồn nhu cầu DEFAULT.");
-        }
     }
 
     private void EnsureDefaultMode()

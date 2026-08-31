@@ -42,6 +42,22 @@ internal static class DataQualityPolicy
         };
     }
 
+    internal static DataQualityIssueDto BuildIssueWithLineage(
+        string category, string severity, string entityName, string? entityId, string entityCode,
+        string entityLabel, string message, string suggestedAction, string route,
+        string? sourceFamily = null, string? materialRequestId = null, string? materialRequestLineId = null,
+        string? reconciliationBatchId = null, string? reconciliationBatchLineId = null)
+    {
+        var issue = BuildIssue(category, severity, entityName, entityId, entityCode,
+            entityLabel, message, suggestedAction, route, DateTime.UtcNow);
+        issue.SourceFamily = sourceFamily;
+        issue.MaterialRequestId = materialRequestId;
+        issue.MaterialRequestLineId = materialRequestLineId;
+        issue.ReconciliationBatchId = reconciliationBatchId;
+        issue.ReconciliationBatchLineId = reconciliationBatchLineId;
+        return issue;
+    }
+
     internal static string NormalizeRemediationAction(string action)
         => action.Trim().ToLowerInvariant() switch
         {

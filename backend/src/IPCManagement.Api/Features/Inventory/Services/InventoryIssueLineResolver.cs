@@ -1,3 +1,4 @@
+using IPCManagement.Api.Data;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Helpers;
@@ -175,6 +176,41 @@ internal static class InventoryIssueLineResolver
         }
 
         return issuedBySource;
+    }
+
+    internal static void UpdateMaterialRequestStatusIfCompleted(
+        IpcManagementContext? context,
+        MaterialRequest materialRequest,
+        IReadOnlyList<InventoryIssueLine> previouslyIssuedLines,
+        IReadOnlyList<ResolvedIssueLine> currentIssueLines,
+        byte[] userIdBytes)
+    {
+        if (context is null) return;
+        var demandLines = materialRequest.Materialrequestlines
+            .OrderBy(line => Convert.ToHexString(line.RequestLineId))
+            .Select(line => new DemandLineSummary(line.RequestLineId, line.IngredientId, line.UnitId,
+                line.Ingredient.IngredientName, line.Unit.UnitName, DecimalPolicy.RoundQuantity(line.TotalRequiredQty)))
+            .ToList();
+        var alreadyIssuedBySource = BuildIssuedBySourceLine(demandLines, previouslyIssuedLines);
+        foreach (var issueLine in currentIssueLines)
+        {
+            var sourceKey = BuildSourceKey(issueLine.MaterialRequestLineId);
+            alreadyIssuedBySource[sourceKey] = alreadyIssuedBySource.GetValueOrDefault(sourceKey) + issueLine.IssuedQty;
+        }
+        if (demandLines.Any(demand => DecimalPolicy.LessThanQuantity(
+            alreadyIssuedBySource.GetValueOrDefault(BuildSourceKey(demand.MaterialRequestLineId), 0m), demand.TotalRequiredQty))) return;
+
+        const string newStatus = "EXPORTED";
+        var oldStatus = materialRequest.Status;
+        if (string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase)) return;
+        materialRequest.Status = newStatus;
+        context.Auditlogs.Add(new AuditLog
+        {
+            AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = userIdBytes,
+            BusinessArea = "InventoryIssue", EntityName = nameof(MaterialRequest), EntityId = materialRequest.RequestId,
+            FieldName = nameof(MaterialRequest.Status), OldValue = oldStatus, NewValue = newStatus,
+            Reason = "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED."
+        });
     }
 
     internal sealed record DemandLineSummary(

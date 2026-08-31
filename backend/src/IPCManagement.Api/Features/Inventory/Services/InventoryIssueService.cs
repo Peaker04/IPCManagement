@@ -14,14 +14,11 @@ using IPCManagement.Api.Shared.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using System.Data;
 using System.Text.Json;
-
 namespace IPCManagement.Api.Features.Inventory.Services;
-
 public interface IInventoryIssuePreWriteGate
 {
     Task WaitAsync(CancellationToken token);
 }
-
 public class InventoryIssueService : IInventoryIssueService
 {
     private static readonly HashSet<string> IssuableDemandStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -30,7 +27,6 @@ public class InventoryIssueService : IInventoryIssueService
         "APPROVED",
         "SENTTOWAREHOUSE"
     };
-
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
@@ -202,7 +198,7 @@ public class InventoryIssueService : IInventoryIssueService
                             $"Phiếu xuất {issue.IssueCode}");
                     }
 
-                    UpdateMaterialRequestStatusIfCompleted(materialRequest, issuedLines, issueLines, userIdBytes);
+                    InventoryIssueLineResolver.UpdateMaterialRequestStatusIfCompleted(_context!, materialRequest, issuedLines, issueLines, userIdBytes);
 
                     await _unitOfWork.SaveChangesAsync();
 
@@ -575,68 +571,6 @@ public class InventoryIssueService : IInventoryIssueService
 
         await _context.SaveChangesAsync();
     }
-
-    private void UpdateMaterialRequestStatusIfCompleted(
-        MaterialRequest materialRequest,
-        IReadOnlyList<InventoryIssueLine> previouslyIssuedLines,
-        IReadOnlyList<ResolvedIssueLine> currentIssueLines,
-        byte[] userIdBytes)
-    {
-        if (_context is null) return;
-
-        var demandLines = materialRequest.Materialrequestlines
-            .OrderBy(line => Convert.ToHexString(line.RequestLineId))
-            .Select(line => new DemandLineSummary(
-                line.RequestLineId,
-                line.IngredientId,
-                line.UnitId,
-                line.Ingredient.IngredientName,
-                line.Unit.UnitName,
-                DecimalPolicy.RoundQuantity(line.TotalRequiredQty)))
-            .ToList();
-        var alreadyIssuedBySource = BuildIssuedBySourceLine(demandLines, previouslyIssuedLines);
-
-        foreach (var issueLine in currentIssueLines)
-        {
-            var sourceKey = BuildSourceKey(issueLine.MaterialRequestLineId);
-            alreadyIssuedBySource[sourceKey] = alreadyIssuedBySource.GetValueOrDefault(sourceKey) + issueLine.IssuedQty;
-        }
-
-        var isFullyIssued = true;
-        foreach (var demand in demandLines)
-        {
-            var totalIssued = alreadyIssuedBySource.GetValueOrDefault(BuildSourceKey(demand.MaterialRequestLineId), 0m);
-            if (DecimalPolicy.LessThanQuantity(totalIssued, demand.TotalRequiredQty))
-            {
-                isFullyIssued = false;
-                break;
-            }
-        }
-
-        if (isFullyIssued)
-        {
-            var oldStatus = materialRequest.Status;
-            var newStatus = "EXPORTED";
-            if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
-            {
-                materialRequest.Status = newStatus;
-                _context.Auditlogs.Add(new AuditLog
-                {
-                    AuditId = GuidHelper.NewId(),
-                    ChangedAt = DateTime.UtcNow,
-                    ChangedBy = userIdBytes,
-                    BusinessArea = "InventoryIssue",
-                    EntityName = nameof(MaterialRequest),
-                    EntityId = materialRequest.RequestId,
-                    FieldName = nameof(MaterialRequest.Status),
-                    OldValue = oldStatus,
-                    NewValue = newStatus,
-                    Reason = "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED."
-                });
-            }
-        }
-    }
-
 
     private async Task<byte[]> ResolveCanonicalWarehouseAsync(string? suppliedWarehouseId)
     {
