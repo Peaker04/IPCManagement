@@ -1,5 +1,8 @@
 # Checklist lifecycle Ca phục vụ
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 > Trạng thái: hoàn tất; evidence Chrome headed, API và DB cho toàn bộ lifecycle nằm tại `docs/EVIDENCE-INDEX.md`.
 > Scope: khép vòng đời vận hành từ kế hoạch đã chốt đến phục vụ và đối soát ca; không bao gồm hóa đơn, công nợ hoặc sổ cái kế toán.
 

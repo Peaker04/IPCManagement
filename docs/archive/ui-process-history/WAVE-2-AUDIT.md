@@ -1,5 +1,8 @@
 # Wave 2 — Action queue audit
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 Status: **CLOSED**
 
 ## Scope
@@ -28,4 +31,4 @@ Approval reconciliation, warehouse exception queues, report data-quality issues 
 
 ## Go/no-go
 
-Wave 3 may start. No unowned action-queue component or direct-table consumer remains in the audited scope. Runtime matrix đầy đủ vẫn thuộc Wave 7; probe hiện hành đã được tích hợp tại `frontend/scripts/perf-probe.mjs` và lần đo owner-local mới nhất được ghi trong `docs/WAVE-3-AUDIT.md`.
+Wave 3 may start. No unowned action-queue component or direct-table consumer remains in the audited scope. Runtime matrix đầy đủ vẫn thuộc Wave 7; probe hiện hành đã được tích hợp tại `frontend/scripts/perf-probe.mjs` và lần đo owner-local mới nhất được ghi trong `WAVE-3-AUDIT.md`.

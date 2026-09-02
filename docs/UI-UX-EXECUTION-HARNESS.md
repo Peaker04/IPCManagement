@@ -3,7 +3,7 @@ title: IPCManagement UI/UX Execution Harness
 status: canonical-process
 scope: frontend-and-browser-evidence
 owner: GSD
-last_reviewed: 2026-08-28
+last_reviewed: 2026-09-02
 ---
 
 # UI/UX Execution Harness
@@ -13,7 +13,8 @@ thứ hai: nguyên tắc normative ở [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RU
 ngữ cảnh project ở [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), kiến trúc floorplan/surface/geometry ở
 [`DESIGN.md`](DESIGN.md), số đo/gate ở [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md),
 và corpus kiểm tra bổ sung ở
-[`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md). Quy tắc chọn lane, feedback
+[`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md). Authority map tài liệu nằm ở
+[`README.md`](README.md). Quy tắc chọn lane, feedback
 loop, skill và ngân sách nằm ở [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md).
 Front-End Checklist mở rộng coverage nhưng không được ghi đè authority hoặc evidence contract của project.
 
@@ -40,15 +41,20 @@ thành selector/DOM geometry/source assertion trước production edit.
    `symptom | route/mode/actor/state/grain | floorplan | geometry role | red loop | owner | success | out-of-scope`.
 3. Nếu input có screenshot, chạy **visual triage bắt buộc** trước khi narrow scope: đánh dấu candidate
    `orphan-control`, `orphan-heading`, `excessive-blank-surface`, `duplicate-state-surface`, `broken-adjacency`,
-   `unbounded-placeholder`, `hidden-next-action`. Map candidate sang `V`/`E`/`C` rule và selector cần đo.
+   `unbounded-placeholder`, `hidden-next-action`, `accessory-outside-control`, `misaligned-control-group`,
+   `overlapping-hit-target`, `mobile-composition-drift`. Map candidate sang `V`/`E`/`C` rule và selector cần đo.
+   Nếu ảnh cho biết viewport/zoom khác matrix hiện hành, thêm đúng kích thước đó vào reproduction scoped thay vì
+   dùng matrix desktop để loại finding.
 4. Lập finding ledger duy nhất và state matrix cho phần sẽ claim:
    `route × tab/view × state × actor × viewport × action`. Mọi retained lazy tab trong claim phải được
    kích hoạt; route navigation không chứng minh tab/query đó hoạt động.
 5. Tạo feedback loop red-capable trước khi sửa. Với layout/read-only ưu tiên
    `npm run test:ui-measurements -w frontend` hoặc Playwright assertion DOM/network scoped. Composition loop
    phải đo bounding boxes, computed min-height/flex growth, số explanatory surfaces và adjacency của
-   heading/control/content. Với focus, query ownership hoặc mutation, loop phải bắt đúng symptom tương ứng;
-   screenshot khởi tạo finding nhưng không thay red loop.
+   heading/control/content. Control có accessory tuyệt đối phải đo containment/centering và hit-test bằng
+   `elementFromPoint()`; sau đó click thật ở normal, error/focus và pressed/active transition để bắt stacking
+   context hoặc transform làm target không bấm được. Với focus, query ownership hoặc mutation, loop phải bắt đúng
+   symptom tương ứng; screenshot khởi tạo finding nhưng không thay red loop.
 6. Đối chiếu rule ID, quét toàn declared scope cho cùng anti-pattern, rồi chọn owner thấp nhất:
    token → shared primitive → formatter/query/action seam → feature layout. Dùng `frontend-checklist-global`
    để bổ sung coverage, không dump recommendation hoặc tạo scope mới thiếu evidence.
@@ -60,9 +66,10 @@ thành selector/DOM geometry/source assertion trước production edit.
 9. Trước browser recheck, xác nhận exact HEAD, FE source/build, BE binary, PID/ports, operation mode,
    capabilities, database target và migration health. Runtime lệch source/binary là `INVALID_RUNTIME`, không
    phải finding UI.
-10. Chạy Chrome headed đúng state matrix và viewport matrix. Ngoài overflow, mỗi composition claim phải đo
-    ordering/adjacency, surface count, geometry role và useful-content bounds; với dữ liệu nghiệp vụ chứng minh đủ
-   control → API → DB → reload. Dùng source-line ID, không gộp action theo tên hiển thị.
+10. Chạy Chrome headed đúng state matrix và viewport matrix, cộng viewport/zoom của lỗi người dùng đã báo nếu
+    nằm ngoài matrix. Ngoài overflow, mỗi composition claim phải đo ordering/adjacency, surface count, geometry
+    role, useful-content bounds, control/accessory containment và hit target sau state transition; với dữ liệu
+    nghiệp vụ chứng minh đủ control → API → DB → reload. Dùng source-line ID, không gộp action theo tên hiển thị.
 11. Recheck ledger theo `FIXED | OPEN | NEEDS_EVIDENCE | NOT_APPLICABLE | BLOCKED`; chỉ claim PASS cho cell
     có oracle đã chạy. Kết thúc bằng `git diff --check`, secret/stub scan, evidence index và cập nhật
     `MEMORY.md`; việc đã đóng chuyển sang `HISTORY.md`.

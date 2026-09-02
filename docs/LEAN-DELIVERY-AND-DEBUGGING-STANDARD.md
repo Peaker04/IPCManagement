@@ -3,7 +3,7 @@ title: IPCManagement Lean Delivery and Debugging Standard
 status: canonical-process
 scope: all-engineering-tasks
 owner: GSD
-last_reviewed: 2026-08-28
+last_reviewed: 2026-09-02
 ---
 
 # Lean delivery và debugging standard
@@ -11,7 +11,8 @@ last_reviewed: 2026-08-28
 Tài liệu này chuẩn hóa cách thực thi để GSD vẫn là process owner nhưng không biến mọi việc thành một
 workflow nhiều agent, nhiều plan và nhiều vòng review tốn token. Mục tiêu là tạo **một feedback loop sắc,
 một owner sửa lỗi, một gate đóng việc**. Artifact trạng thái vẫn thuộc GSD; discipline kỹ thuật có thể đến
-từ skill chuyên biệt.
+từ skill chuyên biệt. Cách chọn tài liệu và phân biệt canonical/reference/history nằm ở
+[`README.md`](README.md); không tự mở một audit/checklist cũ làm process song song.
 
 ## 1. Bài học từ các session gần đây
 
@@ -26,8 +27,19 @@ Các lỗi lặp lại không đến từ thiếu agent mà từ feedback loop v
 7. Browser runner ghi đè artifact hoặc thiếu mode/capability/focus/request fields, nên không thể dùng để close.
 8. GSD planner/executor/reviewer được gọi cho hotfix có seam rõ, làm tăng coordination cost nhưng không tăng
    độ chắc chắn.
+9. Sửa đúng màn hình người dùng chỉ ra nhưng không quét cùng owner, nên lỗi tương tự tiếp tục xuất hiện ở trang,
+   tab hoặc modal khác và người dùng phải nhắc lại phạm vi “toàn hệ thống”.
+10. Giữ UI cũ rồi chỉ trang trí, hoặc chép nguyên UI incoming, thay vì giữ design direction/floorplan nhưng chuẩn
+    hóa implementation theo semantics, accessibility và business authority hiện hành.
+11. Tuyên bố PASS từ `issueCount: 0`, route load, API-only hoặc screenshot reviewer dù composition, populated
+    state, focus, hit target, mutation và reload chưa được chứng minh.
+12. Tạo nhiều plan/wave/checklist cho cùng một mục tiêu tuần tự, làm phân tán finding và khiến closeout mâu thuẫn.
+13. Audit/checklist theo thời điểm nằm cạnh contract canonical nhưng không được đánh dấu historical, khiến session
+    mới resume từ trạng thái đã bị supersede.
 
 Từ đây, **không thêm agent để bù cho harness yếu**. Trước tiên phải làm harness red-capable và đủ state matrix.
+Không tăng số plan để bù cho scope chưa khóa; một mục tiêu tuần tự dùng một plan, một checklist và một ledger,
+trừ khi có dependency/trust boundary độc lập thật sự.
 
 ## 2. Ba execution lane
 
@@ -35,7 +47,7 @@ Từ đây, **không thêm agent để bù cho harness yếu**. Trước tiên p
 |---|---|---|---|---|
 | **L0 Direct** | Docs/rules, test expectation, copy hoặc fix ≤3 file, một seam, không mutation | Cập nhật `MEMORY.md` nếu trạng thái thay đổi; không tạo phase/plan mới | Không | Focused check + `git diff --check` |
 | **L1 Focused** | Bug/UI fix một feature hoặc một contract, có thể chạm FE/BE nhưng feedback loop rõ | `gsd-quick` hoặc plan hiện hành; một finding ledger | Không; tối đa một reviewer sau khi loop xanh | Red-capable regression → fix → focused suite → browser/DB gate phù hợp |
-| **L2 Controlled** | Migration/protected data, auth, public contract, multi-feature phase, E2E mutation | GSD phase/checkpoint/verification đầy đủ | Chỉ vai trò khác nhau và có output tiêu thụ rõ | Backup/preflight + source/test + API/DB/browser chain + closeout |
+| **L2 Controlled** | Migration/protected data, auth, public contract, multi-feature phase, E2E mutation | GSD phase/checkpoint/verification đầy đủ; mặc định một plan/checklist/ledger cho một mục tiêu tuần tự | Chỉ vai trò khác nhau và có output tiêu thụ rõ | Backup/preflight + source/test + API/DB/browser chain + closeout |
 
 Quy tắc nâng lane: chỉ nâng khi xuất hiện trust boundary, migration/data mutation, nhiều owner độc lập hoặc
 không thể tạo feedback loop tại seam hiện tại. Không nâng lane chỉ vì task “quan trọng” hoặc codebase lớn.
@@ -157,7 +169,8 @@ Verdict cuối theo từng claim, không theo cảm giác chung:
 - `BLOCKED`: thiếu authorization/data/runtime prerequisite.
 
 Task chỉ đóng khi không còn blocker trong **declared scope**. `NEEDS_EVIDENCE` ngoài scope phải ghi rõ, không
-kéo task vào vòng audit vô hạn.
+kéo task vào vòng audit vô hạn. Prerequisite hợp lệ nhưng chưa tồn tại phải giữ `BLOCKED`; cấm seed/reset,
+sửa dữ liệu trực tiếp, hạ authority hoặc đổi oracle để manufacture PASS.
 
 ## 10. Ngân sách và subagent
 
@@ -182,3 +195,8 @@ kéo task vào vòng audit vô hạn.
 - Ghi đè evidence failed run.
 - Chạy full GSD phase, council hoặc nhiều reviewer cho hotfix một seam.
 - Claim UI PASS khi populated/mutation/focus/performance cell chưa được chạy.
+- Dùng route load, API/BE-only PASS, screenshot hoặc generic `issueCount: 0` để suy ra whole-page PASS.
+- Mở plan/reviewer mới chỉ vì checklist dài trong khi công việc vẫn là một chuỗi owner tuần tự.
+- Resume task từ file trong `docs/archive/`, audit dated hoặc narrative đã được đánh dấu superseded.
+- Giữ UI cũ rồi thêm styling để gọi là đã áp design direction mới, hoặc copy incoming implementation làm mất
+  route/query/mutation/state authority hiện hành.

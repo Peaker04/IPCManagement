@@ -3,7 +3,8 @@
 Ngày chụp: 2026-08-21
 Phạm vi: `frontend/src/**/*.tsx`; bảng được nhận diện bằng phần tử `<table>` trong production source.
 
-Roadmap và trạng thái wave: `docs/TABLE-STANDARDIZATION-ROADMAP.md`. Closeout Wave 0: `docs/WAVE-0-CLOSEOUT.md`.
+Roadmap và trạng thái wave: `docs/TABLE-STANDARDIZATION-ROADMAP.md`. Closeout Wave 0 lịch sử:
+`docs/archive/ui-process-history/WAVE-0-CLOSEOUT.md`.
 
 ## Quy ước
 
@@ -71,4 +72,4 @@ Roadmap và trạng thái wave: `docs/TABLE-STANDARDIZATION-ROADMAP.md`. Closeou
 - [x] `npm run build` pass sau mọi thay đổi Wave 0.
 - [x] Unit/contract test cho artifact contract pass; commit-scoped diff check pass. Repository-wide exception được disposition trong closeout.
 
-Wave 0 đã đóng theo `docs/WAVE-0-CLOSEOUT.md`; thay đổi inventory mới phải cập nhật contract và test trong cùng wave sở hữu thay đổi.
+Wave 0 đã đóng theo `docs/archive/ui-process-history/WAVE-0-CLOSEOUT.md`; thay đổi inventory mới phải cập nhật contract và test trong cùng owner hiện hành.

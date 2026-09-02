@@ -1,5 +1,8 @@
 # Dashboard state and refresh audit — 2026-08-13
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 Source contract: `.docs/dashboard-state-refresh-rules.md`. Static counts cover `frontend/src`.
 Browser-only rules remain unclaimed until headed production-build measurements exist.
 

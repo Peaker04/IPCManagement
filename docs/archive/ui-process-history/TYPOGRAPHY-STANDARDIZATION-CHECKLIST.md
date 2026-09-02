@@ -1,7 +1,10 @@
 # Checklist chuẩn hóa typography helper
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 > Trạng thái: **COMPLETE — 11/08/2026**. Foundation/helper/self-host, component và feature migration, static gates, before/after comparison, focus, local-only/CSP và headed gate đã hoàn tất. Đây không phải state artifact của GSD.  
-> Process: tự brainstorm từ source hiện hành và [research nguồn chính thức](./research/typography-helper-primary-sources-2026-08-11.md); không dùng GSDCore, không tạo file trong `.planning/`.  
+> Process: tự brainstorm từ source hiện hành và [research nguồn chính thức](../../research/typography-helper-primary-sources-2026-08-11.md); không dùng GSDCore, không tạo file trong `.planning/`.
 > Mục tiêu: CSS token là source of truth; caller chỉ học một interface `typography` nhỏ, có kiểu và dùng class literal tĩnh.
 
 ## Implementation snapshot 2026-08-11

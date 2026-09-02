@@ -1,3 +1,11 @@
+---
+title: IPCManagement UI/UX Measurement Protocol
+status: canonical-oracle
+scope: frontend-and-browser-evidence
+owner: GSD
+last_reviewed: 2026-09-02
+---
+
 # UI/UX measurement protocol
 
 [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), [`DESIGN.md`](DESIGN.md) và
@@ -7,8 +15,8 @@ UI đúng/sai bằng cách đọc screenshot. Kết luận phải xuất phát t
 state hoặc performance record có thể lặp lại.
 
 Quy trình đầy đủ từ phân loại task, sửa đúng owner, browser evidence đến handoff session nằm ở
-[`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md). File này chỉ giữ oracle/gate đo lường,
-không trở thành một workflow cạnh tranh.
+[`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md). Authority map tài liệu nằm ở
+[`README.md`](README.md). File này chỉ giữ oracle/gate đo lường, không trở thành một workflow cạnh tranh.
 
 ## Cleanup quy trình cũ
 
@@ -83,16 +91,27 @@ Oracle bắt buộc:
 4. Không có visible surface chiếm diện tích lớn mà không chứa heading, data, skeleton đúng contract, state copy
    hoặc action hữu ích.
 5. DOM order và visual order không mâu thuẫn; action prerequisite focus đúng control.
-6. Các assertion được chạy lại trên toàn viewport matrix thuộc claim.
+6. Accessory nằm trong control (password toggle, calendar, clear/search icon) phải được đo bằng bounding box:
+   không vượt biên control, cùng tâm theo trục dự kiến và `elementFromPoint()` tại tâm phải trả về accessory
+   hoặc descendant của nó. Assertion click phải chạy sau khi control chuyển sang error/focus/pressed state vì
+   ring, stacking context và active transform có thể làm hỏng hit target dù trạng thái ban đầu nhìn đúng.
+7. Với form, đo cả nhóm label → control → guidance/error: không overlap, không tách thành orphan message,
+   và lỗi của field này không được tạo khoảng trắng giả cho field khác.
+8. Các assertion được chạy lại trên toàn viewport matrix thuộc claim. Nếu người dùng cung cấp screenshot ở
+   viewport ngoài matrix, thêm đúng viewport/zoom đó vào scoped reproduction; matrix chuẩn không được dùng để
+   bỏ qua lỗi đã báo cáo.
 
 Ngưỡng khoảng cách/diện tích cụ thể phải xuất phát từ token và baseline của primitive. Không hardcode một tỷ lệ
 chung rồi áp cho chart, editor hoặc matrix workspace vốn có geometry hợp lệ.
 
 ## Quy trình xử lý lỗi
 
-1. Chạy gate và đọc JSON report. Nếu có ảnh, dùng ảnh để seed candidate finding thay vì bỏ qua hoặc coi là verdict.
+1. Chạy gate và đọc JSON report. Nếu có ảnh, lập inventory candidate theo composition, hierarchy, adjacency,
+   geometry, hit target và visual state; không chỉ kiểm overflow/semantics. Mọi orphan control/heading, accessory
+   vượt biên, blank surface, duplicate state hoặc lệch hàng rõ ràng đều là candidate bắt buộc triage.
 2. Phân loại từng rule thành `PASS`, `FAIL`, `NOT_APPLICABLE` hoặc `NEEDS_EVIDENCE`. Ảnh đơn lẻ luôn là
    `NEEDS_EVIDENCE`, nhưng candidate rõ phải được chuyển thành DOM/source assertion trước khi kết thúc triage.
+   `issueCount: 0` từ gate generic không được nâng thành visual-composition PASS.
 3. Sửa ở shared token/component trước; chỉ sửa page-local khi report chứng minh phạm vi cục bộ.
 4. Chạy lại đúng gate, đọc số đo mới và thêm regression test tại seam gây lỗi.
 5. Khi thay đổi có mutation hay dữ liệu nghiệp vụ, browser evidence vẫn phải nối FE control → API → DB →

@@ -8,6 +8,9 @@ last_updated: 2026-08-22
 
 # Route Budget và UI/UX — Checklist hoàn thành
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 ## Quy tắc dừng
 
 - Không đánh dấu `[x]` từ source review hoặc screenshot đơn lẻ.

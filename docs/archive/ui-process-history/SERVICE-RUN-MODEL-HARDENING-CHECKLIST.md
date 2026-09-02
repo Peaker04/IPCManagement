@@ -1,5 +1,8 @@
 # Checklist hardening mô hình Ca phục vụ
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 > Mục tiêu: khóa các bất biến còn hở sau closeout đầu tiên, đồng bộ aggregate/API/database/UI và chỉ đóng khi có regression + headed E2E trên `ipc_e2e_template`.
 
 ## Quyết định mô hình đã áp dụng

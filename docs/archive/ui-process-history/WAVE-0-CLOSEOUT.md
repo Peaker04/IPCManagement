@@ -1,5 +1,8 @@
 # Wave 0 closeout — inventory và table contract
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 Ngày: 2026-08-21
 Commits: `d9edd6d5`, `ceb5ab7c`, `be307c90`
 

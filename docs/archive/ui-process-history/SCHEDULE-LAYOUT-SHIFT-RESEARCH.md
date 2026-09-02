@@ -1,5 +1,8 @@
 # Schedule layout-shift research
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 ## Evidence
 
 - Probe H.1 trước overlay: `deltaTop=316px`, `CLS window=0.1287`; hàng vẫn `48px`, `rowsData` không đổi.

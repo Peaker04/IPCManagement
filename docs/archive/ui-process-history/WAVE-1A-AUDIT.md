@@ -1,5 +1,8 @@
 # Wave 1A — Table primitive audit
 
+> **HISTORICAL / NO EXECUTION AUTHORITY.** Trạng thái trong file phản ánh thời điểm tạo. Dùng `MEMORY.md`, `docs/README.md` và phase hiện hành để quyết định công việc.
+
+
 Ngày: 2026-08-21
 
 ## Scope

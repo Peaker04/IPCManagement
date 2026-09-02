@@ -8,15 +8,17 @@
 
 **Local verdict:** **PASS / CLOSED**
 
-**Protected verdict:** **BLOCKED — fresh operator authorization required**
+**Protected verdict:** **BLOCKED — migration fixed/applied; happy issue/stock and browser evidence incomplete**
 
 **Aggregate MRX-06:** **BLOCKED** because MRX-06P is not complete.
 
 ## Scope and authority
 
-This verification closes only the deterministic local Phase 30 contract. It does not authorize or claim protected execution. The final local run did not access `ipc_lane7`, did not apply the Phase 30 migration there, did not start a protected API/browser runtime, and did not test or restore the final protected operation mode.
+This verification closes only the deterministic local Phase 30 contract. Kỳ subsequently granted explicit MRX-06P authorization on 01/09/2026 for protected backup, migration, mutation E2E, five-viewport headed browser evidence and final restoration to `DEFAULT`, with fail-closed handling and no reset/seed/cleanup to rescue a test.
 
-The Phase 30 migration `20260828092012_ClosedLoopReconciliationIssueLineage` is applied on the canonical local `ipcmanagement` database after its retained backup. Canonical protected facts carried forward from Phase 29 remain unchanged: `ipc_lane7` is retained at migration 75 and `DEFAULT / 5`, and the Phase 30 migration is unapplied there. Historical workbook status remains **MISSING / NOT RECOVERED**. Existing local/read-only Phase 30 UI evidence covers exactly five desktop viewports (`1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`), but no protected browser run occurred; a populated reconciliation dialog focus cycle remains **NEEDS_EVIDENCE**.
+The authorized attempt ran on merge HEAD `577dc926`. Read-only preflight confirmed `ipc_lane7` at migration 75 and `DEFAULT / 5`; a fresh database checkpoint was created and verified. The migration defect was reproduced, fixed with metadata-driven FK discovery, regression-tested, and proven against a disposable restore of that exact checkpoint before protected application. Protected `ipc_lane7` is now at migration 76. A fresh 55-line public-API source reached `TRANSFERRED / version 3`; stable concurrent import/create identity, forbidden coordinator issue (`403`), zero-stock issue/replay rejection (`400`), DB zero lineage effect, and final `DEFAULT / 7` restoration were recorded. The actual source ingredients have no positive operational current stock, so no seed/direct repair was used. The headed browser run timed out and did not produce a valid five-viewport PASS oracle.
+
+The Phase 30 migration remains applied only on canonical local `ipcmanagement`. Historical workbook status remains **MISSING / NOT RECOVERED**. Existing local/read-only UI evidence covers exactly five desktop viewports (`1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`), but no protected browser run occurred; a populated reconciliation dialog focus cycle remains **NEEDS_EVIDENCE**.
 
 ## Plan and commit matrix
 
@@ -63,17 +65,18 @@ The known skipped backend integration test is `WorkflowLifecycleE2ETests.Auth_Me
 |---|---|---|
 | MRX-01..05 | Locally implemented/evidenced | Plans 30-01..13 and final local gate remediation; aggregate protected proof still pending |
 | MRX-06L | **COMPLETE** | Canonical local gate matrix above at exact HEAD `6bfbd9f9` |
-| MRX-06P | **BLOCKED** | Fresh operator authorization required before protected backup/migration/API/MySQL/five-viewport headed evidence |
+| MRX-06P | **BLOCKED** | Migration 76 and protected transfer/error/race evidence pass, but happy issue/stock lineage and five-viewport headed-browser evidence remain incomplete |
 | MRX-06 | **BLOCKED** | Both children are required; MRX-06P is incomplete |
 
 ## Protected checkpoint matrix
 
 | Protected item | Status |
 |---|---|
-| Fresh operator authorization | BLOCKED / not granted |
+| Fresh operator authorization | GRANTED 01/09/2026 for the bounded MRX-06P run |
 | Canonical local `ipcmanagement` migration | APPLIED after retained backup |
-| `ipc_lane7` access during final local closeout | NONE |
-| Phase 30 migration on `ipc_lane7` | UNAPPLIED |
+| Protected checkpoint | CREATED and archive/manifest verified before migration |
+| `ipc_lane7` authorized attempt | READ-ONLY PREFLIGHT + BACKUP + FAILED FIRST MIGRATION STATEMENT; zero lineage schema effect |
+| Phase 30 migration on `ipc_lane7` | APPLIED — migration 76 after disposable-checkpoint proof; metadata-driven FK compatibility regression passes |
 | Protected import → transfer → issue → comparison/completion run | NOT RUN |
 | Five-viewports protected browser matrix | NOT RUN |
 | Populated reconciliation dialog focus | NEEDS_EVIDENCE |
@@ -86,4 +89,4 @@ The canonical final verifier reports are `.artifacts/runtime/phase30-final-route
 
 ## Final verdict
 
-Phase 30 deterministic local code work is closed at `6bfbd9f9`; the preceding state closeout is committed at `e7187df5`, and the canonical closeout artifacts are committed at docs-only descendant `0efb8012f4979ee17e61fa11e717b6bdde1c753d`. No protected claim is made. The next and only Phase 30 checkpoint is an explicit human authorization decision for MRX-06P; until then the protected migration remains unapplied, populated focus remains NEEDS_EVIDENCE, final protected mode is not newly tested, and aggregate MRX-06 stays BLOCKED.
+Phase 30 deterministic local code work is closed at `6bfbd9f9`; the preceding state closeout is committed at `e7187df5`, and the canonical closeout artifacts are committed at docs-only descendant `0efb8012f4979ee17e61fa11e717b6bdde1c753d`. The authorized protected attempt at merge HEAD `577dc926` made no Phase 30 schema/data effect and produced no browser claim. The next checkpoint is to make `20260828092012_ClosedLoopReconciliationIssueLineage` compatible with the actual protected FK topology, add a regression for that baseline, and obtain confirmation to retry from the retained checkpoint boundary. Until then the protected migration remains unapplied, populated focus remains NEEDS_EVIDENCE, final protected mode remains `DEFAULT / 5`, and aggregate MRX-06 stays BLOCKED.

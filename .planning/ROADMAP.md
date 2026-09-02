@@ -244,3 +244,14 @@ Plans:
 - [x] 30-13-PLAN.md — frontend conceptual Wave 5 / executor wave 13 deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-12).
 
 **MRX-06 disposition:** `MRX-06L` is **COMPLETE** at verified HEAD `6bfbd9f9` after the final canonical local gate matrix. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`. No Phase 30 protected migration or final protected-mode run was performed; aggregate `MRX-06` remains BLOCKED. See [Phase 30 verification](phases/30-closed-loop-menu-issue-reconciliation/30-VERIFICATION.md).
+
+### Phase 31: Full-system UI/UX audit and remediation
+
+**Goal:** Audit and remediate every frontend route, retained view, overlay, form, action, query state, permission/mode variant and declared viewport through measurable composition, geometry, accessibility, interaction, runtime and behavior-preservation gates.
+**Requirements:** UIX-01, UIX-02, UIX-03, UIX-04, UIX-05, UIX-06, UIX-07, UIX-08
+**Depends on:** Phase 30
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 31-01-PLAN.md — execute one sequential checklist across shared owners and every route; reproduce, fix and verify each row before moving to the next.
