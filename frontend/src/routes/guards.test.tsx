@@ -69,7 +69,10 @@ describe('ForbiddenPage presentation', () => {
   it('keeps access-denied content nested below the shell page heading', () => {
     renderWithStore(<ForbiddenPage />);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Không đủ quyền truy cập' })).toBeInTheDocument();
+    const deniedPanel = screen.getByRole('heading', { level: 2, name: 'Phân hệ này chưa được cấp quyền' }).closest('[data-ui-owner]');
+    expect(deniedPanel).toHaveAttribute('data-ui-owner', 'uio-h');
+    expect(deniedPanel).toHaveAttribute('data-ui-floorplan', 'uif-h');
+    expect(deniedPanel).toHaveAttribute('data-ui-region', 'uir-h');
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
     expect(screen.getByText('403')).toBeInTheDocument();
     expect(screen.getByText(/Tài khoản hiện tại chưa được cấp quyền vào phân hệ này/)).toBeInTheDocument();

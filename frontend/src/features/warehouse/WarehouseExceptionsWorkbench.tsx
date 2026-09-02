@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { ArrowRight, PackageCheck, RefreshCw, Undo2 } from 'lucide-react';
 import {
+  IdentifierText,
   InlineAlert,
   PaginationBar,
   SectionPanel,
@@ -294,7 +295,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
               ) : supplementalItems.map((item) => (
                 <tr key={item.requestId}>
-                  <td><span className="block font-semibold text-slate-950">{item.requestCode}</span><span className="text-xs text-slate-600">Từ {item.issueCode}</span></td>
+                  <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td><span className="block font-medium text-slate-900">{item.ingredientName}</span><span className="text-xs text-slate-600">{item.reason || 'Không có ghi chú'}</span></td>
                   <td className="text-right tabular-nums">{formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })} / {formatQuantityWithUnit(item.requestedQty, item.unitName, { maximumFractionDigits: 6 })}</td>
                   <td className="text-right tabular-nums">{formatQuantityWithUnit(item.availableQty, item.unitName, { maximumFractionDigits: 6 })}</td>

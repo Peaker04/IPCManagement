@@ -95,7 +95,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                   if (group.lines.length === 1) {
                     const material = group.lines[0]
                     return [(
-                      <TableRow key={material.id} className={cn("border-slate-200 transition-colors duration-200 motion-reduce:transition-none", material.signed ? "bg-emerald-50/30 hover:bg-emerald-50/40" : "hover:bg-blue-50/40")}>
+                      <TableRow key={`${group.key}:${material.id}`} className={cn("border-slate-200 transition-colors duration-200 motion-reduce:transition-none", material.signed ? "bg-emerald-50/30 hover:bg-emerald-50/40" : "hover:bg-blue-50/40")}>
                         <TableCell>{material.signed ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><Check className="size-3.5" />Đã nhận</span> : <Button type="button" size="xs" variant="outline" onClick={() => setPendingMaterialId(material.id)}>Nhận</Button>}</TableCell>
                         <TableCell className="font-medium text-slate-800">{material.name}</TableCell>
                         <TableCell className="text-slate-500">{material.issueCode ?? 'Theo kế hoạch'}</TableCell>
@@ -108,7 +108,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
 
                   const issueCount = new Set(group.lines.map((line) => line.issueCode ?? line.issueId ?? line.id)).size
                   const summary = (
-                    <TableRow key={group.key} className="border-slate-200 bg-slate-50/70">
+                    <TableRow key={`summary:${group.key}`} className="border-slate-200 bg-slate-50/70">
                       <TableCell className="text-center"><Button type="button" variant="outline" size="icon-xs" className="text-slate-600" aria-label={`${expanded ? 'Đóng' : 'Mở'} ${group.lines.length} dòng nguồn của ${group.name}`} aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? null : group.key)}><ChevronDown className={cn('size-4 transition-transform', expanded && 'rotate-180')} /></Button></TableCell>
                       <TableCell><span className="block font-semibold text-slate-900">{group.name}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></TableCell>
                       <TableCell className="text-slate-500">{issueCount} phiếu xuất</TableCell>
@@ -120,7 +120,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                   if (!expanded) return [summary]
 
                   return [summary, ...group.lines.map((material) => (
-                    <TableRow key={material.id} className={cn('border-slate-200 bg-white', material.signed && 'bg-emerald-50/20')}>
+                    <TableRow key={`detail:${group.key}:${material.id}`} className={cn('border-slate-200 bg-white', material.signed && 'bg-emerald-50/20')}>
                       <TableCell>{material.signed ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><Check className="size-3.5" />Đã nhận</span> : <Button type="button" size="xs" variant="outline" aria-label={`Nhận ${material.name} từ ${material.issueCode ?? material.id}`} onClick={() => setPendingMaterialId(material.id)}>Nhận</Button>}</TableCell>
                       <TableCell className="pl-6 text-xs font-medium text-slate-700"><span className="inline-flex items-center gap-1"><span aria-hidden="true">↳</span><span>Dòng xuất nguồn</span></span></TableCell>
                       <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>{material.issueCode ?? material.issueId ?? material.id}</TableCell>

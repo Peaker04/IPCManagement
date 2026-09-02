@@ -15,6 +15,7 @@ vi.mock('@/components/common', () => ({
   InlineAlert: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   KeepAliveTabPanel: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   OperationalFrame: ({ command, context, children }: { command?: ReactNode; context?: ReactNode; children?: ReactNode }) => <>{command}{context}{children}</>,
+  TabContentSkeleton: () => <div role="status">Đang tải nội dung...</div>,
   ViewSwitcher: () => null,
 }))
 

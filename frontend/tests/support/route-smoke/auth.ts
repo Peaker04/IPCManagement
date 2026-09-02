@@ -49,7 +49,7 @@ export async function login(page: Page) {
 
   await page.goto(ROUTES.LOGIN);
   await page.getByLabel('Tài khoản').fill('admin');
-  await page.getByLabel('Mật khẩu').fill('admin');
+  await page.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill('admin');
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
   await expect(page.locator('.ipc-app-shell')).toBeVisible();

@@ -101,14 +101,14 @@ export function StatusBadge({
       data-layout-owner="status-badge"
       className={cn(
         typography.label,
-        'ipc-status-badge inline-flex min-h-5 min-w-0 items-center justify-center font-medium whitespace-nowrap select-none',
+        'ipc-status-badge cell-status inline-flex min-h-5 items-center justify-center font-medium whitespace-nowrap select-none',
         sizeClasses[size],
         badgeClasses[variant],
         className
       )}
     >
       <span className={cn('ipc-status-badge-dot h-1.5 w-1.5 rounded-full shrink-0', dotClasses[variant])} aria-hidden="true" />
-      <span className="ipc-status-badge-label min-w-0 overflow-hidden text-ellipsis whitespace-nowrap truncate">{children}</span>
+      <span className="ipc-status-badge-label whitespace-nowrap">{children}</span>
     </span>
   );
 }

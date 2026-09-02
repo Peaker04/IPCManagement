@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AlertTriangle, ClipboardList, Search, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
+  IdentifierText,
   KeepAliveTabPanel,
   PaginationBar,
   SectionPanel,
@@ -162,7 +163,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                             </span>
                           </span>
                         </td>
-                        <td><div className="font-medium text-slate-800">{item.receiptCode}</div><div className="text-xs text-slate-500">{formatDateOnly(item.receiptDate)}</div></td>
+                        <td><IdentifierText value={item.receiptCode} className="font-medium text-slate-800" /><div className="text-xs text-slate-500">{formatDateOnly(item.receiptDate)}</div></td>
                         <td className="ipc-numeric-cell">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
                         <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
                         <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>

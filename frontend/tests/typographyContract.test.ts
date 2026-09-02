@@ -32,7 +32,6 @@ const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/features/chef/components/operational-actions.tsx': 'action metadata retains its established emphasis',
   'src/features/coordination/components/header-info.tsx': 'countdown remains bold for cutoff salience',
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': 'approval document code retains compact emphasis',
-  'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': 'import helper text retains existing medium emphasis',
   'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': 'locked-slot caption keeps emphasis within the compact weekly editor',
   'src/features/purchasing/PurchaseDecisionPanel.tsx': 'decision values retain their existing emphasis',
   'src/features/purchasing/PurchaseWorkflowGuide.tsx': 'workflow stage labels retain compact emphasis',

@@ -24,6 +24,8 @@ export interface ViewSwitcherProps {
   compact?: boolean
   /** Accessible label for the tablist */
   ariaLabel: string; uiOwnership?: import('./OperationalFrame').UiOwnershipMarker
+  /** Announces and visually stabilizes a deferred/loading view transition. */
+  isPending?: boolean
 }
 
 export function ViewSwitcher({
@@ -32,6 +34,7 @@ export function ViewSwitcher({
   onTabChange,
   compact = false,
   ariaLabel, uiOwnership,
+  isPending = false,
 }: ViewSwitcherProps) {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const ownershipFor = (tab: ViewTab) => tab.uiOwnership ?? uiOwnership ?? viewOwnershipBindings[`${ariaLabel}\0${tab.id}`]; const activeOwnership = ownershipFor(tabs.find((tab) => tab.id === activeTab) ?? tabs[0])
@@ -67,9 +70,10 @@ export function ViewSwitcher({
 
   return (
     <div
-      className={cn('ipc-view-switcher', compact && 'is-compact')}
+      className={cn('ipc-view-switcher', compact && 'is-compact', isPending && 'is-pending')}
       role="tablist"
       aria-label={ariaLabel}
+      aria-busy={isPending}
       aria-orientation="horizontal" data-ui-owner={activeOwnership?.ownerId} data-ui-floorplan={activeOwnership?.floorplanId} data-ui-region={activeOwnership?.regionId}
     >
       {tabs.map((tab, index) => (

@@ -25,4 +25,15 @@ describe('TabContentSkeleton', () => {
     const bodyRows = container.querySelectorAll('[role="rowgroup"]:last-of-type > [role="row"]');
     expect(bodyRows).toHaveLength(8);
   });
+
+  it.each([
+    ['compact', 'min-h-[12rem]'],
+    ['section', 'min-h-[20rem]'],
+    ['table', 'min-h-[26rem]'],
+    ['workspace', 'min-h-[34rem]'],
+  ] as const)('uses stable %s loading geometry', (geometry, expectedClass) => {
+    render(<TabContentSkeleton geometry={geometry} />);
+    expect(screen.getByRole('status')).toHaveAttribute('data-geometry', geometry);
+    expect(screen.getByRole('status')).toHaveClass(expectedClass);
+  });
 });

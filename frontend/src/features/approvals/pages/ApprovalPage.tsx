@@ -12,6 +12,7 @@ import { SectionPanel } from '@/components/common/SectionPanel';
 import { useToast } from '@/components/common/useToast';
 import { ViewSwitcher } from '@/components/common/ViewSwitcher';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
+import { TabContentSkeleton } from '@/components/common/TabContentSkeleton';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';
@@ -227,18 +228,20 @@ export default function ApprovalPage() {
       <Button
         variant="success"
         type="button"
+        aria-label={`${getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}: ${record.title}`}
         onClick={() => openDecisionModal(record, 'Approve')}
         disabled={isDeciding || !record.targetType || !record.targetId}
       >
-        {getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}
+        Duyệt
       </Button>
       <Button
         variant="outline"
         type="button"
+        aria-label={`${getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}: ${record.title}`}
         onClick={() => openDecisionModal(record, 'Reject')}
         disabled={isDeciding || !record.targetType || !record.targetId}
       >
-        {getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}
+        Từ chối
       </Button>
     </>
   );
@@ -315,31 +318,40 @@ export default function ApprovalPage() {
       />
 
       <div className="flex-1 min-h-0 flex flex-col">
-        <KeepAliveTabPanel id="approval-queue" active={activeView === 'queue'}>
+        <KeepAliveTabPanel
+          id="approval-queue"
+          active={activeView === 'queue'}
+          fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải hàng chờ duyệt..." />}
+        >
           <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
             <MenuAmendmentReconciliation />
           </Suspense>
           <SplitWorkbench
             detailLabel="Chứng từ"
-            detailClassName="min-h-[16rem]"
+            detailClassName="min-h-[16rem] border-0 bg-transparent p-0"
             detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
           >
-            <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
-              <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                <label htmlFor="approval-inbox-search" className="grid gap-1 text-xs font-semibold text-slate-700">
-                  Tìm chứng từ hoặc nguyên liệu
-                  <Suspense fallback={<span aria-hidden="true" className="block h-9 rounded-md bg-slate-50" />}>
-                    <ApprovalSearchField
-                      value={approvalSearch}
-                      onChange={(value) => {
-                        setApprovalSearch(value);
-                        setApprovalPagination({ scopeKey: '', cursors: [] });
-                      }}
-                    />
-                  </Suspense>
-                </label>
-                <p className="text-xs text-slate-600 md:pb-2">Phạm vi: {approvalScopeLabel}</p>
-              </div>
+            <SectionPanel
+              title="Danh sách cần duyệt"
+              icon={<ClipboardCheck size={18} />}
+              description="Các đề xuất và chứng từ đang chờ quản lý vận hành phê duyệt."
+              actions={
+                <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-nowrap">
+                  <span className="hidden whitespace-nowrap text-xs text-slate-500 md:inline">Phạm vi: {approvalScopeLabel}</span>
+                  <div className="w-64 max-w-full">
+                    <Suspense fallback={<span aria-hidden="true" className="block h-9 rounded-md bg-slate-50" />}>
+                      <ApprovalSearchField
+                        value={approvalSearch}
+                        onChange={(value) => {
+                          setApprovalSearch(value);
+                          setApprovalPagination({ scopeKey: '', cursors: [] });
+                        }}
+                      />
+                    </Suspense>
+                  </div>
+                </div>
+              }
+            >
               <ApprovalQueueState
                 view={approvalView}
                 records={approvalRecords}
@@ -359,9 +371,14 @@ export default function ApprovalPage() {
           </SplitWorkbench>
         </KeepAliveTabPanel>
 
-        <KeepAliveTabPanel id="approval-history" active={activeView === 'history'}>
+        <KeepAliveTabPanel
+          id="approval-history"
+          active={activeView === 'history'}
+          fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải lịch sử duyệt..." />}
+        >
           <SplitWorkbench
             detailLabel="Tiến trình phê duyệt"
+            detailClassName="border-0 bg-transparent p-0"
             detail={
               selectedPrId ? (
                 <div className="p-5 space-y-5 relative">

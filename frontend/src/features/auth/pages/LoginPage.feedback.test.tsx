@@ -47,7 +47,11 @@ describe('LoginPage validation feedback', () => {
     expect(password).toHaveAttribute('autocomplete', 'current-password');
     expect(password).toHaveAttribute('type', 'password');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hiện mật khẩu' }));
+    const visibilityControl = screen.getByRole('button', { name: 'Hiện mật khẩu' });
+    expect(visibilityControl).toHaveClass('size-8');
+    expect(visibilityControl).not.toHaveClass('size-11');
+
+    fireEvent.click(visibilityControl);
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.getByRole('button', { name: 'Ẩn mật khẩu' })).toHaveAttribute('aria-pressed', 'true');
   });

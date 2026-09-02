@@ -208,8 +208,8 @@ const LoginPage = () => {
               <Button
                 type="button"
                 variant="ghost"
-                size="icon-lg"
-                className="absolute inset-y-0 right-0 text-slate-600 hover:text-slate-900"
+                size="icon-xs"
+                className="absolute inset-y-0 right-0 z-10 my-auto text-slate-600 hover:text-slate-900"
                 aria-label={isPasswordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 aria-pressed={isPasswordVisible}
                 onClick={() => setIsPasswordVisible((current) => !current)}

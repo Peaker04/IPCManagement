@@ -23,6 +23,7 @@ export function ReportsNavigation({ model }: ReportsNavigationProps) {
       <ViewSwitcher
         compact
         ariaLabel="Chọn loại báo cáo vận hành"
+        isPending={isViewPending || activeReportView.phase === 'loading' || (activeReportView.phase === 'ready' && activeReportView.isRefreshing)}
         tabs={visibleReportTabs}
         activeTab={`reports-${activeView}`}
         onTabChange={(id) => {

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, within } from '@testing-library/react';
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ApprovalQueue } from '@/components/common/ApprovalQueue';
@@ -51,12 +51,16 @@ describe('ApprovalPage history copy', () => {
       ],
     };
 
-    render(createElement(ApprovalQueue, { records: [record], pageSize: 1 }));
+    const { container } = render(createElement(ApprovalQueue, { records: [record], pageSize: 1 }));
 
-    const row = screen.getByRole('article');
-    expect(within(row).getByText('Nhu cầu nguyên liệu')).toBeInTheDocument();
-    expect(within(row).getByText('Cả ngày (FULLDAY)')).toBeInTheDocument();
-    expect(within(row).getByText('KHSX-20260722-FULLDAY')).toBeInTheDocument();
+    const row = container.querySelector<HTMLElement>('#approval-record-material-demand-42');
+    if (!row) throw new Error('Expected the material-demand row.');
+    fireEvent.click(within(row).getByRole('button', { name: 'Xem chi tiết' }));
+    const details = container.querySelector<HTMLElement>('#approval-detail-material-demand-42');
+    if (!details) throw new Error('Expected the material-demand details row.');
+    expect(within(row).getByText('Duyệt nhu cầu nguyên liệu')).toBeInTheDocument();
+    expect(within(details).getByText('Cả ngày (FULLDAY)')).toBeInTheDocument();
+    expect(within(details).getByText('KHSX-20260722-FULLDAY')).toBeInTheDocument();
     expect(within(row).getByText('2 dòng thiếu')).toBeInTheDocument();
   });
 
@@ -86,12 +90,16 @@ describe('ApprovalPage history copy', () => {
       materials: [{ name: 'Gạo', quantity: 25, unit: 'KG' }],
     };
 
-    render(createElement(ApprovalQueue, { records: [record], pageSize: 1 }));
+    const { container } = render(createElement(ApprovalQueue, { records: [record], pageSize: 1 }));
 
-    const row = screen.getByRole('article');
-    expect(within(row).getByText('Ngoại lệ giá')).toBeInTheDocument();
-    expect(within(row).getByText('Nhà cung cấp Minh Tâm')).toBeInTheDocument();
-    expect(within(row).getByText('+18%')).toBeInTheDocument();
-    expect(within(row).getByText('Phiên bản 3')).toBeInTheDocument();
+    const row = container.querySelector<HTMLElement>('#approval-record-price-exception-7');
+    if (!row) throw new Error('Expected the price-exception row.');
+    fireEvent.click(within(row).getByRole('button', { name: 'Xem chi tiết' }));
+    const details = container.querySelector<HTMLElement>('#approval-detail-price-exception-7');
+    if (!details) throw new Error('Expected the price-exception details row.');
+    expect(within(row).getByText('Duyệt ngoại lệ giá mua')).toBeInTheDocument();
+    expect(within(details).getByText('Nhà cung cấp Minh Tâm')).toBeInTheDocument();
+    expect(within(details).getByText('+18%')).toBeInTheDocument();
+    expect(within(details).getByText('Phiên bản 3')).toBeInTheDocument();
   });
 });

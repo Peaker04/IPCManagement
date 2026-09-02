@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
-import { TableViewport } from '@/components/common';
+import { IdentifierText, TableViewport } from '@/components/common';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 
@@ -119,7 +119,7 @@ export function PurchaseLineGroups({
                   <ul className="grid gap-2" aria-label={`Các dòng nguồn của ${group.ingredientName}`}>
                     {group.lines.map((line) => (
                       <li key={line.purchaseRequestLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                        <span className="min-w-0 text-xs text-slate-600"><strong className="text-slate-900">{line.purchaseQty} {line.unitName}</strong> · {line.supplierName || 'Chưa chọn NCC'}<span className="block break-all">{line.purchaseRequestLineId}</span></span>
+                        <span className="min-w-0 text-xs text-slate-600"><strong className="text-slate-900">{line.purchaseQty} {line.unitName}</strong> · {line.supplierName || 'Chưa chọn NCC'}<IdentifierText value={line.purchaseRequestLineId} className="mt-0.5" /></span>
                         <Button type="button" variant="outline" size="sm" className="min-h-9" aria-pressed={selectedLineId === line.purchaseRequestLineId} onClick={() => onLineChange(line.purchaseRequestLineId)}>Mở dòng nguồn</Button>
                       </li>
                     ))}

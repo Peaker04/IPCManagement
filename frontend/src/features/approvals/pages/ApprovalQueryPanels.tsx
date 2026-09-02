@@ -45,11 +45,7 @@ function ApprovalQueueViewport({
 }) {
   return (
     <div
-      className={
-        loading
-          ? "h-[32rem] overflow-hidden pr-1"
-          : "max-h-[32rem] overflow-y-auto pr-1"
-      }
+      className={loading ? "min-h-[32rem]" : "min-w-0"}
       data-testid="approval-queue-viewport"
     >
       {children}

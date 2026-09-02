@@ -213,6 +213,38 @@ describe("ApprovalQueue", () => {
     expect(screen.getByText("Chưa có dữ liệu để hiển thị")).toBeInTheDocument();
   });
 
+  it("keeps the incoming ERP seven-column floorplan with semantic table headers and an on-demand detail row", async () => {
+    render(
+      <ApprovalQueue
+        records={[
+          {
+            ...buildApproval("erp-1", "Duyệt nhu cầu nguyên liệu"),
+            targetType: "material-demand",
+            serviceDate: "2026-08-10",
+            scope: "FULLDAY",
+            sourceDocumentCode: "KHSX-ANV-20260810-FULLDAY",
+            lineCount: 1,
+          },
+        ]}
+      />,
+    );
+
+    const table = screen.getByRole("table", { name: "Danh sách chứng từ cần duyệt" });
+    expect(table).toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader")).toHaveLength(7);
+    expect(screen.getByRole("columnheader", { name: "Chứng từ" })).toHaveAttribute("scope", "col");
+    expect(screen.getByRole("columnheader", { name: "Nội dung" })).toBeInTheDocument();
+    expect(table.querySelector(".ipc-approval-table-row")).toBeInTheDocument();
+    expect(table.querySelector(".ipc-approval-record")).not.toBeInTheDocument();
+    expect(table.querySelector(".ipc-approval-detail-row")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Xem chi tiết" }));
+    expect(screen.getByText("KHSX-ANV-20260810-FULLDAY")).toHaveAttribute(
+      "title",
+      "KHSX-ANV-20260810-FULLDAY",
+    );
+    expect(table.querySelector(".ipc-approval-detail-row > td")).toHaveAttribute("colspan", "7");
+  });
+
   it("renders SLA overdue and upcoming branches", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-10T08:00:00+07:00"));
@@ -272,6 +304,8 @@ describe("ApprovalQueue", () => {
       />,
     );
 
+    expect(screen.queryByText("Nguyên liệu 4")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Xem chi tiết" }));
     expect(screen.getByText("Nguyên liệu 4")).toBeInTheDocument();
     expect(screen.queryByText("Nguyên liệu 5")).not.toBeInTheDocument();
     const toggle = screen.getByRole("button", {

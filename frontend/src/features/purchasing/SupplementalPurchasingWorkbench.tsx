@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChefHat } from 'lucide-react';
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
+import { EmptyState, IdentifierText, InlineAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
@@ -187,7 +187,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
               const selected = item.requestId === effectiveSelectedRequestId;
               return (
                 <tr key={item.requestId} className={selected ? 'bg-blue-50/60' : undefined}>
-                  <td><span className="block font-semibold text-slate-950">{item.requestCode}</span><span className="text-xs text-slate-600">Từ {item.issueCode}</span></td>
+                  <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td>{item.ingredientName}</td>
                   <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(item.remainingQty, item.unitName)}</td>
                   <td>{item.purchaseRequestCode || 'Đang tạo liên kết'}</td>

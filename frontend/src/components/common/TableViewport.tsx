@@ -69,6 +69,7 @@ export function TableViewport({
       className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain rounded-md border border-slate-200 bg-white shadow-xs', viewportSizeClasses[size], className)}
       data-table-viewport="true"
       data-density={resolvedDensity}
+      data-vertical-scroll={size === 'weekly' ? 'bounded' : 'page'}
       data-sticky-header={stickyHeader}
       data-frozen-identifier={frozenFirstIdentifier}
       role="region"

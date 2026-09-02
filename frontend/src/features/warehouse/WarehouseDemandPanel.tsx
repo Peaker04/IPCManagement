@@ -1,3 +1,4 @@
+import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { EmptyState, PaginationBar, SectionPanel } from '@/components/common';
 import { DemandSummary } from '@/components/common/DemandSummary';
@@ -46,21 +47,27 @@ export function WarehouseDemandPanel({
       : 'Tất cả ngày';
 
   return (
-    <SectionPanel title="Nhu cầu xuất theo từng ngày">
-      <div className="mb-3 grid gap-2 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <label htmlFor="warehouse-demand-search" className="grid gap-1 text-xs font-semibold text-slate-700">
-            Tìm nguyên liệu trong nhu cầu xuất
+    <SectionPanel
+      title="Nhu cầu xuất theo từng ngày"
+      description="Danh sách nguyên liệu cần chuẩn bị xuất kho theo ngày hoặc tuần phục vụ."
+      actions={
+        <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-nowrap">
+          <span className="hidden whitespace-nowrap text-xs text-slate-500 md:inline">Phạm vi: {scopeLabel}</span>
+          <div className="relative w-64 max-w-full">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <Input
               id="warehouse-demand-search"
               type="search"
               value={demandSearch}
               onChange={(event) => onDemandSearchChange(event.target.value)}
-              placeholder="Tên hoặc mã nguyên liệu"
-              className="h-9"
+              placeholder="Tìm tên hoặc mã nguyên liệu..."
+              className="h-8 border-slate-300 bg-slate-50 pl-8 text-xs focus:bg-white"
+              aria-label="Tìm nguyên liệu trong nhu cầu xuất"
             />
-          </label>
-          <p className="text-xs text-slate-600 md:pb-2">Phạm vi: {scopeLabel}</p>
+          </div>
         </div>
+      }
+    >
         {isError ? (
           <EmptyState
             variant="error"

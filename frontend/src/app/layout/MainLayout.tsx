@@ -128,6 +128,8 @@ const MainLayoutContent = () => {
         return { title: 'Thiết lập quy trình duyệt', workflow: 'Phê duyệt', state: 'Cấu hình hệ thống' };
       case ROUTES.ADVANCED_SETTINGS:
         return { title: 'Thiết lập nâng cao', workflow: 'Quản trị hệ thống', state: 'Cấu hình hiển thị' };
+      case ROUTES.FORBIDDEN:
+        return { title: 'Không đủ quyền truy cập', workflow: 'Phân quyền', state: 'Bị từ chối' };
       default:
         return { title: 'Hệ thống Quản lý Bếp ăn', workflow: 'Vận hành', state: 'Đang hoạt động' };
     }

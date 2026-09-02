@@ -191,9 +191,8 @@ describe('ApprovalPage query state boundary', () => {
 
     renderPage();
 
-    const row = screen.getAllByText('Duyệt đề xuất mua PR-20260810-FULLDAY')[0].closest('article');
-    if (!row) throw new Error('Expected the PR approval row to be rendered.');
-    fireEvent.click(within(row).getByRole('button', { name: 'Duyệt chứng từ' }));
+    const row = screen.getByRole('row', { name: /Duyệt đề xuất mua PR-20260810-FULLDAY/i });
+    fireEvent.click(within(row).getByRole('button', { name: /Duyệt chứng từ:/i }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Duyệt đề xuất mua?' });
     expect(dialog).toBeInTheDocument();

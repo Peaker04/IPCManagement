@@ -26,6 +26,13 @@ describe('MainLayout ownership and behavior contract', () => {
     expect(currentLayoutSource).not.toContain('visibleMenuItems[nextRouteIndex]');
   });
 
+  it('gives the forbidden route its own page identity and denied state', () => {
+    expect(currentLayoutSource).toContain("case ROUTES.FORBIDDEN:");
+    expect(currentLayoutSource).toContain("title: 'Không đủ quyền truy cập'");
+    expect(currentLayoutSource).toContain("workflow: 'Phân quyền'");
+    expect(currentLayoutSource).toContain("state: 'Bị từ chối'");
+  });
+
   it('does not rerender the app shell for every feature query transition', () => {
     expect(currentLayoutSource).not.toContain('Object.values(state.api.queries)');
     expect(currentLayoutSource).not.toContain('activeRequestCount');

@@ -15,7 +15,9 @@ describe('shared status presentation components', () => {
     expect(status).toHaveAttribute('aria-live', 'polite')
     expect(status).toHaveAttribute('title', 'Đang đồng bộ dữ liệu vận hành trong ca phục vụ')
     expect(status).toHaveAttribute('data-size', 'default')
-    expect(status.querySelector('.ipc-status-badge-label')).toHaveClass('min-w-0', 'overflow-hidden', 'text-ellipsis', 'whitespace-nowrap')
+    expect(status).toHaveClass('cell-status')
+    expect(status.querySelector('.ipc-status-badge-label')).toHaveClass('whitespace-nowrap')
+    expect(status.querySelector('.ipc-status-badge-label')).not.toHaveClass('truncate', 'overflow-hidden')
   })
 
   it('uses an explicit accessible label when the visual status is not text', () => {

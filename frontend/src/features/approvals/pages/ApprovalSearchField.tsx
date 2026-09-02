@@ -8,6 +8,7 @@ export function ApprovalSearchField({ value, onChange }: ApprovalSearchFieldProp
     <input
       id="approval-inbox-search"
       type="search"
+      aria-label="Tìm chứng từ hoặc nguyên liệu"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder="Mã phiếu, nhà cung cấp, nguyên liệu..."

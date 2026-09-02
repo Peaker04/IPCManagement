@@ -2,25 +2,37 @@ import { memo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+export type TabContentSkeletonGeometry = 'compact' | 'section' | 'table' | 'workspace';
+
 export interface TabContentSkeletonProps {
   /** Variant of layout: 'table' (default), 'split' (master-detail), or 'cards' */
   variant?: 'table' | 'split' | 'cards';
+  /** Stable loading footprint matching the owning ready-state surface. */
+  geometry?: TabContentSkeletonGeometry;
   /** Number of table rows to simulate (default: 6) */
   rows?: number;
   /** Number of columns (default: 6) */
   columns?: number;
-  /** Optional custom minimum height (default: 'min-h-[420px]') */
+  /** Optional custom minimum height. Prefer geometry for canonical surfaces. */
   minHeight?: string;
   /** Optional loading message to display alongside spinner */
   message?: string;
   className?: string;
 }
 
+const geometryClasses: Record<TabContentSkeletonGeometry, string> = {
+  compact: 'min-h-[12rem]',
+  section: 'min-h-[20rem]',
+  table: 'min-h-[26rem]',
+  workspace: 'min-h-[34rem]',
+};
+
 export const TabContentSkeleton = memo(function TabContentSkeleton({
   variant = 'table',
+  geometry = variant === 'split' ? 'workspace' : 'table',
   rows = 6,
   columns = 6,
-  minHeight = 'min-h-[420px]',
+  minHeight,
   message = 'Đang tải dữ liệu...',
   className,
 }: TabContentSkeletonProps) {
@@ -33,9 +45,10 @@ export const TabContentSkeleton = memo(function TabContentSkeleton({
         aria-busy="true"
         aria-live="polite"
         role="status"
+        data-geometry={geometry}
         className={cn(
-          'w-full flex-1 flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-2xs animate-in fade-in duration-150',
-          minHeight,
+          'w-full flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-2xs animate-in fade-in duration-150',
+          minHeight ?? geometryClasses[geometry],
           className
         )}
       >
@@ -97,9 +110,10 @@ export const TabContentSkeleton = memo(function TabContentSkeleton({
       aria-busy="true"
       aria-live="polite"
       role="status"
+      data-geometry={geometry}
       className={cn(
-        'w-full flex-1 flex flex-col rounded-md border border-slate-200 bg-white p-4 shadow-2xs animate-in fade-in duration-150',
-        minHeight,
+        'w-full flex flex-col rounded-md border border-slate-200 bg-white p-4 shadow-2xs animate-in fade-in duration-150',
+        minHeight ?? geometryClasses[geometry],
         className
       )}
     >

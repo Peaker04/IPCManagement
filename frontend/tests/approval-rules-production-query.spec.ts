@@ -10,14 +10,14 @@ import { APPROVAL_RULES_QUERY_DISPOSITION_REASONS, expandProductionQueryIdentiti
 
 type MeasuredState = 'initial-loading' | 'populated' | 'truly-empty' | 'error-no-data';
 const endpoint = '/api/approval-rules';
-const profile = { userId: 'admin-phase28-rules', username: 'admin-phase28-rules', fullName: 'Quản trị Phase 28', role: 'admin', roleCode: 'ADMIN', roleName: 'Quản trị viên', isAdminFullAccess: true, permissions: ['*'] };
+export const profile = { userId: 'admin-phase28-rules', username: 'admin-phase28-rules', fullName: 'Quản trị Phase 28', role: 'admin', roleCode: 'ADMIN', roleName: 'Quản trị viên', isAdminFullAccess: true, permissions: ['*'] };
 const rule = { ruleId: 'rule-phase28', ruleName: 'Quy tắc Phase 28', documentType: 'purchase-request', minAmount: 10000000, maxAmount: null, slaHours: 24, isActive: true, approvalassignments: [{ assignmentId: 'assignment-phase28', sequence: 1, approverRole: 'quanly', approverUserId: null, approverUser: null, isRequired: true }] };
 const identities = expandProductionQueryIdentities().filter(({ route }) => route === '/admin/rules').map(registerApprovalRulesQueryIdentity);
 
-async function json(route: Route, data: unknown) {
+export async function json(route: Route, data: unknown) {
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, message: 'OK', data }) });
 }
-async function installApi(page: Page, state: MeasuredState) {
+export async function installApi(page: Page, state: MeasuredState) {
   let release!: () => void;
   const deferred = new Promise<void>((resolveRelease) => { release = resolveRelease; });
   await page.route('**/api/**', async (route) => {
@@ -25,6 +25,7 @@ async function installApi(page: Page, state: MeasuredState) {
     if (!path.startsWith('/api/')) return route.continue();
     if (path === '/api/auth/profile') return json(route, profile);
     if (path === '/api/purchase-orders/page') return json(route, { page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, orderCountByRequest: {} });
+    if (path === '/api/admin/employees') return json(route, { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false });
     if (path !== endpoint) throw new Error(`unstubbed Approval Rules production GET dependency: ${path}`);
     if (state === 'initial-loading') await deferred;
     if (state === 'error-no-data') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, message: 'Approval Rules Phase 28 failure' }) });
@@ -32,7 +33,7 @@ async function installApi(page: Page, state: MeasuredState) {
   });
   return release;
 }
-async function login(page: Page) {
+export async function login(page: Page) {
   await page.addInitScript((user) => {
     localStorage.clear(); sessionStorage.clear();
     sessionStorage.setItem('token', 'dev-login-fallback-token-phase28-approval-rules');
@@ -46,7 +47,7 @@ async function login(page: Page) {
 function seam(page: Page, state: MeasuredState): Locator {
   if (state === 'initial-loading') return page.getByText('Đang tải cấu hình...');
   if (state === 'populated') return page.getByRole('heading', { name: 'Quy tắc Phase 28' });
-  if (state === 'truly-empty') return page.getByText('Chưa có quy tắc phê duyệt nào được thiết lập.');
+  if (state === 'truly-empty') return page.getByText('Chưa có quy tắc phê duyệt', { exact: true });
   return page.getByRole('heading', { name: 'Không tải được quy tắc phê duyệt' });
 }
 function dispositionFindings(row: ReturnType<typeof registerApprovalRulesQueryIdentity>): UiAuditFinding[] {
@@ -55,7 +56,7 @@ function dispositionFindings(row: ReturnType<typeof registerApprovalRulesQueryId
   return UI_AUDIT_RULE_IDS.map((ruleId) => ({ ruleId, identity, verdict: row.disposition.kind === 'not-applicable' ? 'NOT_APPLICABLE' : 'NEEDS_EVIDENCE', measured: { productionRouteMeasured: false, reason: row.disposition.reason } }));
 }
 
-test.describe('Phase 28 Approval Rules production-route query-state adapter', () => {
+(process.env.PHASE31_HELPER_ONLY ? test.describe.skip : test.describe)('Phase 28 Approval Rules production-route query-state adapter', () => {
   test('records all 49 identities from the actual ApprovalRulesPage with a GET/HEAD-only ledger', async ({ browser }) => {
     test.setTimeout(600_000);
     const records: UiAuditRecord[] = [];

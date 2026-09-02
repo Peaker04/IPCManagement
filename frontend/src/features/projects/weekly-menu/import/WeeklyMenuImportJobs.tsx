@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { ConfirmDialog, StatusBadge, TableViewport } from '@/components/common'
+import { ConfirmDialog, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -31,32 +31,31 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
   }, [search, state.jobs])
 
   return (
-    <div className={cn(typography.body, 'flex flex-col gap-3')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className={cn(typography.sectionTitle, 'text-slate-900')}>File cần kiểm tra</h3>
-          <p className={cn(typography.body, 'font-medium text-slate-500')}>Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => void actions.previewAllJobs()} disabled={status.isImporting || state.jobs.length === 0}>
+    <SectionPanel
+      title={<span className={typography.sectionTitle}>File cần kiểm tra</span>}
+      description="Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn."
+      actions={
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+          <div className="relative w-64 max-w-full">
+            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm khách hàng, file..."
+              aria-label="Tìm trong danh sách file thực đơn"
+              className="h-8 border-slate-300 bg-slate-50 pl-8 text-xs focus:bg-white"
+            />
+          </div>
+          <Button type="button" variant="outline" size="xs" onClick={() => void actions.previewAllJobs()} disabled={status.isImporting || state.jobs.length === 0}>
             {status.isPreviewing ? 'Đang kiểm tra...' : 'Kiểm tra tất cả'}
           </Button>
-          <Button type="button" size="sm" onClick={() => setCommitTarget({ kind: 'all' })} disabled={status.isImporting || state.jobs.length === 0 || readyJobs.length !== state.jobs.length}>
+          <Button type="button" size="xs" onClick={() => setCommitTarget({ kind: 'all' })} disabled={status.isImporting || state.jobs.length === 0 || readyJobs.length !== state.jobs.length}>
             {status.isCommitting ? 'Đang lưu...' : 'Lưu toàn bộ file'}
           </Button>
         </div>
-      </div>
-      <div className="relative max-w-md">
-        <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Tìm khách hàng, tuần, file hoặc trạng thái"
-          aria-label="Tìm trong danh sách file thực đơn"
-          className="pl-9"
-        />
-      </div>
-      <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra" frozenFirstIdentifier={false}>
+      }
+    >
+      <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className={cn(typography.body, 'max-h-[260px]')} ariaLabel="Danh sách file thực đơn chờ kiểm tra" frozenFirstIdentifier={false}>
         <table className="ipc-data-table table-fixed">
           <thead><tr>
             <th className="text-left whitespace-nowrap">Khách hàng</th><th className="text-left whitespace-nowrap">Tuần</th>
@@ -74,7 +73,7 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
                   <td className="text-center whitespace-nowrap"><span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{formatBomTierLabel(job.priceTierAmount)}</span></td>
                   <td className="text-left"><div className="flex min-w-0 flex-col"><span className="break-words font-semibold text-slate-800">{job.fileName}</span><span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span></div></td>
                   <td className="text-center whitespace-nowrap">{preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}</td>
-                  <td className={cn(typography.numeric, 'text-right tabular-nums whitespace-nowrap')}>{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
+                  <td className={cn(typography.numeric, 'whitespace-nowrap text-right tabular-nums')}>{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
                   <td className="text-center whitespace-nowrap"><StatusBadge variant={getImportJobStatusTone(job.status)} className="min-w-[116px] justify-center whitespace-nowrap">{getImportJobStatusLabel(job.status)}</StatusBadge></td>
                   <td className="text-right"><div data-testid="import-job-actions" className="flex flex-nowrap justify-end gap-1.5 whitespace-nowrap">
                     <Button type="button" variant="outline" size="xs" className="shrink-0" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'}>Kiểm tra</Button>
@@ -110,6 +109,6 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
           onOpenChange={(open) => !open && setCommitTarget(null)}
         />
       )}
-    </div>
+    </SectionPanel>
   )
 }

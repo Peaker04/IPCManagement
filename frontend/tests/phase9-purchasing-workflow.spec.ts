@@ -14,7 +14,7 @@ const absoluteUrl = (path: string) => new URL(path, frontendUrl).toString();
 async function loginToRealStack(page: Page) {
   await page.goto(absoluteUrl(ROUTES.LOGIN));
   await page.getByLabel('Tài khoản').fill(process.env.PHASE09_USERNAME ?? 'admin');
-  await page.getByLabel('Mật khẩu').fill(process.env.PHASE09_PASSWORD ?? 'admin');
+  await page.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill(process.env.PHASE09_PASSWORD ?? 'admin');
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page.locator('.ipc-app-shell')).toBeVisible();
 }

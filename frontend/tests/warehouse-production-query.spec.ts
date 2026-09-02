@@ -12,7 +12,7 @@ import { isLedgerRequest } from './uiAuditEvidence';
 type CreatedState = 'initial-loading' | 'populated' | 'truly-empty' | 'error-no-data';
 type Region = (typeof REGION_INVENTORY)['/warehouse'][number];
 
-const profile = { userId: 'phase28-keeper', username: 'phase28-keeper', fullName: 'Thủ kho Phase 28', role: 'thukho', roleCode: 'WAREHOUSE_KEEPER', roleName: 'Thủ kho', isAdminFullAccess: false, permissions: ['warehouse.read'] };
+export const profile = { userId: 'phase28-keeper', username: 'phase28-keeper', fullName: 'Thủ kho Phase 28', role: 'thukho', roleCode: 'WAREHOUSE_KEEPER', roleName: 'Thủ kho', isAdminFullAccess: false, permissions: ['warehouse.read'] };
 const owners: Record<Region, { endpoint: string; ownership: string }> = {
   'warehouse-current-stock': { endpoint: '/api/workflow-reports/current-stock/page', ownership: 'movement-active-first' },
   'warehouse-purchase-receipts': { endpoint: '/api/inventory-receipts', ownership: 'always-mounted-receipt-lifecycle' },
@@ -45,7 +45,7 @@ const apiPatterns = [
   '**/api/purchase-orders/page**', '**/api/warehouses/selector', '**/api/workflow-reports/kitchen-issues**',
   '**/api/workflow-reports/ingredient-demand/aggregate/page**',
 ];
-async function installApi(page: Page, region: Region, state: CreatedState) {
+export async function installApi(page: Page, region: Region, state: CreatedState) {
   let release!: () => void;
   const deferred = new Promise<void>((resolveRelease) => { release = resolveRelease; });
   const owned = owners[region].endpoint;
@@ -54,21 +54,21 @@ async function installApi(page: Page, region: Region, state: CreatedState) {
     if (path === '/api/auth/profile') return json(route, profile);
     if (path === owned && state === 'initial-loading') await deferred;
     if (path === owned && state === 'error-no-data') return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, message: `${region} Phase 28 failure` }) });
-    return json(route, dataFor(path, path === owned && state === 'populated'));
+    return json(route, dataFor(path, path === owned && (state === 'populated' || state === 'initial-loading')));
   };
   for (const pattern of apiPatterns) await page.route(pattern, handler);
   return release;
 }
-async function login(page: Page) {
+export async function login(page: Page) {
   await page.addInitScript((user) => { localStorage.clear(); sessionStorage.clear(); sessionStorage.setItem('token', 'dev-login-fallback-token-phase28-warehouse'); localStorage.setItem('user', JSON.stringify({ ...user, id: user.userId })); }, profile);
   await page.goto('/warehouse', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/warehouse/);
   await expect(page.locator('.ipc-app-shell')).toBeVisible();
 }
-function seam(page: Page, region: Region, state: CreatedState): Locator {
+export function seam(page: Page, region: Region, state: CreatedState): Locator {
   if (region === 'warehouse-current-stock') {
     if (state === 'error-no-data') return page.getByRole('heading', { name: 'Không tải được tồn kho hiện tại' });
-    return state === 'initial-loading' ? page.locator('.ipc-warehouse-table-shell .ipc-table-skeleton-cell').first() : page.getByText(state === 'populated' ? 'Gạo Phase 28' : 'Chưa có dữ liệu tồn kho');
+    return state === 'initial-loading' ? page.locator('.ipc-warehouse-table-shell .animate-pulse').first() : page.getByText(state === 'populated' ? 'Gạo Phase 28' : 'Chưa có dữ liệu tồn kho');
   }
   if (region === 'warehouse-movements') {
     if (state === 'initial-loading') return page.getByRole('status', { name: 'Đang tải sổ luân chuyển kho' });
@@ -90,7 +90,7 @@ function dispositionFindings(row: ReturnType<typeof registerWarehouseQueryIdenti
   return UI_AUDIT_RULE_IDS.map((ruleId) => ({ ruleId, identity, verdict: row.disposition.kind === 'not-applicable' ? 'NOT_APPLICABLE' : 'NEEDS_EVIDENCE', measured: { productionRouteMeasured: false, reason: row.disposition.reason } }));
 }
 
-test.describe('Phase 28 Warehouse production-route query-state adapters', () => {
+(process.env.PHASE31_HELPER_ONLY ? test.describe.skip : test.describe)('Phase 28 Warehouse production-route query-state adapters', () => {
   test('records all 196 identities with active-first ownership and a GET/HEAD-only ledger', async ({ browser }) => {
     test.setTimeout(1_800_000);
     const identities = expandProductionQueryIdentities().filter((row) => row.route === '/warehouse').map(registerWarehouseQueryIdentity);

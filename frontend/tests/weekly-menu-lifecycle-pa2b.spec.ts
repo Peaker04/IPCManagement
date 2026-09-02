@@ -476,7 +476,7 @@ const login = async (page: Page, actor: Pa2bActorId) => {
   const username = PA2B_ACTORS[actor].username
   await page.goto(ROUTES.LOGIN)
   await page.getByLabel('Tài khoản').fill(username)
-  await page.getByLabel('Mật khẩu').fill(username)
+  await page.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill(username)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await expect(page).toHaveURL(ROUTES.DASHBOARD)
   await page.evaluate(({ customerKey, weekKey, customerId, weekStart }) => {

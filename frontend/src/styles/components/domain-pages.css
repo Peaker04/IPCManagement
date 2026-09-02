@@ -628,7 +628,6 @@
 
 @media (max-width: 640px) {
   .ipc-auth-shell {
-    align-items: flex-start;
     padding: var(--ipc-space-4);
   }
 

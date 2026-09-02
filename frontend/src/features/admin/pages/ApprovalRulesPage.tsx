@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Settings, Plus, Edit2, Trash2, Shield, Layers } from 'lucide-react';
 import {
   OperationalFrame,
@@ -29,7 +29,37 @@ const Input = (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props
 const Checkbox = ({ checked, onCheckedChange, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & { onCheckedChange: (checked: boolean) => void }) => (
   <input {...props} type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.target.checked)} className="size-4 shrink-0 accent-primary" />
 );
-const Dialog = ({ children }: { children: ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">{children}</div>;
+const Dialog = ({ children, open, onOpenChange }: { children: ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) => {
+  const ownerRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    const owner = ownerRef.current;
+    const focusTarget = owner?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    focusTarget?.focus();
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      onOpenChange(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      returnFocusRef.current?.focus();
+    };
+  }, [open, onOpenChange]);
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') { event.preventDefault(); onOpenChange(false); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = [...(ownerRef.current?.querySelectorAll<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])];
+    if (!focusable.length) return;
+    const first = focusable[0]; const last = focusable.at(-1)!;
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  return <div ref={ownerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onKeyDown={onKeyDown}>{children}</div>;
+};
 const DialogContent = ({ children, className = '', ...props }: { children: ReactNode; className?: string; 'aria-label'?: string }) => <div role="dialog" aria-modal="true" {...props} className={`w-full rounded-lg border border-border bg-background p-6 shadow-lg ${className}`}>{children}</div>;
 const DialogHeader = ({ children }: { children: ReactNode }) => <header className="space-y-1.5">{children}</header>;
 const DialogTitle = ({ children }: { children: ReactNode }) => <h2 className="text-lg font-semibold">{children}</h2>;

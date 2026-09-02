@@ -1,7 +1,7 @@
 import { ReceiptText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { IdentifierText, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
@@ -86,9 +86,13 @@ export function WarehousePurchaseOrdersPanel({
             const isSelected = isPurchaseOrderDetailsOpen && selectedPurchaseOrderId === order.purchaseOrderId;
             return (
               <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
-                <td className="font-semibold text-slate-900 whitespace-nowrap">{order.purchaseOrderCode}</td>
+                <td className="min-w-0 font-semibold text-slate-900">
+                  <IdentifierText value={order.purchaseOrderCode} />
+                </td>
                 <td>{order.supplierName}</td>
-                <td className="whitespace-nowrap text-slate-600">{order.purchaseRequestCode}</td>
+                <td className="min-w-0 text-slate-600">
+                  <IdentifierText value={order.purchaseRequestCode} />
+                </td>
                 <td className="ipc-badge-cell whitespace-nowrap">
                   <StatusBadge variant={order.status === 'COMPLETED' ? 'success' : order.status === 'ORDERED' ? 'info' : order.status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
                     {formatWorkflowStatus(order.status)}
@@ -115,7 +119,10 @@ export function WarehousePurchaseOrdersPanel({
     <div className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-slate-950">Chi tiết {selectedPurchaseOrder.purchaseOrderCode}</h3>
+          <h3 className="flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-950">
+            <span className="shrink-0">Chi tiết</span>
+            <IdentifierText value={selectedPurchaseOrder.purchaseOrderCode} />
+          </h3>
           <p className="mt-1 text-xs text-slate-600">Số lượng và đơn giá thực nhận được xác nhận riêng cho từng dòng.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

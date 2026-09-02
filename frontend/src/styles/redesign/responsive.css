@@ -118,9 +118,9 @@
 }
 
 .ipc-table-viewport {
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
   min-height: 96px;
-  max-height: 520px;
+  max-height: none;
   border: 1px solid var(--ipc-border, #e2e8f0);
   border-radius: 0.375rem;
   background: #fff;
@@ -130,6 +130,13 @@
    forcing an internal 520px scroll area followed by unused page space. */
 .ipc-table-viewport.ipc-weekly-menu-shell--viewport-fill {
   max-height: calc(100dvh - 17rem);
+}
+
+/* Page-flow tables grow with their content so the page owns vertical scrolling.
+   The viewport remains the horizontal overflow boundary for wide ERP columns. */
+.ipc-table-viewport.ipc-table-viewport--page-flow {
+  max-height: none;
+  scrollbar-gutter: auto;
 }
 
 .ipc-table-viewport td[class~="h-[320px]"] {

@@ -5,13 +5,25 @@ import type { ChangeSystemOperationMode, SystemOperationSnapshot } from '@/lib/s
 
 export type { ChangeSystemOperationMode, SystemOperationCapabilities, SystemOperationSnapshot } from '@/lib/systemOperationTypes'
 
-const publishAuthoritySnapshot = async (queryFulfilled: Promise<{ data: SystemOperationSnapshot }>, dispatch: (action: unknown) => unknown) => {
+const publishAuthoritySnapshot = async (queryFulfilled: Promise<{ data: SystemOperationSnapshot }>) => {
+  try {
+    const { data } = await queryFulfilled
+    publishSystemOperationAuthority(data)
+  } catch {
+    // Failed or aborted requests never publish authority hints.
+  }
+}
+
+const updateCachedAuthoritySnapshot = async (
+  queryFulfilled: Promise<{ data: SystemOperationSnapshot }>,
+  dispatch: (action: unknown) => unknown,
+) => {
   try {
     const { data } = await queryFulfilled
     dispatch(systemOperationApi.util.upsertQueryData('getSystemOperationMode', undefined, data))
     publishSystemOperationAuthority(data)
   } catch {
-    // Failed or aborted requests never publish authority hints.
+    // Failed or aborted mutations never update or publish authority.
   }
 }
 
@@ -20,8 +32,8 @@ export const systemOperationApi = apiSlice.injectEndpoints({ endpoints: builder 
     query: () => '/system-operation-mode',
     transformResponse: (response: ApiResponse<SystemOperationSnapshot>) => response.data!,
     providesTags: ['SystemOperationMode'],
-    onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
-      await publishAuthoritySnapshot(queryFulfilled, dispatch)
+    onQueryStarted: async (_arg, { queryFulfilled }) => {
+      await publishAuthoritySnapshot(queryFulfilled)
     },
   }),
   changeSystemOperationMode: builder.mutation<SystemOperationSnapshot, ChangeSystemOperationMode>({
@@ -29,7 +41,7 @@ export const systemOperationApi = apiSlice.injectEndpoints({ endpoints: builder 
     transformResponse: (response: ApiResponse<SystemOperationSnapshot>) => response.data!,
     invalidatesTags: ['SystemOperationMode'],
     onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
-      await publishAuthoritySnapshot(queryFulfilled, dispatch)
+      await updateCachedAuthoritySnapshot(queryFulfilled, dispatch)
     },
   }),
 }) })

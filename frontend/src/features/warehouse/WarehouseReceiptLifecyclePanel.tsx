@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
-import { InlineAlert, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
+import { IdentifierText, InlineAlert, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatReceiptLifecycleStatus } from '@/lib/workflowConfig';
 import { typography } from '@/lib/typography';
@@ -214,7 +214,7 @@ export function WarehouseReceiptLifecyclePanel() {
 
   return (
     <section
-      className={cn(typography.body, 'mt-4 grid content-start gap-3', isLifecycleBusy && 'min-h-[48rem]')}
+      className={cn(typography.body, 'mt-4 grid min-h-[20rem] content-start gap-3')}
       aria-labelledby="receipt-lifecycle-title"
       aria-busy={isLifecycleBusy}
       data-testid="receipt-lifecycle-panel"
@@ -228,14 +228,14 @@ export function WarehouseReceiptLifecyclePanel() {
           Không coi danh sách trống là không có phiếu. Hãy tải lại trước khi đưa ra kết luận hoặc thao tác.
         </QueryErrorAlert>
       ) : (
-        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="max-h-[220px]">
+        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="h-[220px] max-h-[220px]">
           <table className="ipc-data-table min-w-[760px]">
             <thead><tr><th>Phiếu</th><th>Nhà cung cấp</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Đang tải phiếu nhập…</td></tr>
                   : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
                   : canonicalReceipts.map((item) => <tr key={item.receiptId} className={item.receiptId === activeReceiptId ? 'bg-blue-50/60' : undefined}>
-                    <td className={cn(typography.code, 'font-semibold text-slate-900')}>{item.receiptCode}</td>
+                    <td><IdentifierText value={item.receiptCode} className={cn(typography.code, 'font-semibold text-slate-900')} /></td>
                     <td>{item.supplierName ?? '—'}</td>
                     <td>{statusLabel(item.status, item.qualityStatus)}</td>
                     <td className="text-right"><Button type="button" size="sm" variant="outline" onClick={() => { setSelectedReceiptId(item.receiptId); setFeedback(undefined); }}>Xem trạng thái</Button></td>
@@ -262,7 +262,7 @@ export function WarehouseReceiptLifecyclePanel() {
       {receipt && !isReceiptError && (
         <div className="grid gap-3 rounded-sm border border-slate-300 bg-slate-50 p-3" data-testid="receipt-lifecycle-detail">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div><p className="font-semibold text-slate-950">{receipt.receiptCode}</p><p className="text-xs text-slate-600">{statusLabel(receipt.status, receipt.qualityStatus)}</p></div>
+            <div><IdentifierText value={receipt.receiptCode} className="font-semibold text-slate-950" /><p className="text-xs text-slate-600">{statusLabel(receipt.status, receipt.qualityStatus)}</p></div>
             <div className="flex flex-wrap gap-2">
               {showQualityControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setQualityOpen(true); }}><ClipboardCheck size={16} />Kiểm tra chất lượng</Button>}
               {showPostControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setPostOpen(true); }}><CheckCircle2 size={16} />Ghi sổ kho</Button>}

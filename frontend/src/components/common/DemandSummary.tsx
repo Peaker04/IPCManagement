@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
+import { IdentifierText } from './IdentifierText';
 import { TableViewport } from './TableViewport';
 import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/types/workflow';
@@ -63,7 +64,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
   return (
     <div className={cn('ipc-demand-summary', className)}>
       <TableViewport className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu" caption={showServiceDate ? 'Tổng hợp theo từng ngày trong khoảng đang xem' : 'Tổng hợp trong ngày đang xem'}>
-        <table className="ipc-data-table ipc-demand-table ipc-status-action-table table-fixed w-full">
+        <table className="ipc-data-table ipc-erp-grid-table ipc-demand-table ipc-status-action-table table-fixed w-full min-w-[980px]">
           <thead>
             <tr>
               {showServiceDate && <th style={{ width: '11%' }} className="whitespace-nowrap text-left">Ngày</th>}
@@ -84,8 +85,8 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
               return (
                 <tr key={`${line.id}-${index}`}>
                   {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>}
-                  <td className="truncate" title={line.material}>{line.material}</td>
-                  <td className="truncate" title={line.source}>{line.source}</td>
+                  <td className="font-medium text-slate-900"><IdentifierText value={line.material} className="font-sans" /></td>
+                  <td className="text-slate-600"><IdentifierText value={line.source} /></td>
                   <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
@@ -101,9 +102,11 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                   <td className="ipc-badge-cell text-center whitespace-nowrap">
                     <StatusBadge
                       variant={line.tone}
+                      size="sm"
+                      tooltip={line.status}
                       className="ipc-table-badge ipc-table-badge--status ipc-demand-status-badge"
                     >
-                      <span title={line.status}>{shortenStatus(line.status)}</span>
+                      {shortenStatus(line.status)}
                     </StatusBadge>
                   </td>
                   <td className="text-center whitespace-nowrap">

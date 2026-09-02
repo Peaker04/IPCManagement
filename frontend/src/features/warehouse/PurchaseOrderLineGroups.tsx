@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
-import { TableViewport } from '@/components/common';
+import { IdentifierText, TableViewport } from '@/components/common';
 import { formatCurrency } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
@@ -84,7 +84,7 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
             if (!expanded || group.lines.length === 1) return [summary];
             return [summary, <tr key={`${group.key}-sources`}><td colSpan={5} className="bg-slate-50 p-3"><ul className="grid gap-2" aria-label={`Các dòng đơn mua nguồn của ${group.ingredientName}`}>{group.lines.map((line) => {
               const lineRemaining = Math.max(line.orderedQty - line.receivedQty, 0);
-              return <li key={line.purchaseOrderLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"><span className="text-xs text-slate-600"><strong className="text-slate-900">{line.receivedQty}/{line.orderedQty} {line.unitName}</strong> · {formatCurrency(line.unitPrice)}<span className="block break-all">{line.purchaseOrderLineId}</span>{line.blockerReason && <span className="block text-red-700">{line.blockerReason}</span>}{activeReceiptLabel(line) && <span className="block text-amber-800">{activeReceiptLabel(line)}</span>}</span>{canReceive && <Button type="button" size="sm" disabled={lineRemaining <= 0 || Boolean(line.blockerReason) || Boolean(line.activeReceiptId)} onClick={() => onReceive(line)}>{lineRemaining <= 0 ? 'Đã nhận đủ' : activeReceiptLabel(line) ?? 'Ghi nhận dòng này'}</Button>}</li>;
+              return <li key={line.purchaseOrderLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"><span className="text-xs text-slate-600"><strong className="text-slate-900">{line.receivedQty}/{line.orderedQty} {line.unitName}</strong> · {formatCurrency(line.unitPrice)}<IdentifierText value={line.purchaseOrderLineId} className="mt-0.5" />{line.blockerReason && <span className="block text-red-700">{line.blockerReason}</span>}{activeReceiptLabel(line) && <span className="block text-amber-800">{activeReceiptLabel(line)}</span>}</span>{canReceive && <Button type="button" size="sm" disabled={lineRemaining <= 0 || Boolean(line.blockerReason) || Boolean(line.activeReceiptId)} onClick={() => onReceive(line)}>{lineRemaining <= 0 ? 'Đã nhận đủ' : activeReceiptLabel(line) ?? 'Ghi nhận dòng này'}</Button>}</li>;
             })}</ul></td></tr>];
           })}
         </tbody>

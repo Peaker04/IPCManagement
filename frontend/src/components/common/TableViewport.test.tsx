@@ -43,6 +43,7 @@ describe('TableViewport', () => {
     expect(region).toHaveAttribute('data-sticky-header', 'true');
     expect(region).toHaveAttribute('data-frozen-identifier', 'true');
     expect(region).toHaveClass('ipc-table-viewport', 'min-w-0', 'overflow-auto', 'overscroll-x-contain');
+    expect(region).toHaveAttribute('data-vertical-scroll', 'page');
   });
 
   it('does not add a dangling description when no caption is provided', () => {
