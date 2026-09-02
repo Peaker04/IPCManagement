@@ -21,6 +21,12 @@ public sealed class Phase30MigrationTests
         Assert.Contains("uxInventoryIssueLinesReconciliationBatchLine", source);
         Assert.Contains("inventoryissues_ibfk_5", source);
         Assert.Contains("inventoryissuelines_ibfk_5", source);
+        Assert.Contains("information_schema.KEY_COLUMN_USAGE", source);
+        Assert.Contains("COLUMN_NAME = 'materialRequestId'", source);
+        Assert.Contains("REFERENCED_TABLE_NAME = 'materialrequests'", source);
+        Assert.DoesNotContain(
+            "migrationBuilder.DropForeignKey(\r\n                name: \"inventoryissues_ibfk_2\"",
+            source[..source.IndexOf("protected override void Down", StringComparison.Ordinal)]);
         Assert.DoesNotContain("UpdateData", source);
         Assert.DoesNotContain("DeleteData", source);
         Assert.DoesNotContain("USE ", source, StringComparison.OrdinalIgnoreCase);

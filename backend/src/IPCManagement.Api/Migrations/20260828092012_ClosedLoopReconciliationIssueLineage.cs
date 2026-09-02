@@ -10,9 +10,30 @@ namespace IPCManagement.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "inventoryissues_ibfk_2",
-                table: "inventoryissues");
+            migrationBuilder.Sql(
+                """
+                SET @material_request_fk = (
+                    SELECT CONSTRAINT_NAME
+                    FROM information_schema.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'inventoryissues'
+                      AND COLUMN_NAME = 'materialRequestId'
+                      AND REFERENCED_TABLE_NAME = 'materialrequests'
+                    LIMIT 1
+                );
+                SET @drop_material_request_fk = IF(
+                    @material_request_fk IS NULL,
+                    'SELECT 1',
+                    CONCAT(
+                        'ALTER TABLE `inventoryissues` DROP FOREIGN KEY `',
+                        REPLACE(@material_request_fk, '`', '``'),
+                        '`'
+                    )
+                );
+                PREPARE drop_material_request_fk_statement FROM @drop_material_request_fk;
+                EXECUTE drop_material_request_fk_statement;
+                DEALLOCATE PREPARE drop_material_request_fk_statement;
+                """);
 
             migrationBuilder.DropCheckConstraint(
                 name: "ckReconciliationBatchStatus",
