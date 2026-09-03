@@ -1,7 +1,7 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
-import { InlineAlert, KeepAliveTabPanel, OperationalFrame, PaginationBar, QueryErrorAlert, ViewSwitcher } from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, OperationalFrame, PaginationBar, QueryErrorAlert, ViewSwitcher, RefreshStatus } from '@/components/common';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
@@ -504,9 +504,7 @@ function DefaultWarehousePage() {
 
       <div className={`${typography.body} relative min-h-[420px]`} aria-busy={isViewPending} aria-live="polite">
         {isViewPending && (
-          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200">
-            Đang cập nhật
-          </span>
+          <RefreshStatus>Đang cập nhật</RefreshStatus>
         )}
         <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
             <WarehouseMovementPanel

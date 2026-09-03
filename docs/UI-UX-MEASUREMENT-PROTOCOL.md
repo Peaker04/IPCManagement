@@ -100,6 +100,19 @@ Oracle bắt buộc:
 8. Các assertion được chạy lại trên toàn viewport matrix thuộc claim. Nếu người dùng cung cấp screenshot ở
    viewport ngoài matrix, thêm đúng viewport/zoom đó vào scoped reproduction; matrix chuẩn không được dùng để
    bỏ qua lỗi đã báo cáo.
+9. Phân trang phải chạy transition oracle hai chiều: full page → short page → full page. Không yêu cầu
+   `pagination.top` bất biến bằng cách thêm khoảng trắng. PASS khi active pagination control giữ focus, viewport
+   page không bị scroll về đầu hoặc đổi scroll owner, content thật không có synthetic row/capacity/min-height,
+   và phần dịch chuyển quan sát được chỉ bằng đúng chênh lệch content hợp lệ.
+10. Refetch oracle capture trước/trong/sau request. Header, search, actions và table không được dịch vị trí vì
+    mount/unmount refresh notice; visible refresh chỉ hợp lệ trong slot đã có sẵn. Live region visually-hidden
+    không được có box geometry hoặc tham gia tab order.
+11. CSS ownership oracle lưu matched rules và computed values cho table viewport, header, cells, pagination và
+    ancestor. `height`, `min-height`, `max-height`, `overflow`, `position`, `top`, `z-index` phải có một semantic
+    owner; selector dựa vào literal utility class hoặc hai rule ngang specificity ghi đè cùng property là FAIL.
+12. Data-presentation oracle fail khi visible text chứa raw enum/code thuộc vocabulary đã biết, số vượt precision
+    formatter, identifier kỹ thuật wrap phá cột, action bị clipping, hoặc cùng một fact xuất hiện ở nhiều primary
+    surfaces. Giá trị raw cần audit được giữ trong tooltip/detail, không hiển thị thay cho business label.
 
 Ngưỡng khoảng cách/diện tích cụ thể phải xuất phát từ token và baseline của primitive. Không hardcode một tỷ lệ
 chung rồi áp cho chart, editor hoặc matrix workspace vốn có geometry hợp lệ.

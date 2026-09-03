@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import weeklyRouter from '@/features/projects/pages/WeeklyMenuPage.tsx?raw'
-import reconciliationWeekly from '@/features/projects/pages/ReconciliationWeeklyMenuPage.tsx?raw'
 import warehouseRouter from '@/features/warehouse/pages/WarehousePage.tsx?raw'
 import reconciliationWarehouse from '@/features/warehouse/pages/ReconciliationWarehousePage.tsx?raw'
 import adminRouter from '@/app/pages/AdminDataPage.tsx?raw'
@@ -12,17 +11,15 @@ import contractsModel from '@/app/pages/admin-data/useAdminContractsPanelModel.t
 import routePreloaders from '@/routes/routeDataPreloaders.ts?raw'
 
 describe('operation-mode page composition boundaries', () => {
-  it('routes Weekly Menu before default query owners mount', () => {
-    expect(weeklyRouter).toContain("operation?.mode === 'MATERIAL_RECONCILIATION'")
-    expect(weeklyRouter).toContain('<ReconciliationWeeklyMenuPage />')
-    expect(reconciliationWeekly).toContain("type ReconciliationView = 'schedule' | 'demand'")
-    expect(reconciliationWeekly).toContain("label: 'Kế hoạch tuần'")
-    expect(reconciliationWeekly).toContain("label: 'Định lượng xuất kho'")
-    expect(reconciliationWeekly).not.toMatch(/use(?:GetCustomerContracts|GetMenuSchedules|GetMealQuantityPlans|MaterialDemand|PurchaseSummary|MenuCost|DishMaterials)/)
-    expect(reconciliationWeekly).toMatch(/activeView === 'schedule'[\s\S]*ClosedLoopTransferPanel/)
-    expect(reconciliationWeekly).toContain('className="relative min-h-0"')
-    expect(reconciliationWeekly).toContain('maxBodyHeight="ipc-weekly-menu-shell--viewport-fill"')
-    expect(reconciliationWeekly).not.toContain('className="relative min-h-[480px]"')
+  it('retains source authoring and completed serving owners in reconciliation Weekly Menu', () => {
+    expect(weeklyRouter).toContain("isMaterialReconciliationMode")
+    expect(weeklyRouter).toContain("label: isMaterialReconciliationMode ? 'Tổng hợp mua' : 'Nhu cầu'")
+    expect(weeklyRouter).toContain("enabled: !isMaterialReconciliationMode && activeView === 'demand'")
+    expect(weeklyRouter).toContain("isMaterialReconciliationMode && activeView === 'demand' ? <ClosedLoopTransferPanel")
+    expect(weeklyRouter).toContain('useWeeklyMenuImport')
+    expect(weeklyRouter).toContain('useWeeklyScheduleEditor')
+    expect(weeklyRouter).toContain('useGetMenuSchedulesQuery')
+    expect(weeklyRouter).toContain('useGetMealQuantityPlansQuery')
   })
 
   it('keeps Warehouse, Reconciliation and Admin Data dedicated', () => {

@@ -18,13 +18,13 @@ describe('Weekly Menu Coordination query ownership contract', () => {
     expect(weeklyMenuSource).toContain("? 'Chọn khách hàng để tải kế hoạch số suất.'")
   })
 
-  it('uses the retained reconciliation menu read without requesting mode-ineligible planning data', () => {
+  it('uses the retained reconciliation menu read while keeping source schedules and servings available', () => {
     expect(weeklyMenuSource).toContain("systemOperation?.mode === 'MATERIAL_RECONCILIATION'")
     expect(weeklyMenuSource).toMatch(/useGetCustomerContractsQuery\(undefined, \{\s*skip: isMaterialReconciliationMode,/)
     expect(weeklyMenuSource).toMatch(/useGetCommittedWeeklyMenuQuery\([\s\S]*?skip: isMaterialReconciliationMode \|\| !effectiveMenuCustomerId/)
     expect(weeklyMenuSource).toMatch(/useGetReconciliationWeeklyMenuQuery\([\s\S]*?skip: !isMaterialReconciliationMode \|\| !effectiveMenuCustomerId/)
-    expect(weeklyMenuSource).toMatch(/useGetMenuSchedulesQuery\([\s\S]*?skip: isMaterialReconciliationMode \|\| !effectiveMenuCustomerId/)
-    expect(weeklyMenuSource).toMatch(/useGetMealQuantityPlansQuery\([\s\S]*?skip: isMaterialReconciliationMode \|\| !effectiveMenuCustomerId \|\| !menuScheduleWeekStartDate/)
+    expect(weeklyMenuSource).toMatch(/useGetMenuSchedulesQuery\([\s\S]*?skip: !effectiveMenuCustomerId/)
+    expect(weeklyMenuSource).toMatch(/useGetMealQuantityPlansQuery\([\s\S]*?skip: !effectiveMenuCustomerId \|\| !menuScheduleWeekStartDate/)
     expect(weeklyMenuSource).toContain("systemOperation?.capabilities.pageTabs['weekly-menu']")
   })
 

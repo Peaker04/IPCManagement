@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Helpers;
@@ -106,7 +107,7 @@ public sealed class ReconciliationServiceTests
         await context.SaveChangesAsync();
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateDraftAsync(
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateDraftAsync(
             new(GuidHelper.ToGuidString(menuVersionId), GuidHelper.ToGuidString(importBatchId)),
             Guid.NewGuid().ToString()));
 
@@ -133,7 +134,7 @@ public sealed class ReconciliationServiceTests
         await context.SaveChangesAsync();
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateDraftAsync(
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateDraftAsync(
             new(GuidHelper.ToGuidString(import.MenuVersionId!), GuidHelper.ToGuidString(import.ImportBatchId)),
             Guid.NewGuid().ToString()));
 
@@ -337,6 +338,40 @@ public sealed class ReconciliationServiceTests
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => service.SetDispositionAsync(lineId, new("ACCEPTED_VARIANCE", "Kết luận cũ", null), actorId));
     }
 
+    [Fact]
+    public async Task Source_changes_are_scoped_to_frozen_batch_contributors()
+    {
+        await using var context = CreateContext();
+        var actorId = GuidHelper.NewId();
+        var batchId = GuidHelper.NewId();
+        var lineId = GuidHelper.NewId();
+        var scheduleId = GuidHelper.NewId();
+        var planId = GuidHelper.NewId();
+        var planLineId = GuidHelper.NewId();
+        var bomId = GuidHelper.NewId();
+        context.Reconciliationbatches.Add(new ReconciliationBatch
+        {
+            BatchId = batchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 2,
+            CreatedBy = actorId, CreatedAt = DateTime.UtcNow,
+            Lines = [new ReconciliationBatchLine { BatchLineId = lineId, IngredientId = GuidHelper.NewId(), CanonicalUnitId = GuidHelper.NewId(), RequiredQuantity = 2, FrozenTolerance = 0.1m, ToleranceSourceKind = "TEST", ToleranceSourceVersion = "1", Version = 1,
+                Contributors = [new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), MenuScheduleId = scheduleId, MealQuantityPlanLineId = planLineId, DishBomId = bomId, SourceQuantity = 2 }] }]
+        });
+        context.Mealquantityplanlines.Add(new MealQuantityPlanLine { QuantityPlanLineId = planLineId, QuantityPlanId = planId, MenuScheduleId = scheduleId, CustomerId = GuidHelper.NewId(), MenuId = GuidHelper.NewId(), ShiftName = "MORNING", FinalServings = 20, UpdatedAt = DateTime.UtcNow });
+        context.Auditlogs.AddRange(
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MealQuantityPlan), EntityId = planId, FieldName = "QuickCompleteServings", OldValue = "10", NewValue = "20", Reason = "Sửa số suất" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Other", EntityName = "Unrelated", EntityId = GuidHelper.NewId(), FieldName = "Value", NewValue = "ignored" });
+        await context.SaveChangesAsync();
+
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+        var changes = await service.ListSourceChangesAsync(GuidHelper.ToGuidString(batchId));
+
+        var change = Assert.Single(changes);
+        Assert.Equal("QuickCompleteServings", change.FieldName);
+        Assert.Equal("10", change.OldValue);
+        Assert.Equal("20", change.NewValue);
+        Assert.Equal(GuidHelper.ToGuidString(actorId), change.Actor);
+    }
+
     private static async Task<Exception?> Capture(Func<Task> operation)
     {
         try { await operation(); return null; }
@@ -377,7 +412,7 @@ public sealed class ReconciliationServiceTests
         var customerId = GuidHelper.NewId();
         var menuId = GuidHelper.NewId();
         var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = menuVersionStatus, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        var import = new QuantityImportBatch { ImportBatchId = importBatchId, BatchCode = $"BATCH-{menuVersionStatus}", SourceType = "API", Status = importStatus, ImportedAt = DateTime.UtcNow, MenuVersionId = menuVersionId, ContentFingerprint = new string('A', 64), FingerprintFormatVersion = 1, SourceLabel = "Test" };
+        var import = new QuantityImportBatch { ImportBatchId = importBatchId, BatchCode = $"BATCH-{menuVersionStatus}", SourceType = "API", Status = importStatus, ImportedAt = DateTime.UtcNow, MenuVersionId = menuVersionId, ContentFingerprint = new string('A', 64), FingerprintFormatVersion = 2, SourceLabel = "Test" };
         var plan = new MealQuantityPlan { QuantityPlanId = planId, ImportBatchId = importBatchId, ImportBatch = import, PlanCode = "PLAN", ServiceDate = new DateOnly(2026, 8, 25), Status = "COMPLETED" };
         var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, MenuVersionId = menuVersionId, MenuVersion = menuVersion, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
         context.AddRange(menuVersion, import, plan, schedule, new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, ShiftName = "MORNING", FinalServings = 10, UpdatedAt = DateTime.UtcNow });
@@ -439,7 +474,7 @@ public sealed class ReconciliationServiceTests
             var included = new HashSet<Type>
             {
                 typeof(MenuVersion), typeof(QuantityImportBatch), typeof(MealQuantityPlan), typeof(MenuSchedule), typeof(MealQuantityPlanLine),
-                typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
+                typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
                 typeof(ReconciliationDisposition), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
                 typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog)
             };
@@ -486,6 +521,8 @@ public sealed class ReconciliationServiceTests
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.Batch).WithMany(x => x.Lines).HasForeignKey(x => x.BatchId);
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId);
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.CanonicalUnit).WithMany().HasForeignKey(x => x.CanonicalUnitId);
+            modelBuilder.Entity<ReconciliationBatchContributor>().HasKey(x => x.ContributorId);
+            modelBuilder.Entity<ReconciliationBatchContributor>().HasOne(x => x.BatchLine).WithMany(x => x.Contributors).HasForeignKey(x => x.BatchLineId);
             modelBuilder.Entity<ReconciliationActual>().HasKey(x => x.ActualId);
             modelBuilder.Entity<ReconciliationActual>().Property(x => x.Version).IsConcurrencyToken();
             modelBuilder.Entity<ReconciliationActual>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);

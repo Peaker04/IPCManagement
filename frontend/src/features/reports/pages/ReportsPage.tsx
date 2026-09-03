@@ -5,7 +5,6 @@ import {
   Download,
   PackageCheck,
   RotateCcw,
-  Search,
   ShoppingCart,
   Utensils,
   Warehouse,
@@ -19,6 +18,7 @@ import {
   KeepAliveTabPanel,
   OperationalFrame,
   PaginationBar,
+  SearchField,
   TableViewport,
   SectionPanel,
   StatusBadge,
@@ -40,8 +40,16 @@ import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ReportsNavigation } from './ReportsNavigation';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
-import { Input } from '@/components/ui/input';
 import { formatReconciliationDisposition } from '@/lib/workflowConfig';
+
+const compactPurchaseWarning = (warning?: string) => {
+  if (!warning) return 'Sẵn sàng';
+  const normalized = warning.toLocaleLowerCase('vi-VN');
+  if (normalized.includes('báo giá') || normalized.includes('nhà cung cấp')) return 'Thiếu báo giá';
+  if (normalized.includes('tồn kho')) return 'Thiếu tồn kho';
+  if (normalized.includes('đang xử lý') || normalized.includes('pending')) return 'Đang chờ xử lý';
+  return warning.length > 32 ? `${warning.slice(0, 29).trimEnd()}…` : warning;
+};
 
 const ReportsPricePanel = lazy(() => import('./ReportsPricePanel').then(({ ReportsPricePanel: component }) => ({ default: component })))
 const ReportsDataQualityPanel = lazy(() => import('./ReportsDataQualityPanel').then(({ ReportsDataQualityPanel: component }) => ({ default: component })))
@@ -112,20 +120,16 @@ const ReportsPage = () => {
       <KeepAliveTabPanel id="reports-demand" active={activeView === 'demand'}>
         <ReportQueryBoundary view={reportViews.demand}>
           <SectionPanel title="Tổng hợp nhu cầu theo từng ngày trong khoảng đã chọn" icon={<Utensils size={18} />}>
-            <label htmlFor="report-demand-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-              Tìm nguyên liệu trong khoảng ngày
-              <span className="relative block">
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input
-                  id="report-demand-search"
-                  type="search"
-                  value={demandSearch}
-                  onChange={(event) => { setDemandSearch(event.target.value); setDemandPage(1); }}
-                  placeholder="Tên hoặc mã nguyên liệu"
-                  className="h-9 pl-9"
-                />
-              </span>
-            </label>
+            <div className="mb-3 max-w-xl">
+              <SearchField
+                id="report-demand-search"
+                label="Tìm nguyên liệu trong khoảng ngày"
+                width="full"
+                value={demandSearch}
+                onChange={(event) => { setDemandSearch(event.target.value); setDemandPage(1); }}
+                placeholder="Tên hoặc mã nguyên liệu"
+              />
+            </div>
             <TableViewport ariaLabel="Bảng nhu cầu nguyên liệu">
               <table className="ipc-data-table ipc-status-action-table min-w-[720px]">
                 <thead>
@@ -149,10 +153,10 @@ const ReportsPage = () => {
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.required, row.unit)}</td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.available, row.unit)}</td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.unissuedQty ?? Math.max(row.required - row.available, 0), row.unit)}</td>
-                      <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
-                      <td>{row.actionHref
-                        ? <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.actionHref}>{row.nextAction}</Link>
-                        : <span className="text-slate-600">{row.nextAction}</span>}
+                      <td className="ipc-badge-cell text-center"><StatusBadge className="ipc-demand-status-control" variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
+                      <td className="ipc-demand-action-cell">{row.actionHref
+                        ? <Link className="ipc-button ipc-button-ghost ipc-demand-action-control" to={row.actionHref}>{row.nextAction}</Link>
+                        : <span className="ipc-demand-action-control text-slate-600">{row.nextAction}</span>}
                       </td>
                     </tr>
                   ))}
@@ -194,13 +198,9 @@ const ReportsPage = () => {
               </div>
             )}
           >
-            <label htmlFor="report-purchase-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-              Tìm trong kế hoạch thu mua
-              <span className="relative block">
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input id="report-purchase-search" type="search" value={purchaseSearch} onChange={(event) => setPurchaseSearch(event.target.value)} placeholder="Nguyên liệu, nhà cung cấp, kỳ hoặc cảnh báo" className="h-9 pl-9" />
-              </span>
-            </label>
+            <div className="mb-3 max-w-xl">
+              <SearchField id="report-purchase-search" label="Tìm trong kế hoạch thu mua" width="full" value={purchaseSearch} onChange={(event) => setPurchaseSearch(event.target.value)} placeholder="Nguyên liệu, nhà cung cấp, kỳ hoặc cảnh báo" />
+            </div>
             <ContextStrip
               items={[
                 { label: 'Dòng kế hoạch', value: String(purchasePlanSummary.rowCount), tone: purchasePlanSummary.rowCount ? 'info' : 'neutral' },
@@ -233,9 +233,11 @@ const ReportsPage = () => {
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.shortageQty, row.unitName ?? '')}</td>
                       <td>{row.supplierName ?? 'Chưa có báo giá'}</td>
                       <td className="ipc-badge-cell">
-                        <StatusBadge variant={row.warnings.length ? 'warning' : 'success'}>
-                          {row.warnings[0] ?? 'Sẵn sàng'}
-                        </StatusBadge>
+                        <span title={row.warnings[0]}>
+                          <StatusBadge variant={row.warnings.length ? 'warning' : 'success'}>
+                            {compactPurchaseWarning(row.warnings[0])}
+                          </StatusBadge>
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -259,13 +261,9 @@ const ReportsPage = () => {
       <KeepAliveTabPanel id="reports-stock" active={activeView === 'stock'}>
         <ReportQueryBoundary view={reportViews.stock}>
           <SectionPanel title="Tồn kho hiện tại theo kho" icon={<Warehouse size={18} />}>
-            <label htmlFor="report-stock-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-              Tìm trong snapshot tồn kho hiện tại
-              <span className="relative block">
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input id="report-stock-search" type="search" value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" className="h-9 pl-9" />
-              </span>
-            </label>
+            <div className="mb-3 max-w-xl">
+              <SearchField id="report-stock-search" label="Tìm trong snapshot tồn kho hiện tại" width="full" value={stockSearch} onChange={(event) => setStockSearch(event.target.value)} placeholder="Kho, mã hoặc tên nguyên liệu, đơn vị" />
+            </div>
             <TableViewport ariaLabel="Bảng tồn kho hiện tại">
               <table className="ipc-data-table min-w-[720px]">
                 <thead>
@@ -307,24 +305,20 @@ const ReportsPage = () => {
       <KeepAliveTabPanel id="reports-movement" active={activeView === 'movement'}>
         <ReportQueryBoundary view={reportViews.movement}>
           <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày" icon={<ArrowLeftRight size={18} />}>
-            <label htmlFor="report-movement-search" className="mb-3 grid max-w-xl gap-1 text-xs font-semibold text-slate-700">
-              Tìm bút toán trong khoảng ngày
-              <span className="relative block">
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <Input id="report-movement-search" type="search" value={movementSearch} onChange={(event) => setMovementSearch(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" className="h-9 pl-9" />
-              </span>
-            </label>
-            <StockMovementTable
-              movements={stockMovementRows}
-              cursorPagination={{
-                page: movementCursors.length + 1,
-                hasNext: stockMovementResult.data?.hasNext ?? false,
-                isPending: stockMovementResult.isFetching,
-                onPrevious: () => setMovementCursors((current) => current.slice(0, -1)),
-                onNext: openNextMovementPage,
-                ariaLabel: 'Phân trang lịch sử nhập xuất kho',
-              }}
-            />
+            <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
+              <SearchField id="report-movement-search" label="Tìm bút toán trong khoảng ngày" width="wide" value={movementSearch} onChange={(event) => setMovementSearch(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" />
+              <StockMovementTable
+                movements={stockMovementRows}
+                cursorPagination={{
+                  page: movementCursors.length + 1,
+                  hasNext: stockMovementResult.data?.hasNext ?? false,
+                  isPending: stockMovementResult.isFetching,
+                  onPrevious: () => setMovementCursors((current) => current.slice(0, -1)),
+                  onNext: openNextMovementPage,
+                  ariaLabel: 'Phân trang lịch sử nhập xuất kho',
+                }}
+              />
+            </div>
           </SectionPanel>
         </ReportQueryBoundary>
       </KeepAliveTabPanel>
@@ -419,7 +413,7 @@ const ReportsPage = () => {
           <SectionPanel
             title="Đối soát lifecycle theo dòng nhu cầu"
             icon={<ArrowLeftRight size={18} />}
-            description="Không gộp theo tên nguyên liệu. Dòng legacy không có nguồn được giữ ở trạng thái cần đối soát."
+            description="Không gộp theo tên nguyên liệu. Dòng lịch sử thiếu nguồn được giữ để đối soát."
           >
             <TableViewport ariaLabel="Bảng đối soát nguồn cung theo dòng nhu cầu">
               <table className="ipc-data-table min-w-[1300px]">

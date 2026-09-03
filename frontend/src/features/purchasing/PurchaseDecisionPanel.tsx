@@ -265,7 +265,7 @@ export function PurchaseDecisionPanel({
     : confirmation?.type === 'create-request'
       ? {
           title: 'Tạo đề xuất mua',
-          description: 'Đề xuất chỉ lấy nhu cầu đã duyệt của đúng ngày phục vụ và phạm vi FULLDAY.',
+          description: 'Đề xuất chỉ lấy nhu cầu đã duyệt của ngày phục vụ đang chọn.',
           safeLabel: 'Quay lại kiểm tra nhu cầu',
           submitLabel: 'Tạo đề xuất mua',
         }
@@ -335,7 +335,7 @@ export function PurchaseDecisionPanel({
             </select>
             <p id="purchase-demand-action-guidance" className="text-caption text-slate-600">
               {selectedDemand
-                ? `${selectedDemand.requestCode}. ${formatDateOnly(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).`
+                ? `${selectedDemand.requestCode}. ${formatDateOnly(selectedDemand.serviceDate)}. Cả ngày.`
                 : serviceDate.approvedDemands.length === 0
                   ? 'Không còn nhu cầu đã duyệt đủ điều kiện tạo đề xuất mua cho ngày này.'
                   : 'Chọn một nhu cầu đã duyệt để tiếp tục.'}

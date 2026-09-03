@@ -55,7 +55,7 @@ export function EmptyState({
 
   return (
     <div
-      className={cn('ipc-empty-state flex flex-col items-center justify-center p-8 text-center min-h-[200px]', className)}
+      className={cn('ipc-empty-state flex min-h-0 flex-col items-center justify-center p-6 text-center', className)}
       data-empty-variant={variant}
     >
       {renderedIcon && (

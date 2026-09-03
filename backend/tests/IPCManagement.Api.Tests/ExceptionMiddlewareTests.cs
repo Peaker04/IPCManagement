@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentAssertions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Middlewares;
+using IPCManagement.Api.Features.Reconciliation.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -56,6 +57,20 @@ public class ExceptionMiddlewareTests
         context.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
         var body = await ReadJsonBodyAsync(context);
         body.GetProperty("message").GetString().Should().Be("Quy tắc nghiệp vụ không hợp lệ.");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Return_Conflict_ForMissingReconciliationToleranceAuthority()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = CreateMiddleware(_ => throw new ReconciliationToleranceAuthorityException("Chưa cấu hình dung sai mặc định hệ thống."));
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        var body = await ReadJsonBodyAsync(context);
+        body.GetProperty("message").GetString().Should().Be("Chưa cấu hình dung sai mặc định hệ thống.");
     }
 
     [Fact]

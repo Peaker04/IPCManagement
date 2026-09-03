@@ -210,7 +210,7 @@ describe("ApprovalQueue", () => {
   it("renders empty state when no approval records exist", () => {
     render(<ApprovalQueue records={[]} />);
 
-    expect(screen.getByText("Chưa có dữ liệu để hiển thị")).toBeInTheDocument();
+    expect(screen.getByText("Chưa có chứng từ chờ duyệt.")).toBeInTheDocument();
   });
 
   it("keeps the incoming ERP seven-column floorplan with semantic table headers and an on-demand detail row", async () => {
@@ -286,6 +286,8 @@ describe("ApprovalQueue", () => {
 
     const nextAction = document.querySelector(".ipc-approval-record-action");
     expect(nextAction).toHaveTextContent("Chờ duyệt");
+    expect(nextAction?.parentElement?.tagName).toBe("TD");
+    expect(nextAction?.parentElement).not.toHaveClass("ipc-approval-record-action");
     expect(nextAction).not.toHaveTextContent("PENDING");
     expect(screen.queryByText("PENDING")).not.toBeInTheDocument();
   });
@@ -361,7 +363,7 @@ describe("StockMovementTable", () => {
       </ToastProvider>,
     );
 
-    expect(screen.getByText("Chưa có dữ liệu để hiển thị")).toBeInTheDocument();
+    expect(screen.getByText("Chưa phát sinh bút toán kho.")).toBeInTheDocument();
   });
 
   it("shortens known document numbers, paginates rows, and copies full document number", async () => {

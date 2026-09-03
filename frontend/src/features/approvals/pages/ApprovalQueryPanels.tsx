@@ -7,6 +7,7 @@ import {
   InlineAlert,
   PaginationBar,
   QueryErrorAlert,
+  RefreshStatus,
   StatusBadge,
 } from "@/components/common";
 import { ApprovalQueue } from '@/components/common/ApprovalQueue';
@@ -331,9 +332,7 @@ export function PurchaseRequestHistoryState({
   return (
     <>
       {view.isRefreshing && (
-        <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200" role="status">
-          Đang cập nhật...
-        </span>
+        <RefreshStatus>Đang cập nhật...</RefreshStatus>
       )}
       {purchaseRequests.length === 0 ? (
         <EmptyState

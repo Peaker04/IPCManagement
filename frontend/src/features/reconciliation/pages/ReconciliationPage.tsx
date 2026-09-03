@@ -9,6 +9,7 @@ import { readReconciliationSelection, writeReconciliationSelection } from '@/lib
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
+import { ReconciliationSourceChangeLog } from '../ReconciliationSourceChangeLog'
 import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
@@ -68,10 +69,10 @@ export default function ReconciliationPage() {
         description="Hoàn tất định lượng nguyên liệu và chuyển danh sách cần xuất sang Kho trước khi đối chiếu số đã xuất."
         action={<Link className={buttonVariants()} to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở định lượng xuất kho</Link>}
       /> : <QueryViewBoundary geometry={selectedId ? 'table' : 'compact'} queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
-        {batch && <SectionPanel title="Đối chiếu theo nguyên liệu" description={`${actionableCount} dòng cần xử lý · số liệu kho chỉ đọc`}>
+        {batch && <div className="space-y-4"><SectionPanel title="Đối chiếu theo nguyên liệu" description={`${actionableCount} dòng cần xử lý · số liệu kho chỉ đọc`}>
           <div className="mb-2 flex justify-end"><Button type="button" variant="link" className="h-auto p-0" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện dòng cần xử lý' : 'Hiện tất cả'}</Button></div>
           <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={setDisposingLine} />
-        </SectionPanel>}
+        </SectionPanel><ReconciliationSourceChangeLog batchId={batch.batchId} /></div>}
       </QueryViewBoundary>}
     </section>
 

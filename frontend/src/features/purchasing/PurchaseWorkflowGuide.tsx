@@ -27,7 +27,7 @@ export function PurchaseWorkflowGuide({
 
   return (
     <nav aria-label="Sáu giai đoạn thu mua" className="min-w-0">
-      <ol className="grid auto-rows-fr grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <ol className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         {PURCHASING_STAGES.map((stage, index) => {
           const isComplete = index < currentIndex;
           const isCurrent = index === currentIndex;
@@ -41,9 +41,8 @@ export function PurchaseWorkflowGuide({
                 type="button"
                 variant="outline"
                 size="sm"
-                textWrap="wrap"
                 className={cn(
-                  'h-full min-h-11 w-full flex-col items-stretch justify-start gap-1.5 rounded-[3px] px-3 py-2 text-left text-body font-semibold leading-[1.35] transition-colors motion-reduce:transition-none sm:min-h-[7.5rem]',
+                  'h-14 w-full items-center justify-start gap-2 rounded-sm px-2.5 text-left text-xs font-semibold leading-tight transition-colors motion-reduce:transition-none',
                   isSelected
                     ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-900'
                     : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
@@ -51,28 +50,15 @@ export function PurchaseWorkflowGuide({
                 )}
                 aria-current={isCurrent ? 'step' : undefined}
                 aria-pressed={isSelected}
-                aria-describedby={isBlocked ? `purchasing-stage-${stage.id}-reason` : undefined}
+                title={isBlocked ? stage.blockedReason : `${stage.label}: ${isComplete ? 'Hoàn tất' : isCurrent ? 'Hiện tại' : 'Sẵn sàng'}`}
                 disabled={isBlocked}
                 onClick={() => onStageChange(stage.id)}
               >
-                <span className="flex w-full items-center justify-between gap-2">
-                  <span className="shrink-0" aria-hidden="true">
-                    {isComplete ? <Check size={16} /> : isBlocked ? <CircleAlert size={16} /> : <CircleDot size={16} />}
-                  </span>
-                  {isCurrent ? <StatusBadge variant="warning">Hiện tại</StatusBadge> : null}
+                <span className="shrink-0" aria-hidden="true">
+                  {isComplete ? <Check size={16} /> : isBlocked ? <CircleAlert size={16} /> : <CircleDot size={16} />}
                 </span>
-                <span className="min-w-0 w-full flex-1">
-                  <span data-stage-label className={cn('block text-sm leading-[1.35]', isBlocked ? 'text-slate-700' : 'text-slate-900')}>{stage.label}</span>
-                  <span className="mt-1 block text-caption font-medium leading-[1.4] text-slate-600">
-                    {isComplete ? 'Hoàn tất' : isCurrent ? 'Đang xử lý' : 'Chưa mở'}
-                    {count > 0 ? `, ${count} ngày` : ''}
-                  </span>
-                  {isBlocked ? (
-                    <span id={`purchasing-stage-${stage.id}-reason`} className="mt-1 block text-caption font-normal leading-[1.4] text-slate-600">
-                      {stage.blockedReason}
-                    </span>
-                  ) : null}
-                </span>
+                <span data-stage-label className={cn('min-w-0 flex-1 whitespace-normal text-pretty', isBlocked ? 'text-slate-600' : 'text-slate-900')}>{stage.label}</span>
+                {isCurrent ? <StatusBadge variant="warning" size="sm">Hiện tại</StatusBadge> : count > 0 ? <span className="shrink-0 text-xs tabular-nums text-slate-500">{count}</span> : null}
               </Button>
             </li>
           );

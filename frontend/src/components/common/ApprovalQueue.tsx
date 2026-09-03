@@ -146,7 +146,7 @@ function ApprovalDetail({ record }: { record: ApprovalRecord }) {
             <div>
               <dt className="text-slate-500">Phạm vi</dt>
               <dd className="font-semibold text-slate-900">
-                {record.scope === "FULLDAY" ? "Cả ngày (FULLDAY)" : (record.scope ?? "Chưa có")}
+                {record.scope === "FULLDAY" ? "Cả ngày" : (record.scope ?? "Chưa có")}
               </dd>
             </div>
             <div className="min-w-0 sm:col-span-2">
@@ -244,7 +244,7 @@ export function ApprovalQueue({
   if (!records.length) {
     return (
       <EmptyState
-        title="Chưa có dữ liệu để hiển thị"
+        title="Chưa có chứng từ chờ duyệt."
         className={cn(
           "ipc-approval-queue is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left",
           className,
@@ -267,13 +267,13 @@ export function ApprovalQueue({
       >
         <table aria-label="Danh sách chứng từ cần duyệt" className="ipc-data-table ipc-approval-table min-w-[1080px] !table-fixed">
           <colgroup>
-            <col className="w-[18%]" />
-            <col className="w-[11%]" />
-            <col className="w-[21%]" />
-            <col className="w-[13%]" />
+            <col className="w-[17%]" />
+            <col className="w-[10%]" />
+            <col className="w-[20%]" />
             <col className="w-[12%]" />
             <col className="w-[10%]" />
-            <col className="w-[15%]" />
+            <col className="w-[11%]" />
+            <col className="w-[20%]" />
           </colgroup>
           <thead>
             <tr>
@@ -306,36 +306,23 @@ export function ApprovalQueue({
                   id={`approval-record-${record.id}`}
                   tabIndex={-1}
                   aria-current={selectedRecordId === record.id ? "true" : undefined}
-                  className="ipc-approval-table-row align-top"
+                  className="ipc-approval-table-row"
                 >
                   <td>
                     <div className="font-semibold text-slate-950">{record.title}</div>
-                    <span
-                      className={cn(typography.code, "mt-1 block text-xs text-slate-500")}
-                      title={record.source}
-                    >
-                      {getCompactReference(record)}
-                    </span>
+                    <span className="sr-only">{getCompactReference(record)}</span>
                   </td>
                   <td>
                     <div className="whitespace-nowrap font-medium tabular-nums text-slate-900">
                       {record.serviceDate ?? record.deadline}
                     </div>
-                    {record.scope && (
-                      <div className="mt-1 text-xs text-slate-500">
-                        {record.scope === "FULLDAY" ? "Cả ngày" : record.scope}
-                      </div>
-                    )}
+                    {record.scope && <span className="sr-only">{record.scope === "FULLDAY" ? "Cả ngày" : record.scope}</span>}
                   </td>
                   <td>
                     <p className="text-sm text-slate-700" title={record.reason}>
                       {getRecordSummary(record)}
                     </p>
-                    {record.targetType === "material-demand" && (
-                      <div className="mt-1 text-xs font-semibold text-slate-600">
-                        {record.lineCount ?? record.materials.length} dòng thiếu
-                      </div>
-                    )}
+                    {record.targetType === "material-demand" && <span className="sr-only">{record.lineCount ?? record.materials.length} dòng thiếu</span>}
                     {record.targetType === "purchase-price-exception" && (
                       <div className="mt-1 text-xs text-slate-600">
                         {record.supplierName ?? "Chưa có nhà cung cấp"}
@@ -355,13 +342,11 @@ export function ApprovalQueue({
                   </td>
                   <td>
                     <div className="font-medium text-slate-900">{record.submittedBy}</div>
-                    {record.owner !== record.submittedBy && (
-                      <div className="mt-1 text-xs text-slate-500">{record.owner}</div>
-                    )}
+                    {record.owner !== record.submittedBy && <span className="sr-only">{record.owner}</span>}
                   </td>
                   <td className="text-center">
                     <div className="whitespace-nowrap tabular-nums text-slate-800">{record.deadline}</div>
-                    <SlaIndicator deadline={record.slaDeadline ?? undefined} referenceNow={referenceNow} />
+                    <span className="sr-only"><SlaIndicator deadline={record.slaDeadline ?? undefined} referenceNow={referenceNow} /></span>
                   </td>
                   <td className="ipc-badge-cell text-center">
                     <StatusBadge variant={record.tone}>
@@ -369,15 +354,17 @@ export function ApprovalQueue({
                     </StatusBadge>
                   </td>
                   <td
-                    className="ipc-approval-record-action text-right"
+                    className="text-right"
                     aria-label={`${actionForRecord ? "Thao tác" : "Hướng xử lý"} cho ${record.title}`}
                   >
-                    {!actionForRecord && (
-                      <span className="text-xs font-semibold text-blue-700">
-                        {formatWorkflowStatus(record.nextAction)}
-                      </span>
-                    )}
-                    {actionForRecord?.(record)}
+                    <div className="ipc-approval-record-action">
+                      {!actionForRecord && (
+                        <span className="text-xs font-semibold text-blue-700">
+                          {formatWorkflowStatus(record.nextAction)}
+                        </span>
+                      )}
+                      {actionForRecord?.(record)}
+                    </div>
                   </td>
                 </tr>
                 {hasDetail && isDetailExpanded && (

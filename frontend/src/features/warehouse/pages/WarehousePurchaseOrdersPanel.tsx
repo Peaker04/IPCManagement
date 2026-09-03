@@ -52,7 +52,7 @@ export function WarehousePurchaseOrdersPanel({
   <TableViewport
     ariaLabel="Danh sách đơn mua và tiến độ nhập kho"
     caption="Danh sách đơn mua và tiến độ nhập kho"
-    className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
+    className="ipc-table-viewport--page-flow"
   >
     <table className="ipc-data-table min-w-[1060px] !table-auto">
       <thead>
@@ -76,7 +76,7 @@ export function WarehousePurchaseOrdersPanel({
           ))
         ) : purchaseOrders.length === 0 ? (
           <tr>
-            <td colSpan={6} className="h-[320px] text-center text-slate-600">
+            <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
               Chưa có đơn mua để theo dõi nhập kho.
             </td>
           </tr>

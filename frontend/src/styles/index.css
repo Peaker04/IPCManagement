@@ -691,7 +691,7 @@ code {
 
 .ipc-erp-grid-table tr:hover td,
 .ipc-data-table tr:hover td {
-  background-color: #f8fafc;
+  background-color: var(--ipc-color-surface-selected);
 }
 
 .ipc-status-badge {

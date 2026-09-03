@@ -28,7 +28,7 @@ export function RoleInbox({
   items,
   title = 'Việc đang chờ theo vai trò',
   actionForItem,
-  emptyText = 'Chưa có dữ liệu để hiển thị',
+  emptyText = 'Chưa có công việc cần xử lý.',
   pageSize = 4,
   className,
 }: RoleInboxProps) {

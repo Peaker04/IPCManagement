@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
-import { IdentifierText, TableViewport } from '@/components/common';
-import { Input } from '@/components/ui/input';
+import { IdentifierText, SearchField, TableViewport } from '@/components/common';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 
 type PurchaseLine = PurchaseWorkbenchServiceDate['purchaseLines'][number];
@@ -64,13 +62,14 @@ export function PurchaseLineGroups({
   return (
     <>
       <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <label className="grid max-w-xl gap-1 text-xs font-semibold text-slate-600" htmlFor="purchase-line-search">
-          Tìm nguyên liệu, nhà cung cấp hoặc mã dòng nguồn
-          <span className="relative block">
-            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-            <Input id="purchase-line-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 bg-white pl-9" />
-          </span>
-        </label>
+        <SearchField
+          id="purchase-line-search"
+          label="Tìm nguyên liệu, nhà cung cấp hoặc mã dòng nguồn"
+          width="wide"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          inputClassName="bg-white"
+        />
       </div>
       <TableViewport ariaLabel="Nhóm dòng nguyên liệu cần mua" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để xử lý từng dòng chứng từ.">
       <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
@@ -87,7 +86,7 @@ export function PurchaseLineGroups({
         </thead>
         <tbody>
           {groups.length === 0 ? (
-            <tr><td colSpan={7} className="h-[320px] text-center text-slate-500">Không có dòng nguyên liệu khớp bộ lọc.</td></tr>
+            <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Không có dòng nguyên liệu khớp bộ lọc.</td></tr>
           ) : groups.flatMap((group) => {
             const expanded = expandedGroupKey === group.key;
             const readyCount = group.lines.filter((line) => line.currentSupplierDecision).length;

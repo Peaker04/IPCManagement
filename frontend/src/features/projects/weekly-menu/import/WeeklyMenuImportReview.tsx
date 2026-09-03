@@ -1,5 +1,7 @@
 import { ContextStrip, InlineAlert, StatusBadge } from '@/components/common'
 import { Button } from '@/components/ui/button'
+import { Link } from 'react-router-dom'
+import { ROUTES } from '@/lib/routeConfig'
 import { ImportedLayoutMatrix } from '../../components/ImportedLayoutMatrix'
 import { formatImportDate, getImportJobStatusLabel } from '../model/formatters'
 import { getImportJobStatusTone } from './importValidation'
@@ -9,7 +11,7 @@ type Props = { workflow: WeeklyMenuImportWorkflow }
 
 export const WeeklyMenuImportReview = ({ workflow }: Props) => {
   const { selectedJob: job, presentation, status, actions } = workflow
-  const { activeDayKey, diffRows, displayDays, issues, layoutRows, preview, problemMessages, warningMessages, warningSummary } = presentation
+  const { activeDayKey, bomIssues, diffRows, displayDays, issues, layoutRows, preview, problemMessages, warningMessages, warningSummary } = presentation
   if (!job) return null
 
   return (
@@ -70,6 +72,20 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
                 </ul>
                 {diffRows.length > 3 && <p className="font-medium">Còn {diffRows.length - 3} vị trí khác.</p>}
               </div>
+            </InlineAlert>
+          )}
+
+          {bomIssues.length > 0 && (
+            <InlineAlert title={`${bomIssues.length} món thiếu BOM hiệu lực`} variant="warning">
+              <p>Thực đơn có thể lưu nháp, nhưng chưa thể tạo nhu cầu nguyên liệu cho các món này.</p>
+              <ul className="mt-2 space-y-2">
+                {bomIssues.map((issue) => (
+                  <li key={issue.dishId} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-amber-200 bg-white px-3 py-2">
+                    <span><strong>{issue.dishName}</strong> · {issue.affectedSlots} vị trí · {issue.serviceDates.length} ngày</span>
+                    <Link className="ipc-button ipc-button-ghost ipc-button-compact" to={`${ROUTES.ADMIN_DATA}?view=bom-import&dishId=${encodeURIComponent(issue.dishId)}&customerId=${encodeURIComponent(job.customerId)}&tier=${job.priceTierAmount}&date=${encodeURIComponent(issue.serviceDates[0] ?? job.weekStartDate)}`}>Bổ sung BOM</Link>
+                  </li>
+                ))}
+              </ul>
             </InlineAlert>
           )}
 

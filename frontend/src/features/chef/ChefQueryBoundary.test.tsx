@@ -78,12 +78,13 @@ describe('ChefQueryBoundary', () => {
     expect(screen.getByText(/Lỗi phiếu xuất/)).toBeInTheDocument()
   })
 
-  it('keeps the fallback refresh indicator outside document flow', () => {
+  it('keeps the fallback refresh indicator in a stable non-overlapping flow slot', () => {
     renderBoundary([ready({ isRefreshing: true })], true)
 
     const status = screen.getByRole('status')
     expect(status).toHaveTextContent('Đang cập nhật dữ liệu ca')
-    expect(status).toHaveClass('absolute')
+    expect(status).toHaveAttribute('data-refresh-status', 'true')
+    expect(status).not.toHaveClass('absolute')
     expect(screen.getByText('Kết quả bếp')).toBeInTheDocument()
   })
 

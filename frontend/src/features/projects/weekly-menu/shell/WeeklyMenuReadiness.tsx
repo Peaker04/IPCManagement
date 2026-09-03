@@ -23,7 +23,7 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
   return (
     <section
       className={cn(
-        'ipc-weekly-readiness-strip flex h-11 min-h-[44px] items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-1.5 shadow-sm',
+        'ipc-weekly-readiness-strip flex min-h-11 items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm',
         `is-${readiness.tone}`
       )}
       aria-label="Mức sẵn sàng của kế hoạch tuần"
@@ -41,13 +41,10 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
           )}
           aria-hidden="true"
         />
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Mức sẵn sàng:</span>
-          <strong className="truncate text-xs font-bold text-slate-800">{readiness.label}</strong>
-          <span className="hidden text-xs text-slate-500 sm:inline">·</span>
-          <small className="hidden truncate text-xs text-slate-600 md:inline" title={readiness.detail}>
-            {readiness.detail}
-          </small>
+          <strong className="text-xs font-bold text-slate-800">{readiness.label}</strong>
+          <small className="sr-only">{readiness.detail}</small>
         </div>
       </div>
 

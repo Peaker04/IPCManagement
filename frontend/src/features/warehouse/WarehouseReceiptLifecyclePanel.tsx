@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ export function WarehouseReceiptLifecyclePanel() {
   const canCorrect = canPost;
   const canVoid = canPost;
   const [receiptPageNumber, setReceiptPageNumber] = useState(1);
-  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE });
+  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE, purchaseOrderOnly: true });
   const [selectedReceiptId, setSelectedReceiptId] = useState<string>();
   const [qualityOpen, setQualityOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
@@ -61,10 +61,7 @@ export function WarehouseReceiptLifecyclePanel() {
   const [voidReceipt, { isLoading: isVoiding }] = useVoidWarehousePurchaseReceiptMutation();
   const [createCorrection, { isLoading: isCorrecting }] = useCreateReceiptCorrectionMutation();
 
-  const canonicalReceipts = useMemo(
-    () => (receiptPage?.items ?? []).filter((item) => Boolean(item.purchaseOrderId)),
-    [receiptPage],
-  );
+  const canonicalReceipts = receiptPage?.items ?? [];
   const activeReceiptId = canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)
     ? selectedReceiptId
     : canonicalReceipts[0]?.receiptId;
@@ -281,11 +278,11 @@ export function WarehouseReceiptLifecyclePanel() {
               {receipt.lines.map((line) => <li key={line.receiptLineId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-sm border border-slate-200 px-3 py-2">
                 <div className="min-w-0">
                   <strong className="block truncate text-slate-900" title={line.ingredientName ?? line.ingredientId}>{line.ingredientName ?? line.ingredientId}</strong>
-                  {line.qualityReason && <span className="mt-0.5 block truncate text-amber-800" title={line.qualityReason}>Lý do: {line.qualityReason}</span>}
+                  {line.qualityReason && <span className="mt-0.5 block text-amber-800" title={line.qualityReason}>Lý do: {line.qualityReason}</span>}
                 </div>
                 <div className="text-right leading-5 tabular-nums">
-                  <span className="block font-medium text-slate-800">{formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })}</span>
-                  {(line.acceptedQuantity != null || line.rejectedQuantity != null) && <span className="block whitespace-nowrap text-slate-500">Đạt {formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })} · Không đạt {formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}</span>}
+                  <span className="block font-medium text-slate-800" title={`Số lượng chính xác: ${formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })}`}>{formatQuantityWithUnit(line.quantity, line.unitName ?? '')}</span>
+                  {(line.acceptedQuantity != null || line.rejectedQuantity != null) && <span className="block text-slate-500" title={`Đạt chính xác ${formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}; không đạt chính xác ${formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}`}>Đạt {formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '')} · Không đạt {formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '')}</span>}
                 </div>
               </li>)}
             </ul>

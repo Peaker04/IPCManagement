@@ -12,6 +12,8 @@ describe('EmptyState', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
     expect(container.querySelector('.ipc-empty-state')).not.toBeNull();
+    expect(container.querySelector('.ipc-empty-state')).toHaveClass('min-h-0');
+    expect(container.querySelector('.ipc-empty-state')?.className).not.toContain('min-h-[200px]');
   });
 
   it('renders a load failure as an alert with retry, never as a plain empty state', () => {

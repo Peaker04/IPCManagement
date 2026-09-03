@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Controllers;
 using IPCManagement.Api.Features.Coordination.Services;
@@ -99,8 +100,9 @@ public sealed class ReconciliationQuantityImportReachabilityTests
         await using var fixture = await Fixture.CreateAsync();
         var before = await fixture.InventoryAsync();
 
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
+        var error = await Record.ExceptionAsync(() =>
             fixture.CreateCanonicalSourceAsync("INVALID", 120, materialDefect: defect));
+        Assert.True(error is InvalidOperationException or BusinessRuleException, error?.ToString());
 
         await fixture.AssertNoReconciliationAuthorityAsync();
         Assert.Empty(await fixture.Context.Reconciliationbatchlines.AsNoTracking().ToListAsync());

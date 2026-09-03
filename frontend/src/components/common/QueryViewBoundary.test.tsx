@@ -72,10 +72,13 @@ describe('QueryViewBoundary', () => {
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
   })
 
-  it('keeps stale content while refreshing without changing document flow', () => {
+  it('keeps stale content while refreshing in a non-overlapping flow slot', () => {
     renderBoundary([ready({ isRefreshing: true })])
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveClass('absolute')
+    const status = screen.getByRole('status')
+    expect(status).toHaveAttribute('data-refresh-status', 'true')
+    expect(status).not.toHaveClass('absolute')
+    expect(status).not.toHaveClass('fixed')
   })
 
   it('shows partial evidence without hiding ready data', () => {

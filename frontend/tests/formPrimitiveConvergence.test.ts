@@ -21,23 +21,24 @@ const fileExceptionLocations = [
 ]
 
 const pathExceptionLocations = [
-  'src/components/common/PaginationBar.tsx:87',
-  'src/components/common/PaginationBar.tsx:131',
+  'src/components/common/PaginationBar.tsx:105',
+  'src/components/common/PaginationBar.tsx:148',
   'src/components/ui/input.tsx:93',
   'src/components/ui/textarea.tsx:7',
   'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
-  'src/features/chef/production/ServiceRunSection.tsx:163',
-  'src/features/chef/production/ServiceRunSection.tsx:180',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:390',
+  'src/features/chef/production/ServiceRunSection.tsx:167',
+  'src/features/chef/production/ServiceRunSection.tsx:184',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:389',
   'src/components/common/TablePreferencesControl.tsx:129',
   'src/features/admin/pages/ApprovalRulesPage.tsx:28',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:391',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:470',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:480',
-  'src/features/approvals/pages/ApprovalSearchField.tsx:8',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:421',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:500',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:510',
   'src/features/approvals/pages/ApprovalDecisionDialog.tsx:54',
   // Route-critical controls intentionally stay native to avoid pulling Base UI field closures into eager chunks.
   'src/features/projects/weekly-menu/schedule/QuickServingCell.tsx:7',
+  'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:44',
+  'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx:39',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:58',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:74',
   'src/features/purchasing/PurchaseDecisionPanel.tsx:323',
@@ -45,8 +46,6 @@ const pathExceptionLocations = [
   'src/features/purchasing/PurchaseDecisionPanel.tsx:395',
   'src/features/purchasing/PurchaseDecisionPanel.tsx:405',
   'src/features/purchasing/PurchaseDecisionPanel.tsx:415',
-  'src/features/warehouse/PurchaseOrderLineGroups.tsx:53',
-  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:145',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

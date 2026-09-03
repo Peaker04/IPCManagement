@@ -6,7 +6,7 @@
 - [x] **Phase 27.1: Non-Warehouse visual reconciliation** — complete; all 21 identities and the repeated broad-suite gate pass.
 - [x] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
 - [x] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
-- [ ] **Phase 30: Closed-loop menu issue reconciliation** — simplify reconciliation mode to Menu import → material demand → real Warehouse issue → required-versus-issued reconciliation with minimal mode-specific work surfaces.
+- [ ] **Phase 30: Closed-loop menu issue reconciliation** — issue-state seam is proven, but the complete menu-source → calculation → freeze → issue → reconciliation → change-log E2E remains open.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
@@ -205,7 +205,7 @@ Plans:
 
 ## Phase 30: Closed-loop menu issue reconciliation
 
-**Status:** LOCAL CLOSED — all 13 plans executed and local gates verified at `6bfbd9f9`; protected MRX-06P remains BLOCKED pending fresh authorization
+**Status:** E2E GAPS FOUND — all 13 implementation plans executed, but full mode-level acceptance is reopened after the prior one-line issue run was correctly identified as insufficient
 
 **Goal:** Refine `MATERIAL_RECONCILIATION` into one closed workflow: import/select Weekly Menu source, calculate exact material quantities, transfer one frozen issue list to Warehouse, create real source-linked inventory issue documents, then compare required versus warehouse-issued quantities on one compact reconciliation page.
 
@@ -243,9 +243,11 @@ Plans:
 - [x] 30-12-PLAN.md — frontend conceptual Wave 5 / executor wave 12 production two-tab authority channel and sharply bounded inactive-owner cleanup (depends on 30-11).
 - [x] 30-13-PLAN.md — frontend conceptual Wave 5 / executor wave 13 deterministic RTK request fixture bridge, backend reader and local MRX-06L closeout (depends on 30-12).
 
-**MRX-06 disposition:** `MRX-06L` is **COMPLETE** at verified HEAD `6bfbd9f9` after the final canonical local gate matrix. `MRX-06P` remains **BLOCKED — fresh operator authorization required** for backup-first protected `ipc_lane7` MySQL/API/five-viewport headed evidence and final restoration to `DEFAULT`. No Phase 30 protected migration or final protected-mode run was performed; aggregate `MRX-06` remains BLOCKED. See [Phase 30 verification](phases/30-closed-loop-menu-issue-reconciliation/30-VERIFICATION.md).
+**MRX-06 disposition:** the warehouse issue state seam is proven, including exact stock movement/lineage, idempotent replay and `TRANSFERRED → IN_PROGRESS`. Complete mode E2E is **OPEN** because the prior fixture bypassed menu import, source correction, quantity preview/commit, ready/freeze, contributor calculation and batch-scoped change history. Research and the corrected case matrix are in `.artifacts/audits/material-reconciliation-mode-e2e-research.md`. Protected data must still not be manufactured.
 
 ### Phase 31: Full-system UI/UX audit and remediation
+
+**Status:** GAPS_FOUND — presentation rows remain green, but Reconciliation row is reopened until the complete mode lifecycle and change-log surfaces are implemented and evidenced
 
 **Goal:** Audit and remediate every frontend route, retained view, overlay, form, action, query state, permission/mode variant and declared viewport through measurable composition, geometry, accessibility, interaction, runtime and behavior-preservation gates.
 **Requirements:** UIX-01, UIX-02, UIX-03, UIX-04, UIX-05, UIX-06, UIX-07, UIX-08
@@ -254,4 +256,4 @@ Plans:
 
 Plans:
 
-- [ ] 31-01-PLAN.md — execute one sequential checklist across shared owners and every route; reproduce, fix and verify each row before moving to the next.
+- [ ] 31-01-PLAN.md — execute one sequential checklist across shared owners and every route; Reconciliation mode-level E2E gap reopened after acceptance re-grounding.

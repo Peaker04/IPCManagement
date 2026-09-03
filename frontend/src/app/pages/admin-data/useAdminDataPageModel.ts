@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import type { ViewTab } from '@/components/common';
 import { selectCurrentUser } from '@/features/auth';
+import { formatQuantity } from '@/lib/formatters';
 import { getTodayInputValue, isAdminView, type AdminView } from './adminDataPageTypes';
 import { useAdminAuditPanelModel } from './useAdminAuditPanelModel';
 import { useAdminBomPanelModel } from './useAdminBomPanelModel';
@@ -68,7 +69,7 @@ export function useAdminDataPageModel() {
             ? [
                 { label: 'Thiếu nguyên liệu', value: statisticsQueryViews.ingredientDemand.phase === 'ready' ? statisticsModel.shortageCount.toString() : '—', tone: statisticsQueryViews.ingredientDemand.phase !== 'ready' ? 'neutral' as const : statisticsModel.shortageCount ? 'danger' as const : 'success' as const },
                 { label: 'Cảnh báo giá', value: statisticsQueryViews.priceVariance.phase === 'ready' ? statisticsModel.priceWarningCount.toString() : '—', tone: statisticsQueryViews.priceVariance.phase !== 'ready' ? 'neutral' as const : statisticsModel.priceWarningCount ? 'warning' as const : 'success' as const },
-                { label: 'Đề xuất mua', value: statisticsQueryViews.purchasePlan.phase === 'ready' ? statisticsModel.totalPurchaseQty.toString() : '—', tone: statisticsQueryViews.purchasePlan.phase !== 'ready' ? 'neutral' as const : statisticsModel.totalPurchaseQty ? 'warning' as const : 'success' as const },
+                { label: 'Đề xuất mua', value: statisticsQueryViews.purchasePlan.phase === 'ready' ? formatQuantity(statisticsModel.totalPurchaseQty) : '—', tone: statisticsQueryViews.purchasePlan.phase !== 'ready' ? 'neutral' as const : statisticsModel.totalPurchaseQty ? 'warning' as const : 'success' as const },
               ]
             : effectiveActiveView === 'audit'
               ? [{ label: 'Nhật ký', value: auditView.phase === 'ready' ? `${auditModel.displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]

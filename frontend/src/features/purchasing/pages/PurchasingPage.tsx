@@ -205,7 +205,7 @@ export default function PurchasingPage() {
           {activeView === 'workflow' ? (
             <>
               <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Tuần mua hàng: {formatWeekRange(routeState.week)}</span>
-              <span className="ipc-command-meta"><CalendarDays size={16} aria-hidden="true" />Cả ngày (FULLDAY)</span>
+              <span className="ipc-command-meta" title="Phạm vi kỹ thuật: FULLDAY"><CalendarDays size={16} aria-hidden="true" />Cả ngày</span>
             </>
           ) : activeView === 'supplemental' ? (
             <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Yêu cầu mua bổ sung từ bếp</span>
@@ -250,7 +250,7 @@ export default function PurchasingPage() {
           onTabChange={changeView}
         />
 
-        {activeView === 'workflow' && <div className="min-h-[68px]" aria-live="polite">
+        {activeView === 'workflow' && <div aria-live="polite">
           {workbenchView.phase === 'forbidden' ? (
             <InlineAlert title="Không có quyền xem quy trình thu mua" variant="danger">
               <span role="alert">{workbenchView.message}</span>
@@ -270,7 +270,7 @@ export default function PurchasingPage() {
           ) : null}
         </div>}
 
-        <div className="min-h-[480px]">
+        <div>
           <KeepAliveTabPanel id="purchasing-workflow" active={activeView === 'workflow'} className="space-y-4">
             {workbenchView.phase === 'ready' ? (
               <>
@@ -304,7 +304,7 @@ export default function PurchasingPage() {
                 </PurchaseServiceDateWorkbench>
               </>
             ) : (
-              <div className="min-h-[420px] rounded-lg border border-slate-200 bg-white p-4 space-y-4 motion-reduce:animate-none" aria-busy="true">
+              <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4 motion-reduce:animate-none" aria-busy="true">
                 <div className="h-10 w-full animate-pulse rounded bg-slate-100" />
                 <div className="h-12 w-full animate-pulse rounded bg-slate-50" />
                 <div className="h-64 w-full animate-pulse rounded bg-slate-50" />

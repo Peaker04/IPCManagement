@@ -141,14 +141,18 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-4">
         <div><dt className="text-slate-500">Kế hoạch</dt><dd className="font-medium text-slate-800 tabular-nums">{run.plannedServings} suất</dd></div>
         <div><dt className="text-slate-500">Thực tế</dt><dd className="font-medium text-slate-800 tabular-nums">{run.actualServings ?? '—'} suất</dd></div>
-        <div><dt className="text-slate-500">Phiếu xuất</dt><dd className="font-medium text-slate-800 tabular-nums">{run.issueCount}</dd></div>
         <div><dt className="text-slate-500">Chờ nhận</dt><dd className="font-medium text-slate-800 tabular-nums">{run.unreceivedIssueCount}</dd></div>
-        <div><dt className="text-slate-500">Điều chỉnh hậu kiểm</dt><dd className="font-medium text-slate-800 tabular-nums">{run.adjustmentCount}</dd></div>
         <div><dt className="text-slate-500">Giao suất</dt><dd className="font-medium text-slate-800">{outcomeLabel[run.serviceConfirmationOutcome] ?? run.serviceConfirmationOutcome}</dd></div>
       </dl>
-      <dl className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Các phần việc của Ca phục vụ">
-        {scopedTracks.map((track) => <div key={track.trackId} className="rounded border border-slate-200 bg-slate-50 p-2 text-xs"><dt className="font-medium text-slate-800">{track.displayLabel}</dt><dd className="mt-1 text-slate-600">{track.blockers.length ? track.blockers.map((blocker) => blocker.displayLabel).join(' · ') : 'Không có vướng mắc'}</dd><dd className="mt-1 text-slate-500">Phụ trách: {track.responsibleRole}</dd></div>)}
-      </dl>
+      <details className="mt-3 rounded border border-slate-200 bg-slate-50 text-xs">
+        <summary className="cursor-pointer px-3 py-2 font-medium text-slate-800">Chi tiết phần việc và chứng từ</summary>
+        <div className="border-t border-slate-200 p-3">
+          <p className="mb-2 text-slate-600">{run.issueCount} phiếu xuất · {run.adjustmentCount} điều chỉnh hậu kiểm</p>
+          <dl className="grid gap-2 sm:grid-cols-2" aria-label="Các phần việc của Ca phục vụ">
+            {scopedTracks.map((track) => <div key={track.trackId} className="rounded border border-slate-200 bg-white p-2"><dt className="font-medium text-slate-800">{track.displayLabel}</dt><dd className="mt-1 text-slate-600">{track.blockers.length ? track.blockers.map((blocker) => blocker.displayLabel).join(' · ') : 'Không có vướng mắc'}</dd><dd className="mt-1 text-slate-500">Phụ trách: {track.responsibleRole}</dd></div>)}
+          </dl>
+        </div>
+      </details>
       {pendingDeclarations.length > 0 && <section className="mt-3 rounded border border-amber-200 bg-amber-50 p-2 text-xs" aria-label="Ngoại lệ đang chờ xử lý">
         <h3 className="font-medium text-amber-900">Ngoại lệ đang chờ xử lý</h3>
         <ul className="mt-1 space-y-1 text-amber-900">{pendingDeclarations.map((item) => <li key={item.declarationId}>

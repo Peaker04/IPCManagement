@@ -147,13 +147,19 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
   const titleId = React.useId()
   const portalId = React.useId()
   const openerRef = React.useRef<HTMLElement | null>(null)
+  const onOpenChangeRef = React.useRef(onOpenChange)
+  const onCloseRequestRef = React.useRef(onCloseRequest)
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange
+    onCloseRequestRef.current = onCloseRequest
+  }, [onCloseRequest, onOpenChange])
 
   const requestClose = React.useCallback((reason: DialogCloseReason) => {
-    if (onCloseRequest?.(reason) === false) {
+    if (onCloseRequestRef.current?.(reason) === false) {
       return
     }
-    onOpenChange(false, reason)
-  }, [onCloseRequest, onOpenChange])
+    onOpenChangeRef.current(false, reason)
+  }, [])
 
   React.useEffect(() => {
     if (!open) {

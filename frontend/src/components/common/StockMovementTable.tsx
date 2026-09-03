@@ -101,7 +101,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
   if (!movements.length) {
     return (
       <EmptyState
-        title="Chưa có dữ liệu để hiển thị"
+        title="Chưa phát sinh bút toán kho."
         className={cn('ipc-stock-movement-table is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
       />
     );

@@ -139,40 +139,6 @@
   scrollbar-gutter: auto;
 }
 
-.ipc-table-viewport td[class~="h-[320px]"] {
-  height: 120px;
-}
-
-.ipc-table-viewport[class~="max-h-[260px]"] {
-  max-height: 260px;
-}
-
-.ipc-table-viewport[class~="max-h-[300px]"] {
-  max-height: 300px;
-}
-
-.ipc-table-viewport[class~="max-h-[320px]"] {
-  max-height: 320px;
-}
-
-.ipc-table-viewport[class~="max-h-[360px]"] {
-  max-height: 360px;
-}
-
-.ipc-table-viewport[class~="max-h-[400px]"] {
-  max-height: 400px;
-}
-
-.ipc-table-viewport[class~="max-h-[440px]"] {
-  max-height: 440px;
-}
-
-@media (min-width: 1280px) {
-  .ipc-table-viewport[class~="xl:max-h-[480px]"] {
-    max-height: 480px;
-  }
-}
-
 .ipc-warehouse-actions,
 .ipc-purchasing-actions,
 .ipc-approval-actions {

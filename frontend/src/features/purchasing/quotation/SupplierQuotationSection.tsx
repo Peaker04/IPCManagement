@@ -1,4 +1,4 @@
-import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
+import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SearchField, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
 import type { IngredientLookup } from '@/api/dishCatalogApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
 
   return (
     <SectionPanel title="Quản lý báo giá nhà cung cấp">
-      <div className="mt-4 space-y-4">
+      <div className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">
         {workflow.isLookupForbidden ? (
           <InlineAlert title="Không có quyền xem danh mục thu mua" variant="danger">
             <span role="alert">Bạn không có quyền xem nguyên liệu hoặc nhà cung cấp phục vụ quản lý báo giá.</span>
@@ -39,22 +39,23 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           </InlineAlert>
         ) : null}
         <div className="grid gap-3 md:grid-cols-[minmax(220px,0.6fr)_minmax(280px,1fr)]">
-          <Input
-            type="search"
-            aria-label="Tìm nguyên liệu"
-            className="text-slate-700 placeholder:text-slate-600"
+          <SearchField
+            id="quotation-ingredient-search"
+            label="Tìm nguyên liệu"
+            width="full"
             value={workflow.ingredientSearch}
             onChange={(event) => workflow.setIngredientSearch(event.target.value)}
+            placeholder="Nhập mã hoặc tên nguyên liệu..."
           />
-          <div>
-            <label className="mr-2 text-sm font-medium text-slate-700" htmlFor="quotation-ingredient">Nguyên liệu:</label>
+          <div className="grid gap-2 text-slate-700">
+            <label className="text-xs font-bold leading-4" htmlFor="quotation-ingredient">Nguyên liệu</label>
           <Select
             value={workflow.selectedIngredientId || EMPTY_SELECT_VALUE}
             onValueChange={(value) => workflow.selectIngredient(value === EMPTY_SELECT_VALUE ? '' : (value ?? ''))}
           >
             <SelectTrigger
               id="quotation-ingredient"
-              className="w-full text-slate-700"
+              className="!h-9 w-full text-slate-700"
               aria-invalid={Boolean(workflow.validationErrors.ingredientId) || undefined}
               aria-describedby={workflow.validationErrors.ingredientId ? 'quotation-ingredient-error' : undefined}
             >

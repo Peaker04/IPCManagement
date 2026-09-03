@@ -1,4 +1,6 @@
 export { PaginatedTableFrame } from './PaginatedTableFrame';
+export { RefreshStatus } from './RefreshStatus';
+export { SearchField } from './SearchField';
 export { TableViewport } from './TableViewport';
 export { CommandBar } from './CommandBar';
 export { EmptyState } from './EmptyState';

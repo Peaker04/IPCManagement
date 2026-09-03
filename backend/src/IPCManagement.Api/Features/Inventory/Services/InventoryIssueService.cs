@@ -476,6 +476,10 @@ public class InventoryIssueService : IInventoryIssueService
                 if (_modeGuard is not null)
                     await _modeGuard.ValidateAsync(operationKey, expectedModeVersion, OperationDisposition.ReconciliationOnly, token);
 
+                _context.Entry(batch).Property(item => item.Version).OriginalValue = dto.ExpectedVersion;
+                batch.Status = "IN_PROGRESS";
+                batch.Version++;
+
                 var issue = new InventoryIssue
                 {
                     IssueId = issueId, IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",

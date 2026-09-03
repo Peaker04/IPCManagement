@@ -491,6 +491,9 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         line.MaterialRequestLineId.Should().BeNull();
         line.IssuedQty.Should().Be(5m);
         var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty - 5m };
+        var oldBatch = before.Batches.Single(value => value.Id == fixture.IssueBatchId);
+        var newBatch = after.Batches.Single(value => value.Id == fixture.IssueBatchId);
+        newBatch.Should().Be(oldBatch with { Status = "IN_PROGRESS", Version = oldBatch.Version + 1 });
         var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
         movement.Should().Be(new MovementValue(movement.Id, "ISSUE", "inventoryissues", issue.Id, 5m, 0m));
         var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = issueCode, ConcurrencyVersion = 1 });
@@ -513,6 +516,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 ("MaterialRequestLineId", NullValue), ("ReconciliationBatchLineId", GuidValue(fixture.IssueLineId)),
                 ("RequestedQty", DecimalValue(5m)), ("IssuedQty", DecimalValue(5m))),
             ExistingGeneratedKey("currentstock", stockKey, [GeneratedUtc("LastUpdated", window, "issue-stock-time"), GeneratedExact("RowVersion", CellValue(before.Canonical, "currentstock", stockKey, "RowVersion"), "SQLite fixture preserves the MySQL-generated rowversion")], ("CurrentQty", DecimalValue(stock.Qty))),
+            Existing("reconciliationbatches", "BatchId", fixture.IssueBatchId,
+                ("Status", Scalar("IN_PROGRESS")), ("Version", Scalar(oldBatch.Version + 1))),
             New("stockmovements", "MovementId", movement.Id, [GeneratedGuid("MovementId", movement.Id), GeneratedUtc("MovementDate", window, "issue-stock-time")],
                 ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("MovementType", Scalar("ISSUE")), ("RefTable", Scalar("inventoryissues")), ("RefId", GuidValue(issue.Id)),
@@ -525,6 +530,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             Issues = before.Issues.Append(issue).OrderBy(value => value.Id).ToArray(),
             IssueLines = before.IssueLines.Append(line).OrderBy(value => value.Id).ToArray(),
             Stocks = [stock],
+            Batches = Replace(before.Batches, oldBatch, newBatch, value => value.Id),
             Movements = before.Movements.Append(movement).OrderBy(value => value.Id).ToArray(),
             Audits = lifecycle.Audits,
             Transitions = lifecycle.Transitions,

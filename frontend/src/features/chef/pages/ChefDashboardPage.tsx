@@ -2,7 +2,7 @@
 
 import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
 import { ShieldAlert, ShieldCheck } from 'lucide-react'
-import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher, RefreshStatus } from '@/components/common';
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import type { ShiftType } from '@/types/coordination'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
@@ -63,9 +63,11 @@ export default function ChefDashboardPage() {
           ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
           : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
-    ...production.dailyPlanWarnings.map((warning) => warning === 'Có kế hoạch chưa gửi bếp.'
-      ? 'Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.'
-      : warning),
+    ...production.dailyPlanWarnings
+      .filter((warning) => production.productionPlan.totalMeals > 0 || !warning.toLocaleLowerCase('vi-VN').includes('khsx'))
+      .map((warning) => warning === 'Có kế hoạch chưa gửi bếp.'
+        ? 'Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.'
+        : warning),
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
@@ -90,7 +92,7 @@ export default function ChefDashboardPage() {
             { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
             { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
-          <ShiftAlert isLocked={production.isLocked} />
+          <ShiftAlert isLocked={production.isLocked} hasPlan={production.productionPlan.totalMeals > 0} />
         </>
       )}
     >
@@ -106,9 +108,7 @@ export default function ChefDashboardPage() {
         />
         <div className="relative min-h-[420px]" aria-busy={isViewPending} aria-live="polite">
           {isViewPending && (
-            <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200">
-              Đang cập nhật
-            </span>
+            <RefreshStatus>Đang cập nhật</RefreshStatus>
           )}
           <KeepAliveTabPanel id="chef-production" active={isProductionView} className="space-y-4">
             <ChefQueryBoundary preserveFallback stabilizeInitialLoad queries={[
@@ -176,7 +176,8 @@ export default function ChefDashboardPage() {
   )
 }
 
-function ShiftAlert({ isLocked }: { isLocked: boolean }) {
+function ShiftAlert({ isLocked, hasPlan }: { isLocked: boolean; hasPlan: boolean }) {
+  if (!hasPlan) return null
   return isLocked ? (
     <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo kế hoạch sản xuất.</InlineAlert>
   ) : (

@@ -49,7 +49,7 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
 
           <div className="grid gap-1">
             <span className="text-xs font-semibold text-slate-600">Ca phục vụ</span>
-            <div className="inline-flex h-9 rounded-md border border-slate-300 bg-slate-50 p-0.5" role="group" aria-label="Ca phục vụ">
+            <div className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-slate-50 p-0.5" role="group" aria-label="Ca phục vụ">
               {Object.entries(SHIFT_LABELS).map(([key, label]) => {
                 const active = shift === key
                 const ShiftIcon = key === 'Ca Sáng' ? Sun : Sunset
@@ -57,11 +57,11 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
                   <Button
                     key={key}
                     type="button"
-                    variant={active ? 'default' : 'outline'}
+                    variant={active ? 'default' : 'ghost'}
                     size="sm"
                     aria-pressed={active}
                     onClick={() => handleShiftChange(key as ShiftType)}
-                    className="min-w-28"
+                    className="h-8 min-w-28 rounded-sm border-0 shadow-none"
                   >
                     <ShiftIcon className="size-4" aria-hidden="true" />
                     {label}

@@ -212,8 +212,20 @@ function Assert-RetiredGapSourceAbsent {
     $scanFiles.Add($runnerPath)
     foreach ($root in @('backend/src/IPCManagement.Api', 'backend/tools/IPCManagement.DatabaseTool')) {
         if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
-        foreach ($file in @(& rg --files $root -g '*.cs' -g '!**/bin*/**' -g '!**/obj*/**' -g '!**/.artifacts/**')) {
-            $scanFiles.Add((Resolve-Path -LiteralPath $file).Path)
+        $excludeDirs = @('bin', 'obj', '.artifacts', 'backend')
+        $queue = New-Object System.Collections.Generic.Queue[string]
+        $queue.Enqueue((Resolve-Path -LiteralPath $root).Path)
+        while ($queue.Count -gt 0) {
+            $dir = $queue.Dequeue()
+            try {
+                foreach ($csFile in [System.IO.Directory]::GetFiles($dir, '*.cs')) { $scanFiles.Add($csFile) }
+                foreach ($sub in [System.IO.Directory]::GetDirectories($dir)) {
+                    $subName = [System.IO.Path]::GetFileName($sub)
+                    if ($excludeDirs -notcontains $subName -and $subName -notmatch '^(?:bin|obj)') {
+                        $queue.Enqueue($sub)
+                    }
+                }
+            } catch [System.IO.IOException] { }
         }
     }
     foreach ($path in @($AdditionalScanPath)) {

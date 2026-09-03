@@ -1,9 +1,7 @@
-import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { EmptyState, PaginationBar, SectionPanel } from '@/components/common';
+import { EmptyState, PaginationBar, SearchField, SectionPanel } from '@/components/common';
 import { DemandSummary } from '@/components/common/DemandSummary';
 import { RoleInbox } from '@/components/common/RoleInbox';
-import { Input } from '@/components/ui/input';
 import { formatDateOnly } from '@/lib/formatters';
 import type { DemandLine, RoleInboxItem } from '@/types/workflow';
 
@@ -53,18 +51,16 @@ export function WarehouseDemandPanel({
       actions={
         <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-nowrap">
           <span className="hidden whitespace-nowrap text-xs text-slate-500 md:inline">Phạm vi: {scopeLabel}</span>
-          <div className="relative w-64 max-w-full">
-            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              id="warehouse-demand-search"
-              type="search"
-              value={demandSearch}
-              onChange={(event) => onDemandSearchChange(event.target.value)}
-              placeholder="Tìm tên hoặc mã nguyên liệu..."
-              className="h-8 border-slate-300 bg-slate-50 pl-8 text-xs focus:bg-white"
-              aria-label="Tìm nguyên liệu trong nhu cầu xuất"
-            />
-          </div>
+          <SearchField
+            id="warehouse-demand-search"
+            label="Tìm nguyên liệu trong nhu cầu xuất"
+            hideLabel
+            width="compact"
+            value={demandSearch}
+            onChange={(event) => onDemandSearchChange(event.target.value)}
+            placeholder="Tìm tên hoặc mã nguyên liệu..."
+            inputClassName="bg-slate-50 text-xs focus:bg-white"
+          />
         </div>
       }
     >
@@ -72,7 +68,7 @@ export function WarehouseDemandPanel({
           <EmptyState
             variant="error"
             title="Không tải được nhu cầu xuất kho"
-            description="Chưa lấy được danh sách nhu cầu và thiếu hàng, nên không thể kết luận là không còn gì phải xuất. Hãy tải lại trước khi lập phiếu xuất."
+            description="Dữ liệu nhu cầu chưa được xác nhận. Hãy tải lại trước khi lập phiếu xuất."
             onRetry={onRetry}
             isRetrying={isFetching}
           />

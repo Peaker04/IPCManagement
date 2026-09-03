@@ -37,11 +37,9 @@ public class InventoryReceiptService : IInventoryReceiptService
         _context = context;
     }
 
-    public async Task<PagedResponseDto<InventoryReceiptDto>> GetPagedAsync(PagedRequestDto request)
+    public async Task<PagedResponseDto<InventoryReceiptDto>> GetPagedAsync(InventoryReceiptFilterRequestDto request)
     {
-        var (items, totalCount) = await _receiptRepository.GetPagedAsync(
-            request.PageNumber,
-            request.PageSize);
+        var (items, totalCount) = await _receiptRepository.GetPagedAsync(request);
 
         return PagedResponseDto<InventoryReceiptDto>.Create(
             items.Select(receipt => InventoryMapper.MapReceipt(receipt)),

@@ -2,6 +2,7 @@ using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -71,6 +72,50 @@ public sealed class ReconciliationBatchService(
         return Map(batch, actuals, dispositions, issued, batchLines);
     }
 
+    public async Task<IReadOnlyList<ReconciliationSourceChangeDto>> ListSourceChangesAsync(string id, CancellationToken token = default)
+    {
+        var batchId = RequiredId(id);
+        var batch = await context.Reconciliationbatches.AsNoTracking()
+            .Include(item => item.Lines)
+            .SingleOrDefaultAsync(item => item.BatchId == batchId, token)
+            ?? throw new KeyNotFoundException("Không tìm thấy lô đối chiếu.");
+        var batchLineIds = batch.Lines.Select(line => line.BatchLineId).ToList();
+        var contributors = await context.Reconciliationbatchcontributors.AsNoTracking()
+            .Where(contributor => batchLineIds.Contains(contributor.BatchLineId)).ToListAsync(token);
+        var sourceIds = new HashSet<string>(StringComparer.Ordinal)
+        {
+            Convert.ToHexString(batch.BatchId), Convert.ToHexString(batch.MenuVersionId), Convert.ToHexString(batch.QuantityImportBatchId)
+        };
+        foreach (var line in batch.Lines) sourceIds.Add(Convert.ToHexString(line.BatchLineId));
+        foreach (var contributor in contributors)
+        {
+            sourceIds.Add(Convert.ToHexString(contributor.MenuScheduleId));
+            sourceIds.Add(Convert.ToHexString(contributor.MealQuantityPlanLineId));
+            sourceIds.Add(Convert.ToHexString(contributor.DishBomId));
+        }
+        var quantityPlanLineIds = contributors.Select(contributor => contributor.MealQuantityPlanLineId).ToList();
+        var quantityPlanIds = await context.Mealquantityplanlines.AsNoTracking()
+            .Where(line => quantityPlanLineIds.Contains(line.QuantityPlanLineId))
+            .Select(line => line.QuantityPlanId).Distinct().ToListAsync(token);
+        foreach (var quantityPlanId in quantityPlanIds) sourceIds.Add(Convert.ToHexString(quantityPlanId));
+
+        var issueIds = await context.Inventoryissues.AsNoTracking()
+            .Where(issue => issue.ReconciliationBatchId == batchId)
+            .Select(issue => issue.IssueId).ToListAsync(token);
+        foreach (var issueId in issueIds) sourceIds.Add(Convert.ToHexString(issueId));
+
+        var sourceEntityIds = sourceIds.Select(Convert.FromHexString).ToList();
+        var audits = await context.Auditlogs.AsNoTracking()
+            .Where(audit => audit.EntityId != null && sourceEntityIds.Contains(audit.EntityId))
+            .OrderByDescending(audit => audit.ChangedAt).ToListAsync(token);
+        return audits.Select(audit => new ReconciliationSourceChangeDto(
+                GuidHelper.ToGuidString(audit.AuditId), audit.ChangedAt,
+                GuidHelper.ToGuidString(audit.ChangedBy),
+                audit.BusinessArea, audit.EntityName, audit.EntityId is null ? null : GuidHelper.ToGuidString(audit.EntityId),
+                audit.FieldName, audit.OldValue, audit.NewValue, audit.Reason))
+            .ToList();
+    }
+
     public async Task<ReconciliationBatchDto> CreateDraftAsync(CreateReconciliationDraftRequest request, string actorId, CancellationToken token = default)
     {
         var batchId = GuidHelper.NewId();
@@ -129,7 +174,7 @@ public sealed class ReconciliationBatchService(
             .AsSplitQuery()
             .SingleOrDefaultAsync(x => x.ImportBatchId == importBatchId, token);
         if (!IsExactCommittedAuthority(committedImport, menuVersionId))
-            throw new InvalidOperationException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
+            throw new BusinessRuleException("Nguồn thực đơn hoặc đợt nhập chưa được cam kết hợp lệ.");
 
         var sourceLines = await context.Mealquantityplanlines
             .Where(x => x.QuantityPlan.ImportBatchId == importBatchId && x.MenuSchedule.MenuVersionId == menuVersionId)
@@ -138,7 +183,7 @@ public sealed class ReconciliationBatchService(
             .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Ingredient).ThenInclude(x => x.Unit)
             .AsSplitQuery()
             .ToListAsync(token);
-        if (sourceLines.Count == 0) throw new InvalidOperationException("Đợt nhập không có dòng số suất thuộc phiên bản thực đơn đã chọn.");
+        if (sourceLines.Count == 0) throw new BusinessRuleException("Đợt nhập không có dòng số suất thuộc phiên bản thực đơn đã chọn.");
 
         var tolerances = await context.Reconciliationtolerances.AsNoTracking().ToListAsync(token);
         var batch = new ReconciliationBatch
@@ -153,27 +198,13 @@ public sealed class ReconciliationBatchService(
         };
 
         var materialized = new Dictionary<string, ReconciliationBatchLine>(StringComparer.Ordinal);
-        foreach (var source in sourceLines)
+        foreach (var projectedSource in ReconciliationMaterialProjection.Project(sourceLines))
         {
-            foreach (var menuItem in source.Menu.Menuitems
-                         .OrderBy(item => item.DisplayOrder)
-                         .DistinctBy(item => Convert.ToBase64String(item.DishId)))
+            foreach (var dish in projectedSource.Dishes)
             {
-                var boms = BomSelectionResolver.Resolve(
-                    menuItem.Dish.Dishboms,
-                    source.CustomerId,
-                    source.MenuSchedule.MenuPrice,
-                    source.MenuSchedule.ServiceDate);
-                if (boms.Count == 0)
-                    throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' chưa có BOM đã phát hành hợp lệ.");
-
-                foreach (var bom in boms)
+                foreach (var material in dish.Materials)
                 {
-                    var converted = ConvertToCanonical(bom.GrossQtyPerServing * source.FinalServings, bom.Unit, bom.Ingredient.Unit);
-                    var persistedQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
-                    if (converted > 0 && persistedQuantity <= 0)
-                        throw new InvalidOperationException($"Món '{menuItem.Dish.DishName}' có lượng nguyên liệu dương nhỏ hơn độ chính xác lưu trữ.");
-                    if (persistedQuantity <= 0) continue;
+                    var bom = material.Bom;
                     var key = Convert.ToBase64String(bom.IngredientId) + ":" + Convert.ToBase64String(bom.Ingredient.UnitId);
                     if (!materialized.TryGetValue(key, out var line))
                     {
@@ -187,12 +218,13 @@ public sealed class ReconciliationBatchService(
                         materialized.Add(key, line);
                         batch.Lines.Add(line);
                     }
-                    line.RequiredQuantity += persistedQuantity;
+                    line.RequiredQuantity += material.RequiredQuantity;
                     line.Contributors.Add(new ReconciliationBatchContributor
                     {
                         ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId,
-                        MenuScheduleId = source.MenuScheduleId, MealQuantityPlanLineId = source.QuantityPlanLineId,
-                        DishBomId = bom.BomId, SourceQuantity = persistedQuantity
+                        MenuScheduleId = projectedSource.Source.MenuScheduleId,
+                        MealQuantityPlanLineId = projectedSource.Source.QuantityPlanLineId,
+                        DishBomId = bom.BomId, SourceQuantity = material.RequiredQuantity
                     });
                 }
             }
@@ -201,7 +233,7 @@ public sealed class ReconciliationBatchService(
             || batch.Lines.Any(line => line.RequiredQuantity <= 0
                 || line.Contributors.Count == 0
                 || line.Contributors.Any(contributor => contributor.SourceQuantity <= 0)))
-            throw new InvalidOperationException("Không thể tạo đầy đủ dòng nguyên liệu dương từ nguồn đã chọn.");
+            throw new BusinessRuleException("Không thể tạo đầy đủ dòng nguyên liệu dương từ nguồn đã chọn.");
         context.Reconciliationbatches.Add(batch);
         return batch;
     }
@@ -316,7 +348,7 @@ public sealed class ReconciliationBatchService(
         && import.MenuVersionId is not null
         && import.MenuVersionId.AsSpan().SequenceEqual(menuVersionId)
         && !string.IsNullOrWhiteSpace(import.ContentFingerprint)
-        && import.FingerprintFormatVersion == 1
+        && import.FingerprintFormatVersion == ReconciliationQuantityImportService.CurrentFingerprintFormatVersion
         && !string.IsNullOrWhiteSpace(import.SourceLabel)
         && import.Mealquantityplans.Count > 0
         && import.Mealquantityplans.All(plan =>

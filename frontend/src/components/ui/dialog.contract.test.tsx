@@ -11,6 +11,11 @@ function ToggleFixture() {
   return <><button onClick={() => setOpen(true)}>Opener</button><Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogTitle>Thao tác có xác nhận</DialogTitle><button>Tiếp tục</button></DialogContent></Dialog></>
 }
 
+function ControlledInputFixture() {
+  const [value, setValue] = useState('')
+  return <Dialog open onOpenChange={() => undefined}><DialogContent><DialogTitle>Nhập số suất</DialogTitle><button>Đóng</button><input aria-label="Số suất" value={value} onChange={(event) => setValue(event.target.value)} /></DialogContent></Dialog>
+}
+
 describe('shared dialog contract', () => {
   it('DIALOG-01 limits content to approved sizes and preserves fixed chrome while content scrolls', () => {
     render(<Fixture />)
@@ -56,6 +61,15 @@ describe('shared dialog contract', () => {
     await user.keyboard('{Escape}')
     await waitFor(() => expect(opener).toHaveFocus())
     expect(opener.parentElement).not.toHaveAttribute('inert')
+  })
+  it('DIALOG-03 preserves the active input when controlled content rerenders', async () => {
+    const user = userEvent.setup()
+    render(<ControlledInputFixture />)
+    const input = screen.getByLabelText('Số suất')
+    await user.click(input)
+    await user.type(input, '800')
+    expect(input).toHaveValue('800')
+    expect(input).toHaveFocus()
   })
   it('DIALOG-04 derives the accessible dialog name from DialogTitle', () => {
     render(<Fixture />)

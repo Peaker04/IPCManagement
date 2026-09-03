@@ -33,7 +33,7 @@ export function DocumentRail({ documents, title = 'Chứng từ vận hành', ac
   if (!documents.length) {
     return (
       <EmptyState
-        title="Chưa có dữ liệu để hiển thị"
+        title={typeof title === 'string' ? `Chưa có ${title.toLocaleLowerCase('vi-VN')}.` : 'Chưa có chứng từ vận hành.'}
         className={cn('ipc-document-rail is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
       />
     );

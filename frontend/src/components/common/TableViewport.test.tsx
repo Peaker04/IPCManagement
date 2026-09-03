@@ -52,6 +52,14 @@ describe('TableViewport', () => {
     expect(screen.getByRole('region', { name: 'Bảng không có mô tả' })).not.toHaveAttribute('aria-describedby');
   });
 
+  it('does not manufacture blank row capacity for paginated tables', () => {
+    render(<TableViewport ariaLabel="Bảng phân trang theo nội dung thật"><table><tbody><tr><td>Một dòng</td></tr></tbody></table></TableViewport>);
+
+    const region = screen.getByRole('region', { name: 'Bảng phân trang theo nội dung thật' });
+    expect(region).not.toHaveAttribute('data-row-capacity');
+    expect(region).toHaveAttribute('data-vertical-scroll', 'page');
+  });
+
   it('allows documented structural matrices to opt out of frozen sticky chrome', () => {
     render(<TableViewport ariaLabel="Ma trận" density="compact" stickyHeader={false} frozenFirstIdentifier={false}><div>Nội dung</div></TableViewport>);
 

@@ -3,6 +3,7 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Caching;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
@@ -34,6 +35,20 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "DI activation regression"), default);
 
         Assert.IsType<QuantityImportPreviewDto>(Payload<QuantityImportPreviewDto>(result));
+    }
+
+    [Fact]
+    public async Task Draft_menu_preview_returns_a_business_error_instead_of_a_system_failure()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var menuVersion = await fixture.Context.Menuversions.SingleAsync(item => item.MenuVersionId == fixture.MenuVersionId);
+        menuVersion.Status = "DRAFT";
+        await fixture.Context.SaveChangesAsync();
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chưa xuất bản"), default));
+
+        Assert.Equal("Phiên bản thực đơn chưa được phát hành.", error.Message);
     }
 
     [Fact]
@@ -241,13 +256,13 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         await using var fixture = await Fixture.CreateAsync();
         fixture.Context.Mealquantityplans.Single().Status = "FORECASTED";
         await fixture.Context.SaveChangesAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Controller.PreviewQuantityImport(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Controller.PreviewQuantityImport(
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chuẩn"), default));
 
         fixture.Context.Mealquantityplans.Single().Status = "COMPLETED";
         fixture.Context.Menuversions.Single().Status = "DRAFT";
         await fixture.Context.SaveChangesAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Controller.PreviewQuantityImport(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Controller.PreviewQuantityImport(
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chuẩn"), default));
     }
 

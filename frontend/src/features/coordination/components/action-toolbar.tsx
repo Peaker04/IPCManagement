@@ -343,7 +343,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
     if (confirmationAction === 'signoff') {
       return {
         title: 'Hoàn tất ca này?',
-        description: 'Sau khi hoàn tất, trạng thái kế hoạch sẽ chuyển sang COMPLETED và ghi nhật ký điều phối.',
+        description: 'Sau khi hoàn tất, kế hoạch sẽ được đánh dấu Đã hoàn tất và ghi nhật ký điều phối.',
         action: 'Hoàn tất ca',
       }
     }

@@ -280,6 +280,31 @@
   width: 8%;
 }
 
+.ipc-price-variance-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.ipc-price-variance-table th:nth-child(1) { width: 23%; }
+.ipc-price-variance-table th:nth-child(2) { width: 20%; }
+.ipc-price-variance-table th:nth-child(3) { width: 10%; }
+.ipc-price-variance-table th:nth-child(4) { width: 11%; }
+.ipc-price-variance-table th:nth-child(5) { width: 11%; }
+.ipc-price-variance-table th:nth-child(6) { width: 25%; }
+
+.ipc-price-variance-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  white-space: nowrap;
+}
+
+.ipc-price-variance-table td {
+  vertical-align: middle;
+}
+
 .ipc-report-row {
   transition: background-color var(--ipc-transition-fast);
 }

@@ -74,10 +74,10 @@ export const warehouseApi = apiSlice.injectEndpoints({
           : []),
       ],
     }),
-    getInventoryReceipts: builder.query<PageNumberPage<InventoryReceipt>, { pageNumber?: number; pageSize?: number } | void>({
+    getInventoryReceipts: builder.query<PageNumberPage<InventoryReceipt>, { pageNumber?: number; pageSize?: number; purchaseOrderOnly?: boolean } | void>({
       query: (query) => ({
         url: '/inventory-receipts',
-        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 20 },
+        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 20, purchaseOrderOnly: query?.purchaseOrderOnly },
       }),
       transformResponse: (response: ApiResponse<PageNumberPage<InventoryReceipt>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,

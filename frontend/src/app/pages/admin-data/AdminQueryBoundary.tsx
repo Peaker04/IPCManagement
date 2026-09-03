@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { QueryErrorAlert, InlineAlert, TableSkeleton } from '@/components/common';
+import { QueryErrorAlert, InlineAlert, RefreshStatus, TableSkeleton } from '@/components/common';
 import type { QueryView } from '@/lib/queryView';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +47,7 @@ export function AdminQueryBoundary({
           isRetrying={failed.view.isRetrying}
           onRetry={failed.view.retry}
         >
-          {failed.view.message} Không thể kết luận dữ liệu đang trống.
+          {failed.view.message} Dữ liệu quản trị chưa được xác nhận.
         </QueryErrorAlert>
       </div>
     );
@@ -90,25 +90,8 @@ export function AdminQueryBoundary({
     .map(({ label }) => label);
 
   return (
-    <div className={cn('relative flex flex-col', minHeight)}>
-      {/* Polite live region for screen readers (Rule E8) */}
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {refreshingLabels.length > 0
-          ? `Đang cập nhật ${refreshingLabels.join(', ')}...`
-          : ''}
-      </div>
-
-      {/* Floating non-intrusive refresh badge (Rule C6) */}
-      {refreshingLabels.length > 0 && (
-        <span
-          className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200"
-          role="status"
-          aria-label={`Đang cập nhật ${refreshingLabels.join(', ')}`}
-        >
-          Đang cập nhật dữ liệu quản trị
-        </span>
-      )}
-
+    <div className={cn('relative flex flex-col gap-3', minHeight)}>
+      {refreshingLabels.length > 0 && <RefreshStatus ariaLabel={`Đang cập nhật ${refreshingLabels.join(', ')}`}>Đang cập nhật dữ liệu quản trị</RefreshStatus>}
       {children}
     </div>
   );

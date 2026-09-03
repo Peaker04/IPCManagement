@@ -14,9 +14,11 @@ internal sealed class WeeklyMenuBulkEditService(
 {
     public async Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
         BulkUpdateWeeklyMenuRequest request,
+        string? actorUserId,
         CancellationToken cancellationToken = default)
     {
         var customerBytes = GuidHelper.ParseGuidString(request.CustomerId);
+        var actorBytes = GuidHelper.ParseGuidString(actorUserId);
         if (customerBytes is null)
         {
             return (false, "ID khách hàng không hợp lệ.", []);
@@ -98,8 +100,19 @@ internal sealed class WeeklyMenuBulkEditService(
                         var menuItem = schedule.Menu.Menuitems.FirstOrDefault(item => item.DishSlot == dishSlot);
                         if (menuItem is not null)
                         {
+                            var previousDishId = menuItem.DishId;
                             menuItem.DishId = dishBytes;
                             context.Menuitems.Update(menuItem);
+                            if (actorBytes is not null && !previousDishId.SequenceEqual(dishBytes))
+                            {
+                                context.Auditlogs.Add(new AuditLog
+                                {
+                                    AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorBytes,
+                                    BusinessArea = "MenuVersion", EntityName = nameof(MenuItem), EntityId = schedule.MenuScheduleId,
+                                    FieldName = nameof(MenuItem.DishId), OldValue = GuidHelper.ToGuidString(previousDishId),
+                                    NewValue = GuidHelper.ToGuidString(dishBytes), Reason = "Điều chỉnh món trong kế hoạch tuần"
+                                });
+                            }
                         }
                         else
                         {

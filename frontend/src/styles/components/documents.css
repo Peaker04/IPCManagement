@@ -230,28 +230,15 @@
 }
 
 .ipc-pagination-page {
+  position: relative;
   display: inline-flex;
-  min-width: 82px;
+  width: 7.5rem;
   align-items: center;
   justify-content: center;
-  gap: var(--ipc-space-1);
   text-align: center;
   color: var(--ipc-slate-800);
   font-weight: 600;
-}
-
-.ipc-pagination-spinner {
-  animation: ipc-pagination-spin 800ms linear infinite;
-}
-
-@keyframes ipc-pagination-spin {
-  to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ipc-pagination-spinner {
-    animation: none;
-  }
+  font-variant-numeric: tabular-nums;
 }
 
 .ipc-approval-record ul {
@@ -316,137 +303,6 @@
   color: var(--ipc-slate-600);
   font-size: 0.75rem;
   font-weight: 400;
-}
-
-.ipc-pagination-actions {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--ipc-space-2);
-}
-
-.ipc-pagination-tools {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--ipc-space-2);
-}
-
-.ipc-pagination-size,
-.ipc-pagination-jump {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--ipc-space-1);
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-}
-
-.ipc-pagination-size select,
-.ipc-pagination-jump input,
-.ipc-pagination-jump button {
-  height: var(--ipc-control-height-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--ipc-radius-md);
-  background: var(--card);
-  color: var(--ipc-slate-700);
-  font: inherit;
-}
-
-.ipc-pagination-size select {
-  min-width: 4rem;
-  padding: 0 var(--ipc-space-2);
-}
-
-.ipc-pagination-jump input {
-  width: 3.25rem;
-  padding: 0 var(--ipc-space-2);
-  text-align: center;
-}
-
-.ipc-pagination-jump button {
-  min-width: var(--ipc-control-height-sm);
-  padding: 0 var(--ipc-space-2);
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.ipc-pagination-size select:focus-visible,
-.ipc-pagination-jump input:focus-visible,
-.ipc-pagination-jump button:focus-visible {
-  outline: 2px solid var(--ipc-focus-ring);
-  outline-offset: 2px;
-}
-
-.ipc-pagination-size select:disabled,
-.ipc-pagination-jump input:disabled,
-.ipc-pagination-jump button:disabled {
-  border-color: var(--ipc-slate-200);
-  background: var(--ipc-slate-100);
-  color: var(--ipc-slate-400);
-  cursor: not-allowed;
-}
-
-.ipc-pagination-button {
-  display: inline-flex;
-  width: var(--ipc-control-height-sm);
-  height: var(--ipc-control-height-sm);
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: var(--ipc-radius-md);
-  background: var(--card);
-  color: var(--ipc-slate-700);
-  cursor: pointer;
-  transition:
-    background-color var(--ipc-transition-fast),
-    border-color var(--ipc-transition-fast),
-    color var(--ipc-transition-fast);
-}
-
-.ipc-pagination-button:hover:not(:disabled) {
-  border-color: var(--ipc-primary);
-  background: var(--ipc-primary-soft);
-  color: var(--ipc-primary);
-}
-
-.ipc-pagination-button:disabled {
-  border-color: var(--ipc-slate-200);
-  background: var(--ipc-slate-100);
-  color: var(--ipc-slate-400);
-  cursor: not-allowed;
-}
-
-.ipc-pagination-button:focus-visible {
-  outline: 2px solid var(--ipc-focus-ring);
-  outline-offset: 2px;
-}
-
-.ipc-pagination-page {
-  display: inline-flex;
-  min-width: 82px;
-  align-items: center;
-  justify-content: center;
-  gap: var(--ipc-space-1);
-  text-align: center;
-  color: var(--ipc-slate-800);
-  font-weight: 600;
-}
-
-.ipc-pagination-spinner {
-  animation: ipc-pagination-spin 800ms linear infinite;
-}
-
-@keyframes ipc-pagination-spin {
-  to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ipc-pagination-spinner {
-    animation: none;
-  }
 }
 
 .ipc-approval-record ul {
@@ -802,14 +658,14 @@
   color: var(--ipc-danger);
 }
 
-.ipc-document-zone-owner {
+.ipc-document-card .ipc-document-zone-owner {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 2px;
 }
 
-.ipc-document-zone-owner dt {
+.ipc-document-card .ipc-document-zone-owner dt {
   color: var(--ipc-slate-500);
   font-size: 0.7rem;
   font-weight: 500;

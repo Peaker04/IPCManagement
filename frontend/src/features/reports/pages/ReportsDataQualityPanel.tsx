@@ -1,20 +1,31 @@
-import { AlertTriangle, Search } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   ContextStrip,
   PaginationBar,
+  SearchField,
   SectionPanel,
   SkeletonTableRow,
   StatusBadge,
   TableViewport,
 } from '@/components/common';
-import { Input } from '@/components/ui/input';
 import { formatDataQualityRemediationStatus, formatPriorityLabel } from '@/lib/workflowConfig';
 import { uiCopy } from '@/lib/uiCopy';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { standardPageSizeOptions, type ReportsPageModel } from './useReportsPageModel';
 import { typography } from '@/lib/typography';
-import { cn } from '@/lib/utils';
+
+const compactDataQualityCopy = (value: string, fallback: string) => {
+  const localized = value
+    .replace(/chạy lại generate demand/gi, 'Tính lại nhu cầu')
+    .replace(/\bdemand\b/gi, 'nhu cầu')
+    .replace(/\bgenerate\b/gi, 'tính lại')
+    .replace(/\bpurchase request\b/gi, 'đề xuất mua')
+    .replace(/\bactive\b/gi, 'đang hoạt động');
+  const primary = localized.split(/[:;。]/, 1)[0]?.trim() || fallback;
+  const sentence = primary ? `${primary.charAt(0).toLocaleUpperCase('vi-VN')}${primary.slice(1)}` : fallback;
+  return sentence.length > 52 ? `${sentence.slice(0, 49).trimEnd()}…` : sentence;
+};
 
 export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) => {
   const {
@@ -38,24 +49,20 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
       description="Tổng hợp các điểm dữ liệu bất thường hoặc thiếu định mức trước khi đưa vào vận hành."
       actions={
         <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-          <div className="relative w-64 max-w-full">
-            <span className={cn(typography.label, 'sr-only')}>Tìm vấn đề dữ liệu</span>
-            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              id="report-data-quality-search"
-              type="search"
-              value={dataQualitySearch}
-              onChange={(event) => {
-                setDataQualitySearch(event.target.value);
-                setDataQualityPage(1);
-              }}
-              placeholder="Tìm mã, nhóm lỗi, nội dung..."
-              className="h-8 border-slate-300 bg-slate-50 pl-8 text-xs focus:bg-white"
-              aria-label="Tìm vấn đề dữ liệu"
-            />
-          </div>
+          <SearchField
+            id="report-data-quality-search"
+            label="Tìm vấn đề dữ liệu"
+            hideLabel
+            width="standard"
+            value={dataQualitySearch}
+            onChange={(event) => {
+              setDataQualitySearch(event.target.value);
+              setDataQualityPage(1);
+            }}
+            placeholder="Tìm mã, nhóm lỗi, nội dung..."
+          />
           {dataQualitySearch.trim() && (
-            <span className={cn(typography.caption, 'whitespace-nowrap text-slate-500')} aria-live="polite">
+            <span className={`${typography.caption} whitespace-nowrap text-slate-500`} aria-live="polite">
               {dataQualityResult.data?.page.totalCount ?? 0} kết quả
             </span>
           )}
@@ -65,13 +72,10 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
       <div className="mb-4">
         <ContextStrip
           items={[
-            { label: 'Tổng vấn đề', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
             { label: uiCopy.reports.error, value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
             { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
-            { label: 'Vấn đề ưu tiên SLA', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
-            { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
-            { label: 'Thiếu định lượng', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
-            { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
+            { label: 'Ưu tiên SLA', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
+            { label: 'Đã xử lý', value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
           ]}
         />
       </div>
@@ -121,14 +125,14 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                     className="ipc-quality-entity-cell font-medium text-slate-800"
                     title={`${row.category} · ${row.entityLabel} · ${row.entityName} / ${row.entityCode}`}
                   >
-                    {row.category} · {row.entityLabel} · {row.entityName} / {row.entityCode}
+                    {compactDataQualityCopy(row.category, 'Vấn đề dữ liệu')} · {row.entityName || row.entityLabel}
                   </span>
                 </td>
                 <td className="text-left">
-                  <span className="ipc-quality-description-cell" title={row.message}>{row.message}</span>
+                  <span className="ipc-quality-description-cell" title={row.message}>{compactDataQualityCopy(row.message, 'Cần kiểm tra dữ liệu')}</span>
                 </td>
                 <td className="text-left">
-                  <span className="ipc-quality-action-guidance-cell" title={row.suggestedAction}>{row.suggestedAction}</span>
+                  <span className="ipc-quality-action-guidance-cell" title={row.suggestedAction}>{compactDataQualityCopy(row.suggestedAction, 'Mở nghiệp vụ liên quan')}</span>
                 </td>
                 <td className="text-right">
                   {row.route ? (

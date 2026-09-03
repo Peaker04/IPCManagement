@@ -4,6 +4,7 @@ import {
   IdentifierText,
   InlineAlert,
   PaginationBar,
+  SearchField,
   SectionPanel,
   TableViewport,
 } from '@/components/common';
@@ -53,6 +54,10 @@ const mutationError = (error: unknown, fallback: string) => {
   }
   return fallback;
 };
+
+function CompactQuantity({ value, unit }: { value: number; unit: string }) {
+  return <span title={`Giá trị chính xác: ${formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })}`}>{formatQuantityWithUnit(value, unit)}</span>
+}
 
 export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false }: { canManage: boolean; canDisposition?: boolean }) {
   const [supplementalPage, setSupplementalPage] = useState(1);
@@ -280,10 +285,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         description="Kho xử lý theo tồn thực tế; phần thiếu được chuyển thành đề xuất mua có thể truy vết."
       >
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-supplemental-search">
-            Tìm yêu cầu, nguyên liệu hoặc trạng thái
-            <Input id="warehouse-supplemental-search" value={supplementalSearch} onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }} placeholder="Nhập mã hoặc tên nguyên liệu" className="h-9 max-w-md" />
-          </label>
+          <SearchField id="warehouse-supplemental-search" label="Tìm yêu cầu, nguyên liệu hoặc trạng thái" width="wide" value={supplementalSearch} onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }} placeholder="Nhập mã hoặc tên nguyên liệu" />
           {supplementalSearch.trim() && supplementalData && <span className="pb-2 text-xs text-slate-500">{supplementalData.totalCount} kết quả</span>}
         </div>
         <QueryViewBoundary queries={[{ label: 'yêu cầu cấp bổ sung', view: supplementalView }]} refreshLabel="Đang cập nhật yêu cầu cấp bổ sung">
@@ -297,12 +299,12 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
                 <tr key={item.requestId}>
                   <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td><span className="block font-medium text-slate-900">{item.ingredientName}</span><span className="text-xs text-slate-600">{item.reason || 'Không có ghi chú'}</span></td>
-                  <td className="text-right tabular-nums">{formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })} / {formatQuantityWithUnit(item.requestedQty, item.unitName, { maximumFractionDigits: 6 })}</td>
-                  <td className="text-right tabular-nums">{formatQuantityWithUnit(item.availableQty, item.unitName, { maximumFractionDigits: 6 })}</td>
-                  <td>{formatWorkflowStatus(item.status)}{item.purchaseRequestCode && <span className="block text-xs text-slate-600">{item.purchaseRequestCode}: {formatWorkflowStatus(item.purchaseRequestStatus || '')}</span>}</td>
+                  <td className="text-right tabular-nums"><CompactQuantity value={item.fulfilledQty} unit={item.unitName} /> / <CompactQuantity value={item.requestedQty} unit={item.unitName} /></td>
+                  <td className="text-right tabular-nums"><CompactQuantity value={item.availableQty} unit={item.unitName} /></td>
+                  <td title={item.purchaseRequestCode ? `${item.purchaseRequestCode}: ${formatWorkflowStatus(item.purchaseRequestStatus || '')}` : undefined}>{formatWorkflowStatus(item.status)}{item.purchaseRequestCode && <span className="block text-xs text-slate-500">Đã liên kết thu mua</span>}</td>
                   <td className="max-w-[240px] text-xs text-slate-700">
-                    {item.remainingQty > 0 && <span className="block font-medium text-slate-900">Còn thiếu {formatQuantityWithUnit(item.remainingQty, item.unitName, { maximumFractionDigits: 6 })}</span>}
-                    {item.actionDisabledReason || (item.availableQty >= item.remainingQty ? 'Cấp đủ phần còn thiếu.' : 'Cấp phần đang có, chuyển phần thiếu sang thu mua.')}
+                    {item.remainingQty > 0 && <span className="block font-medium text-slate-900">Còn thiếu <CompactQuantity value={item.remainingQty} unit={item.unitName} /></span>}
+                    {item.actionDisabledReason || (item.availableQty >= item.remainingQty ? 'Cấp phần còn thiếu.' : 'Cấp tồn có sẵn hoặc chuyển thu mua.')}
                   </td>
                   <td className="text-right">
                     {canManage ? (
@@ -328,7 +330,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
             <table className="ipc-data-table min-w-[1120px]">
               <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Đã xuất</th><th className="text-right">Đã trả</th><th className="text-right">Hao hụt</th><th className="text-right">Còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
               <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationRows.map((row) => (
-                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.issuedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.returnedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.wastedQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td className="text-right tabular-nums">{formatQuantityWithUnit(row.excessQuantity, row.unitName ?? '', { maximumFractionDigits: 6 })}</td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
+                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td className="text-right tabular-nums"><CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
               ))}</tbody>
             </table>
           </TableViewport>
@@ -341,10 +343,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         description="Nguyên liệu trả lại được cộng tồn theo số thực nhận; hao hụt chỉ được ghi vào lịch sử, không cộng tồn."
       >
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="warehouse-return-search">
-            Tìm phiếu trả, ngày hoặc lý do
-            <Input id="warehouse-return-search" value={returnSearch} onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }} placeholder="Nhập mã phiếu hoặc nội dung" className="h-9 max-w-md" />
-          </label>
+          <SearchField id="warehouse-return-search" label="Tìm phiếu trả, ngày hoặc lý do" width="wide" value={returnSearch} onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }} placeholder="Nhập mã phiếu hoặc nội dung" />
           {returnSearch.trim() && returnsData && <span className="pb-2 text-xs text-slate-500">{returnsData.totalCount} kết quả</span>}
         </div>
         <QueryViewBoundary queries={[{ label: 'phiếu trả', view: returnsView }]} refreshLabel="Đang cập nhật phiếu trả">
@@ -376,7 +375,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         <Dialog open={Boolean(selectedSupplemental)} onOpenChange={(open) => { if (!open) { setSelectedSupplemental(undefined); setFulfillValidation(undefined); setFulfillError(undefined); } }}>
           <DialogContent aria-labelledby="supplemental-fulfill-title" aria-describedby="supplemental-fulfill-description">
             <DialogHeader><DialogTitle id="supplemental-fulfill-title">Cấp nguyên liệu bổ sung</DialogTitle><DialogDescription id="supplemental-fulfill-description">Lập phiếu xuất kho bổ sung và cập nhật trừ tồn kho ngay.</DialogDescription></DialogHeader>
-            {selectedSupplemental && <div className="grid gap-2"><label htmlFor="supplemental-quantity" className="text-sm font-medium text-slate-900">Số lượng cấp ({formatUnit(selectedSupplemental.unitName)})</label><Input id="supplemental-quantity" type="number" min="0.000001" max={Math.min(selectedSupplemental.remainingQty, selectedSupplemental.availableQty)} step="any" aria-invalid={Boolean(fulfillValidation) || undefined} aria-describedby={fulfillValidation ? 'supplemental-quantity-error' : undefined} value={fulfillQty} onChange={(event) => { setFulfillQty(event.target.value); setFulfillValidation(undefined); }} />{fulfillValidation && <p id="supplemental-quantity-error" className="text-xs text-red-700"><span className="font-semibold">{fulfillValidation.title}</span>{' '}{fulfillValidation.message}</p>}<p className="text-xs text-slate-600">Còn thiếu {formatQuantityWithUnit(selectedSupplemental.remainingQty, selectedSupplemental.unitName, { maximumFractionDigits: 6 })}; tồn khả dụng {formatQuantityWithUnit(selectedSupplemental.availableQty, selectedSupplemental.unitName, { maximumFractionDigits: 6 })}.</p></div>}
+            {selectedSupplemental && <div className="grid gap-2"><label htmlFor="supplemental-quantity" className="text-sm font-medium text-slate-900">Số lượng cấp ({formatUnit(selectedSupplemental.unitName)})</label><Input id="supplemental-quantity" type="number" min="0.000001" max={Math.min(selectedSupplemental.remainingQty, selectedSupplemental.availableQty)} step="any" aria-invalid={Boolean(fulfillValidation) || undefined} aria-describedby={fulfillValidation ? 'supplemental-quantity-error' : undefined} value={fulfillQty} onChange={(event) => { setFulfillQty(event.target.value); setFulfillValidation(undefined); }} />{fulfillValidation && <p id="supplemental-quantity-error" className="text-xs text-red-700"><span className="font-semibold">{fulfillValidation.title}</span>{' '}{fulfillValidation.message}</p>}<p className="text-xs text-slate-600">Còn thiếu <CompactQuantity value={selectedSupplemental.remainingQty} unit={selectedSupplemental.unitName} />; tồn khả dụng <CompactQuantity value={selectedSupplemental.availableQty} unit={selectedSupplemental.unitName} />.</p></div>}
             {fulfillError && <div role="alert"><InlineAlert title={fulfillError.title} variant="danger">{fulfillError.message}</InlineAlert></div>}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedSupplemental(undefined)}>Hủy</Button><Button type="button" disabled={fulfillState.isLoading} onClick={() => void submitFulfill()}>{fulfillState.isLoading ? 'Đang tạo phiếu...' : 'Xác nhận cấp'}</Button></DialogFooter>
           </DialogContent>

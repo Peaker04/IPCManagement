@@ -55,7 +55,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
   if (!lines.length) {
     return (
       <EmptyState
-        title="Chưa có dữ liệu để hiển thị"
+        title="Chưa có nhu cầu nguyên liệu."
         className={cn('ipc-demand-summary is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
       />
     );
@@ -67,14 +67,14 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
         <table className="ipc-data-table ipc-erp-grid-table ipc-demand-table ipc-status-action-table table-fixed w-full min-w-[980px]">
           <thead>
             <tr>
-              {showServiceDate && <th style={{ width: '11%' }} className="whitespace-nowrap text-left">Ngày</th>}
-              <th style={{ width: showServiceDate ? '15%' : '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
-              <th style={{ width: showServiceDate ? '18%' : '22%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Cần</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Đã cấp</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
+              {showServiceDate && <th style={{ width: '10%' }} className="whitespace-nowrap text-left">Ngày</th>}
+              <th style={{ width: showServiceDate ? '14%' : '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
+              <th style={{ width: showServiceDate ? '18%' : '24%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
+              <th style={{ width: showServiceDate ? '10%' : '11%' }} className="whitespace-nowrap text-right">Cần</th>
+              <th style={{ width: showServiceDate ? '10%' : '11%' }} className="whitespace-nowrap text-right">Đã cấp</th>
+              <th style={{ width: showServiceDate ? '10%' : '11%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
+              <th style={{ width: showServiceDate ? '13%' : '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
+              <th style={{ width: showServiceDate ? '15%' : '13%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
             </tr>
           </thead>
           <tbody>

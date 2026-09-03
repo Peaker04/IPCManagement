@@ -63,6 +63,15 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         var warehouseId = await SupplementalMaterialRequestQueryPolicy.ResolveCanonicalScopeAsync(_operationalWarehouseResolver, request.WarehouseId, scopedWarehouseId);
         query = query.Where(item => item.WarehouseId == warehouseId);
+        query = query.Where(item =>
+            _context.Inventoryissuelines.Any(line =>
+                line.IssueLineId.SequenceEqual(item.IssueLineId) &&
+                line.MaterialRequestLineId != null &&
+                line.ReconciliationBatchLineId == null) &&
+            _context.Inventoryissues.Any(issue =>
+                issue.IssueId.SequenceEqual(item.IssueId) &&
+                issue.MaterialRequestId != null &&
+                issue.ReconciliationBatchId == null));
 
         if (!string.IsNullOrWhiteSpace(request.Status))
         {

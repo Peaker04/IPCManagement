@@ -11,6 +11,7 @@ import {
   useSaveCustomerImportMappingMutation,
 } from '@/api/coordinationApi'
 import type { CoordinationCustomerOption, WeeklyMenuImportResult } from '@/api/coordinationApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage, isValidWeekStartDate } from '../model/formatters'
 import type { WeeklyMenuImportJob } from '../model/types'
@@ -32,6 +33,7 @@ type UseWeeklyMenuImportOptions = {
   menuPrice: BomPriceTier
   displayDays: ImportDisplayDay[]
   todayIso: string
+  catalogDishes?: CatalogDish[]
   onCustomerCreated: (customerId: string) => void
   onMenuCommitted: (result: WeeklyMenuImportResult) => void
 }
@@ -40,7 +42,7 @@ const makeFeedback = (title: string, message: string, variant: ImportFeedback['v
 
 export const useWeeklyMenuImport = ({
   customers, isCustomerLoading, isCustomerError, refetchCustomers, customerId, weekStartDate,
-  committedWeekStartDate, menuPrice, displayDays, todayIso, onCustomerCreated, onMenuCommitted,
+  committedWeekStartDate, menuPrice, displayDays, todayIso, catalogDishes = [], onCustomerCreated, onMenuCommitted,
 }: UseWeeklyMenuImportOptions) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [state, dispatch] = useReducer(weeklyMenuImportReducer, initialWeeklyMenuImportState)
@@ -69,8 +71,8 @@ export const useWeeklyMenuImport = ({
   const selectedCustomer = customers.find((item) => item.customerId === state.draftCustomerId)
   const selectedJob = state.jobs.find((job) => job.jobId === state.selectedJobId) ?? state.jobs[0]
   const presentation = useMemo(
-    () => buildImportPresentation(selectedJob, displayDays, todayIso),
-    [displayDays, selectedJob, todayIso],
+    () => buildImportPresentation(selectedJob, displayDays, todayIso, catalogDishes),
+    [catalogDishes, displayDays, selectedJob, todayIso],
   )
   const readyJobs = state.jobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error && !hasBlockingImportIssues(job.previewResult))
   const isImporting = isPreviewing || isCommitting || isBatchCommitting || isCreatingCustomer || state.jobs.some((job) => job.status === 'previewing' || job.status === 'committing')

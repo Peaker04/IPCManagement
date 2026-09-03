@@ -2,6 +2,7 @@ using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -27,11 +28,13 @@ public sealed class MealQuantityPlansController : ControllerBase
     }
 
     [HttpGet("meal-quantity-plans")]
+    [SystemOperation("coordination.meal-quantity-plans.read", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMealQuantityPlansAsync([FromQuery] MealQuantityPlanQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>.SuccessResult(await _service.GetMealQuantityPlansAsync(query)));
 
     [HttpPost("meal-quantity-plans/quick-servings")]
+    [SystemOperation("coordination.meal-quantity-plans.quick-servings", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<MealQuantityPlanDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

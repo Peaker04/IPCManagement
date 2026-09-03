@@ -505,17 +505,16 @@
 .ipc-table-badge {
   --ipc-table-badge-width: 132px;
 
-  display: inline-grid;
+  display: inline-flex;
   width: min(100%, var(--ipc-table-badge-width));
   min-height: 28px;
-  grid-template-columns: 7px minmax(0, 1fr);
   align-items: center;
-  justify-content: start;
-  gap: 0 7px;
+  justify-content: center;
+  gap: 0;
   margin-inline: auto;
   padding: 4px 9px;
-  text-align: left;
-  white-space: normal;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .ipc-badge-cell.text-left .ipc-table-badge {
@@ -572,47 +571,6 @@
   border-color: #f3b7b7;
   background: var(--ipc-danger-soft);
   color: var(--ipc-danger);
-}
-
-.ipc-badge-cell {
-  text-align: center !important;
-  vertical-align: middle;
-}
-
-.ipc-badge-cell.text-left {
-  text-align: left !important;
-}
-
-.ipc-table-badge {
-  --ipc-table-badge-width: 140px;
-
-  display: inline-grid;
-  width: min(100%, var(--ipc-table-badge-width));
-  min-height: 28px;
-  grid-template-columns: 7px minmax(0, 1fr);
-  align-items: center;
-  justify-content: start;
-  gap: 0 7px;
-  margin-inline: auto;
-  padding: 4px 9px;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.ipc-badge-cell.text-left .ipc-table-badge {
-  margin-inline: 0;
-}
-
-.ipc-table-badge--status {
-  --ipc-table-badge-width: 140px;
-  width: max-content;
-  min-width: var(--ipc-table-badge-width);
-  max-width: 100%;
-  white-space: nowrap;
-}
-
-.ipc-table-badge--status .ipc-status-badge-label {
-  white-space: nowrap;
 }
 
 .ipc-table-badge-skeleton {
@@ -675,20 +633,28 @@
   table-layout: fixed;
 }
 
-.ipc-status-action-table th:nth-last-child(2),
-.ipc-status-action-table td:nth-last-child(2) {
-  width: 190px !important;
-  min-width: 190px;
-}
-
-.ipc-status-action-table th:last-child,
-.ipc-status-action-table td:last-child {
-  width: 190px !important;
-  min-width: 190px;
-}
-
 .ipc-status-action-table td:last-child {
   white-space: nowrap;
+}
+
+.ipc-status-action-table .ipc-demand-status-control,
+.ipc-status-action-table .ipc-demand-action-control {
+  display: inline-flex;
+  width: 8.5rem;
+  min-width: 8.5rem;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.ipc-status-action-table .ipc-demand-status-control {
+  height: 2rem;
+  min-height: 2rem;
+}
+
+.ipc-status-action-table .ipc-demand-action-cell {
+  text-align: center;
 }
 
 .ipc-swimlane-table .ipc-table-badge--status {

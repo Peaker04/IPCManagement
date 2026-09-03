@@ -3,9 +3,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatQuantity } from '@/lib/formatters'
 import type { ReconciliationLine } from '@/api/reconciliationApi'
 
-const quantityWithUnit = (quantity: number | null | undefined, unit?: string | null) => quantity == null
-  ? 'Chưa xuất'
-  : `${formatQuantity(quantity, { maximumFractionDigits: 6 })}${unit ? ` ${unit}` : ''}`
+function CompactQuantity({ quantity, unit }: { quantity: number | null | undefined; unit?: string | null }) {
+  if (quantity == null) return <>Chưa xuất</>
+  const suffix = unit ? ` ${unit}` : ''
+  return <span title={`Giá trị chính xác: ${formatQuantity(quantity, { maximumFractionDigits: 6 })}${suffix}`}>{formatQuantity(quantity)}{suffix}</span>
+}
 
 export function ReconciliationComparisonTable({ lines, showAll = false, onDisposition, onDetail }: {
   lines: ReconciliationLine[]
@@ -29,9 +31,9 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
         const difference = line.issuedRequiredDifference ?? ((line.issuedQuantity ?? 0) - line.requiredQuantity)
         return <TableRow key={line.batchLineId}>
           <TableCell><span className="block font-medium text-slate-900">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>{line.ingredientCode && <span className="block text-xs text-slate-600">{line.ingredientCode}</span>}</TableCell>
-          <TableCell className="text-right tabular-nums">{quantityWithUnit(line.requiredQuantity, unit)}</TableCell>
-          <TableCell className="text-right tabular-nums">{quantityWithUnit(line.issuedQuantity, unit)}</TableCell>
-          <TableCell className="text-right tabular-nums">{quantityWithUnit(difference, unit)}</TableCell>
+          <TableCell className="text-right tabular-nums"><CompactQuantity quantity={line.requiredQuantity} unit={unit} /></TableCell>
+          <TableCell className="text-right tabular-nums"><CompactQuantity quantity={line.issuedQuantity} unit={unit} /></TableCell>
+          <TableCell className="text-right tabular-nums"><CompactQuantity quantity={difference} unit={unit} /></TableCell>
           <TableCell>{line.status === 'MATCHED' ? 'Khớp' : line.status === 'NEEDS_REVIEW' ? 'Cần kiểm tra' : 'Chưa xuất đủ'}</TableCell>
           <TableCell><div className="flex flex-col items-start gap-1">
             {onDetail && <Button type="button" variant="link" className="h-auto p-0" onClick={() => onDetail(line)}>Xem chi tiết</Button>}

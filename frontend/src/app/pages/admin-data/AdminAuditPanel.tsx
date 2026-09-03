@@ -25,6 +25,22 @@ const auditAreaLabels: Record<string, string> = {
   InventoryIssue: 'Xuất kho',
 };
 
+const auditTokenLabels: Record<string, string> = {
+  SYSTEM_OPERATION: 'Chế độ vận hành',
+  SystemOperationMode: 'Chế độ vận hành',
+  Mode: 'Chế độ',
+  DEFAULT: 'Mặc định',
+  MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu',
+};
+
+const formatAuditToken = (value?: string | null) => {
+  if (!value) return '—';
+  return value
+    .split(/(\s*\/\s*)/)
+    .map((part) => auditTokenLabels[part.trim()] ?? auditAreaLabels[part.trim()] ?? part)
+    .join('');
+};
+
 const adminAuditPreferenceConfig: TablePreferenceConfig = {
   tableId: 'admin-audit',
   columns: [
@@ -151,11 +167,11 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                     const cells: Record<string, React.ReactNode> = {
                       timestamp: <span className={`${typography.code} text-left text-slate-500`}>{formatDateTime(log.timestamp)}</span>,
                       actor: <span className="font-semibold text-slate-800">{log.actor}</span>,
-                      area: <span className="text-slate-700">{log.businessArea}</span>,
-                      field: <span className="font-medium text-blue-700">{log.fieldAffected}</span>,
-                      oldValue: <span className={`${typography.code} text-slate-500 ipc-admin-audit-value`}>{log.oldValue}</span>,
-                      newValue: <span className={`${typography.code} font-bold text-slate-900 ipc-admin-audit-value`}>{log.newValue}</span>,
-                      reason: <span className="ipc-admin-audit-reason text-left text-slate-600">{log.reason}</span>,
+                      area: <span className="text-slate-700" title={log.businessArea}>{formatAuditToken(log.businessArea)}</span>,
+                      field: <span className="font-medium text-blue-700" title={log.fieldAffected}>{formatAuditToken(log.fieldAffected)}</span>,
+                      oldValue: <span className="text-slate-600 ipc-admin-audit-value" title={log.oldValue}>{formatAuditToken(log.oldValue)}</span>,
+                      newValue: <span className="font-bold text-slate-900 ipc-admin-audit-value" title={log.newValue}>{formatAuditToken(log.newValue)}</span>,
+                      reason: <span className="ipc-admin-audit-reason text-left text-slate-600" title={log.reason}>{formatAuditToken(log.reason)}</span>,
                     };
                     return <tr key={log.id}>{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
                   })}

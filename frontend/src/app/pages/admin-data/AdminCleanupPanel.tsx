@@ -1,5 +1,5 @@
 import { XCircle } from 'lucide-react';
-import { ContextStrip, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
@@ -12,7 +12,7 @@ import { formatDataQualityRemediationStatus, formatPriorityLabel } from '@/lib/w
 type AdminCleanupPanelProps = { model: AdminDataPageModel };
 
 export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
-  const { dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, effectiveActiveView, handleDataQualityRemediation, qualityPage, queryViews, setActiveView, setQualityPage, updateDataQualityIssueRemediationState } = model;
+  const { dataQualityFeedback, dataQualityIssues, dataQualityReport, effectiveActiveView, handleDataQualityRemediation, qualityPage, queryViews, setActiveView, setQualityPage, updateDataQualityIssueRemediationState } = model;
   return (
     <KeepAliveTabPanel id="admin-cleanup" active={effectiveActiveView === 'cleanup'} className="flex flex-col gap-4">
       <SectionPanel
@@ -21,14 +21,6 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
         description="Phát hiện và xử lý các điểm dữ liệu bất thường, thiếu liên kết hoặc vi phạm SLA trong hệ thống."
       >
         <AdminQueryBoundary queries={[{ label: 'chất lượng dữ liệu', view: queryViews.dataQuality }]}>
-          <ContextStrip
-            items={[
-              { label: 'Tổng lỗi', value: `${dataQualityErrorCount}`, tone: dataQualityErrorCount ? 'danger' : 'success' },
-              { label: 'SLA gấp', value: `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' : 'success' },
-              { label: 'Đã xử lý', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: 'success' },
-            ]}
-          />
-
           {dataQualityFeedback && (
             <InlineAlert title={dataQualityFeedback.type === 'success' ? 'Đã cập nhật vấn đề dữ liệu' : 'Chưa cập nhật được vấn đề'} variant={dataQualityFeedback.type === 'success' ? 'info' : 'danger'}>
               {dataQualityFeedback.message}

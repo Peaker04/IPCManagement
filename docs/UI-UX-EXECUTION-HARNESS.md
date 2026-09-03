@@ -59,8 +59,13 @@ thành selector/DOM geometry/source assertion trước production edit.
    token → shared primitive → formatter/query/action seam → feature layout. Dùng `frontend-checklist-global`
    để bổ sung coverage, không dump recommendation hoặc tạo scope mới thiếu evidence.
 7. Sửa một lần tại owner, thêm regression tại seam. Với async layout phải gán geometry role rõ; cấm truyền
-   `min-h-0` page-local hàng loạt để né default sai của shared primitive. Không gọi lỗi là “pre-existing” nếu
-   không có baseline trước edit. Failure cùng owner phải được disposition ngay, không để sang vòng audit sau.
+   `min-h-0` page-local hàng loạt để né default sai của shared primitive. **Không được ổn định bảng phân trang
+   bằng row giả, `rowCapacity`, `min-height` theo page size hoặc khoảng trắng dự trữ**: các cách đó chỉ đổi page
+   jump thành blank surface. Giữ content height thật, focus pagination và scroll anchor sau request; đo cả
+   full-page → short-page và short-page → full-page. Refresh feedback không được mount thêm một block làm dịch
+   toolbar/table, không absolute đè content; dùng slot đã tồn tại trong header/toolbar, `aria-busy`, spinner trong
+   control hiện hữu hoặc live region visually-hidden. Không gọi lỗi là “pre-existing” nếu không có baseline
+   trước edit. Failure cùng owner phải được disposition ngay, không để sang vòng audit sau.
 8. Chạy focused test trước, rồi lint/build/parity/checklist phù hợp. Không chạy broad aggregate từng treo
    nếu focused acceptance đã đủ; nếu broad gate là bắt buộc thì dùng bounded worker/time strategy.
 9. Trước browser recheck, xác nhận exact HEAD, FE source/build, BE binary, PID/ports, operation mode,
@@ -68,8 +73,13 @@ thành selector/DOM geometry/source assertion trước production edit.
    phải finding UI.
 10. Chạy Chrome headed đúng state matrix và viewport matrix, cộng viewport/zoom của lỗi người dùng đã báo nếu
     nằm ngoài matrix. Ngoài overflow, mỗi composition claim phải đo ordering/adjacency, surface count, geometry
-    role, useful-content bounds, control/accessory containment và hit target sau state transition; với dữ liệu
-    nghiệp vụ chứng minh đủ control → API → DB → reload. Dùng source-line ID, không gộp action theo tên hiển thị.
+    role, useful-content bounds, control/accessory containment và hit target sau state transition. Với table,
+    capture computed `height|min-height|max-height|overflow|position|top|z-index` của viewport, `thead`, `th`,
+    pagination và mọi ancestor scroll owner; fail nếu nhiều stylesheet cùng sở hữu một geometry fact hoặc nếu
+    selector CSS dựa vào chuỗi utility (`[class~="max-h-[...]"]`). Với dữ liệu hiển thị, scan raw enum/code,
+    decimal vượt precision nghiệp vụ, technical identifier wrap phá cột, duplicate fact giữa summary/header/table
+    và action bị truncate; raw identity vẫn giữ trong `title`/detail khi cần truy vết. Với dữ liệu nghiệp vụ chứng
+    minh đủ control → API → DB → reload. Dùng source-line ID, không gộp action theo tên hiển thị.
 11. Recheck ledger theo `FIXED | OPEN | NEEDS_EVIDENCE | NOT_APPLICABLE | BLOCKED`; chỉ claim PASS cho cell
     có oracle đã chạy. Kết thúc bằng `git diff --check`, secret/stub scan, evidence index và cập nhật
     `MEMORY.md`; việc đã đóng chuyển sang `HISTORY.md`.

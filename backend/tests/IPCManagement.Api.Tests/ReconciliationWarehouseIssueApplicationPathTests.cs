@@ -183,6 +183,9 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         }, actorId);
 
         Assert.NotNull(created);
+        var issuedBatch = Assert.Single(context.Reconciliationbatches.Local);
+        Assert.Equal("IN_PROGRESS", issuedBatch.Status);
+        Assert.Equal(4, issuedBatch.Version);
         await ledger.Received(1).RemoveStockWithCheckAsync(
             warehouseId, ingredientId, unitId, 7.5m, "ISSUE", "inventoryissues",
             Arg.Any<byte[]>(), Arg.Is<byte[]>(value => value.SequenceEqual(actor)), "Xuất kho đối chiếu", Arg.Any<string>());

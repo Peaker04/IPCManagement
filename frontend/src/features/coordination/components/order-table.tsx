@@ -7,7 +7,7 @@ import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/lib/reduxHooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '@/api/coordinationApi'
-import { EmptyState, InlineAlert, PaginationBar, TableViewport } from '@/components/common'
+import { EmptyState, InlineAlert, PaginationBar, SearchField, TableViewport } from '@/components/common'
 import { useLocalPagination } from '@/lib/useLocalPagination'
 import { ClipboardList, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -240,7 +240,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
     return (
       <EmptyState
         icon={<ClipboardList className="size-10" />}
-        title="Chưa có dữ liệu để hiển thị"
+        title="Chưa có đơn phục vụ phù hợp."
         description="Điều chỉnh ngày, ca hoặc điều phối đơn để xem dữ liệu phù hợp."
         className="ipc-coordination-empty-state min-h-0 border-b border-slate-200 py-10"
       />
@@ -264,17 +264,15 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
         </div>
       )}
       <div className="flex flex-wrap items-end justify-between gap-2 border-b border-slate-200 bg-slate-50/70 px-3 py-2">
-        <label className="grid min-w-[240px] flex-1 gap-1 text-xs font-semibold text-slate-600" htmlFor="coordination-order-search">
-          Tìm khách hàng, thực đơn hoặc món ăn
-          <Input
-            id="coordination-order-search"
-            type="search"
-            value={search}
-            onChange={(event) => { setSearch(event.target.value); setPage(1) }}
-            placeholder="Nhập mã khách hàng hoặc tên món"
-            className="h-9 max-w-md bg-white"
-          />
-        </label>
+        <SearchField
+          id="coordination-order-search"
+          label="Tìm khách hàng, thực đơn hoặc món ăn"
+          width="wide"
+          value={search}
+          onChange={(event) => { setSearch(event.target.value); setPage(1) }}
+          placeholder="Nhập mã khách hàng hoặc tên món"
+          inputClassName="bg-white"
+        />
         {search.trim() && <span className="pb-2 text-xs text-slate-500">{totalItems} kết quả</span>}
       </div>
       <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Danh sách đơn theo khách hàng">

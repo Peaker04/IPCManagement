@@ -66,12 +66,12 @@ export function PurchaseServiceDateWorkbench({
     <SectionPanel
       title="Ngày phục vụ"
       icon={<CalendarDays size={18} aria-hidden="true" />}
-      description="Chọn đúng một ngày trong tuần. Mọi dòng bên dưới thuộc phạm vi Cả ngày (FULLDAY)."
+      description="Chọn một ngày phục vụ để xử lý nhu cầu cả ngày."
       className="min-w-0 overflow-hidden"
     >
       <fieldset className="m-0 min-w-0 border-0 p-0">
         <legend className="sr-only">Các ngày cần xử lý</legend>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-[11.4rem] xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
         {serviceDates.map((serviceDate) => {
           const active = serviceDate.serviceDate === selectedDate;
           const supplierLineCount = Math.max(serviceDate.shortageLineCount, serviceDate.purchaseLines.length);
@@ -119,8 +119,7 @@ export function PurchaseServiceDateWorkbench({
 
         <TableViewport
           ariaLabel="Dòng nguyên liệu của ngày phục vụ đang chọn"
-          caption={isLoading || hasPurchaseLines ? 'Bảng có cuộn ngang cục bộ và giữ chiều cao ổn định.' : 'Trạng thái trống của ngày phục vụ đang chọn.'}
-          className={isLoading || hasPurchaseLines ? 'h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]' : undefined}
+          caption={isLoading || hasPurchaseLines ? 'Bảng có cuộn ngang cục bộ.' : 'Trạng thái trống của ngày phục vụ đang chọn.'}
         >
           {isLoading ? (
             <table className="ipc-data-table min-w-[900px] table-fixed">

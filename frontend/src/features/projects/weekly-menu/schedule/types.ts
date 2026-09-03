@@ -72,7 +72,7 @@ export type WeeklyScheduleEditorWorkflow = {
     sections: Array<{
       label: string
       slotType: keyof WeeklyMenuState[string]
-      dishes: Array<{ id: string; name: string }>
+      dishes: Array<{ id: string; name: string; code: string; bomReady: boolean }>
       defaultDishId: string
     }>
     getDishName: (dishId: string) => string | undefined

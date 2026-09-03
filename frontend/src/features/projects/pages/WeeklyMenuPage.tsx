@@ -5,7 +5,7 @@ import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewConten
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
-import { OperationalFrame, ViewSwitcher } from '@/components/common';
+import { OperationalFrame, ViewSwitcher, RefreshStatus } from '@/components/common';
 import { typography } from '@/lib/typography';
 import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
@@ -55,7 +55,6 @@ import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 
-const ReconciliationWeeklyMenuPage = lazy(() => import('./ReconciliationWeeklyMenuPage').then(({ ReconciliationWeeklyMenuPage: component }) => ({ default: component })))
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
 const WeeklyScheduleEditorDialog = lazy(() => import('../weekly-menu/schedule/WeeklyScheduleEditorDialog').then(({ WeeklyScheduleEditorDialog: component }) => ({ default: component })))
 import { QueryViewBoundary, type QueryViewEntry } from '@/components/common/QueryViewBoundary';
@@ -140,7 +139,7 @@ const DefaultWeeklyMenuPage = () => {
       customerId: effectiveMenuCustomerId,
       ...(menuScheduleWeekStartDate ? { weekStartDate: menuScheduleWeekStartDate } : {}),
     },
-    { skip: isMaterialReconciliationMode || !effectiveMenuCustomerId },
+    { skip: !effectiveMenuCustomerId },
   );
   const menuSchedulesView = toLabeledQueryView(menuSchedulesQuery, 'lịch thực đơn', {
     instruction: 'Chọn khách hàng để tải lịch thực đơn.',
@@ -155,7 +154,7 @@ const DefaultWeeklyMenuPage = () => {
       customerId: effectiveMenuCustomerId,
       ...(menuScheduleWeekStartDate ? { weekStartDate: menuScheduleWeekStartDate } : {}),
     },
-    { skip: isMaterialReconciliationMode || !effectiveMenuCustomerId || !menuScheduleWeekStartDate },
+    { skip: !effectiveMenuCustomerId || !menuScheduleWeekStartDate },
   );
   const mealQuantityPlansView = toLabeledQueryView(mealQuantityPlansQuery, 'kế hoạch số suất', {
     instruction: !effectiveMenuCustomerId
@@ -166,6 +165,10 @@ const DefaultWeeklyMenuPage = () => {
     ? mealQuantityPlansView.data
     : mealQuantityPlansView.phase === 'error' ? mealQuantityPlansQuery.currentData : undefined;
   const mealQuantityPlans = useMemo(() => mealQuantityPlansResponse?.data ?? [], [mealQuantityPlansResponse?.data]);
+  const incompleteServingPlanCount = useMemo(
+    () => mealQuantityPlans.filter((plan) => plan.status.toUpperCase() !== 'COMPLETED').length,
+    [mealQuantityPlans],
+  );
   const committedMenuDates = useMemo(
     () => (committedMenuRows ? buildImportedDayDates(committedMenuRows) : {}),
     [committedMenuRows],
@@ -304,6 +307,7 @@ const DefaultWeeklyMenuPage = () => {
     menuPrice,
     displayDays,
     todayIso,
+    catalogDishes,
     onCustomerCreated: (customerId) => {
       setSelectedMenuCustomerId(customerId);
       resetScopedWeeklyMenuUi();
@@ -393,8 +397,8 @@ const DefaultWeeklyMenuPage = () => {
   });
 
   const demandWorkflow = useMaterialDemand({
-    enabled: activeView === 'demand',
-    stalenessEnabled: activeView === 'demand',
+    enabled: !isMaterialReconciliationMode && activeView === 'demand',
+    stalenessEnabled: !isMaterialReconciliationMode && activeView === 'demand',
     scope: weeklyScheduleScope,
     reportDateFrom: committedMenu?.weekStartDate?.split('T')[0],
     reportDateTo: committedMenu?.weekEndDate?.split('T')[0],
@@ -417,7 +421,8 @@ const DefaultWeeklyMenuPage = () => {
     pageNumber: 1,
     pageSize: 10,
   }, {
-    skip: !weeklyScheduleScope.customerId
+    skip: isMaterialReconciliationMode
+      || !weeklyScheduleScope.customerId
       || !weeklyScheduleScope.weekStartDate
       || !committedMenu?.weekEndDate,
   });
@@ -425,7 +430,7 @@ const DefaultWeeklyMenuPage = () => {
     hasSelectedCustomer: Boolean(effectiveMenuCustomerId),
     isSyncing: isCatalogLoading || isCommittedMenuFetching || demandReadinessResult.isLoading,
     hasCatalogIssue: isCatalogError || isCatalogEmpty,
-    hasDemandIssue: demandReadinessResult.isError,
+    hasDemandIssue: !isMaterialReconciliationMode && demandReadinessResult.isError,
     menuCount: weeklyPlanRows.length,
     missingServingCount: weeklyRowsMissingOperationalServings.length,
     missingBomCount: weeklyRowsMissingBom.length,
@@ -464,11 +469,9 @@ const DefaultWeeklyMenuPage = () => {
     { label: 'danh mục món và BOM', view: catalogView },
     { label: 'danh sách khách hàng', view: customersView },
     { label: 'thực đơn tuần đã lưu', view: committedMenuView },
-    ...(!isMaterialReconciliationMode ? [
-      { label: 'hợp đồng định mức', view: customerContractsView },
-      { label: 'lịch thực đơn', view: menuSchedulesView },
-      { label: 'kế hoạch số suất', view: mealQuantityPlansView },
-    ] : []),
+    ...(!isMaterialReconciliationMode ? [{ label: 'hợp đồng định mức', view: customerContractsView }] : []),
+    { label: 'lịch thực đơn', view: menuSchedulesView },
+    { label: 'kế hoạch số suất', view: mealQuantityPlansView },
   ];
   return (
 
@@ -508,7 +511,7 @@ const DefaultWeeklyMenuPage = () => {
           ariaLabel="Chọn góc nhìn kế hoạch tuần"
           tabs={[
             { id: 'schedule', label: 'Kế hoạch tuần' },
-            { id: 'demand', label: isMaterialReconciliationMode ? 'Định lượng xuất kho' : 'Nhu cầu' },
+            { id: 'demand', label: isMaterialReconciliationMode ? 'Tổng hợp mua' : 'Nhu cầu' },
             { id: 'production-plan', label: 'Kế hoạch sản xuất' },
             { id: 'purchase-summary', label: 'Tổng hợp mua' },
             { id: 'cost', label: 'Giá vốn' },
@@ -534,11 +537,20 @@ const DefaultWeeklyMenuPage = () => {
           aria-live="polite"
         >
           {isViewPending && (
-            <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200">
-              Đang cập nhật
-            </span>
+            <RefreshStatus>Đang cập nhật</RefreshStatus>
           )}
-          <WeeklyMenuViewContent
+          {isMaterialReconciliationMode && activeView === 'demand' ? <ClosedLoopTransferPanel
+            menuVersionId={committedMenu?.menuVersionId}
+            menuVersionStatus={committedMenu?.menuVersionStatus}
+            isPublishingMenu={isPublishingMenu}
+            onPublishMenu={() => void publishWeeklyMenu()}
+            incompleteServingPlanCount={incompleteServingPlanCount}
+            onEditServings={scheduleWorkflow.actions.openEditor}
+            canInitializeTolerance={canPublishWeeklyMenu}
+            scopeLabel={selectedCustomer && displayedWeekStartDate
+              ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
+              : 'Chọn khách hàng và tuần'}
+          /> : <WeeklyMenuViewContent
             activeView={activeView}
             scope={weeklyScheduleScope}
             hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
@@ -551,26 +563,17 @@ const DefaultWeeklyMenuPage = () => {
             menuCostWorkflow={menuCostWorkflow}
             purchaseSummaryWorkflow={purchaseSummaryWorkflow}
             dishMaterialsWorkflow={dishMaterialsWorkflow}
-          />
-          {isMaterialReconciliationMode && activeView === 'demand' && <ClosedLoopTransferPanel
-            menuVersionId={committedMenu?.menuVersionId}
-            scopeLabel={selectedCustomer && displayedWeekStartDate
-              ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
-              : 'Chọn khách hàng và tuần'}
           />}
         </div>
 
         {importWorkflow.state.isOpen && <Suspense fallback={null}><WeeklyMenuImportDialog workflow={importWorkflow} /></Suspense>}
 
-        {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} /></Suspense>}
+        {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} servingRows={quickServingRows} /></Suspense>}
       </QueryViewBoundary>
     </OperationalFrame>
   );
 };
 
 export default function WeeklyMenuPage() {
-  const operation = useSystemOperation();
-  return operation?.mode === 'MATERIAL_RECONCILIATION'
-    ? <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><ReconciliationWeeklyMenuPage /></Suspense>
-    : <DefaultWeeklyMenuPage />;
+  return <DefaultWeeklyMenuPage />;
 }

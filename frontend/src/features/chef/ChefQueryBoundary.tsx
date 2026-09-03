@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { InlineAlert, QueryErrorAlert } from '@/components/common';
+import { InlineAlert, QueryErrorAlert, RefreshStatus } from '@/components/common';
 import type { QueryView } from '@/lib/queryView';
 import { cn } from '@/lib/utils';
 
@@ -37,7 +37,7 @@ const QueryNotice = ({
         isRetrying={view.isRetrying}
         onRetry={view.retry}
       >
-        {view.message} Không thể kết luận dữ liệu đang trống.
+        {view.message} Dữ liệu ca hiện tại chưa được xác nhận.
       </QueryErrorAlert>
     );
   }
@@ -101,14 +101,7 @@ export function ChefQueryBoundary({
       className={cn('relative flex flex-col gap-3', isInitialLoad && 'min-h-[32rem]')}
       data-initial-load={isInitialLoad || undefined}
     >
-      {refreshingLabels.length > 0 && (
-        <span
-          className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200"
-          role="status"
-        >
-          Đang cập nhật dữ liệu ca
-        </span>
-      )}
+      {refreshingLabels.length > 0 && <RefreshStatus>Đang cập nhật dữ liệu ca</RefreshStatus>}
       <div className={cn(isInitialLoad && 'absolute inset-x-0 top-0')}>
         {visibleEntries.map((entry) => (
           <QueryNotice

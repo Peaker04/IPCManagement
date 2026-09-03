@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { InlineAlert } from './InlineAlert';
 import { QueryErrorAlert } from './QueryErrorAlert';
+import { RefreshStatus } from './RefreshStatus';
 import type { QueryView } from '@/lib/queryView';
 
 export type QueryViewEntry = {
@@ -63,7 +64,7 @@ export function QueryViewBoundary({
             isRetrying={primary.view.isRetrying}
             onRetry={primary.view.retry}
           >
-            {primary.view.message} Không thể kết luận dữ liệu đang trống.
+            {primary.view.message} Dữ liệu hiện tại chưa được xác nhận.
           </QueryErrorAlert>
         </div>
       );
@@ -127,15 +128,7 @@ export function QueryViewBoundary({
           return null;
         })}
 
-      {/* Floating non-intrusive refresh badge (Rule C6) */}
-      {isRefreshing && (
-        <span
-          className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm border border-slate-200"
-          role="status"
-        >
-          {refreshLabel}
-        </span>
-      )}
+      {isRefreshing && <RefreshStatus>{refreshLabel}</RefreshStatus>}
 
       {/* Truncation warning if present */}
       {queries.map(({ label, view }) => {

@@ -3,6 +3,7 @@ using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -26,6 +27,7 @@ public sealed class MenuSchedulesController : ControllerBase
     }
 
     [HttpGet("menu-schedules")]
+    [SystemOperation("coordination.menu-schedules.read", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MenuScheduleDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMenuSchedulesAsync([FromQuery] MenuScheduleQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<MenuScheduleDto>>.SuccessResult(await _service.GetMenuSchedulesAsync(query)));
@@ -58,6 +60,7 @@ public sealed class MenuSchedulesController : ControllerBase
     }
 
     [HttpPatch("menu-schedules/{id}/version")]
+    [SystemOperation("coordination.menu-schedules.version", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<MenuScheduleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

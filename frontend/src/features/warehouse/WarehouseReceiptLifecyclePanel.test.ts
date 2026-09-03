@@ -10,7 +10,8 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
   });
 
   it('pages receipt headers and keeps detail selection inside the active page', () => {
-    expect(source).toContain('useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE })');
+    expect(source).toContain('useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE, purchaseOrderOnly: true })');
+    expect(source).not.toContain('.filter((item) => Boolean(item.purchaseOrderId))');
     expect(source).toContain('canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)');
     expect(source).toContain('totalItems={receiptPage?.totalCount ?? 0}');
     expect(source).toContain('setSelectedReceiptId(undefined)');

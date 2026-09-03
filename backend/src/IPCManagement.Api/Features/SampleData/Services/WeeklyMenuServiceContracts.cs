@@ -99,6 +99,7 @@ public interface IWeeklyMenuBulkEditService
 {
     Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
         BulkUpdateWeeklyMenuRequest request,
+        string? actorUserId,
         CancellationToken cancellationToken = default);
 }
 

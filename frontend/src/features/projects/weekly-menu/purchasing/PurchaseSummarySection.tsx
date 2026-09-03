@@ -1,12 +1,11 @@
-import { Search, ShoppingCart } from 'lucide-react'
+import { ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ContextStrip, PaginationBar, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { formatCurrency, formatDateOnly, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
 import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'
-import { Input } from '@/components/ui/input'
 import { Link } from 'react-router-dom'
 
 const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflow }) => {
@@ -18,18 +17,16 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
       icon={<ShoppingCart size={18} color="var(--ipc-slate-600)" />}
       description="Tổng hợp nguyên liệu cần thu mua theo toàn bộ tuần phục vụ dựa trên nhu cầu thực tế và tồn kho."
       actions={
-        <div className="relative w-64 max-w-full">
-          <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            id="weekly-purchase-search"
-            type="search"
-            value={state.search}
-            onChange={(event) => actions.setSearch(event.target.value)}
-            placeholder="Tìm tên hoặc mã nguyên liệu..."
-            className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
-            aria-label="Tìm nguyên liệu trong tuần của khách hàng đang chọn"
-          />
-        </div>
+        <SearchField
+          id="weekly-purchase-search"
+          label="Tìm nguyên liệu trong tuần của khách hàng đang chọn"
+          hideLabel
+          width="compact"
+          value={state.search}
+          onChange={(event) => actions.setSearch(event.target.value)}
+          placeholder="Tìm tên hoặc mã nguyên liệu..."
+          inputClassName="bg-slate-50 text-xs focus:bg-white"
+        />
       }
     >
       <div className="mb-3">

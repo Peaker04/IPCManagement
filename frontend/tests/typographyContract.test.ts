@@ -21,7 +21,6 @@ const arbitrarySizeAllowlist: Readonly<Record<string, string>> = {
 }
 
 const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
-  'src/app/pages/admin-data/AdminAuditPanel.tsx': 'audit new value remains bold while code role owns family and metrics',
   'src/app/pages/admin-data/AdminContractsPanel.tsx': 'contract labels retain the established strong form hierarchy',
   'src/components/common/ContextStrip.tsx': 'context label/value contrast is a component-level hierarchy contract',
   'src/components/common/EmptyState.tsx': 'empty-state title remains emphasized within the body role',
@@ -34,7 +33,6 @@ const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': 'approval document code retains compact emphasis',
   'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': 'locked-slot caption keeps emphasis within the compact weekly editor',
   'src/features/purchasing/PurchaseDecisionPanel.tsx': 'decision values retain their existing emphasis',
-  'src/features/purchasing/PurchaseWorkflowGuide.tsx': 'workflow stage labels retain compact emphasis',
   'src/features/reports/pages/ReportsPricePanel.tsx': 'report price annotations retain existing emphasis',
   'src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx': 'receipt code remains emphasized within the code role',
 }
@@ -43,7 +41,7 @@ const featureRoleContracts: Readonly<Record<string, readonly string[]>> = {
   'src/features/projects/pages/WeeklyMenuPage.tsx': ['typography.body'],
   'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': ['typography.body', 'typography.sectionTitle', 'typography.numeric'],
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': ['typography.code'],
-  'src/components/common/ApprovalQueue.tsx': ['typography.body', 'typography.sectionTitle', 'typography.code', 'typography.numeric'],
+  'src/components/common/ApprovalQueue.tsx': ['typography.body', 'typography.sectionTitle', 'typography.numeric'],
   'src/features/warehouse/pages/WarehousePage.tsx': ['typography.body'],
   'src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx': ['typography.body', 'typography.sectionTitle', 'typography.caption', 'typography.code'],
   'src/features/chef/pages/ChefDashboardPage.tsx': ['typography.body'],
@@ -51,7 +49,7 @@ const featureRoleContracts: Readonly<Record<string, readonly string[]>> = {
   'src/features/chef/components/material-checklist.tsx': ['typography.body', 'typography.code', 'typography.numeric'],
   'src/features/chef/journal/ChefDocumentsSection.tsx': ['typography.body'],
   'src/features/reports/pages/ReportsPage.tsx': ['typography.body', 'typography.code'],
-  'src/features/reports/pages/ReportsDataQualityPanel.tsx': ['typography.label', 'typography.caption'],
+  'src/features/reports/pages/ReportsDataQualityPanel.tsx': ['typography.caption'],
   'src/app/pages/admin-data/AdminAuditPanel.tsx': ['typography.code'],
 }
 

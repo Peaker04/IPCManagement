@@ -1,5 +1,5 @@
 import { CalendarDays, Scale } from 'lucide-react'
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton } from '@/components/common'
+import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton, RefreshStatus } from '@/components/common';
 import { PageStepper } from '@/components/common/PageStepper'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
@@ -24,9 +24,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
     >
       <div className="relative flex flex-col gap-3">
         {status.isRefreshing && (
-          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">
-            Đang cập nhật kế hoạch sản xuất
-          </span>
+          <RefreshStatus>Đang cập nhật kế hoạch sản xuất</RefreshStatus>
         )}
         <section className="ipc-fiori-command" aria-label="Phạm vi kế hoạch sản xuất đang xem">
           <div className="ipc-fiori-object">

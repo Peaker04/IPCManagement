@@ -4,7 +4,7 @@ import {
   useGetCoordinationCustomersQuery,
   useGetMenuAmendmentDecisionPageQuery,
 } from '@/api/coordinationApi'
-import { EmptyState, QueryErrorAlert, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
+import { EmptyState, QueryErrorAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -59,12 +59,12 @@ export function MenuAmendmentReconciliation() {
   }
 
   return (
-    <section aria-labelledby="menu-reconciliation-title" className="border-b border-slate-200 pb-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="menu-reconciliation-title" className="text-sm font-semibold text-slate-900">Đối soát điều chỉnh thực đơn</h2>
-          <p className="mt-1 text-sm text-slate-600">Xử lý các thay đổi đã liên quan đến chứng từ vận hành.</p>
-        </div>
+    <SectionPanel
+      title="Đối soát điều chỉnh thực đơn"
+      headingLevel={2}
+      description="Xử lý các thay đổi đã liên quan đến chứng từ vận hành."
+      descriptionPlacement="inline"
+      actions={(
         <label htmlFor="menu-reconciliation-customer" className="grid min-w-56 gap-1 text-xs font-semibold text-slate-700">
           Khách hàng
           <select
@@ -80,8 +80,9 @@ export function MenuAmendmentReconciliation() {
             <option value={ALL_CUSTOMERS}>Tất cả khách hàng</option>
           </select>
         </label>
-      </div>
-
+      )}
+    >
+      <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
       {feedback && <p role="status" className="mt-3 text-sm text-slate-700">{feedback}</p>}
       {!scope ? (
         <p className="mt-3 text-sm text-slate-700">Chọn khách hàng để xem yêu cầu cần xử lý.</p>
@@ -131,6 +132,7 @@ export function MenuAmendmentReconciliation() {
           </DialogContent>
         </Dialog>
       )}
-    </section>
+      </div>
+    </SectionPanel>
   )
 }

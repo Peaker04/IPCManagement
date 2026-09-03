@@ -6021,6 +6021,13 @@
         ],
         "parameters": [
           {
+            "name": "PurchaseOrderOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -8579,6 +8586,45 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReconciliationBatchDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/batches/{id}/source-changes": {
+      "get": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceChangeDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceChangeDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceChangeDtoIReadOnlyListApiResponse"
                 }
               }
             }
@@ -32725,6 +32771,92 @@
         },
         "additionalProperties": false
       },
+      "QuantityImportDishDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "displayOrder",
+          "materials"
+        ],
+        "type": "object",
+        "properties": {
+          "dishId": {
+            "type": "string"
+          },
+          "dishCode": {
+            "type": "string"
+          },
+          "dishName": {
+            "type": "string"
+          },
+          "dishSlot": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "materials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantityImportMaterialContributionDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuantityImportMaterialContributionDto": {
+        "required": [
+          "canonicalUnitId",
+          "canonicalUnitName",
+          "dishBomId",
+          "grossQuantityPerServing",
+          "ingredientCode",
+          "ingredientId",
+          "ingredientName",
+          "requiredQuantity",
+          "sourceUnitId",
+          "sourceUnitName"
+        ],
+        "type": "object",
+        "properties": {
+          "dishBomId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientCode": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string"
+          },
+          "grossQuantityPerServing": {
+            "type": "number",
+            "format": "double"
+          },
+          "sourceUnitId": {
+            "type": "string"
+          },
+          "sourceUnitName": {
+            "type": "string"
+          },
+          "requiredQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "canonicalUnitId": {
+            "type": "string"
+          },
+          "canonicalUnitName": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "QuantityImportPlanDto": {
         "required": [
           "lines",
@@ -32765,8 +32897,11 @@
       "QuantityImportPlanLineDto": {
         "required": [
           "customerId",
+          "dishes",
           "finalServings",
+          "menuCode",
           "menuId",
+          "menuName",
           "menuScheduleId",
           "quantityPlanLineId",
           "shift"
@@ -32791,6 +32926,18 @@
           "finalServings": {
             "type": "integer",
             "format": "int32"
+          },
+          "menuCode": {
+            "type": "string"
+          },
+          "menuName": {
+            "type": "string"
+          },
+          "dishes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantityImportDishDto"
+            }
           }
         },
         "additionalProperties": false
@@ -33762,6 +33909,81 @@
           },
           "disposition": {
             "$ref": "#/components/schemas/ReconciliationDispositionDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceChangeDto": {
+        "required": [
+          "actor",
+          "businessArea",
+          "changedAt",
+          "changeId",
+          "entityName"
+        ],
+        "type": "object",
+        "properties": {
+          "changeId": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "businessArea": {
+            "type": "string"
+          },
+          "entityName": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "fieldName": {
+            "type": "string",
+            "nullable": true
+          },
+          "oldValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "newValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceChangeDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSourceChangeDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false

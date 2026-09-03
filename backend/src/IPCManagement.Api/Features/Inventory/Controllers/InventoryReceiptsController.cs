@@ -32,7 +32,7 @@ public class InventoryReceiptsController : ControllerBase
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.InventoryReceiptReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<InventoryReceiptDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] InventoryReceiptFilterRequestDto request)
     {
         var result = await _inventoryReceiptService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<InventoryReceiptDto>>.SuccessResult(result));

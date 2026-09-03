@@ -1,4 +1,4 @@
-# Phase 30 Verification: Local Closure and Protected Residual
+# Phase 30 Verification: Reopened Mode-Level E2E Gap
 
 **Verified code HEAD:** `6bfbd9f96046b28a200056916b3d2a1b7afe3a8d`
 
@@ -6,19 +6,19 @@
 
 **Canonical closeout-artifact HEAD:** `0efb8012f4979ee17e61fa11e717b6bdde1c753d` (docs-only descendant that committed this verification record and the canonical closeout summaries)
 
-**Local verdict:** **PASS / CLOSED**
+**Local deterministic contracts:** **PASS**
 
-**Protected verdict:** **BLOCKED — migration fixed/applied; happy issue/stock and browser evidence incomplete**
+**Warehouse issue seam:** **PASS — issue/stock/lineage/idempotency and `TRANSFERRED → IN_PROGRESS` proven**
 
-**Aggregate MRX-06:** **BLOCKED** because MRX-06P is not complete.
+**Aggregate Material Reconciliation mode E2E:** **GAPS_FOUND — production source/preview/freeze surfaces now run, but the corrected headed multi-line lifecycle has not yet completed Warehouse → reconciliation → completion/resume**
 
 ## Scope and authority
 
-This verification closes only the deterministic local Phase 30 contract. Kỳ subsequently granted explicit MRX-06P authorization on 01/09/2026 for protected backup, migration, mutation E2E, five-viewport headed browser evidence and final restoration to `DEFAULT`, with fail-closed handling and no reset/seed/cleanup to rescue a test.
+This verification closes deterministic source-family contracts and the Warehouse issue seam. Production implementations now also close the previously missing quantity preview/commit, explicit `DRAFT → READY`, reconciliation-mode Weekly Menu source editing/readiness, and batch-scoped source-change surfaces at focused-test/build level. Complete mode-level E2E remains reopened under `.artifacts/audits/material-reconciliation-mode-e2e-research.md` until the new disposable headed harness completes every downstream stage. Kỳ subsequently granted explicit MRX-06P authorization on 01/09/2026 for protected backup, migration, mutation E2E, five-viewport headed browser evidence and final restoration to `DEFAULT`, with fail-closed handling and no reset/seed/cleanup to rescue a test.
 
-The authorized attempt ran on merge HEAD `577dc926`. Read-only preflight confirmed `ipc_lane7` at migration 75 and `DEFAULT / 5`; a fresh database checkpoint was created and verified. The migration defect was reproduced, fixed with metadata-driven FK discovery, regression-tested, and proven against a disposable restore of that exact checkpoint before protected application. Protected `ipc_lane7` is now at migration 76. A fresh 55-line public-API source reached `TRANSFERRED / version 3`; stable concurrent import/create identity, forbidden coordinator issue (`403`), zero-stock issue/replay rejection (`400`), DB zero lineage effect, and final `DEFAULT / 7` restoration were recorded. The actual source ingredients have no positive operational current stock, so no seed/direct repair was used. The headed browser run timed out and did not produce a valid five-viewport PASS oracle.
+The authorized attempt ran on merge HEAD `577dc926`. Read-only preflight confirmed `ipc_lane7` at migration 75 and `DEFAULT / 5`; a fresh database checkpoint was created and verified. The migration defect was reproduced, fixed with metadata-driven FK discovery, regression-tested, and proven against a disposable restore of that exact checkpoint before protected application. Protected `ipc_lane7` is now at migration 76. A fresh 55-line public-API source reached `TRANSFERRED / version 3`; stable concurrent import/create identity, forbidden coordinator issue (`403`), zero-stock issue/replay rejection (`400`), DB zero lineage effect, and final `DEFAULT / 7` restoration were recorded. The actual source ingredients have no positive operational current stock, so no seed/direct repair was used.
 
-The Phase 30 migration remains applied only on canonical local `ipcmanagement`. Historical workbook status remains **MISSING / NOT RECOVERED**. Existing local/read-only UI evidence covers exactly five desktop viewports (`1920×1080`, `1440×900`, `1366×768`, `1365×900`, `1280×900`), but no protected browser run occurred; a populated reconciliation dialog focus cycle remains **NEEDS_EVIDENCE**.
+On 02/09/2026, a fresh backup-first protected resume at HEAD `c5c91b35` reconfirmed migration 76, the retained `TRANSFERRED / version 3` batch with 55 lines, and zero positive operational stock across `currentstock`. The populated reconciliation detail dialog then passed headed Chrome at exactly `1920×1080`, `1440×900`, `1366×768`, `1365×900`, and `1280×900`: 55 rows rendered, initial focus remained inside the dialog on `Đóng`, dialog and focused control were viewport-contained, Escape closed it, trigger focus was restored, and there were zero console/page/request failures or page horizontal overflow. The browser ledger contained GET/HEAD only; no issue/reconciliation mutation was attempted. Final protected mode was restored to `DEFAULT / 17`. Evidence: `.artifacts/shipyard-live/phase30-mrx06p-resume-20260902-184502/browser/populated-focus-evidence.json`. Historical workbook status remains **MISSING / NOT RECOVERED**.
 
 ## Plan and commit matrix
 
@@ -65,8 +65,8 @@ The known skipped backend integration test is `WorkflowLifecycleE2ETests.Auth_Me
 |---|---|---|
 | MRX-01..05 | Locally implemented/evidenced | Plans 30-01..13 and final local gate remediation; aggregate protected proof still pending |
 | MRX-06L | **COMPLETE** | Canonical local gate matrix above at exact HEAD `6bfbd9f9` |
-| MRX-06P | **BLOCKED** | Migration 76 and protected transfer/error/race evidence pass, but happy issue/stock lineage and five-viewport headed-browser evidence remain incomplete |
-| MRX-06 | **BLOCKED** | Both children are required; MRX-06P is incomplete |
+| MRX-06P | **PARTIAL / REOPENED** | Disposable evidence proves only the issue/completion seam. It bypasses menu import, dish/BOM/serving corrections, quantity preview/commit, contributor materialization, ready/freeze and batch-scoped change history. |
+| MRX-06 | **GAPS_FOUND** | Full mode E2E must follow the corrected lifecycle and sufficient-stock isolated fixture; protected stock availability is not the intended test prerequisite. |
 
 ## Protected checkpoint matrix
 
@@ -77,10 +77,10 @@ The known skipped backend integration test is `WorkflowLifecycleE2ETests.Auth_Me
 | Protected checkpoint | CREATED and archive/manifest verified before migration |
 | `ipc_lane7` authorized attempt | READ-ONLY PREFLIGHT + BACKUP + FAILED FIRST MIGRATION STATEMENT; zero lineage schema effect |
 | Phase 30 migration on `ipc_lane7` | APPLIED — migration 76 after disposable-checkpoint proof; metadata-driven FK compatibility regression passes |
-| Protected import → transfer → issue → comparison/completion run | NOT RUN |
-| Five-viewports protected browser matrix | NOT RUN |
-| Populated reconciliation dialog focus | NEEDS_EVIDENCE |
-| Final protected operation mode restoration/new test | NOT NEWLY TESTED |
+| Full menu-source → freeze → issue → comparison/change-log run | GAPS_FOUND — protected and disposable attempts did not execute the complete intended lifecycle; corrected sufficient-stock isolated E2E remains required |
+| Five-viewports protected browser matrix | PASS — populated 55-line detail dialog at the five canonical desktop viewports |
+| Populated reconciliation dialog focus | PASS — initial focus, containment, Escape, and trigger-focus restoration verified |
+| Final protected operation mode restoration/new test | PASS — restored to `DEFAULT / 17` |
 | Historical workbook | MISSING / NOT RECOVERED |
 
 ## Evidence policy
@@ -89,4 +89,4 @@ The canonical final verifier reports are `.artifacts/runtime/phase30-final-route
 
 ## Final verdict
 
-Phase 30 deterministic local code work is closed at `6bfbd9f9`; the preceding state closeout is committed at `e7187df5`, and the canonical closeout artifacts are committed at docs-only descendant `0efb8012f4979ee17e61fa11e717b6bdde1c753d`. The authorized protected attempt at merge HEAD `577dc926` made no Phase 30 schema/data effect and produced no browser claim. The next checkpoint is to make `20260828092012_ClosedLoopReconciliationIssueLineage` compatible with the actual protected FK topology, add a regression for that baseline, and obtain confirmation to retry from the retained checkpoint boundary. Until then the protected migration remains unapplied, populated focus remains NEEDS_EVIDENCE, final protected mode remains `DEFAULT / 5`, and aggregate MRX-06 stays BLOCKED.
+Phase 30 deterministic local code work is closed at `6bfbd9f9`; the preceding state closeout is committed at `e7187df5`, and the canonical closeout artifacts are committed at docs-only descendant `0efb8012f4979ee17e61fa11e717b6bdde1c753d`. Protected `ipc_lane7` is at migration 76, and the backup-first resume at HEAD `c5c91b35` closed the populated five-viewport dialog focus gap before restoring operation mode to `DEFAULT / 17`. Aggregate MRX-06 mode-level acceptance is reopened. The one-line disposable run remains valid only as issue-state regression evidence and cannot close the full lifecycle. A legitimate protected receipt now provides `0.000800 kg` Cá hố, but it does not belong to the retained batch. On disposable `ipc_mrx06p_e2e`, an explicitly synthetic one-line batch fixture reused that official receipt stock and exposed a real production defect: issue creation persisted lineage but left the batch `TRANSFERRED`, making completion unreachable. The fixed owner now advances the batch atomically to `IN_PROGRESS / version + 1`; issue replay is idempotent and completion/reload remain `COMPLETED/MATCHED`. This technical PASS must not be represented as protected retained-batch evidence.

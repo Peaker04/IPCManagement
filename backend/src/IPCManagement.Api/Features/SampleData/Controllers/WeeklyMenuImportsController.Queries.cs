@@ -103,6 +103,7 @@ public sealed partial class WeeklyMenuImportsController
     }
 
     [HttpPut("weekly-menu/bulk-update")]
+    [SystemOperation("coordination.weekly-menu.bulk-update", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> BulkUpdateWeeklyMenuAsync(
@@ -116,6 +117,7 @@ public sealed partial class WeeklyMenuImportsController
 
         var (success, message, warnings) = await _bulkEditService.BulkUpdateWeeklyMenuAsync(
             request,
+            _currentUserService.GetUserId(User),
             cancellationToken);
         if (!success)
         {

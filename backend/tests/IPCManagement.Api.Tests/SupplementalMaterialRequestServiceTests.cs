@@ -345,6 +345,34 @@ public sealed class SupplementalMaterialRequestServiceTests
     }
 
     [Fact]
+    public async Task GetPagedAsync_ShouldExcludeLegacyRequestsOutsideDefaultSourceFamilyBeforeCount()
+    {
+        await using var context = CreateContext();
+        var seed = SeedReceivedIssueLine(context, DateTime.UtcNow);
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        await service.CreateAsync(
+            new CreateSupplementalMaterialRequest
+            {
+                CommandId = "supplemental-create-invalid-legacy",
+                IssueId = GuidHelper.ToGuidString(seed.IssueId),
+                IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
+                RequestedQty = 1,
+            },
+            GuidHelper.ToGuidString(seed.UserId),
+            GuidHelper.ToGuidString(seed.WarehouseId));
+
+        var sourceLine = await context.Inventoryissuelines.SingleAsync(item => item.IssueLineId == seed.IssueLineId);
+        sourceLine.ReconciliationBatchLineId = GuidHelper.NewId();
+        await context.SaveChangesAsync();
+
+        var result = await service.GetPagedAsync(new SupplementalMaterialRequestFilterDto { PageNumber = 1, PageSize = 20 });
+
+        result.TotalCount.Should().Be(0);
+        result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task FulfillAsync_ShouldCreateSupplementalIssue_DecreaseStock_AndExposeRemainingQuantity()
     {
         await using var context = CreateContext();

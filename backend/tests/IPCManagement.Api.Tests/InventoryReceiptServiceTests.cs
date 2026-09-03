@@ -41,6 +41,24 @@ public class InventoryReceiptServiceTests
     }
 
     [Fact]
+    public async Task GetPagedAsync_Should_ForwardPurchaseOrderPredicateBeforeRepositoryPagination()
+    {
+        var request = new InventoryReceiptFilterRequestDto
+        {
+            PageNumber = 3,
+            PageSize = 20,
+            PurchaseOrderOnly = true
+        };
+        _receiptRepository.GetPagedAsync(request)
+            .Returns((Array.Empty<InventoryReceipt>(), 0));
+
+        await _service.GetPagedAsync(request);
+
+        await _receiptRepository.Received(1).GetPagedAsync(Arg.Is<InventoryReceiptFilterRequestDto>(value =>
+            value.PageNumber == 3 && value.PageSize == 20 && value.PurchaseOrderOnly));
+    }
+
+    [Fact]
     public async Task CreateAsync_Should_CreateReceipt_UpdateCurrentStock_And_CommitTransaction()
     {
         // Arrange

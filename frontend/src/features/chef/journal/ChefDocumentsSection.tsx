@@ -25,10 +25,15 @@ export function ChefDocumentsSection({ movements, documents, isError = false, is
             onRetry={onRetry}
             isRetrying={isRetrying}
           />
+        ) : movements.length === 0 && documents.length === 0 ? (
+          <EmptyState
+            title="Chưa có bàn giao, luân chuyển hoặc phiếu trả trong ca này."
+            description="Các chứng từ sẽ xuất hiện tại đây sau khi kho bàn giao hoặc bếp lập phiếu trả."
+          />
         ) : (
           <>
-            <StockMovementTable movements={movements} />
-            <DocumentRail documents={documents} title="Phiếu trả kho" />
+            {movements.length > 0 ? <StockMovementTable movements={movements} /> : <EmptyState title="Chưa có bút toán kho trong ca này." />}
+            {documents.length > 0 ? <DocumentRail documents={documents} title="Phiếu trả kho" /> : <EmptyState title="Chưa có phiếu trả kho trong ca này." />}
           </>
         )}
       </div>

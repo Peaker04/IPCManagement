@@ -14,12 +14,20 @@ import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, u
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 
+const errorMessage = (error: unknown) => {
+  if (typeof error === 'object' && error && 'data' in error) {
+    const data = (error as { data?: { message?: string } }).data
+    if (data?.message) return data.message
+  }
+  return 'Không tạo được phiếu xuất. Hãy tải lại danh sách cần xuất rồi thử lại.'
+}
+
 export default function ReconciliationWarehousePage() {
   const operation = useSystemOperation()
   const [searchParams, setSearchParams] = useSearchParams()
-  const batchId = searchParams.get('batchId') ?? ''
-  const tabs = eligiblePageTabs('MATERIAL_RECONCILIATION', 'warehouse', operation?.capabilities.pageTabs.warehouse ?? [], visibleTabIds('warehouse'))
   const persistedSelection = readReconciliationSelection()
+  const batchId = searchParams.get('batchId') ?? persistedSelection.batchId ?? ''
+  const tabs = eligiblePageTabs('MATERIAL_RECONCILIATION', 'warehouse', operation?.capabilities.pageTabs.warehouse ?? [], visibleTabIds('warehouse'))
   const requestedView = searchParams.get('view') ?? persistedSelection.warehouseView
   const activeView = tabs.includes(requestedView ?? '') && isReconciliationWarehouseView(requestedView)
     ? requestedView
@@ -81,8 +89,8 @@ export default function ReconciliationWarehousePage() {
       setFeedback('Đã tạo phiếu xuất kho từ đúng lô đối chiếu. Số đã xuất đang được cập nhật từ phiếu liên kết.')
       await batchQuery.refetch()
       updateRoute({ view: 'movement' })
-    } catch {
-      setFeedback('Chưa tạo được phiếu xuất. Kiểm tra tồn kho vận hành và tải lại lô trước khi thử lại.')
+    } catch (error) {
+      setFeedback(errorMessage(error))
     }
   }
 
@@ -98,6 +106,7 @@ export default function ReconciliationWarehousePage() {
       {warehouseError && <p role="alert" className="text-sm text-red-700">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</p>}
       {!batchId && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Chưa chọn lô cần xuất</h2><p className="mt-2 text-sm text-slate-600">Mở Định lượng xuất kho từ Thực đơn tuần để giữ đúng phạm vi khách hàng và tuần.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
       {batchId && activeView && <>
+        <p className="text-sm text-slate-600">Số xuất được lấy đúng bằng số còn lại của lô đã khóa.</p>
         <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => updateRoute({ view: id.replace('warehouse-', '') as ReconciliationWarehouseView })} />
         {activeView === 'demand' && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><SectionPanel title="Danh sách cần xuất" description="Số còn lại được tính từ định lượng chốt trừ số trên phiếu xuất liên kết.">
           <TableViewport ariaLabel="Danh sách nguyên liệu cần xuất" caption="Danh sách nguyên liệu của đúng lô đối chiếu">

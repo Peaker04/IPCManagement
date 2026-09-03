@@ -4511,6 +4511,7 @@ export interface paths {
                 readonly query?: {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
+                    readonly PurchaseOrderOnly?: boolean;
                     readonly SearchKeyword?: string;
                     readonly SortBy?: string;
                     readonly SortDesc?: boolean;
@@ -6358,6 +6359,45 @@ export interface paths {
                 };
             };
         };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/batches/{id}/source-changes": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationSourceChangeDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationSourceChangeDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationSourceChangeDtoIReadOnlyListApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -15298,6 +15338,29 @@ export interface components {
             readonly message: string;
             readonly success: boolean;
         };
+        readonly QuantityImportDishDto: {
+            readonly dishCode: string;
+            readonly dishId: string;
+            readonly dishName: string;
+            readonly dishSlot?: string | null;
+            /** Format: int32 */
+            readonly displayOrder: number;
+            readonly materials: readonly components["schemas"]["QuantityImportMaterialContributionDto"][];
+        };
+        readonly QuantityImportMaterialContributionDto: {
+            readonly canonicalUnitId: string;
+            readonly canonicalUnitName: string;
+            readonly dishBomId: string;
+            /** Format: double */
+            readonly grossQuantityPerServing: number;
+            readonly ingredientCode: string;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            /** Format: double */
+            readonly requiredQuantity: number;
+            readonly sourceUnitId: string;
+            readonly sourceUnitName: string;
+        };
         readonly QuantityImportPlanDto: {
             readonly lines: readonly components["schemas"]["QuantityImportPlanLineDto"][];
             readonly planCode: string;
@@ -15310,9 +15373,12 @@ export interface components {
         };
         readonly QuantityImportPlanLineDto: {
             readonly customerId: string;
+            readonly dishes: readonly components["schemas"]["QuantityImportDishDto"][];
             /** Format: int32 */
             readonly finalServings: number;
+            readonly menuCode: string;
             readonly menuId: string;
+            readonly menuName: string;
             readonly menuScheduleId: string;
             readonly quantityPlanLineId: string;
             readonly shift: string;
@@ -15592,6 +15658,25 @@ export interface components {
             readonly triggers: readonly string[];
             /** Format: int64 */
             readonly version: number;
+        };
+        readonly ReconciliationSourceChangeDto: {
+            readonly actor: string;
+            readonly businessArea: string;
+            /** Format: date-time */
+            readonly changedAt: string;
+            readonly changeId: string;
+            readonly entityId?: string | null;
+            readonly entityName: string;
+            readonly fieldName?: string | null;
+            readonly newValue?: string | null;
+            readonly oldValue?: string | null;
+            readonly reason?: string | null;
+        };
+        readonly ReconciliationSourceChangeDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["ReconciliationSourceChangeDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ReconciliationToleranceInitializationResult: {
             /** Format: date-time */

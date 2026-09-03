@@ -25,6 +25,8 @@ describe('material reconciliation UI contracts', () => {
     expect(warehouseSource).toContain('id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"')
     expect(warehouseSource).toContain("buildWeeklyMenuRoute({ view: 'demand' })")
     expect(warehouseSource).toContain("activeView === 'demand' && batch && <Button")
+    expect(warehouseSource).toContain("searchParams.get('batchId') ?? persistedSelection.batchId ?? ''")
+    expect(warehouseSource).toContain('Số xuất được lấy đúng bằng số còn lại của lô đã khóa.')
   })
 
   it('keeps reconciliation scope controls compact and makes the no-batch prerequisite actionable', () => {

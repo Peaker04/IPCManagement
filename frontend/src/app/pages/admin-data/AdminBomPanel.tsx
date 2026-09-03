@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber, formatPercent, formatQuantity, formatUnit } from '@/lib/formatters';
+import { formatDateOnly, formatNumber, formatPercent, formatQuantity, formatUnit } from '@/lib/formatters';
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
@@ -222,8 +222,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </div>
 
                 <KeepAliveTabPanel id="bom-current" active={bomPanelMode === 'current'} className="min-w-0">
-                  <div className="min-w-0 max-w-full" style={{ width: 'calc(100vw - 2rem)' }}>
-                    <TableViewport className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
+                  <div className="min-w-0 max-w-full">
+                    <TableViewport ariaLabel="BOM hiện tại theo đơn giá">
                       <table className="ipc-data-table ipc-erp-grid-table ipc-bom-current-table w-full table-fixed">
                     <colgroup>
                       <col className="w-[16%]" />
@@ -253,10 +253,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           <td className="align-top text-left"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
                           <td className="align-top text-left"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
                           <td className="align-top whitespace-nowrap text-center text-slate-600">{formatUnit(line.unit)}</td>
-                          <td className="align-top text-right font-semibold tabular-nums">{line.grossQtyPerServing}</td>
-                          <td className="align-top text-right tabular-nums">{line.wasteRatePercent}%</td>
-                          <td className="align-top text-left text-slate-700"><div>{line.effectiveFrom}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div></td>
-                          <td className="align-top text-center"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">{line.bomStatusLabel || getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
+                          <td className="align-top text-right font-semibold tabular-nums">{formatQuantity(line.grossQtyPerServing)}</td>
+                          <td className="align-top text-right tabular-nums">{formatPercent(line.wasteRatePercent)}</td>
+                          <td className="align-top text-left text-slate-700"><div>{formatDateOnly(line.effectiveFrom)}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${formatDateOnly(line.effectiveTo)}` : 'Không giới hạn'}</div></td>
+                          <td className="align-top text-center"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">{getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
                           <td className="align-top text-center">
                             <div className="flex flex-wrap justify-center gap-1">
                               <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
@@ -328,8 +328,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
       {isBomDialogOpen && <Dialog open onOpenChange={setIsBomDialogOpen}>
         <DialogContent
           aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'}
-          className="min-w-0 max-w-2xl"
-          style={{ width: 'calc(100vw - 4rem)', minWidth: 0, maxWidth: 'calc(100vw - 4rem)' }}
+          size="lg"
+          className="min-w-0"
         >
           <DialogHeader>
             <DialogTitle>{editingBom ? 'Chỉnh nhanh dòng BOM' : 'Thêm dòng BOM thủ công'}</DialogTitle>

@@ -364,7 +364,7 @@ const DefaultDashboardPage = () => {
                   >
                     <span className="ipc-dashboard-task-copy">
                       <strong>{item.title}</strong>
-                      <small className={index === 0 ? 'ipc-dashboard-task-recommended' : undefined}>
+                      <small className={index === 0 ? 'ipc-dashboard-task-recommended' : undefined} title={index === 0 ? item.nextAction : item.description}>
                         {index === 0 ? item.nextAction : item.description}
                       </small>
                     </span>

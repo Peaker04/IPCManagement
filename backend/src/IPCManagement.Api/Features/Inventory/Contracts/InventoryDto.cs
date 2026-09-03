@@ -147,6 +147,11 @@ public class InventoryIssueDto
     public List<InventoryIssueLineDto> Lines { get; set; } = new();
 }
 
+public class InventoryReceiptFilterRequestDto : PagedRequestDto
+{
+    public bool PurchaseOrderOnly { get; set; }
+}
+
 public class InventoryIssueFilterRequestDto : PagedRequestDto
 {
     public string SourceFamily { get; set; } = InventoryIssueSourceFamilies.Default;

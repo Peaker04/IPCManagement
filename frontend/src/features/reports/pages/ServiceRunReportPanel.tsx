@@ -26,7 +26,7 @@ const serviceRunPreferenceConfig: TablePreferenceConfig = {
 
 function CorrectionOverlay({ serviceRunId, snapshotActual, isCloseSnapshot }: { serviceRunId: string; snapshotActual: number | null | undefined; isCloseSnapshot: boolean }) {
   const { data: adjustments, isLoading, isFetching, isError } = useGetServiceRunAdjustmentsQuery(serviceRunId, { skip: !isCloseSnapshot });
-  if (!isCloseSnapshot) return <span className="text-xs text-slate-500">Không có snapshot đóng ca (legacy).</span>;
+  if (!isCloseSnapshot) return <span className="text-xs text-slate-500">Dữ liệu lịch sử chưa có bản chốt.</span>;
   if (isLoading) return <span className="block min-h-10 text-xs text-slate-500" role="status">Đang tải điều chỉnh hậu kiểm…</span>;
   if (isError) return <span className="text-xs text-red-700" role="alert">Không tải được điều chỉnh hậu kiểm; snapshot đóng ca vẫn được giữ riêng.</span>;
   const latest = adjustments?.[0];
@@ -43,7 +43,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
   const rows = data?.items ?? [];
 
   return <SectionPanel title="Ca phục vụ và chứng từ nguồn" icon={<ClipboardList size={18} />} description="Trạng thái được tổng hợp từ kế hoạch sản xuất, nhu cầu, phiếu xuất/trả và cấp bổ sung. Bản chốt đóng ca được giữ nguyên; điều chỉnh hậu kiểm luôn hiển thị tách riêng, không mở lại ca.">
-    {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Không thể kết luận tình trạng đóng ca khi projection chứng từ nguồn chưa tải được." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
+    {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Dữ liệu đóng ca hiện tại chưa được xác nhận." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
       <TableViewport ariaLabel="Bảng Ca phục vụ" caption="Các chứng từ nguồn được hiển thị theo từng Ca, không gộp theo tên nguyên liệu." preferences={{ accountId: currentAccountId, config: serviceRunPreferenceConfig }}>
         {({ columns }) => <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[1240px]">
           <thead><tr>{columns.map((column) => <th scope="col" key={column.id} className={column.id === 'cost' || column.id === 'servings' ? 'text-right' : column.id === 'status' ? 'text-center' : 'text-left'}>{column.label}</th>)}</tr></thead>

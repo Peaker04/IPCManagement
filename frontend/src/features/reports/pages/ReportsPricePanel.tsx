@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { AlertTriangle, ClipboardList, Search, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ClipboardList, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   IdentifierText,
   KeepAliveTabPanel,
   PaginationBar,
+  SearchField,
   SectionPanel,
   StatusBadge,
   TableViewport,
@@ -13,7 +14,6 @@ import { ExceptionLane } from '@/components/common/ExceptionLane';
 import { ROUTES } from '@/lib/routeConfig';
 import { formatCurrency, formatDateOnly, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
@@ -120,24 +120,18 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
 
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-            <div className="border-b border-slate-200 bg-slate-50 px-3 py-2">
-              <label className="grid max-w-xl gap-1 text-xs font-semibold text-slate-600" htmlFor="price-variance-search">
-                Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập
-                <span className="relative block">
-                  <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-                  <Input
-                    id="price-variance-search"
-                    type="search"
-                    value={priceSearch}
-                    onChange={(event) => setPriceSearch(event.target.value)}
-                    placeholder="Ví dụ: Bún, SUP-001, PN-20260729..."
-                    className="h-9 bg-white pl-9"
-                  />
-                </span>
-              </label>
+            <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+              <SearchField
+                id="price-variance-search"
+                label="Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập"
+                width="wide"
+                value={priceSearch}
+                onChange={(event) => setPriceSearch(event.target.value)}
+                placeholder="Ví dụ: Bún, SUP-001, PN-20260729..."
+              />
             </div>
             <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
-              <table className="ipc-data-table ipc-report-table min-w-[760px]">
+              <table className="ipc-data-table ipc-price-variance-table min-w-[900px]">
                 <thead>
                   <tr>
                     <th>Tên nguyên liệu</th>
@@ -168,30 +162,28 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                         <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
                         <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>
                         <td className="text-right">
-                          <span className={item.warning ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'inline-flex w-full items-center justify-end gap-1 font-bold text-[var(--ipc-warning)]' : 'inline-flex w-full items-center justify-end gap-1 text-slate-600'}>
-                            {item.change > 0 && <span className="inline-block text-xs text-inherit">▲</span>}
-                            {item.change > 0 ? `+${formatPercent(item.change)}` : '0%'}
-                          </span>
-                          <div className="mt-1 flex items-center justify-end gap-2">
+                          <div className="ipc-price-variance-summary">
+                            <span className={item.warning ? 'font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'font-bold text-[var(--ipc-warning)]' : 'text-slate-600'}>
+                              {item.change > 0 ? `▲ +${formatPercent(item.change)}` : '0%'}
+                            </span>
                             {item.warning ? (
-                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                              <StatusBadge variant="danger" size="sm">Vượt ngưỡng</StatusBadge>
                             ) : item.change > 0 ? (
-                              <StatusBadge variant="warning" className="ipc-table-badge ipc-table-badge--status">Theo dõi</StatusBadge>
+                              <StatusBadge variant="warning" size="sm">Theo dõi</StatusBadge>
                             ) : (
-                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                              <StatusBadge variant="success" size="sm">Ổn định</StatusBadge>
                             )}
                             {item.warning && (
-                            <button
-                              type="button"
-                              className="whitespace-nowrap text-xs font-semibold text-[var(--ipc-danger)] underline underline-offset-2"
-                              style={{ overflowWrap: 'normal' }}
-                              aria-controls="reports-price-warning-detail"
-                              aria-expanded={selectedWarning?.id === item.id}
-                              aria-label={`Xem đề xuất xử lý cho ${item.name}`}
-                              onClick={() => selectWarning(selectedWarning?.id === item.id ? null : item.id)}
-                            >
-                              Xem đề xuất
-                            </button>
+                              <button
+                                type="button"
+                                className="whitespace-nowrap text-xs font-semibold text-[var(--ipc-danger)] underline underline-offset-2"
+                                aria-controls="reports-price-warning-detail"
+                                aria-expanded={selectedWarning?.id === item.id}
+                                aria-label={`Xem đề xuất xử lý cho ${item.name}`}
+                                onClick={() => selectWarning(selectedWarning?.id === item.id ? null : item.id)}
+                              >
+                                Xem đề xuất
+                              </button>
                             )}
                           </div>
                         </td>

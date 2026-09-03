@@ -1,5 +1,6 @@
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ public sealed partial class WeeklyMenuImportsController
     }
 
     [HttpPost("weekly-menu/import/preview")]
+    [SystemOperation("coordination.weekly-menu.import.preview", OperationDisposition.Retained)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
@@ -65,6 +67,7 @@ public sealed partial class WeeklyMenuImportsController
     }
 
     [HttpPost("weekly-menu/import/commit")]
+    [SystemOperation("coordination.weekly-menu.import.commit", OperationDisposition.Retained)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
@@ -111,6 +114,7 @@ public sealed partial class WeeklyMenuImportsController
     }
 
     [HttpPost("weekly-menu/import/{menuVersionId}/rollback")]
+    [SystemOperation("coordination.weekly-menu.import.rollback", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<RollbackWeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RollbackWeeklyMenuImportAsync(

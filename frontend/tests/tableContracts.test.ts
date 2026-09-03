@@ -34,6 +34,25 @@ describe('table contracts', () => {
     }
   });
 
+  it('does not stabilize pagination with synthetic blank capacity or utility-literal CSS ownership', () => {
+    const tableViewport = readFileSync(resolve(process.cwd(), 'src/components/common/TableViewport.tsx'), 'utf8');
+    const paginatedFrame = readFileSync(resolve(process.cwd(), 'src/components/common/PaginatedTableFrame.tsx'), 'utf8');
+    const tableCss = readFileSync(resolve(process.cwd(), 'src/styles/components/tables.css'), 'utf8');
+    const responsiveCss = readFileSync(resolve(process.cwd(), 'src/styles/redesign/responsive.css'), 'utf8');
+
+    expect(tableViewport).not.toContain('rowCapacity');
+    expect(paginatedFrame).not.toContain('rowCapacity');
+    expect(tableCss).not.toContain('data-row-capacity');
+    expect(responsiveCss).not.toMatch(/\[class~=["'][^"']*(?:max-h|h-)\[/);
+  });
+
+  it('keeps the frozen identifier cell inside row hover and selected-state presentation', () => {
+    const tableCss = readFileSync(resolve(process.cwd(), 'src/styles/components/tables.css'), 'utf8');
+    expect(tableCss).toContain('tbody tr:hover > td:first-child');
+    expect(tableCss).toContain('tr[aria-current="true"] > td');
+    expect(tableCss).toContain('background: var(--ipc-color-surface-selected)');
+  });
+
   it('does not introduce direct production tables outside the canonical viewport primitives', () => {
     const sourceRoot = resolve(process.cwd(), 'src');
     const directTables: string[] = [];

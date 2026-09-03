@@ -96,7 +96,7 @@ export function useWeeklyScheduleEditor({
     return {
       label: section.label,
       slotType: section.slotType,
-      dishes: dishes.map(({ id, name }) => ({ id, name })),
+      dishes: dishes.map(({ id, name, code, ingredients }) => ({ id, name, code, bomReady: ingredients.some((line) => line.bomStatus.toUpperCase() === 'PUBLISHED') })),
       defaultDishId: dishes[0]?.id ?? catalogDishes[0]?.id ?? '',
     }
   }), [catalogDishes])
@@ -195,7 +195,6 @@ export function useWeeklyScheduleEditor({
   const saveQuickServing = useCallback(async (row: QuickServingRow) => {
     if (!row.hasDraftChange) return
     try {
-      if (row.isConfirmed) throw new Error('Ca đã chốt. Điều chỉnh sau chốt cần thực hiện ở Điều phối đơn.')
       if (!scope.customerId) throw new Error('Vui lòng chọn khách hàng trước khi lưu số suất.')
       const servings = Number(row.inputValue)
       if (!Number.isFinite(servings) || servings < 0) throw new Error('Số suất phải lớn hơn hoặc bằng 0.')
@@ -214,7 +213,7 @@ export function useWeeklyScheduleEditor({
       if (!scope.customerId) throw new Error('Vui lòng chọn khách hàng trước khi hoàn tất ca.')
       await upsertQuickServings({ customerId: scope.customerId, serviceDate: row.serviceDate, shiftName: row.shiftName, servings, complete: true }).unwrap()
       dispatch({ type: 'clear-serving', key: row.key })
-      onQuickServingFeedback({ title: 'Đã hoàn tất suất cho KHSX', message: `${row.dayLabel} ${row.date} - ${row.shiftLabel}: đã hoàn tất kế hoạch suất. Có thể tạo demand nguyên liệu.`, variant: 'info' })
+      onQuickServingFeedback({ title: 'Đã hoàn tất số suất', message: `${row.dayLabel} ${row.date} - ${row.shiftLabel}: đã hoàn tất kế hoạch suất và có thể dùng cho bước tổng hợp nguyên liệu.`, variant: 'info' })
     } catch (error) {
       onQuickServingFeedback({ title: 'Chưa hoàn tất được suất', message: error instanceof Error ? error.message : 'Vui lòng kiểm tra kế hoạch suất trước khi hoàn tất.', variant: 'danger' })
     }

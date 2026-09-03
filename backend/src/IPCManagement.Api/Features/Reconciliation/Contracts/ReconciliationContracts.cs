@@ -5,9 +5,12 @@ public sealed record ReconciliationLineDto(string BatchLineId, string Ingredient
 public sealed record ReconciliationDispositionDto(string Category, string Reason, long Version, DateTime DisposedAt);
 public sealed record ReconciliationDispositionCategoryDto(string Value, string Label);
 public sealed record ReconciliationDraftSourceDto(string MenuVersionId, string MenuLabel, string QuantityImportBatchId, string ImportBatchLabel);
+public sealed record ReconciliationSourceChangeDto(string ChangeId, DateTime ChangedAt, string Actor, string BusinessArea, string EntityName, string? EntityId, string? FieldName, string? OldValue, string? NewValue, string? Reason);
 public sealed record PreviewQuantityImportRequest(string MenuVersionId, string? SourceLabel);
 public sealed record CommitQuantityImportRequest(string Token, string ContentFingerprint, string? SourceLabel);
-public sealed record QuantityImportPlanLineDto(string QuantityPlanLineId, string MenuScheduleId, string CustomerId, string MenuId, string Shift, int FinalServings);
+public sealed record QuantityImportMaterialContributionDto(string DishBomId, string IngredientId, string IngredientCode, string IngredientName, decimal GrossQuantityPerServing, string SourceUnitId, string SourceUnitName, decimal RequiredQuantity, string CanonicalUnitId, string CanonicalUnitName);
+public sealed record QuantityImportDishDto(string DishId, string DishCode, string DishName, string? DishSlot, int DisplayOrder, IReadOnlyList<QuantityImportMaterialContributionDto> Materials);
+public sealed record QuantityImportPlanLineDto(string QuantityPlanLineId, string MenuScheduleId, string CustomerId, string MenuId, string Shift, int FinalServings, string MenuCode, string MenuName, IReadOnlyList<QuantityImportDishDto> Dishes);
 public sealed record QuantityImportPlanDto(string QuantityPlanId, string PlanCode, DateOnly ServiceDate, string Status, DateTime RowVersion, IReadOnlyList<QuantityImportPlanLineDto> Lines);
 public sealed record QuantityImportPreviewDto(string Token, DateTimeOffset ExpiresAt, string ContentFingerprint, int FingerprintFormatVersion, IReadOnlyList<QuantityImportPlanDto> Plans, IReadOnlyList<string> Diagnostics);
 public sealed record QuantityImportCommitDto(string ImportBatchId, string ReconciliationBatchId, string ContentFingerprint, bool IdempotentReplay);
