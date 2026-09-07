@@ -24,10 +24,10 @@ workbook:
 
 # Memory hiện hành
 
-## Active task — MRX cross-phase UI/UX convergence
+## Active task — MRX cross-phase UI/UX convergence complete with browser residual
 
-- Resume authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX convergence`.
-- Fresh-session handover: `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`. Current execution begins at Wave 0; preserve inherited Antigravity dirt, stage only task-owned hunks, make bounded local checkpoint commits, and do not push.
+- Closure authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX convergence`; immutable report `.artifacts/audits/mrx-cross-phase-uiux-2026-09-07T16-55-00Z/REPORT.md`.
+- Source/tests/lint/build/ten route budgets and relevant backend lifecycle/detail gates pass. Aligned headed browser remains `NEEDS_EVIDENCE` because no exact non-interfering FE/BE build, mode and credential alignment was verified; no runtime was started or switched. Resume only that missing browser gate from `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`.
 
 ## Prior checkpoint — MRX MXE-18 closed with declared field residual
 
