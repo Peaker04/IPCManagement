@@ -14,7 +14,8 @@ import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
 import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
 import { eligiblePageTabs } from '@/lib/systemOperationEligibility'
 import { useSystemOperation } from '@/lib/systemOperationContext'
-import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, useListReconciliationIssueHistoryQuery } from '@/api/reconciliationApi'
+import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, useListReconciliationIssueHistoryQuery, type ReconciliationIssueHistoryItem } from '@/api/reconciliationApi'
+import { ReconciliationIssueDetailDialog } from '@/features/reconciliation/ReconciliationIssueDetailDialog'
 import { ReconciliationIssueHistoryTable } from '@/features/reconciliation/ReconciliationIssueHistoryTable'
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
@@ -50,6 +51,8 @@ export default function ReconciliationWarehousePage() {
   const [issuedQuantities, setIssuedQuantities] = useState<Record<string, string>>({})
   const [varianceReasons, setVarianceReasons] = useState<Record<string, string>>({})
   const [feedback, setFeedback] = useState<string>()
+  const selectedIssueId = searchParams.get('issueId')
+  const selectedIssue = historyQuery.data?.items.find((issue) => issue.issueId === selectedIssueId)
   const [supplementalOpen, setSupplementalOpen] = useState(false)
   const [supplementalLineId, setSupplementalLineId] = useState('')
   const [supplementalQuantity, setSupplementalQuantity] = useState('')
@@ -70,10 +73,24 @@ export default function ReconciliationWarehousePage() {
     if (updates.batchId !== undefined) {
       if (updates.batchId) next.set('batchId', updates.batchId)
       else next.delete('batchId')
+      next.delete('issueId')
     }
     if (updates.view !== undefined) {
       next.set('view', updates.view)
+      if (updates.view !== 'movement') next.delete('issueId')
     }
+    setSearchParams(next, { replace: true })
+  }
+
+  const openIssue = (issue: ReconciliationIssueHistoryItem) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('issueId', issue.issueId)
+    setSearchParams(next)
+  }
+
+  const closeIssue = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('issueId')
     setSearchParams(next, { replace: true })
   }
 
@@ -195,11 +212,19 @@ export default function ReconciliationWarehousePage() {
           </TableViewport>
         </SectionPanel></div>}
         {activeView === 'movement' && <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"><SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
-          {historyQuery.isLoading ? <p role="status">Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ReconciliationIssueHistoryTable issues={historyQuery.data?.items ?? []} onOpenIssue={(issueId) => navigate(`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}&issueId=${encodeURIComponent(issueId)}`)} />}
+          {historyQuery.isLoading ? <p role="status">Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ReconciliationIssueHistoryTable issues={historyQuery.data?.items ?? []} batchLines={batch?.lines} onOpenIssue={openIssue} />}
           <div className="mt-4 flex justify-end"><Link className="ipc-button ipc-button-primary" to={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}`}>Mở đối chiếu nguyên liệu</Link></div>
         </SectionPanel></div>}
       </>}
     </div>
+    <ReconciliationIssueDetailDialog
+      issueId={selectedIssueId}
+      open={Boolean(selectedIssueId)}
+      expectedBatchId={batchId}
+      initialIssue={selectedIssue}
+      onClose={closeIssue}
+      onOpenBatch={(selectedBatchId, issueId) => navigate(`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(selectedBatchId)}&issueId=${encodeURIComponent(issueId)}`)}
+    />
     <Dialog open={supplementalOpen} onOpenChange={setSupplementalOpen}>
       <DialogContent size="sm" aria-label="Xuất thêm nguyên liệu">
         <DialogHeader><DialogTitle>Xuất thêm nguyên liệu</DialogTitle><DialogDescription>Chọn một nguyên liệu đã có trong lô. Số xuất thêm sẽ được cộng vào dòng đối chiếu hiện tại.</DialogDescription></DialogHeader>

@@ -1,20 +1,103 @@
-import type { ReconciliationIssueHistoryItem } from '@/api/reconciliationApi'
-import { TableViewport } from '@/components/common'
+import { useMemo } from 'react'
+import type { ReconciliationIssueHistoryItem, ReconciliationLine } from '@/api/reconciliationApi'
+import { StatusBadge, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters'
-import { typography } from '@/lib/typography'
 import { issueActorLabel, issueRoleLabel, issueStatusLabel } from './reconciliationIssueCorrelation'
 
-export function ReconciliationIssueHistoryTable({ issues, onOpenIssue }: { issues: ReconciliationIssueHistoryItem[]; onOpenIssue: (issueId: string) => void }) {
-  return <TableViewport ariaLabel="Lịch sử phiếu xuất của lô đối chiếu" caption="Các phiếu xuất đã tạo cho lô đang chọn">
-    <table className="ipc-data-table"><thead><tr><th scope="col">Phiếu xuất</th><th scope="col">Ngày xuất</th><th scope="col" className="text-right">Nguyên liệu</th><th scope="col">Số lượng theo dòng</th><th scope="col">Người lập</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody>{issues.map((issue) => <tr key={issue.issueId}>
-      <td><strong className="block text-slate-950">{issue.issueCode}</strong><span className="block text-xs text-slate-500">Tạo lúc {formatDateTime(issue.createdAt)}</span><span className={`${typography.code} block text-slate-500`}>{issue.issueId}</span></td>
-      <td>{formatDateOnly(issue.issueDate)}</td>
-      <td className="text-right tabular-nums">{issue.lines.length}</td>
-      <td><ul className="space-y-1 text-xs">{issue.lines.map((line) => <li key={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'}: <span className="tabular-nums">{formatQuantityWithUnit(line.issuedQty, line.unitName ?? line.unitId, { maximumFractionDigits: 6 })}</span></li>)}</ul></td>
-      <td>{issueActorLabel(issue)}</td>
-      <td><span className="block">{issueStatusLabel(issue)}</span><span className="mt-1 block text-xs text-slate-500">{issueRoleLabel()}</span></td>
-      <td><Button type="button" variant="ghost" size="sm" onClick={() => onOpenIssue(issue.issueId)}>Xem giao dịch</Button></td>
-    </tr>)}</tbody></table>
-  </TableViewport>
+export function ReconciliationIssueHistoryTable({
+  issues,
+  batchLines,
+  onOpenIssue,
+}: {
+  issues: ReconciliationIssueHistoryItem[]
+  batchLines?: ReconciliationLine[]
+  onOpenIssue: (issue: ReconciliationIssueHistoryItem) => void
+}) {
+  const batchLineMap = useMemo(() => {
+    const map = new Map<string, ReconciliationLine>()
+    if (batchLines) {
+      for (const line of batchLines) {
+        map.set(line.batchLineId, line)
+      }
+    }
+    return map
+  }, [batchLines])
+
+  const resolveIngredientInfo = (line: ReconciliationIssueHistoryItem['lines'][number]) => {
+    const matched = (line.reconciliationBatchLineId ? batchLineMap.get(line.reconciliationBatchLineId) : undefined)
+      ?? (line.ingredientId ? batchLines?.find((item) => item.ingredientId === line.ingredientId) : undefined)
+    const ingredientName = line.ingredientName || matched?.ingredientName || 'Nguyên liệu chưa đặt tên'
+    const unitLabel = line.unitName || matched?.canonicalUnitName || line.unitId
+    return { ingredientName, unitLabel }
+  }
+
+  return (
+    <TableViewport ariaLabel="Lịch sử phiếu xuất của lô đối chiếu" caption="Các phiếu xuất đã tạo cho lô đang chọn">
+      <table className="ipc-data-table">
+        <thead>
+          <tr>
+            <th scope="col">Phiếu xuất</th>
+            <th scope="col">Ngày xuất</th>
+            <th scope="col" className="text-right">Số mặt hàng</th>
+            <th scope="col">Chi tiết xuất</th>
+            <th scope="col">Người lập</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {issues.map((issue) => {
+            const previewLines = issue.lines.slice(0, 3)
+            const remainingLines = issue.lines.slice(3)
+            return (
+              <tr key={issue.issueId}>
+                <td style={{ verticalAlign: 'top' }}>
+                  <strong className="block text-slate-950">{issue.issueCode}</strong>
+                  <span className="block text-xs text-slate-500">Tạo lúc {formatDateTime(issue.createdAt)}</span>
+                </td>
+                <td style={{ verticalAlign: 'top' }}>{formatDateOnly(issue.issueDate)}</td>
+                <td style={{ verticalAlign: 'top' }} className="text-right tabular-nums">
+                  <span className="font-semibold text-slate-900">{issue.lines.length}</span>
+                  <span className="ml-1 text-xs text-slate-500">loại</span>
+                </td>
+                <td style={{ verticalAlign: 'top' }}>
+                  <ul className="space-y-1 text-xs">
+                    {previewLines.map((line) => {
+                      const { ingredientName, unitLabel } = resolveIngredientInfo(line)
+                      return (
+                        <li key={line.issueLineId}>
+                          <span className="font-medium text-slate-900">{ingredientName}</span>:{' '}
+                          <span className="tabular-nums text-slate-700">
+                            {formatQuantityWithUnit(line.issuedQty, unitLabel, { maximumFractionDigits: 6 })}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {remainingLines.length > 0 && (
+                    <Button type="button" variant="link" size="sm" onClick={() => onOpenIssue(issue)} className="mt-1 h-auto p-0 text-xs">
+                      +{remainingLines.length} mặt hàng khác &rarr;
+                    </Button>
+                  )}
+                </td>
+                <td style={{ verticalAlign: 'top' }}>{issueActorLabel(issue)}</td>
+                <td style={{ verticalAlign: 'top' }}>
+                  <StatusBadge variant={issue.receivedAt ? 'success' : 'info'} size="sm">
+                    {issueStatusLabel(issue)}
+                  </StatusBadge>
+                  <span className="mt-1 block text-xs text-slate-500">{issueRoleLabel()}</span>
+                </td>
+                <td style={{ verticalAlign: 'top' }}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => onOpenIssue(issue)}>
+                    Xem giao dịch
+                  </Button>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </TableViewport>
+  )
 }
