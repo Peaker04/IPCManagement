@@ -27,6 +27,10 @@ public class AuditReportService : IAuditReportService
         // Nguồn nào cũng phải lấy dư đúng bằng số dòng sẽ bị bỏ qua: sau khi trộn 8 nguồn, `cursorSkip`
         // dòng đầu tiên là phần đã trả ở trang trước, nên nếu chỉ lấy `limit` thì trang này bị hụt.
         var sourceLimit = limit + cursorSkip;
+        var actorFilter = NormalizeFilter(query.Actor);
+        var businessAreaFilter = NormalizeFilter(query.BusinessArea);
+        var entityNameFilter = NormalizeFilter(query.EntityName);
+        var fieldNameFilter = NormalizeFilter(query.FieldName);
 
         var changes = _context.Auditlogs
             .AsNoTracking()
@@ -50,24 +54,29 @@ public class AuditReportService : IAuditReportService
                 : changes.Where(item => item.ChangedAt < cursorDate);
         }
 
-        if (!string.IsNullOrWhiteSpace(query.Actor))
+        if (actorFilter is not null)
         {
-            changes = changes.Where(item => item.ChangedByNavigation.FullName.Contains(query.Actor) || item.ChangedByNavigation.Username.Contains(query.Actor));
+            changes = changes.Where(item => item.ChangedByNavigation.FullName.Contains(actorFilter) || item.ChangedByNavigation.Username.Contains(actorFilter));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.BusinessArea))
+        if (businessAreaFilter is not null)
         {
-            changes = changes.Where(item => item.BusinessArea != null && item.BusinessArea.Contains(query.BusinessArea));
+            changes = changes.Where(item =>
+                (item.EntityName == nameof(MealQuantityPlan) &&
+                 item.FieldName == nameof(MealQuantityPlan.Status) &&
+                 item.NewValue == "COMPLETED"
+                    ? "Signoff"
+                    : item.BusinessArea).Contains(businessAreaFilter));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.EntityName))
+        if (entityNameFilter is not null)
         {
-            changes = changes.Where(item => item.EntityName != null && item.EntityName.Contains(query.EntityName));
+            changes = changes.Where(item => item.EntityName != null && item.EntityName.Contains(entityNameFilter));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.FieldName))
+        if (fieldNameFilter is not null)
         {
-            changes = changes.Where(item => item.FieldName != null && item.FieldName.Contains(query.FieldName));
+            changes = changes.Where(item => item.FieldName != null && item.FieldName.Contains(fieldNameFilter));
         }
 
         var orderedChanges = ascending
@@ -120,6 +129,23 @@ public class AuditReportService : IAuditReportService
                 : importBatches.Where(item => item.ImportedAt < cursorDate);
         }
 
+        if (actorFilter is not null)
+        {
+            var matchesImporterFallback = SourceMatchesConstant("Sample Data Importer", actorFilter);
+            importBatches = importBatches.Where(item =>
+                (item.ImportedByNavigation != null &&
+                 (item.ImportedByNavigation.FullName.Contains(actorFilter) || item.ImportedByNavigation.Username.Contains(actorFilter))) ||
+                (item.ImportedBy == null && matchesImporterFallback));
+        }
+        if (!SourceMatchesConstant("Import", businessAreaFilter) || !SourceMatchesConstant(nameof(QuantityImportBatch), entityNameFilter))
+        {
+            importBatches = importBatches.Where(_ => false);
+        }
+        if (fieldNameFilter is not null)
+        {
+            importBatches = importBatches.Where(item => item.SourceType.Contains(fieldNameFilter));
+        }
+
         var orderedImportBatches = ascending
             ? importBatches.OrderBy(item => item.ImportedAt).ThenBy(item => item.ImportBatchId)
             : importBatches.OrderByDescending(item => item.ImportedAt).ThenByDescending(item => item.ImportBatchId);
@@ -165,6 +191,21 @@ public class AuditReportService : IAuditReportService
                 : menuImports.Where(item => item.CreatedAt < cursorDate);
         }
 
+        if (!SourceMatchesConstant("Import", businessAreaFilter) ||
+            !SourceMatchesConstant(nameof(MenuVersion), entityNameFilter) ||
+            !SourceMatchesConstant("WeeklyMenu", fieldNameFilter))
+        {
+            menuImports = menuImports.Where(_ => false);
+        }
+        if (actorFilter is not null)
+        {
+            var matchesImporterFallback = SourceMatchesConstant("Sample Data Importer", actorFilter);
+            menuImports = menuImports.Where(item =>
+                (item.CreatedBy == null && matchesImporterFallback) ||
+                (item.CreatedBy != null && _context.Users.Any(user =>
+                    user.UserId == item.CreatedBy && (user.FullName.Contains(actorFilter) || user.Username.Contains(actorFilter)))));
+        }
+
         var orderedMenuImports = ascending
             ? menuImports.OrderBy(item => item.CreatedAt).ThenBy(item => item.MenuVersionId)
             : menuImports.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.MenuVersionId);
@@ -172,15 +213,14 @@ public class AuditReportService : IAuditReportService
         var menuImportVersions = await orderedMenuImports
             .Take(sourceLimit)
             .ToListAsync();
-        var menuImportActorIds = menuImportVersions
+        var menuImportActorKeys = menuImportVersions
             .Where(item => item.CreatedBy is not null)
-            .Select(item => GuidHelper.ToGuidString(item.CreatedBy!))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(item => item.CreatedBy!)
             .ToList();
         var menuImportActors = (await _context.Users
                 .AsNoTracking()
+                .Where(user => menuImportActorKeys.Contains(user.UserId))
                 .ToListAsync())
-            .Where(user => menuImportActorIds.Contains(GuidHelper.ToGuidString(user.UserId), StringComparer.OrdinalIgnoreCase))
             .ToDictionary(user => GuidHelper.ToGuidString(user.UserId), user => user.FullName, StringComparer.OrdinalIgnoreCase);
         var menuImportRows = menuImportVersions
             .Select(item =>
@@ -225,6 +265,23 @@ public class AuditReportService : IAuditReportService
             approvals = ascending
                 ? approvals.Where(item => item.ActionAt > cursorDate)
                 : approvals.Where(item => item.ActionAt < cursorDate);
+        }
+
+        if (actorFilter is not null)
+        {
+            approvals = approvals.Where(item => item.ActionByNavigation.FullName.Contains(actorFilter) || item.ActionByNavigation.Username.Contains(actorFilter));
+        }
+        if (!SourceMatchesConstant("Approval", businessAreaFilter))
+        {
+            approvals = approvals.Where(_ => false);
+        }
+        if (entityNameFilter is not null)
+        {
+            approvals = approvals.Where(item => item.TargetType.Contains(entityNameFilter));
+        }
+        if (fieldNameFilter is not null)
+        {
+            approvals = approvals.Where(item => item.Decision.Contains(fieldNameFilter));
         }
 
         var orderedApprovals = ascending
@@ -272,6 +329,17 @@ public class AuditReportService : IAuditReportService
                 : receipts.Where(item => item.CreatedAt < cursorDate);
         }
 
+        if (actorFilter is not null)
+        {
+            receipts = receipts.Where(item => item.CreatedByNavigation.FullName.Contains(actorFilter) || item.CreatedByNavigation.Username.Contains(actorFilter));
+        }
+        if (!SourceMatchesConstant("Receipt", businessAreaFilter) ||
+            !SourceMatchesConstant(nameof(InventoryReceipt), entityNameFilter) ||
+            !SourceMatchesConstant("Receive", fieldNameFilter))
+        {
+            receipts = receipts.Where(_ => false);
+        }
+
         var orderedReceipts = ascending
             ? receipts.OrderBy(item => item.CreatedAt).ThenBy(item => item.ReceiptId)
             : receipts.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.ReceiptId);
@@ -317,62 +385,71 @@ public class AuditReportService : IAuditReportService
                 : issues.Where(item => item.CreatedAt < cursorDate);
         }
 
+        if (actorFilter is not null)
+        {
+            issues = issues.Where(item => item.IssuedByNavigation.FullName.Contains(actorFilter) || item.IssuedByNavigation.Username.Contains(actorFilter));
+        }
+        if (!SourceMatchesConstant("Issue", businessAreaFilter) || !SourceMatchesConstant(nameof(InventoryIssue), entityNameFilter))
+        {
+            issues = issues.Where(_ => false);
+        }
+        if (fieldNameFilter is not null)
+        {
+            issues = issues.Where(item => (item.ShiftName ?? "FULLDAY").Contains(fieldNameFilter));
+        }
+
         var orderedIssues = ascending
             ? issues.OrderBy(item => item.CreatedAt).ThenBy(item => item.IssueId)
             : issues.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.IssueId);
 
-        var issueDocuments = await orderedIssues
-            .Take(sourceLimit)
-            .ToListAsync();
-        var issueRows = issueDocuments
-            .SelectMany(item => item.Inventoryissuelines.Select(line => new AuditChangeReportDto
-            {
-                AuditId = GuidHelper.ToGuidString(line.IssueLineId),
-                ChangedAt = item.CreatedAt,
-                ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
-                ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
-                BusinessArea = "Issue",
-                EntityName = nameof(InventoryIssue),
-                EntityId = GuidHelper.ToGuidString(item.IssueId),
-                FieldName = item.ShiftName ?? "FULLDAY",
-                OldValue = item.MaterialRequestId != null
-                    ? GuidHelper.ToGuidString(item.MaterialRequestId)
-                    : item.ReconciliationBatchId != null
-                        ? GuidHelper.ToGuidString(item.ReconciliationBatchId)
-                        : null,
-                NewValue = $"{item.IssueCode} - {line.IssuedQty}",
-                Reason = $"Ngày xuất {item.IssueDate:yyyy-MM-dd}",
-                SourceFamily = item.MaterialRequestId != null &&
-                               item.ReconciliationBatchId == null &&
-                               line.MaterialRequestLineId != null &&
-                               line.ReconciliationBatchLineId == null
-                    ? "DEFAULT"
-                    : item.MaterialRequestId == null &&
-                      item.ReconciliationBatchId != null &&
-                      line.MaterialRequestLineId == null &&
-                      line.ReconciliationBatchLineId != null
-                        ? "MATERIAL_RECONCILIATION"
-                        : "LEGACY_UNCLASSIFIED",
-                MaterialRequestId = item.MaterialRequestId != null && item.ReconciliationBatchId == null
-                    ? GuidHelper.ToGuidString(item.MaterialRequestId)
-                    : null,
-                MaterialRequestLineId = item.MaterialRequestId != null &&
-                                        item.ReconciliationBatchId == null &&
-                                        line.MaterialRequestLineId != null &&
-                                        line.ReconciliationBatchLineId == null
-                    ? GuidHelper.ToGuidString(line.MaterialRequestLineId)
-                    : null,
-                ReconciliationBatchId = item.MaterialRequestId == null && item.ReconciliationBatchId != null
-                    ? GuidHelper.ToGuidString(item.ReconciliationBatchId)
-                    : null,
-                ReconciliationBatchLineId = item.MaterialRequestId == null &&
-                                            item.ReconciliationBatchId != null &&
-                                            line.MaterialRequestLineId == null &&
-                                            line.ReconciliationBatchLineId != null
-                    ? GuidHelper.ToGuidString(line.ReconciliationBatchLineId)
-                    : null
-            }))
-            .ToList();
+        var eventMode = string.Equals(query.GroupBy?.Trim(), "event", StringComparison.OrdinalIgnoreCase);
+        List<AuditChangeReportDto> issueRows;
+        if (eventMode)
+        {
+            var eventRows = await orderedIssues
+                .Where(item => item.MaterialRequestId == null &&
+                               item.ReconciliationBatchId != null &&
+                               item.Inventoryissuelines.Any() &&
+                               item.Inventoryissuelines.All(line => line.MaterialRequestLineId == null && line.ReconciliationBatchLineId != null))
+                .Take(sourceLimit)
+                .Select(item => new AuditChangeReportDto
+                {
+                    AuditId = GuidHelper.ToGuidString(item.IssueId),
+                    ChangedAt = item.CreatedAt,
+                    ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
+                    ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
+                    BusinessArea = "Issue",
+                    EntityName = nameof(InventoryIssue),
+                    EntityId = GuidHelper.ToGuidString(item.IssueId),
+                    FieldName = item.ShiftName ?? "FULLDAY",
+                    OldValue = GuidHelper.ToGuidString(item.ReconciliationBatchId!),
+                    NewValue = item.IssueCode,
+                    Reason = $"Ngày xuất {item.IssueDate:yyyy-MM-dd}",
+                    SourceFamily = "MATERIAL_RECONCILIATION",
+                    ReconciliationBatchId = GuidHelper.ToGuidString(item.ReconciliationBatchId!),
+                    EventId = GuidHelper.ToGuidString(item.IssueId),
+                    EventType = nameof(InventoryIssue),
+                    EventRole = "UNKNOWN",
+                    EventCode = item.IssueCode,
+                    EventLineCount = item.Inventoryissuelines.Count,
+                    EventStatus = item.ReceivedAt == null ? "CREATED" : "RECEIVED"
+                })
+                .ToListAsync();
+
+            var flatDocuments = await orderedIssues
+                .Where(item => !(item.MaterialRequestId == null &&
+                                 item.ReconciliationBatchId != null &&
+                                 item.Inventoryissuelines.Any() &&
+                                 item.Inventoryissuelines.All(line => line.MaterialRequestLineId == null && line.ReconciliationBatchLineId != null)))
+                .Take(sourceLimit)
+                .ToListAsync();
+            issueRows = eventRows.Concat(ProjectFlatIssueRows(flatDocuments)).ToList();
+        }
+        else
+        {
+            var issueDocuments = await orderedIssues.Take(sourceLimit).ToListAsync();
+            issueRows = ProjectFlatIssueRows(issueDocuments);
+        }
 
         var quantityAdjustments = _context.Quantityadjustments
             .AsNoTracking()
@@ -394,6 +471,17 @@ public class AuditReportService : IAuditReportService
             quantityAdjustments = ascending
                 ? quantityAdjustments.Where(item => item.AdjustedAt > cursorDate)
                 : quantityAdjustments.Where(item => item.AdjustedAt < cursorDate);
+        }
+
+        if (actorFilter is not null)
+        {
+            quantityAdjustments = quantityAdjustments.Where(item => item.AdjustedByNavigation.FullName.Contains(actorFilter) || item.AdjustedByNavigation.Username.Contains(actorFilter));
+        }
+        if (!SourceMatchesConstant("Số suất", businessAreaFilter) ||
+            !SourceMatchesConstant("MealQuantityPlanLine", entityNameFilter) ||
+            !SourceMatchesConstant("FinalServings", fieldNameFilter))
+        {
+            quantityAdjustments = quantityAdjustments.Where(_ => false);
         }
 
         var orderedQuantityAdjustments = ascending
@@ -444,6 +532,23 @@ public class AuditReportService : IAuditReportService
                 : bomAdjustments.Where(item => item.AdjustedAt < cursorDate);
         }
 
+        if (actorFilter is not null)
+        {
+            bomAdjustments = bomAdjustments.Where(item => item.AdjustedByNavigation.FullName.Contains(actorFilter) || item.AdjustedByNavigation.Username.Contains(actorFilter));
+        }
+        if (!SourceMatchesConstant("BOM", businessAreaFilter))
+        {
+            bomAdjustments = bomAdjustments.Where(_ => false);
+        }
+        if (entityNameFilter is not null)
+        {
+            bomAdjustments = bomAdjustments.Where(item => item.Bom.Dish.DishName.Contains(entityNameFilter));
+        }
+        if (fieldNameFilter is not null)
+        {
+            bomAdjustments = bomAdjustments.Where(item => item.Bom.Ingredient.IngredientName.Contains(fieldNameFilter));
+        }
+
         var orderedBomAdjustments = ascending
             ? bomAdjustments.OrderBy(item => item.AdjustedAt).ThenBy(item => item.BomAdjustmentId)
             : bomAdjustments.OrderByDescending(item => item.AdjustedAt).ThenByDescending(item => item.BomAdjustmentId);
@@ -488,12 +593,18 @@ public class AuditReportService : IAuditReportService
                 .ToList();
         }
 
-        return (ascending
-                ? rows.OrderBy(item => item.ChangedAt).ThenBy(item => item.AuditId)
-                : rows.OrderByDescending(item => item.ChangedAt).ThenByDescending(item => item.AuditId))
+        // Each source is already ordered by timestamp plus its database-native identity. LINQ ordering is stable,
+        // so keeping the fixed source concatenation order for equal timestamps makes cursor offsets repeatable.
+        // Re-sorting ties by the display GUID string would disagree with binary database ordering and could
+        // duplicate or omit rows when a tied timestamp spans pages.
+        var selectedRows = (ascending
+                ? rows.OrderBy(item => item.ChangedAt)
+                : rows.OrderByDescending(item => item.ChangedAt))
             .Skip(cursorDate is null ? 0 : cursorSkip)
             .Take(limit)
             .ToList();
+
+        return AuditPrivacyProjection.Project(selectedRows);
     }
 
     public async Task<CursorPageDto<AuditChangeReportDto>> GetAuditChangePageAsync(WorkflowReportQueryDto query)
@@ -505,14 +616,73 @@ public class AuditReportService : IAuditReportService
 
     public async Task<ReportFileContent> ExportAuditChangesCsvAsync(WorkflowReportQueryDto query)
     {
-        query.Limit = 1000;
-        var rows = await GetAuditChangesAsync(query);
+        var flatQuery = CloneQuery(query, 1000);
+        flatQuery.GroupBy = null;
+        var rows = await GetAuditChangesAsync(flatQuery);
         var generatedAt = DateTime.Now;
         return new ReportFileContent(
             AuditCsvExporter.Build(rows),
             "text/csv",
             $"audit-log-{generatedAt:yyyyMMddHHmmss}.csv");
     }
+
+    private static List<AuditChangeReportDto> ProjectFlatIssueRows(IEnumerable<InventoryIssue> issues)
+        => issues.SelectMany(item => item.Inventoryissuelines
+            .OrderBy(line => GuidHelper.ToGuidString(line.IssueLineId), StringComparer.Ordinal)
+            .Select(line => new AuditChangeReportDto
+            {
+                AuditId = GuidHelper.ToGuidString(line.IssueLineId),
+                ChangedAt = item.CreatedAt,
+                ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
+                ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
+                BusinessArea = "Issue",
+                EntityName = nameof(InventoryIssue),
+                EntityId = GuidHelper.ToGuidString(item.IssueId),
+                FieldName = item.ShiftName ?? "FULLDAY",
+                OldValue = item.MaterialRequestId != null
+                    ? GuidHelper.ToGuidString(item.MaterialRequestId)
+                    : item.ReconciliationBatchId != null
+                        ? GuidHelper.ToGuidString(item.ReconciliationBatchId)
+                        : null,
+                NewValue = $"{item.IssueCode} - {line.IssuedQty}",
+                Reason = $"Ngày xuất {item.IssueDate:yyyy-MM-dd}",
+                SourceFamily = item.MaterialRequestId != null &&
+                               item.ReconciliationBatchId == null &&
+                               line.MaterialRequestLineId != null &&
+                               line.ReconciliationBatchLineId == null
+                    ? "DEFAULT"
+                    : item.MaterialRequestId == null &&
+                      item.ReconciliationBatchId != null &&
+                      line.MaterialRequestLineId == null &&
+                      line.ReconciliationBatchLineId != null
+                        ? "MATERIAL_RECONCILIATION"
+                        : "LEGACY_UNCLASSIFIED",
+                MaterialRequestId = item.MaterialRequestId != null && item.ReconciliationBatchId == null
+                    ? GuidHelper.ToGuidString(item.MaterialRequestId)
+                    : null,
+                MaterialRequestLineId = item.MaterialRequestId != null &&
+                                        item.ReconciliationBatchId == null &&
+                                        line.MaterialRequestLineId != null &&
+                                        line.ReconciliationBatchLineId == null
+                    ? GuidHelper.ToGuidString(line.MaterialRequestLineId)
+                    : null,
+                ReconciliationBatchId = item.MaterialRequestId == null && item.ReconciliationBatchId != null
+                    ? GuidHelper.ToGuidString(item.ReconciliationBatchId)
+                    : null,
+                ReconciliationBatchLineId = item.MaterialRequestId == null &&
+                                            item.ReconciliationBatchId != null &&
+                                            line.MaterialRequestLineId == null &&
+                                            line.ReconciliationBatchLineId != null
+                    ? GuidHelper.ToGuidString(line.ReconciliationBatchLineId)
+                    : null
+            }))
+            .ToList();
+
+    private static string? NormalizeFilter(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool SourceMatchesConstant(string value, string? filter)
+        => filter is null || value.Contains(filter, StringComparison.OrdinalIgnoreCase);
 
     private static DateTime? ParseDateTimeStart(string? value)
         => DateOnly.TryParse(value, out var date)

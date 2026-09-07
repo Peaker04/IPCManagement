@@ -5,7 +5,7 @@ import type { ReportCursor } from '@/api/workflowApiTypes';
 import { getTodayInputValue, type AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 
-export function useAdminAuditPanelModel(activeView: AdminView) {
+export function useAdminAuditPanelModel(activeView: AdminView, groupByEvent = false) {
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
@@ -26,8 +26,9 @@ export function useAdminAuditPanelModel(activeView: AdminView) {
       businessArea: deferredAuditArea.trim() || undefined,
       entityName: deferredAuditEntity.trim() || undefined,
       fieldName: deferredAuditField.trim() || undefined,
+      groupBy: groupByEvent ? 'event' : undefined,
     }),
-    [deferredAuditActor, deferredAuditArea, deferredAuditEntity, deferredAuditField],
+    [deferredAuditActor, deferredAuditArea, deferredAuditEntity, deferredAuditField, groupByEvent],
   );
   const auditCursor = auditCursors.at(-1);
   const auditResult = useGetAuditChangePageQuery({

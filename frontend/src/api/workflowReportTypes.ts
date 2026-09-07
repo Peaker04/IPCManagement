@@ -29,10 +29,21 @@ export interface AuditLogRow {
   timestamp: string;
   actor: string;
   businessArea: string;
+  entityName: string;
+  fieldName: string;
+  /** Compatibility label for report/export surfaces that still display the tuple as one cell. */
   fieldAffected: string;
   oldValue: string;
   newValue: string;
   reason: string;
+  sourceFamily?: string;
+  reconciliationBatchId?: string;
+  eventId?: string;
+  eventType?: string;
+  eventRole?: string;
+  eventCode?: string;
+  eventLineCount?: number;
+  eventStatus?: string;
 }
 
 export interface CurrentStockRow {

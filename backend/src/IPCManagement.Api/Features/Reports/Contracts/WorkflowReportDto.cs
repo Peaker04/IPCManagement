@@ -340,6 +340,12 @@ public class AuditChangeReportDto
     public string? MaterialRequestLineId { get; set; }
     public string? ReconciliationBatchId { get; set; }
     public string? ReconciliationBatchLineId { get; set; }
+    public string? EventId { get; set; }
+    public string? EventType { get; set; }
+    public string? EventRole { get; set; }
+    public string? EventCode { get; set; }
+    public int? EventLineCount { get; set; }
+    public string? EventStatus { get; set; }
 }
 
 public class DataQualityReportDto

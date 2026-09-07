@@ -11700,6 +11700,13 @@ export interface components {
             readonly correlationId?: string | null;
             readonly entityId?: string | null;
             readonly entityName: string;
+            readonly eventCode?: string | null;
+            readonly eventId?: string | null;
+            /** Format: int32 */
+            readonly eventLineCount?: number | null;
+            readonly eventRole?: string | null;
+            readonly eventStatus?: string | null;
+            readonly eventType?: string | null;
             readonly fieldName?: string | null;
             readonly materialRequestId?: string | null;
             readonly materialRequestLineId?: string | null;

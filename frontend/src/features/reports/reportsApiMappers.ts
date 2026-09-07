@@ -1,3 +1,4 @@
+import { redactAuditTransportValues } from '@/api/auditPrivacy'
 import type {
   AuditChangeReportDto,
   AuditLogRow,
@@ -161,16 +162,31 @@ export const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRo
   varianceQty: item.varianceQty,
 });
 
-export const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
-  id: item.auditId,
-  timestamp: item.changedAt,
-  actor: item.changedByName || item.changedBy,
-  businessArea: item.businessArea,
-  fieldAffected: [item.entityName, item.fieldName].filter(Boolean).join(' / '),
-  oldValue: item.oldValue ?? '',
-  newValue: item.newValue ?? '',
-  reason: item.reason ?? item.businessArea,
-});
+export const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => {
+  const fieldName = item.fieldName ?? ''
+  const values = redactAuditTransportValues(
+    { businessArea: item.businessArea, entityName: item.entityName, fieldName },
+    { oldValue: item.oldValue, newValue: item.newValue, reason: item.reason ?? item.businessArea },
+  )
+  return {
+    id: item.auditId,
+    timestamp: item.changedAt,
+    actor: item.changedByName || item.changedBy,
+    businessArea: item.businessArea,
+    entityName: item.entityName,
+    fieldName,
+    fieldAffected: [item.entityName, item.fieldName].filter(Boolean).join(' / '),
+    sourceFamily: item.sourceFamily ?? undefined,
+    reconciliationBatchId: item.reconciliationBatchId ?? undefined,
+    eventId: item.eventId ?? undefined,
+    eventType: item.eventType ?? undefined,
+    eventRole: item.eventRole ?? undefined,
+    eventCode: item.eventCode ?? undefined,
+    eventLineCount: item.eventLineCount ?? undefined,
+    eventStatus: item.eventStatus ?? undefined,
+    ...values,
+  }
+}
 
 export const mapCursorPage = <TDto, TRow>(
   page: CursorPageDto<TDto>,

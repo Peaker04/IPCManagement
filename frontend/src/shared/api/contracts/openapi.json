@@ -20069,6 +20069,31 @@
           "reconciliationBatchLineId": {
             "type": "string",
             "nullable": true
+          },
+          "eventId": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventLineCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "eventStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

@@ -1,4 +1,5 @@
-import { History } from 'lucide-react';
+import { Eye, History } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { CursorPaginationBar, InlineAlert, KeepAliveTabPanel, SectionPanel, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +12,17 @@ import { typography } from '@/lib/typography';
 import { useAppSelector } from '@/app/hooks';
 import { selectCurrentUser } from '@/features/auth';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
+import { formatAuditActor, presentAudit } from './auditPresentation';
+import { AuditIssueEventDialog } from './AuditIssueEventDialog';
 
 type AdminAuditPanelProps = { model: AdminDataPageModel | ReconciliationAdminDataPageModel };
 
 const ALL_AUDIT_AREAS_VALUE = '__all_audit_areas__';
+
+const eventStatusLabels: Record<string, string> = {
+  CREATED: 'Đã tạo phiếu',
+  RECEIVED: 'Bếp đã nhận',
+};
 
 const auditAreaLabels: Record<string, string> = {
   Signoff: 'Hoàn thành ca',
@@ -25,38 +33,36 @@ const auditAreaLabels: Record<string, string> = {
   InventoryIssue: 'Xuất kho',
 };
 
-const auditTokenLabels: Record<string, string> = {
-  SYSTEM_OPERATION: 'Chế độ vận hành',
-  SystemOperationMode: 'Chế độ vận hành',
-  Mode: 'Chế độ',
-  DEFAULT: 'Mặc định',
-  MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu',
-};
-
-const formatAuditToken = (value?: string | null) => {
-  if (!value) return '—';
-  return value
-    .split(/(\s*\/\s*)/)
-    .map((part) => auditTokenLabels[part.trim()] ?? auditAreaLabels[part.trim()] ?? part)
-    .join('');
-};
-
 const adminAuditPreferenceConfig: TablePreferenceConfig = {
   tableId: 'admin-audit',
   columns: [
     { id: 'timestamp', label: 'Thời gian', locked: true },
     { id: 'actor', label: 'Người thực hiện' },
-    { id: 'area', label: 'Mảng nghiệp vụ' },
-    { id: 'field', label: 'Đối tượng/Trường ảnh hưởng' },
-    { id: 'oldValue', label: 'Giá trị cũ' },
-    { id: 'newValue', label: 'Giá trị mới' },
-    { id: 'reason', label: 'Lý do thay đổi' },
+    { id: 'area', label: 'Hoạt động' },
+    { id: 'oldValue', label: 'Trước' },
+    { id: 'newValue', label: 'Sau / Kết quả' },
+    { id: 'reason', label: 'Lý do' },
   ],
 };
 
 export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
   const currentUser = useAppSelector(selectCurrentUser);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isReconciliationMode = 'isReconciliationMode' in model && model.isReconciliationMode;
+  const selectedEventId = searchParams.get('auditIssueId') ?? undefined;
+  const selectedBatchId = searchParams.get('auditBatchId') ?? undefined;
   const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, exportError, handleExportAuditCsv, isExportingAudit, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
+  const setSelectedEvent = (eventId?: string, batchId?: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (eventId && batchId) {
+      next.set('auditIssueId', eventId);
+      next.set('auditBatchId', batchId);
+    } else {
+      next.delete('auditIssueId');
+      next.delete('auditBatchId');
+    }
+    setSearchParams(next, { replace: true });
+  };
   return (
     <KeepAliveTabPanel id="admin-audit" active={effectiveActiveView === 'audit'} className="flex flex-col gap-4">
       <SectionPanel
@@ -147,8 +153,9 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 onClick={handleExportAuditCsv}
                 disabled={isExportingAudit}
                 className="border-0 bg-green-600 text-white hover:bg-green-700"
+                title={isReconciliationMode ? 'Xuất các dòng thay đổi chi tiết; file CSV không gộp theo sự kiện' : 'Xuất các dòng thay đổi chi tiết'}
               >
-                {isExportingAudit ? 'Đang xuất...' : 'Xuất CSV'}
+                {isExportingAudit ? 'Đang xuất...' : 'Xuất CSV chi tiết'}
               </Button>
             </div>
           </div>
@@ -159,19 +166,26 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
               {({ columns }) => <table className="ipc-data-table ipc-erp-grid-table ipc-admin-audit-table w-full text-xs">
                 <thead>
                   <tr>
-                    {columns.map((column) => <th scope="col" key={column.id} className={column.id === 'timestamp' || column.id === 'reason' || column.id === 'actor' || column.id === 'area' || column.id === 'field' ? 'text-left' : 'text-center'}>{column.label}</th>)}
+                    {columns.map((column) => <th scope="col" key={column.id} className="text-left">{column.label}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {displayLogs.map((log) => {
+                    const presentation = presentAudit({
+                      businessArea: log.businessArea,
+                      entityName: log.entityName,
+                      fieldName: log.fieldName,
+                      oldValue: log.oldValue,
+                      newValue: log.newValue,
+                      reason: log.reason,
+                    });
                     const cells: Record<string, React.ReactNode> = {
                       timestamp: <span className={`${typography.code} text-left text-slate-500`}>{formatDateTime(log.timestamp)}</span>,
-                      actor: <span className="font-semibold text-slate-800">{log.actor}</span>,
-                      area: <span className="text-slate-700" title={log.businessArea}>{formatAuditToken(log.businessArea)}</span>,
-                      field: <span className="font-medium text-blue-700" title={log.fieldAffected}>{formatAuditToken(log.fieldAffected)}</span>,
-                      oldValue: <span className="text-slate-600 ipc-admin-audit-value" title={log.oldValue}>{formatAuditToken(log.oldValue)}</span>,
-                      newValue: <span className="font-bold text-slate-900 ipc-admin-audit-value" title={log.newValue}>{formatAuditToken(log.newValue)}</span>,
-                      reason: <span className="ipc-admin-audit-reason text-left text-slate-600" title={log.reason}>{formatAuditToken(log.reason)}</span>,
+                      actor: <span className="font-semibold text-slate-800" title={log.actor}>{formatAuditActor(log.actor)}</span>,
+                      area: <span className="font-semibold text-slate-900" title={presentation.technicalTuple}>{presentation.action}</span>,
+                      oldValue: <span className="text-slate-600 ipc-admin-audit-value" title={presentation.oldValueTitle}>{presentation.before}</span>,
+                      newValue: <div className="flex items-center justify-between gap-2"><span className="ipc-admin-audit-value" title={presentation.newValueTitle}><span className="block font-bold text-slate-900">{log.eventCode ?? presentation.after}{log.eventLineCount != null ? ` · ${log.eventLineCount} dòng` : ''}</span>{log.eventId ? <span className="mt-0.5 block text-[11px] font-medium text-slate-500">{eventStatusLabels[log.eventStatus ?? ''] ?? 'Trạng thái chưa xác định'} · {log.eventRole === 'UNKNOWN' ? 'Vai trò chưa được lưu' : log.eventRole}</span> : isReconciliationMode && log.businessArea === 'Issue' ? <span className="mt-0.5 block text-[11px] font-medium text-amber-700">Dòng chi tiết · Liên kết sự kiện chưa xác định</span> : null}</span>{isReconciliationMode && log.eventId && log.reconciliationBatchId && <Button type="button" variant="outline" size="xs" aria-label={`Xem chi tiết sự kiện ${log.eventCode ?? log.eventId}`} onClick={() => setSelectedEvent(log.eventId, log.reconciliationBatchId)}><Eye size={14} aria-hidden="true" /> Chi tiết</Button>}</div>,
+                      reason: <span className="ipc-admin-audit-reason text-left text-slate-600" title={presentation.reasonTitle}>{presentation.reason}</span>,
                     };
                     return <tr key={log.id}>{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
                   })}
@@ -186,7 +200,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
               onNext={() => {
                 const nextCursorDate = auditResult.data?.nextCursorDate;
                 if (nextCursorDate) {
-                  setAuditCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: auditResult.data?.nextCursorId }]);
+                  setAuditCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: auditResult.data?.nextCursorId, cursorOffset: auditResult.data?.nextCursorOffset }]);
                 }
               }}
               ariaLabel="Phân trang nhật ký thay đổi"
@@ -194,6 +208,14 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
           </AdminQueryBoundary>
         </div>
       </SectionPanel>
+      {isReconciliationMode && (
+        <AuditIssueEventDialog
+          open={Boolean(selectedEventId && selectedBatchId)}
+          eventId={selectedEventId}
+          expectedBatchId={selectedBatchId}
+          onOpenChange={(open) => { if (!open) setSelectedEvent(); }}
+        />
+      )}
     </KeepAliveTabPanel>
   );
 }

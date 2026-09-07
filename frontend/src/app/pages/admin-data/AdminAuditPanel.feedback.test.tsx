@@ -1,5 +1,6 @@
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import source from './AdminAuditPanel.tsx?raw';
 
 const mocks = vi.hoisted(() => ({ toast: vi.fn() }));
@@ -68,7 +69,7 @@ describe('Admin audit export feedback', () => {
       setAuditField: vi.fn(),
     } as unknown as AdminDataPageModel;
 
-    render(<AdminAuditPanel model={model} />);
+    render(<MemoryRouter><AdminAuditPanel model={model} /></MemoryRouter>);
 
     expect(screen.getByRole('combobox')).toHaveTextContent('Nhập kho');
     expect(screen.getByRole('combobox')).not.toHaveTextContent('InventoryReceipt');
@@ -83,19 +84,38 @@ describe('Admin audit export feedback', () => {
     const model = {
       effectiveActiveView: 'audit', auditActor: '', auditArea: '', auditCursors: [], auditEntity: '', auditField: '',
       auditResult: { data: { hasNext: false } }, exportError: undefined, handleExportAuditCsv: vi.fn(),
-      displayLogs: [{ id: 'audit-1', timestamp: '2026-07-29T18:11:06+07:00', actor: 'Admin User', businessArea: 'InventoryReceipt', fieldAffected: 'InventoryReturn / StorekeeperReceived', oldValue, newValue, reason: 'Đối soát phiếu hoàn kho' }],
+      displayLogs: [{ id: 'audit-1', timestamp: '2026-07-29T18:11:06+07:00', actor: 'Admin User', businessArea: 'StorekeeperReturnReceipt', entityName: 'InventoryReturn', fieldName: 'StorekeeperReceived', fieldAffected: 'InventoryReturn / StorekeeperReceived', oldValue, newValue, reason: 'Đối soát phiếu hoàn kho' }],
       queryViews: { audit: readyView }, setAuditActor: vi.fn(), setAuditArea: vi.fn(), setAuditCursors: vi.fn(), setAuditEntity: vi.fn(), setAuditField: vi.fn(),
     } as unknown as AdminDataPageModel;
 
-    render(<AdminAuditPanel model={model} />);
+    render(<MemoryRouter><AdminAuditPanel model={model} /></MemoryRouter>);
 
-    expect(screen.getByText(oldValue)).toHaveClass('ipc-admin-audit-value');
-    expect(screen.getByText(newValue)).toHaveClass('ipc-admin-audit-value');
+    expect(screen.getAllByText(/Đã ghi nhận lúc/)).toHaveLength(2);
+    expect(screen.getByTitle(oldValue)).toHaveClass('ipc-admin-audit-value');
+    expect(screen.getByTitle(newValue)).toHaveClass('ipc-admin-audit-value');
     expect(screen.getByText('Đối soát phiếu hoàn kho')).toBeInTheDocument();
+  });
+
+  it('does not place synthetic secret values in audit DOM text or attributes and exposes no copy affordance', () => {
+    const canary = ['fixture', 'credential', '1234567890abcdef'].join('-');
+    const readyView = { phase: 'ready', data: { items: [], hasNext: false }, isRefreshing: false, truncation: null } as const;
+    const model = {
+      effectiveActiveView: 'audit', auditActor: '', auditArea: '', auditCursors: [], auditEntity: '', auditField: '',
+      auditResult: { data: { hasNext: false } }, exportError: undefined, handleExportAuditCsv: vi.fn(),
+      displayLogs: [{ id: 'audit-secret', timestamp: '2026-09-05T08:00:00Z', actor: 'Admin User', businessArea: 'UnknownArea', entityName: 'UnknownEntity', fieldName: 'user.PasswordHash', fieldAffected: 'UnknownEntity / user.PasswordHash', oldValue: JSON.stringify({ passwordHash: canary }), newValue: `apiKey=${canary}`, reason: `Bearer ${canary}` }],
+      queryViews: { audit: readyView }, setAuditActor: vi.fn(), setAuditArea: vi.fn(), setAuditCursors: vi.fn(), setAuditEntity: vi.fn(), setAuditField: vi.fn(),
+    } as unknown as AdminDataPageModel;
+
+    const { container } = render(<MemoryRouter><AdminAuditPanel model={model} /></MemoryRouter>);
+
+    expect(container.innerHTML).not.toContain(canary);
+    expect(screen.getAllByText('Thông tin nhạy cảm đã được ẩn')).toHaveLength(2);
+    expect(source).not.toMatch(/navigator\.clipboard|clipboard\.writeText|Sao chép giá trị/);
   });
 
   it('keeps explicit column scope and the shared audit preference owner', () => {
     expect(source).toContain("tableId: 'admin-audit'");
+    expect(source).not.toContain("{ id: 'field', label: 'Đối tượng/Trường ảnh hưởng' }");
     expect(source).toContain('preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}');
     expect(source).toContain('<th scope="col"');
     expect(source).toContain('handleExportAuditCsv');

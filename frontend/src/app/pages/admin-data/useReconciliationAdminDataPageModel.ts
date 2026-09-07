@@ -13,7 +13,7 @@ export function useReconciliationAdminDataPageModel() {
   const [activeView, setActiveView] = useState<AdminView>(requested === 'audit' ? 'audit' : 'bom-import')
   const { queryViews: bomQueryViews, ...bomModel } = useAdminBomPanelModel(activeView, bomTemplateDishId)
   const { queryViews: contractQueryViews, ...contractModel } = useAdminContractsPanelModel(activeView, false)
-  const { queryView: auditView, ...auditModel } = useAdminAuditPanelModel(activeView)
+  const { queryView: auditView, ...auditModel } = useAdminAuditPanelModel(activeView, true)
   return {
     isReconciliationMode: true as const,
     ...bomModel,
