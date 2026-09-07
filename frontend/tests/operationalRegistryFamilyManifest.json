@@ -127,7 +127,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Reconciliation state and disposition operations are query-owned while the server remains the lifecycle authority.",
         "sources": [
-          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-120",
+          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-101",
           "frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46"
         ]
       },

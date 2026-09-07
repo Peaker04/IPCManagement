@@ -60,7 +60,8 @@ describe('material reconciliation UI contracts', () => {
 
   it('uses canonical dialogs and shared user-language presentation seams', () => {
     expect(reconciliationSource).toContain('<Dialog open={Boolean(detailLine)}')
-    expect(reconciliationSource).toContain("item.status === 'TRANSFERRED' ? 'Chờ Kho xác nhận xuất'")
+    expect(reconciliationSource).toContain('getReconciliationLifecyclePresentation(item.status).label')
+    expect(reconciliationSource).toContain('<ReconciliationIssueDetailDialog')
     expect(reconciliationSource).not.toContain("TRANSFERRED: { label: 'Hoàn tất'")
     expect(issueHistorySource).toContain('issueStatusLabel(issue)')
     expect(issueHistorySource).toContain('issueRoleLabel()')
