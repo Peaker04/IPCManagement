@@ -90,40 +90,51 @@ public sealed class ReconciliationBatchService(
         var batchLineIds = batch.Lines.Select(line => line.BatchLineId).ToList();
         var contributors = await context.Reconciliationbatchcontributors.AsNoTracking()
             .Where(contributor => batchLineIds.Contains(contributor.BatchLineId)).ToListAsync(token);
-        var sourceIds = new HashSet<string>(StringComparer.Ordinal)
-        {
-            Convert.ToHexString(batch.MenuVersionId), Convert.ToHexString(batch.QuantityImportBatchId)
-        };
-        foreach (var contributor in contributors)
-        {
-            sourceIds.Add(Convert.ToHexString(contributor.MenuScheduleId));
-            sourceIds.Add(Convert.ToHexString(contributor.MealQuantityPlanLineId));
-            sourceIds.Add(Convert.ToHexString(contributor.DishBomId));
-        }
+        var menuScheduleIds = contributors.Select(contributor => contributor.MenuScheduleId).ToList();
         var quantityPlanLineIds = contributors.Select(contributor => contributor.MealQuantityPlanLineId).ToList();
+        var dishBomIds = contributors.Select(contributor => contributor.DishBomId).ToList();
         var quantitySources = await context.Mealquantityplanlines.AsNoTracking()
             .Where(line => quantityPlanLineIds.Contains(line.QuantityPlanLineId))
             .Select(line => new { line.QuantityPlanId, line.MenuId }).Distinct().ToListAsync(token);
-        foreach (var source in quantitySources)
-        {
-            sourceIds.Add(Convert.ToHexString(source.QuantityPlanId));
-            sourceIds.Add(Convert.ToHexString(source.MenuId));
-        }
+        var quantityPlanIds = quantitySources.Select(source => source.QuantityPlanId).ToList();
+        var menuIds = quantitySources.Select(source => source.MenuId).ToList();
 
-        var sourceEntityIds = sourceIds.Select(Convert.FromHexString).ToList();
-        var sourceEntityNames = new[]
-        {
-            nameof(MenuVersion), nameof(Menu), nameof(MenuItem), nameof(MenuSchedule),
-            nameof(MealQuantityPlan), nameof(MealQuantityPlanLine), nameof(DishBom), nameof(QuantityImportBatch)
-        };
         var audits = await context.Auditlogs.AsNoTracking()
-            .Where(audit => audit.EntityId != null && sourceEntityIds.Contains(audit.EntityId) && sourceEntityNames.Contains(audit.EntityName))
-            .OrderByDescending(audit => audit.ChangedAt).ToListAsync(token);
-        return audits.Select(audit => new ReconciliationSourceChangeDto(
+            .Where(audit => audit.EntityId != null && (
+                (audit.EntityName == nameof(MenuVersion) && audit.EntityId == batch.MenuVersionId)
+                || (audit.EntityName == nameof(QuantityImportBatch) && audit.EntityId == batch.QuantityImportBatchId)
+                || ((audit.EntityName == nameof(MenuItem) || audit.EntityName == nameof(MenuSchedule)) && menuScheduleIds.Contains(audit.EntityId))
+                || (audit.EntityName == nameof(MealQuantityPlanLine) && quantityPlanLineIds.Contains(audit.EntityId))
+                || (audit.EntityName == nameof(MealQuantityPlan) && quantityPlanIds.Contains(audit.EntityId))
+                || (audit.EntityName == nameof(Menu) && menuIds.Contains(audit.EntityId))
+                || (audit.EntityName == nameof(DishBom) && dishBomIds.Contains(audit.EntityId))))
+            .ToListAsync(token);
+        var changes = audits.Select(audit => new ReconciliationSourceChangeDto(
                 GuidHelper.ToGuidString(audit.AuditId), audit.ChangedAt,
                 GuidHelper.ToGuidString(audit.ChangedBy),
-                audit.BusinessArea, audit.EntityName, audit.EntityId is null ? null : GuidHelper.ToGuidString(audit.EntityId),
+                audit.BusinessArea, audit.EntityName, GuidHelper.ToGuidString(audit.EntityId!),
                 audit.FieldName, audit.OldValue, audit.NewValue, audit.Reason))
+            .ToList();
+        var adjustments = await context.Bomadjustments.AsNoTracking()
+            .Where(adjustment => dishBomIds.Contains(adjustment.BomId))
+            .ToListAsync(token);
+        changes.AddRange(adjustments.Select(adjustment => new ReconciliationSourceChangeDto(
+            GuidHelper.ToGuidString(adjustment.BomAdjustmentId), adjustment.AdjustedAt,
+            GuidHelper.ToGuidString(adjustment.AdjustedBy),
+            "BOM", nameof(BomAdjustment), GuidHelper.ToGuidString(adjustment.BomId),
+            "QuantityAndWaste",
+            FormatBomAdjustmentValue(adjustment.OldGrossQtyPerServing, adjustment.OldWasteRatePercent),
+            FormatBomAdjustmentValue(adjustment.NewGrossQtyPerServing, adjustment.NewWasteRatePercent),
+            adjustment.Reason)));
+
+        var adjustmentKeys = changes
+            .Where(change => change.EntityName == nameof(BomAdjustment))
+            .Select(BomChangeIdentity)
+            .ToHashSet(StringComparer.Ordinal);
+        return changes
+            .Where(change => change.EntityName == nameof(BomAdjustment) || !adjustmentKeys.Contains(BomChangeIdentity(change)))
+            .OrderByDescending(change => change.ChangedAt)
+            .ThenByDescending(change => change.ChangeId, StringComparer.Ordinal)
             .ToList();
     }
 
@@ -301,6 +312,16 @@ public sealed class ReconciliationBatchService(
             cancellationToken: token);
         return MapTransfer(batch);
     }
+
+    private static string FormatBomAdjustmentValue(decimal grossQuantity, decimal wasteRate) =>
+        FormattableString.Invariant($"{grossQuantity:0.######} / hao hụt {wasteRate:0.##}%");
+
+    private static string BomChangeIdentity(ReconciliationSourceChangeDto change) =>
+        change.BusinessArea == "BOM"
+        && change.EntityName is nameof(DishBom) or nameof(BomAdjustment)
+        && change.FieldName == "QuantityAndWaste"
+            ? string.Join('\u001f', change.EntityId, change.Actor, change.OldValue, change.NewValue, change.Reason)
+            : $"change:{change.ChangeId}";
 
     internal Task<IReadOnlyDictionary<string, decimal>> LoadLinkedIssuedQuantitiesForCompletionAsync(IReadOnlyCollection<byte[]> lineIds, CancellationToken token) =>
         LoadLinkedIssuedQuantitiesAsync(lineIds, token);

@@ -9,6 +9,7 @@ describe('MXE-05 typed admin audit presentation', () => {
     ['MenuVersion', 'MenuSchedule', 'Status', 'Cập nhật thực đơn tuần'],
     ['Coordination', 'MealQuantityPlan', 'QuickForecastServings', 'Cập nhật số suất'],
     ['BOM', 'DishBom', 'BulkImport', 'Nhập định lượng món ăn'],
+    ['BOM', 'BomAdjustment', 'QuantityAndWaste', 'Điều chỉnh định lượng món ăn'],
     ['Demand', 'MaterialRequest', 'Generate', 'Tạo nhu cầu nguyên liệu'],
     ['Purchasing', 'PurchaseRequest', 'Submit', 'Cập nhật mua hàng'],
     ['Receipt', 'InventoryReceipt', 'Receive', 'Tiếp nhận nguyên liệu'],
@@ -92,6 +93,9 @@ describe('MXE-05 typed admin audit presentation', () => {
       .toBe('54 dòng nhu cầu · 2 món thiếu BOM · 1 đơn vị chưa quy đổi')
     expect(present('BOM', 'DishBom', 'BulkImport', null, 'BOM-MXE05; created=2; updated=3; archived=1; rows=6; tier=30000; scope=ACTIVE').after)
       .toBe('BOM-MXE05 · tạo 2 · cập nhật 3 · lưu trữ 1 · 6 dòng · mức giá 30.000 · phạm vi Đang áp dụng')
+    expect(present('BOM', 'BomAdjustment', 'QuantityAndWaste', '0.1 / hao hụt 1%', '0.215682 / hao hụt 2.5%')).toMatchObject({
+      action: 'Điều chỉnh định lượng món ăn', before: '0,1 / hao hụt 1%', after: '0,215682 / hao hụt 2,5%',
+    })
     expect(present('Issue', 'InventoryIssue', 'FULLDAY', '00000000-0000-0000-0000-000000000001', 'ISS-MXE05 - 215.816682', 'Ngày xuất 2026-09-04')).toMatchObject({
       before: 'Thông tin kỹ thuật được lưu trong chi tiết', after: 'ISS-MXE05 · thực xuất 215,816682', reason: 'Xuất kho ngày 04/09/2026',
     })

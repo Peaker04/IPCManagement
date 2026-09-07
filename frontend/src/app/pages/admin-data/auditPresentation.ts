@@ -210,6 +210,17 @@ const formatDemandValue = (value?: string | null): ValueResult => {
     : formatStatusValue(raw)
 }
 
+const formatBomAdjustmentValue = (value?: string | null): ValueResult => {
+  const raw = getTrimmed(value)
+  if (!raw) return emptyValue()
+  const match = /^(-?\d+(?:\.\d+)?)\s*\/\s*hao hụt\s+(-?\d+(?:\.\d+)?)%$/i.exec(raw)
+  const quantity = match ? parseFinite(match[1]) : undefined
+  const wasteRate = match ? parseFinite(match[2]) : undefined
+  return quantity === undefined || wasteRate === undefined || quantity < 0 || wasteRate < 0 || wasteRate > 100
+    ? fallback(raw, 'Dữ liệu điều chỉnh BOM không hợp lệ')
+    : formatted(`${formatNumber(quantity)} / hao hụt ${formatNumber(wasteRate)}%`, raw)
+}
+
 const formatBomValue = (value?: string | null): ValueResult => {
   const raw = getTrimmed(value)
   if (!raw) return emptyValue()
@@ -279,6 +290,9 @@ register({ family: 'servings', action: 'Nhập kế hoạch số suất', format
 ])
 register({ family: 'bom', action: 'Nhập định lượng món ăn', format: formatBomValue }, [
   ['BOM', 'DishBom', 'BulkImport'],
+])
+register({ family: 'bom', action: 'Điều chỉnh định lượng món ăn', format: formatBomAdjustmentValue }, [
+  ['BOM', 'BomAdjustment', 'QuantityAndWaste'],
 ])
 register({ family: 'bom', action: 'Cam kết định lượng' }, [
   ['Reconciliation', 'QuantityImportBatch', 'Commit'],

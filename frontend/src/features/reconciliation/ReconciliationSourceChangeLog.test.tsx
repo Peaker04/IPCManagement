@@ -4,7 +4,7 @@ import { ReconciliationSourceChangeLog } from './ReconciliationSourceChangeLog'
 
 const changes = [
   { changeId: 'change-1', changedAt: '2026-09-03T08:00:00Z', actor: 'Điều phối', businessArea: 'Coordination', entityName: 'MealQuantityPlan', entityId: '5f9abf55-b523-44f7-bef9-837565e7b3a1', fieldName: 'QuickCompleteServings', oldValue: '120', newValue: '140', reason: 'Cập nhật số suất ca sáng' },
-  { changeId: 'change-2', changedAt: '2026-09-03T09:00:00Z', actor: 'Quản trị viên', businessArea: 'BOM', entityName: 'DishBom', entityId: 'bom-1', fieldName: 'BulkImport', oldValue: null, newValue: 'BOM-SEP; created=1; updated=0; archived=0; rows=1; tier=30000; scope=DEFAULT', reason: 'Cập nhật định lượng món ăn' },
+  { changeId: 'change-2', changedAt: '2026-09-03T09:00:00Z', actor: 'Quản trị viên', businessArea: 'BOM', entityName: 'BomAdjustment', entityId: 'bom-1', fieldName: 'QuantityAndWaste', oldValue: '0.12 / hao hụt 5%', newValue: '0.14 / hao hụt 4%', reason: 'Cập nhật định lượng món ăn' },
 ]
 
 vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
@@ -21,7 +21,7 @@ it('keeps source history secondary and presents business language before technic
 
   expect(screen.getByRole('columnheader', { name: 'Hoạt động' })).toBeInTheDocument()
   expect(screen.getByText('Hoàn tất số suất')).toBeInTheDocument()
-  expect(screen.getByText('Nhập định lượng món ăn')).toBeInTheDocument()
+  expect(screen.getByText('Điều chỉnh định lượng món ăn')).toBeInTheDocument()
   expect(screen.getAllByText('Cập nhật số suất ca sáng')).not.toHaveLength(0)
   expect(screen.getByText('Chỉ gồm thay đổi của nguồn dùng để tạo đúng lô này. Giao dịch Kho và chẩn đoán sẵn sàng thuộc các khu vực riêng.')).toBeInTheDocument()
   expect(screen.queryByText('Chờ Kho xuất')).not.toBeInTheDocument()
@@ -32,5 +32,5 @@ it('keeps source history secondary and presents business language before technic
   const bomRow = screen.getAllByRole('row')[2]
   const technical = within(bomRow).getByText('Xem thông tin kỹ thuật')
   fireEvent.click(technical)
-  expect(within(bomRow).getByText('BOM|DishBom|BulkImport')).toBeInTheDocument()
+  expect(within(bomRow).getByText('BOM|BomAdjustment|QuantityAndWaste')).toBeInTheDocument()
 })
