@@ -21,16 +21,19 @@ const arbitrarySizeAllowlist: Readonly<Record<string, string>> = {
 }
 
 const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
+  'src/app/pages/admin-data/AdminAuditPanel.tsx': 'event status captions retain compact emphasis',
   'src/app/pages/admin-data/AdminContractsPanel.tsx': 'contract labels retain the established strong form hierarchy',
   'src/components/common/ContextStrip.tsx': 'context label/value contrast is a component-level hierarchy contract',
   'src/components/common/EmptyState.tsx': 'empty-state title remains emphasized within the body role',
   'src/components/common/StockMovementTable.tsx': 'movement identifiers and quantities retain compact table emphasis',
   'src/components/ui/input.tsx': 'file input text has its own nested control emphasis',
+  'src/components/ui/VietnameseDateInput.tsx': 'calendar weekday labels retain compact header emphasis',
   'src/features/chef/components/chef-header.tsx': 'headline date and meal total retain dashboard emphasis',
   'src/features/chef/components/material-checklist.tsx': 'received quantities retain checklist emphasis',
   'src/features/chef/components/operational-actions.tsx': 'action metadata retains its established emphasis',
   'src/features/coordination/components/header-info.tsx': 'countdown remains bold for cutoff salience',
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': 'approval document code retains compact emphasis',
+  'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx': 'picker instruction retains compact emphasis',
   'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': 'locked-slot caption keeps emphasis within the compact weekly editor',
   'src/features/purchasing/PurchaseDecisionPanel.tsx': 'decision values retain their existing emphasis',
   'src/features/reports/pages/ReportsPricePanel.tsx': 'report price annotations retain existing emphasis',

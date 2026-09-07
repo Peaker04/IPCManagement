@@ -33,7 +33,7 @@ describe('whole-project ingredient data-grain UI contracts', () => {
   })
 
   it('keeps purchasing actions inside one selected service date and on source-line IDs', () => {
-    expect(purchasingDaySource).toContain('Chọn đúng một ngày trong tuần')
+    expect(purchasingDaySource).toContain('Chọn một ngày phục vụ để xử lý nhu cầu cả ngày.')
     expect(purchasingDaySource).toContain('Dòng nguyên liệu của ngày phục vụ đang chọn')
     expect(purchaseLinesSource).toContain('`${line.ingredientId}__${line.unitId}`')
     expect(purchaseLinesSource).toContain('onLineChange(line.purchaseRequestLineId)')

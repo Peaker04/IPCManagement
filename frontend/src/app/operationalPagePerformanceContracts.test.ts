@@ -37,7 +37,8 @@ describe('operational page performance contracts', () => {
   });
 
   it('does not fetch hidden weekly-menu work views', () => {
-    expect(weeklyMenuSource).toContain("enabled: activeView === 'demand'");
+    expect(weeklyMenuSource).toContain("enabled: !isMaterialReconciliationMode && activeView === 'demand'");
+    expect(weeklyMenuSource).toContain("stalenessEnabled: !isMaterialReconciliationMode && activeView === 'demand'");
     expect(weeklyMenuSource).toContain("enabled: activeView === 'purchase-summary'");
     expect(weeklyMenuSource).toContain('const demandReadinessResult = useGetIngredientDemandAggregatePageQuery({');
     expect(weeklyMenuSource).toContain('pageSize: 10');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import warehousePageSource from './WarehousePage.tsx?raw';
 import warehouseMovementPanelSource from './WarehouseMovementPanel.tsx?raw';
+import warehouseIssueDialogSource from './WarehouseIssueDialog.tsx?raw';
 
 describe('WarehousePage permission contract', () => {
   it('uses the normalized dieuphoi role for receipt draft creation', () => {
@@ -27,7 +28,7 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).toContain('refetchIssueCandidates()');
     expect(warehousePageSource).toContain('refetchKitchenIssues()');
     expect(warehousePageSource).toContain('refetchSelectedWarehouseStock()');
-    expect(warehousePageSource).toContain('isIssueAllocationRefreshing || isAllocationSourceError');
+    expect(warehouseIssueDialogSource).toContain('isIssueAllocationRefreshing || isAllocationSourceError');
     expect(warehousePageSource).toContain('commandId: issueCommandId');
     expect(warehousePageSource).toContain('expectedVersion: selectedIssueCandidate.concurrencyVersion');
   });
@@ -39,8 +40,8 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).toContain('setStockMovementCursors([])');
   });
 
-  it('reserves the shared table geometry while asynchronous rows settle', () => {
-    expect(warehouseMovementPanelSource).toContain('ipc-warehouse-table-shell min-h-[27rem]');
-    expect(warehouseMovementPanelSource).toContain('className="min-h-[27rem]"');
+  it('keeps warehouse tables in page-owned vertical flow without blank reserved capacity', () => {
+    expect(warehouseMovementPanelSource).toContain('className="ipc-warehouse-table-shell"');
+    expect(warehouseMovementPanelSource).not.toContain('min-h-[27rem]');
   });
 });

@@ -18,7 +18,11 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
   },
   'src/components/reconciliation/ClosedLoopTransferPanel.tsx': {
     rationale: 'The transfer card owns one batch collection and explicitly distinguishes loading, error, missing-scope and no-batch-for-scope states.',
-    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Phạm vi đang chọn chưa có lô định lượng'],
+    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Chưa có lô định lượng. Hãy kiểm tra nguồn'],
+  },
+  'src/features/reconciliation/ReconciliationIssueDetailDialog.tsx': {
+    rationale: 'The issue detail dialog owns exact issue and linked-batch lookups, keeps each failure retryable, and hides content when persisted batch linkage does not match.',
+    requiredMarkers: ['useGetReconciliationIssueQuery', 'useGetReconciliationBatchQuery', 'Liên kết lô không khớp'],
   },
   'src/features/reconciliation/ReconciliationWorkspace.tsx': {
     rationale: 'The retained-work-area reconciliation workspace owns one batch collection and preserves loading, error and genuinely empty states.',

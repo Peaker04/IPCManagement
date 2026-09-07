@@ -59,7 +59,8 @@ describe('ApprovalPage history copy', () => {
     const details = container.querySelector<HTMLElement>('#approval-detail-material-demand-42');
     if (!details) throw new Error('Expected the material-demand details row.');
     expect(within(row).getByText('Duyệt nhu cầu nguyên liệu')).toBeInTheDocument();
-    expect(within(details).getByText('Cả ngày (FULLDAY)')).toBeInTheDocument();
+    expect(within(details).getByText('Cả ngày')).toBeInTheDocument();
+    expect(within(details).queryByText('FULLDAY')).not.toBeInTheDocument();
     expect(within(details).getByText('KHSX-20260722-FULLDAY')).toBeInTheDocument();
     expect(within(row).getByText('2 dòng thiếu')).toBeInTheDocument();
   });

@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -83,7 +83,7 @@ describe('Admin BOM form feedback', () => {
     expect(result.current.bomImportFeedback).toBeNull();
   });
 
-  it('associates every BOM validation message with its field', () => {
+  it('associates every BOM validation message with its field', async () => {
     const readyView = { phase: 'ready', data: [], isRefreshing: false, truncation: null } as const;
     const model = {
       effectiveActiveView: 'contracts',
@@ -121,7 +121,7 @@ describe('Admin BOM form feedback', () => {
     render(<AdminBomPanel model={model} />);
 
     for (const id of ['manual-bom-dish', 'manual-bom-ingredient', 'manual-bom-qty', 'manual-bom-waste', 'manual-bom-to', 'manual-bom-reason']) {
-      expect(document.getElementById(id)).toHaveAttribute('aria-invalid', 'true');
+      await waitFor(() => expect(document.getElementById(id)).toHaveAttribute('aria-invalid', 'true'));
       expect(document.getElementById(id)).toHaveAccessibleDescription();
     }
   });

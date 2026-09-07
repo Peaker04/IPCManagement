@@ -1,7 +1,7 @@
 import { warehouseDataWorkspaceContract, type WarehouseBox, type WarehouseCapture, type WarehouseCaptureManifest, type WarehouseOwnerLevel, type WarehouseVerdict } from './warehouseDataWorkspaceContract';
 
 export const splitWorkbenchConsumerInventory = [
-  { source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx', instances: 2 },
+  { source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx', instances: 1 },
   { source: 'frontend/src/features/chef/receipts/KitchenReceiptSection.tsx', instances: 1 },
   { source: 'frontend/src/features/warehouse/pages/WarehouseMovementPanel.tsx', instances: 1 },
 ] as const;

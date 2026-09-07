@@ -113,7 +113,7 @@ describe('Warehouse Data Workspace contract', () => {
   });
 
   it('inventories every direct SplitWorkbench consumer without changing shared production', () => {
-    expect(splitWorkbenchConsumerInventory.reduce((total, { instances }) => total + instances, 0)).toBe(4);
+    expect(splitWorkbenchConsumerInventory.reduce((total, { instances }) => total + instances, 0)).toBe(3);
     for (const { source, instances } of splitWorkbenchConsumerInventory) {
       const text = readFileSync(resolve(process.cwd(), '..', source), 'utf8');
       expect((text.match(/<SplitWorkbench/g) ?? []).length).toBe(instances);

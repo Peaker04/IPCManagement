@@ -23,7 +23,7 @@ describe('WarehouseDemandPanel empty composition', () => {
   it('renders one contextual empty state when demand and inbox are both empty', () => {
     render(<MemoryRouter><WarehouseDemandPanel {...baseProps} /></MemoryRouter>);
 
-    expect(screen.getAllByText('Chưa có dữ liệu để hiển thị')).toHaveLength(1);
+    expect(screen.getAllByText('Chưa có nhu cầu nguyên liệu.')).toHaveLength(1);
   });
 
   it('keeps workflow inbox actions visible when work exists', () => {

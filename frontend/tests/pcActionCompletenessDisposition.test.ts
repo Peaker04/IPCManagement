@@ -144,11 +144,11 @@ const historicalControlSource = new Map<string, string>([
   ['frontend/src/features/coordination/components/action-toolbar.tsx:402-413', 'frontend/src/features/coordination/components/action-toolbar.tsx:391-401'],
   ['frontend/src/features/coordination/components/action-toolbar.tsx:415-426', 'frontend/src/features/coordination/components/action-toolbar.tsx:404-414'],
   ['frontend/src/features/coordination/components/action-toolbar.tsx:428-439', 'frontend/src/features/coordination/components/action-toolbar.tsx:417-427'],
-  ['frontend/src/features/coordination/components/order-table.tsx:358', 'frontend/src/features/coordination/components/order-table.tsx:327'],
-  ['frontend/src/features/coordination/components/order-table.tsx:388', 'frontend/src/features/coordination/components/order-table.tsx:355'],
+  ['frontend/src/features/coordination/components/order-table.tsx:356', 'frontend/src/features/coordination/components/order-table.tsx:327'],
+  ['frontend/src/features/coordination/components/order-table.tsx:386', 'frontend/src/features/coordination/components/order-table.tsx:355'],
   ['frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129', 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128'],
   ['frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50', 'frontend/src/features/warehouse/pages/WarehousePage.tsx:42-320'],
-  ['frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:47-51', 'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:236-315'],
+  ['frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:61-68', 'frontend/src/app/pages/admin-data/AdminContractsPanel.tsx:236-315'],
 ])
 
 const assertSameStrings = (actual: readonly string[], expected: readonly string[], label: string) => {

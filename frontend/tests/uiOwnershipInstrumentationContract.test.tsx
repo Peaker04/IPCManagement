@@ -90,7 +90,7 @@ describe('Phase 26 opaque instrumentation contract', () => {
         expect(loginPageSource).toContain('data-ui-floorplan="uif-l"')
         expect(loginPageSource).toContain('data-ui-region="uir-l"')
       } else if (entry.routeKey === 'FORBIDDEN') {
-        expect(forbiddenPageSource).toContain('data-ui-owner="uio-k" data-ui-floorplan="uif-k" data-ui-region="uir-k"')
+        expect(forbiddenPageSource).toContain('data-ui-owner="uio-h" data-ui-floorplan="uif-h" data-ui-region="uir-h"')
         expect(mainLayoutSource).toContain(`[ROUTES.FORBIDDEN]: { ${tupleLiteral(tuple)} }`)
       } else {
         expect(mainLayoutSource).toContain(`[ROUTES.${entry.routeKey}]: { ${tupleLiteral(tuple)} }`)

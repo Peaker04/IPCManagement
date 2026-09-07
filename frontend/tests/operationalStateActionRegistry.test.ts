@@ -23,7 +23,7 @@ import approvalPageSource from '../src/features/approvals/pages/ApprovalPage.tsx
 import warehousePageSource from '../src/features/warehouse/pages/WarehousePage.tsx?raw'
 import adminDataPageSource from '../src/app/pages/AdminDataPage.tsx?raw'
 import approvalRulesPageSource from '../src/features/admin/pages/ApprovalRulesPage.tsx?raw'
-import dashboardPageSource from '../src/features/dashboard/pages/DashboardPage.tsx?raw'
+import dashboardPageSource from '../src/features/dashboard/pages/DefaultDashboardPage.tsx?raw'
 import forbiddenPageSource from '../src/features/auth/pages/ForbiddenPage.tsx?raw'
 import reportsPageSource from '../src/features/reports/pages/ReportsPage.tsx?raw'
 import reconciliationPageSource from '../src/features/reconciliation/pages/ReconciliationPage.tsx?raw'
@@ -79,7 +79,7 @@ const manifestDebtRawSources: Record<string, string> = {
   'frontend/src/features/auth/pages/ForbiddenPage.tsx': forbiddenPageSource,
   'frontend/src/features/chef/production/ChefProductionSection.tsx': chefProductionSectionSource,
   'frontend/src/features/chef/production/chefProductionModel.ts': chefProductionModelSource,
-  'frontend/src/features/dashboard/pages/DashboardPage.tsx': dashboardPageSource,
+  'frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx': dashboardPageSource,
   'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx': reconciliationPageSource,
   'frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx': reconciliationDispositionSource,
   'frontend/src/features/reports/pages/ReportsPage.tsx': reportsPageSource,
@@ -101,20 +101,20 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   ApprovalRules: {
-    'frontend/src/features/admin/pages/ApprovalRulesPage.tsx:61-102': [
+    'frontend/src/features/admin/pages/ApprovalRulesPage.tsx:100-123': [
       'const rulesQuery = useGetApprovalRulesQuery();',
       'const [isModalOpen, setIsModalOpen] = useState(false);',
     ],
   },
   Dashboard: {
-    'frontend/src/features/dashboard/pages/DashboardPage.tsx:60-82': [
+    'frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx:61-66': [
       'useWorkflowOverview();',
       'useGetOperationalKpisQuery();',
     ],
   },
   Forbidden: {
     'frontend/src/features/auth/pages/ForbiddenPage.tsx:6-22': [
-      'Không đủ quyền truy cập',
+      'Phân hệ này chưa được cấp quyền',
       '<Link to={ROUTES.DASHBOARD}',
     ],
   },
@@ -129,9 +129,9 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   MaterialReconciliation: {
-    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-80': [
+    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-120': [
       'export default function ReconciliationPage()',
-      '<ReconciliationComparisonTable lines={batch.lines}'
+      '<ReconciliationComparisonTable lines={visibleBatchLines}'
     ],
     'frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46': [
       'export function ReconciliationDispositionDrawer(',
@@ -139,11 +139,11 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   Reports: {
-    'frontend/src/features/reports/pages/ReportsPage.tsx:60-85': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:60-92': [
       'const model = useReportsPageModel({',
       'onClick={handleExportActiveReport}',
     ],
-    'frontend/src/features/reports/pages/ReportsPage.tsx:113': [
+    'frontend/src/features/reports/pages/ReportsPage.tsx:121': [
       '<ReportQueryBoundary view={reportViews.demand}>',
     ],
   },
@@ -660,7 +660,7 @@ describe('operational state/action family coverage', () => {
       mutatedExpectations,
       manifestDebtRawSources,
     )).toThrow(
-      'Debt source "frontend/src/features/auth/pages/ForbiddenPage.tsx:1" expected fragment "Không đủ quyền truy cập" exactly once in declared range, found 0.',
+      'Debt source "frontend/src/features/auth/pages/ForbiddenPage.tsx:1" expected fragment "Phân hệ này chưa được cấp quyền" exactly once in declared range, found 0.',
     )
   })
 

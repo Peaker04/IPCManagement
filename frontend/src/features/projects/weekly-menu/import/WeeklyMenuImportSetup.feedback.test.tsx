@@ -111,7 +111,7 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(document.getElementById('weekly-menu-import-file')).toHaveAccessibleDescription()
   })
 
-  it('keeps invalid-week validation beside the week field', () => {
+  it('keeps invalid-week validation beside the week field', async () => {
     const { result } = renderHook(() => useWeeklyMenuImport(makeOptions({ weekStartDate: '2026-07-28' })))
 
     act(() => result.current.actions.open())
@@ -127,7 +127,7 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(result.current.state.feedback).toBeNull()
 
     render(<WeeklyMenuImportSetup workflow={result.current} />)
-    expect(screen.getByLabelText('Tuần bắt đầu')).toHaveAttribute('aria-invalid', 'true')
+    expect(await screen.findByLabelText('Tuần bắt đầu')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Tuần bắt đầu')).toHaveAccessibleDescription()
   })
 

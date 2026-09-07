@@ -150,7 +150,7 @@ export const weeklyMenuLifecyclePa2Registry: readonly WeeklyMenuLifecyclePa2Regi
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:101-114',
       'frontend/src/features/projects/pages/WeeklyMenuPage.tsx:440-460',
-      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:56-61',
+      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:61-68',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs:152-197',
     ],

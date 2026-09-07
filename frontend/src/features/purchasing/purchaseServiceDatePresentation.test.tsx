@@ -76,7 +76,9 @@ describe('PurchaseServiceDateWorkbench terminal state', () => {
     expect(screen.getAllByText('Đã nhận đủ').length).toBeGreaterThan(0);
     expect(screen.getByText('NCC: 1/1')).toBeInTheDocument();
     expect(screen.queryByText('Chưa tạo')).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' })).toHaveClass('h-[400px]', 'xl:h-[480px]');
+    const table = screen.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
+    expect(table).toHaveAttribute('data-vertical-scroll', 'page');
+    expect(table).not.toHaveClass('h-[400px]', 'xl:h-[480px]');
   });
 
   it('groups repeated ingredient identities and keeps every source line actionable', () => {

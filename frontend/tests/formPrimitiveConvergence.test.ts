@@ -16,18 +16,18 @@ const checkboxExceptionLocations = [
 ]
 
 const fileExceptionLocations = [
-  'src/app/pages/admin-data/AdminBomPanel.tsx:139',
+  'src/app/pages/admin-data/AdminBomPanel.tsx:153',
   'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:81',
 ]
 
 const pathExceptionLocations = [
+  'src/components/ui/VietnameseDateInput.tsx:93',
   'src/components/common/PaginationBar.tsx:105',
   'src/components/common/PaginationBar.tsx:148',
-  'src/components/ui/input.tsx:93',
   'src/components/ui/textarea.tsx:7',
   'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
-  'src/features/chef/production/ServiceRunSection.tsx:167',
-  'src/features/chef/production/ServiceRunSection.tsx:184',
+  'src/features/chef/production/ServiceRunSection.tsx:168',
+  'src/features/chef/production/ServiceRunSection.tsx:185',
   'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:389',
   'src/components/common/TablePreferencesControl.tsx:129',
   'src/features/admin/pages/ApprovalRulesPage.tsx:28',
@@ -37,15 +37,13 @@ const pathExceptionLocations = [
   'src/features/approvals/pages/ApprovalDecisionDialog.tsx:54',
   // Route-critical controls intentionally stay native to avoid pulling Base UI field closures into eager chunks.
   'src/features/projects/weekly-menu/schedule/QuickServingCell.tsx:7',
-  'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:44',
-  'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx:39',
-  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:58',
-  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:74',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:323',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:391',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:395',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:405',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:415',
+  'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:95',
+  'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx:94',
+  'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:84',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:324',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:392',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:406',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:416',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

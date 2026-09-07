@@ -53,7 +53,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Configuration CRUD query and dialog state is not a business entity lifecycle.",
         "sources": [
-          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:61-102"
+          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:100-123"
         ]
       },
       "backendBacked": false,
@@ -83,7 +83,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Read-only overview query projections do not define an entity lifecycle.",
         "sources": [
-          "frontend/src/features/dashboard/pages/DashboardPage.tsx:60-82"
+          "frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx:61-66"
         ]
       },
       "backendBacked": false,
@@ -127,7 +127,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Reconciliation state and disposition operations are query-owned while the server remains the lifecycle authority.",
         "sources": [
-          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-80",
+          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-120",
           "frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46"
         ]
       },
@@ -191,8 +191,8 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Report filters, exports, and query phases are not entity lifecycle operations.",
         "sources": [
-          "frontend/src/features/reports/pages/ReportsPage.tsx:60-85",
-          "frontend/src/features/reports/pages/ReportsPage.tsx:113"
+          "frontend/src/features/reports/pages/ReportsPage.tsx:60-92",
+          "frontend/src/features/reports/pages/ReportsPage.tsx:121"
         ]
       },
       "backendBacked": false,

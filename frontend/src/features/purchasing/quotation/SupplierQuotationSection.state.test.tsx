@@ -127,7 +127,7 @@ describe('SupplierQuotationSection query state boundary', () => {
     expect(screen.queryByText('Chưa có báo giá nào cho nguyên liệu này')).toBeNull();
   });
 
-  it('associates quotation validation feedback with the affected fields', () => {
+  it('associates quotation validation feedback with the affected fields', async () => {
     render(<SupplierQuotationSection workflow={buildWorkflow(
       readyView(quotationPage),
       {
@@ -140,10 +140,10 @@ describe('SupplierQuotationSection query state boundary', () => {
       },
     )} />);
 
-    expect(screen.getByLabelText('Nguyên liệu:')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Nguyên liệu')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Nhà cung cấp')).toHaveAccessibleDescription('Thiếu nhà cung cấp Vui lòng chọn nhà cung cấp cho báo giá.');
     expect(screen.getByLabelText('Đơn giá')).toHaveAccessibleDescription('Đơn giá chưa hợp lệ Vui lòng nhập đơn giá lớn hơn 0.');
-    expect(screen.getByLabelText('Hiệu lực từ')).toHaveAccessibleDescription('Thiếu ngày bắt đầu Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.');
+    expect(await screen.findByLabelText('Hiệu lực từ')).toHaveAccessibleDescription('Thiếu ngày bắt đầu Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.');
   });
 
   it('renders ingredient and supplier labels in closed select triggers', () => {
@@ -152,7 +152,7 @@ describe('SupplierQuotationSection query state boundary', () => {
       { form: { supplierId: 'supplier-1', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' } },
     )} />);
 
-    expect(screen.getByRole('combobox', { name: 'Nguyên liệu:' })).toHaveTextContent('Gạo');
+    expect(screen.getByRole('combobox', { name: 'Nguyên liệu' })).toHaveTextContent('Gạo');
     expect(screen.getByRole('combobox', { name: 'Nhà cung cấp' })).toHaveTextContent('Nhà cung cấp Minh An');
   });
 
