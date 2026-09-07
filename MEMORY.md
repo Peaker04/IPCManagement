@@ -24,10 +24,10 @@ workbook:
 
 # Memory hiện hành
 
-## Active task — MRX cross-phase UI/UX convergence complete with browser residual
+## Active task — MRX independent-review remediation implemented; reviewer gate pending
 
-- Closure authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX convergence`; immutable report `.artifacts/audits/mrx-cross-phase-uiux-2026-09-07T16-55-00Z/REPORT.md`.
-- Source/tests/lint/build/ten route budgets and relevant backend lifecycle/detail gates pass. Aligned headed browser remains `NEEDS_EVIDENCE` because no exact non-interfering FE/BE build, mode and credential alignment was verified; no runtime was started or switched. Resume only that missing browser gate from `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`.
+- Closure authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX review remediation`; immutable follow-up `.artifacts/audits/mrx-cross-phase-uiux-review-remediation-2026-09-07T17-10-01Z/REPORT.md`.
+- Three review findings are fixed in bounded commits `c2cbab36`, `06ae4b29`, `94dae5c6`: source history now excludes batch/issue lifecycle, MRX lifecycle labels/actions/Audit use central `workflowConfig.ts`, and the read-only detail drawer is genuinely non-modal without weakening Dialog. Focused/full frontend, lint/build/ten budgets and relevant backend aggregate pass. Aligned headed browser remains `NEEDS_EVIDENCE`; independent review is still required before final PASS. Resume from `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`.
 
 ## Prior checkpoint — MRX MXE-18 closed with declared field residual
 
