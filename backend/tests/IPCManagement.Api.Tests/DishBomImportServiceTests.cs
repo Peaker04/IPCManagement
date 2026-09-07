@@ -92,6 +92,113 @@ public class DishBomImportServiceTests
         cache.TryGetValue("DishCatalog", out _).Should().BeFalse();
         cache.TryGetValue("DishCatalog:all", out _).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task PreviewAsync_Should_AutoFillWasteRateZero_And_ResolveDishCodeByName()
+    {
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseInMemoryDatabase($"dish-bom-autofill-{Guid.NewGuid():N}")
+            .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        await using var context = new IpcManagementContext(options);
+        context.Units.Add(new Unit
+        {
+            UnitId = GuidHelper.NewId(),
+            UnitCode = "KG",
+            UnitName = "Kilogram",
+            ConvertRateToBase = 1
+        });
+        context.Warehouses.Add(new Warehouse
+        {
+            WarehouseId = GuidHelper.NewId(),
+            WarehouseCode = "WH-AF",
+            WarehouseName = "Kho AF",
+            WarehouseType = "DRY"
+        });
+        context.Dishes.Add(new Dish
+        {
+            DishId = GuidHelper.NewId(),
+            DishCode = "DISH-PHO",
+            DishName = "Phở Bò Đặc Biệt",
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context), CreateOperationalWarehouseResolver(context));
+
+        // DishCode is EMPTY (only DishName provided), WasteRatePercent is EMPTY, PriceTier is EMPTY
+        var csv = """
+            DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note
+            ,Phở Bò Đặc Biệt,,,,Bò Tái,Kilogram,0.20,,,,PUBLISHED,Auto-fill test
+            """;
+
+        var request = new BomImportCommitRequestDto { PriceTier = 30000m };
+        var bytes = Encoding.UTF8.GetBytes(csv);
+        var preview = await service.PreviewAsync(new MemoryStream(bytes), request);
+
+        preview.CanCommit.Should().BeTrue(string.Join("; ", preview.Rows.SelectMany(row => row.Errors)));
+        preview.Rows.Should().HaveCount(1);
+        preview.Rows[0].DishCode.Should().Be("DISH-PHO");
+        preview.Rows[0].WasteRatePercent.Should().Be(0m);
+        preview.Rows[0].UnitCode.Should().Be("KG");
+    }
+
+    [Theory]
+    [InlineData("KG", "Kilogram", "Kilôgam")]
+    [InlineData("G", "Gram", "Gam")]
+    [InlineData("L", "Liter", "Lít")]
+    [InlineData("ML", "Milliliter", "Mililít")]
+    [InlineData("HOP", "hộp", "Hộp")]
+    [InlineData("QUA", "quả", "Quả")]
+    public void BomUnitDisplayPolicy_Should_UseVietnameseLabels(string code, string name, string expected)
+    {
+        BomUnitDisplayPolicy.Format(code, name).Should().Be(expected);
+    }
+
+    [Fact]
+    public void BomTemplateWorkbookBuilder_Should_IncludeGuidanceWorksheet()
+    {
+        var bytes = BomTemplateWorkbookBuilder.Build(
+            25000,
+            "Global",
+            new DateOnly(2026, 9, 4),
+            [],
+            ["Thịt nạc heo"],
+            ["Kilôgam", "Quả", "Lít"]);
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
+
+        archive.GetEntry("xl/worksheets/sheet1.xml").Should().NotBeNull();
+        archive.GetEntry("xl/worksheets/sheet2.xml").Should().NotBeNull();
+
+        var workbookEntry = archive.GetEntry("xl/workbook.xml");
+        workbookEntry.Should().NotBeNull();
+        using var reader = new StreamReader(workbookEntry!.Open());
+        var xml = reader.ReadToEnd();
+        xml.Should().Contain("BOM");
+        xml.Should().Contain("HUONG_DAN");
+
+        using var sheetReader = new StreamReader(archive.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        var sheetXml = sheetReader.ReadToEnd();
+        sheetXml.Should().Contain("Nguyên liệu chính");
+        sheetXml.Should().Contain("Định lượng/suất");
+        sheetXml.Should().Contain("sheetProtection");
+        sheetXml.Should().Contain("autoFilter ref=\"A4:F5\"");
+        sheetXml.Should().Contain("type=\"list\"");
+        sheetXml.Should().Contain("Định lượng phải lớn hơn 0");
+        sheetXml.Should().Contain("Hao hụt phải từ 0 đến 100%");
+        sheetXml.Should().Contain("hidden=\"1\"");
+        sheetXml.Should().NotContain("Cột BẮT BUỘC: IngredientName");
+
+        using var catalogReader = new StreamReader(archive.GetEntry("xl/worksheets/sheet3.xml")!.Open());
+        catalogReader.ReadToEnd().Should()
+            .Contain("Nguyên liệu").And
+            .Contain("Đơn vị").And
+            .Contain("Kilôgam").And
+            .Contain("Quả").And
+            .NotContain(">KG<");
+    }
+
     private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext context)
     {
         var resolver = Substitute.For<IOperationalWarehouseResolver>();
@@ -99,5 +206,4 @@ public class DishBomImportServiceTests
             context.Warehouses.Local.Select(item => item.WarehouseId).First());
         return resolver;
     }
-
 }

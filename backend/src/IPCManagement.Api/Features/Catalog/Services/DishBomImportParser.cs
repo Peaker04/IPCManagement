@@ -33,6 +33,10 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             .AsNoTracking()
             .Where(dish => dish.IsActive ?? true)
             .ToDictionaryAsync(dish => dish.DishCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
+        var dishesByName = dishes.Values
+            .GroupBy(dish => dish.DishName.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() == 1)
+            .ToDictionary(group => group.Key, group => group.Single(), StringComparer.OrdinalIgnoreCase);
         var ingredientList = await context.Ingredients
             .AsNoTracking()
             .Include(item => item.Unit)
@@ -56,9 +60,19 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
         var hasWarehouse = await context.Warehouses
             .AsNoTracking()
             .AnyAsync(cancellationToken);
-        var units = await context.Units
+        var unitList = await context.Units
             .AsNoTracking()
-            .ToDictionaryAsync(item => item.UnitCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var units = unitList
+            .ToDictionary(item => item.UnitCode.Trim(), StringComparer.OrdinalIgnoreCase);
+        var unitsByName = unitList
+            .GroupBy(item => item.UnitName.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() == 1)
+            .ToDictionary(group => group.Key, group => group.Single(), StringComparer.OrdinalIgnoreCase);
+        var unitsByDisplayName = unitList
+            .GroupBy(BomUnitDisplayPolicy.Format, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() == 1)
+            .ToDictionary(group => group.Key, group => group.Single(), StringComparer.OrdinalIgnoreCase);
         var existingLines = await context.Dishboms
             .AsNoTracking()
             .Where(line => line.PriceTierAmount == priceTier)
@@ -89,7 +103,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
 
             var tierText = Get("PriceTier");
             var hasTierText = !string.IsNullOrWhiteSpace(tierText);
-            var normalizedRowTier = default(decimal);
+            var normalizedRowTier = priceTier;
             if (hasTierText && !DishBomPolicy.TryNormalizeImportPriceTier(tierText, out normalizedRowTier))
             {
                 errors.Add("PriceTier chỉ được là 25000, 30000 hoặc 34000.");
@@ -100,6 +114,15 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             }
 
             dishes.TryGetValue(dishCode, out var dish);
+            if (dish is null && string.IsNullOrWhiteSpace(dishCode) && !string.IsNullOrWhiteSpace(dishName))
+            {
+                if (dishesByName.TryGetValue(dishName, out var matchedDish))
+                {
+                    dish = matchedDish;
+                    dishCode = matchedDish.DishCode;
+                }
+            }
+
             var ingredient = default(Ingredient);
             if (!string.IsNullOrWhiteSpace(ingredientCode))
             {
@@ -111,6 +134,17 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             }
 
             units.TryGetValue(unitCode, out var unit);
+            if (unit is null && !string.IsNullOrWhiteSpace(unitCode) && unitsByName.TryGetValue(unitCode, out var matchedUnit))
+            {
+                unit = matchedUnit;
+                unitCode = matchedUnit.UnitCode;
+            }
+            if (unit is null && !string.IsNullOrWhiteSpace(unitCode) && unitsByDisplayName.TryGetValue(unitCode, out matchedUnit))
+            {
+                unit = matchedUnit;
+                unitCode = matchedUnit.UnitCode;
+            }
+
             if (ingredient is null && string.IsNullOrWhiteSpace(ingredientCode) &&
                 !string.IsNullOrWhiteSpace(ingredientName) && unit is not null)
             {
@@ -129,7 +163,9 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
 
             if (dish is null)
             {
-                errors.Add("DishCode không tồn tại hoặc món đã ngừng sử dụng.");
+                errors.Add(string.IsNullOrWhiteSpace(dishCode) && string.IsNullOrWhiteSpace(dishName)
+                    ? "Cần nhập DishCode hoặc DishName."
+                    : "DishCode không tồn tại hoặc món đã ngừng sử dụng.");
             }
             if (string.IsNullOrWhiteSpace(ingredientCode) && string.IsNullOrWhiteSpace(ingredientName))
             {
@@ -147,7 +183,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             {
                 if (!hasWarehouse)
                 {
-                errors.Add("Chưa có kho nguyên liệu để tự tạo mã nguyên liệu mới.");
+                    errors.Add("Chưa có kho nguyên liệu để tự tạo mã nguyên liệu mới.");
                 }
                 else
                 {
@@ -160,10 +196,20 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             {
                 errors.Add("GrossQtyPerServing phải lớn hơn 0.");
             }
-            if (!decimal.TryParse(wasteRateText, NumberStyles.Number, CultureInfo.InvariantCulture, out var wasteRate) || wasteRate < 0 || wasteRate > 100)
+            var wasteRate = 0m;
+            if (string.IsNullOrWhiteSpace(wasteRateText))
+            {
+                wasteRate = 0m;
+            }
+            else if (!decimal.TryParse(wasteRateText, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedWaste) || parsedWaste < 0 || parsedWaste > 100)
             {
                 errors.Add("WasteRatePercent phải nằm trong 0-100.");
             }
+            else
+            {
+                wasteRate = parsedWaste;
+            }
+
             if (!DateOnly.TryParse(Get("EffectiveFrom"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var effectiveFrom))
             {
                 effectiveFrom = request.EffectiveFrom ?? ServiceCalendar.Today();
@@ -313,7 +359,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             var rows = reader.ReadRowsWithMetadata(tempFilePath, sheetName);
             var headerRow = rows.FirstOrDefault(row =>
                 BomTemplateWorkbookBuilder.Headers.All(header =>
-                    row.Cells.Values.Any(value => NormalizeHeader(value) == NormalizeHeader(header))));
+                    row.Cells.Values.Any(value => CanonicalHeader(value) == NormalizeHeader(header))));
             if (headerRow is null)
             {
                 throw new BusinessRuleException("File Excel BOM thiếu dòng header đúng cấu trúc.");
@@ -321,7 +367,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
 
             var headersByColumn = headerRow.Cells
                 .Where(item => !string.IsNullOrWhiteSpace(item.Value))
-                .ToDictionary(item => item.Key, item => NormalizeHeader(item.Value), StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(item => item.Key, item => CanonicalHeader(item.Value), StringComparer.OrdinalIgnoreCase);
 
             return rows
                 .Where(row => row.RowNumber > headerRow.RowNumber)
@@ -385,6 +431,22 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
 
         result.Add(cell.ToString());
         return result;
+    }
+
+    private static readonly IReadOnlyDictionary<string, string> HeaderAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["MÃMÓN"] = "DISHCODE", ["TÊNMÓN"] = "DISHNAME", ["MỨCGIÁ"] = "PRICETIER",
+        ["KHÁCHHÀNG"] = "CUSTOMERCODE", ["TÊNNGUYÊNLIỆU"] = "INGREDIENTNAME",
+        ["NGUYÊNLIỆUCHÍNH"] = "INGREDIENTNAME", ["ĐƠNVỊ"] = "UNITCODE",
+        ["ĐỊNHLƯỢNG/SUẤT"] = "GROSSQTYPERSERVING", ["ĐỊNHLƯỢNG(GRAM)/KHAY"] = "GROSSQTYPERSERVING",
+        ["HAOHỤT(%)"] = "WASTERATEPERCENT", ["HIỆULỰCTỪ"] = "EFFECTIVEFROM",
+        ["HIỆULỰCĐẾN"] = "EFFECTIVETO", ["TRẠNGTHÁI"] = "BOMSTATUS", ["GHICHÚ"] = "NOTE"
+    };
+
+    private static string CanonicalHeader(string value)
+    {
+        var normalized = NormalizeHeader(value);
+        return HeaderAliases.GetValueOrDefault(normalized, normalized);
     }
 
     private static string NormalizeHeader(string value)

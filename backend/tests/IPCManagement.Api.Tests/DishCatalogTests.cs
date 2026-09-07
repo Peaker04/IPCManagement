@@ -573,17 +573,17 @@ public class DishCatalogTests
             }
 
             var reader = new XlsxWorkbookReader();
-            var rows = reader.ReadTable(tempFile, "BOM", BomTemplateWorkbookBuilder.Headers);
+            var rows = reader.ReadTable(tempFile, "BOM", BomTemplateWorkbookBuilder.DisplayHeaders);
 
             rows.Should().HaveCount(8);
-            rows[0]["DishCode"].Should().Be("DISH-BOM");
-            rows[0]["DishName"].Should().Be("Món BOM");
-            rows[0]["PriceTier"].Should().Be("25000");
-            rows[0]["IngredientName"].Should().BeEmpty();
-            rows[0]["UnitCode"].Should().BeEmpty();
-            rows[0]["GrossQtyPerServing"].Should().BeEmpty();
-            rows[0]["WasteRatePercent"].Should().BeEmpty();
-            rows[0]["BomStatus"].Should().Be("PUBLISHED");
+            rows[0]["Tên món"].Should().Be("Món BOM");
+            rows[0]["Nguyên liệu chính"].Should().BeEmpty();
+            rows[0]["Đơn vị"].Should().BeEmpty();
+            rows[0]["Định lượng/suất"].Should().BeEmpty();
+            rows[0]["Hao hụt (%)"].Should().BeEmpty();
+            rows[0]["Mã món"].Should().Be("DISH-BOM");
+            rows[0]["Mức giá"].Should().Be("25000");
+            rows[0]["Trạng thái"].Should().Be("PUBLISHED");
         }
         finally
         {

@@ -1,4 +1,5 @@
-import { Download, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { Download, HelpCircle, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
 import { ConfirmDialog, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +19,7 @@ type AdminBomPanelProps = { model: AdminDataPageModel | ReconciliationAdminDataP
 const EMPTY_BOM_SELECT_VALUE = '__empty_bom_select__';
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
+  const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
   const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
   const isReconciliationMode = 'isReconciliationMode' in model && model.isReconciliationMode;
   const selectedImportContract = customerContracts?.find((contract) => contract.customerId === bomImportCustomerId);
@@ -95,39 +97,51 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </FieldRow>
 
                 <FieldRow label="Tải file Excel">
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      type="button"
-                      disabled={Boolean(downloadBomTemplateState?.isLoading)}
-                      onClick={() => void handleDownloadBomTemplate('missing')}
-                    >
-                      <Download size={15} />
-                      BOM thiếu
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      type="button"
-                      disabled={Boolean(downloadBomTemplateState?.isLoading)}
-                      onClick={() => void handleDownloadBomTemplate('blank')}
-                    >
-                      <Download size={15} />
-                      Mẫu trống
-                    </Button>
-                    {bomTemplateDishId && (
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <Button
                         variant="outline"
                         size="sm"
                         type="button"
                         disabled={Boolean(downloadBomTemplateState?.isLoading)}
-                        onClick={() => void handleDownloadBomTemplate('dish')}
+                        onClick={() => void handleDownloadBomTemplate('missing')}
+                        title="Tải danh sách các món đang thiếu định lượng BOM theo mức giá đã chọn"
                       >
                         <Download size={15} />
-                        Món này
+                        BOM thiếu
                       </Button>
-                    )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        disabled={Boolean(downloadBomTemplateState?.isLoading)}
+                        onClick={() => void handleDownloadBomTemplate('blank')}
+                        title="Tải mẫu Excel trống kèm hướng dẫn để nhập định lượng món mới"
+                      >
+                        <Download size={15} />
+                        Mẫu trống
+                      </Button>
+                      {bomTemplateDishId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          disabled={Boolean(downloadBomTemplateState?.isLoading)}
+                          onClick={() => void handleDownloadBomTemplate('dish')}
+                        >
+                          <Download size={15} />
+                          Món này
+                        </Button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsGuidanceOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 hover:underline self-start pt-0.5"
+                    >
+                      <HelpCircle size={14} />
+                      <span>Xem hướng dẫn điền file & các cột tự điền</span>
+                    </button>
                   </div>
                 </FieldRow>
 
@@ -191,8 +205,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   </InlineAlert>
                 )}
 
-                <InlineAlert title="Cấu trúc nhập BOM mới" variant="info">
-                  <span id="bom-import-action-guidance">Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Chọn file, kiểm tra bản xem trước và xử lý hết lỗi chặn trước khi nhập dữ liệu.</span>
+                <InlineAlert title="Chỉ cần nhập 3 thông tin" variant="info">
+                  <span id="bom-import-action-guidance">
+                    Chọn <strong>Nguyên liệu chính</strong>, <strong>Đơn vị</strong> và nhập <strong>Định lượng/suất</strong>. Các ô món, mức giá, phạm vi và trạng thái đã được hệ thống khóa.
+                  </span>
                 </InlineAlert>
               </div>
 
@@ -475,6 +491,26 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
         onOpenChange={(open) => { if (!open) setClosingBom(null); }}
       />}
 
+      {/* Hướng dẫn ngắn, cùng vocabulary với file Excel. */}
+      <Dialog open={isGuidanceOpen} onOpenChange={setIsGuidanceOpen}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>Nhập định lượng bằng Excel</DialogTitle>
+            <DialogDescription>File đã khóa các thông tin do hệ thống quản lý. Bạn chỉ nhập dữ liệu nguyên liệu.</DialogDescription>
+          </DialogHeader>
+          <ol className="space-y-3 text-sm text-slate-700">
+            <li><strong>1. Chọn món hoặc tải danh sách món thiếu định lượng.</strong></li>
+            <li><strong>2. Nhập ba cột bắt buộc:</strong> chọn Nguyên liệu chính, Đơn vị và nhập Định lượng/suất.</li>
+            <li><strong>3. Tải file lên và chọn Kiểm tra file.</strong> Hệ thống sẽ chỉ đúng dòng cần sửa trước khi nhập.</li>
+          </ol>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            Hao hụt và Ghi chú là tùy chọn. Không mở khóa hoặc sửa các cột đã được hệ thống điền sẵn.
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setIsGuidanceOpen(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
