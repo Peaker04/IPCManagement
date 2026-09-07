@@ -24,7 +24,12 @@ workbook:
 
 # Memory hiện hành
 
-## Active task — MRX MXE-18 closed with declared field residual
+## Active task — MRX cross-phase UI/UX convergence
+
+- Resume authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX convergence`.
+- Fresh-session handover: `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`. Current execution begins at Wave 0; preserve inherited Antigravity dirt, stage only task-owned hunks, make bounded local checkpoint commits, and do not push.
+
+## Prior checkpoint — MRX MXE-18 closed with declared field residual
 
 - Resume owner: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`. MXE-10..15 passed for the authorized protected read-only/fixture scope; MXE-16 was not applicable because the locked runtime lab budgets were green; MXE-17 passes its deterministic scope; after independent reviewer PASS, MXE-18 is `PASS_WITH_DECLARED_RESIDUAL`. Field p75/RUM remains external `NEEDS_EVIDENCE`; this closure is not field-performance certification.
 - Backup-first exact `ipc_lane7` gate passed. New read-only archive: `D:\IPCManagement-backups\mxe10-18-migration-20260906-183002\ipc_lane7-20260906-183002.zip`, 738,248 bytes, SHA-256 `C8D9B29839102740D9C0D0D24ED25B642865F72695CEA8C7450399DA30D80606`. Dump archive/manifest/readability passed and contains zero `USE`, `CREATE DATABASE` or `DROP DATABASE` routing.

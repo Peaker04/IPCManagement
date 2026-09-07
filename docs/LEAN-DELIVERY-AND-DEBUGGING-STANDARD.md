@@ -174,6 +174,16 @@ sửa dữ liệu trực tiếp, hạ authority hoặc đổi oracle để manuf
 
 ## 10. Ngân sách và subagent
 
+### Checkpoint context và fresh-session handover
+
+Theo dõi áp lực context thực tế, không phát minh API hay ngưỡng token 250k/300k mà runtime không hỗ trợ.
+Checkpoint sau mỗi wave đã kiểm chứng và trước gate dài. Handover phải ghi goal/wave, commit đã hoàn tất,
+branch/HEAD + status/index, task-owned so với inherited dirt, đúng bước/command kế tiếp, test/evidence và giới hạn,
+process thuộc run, blocker và pointer authority; MEMORY chỉ trỏ checklist/handover. Khi có quyền commit, stage đúng
+task-owned hunks, kiểm cached diff, commit local, xác nhận index sạch và không push. Sau đó resume bằng fresh
+session/packet hoặc dừng với pointer chính xác; phiên mới đối chiếu source/git/runtime và không giả định kế thừa
+chat chưa persist.
+
 - L0/L1: làm inline; không parallel audit trùng scope.
 - Chỉ dùng subagent khi có workstream độc lập hoặc cần review độc lập sau khi implementation đã xanh.
 - Reviewer read-only không được chạy full repo nếu diff/finding ledger đã chỉ scope.
