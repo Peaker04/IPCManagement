@@ -108,7 +108,7 @@ export function StatusBadge({
       )}
     >
       <span className={cn('ipc-status-badge-dot h-1.5 w-1.5 rounded-full shrink-0', dotClasses[variant])} aria-hidden="true" />
-      <span className="ipc-status-badge-label whitespace-nowrap">{children}</span>
+      <span className="ipc-status-badge-label inline-flex items-center gap-1.5 whitespace-nowrap">{children}</span>
     </span>
   );
 }

@@ -488,9 +488,18 @@
 }
 
 .ipc-status-badge-label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   min-width: 0;
   overflow-wrap: normal;
+}
+
+.ipc-status-badge-label > svg,
+.ipc-status-badge-label svg {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .ipc-badge-cell {

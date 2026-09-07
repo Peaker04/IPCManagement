@@ -69,7 +69,14 @@ export function SearchableDishPicker({
     if (!open) return undefined
     const placePopup = () => {
       const rect = inputRef.current?.getBoundingClientRect()
-      if (rect) setPopupStyle({ left: rect.left, top: rect.bottom + 4, width: rect.width })
+      if (!rect) return
+      const popupWidth = Math.max(rect.width, 320)
+      const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280
+      let left = rect.left
+      if (left + popupWidth > viewportWidth - 16) {
+        left = Math.max(16, rect.right - popupWidth)
+      }
+      setPopupStyle({ left, top: rect.bottom + 4, width: popupWidth })
     }
     placePopup()
     window.addEventListener('resize', placePopup)
@@ -96,6 +103,7 @@ export function SearchableDishPicker({
           aria-activedescendant={open && activeDish ? `${listId}-${activeDish.id}` : undefined}
           disabled={disabled}
           value={open ? query : (selected?.name ?? '')}
+          title={selected?.name ?? ''}
           placeholder={disabled ? 'Chưa có món phù hợp' : 'Tìm món ăn'}
           className="h-9 w-full rounded-sm border border-slate-300 bg-white pl-8 pr-2 text-xs text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
           onFocus={() => { setQuery(''); setActiveIndex(0); setOpen(true) }}
@@ -111,7 +119,7 @@ export function SearchableDishPicker({
         />
       </span>
       {open && !disabled && (
-        <div id={listId} role="listbox" aria-label={`Kết quả ${label}`} style={popupStyle} className="fixed z-[1102] max-h-48 overflow-y-auto rounded-sm border border-slate-200 bg-white p-1 shadow-lg">
+        <div id={listId} role="listbox" aria-label={`Kết quả ${label}`} style={popupStyle} className="fixed z-[1102] max-h-56 overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-xl">
           <p className="px-2 py-1 text-[11px] font-medium text-slate-500">Chọn món ăn</p>
           {filtered.length === 0 ? <p className="px-2 py-3 text-center text-xs text-slate-600">Không tìm thấy món phù hợp</p> : filtered.map((dish, index) => (
             <button
@@ -120,13 +128,18 @@ export function SearchableDishPicker({
               type="button"
               role="option"
               aria-selected={dish.id === value}
-              className={cn('flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-xs hover:bg-blue-50', index === activeIndex && 'bg-blue-50', dish.id === value && 'font-semibold')}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left text-xs transition-colors hover:bg-blue-50',
+                index === activeIndex && 'bg-blue-50 text-blue-900 font-semibold',
+                dish.id === value && 'font-semibold text-blue-700',
+              )}
               onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => selectDish(dish)}
+              title={dish.name}
             >
               <Check className={cn('size-3.5 shrink-0', dish.id === value ? 'visible text-blue-700' : 'invisible')} aria-hidden="true" />
-              <strong className="min-w-0 flex-1 truncate">{dish.name}</strong>
+              <span className="min-w-0 flex-1 leading-snug break-words">{dish.name}</span>
             </button>
           ))}
         </div>

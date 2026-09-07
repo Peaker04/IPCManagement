@@ -60,7 +60,7 @@ export function SystemOperationModeSettings() {
                 <span className="mt-0.5 block text-xs text-slate-600">{mode.summary}</span>
               </span>
               {active ? (
-                <StatusBadge variant="success"><CheckCircle2 size={14} /> Đang dùng</StatusBadge>
+                <StatusBadge variant="success" className="inline-flex items-center gap-1.5 whitespace-nowrap"><CheckCircle2 size={14} className="shrink-0" /> Đang dùng</StatusBadge>
               ) : (
                 <Button type="button" size="sm" variant="outline" disabled={isLoading} onClick={() => switchMode(mode.id)}>
                   Chuyển sang

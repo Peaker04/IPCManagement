@@ -29,7 +29,7 @@ export function ReconciliationDashboardPage() {
             <h2 id="reconciliation-workflow-title" className="text-base font-bold text-slate-900">Quy trình 4 bước</h2>
             <p className="mt-1 text-sm text-slate-600">Đi theo một chiều từ kế hoạch đến xử lý sai lệch.</p>
           </div>
-          <StatusBadge variant="success"><CheckCircle2 size={14} /> Chế độ đối chiếu</StatusBadge>
+          <StatusBadge variant="success" className="inline-flex items-center gap-1.5 whitespace-nowrap"><CheckCircle2 size={14} className="shrink-0" /> Chế độ đối chiếu</StatusBadge>
         </div>
         <ol className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Các bước đối chiếu nguyên liệu">
           {steps.map((step) => (

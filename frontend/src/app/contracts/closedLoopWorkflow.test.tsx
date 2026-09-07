@@ -66,7 +66,7 @@ describe('closed-loop reconciliation frontend contract', () => {
   })
 
   it('keeps transfer controls inside the material-demand tab instead of below the weekly plan', () => {
-    expect(weeklyMenuPageSource).toContain("isMaterialReconciliationMode && activeView === 'demand' && <ClosedLoopTransferPanel")
+    expect(weeklyMenuPageSource).toContain("isMaterialReconciliationMode && activeView === 'demand' ? <ClosedLoopTransferPanel")
     expect(weeklyMenuPageSource).not.toContain("</QueryViewBoundary>\n      {isMaterialReconciliationMode && <ClosedLoopTransferPanel")
   })
 

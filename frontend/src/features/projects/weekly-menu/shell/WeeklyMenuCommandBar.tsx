@@ -36,28 +36,53 @@ export const WeeklyMenuCommandBar = ({
   onWeekChange,
 }: CommandProps) => {
   return (
-  <CommandBar actions={<>
-    <button type="button" onClick={onEdit} className="ipc-button ipc-button-ghost font-semibold whitespace-nowrap">
-      <Edit size={14} className="text-[var(--ipc-slate-500)]" />
-      Chỉnh sửa thực đơn
-    </button>
-    <button type="button" onClick={onImport} disabled={isImporting} className="ipc-button ipc-button-ghost font-semibold whitespace-nowrap">
-      <Upload size={14} className="text-[var(--ipc-slate-500)]" />
-      {isImporting ? 'Đang nhập...' : 'Nhập Excel'}
-    </button>
-    {canPublish && onPublish && (
-      <button type="button" onClick={onPublish} disabled={isPublishing} className="ipc-button ipc-button-primary whitespace-nowrap">
-        <Send size={14} aria-hidden="true" />
-        {isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}
-      </button>
-    )}
-    {onExport && <button type="button" onClick={onExport} className="ipc-button ipc-button-success whitespace-nowrap">
-      Xuất báo cáo gửi kho
-    </button>}
-  </>}>
+  <CommandBar
+    actions={
+      <>
+        <button
+          type="button"
+          onClick={onImport}
+          disabled={isImporting}
+          className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
+        >
+          <Upload size={16} aria-hidden="true" />
+          <span>{isImporting ? 'Đang nhập...' : 'Nhập Excel'}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={!weekStartDate}
+          className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
+        >
+          <Edit size={16} aria-hidden="true" />
+          <span>Chỉnh sửa lịch tuần</span>
+        </button>
+        {canPublish && onPublish && (
+          <button
+            type="button"
+            onClick={onPublish}
+            disabled={isPublishing}
+            className="ipc-button ipc-button-primary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
+          >
+            <Send size={16} aria-hidden="true" />
+            <span>{isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}</span>
+          </button>
+        )}
+        {onExport && (
+          <button
+            type="button"
+            onClick={onExport}
+            className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
+          >
+            <span>Xuất báo cáo gửi kho</span>
+          </button>
+        )}
+      </>
+    }
+  >
     <FieldRow label="Khách hàng">
       <select
-        aria-label="Chọn khách hàng"
+        aria-label="Khách hàng"
         value={selectedCustomerId}
         onChange={(event) => onCustomerChange(event.target.value)}
         disabled={isCustomerLoading}

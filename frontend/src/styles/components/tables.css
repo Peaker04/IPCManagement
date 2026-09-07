@@ -412,6 +412,26 @@
   text-align: left;
 }
 
+.ipc-data-table td[colspan],
+.ipc-erp-grid-table td[colspan],
+.ipc-matrix-grid-table td[colspan],
+.ipc-data-table td.ipc-menu-section-header,
+.ipc-erp-grid-table td.ipc-menu-section-header,
+.ipc-matrix-grid-table td.ipc-menu-section-header {
+  text-align: center !important;
+  position: static !important;
+}
+
+.ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table td[colspan],
+.ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table td[colspan],
+.ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table td.ipc-menu-section-header,
+.ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table td.ipc-menu-section-header,
+.ipc-table-viewport .ipc-matrix-grid-table td[colspan],
+.ipc-table-viewport .ipc-matrix-grid-table td.ipc-menu-section-header {
+  position: static !important;
+  left: auto !important;
+}
+
 .ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table th:first-child,
 .ipc-table-viewport[data-frozen-identifier="true"] .ipc-data-table th:first-child,
 .ipc-table-shell[data-frozen-identifier="true"] .ipc-data-table td:first-child,
@@ -506,6 +526,85 @@
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
+}
+
+/* Định dạng chuyên biệt cho bảng ma trận thực đơn tuần chứa ô merge nhiều dòng (rowspan, colspan) */
+.ipc-matrix-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+}
+
+.ipc-matrix-grid-table thead {
+  background-color: #f1f5f9;
+}
+
+.ipc-matrix-grid-table th {
+  background-color: #f1f5f9;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: #334155;
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+
+.ipc-matrix-grid-table td {
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  color: #1e293b;
+}
+
+/* KHÔNG áp dụng cơ chế sticky hay đông băng cột 1 cho bảng ma trận để tránh vạch cắt */
+.ipc-weekly-menu-shell th:first-child,
+.ipc-weekly-menu-shell td:first-child,
+.ipc-matrix-grid-table th:first-child,
+.ipc-matrix-grid-table td:first-child,
+.ipc-weekly-menu-shell[data-frozen-identifier] th:first-child,
+.ipc-weekly-menu-shell[data-frozen-identifier] td:first-child {
+  position: static !important;
+  left: auto !important;
+  z-index: auto !important;
+  box-shadow: none !important;
+}
+
+/* Triệt tiêu 100% hiệu ứng hover đổi màu hàng trên toàn bộ bảng ma trận */
+.ipc-weekly-menu-shell tbody tr:hover,
+.ipc-matrix-grid-table tbody tr:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Khóa cố định màu sắc cho thanh tiêu đề phân đoạn (MENU MẶN CA CHIỀU, MENU CHAY...) */
+.ipc-weekly-menu-shell td.ipc-menu-section-header,
+.ipc-matrix-grid-table td.ipc-menu-section-header,
+.ipc-weekly-menu-shell tr:hover td.ipc-menu-section-header,
+.ipc-matrix-grid-table tr:hover td.ipc-menu-section-header {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  position: static !important;
+  left: auto !important;
+  text-align: center !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  border-right: 1px solid #cbd5e1 !important;
+}
+
+/* Khóa cố định màu sắc cho cột danh mục dòng (Món mặn 1, Món mặn 2, Rau, Canh, Tráng miệng...) */
+.ipc-weekly-menu-shell td.ipc-matrix-slot-cell,
+.ipc-matrix-grid-table td.ipc-matrix-slot-cell,
+.ipc-weekly-menu-shell tr:hover td.ipc-matrix-slot-cell,
+.ipc-matrix-grid-table tr:hover td.ipc-matrix-slot-cell {
+  background-color: #f8fafc !important;
+  position: static !important;
+  left: auto !important;
+  box-shadow: none !important;
 }
 
 .ipc-imported-layout-matrix {

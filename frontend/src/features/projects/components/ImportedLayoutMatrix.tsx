@@ -73,8 +73,13 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
   const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)))
 
   return (
-    <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
-      <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
+    <TableViewport
+      caption="Bố cục thực đơn theo file khách hàng"
+      className={cn('ipc-weekly-menu-shell', maxBodyHeight)}
+      ariaLabel="Bảng bố cục thực đơn theo file khách hàng"
+      frozenFirstIdentifier={false}
+    >
+      <table className="ipc-matrix-grid-table table-fixed w-full border-collapse">
         <thead>
           <tr>
             <th className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
@@ -95,10 +100,20 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
             const cellSpans = buildCellSpans(sectionRows, displayDays)
             return (
               <Fragment key={sectionName}>
-                <tr><td colSpan={displayDays.length + 1} className="border-b border-r border-slate-300 bg-slate-200 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-900">{sectionName}</td></tr>
+                <tr>
+                  <td
+                    colSpan={displayDays.length + 1}
+                    className="ipc-menu-section-header border-b border-r border-slate-300 bg-slate-200 py-2.5 !text-center text-xs font-bold uppercase tracking-wide text-slate-900"
+                    style={{ textAlign: 'center', position: 'static' }}
+                  >
+                    <div className="w-full text-center">
+                      {sectionName}
+                    </div>
+                  </td>
+                </tr>
                 {sectionRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-xs font-semibold text-slate-800">{row.slotLabel}</span></td>
+                    <td className="ipc-matrix-slot-cell border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-xs font-semibold text-slate-800">{row.slotLabel}</span></td>
                     {(() => {
                       const cells = displayDays.map((day) => row.cells[day.key]).filter(Boolean)
                       const firstCell = cells[0]
@@ -106,13 +121,13 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
                       const isMergedDessert = (row.slot === 'fruit' || row.slot === 'dessert')
                         && cells.length === displayDays.length
                         && cells.every((cell) => (cell.dishId || cell.dishName) === (firstCell?.dishId || firstCell?.dishName))
-                      if (isMergedDessert) return <td colSpan={displayDays.length} className="border-r border-slate-200 bg-white p-2 text-center align-middle text-xs font-semibold text-slate-900"><span className="block text-center">{formatDishName(firstDishName)}</span></td>
+                      if (isMergedDessert) return <td colSpan={displayDays.length} className="ipc-matrix-dish-cell border-r border-slate-200 bg-white p-2 text-center align-middle text-xs font-semibold text-slate-900"><span className="block text-center">{formatDishName(firstDishName)}</span></td>
                       return displayDays.map((day, index) => {
                       const cell = row.cells[day.key]
                       const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 }
                       if (spanInfo.hidden) return null
                       return (
-                        <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('border-r border-slate-200 p-2 text-center align-middle text-xs', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
+                        <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('ipc-matrix-dish-cell border-r border-slate-200 p-2 text-center align-middle text-xs', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
                           {cell ? <span className="block text-center font-semibold text-slate-900">{formatDishName(cell.dishId ? dishNamesById?.get(cell.dishId) ?? cell.dishName : cell.dishName)}</span> : <span className="block text-center">-</span>}
                         </td>
                       )
@@ -123,7 +138,17 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
               </Fragment>
             )
           })}
-          {rows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={displayDays.length + 1}>Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.</td></tr>}
+          {rows.length === 0 && (
+            <tr>
+              <td
+                className="p-4 !text-center text-sm text-slate-500"
+                colSpan={displayDays.length + 1}
+                style={{ textAlign: 'center', position: 'static' }}
+              >
+                Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </TableViewport>

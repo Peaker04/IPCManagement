@@ -30,3 +30,30 @@ it('allows a completed day/shift serving count to be corrected before source fre
   }]} />)
   expect(screen.getByRole('button', { name: 'Hoàn tất' })).toBeEnabled()
 })
+
+it('switches between dishes tab and servings tab when both are available', () => {
+  const workflowWithSections = {
+    ...workflow,
+    scope: { ...workflow.scope, displayDays: [{ key: 'mon', label: 'Thứ Hai', date: '31/08/2026' }] },
+    presentation: {
+      ...workflow.presentation,
+      sections: [
+        { label: 'MENU MẶN CA SÁNG', slotType: 'morningSavory' as const, dishes: [{ id: 'dish-1', name: 'Thịt kho', code: 'MON-01', bomReady: true }], defaultDishId: 'dish-1' },
+        { label: 'MENU CHAY CA SÁNG', slotType: 'morningVegetarian' as const, dishes: [{ id: 'dish-2', name: 'Đậu hũ sốt', code: 'MON-02', bomReady: true }], defaultDishId: 'dish-2' },
+      ],
+    },
+  } as unknown as WeeklyScheduleEditorWorkflow
+
+  render(<WeeklyScheduleEditorDialog workflow={workflowWithSections} servingRows={[{
+    key: 'mon-morning', dayKey: 'mon', dayLabel: 'Thứ Hai', date: '31/08/2026', serviceDate: '2026-08-31', shiftName: 'MORNING', shiftLabel: 'Ca Sáng', quantityPlanIds: ['plan'], lines: [], currentServings: 800, importedServings: 800, inputValue: '800', hasPlanLines: true, hasDraftChange: false, isConfirmed: true, isCompleted: true, statusLabel: 'Đã hoàn tất',
+  }]} />)
+
+  // Default is dishes tab
+  expect(screen.getByRole('tab', { name: /Thực đơn món/i })).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getByText('MENU MẶN CA SÁNG')).toBeInTheDocument()
+  expect(screen.getByText('MENU CHAY CA SÁNG')).toBeInTheDocument()
+
+  // Switch to servings tab
+  fireEvent.click(screen.getByRole('tab', { name: /Kế hoạch số suất/i }))
+  expect(screen.getByRole('spinbutton', { name: 'Số suất Thứ Hai Ca Sáng' })).toBeInTheDocument()
+})

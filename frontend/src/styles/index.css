@@ -735,6 +735,13 @@ code {
   display: none !important;
 }
 
+.ipc-status-badge svg,
+.ipc-status-badge-label svg {
+  display: inline-block !important;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
 .ipc-section-panel > .ipc-table-shell,
 .ipc-section-panel > .ipc-logistics-table-shell,
 .ipc-section-panel > .ipc-exception-lane,

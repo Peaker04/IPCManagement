@@ -50,4 +50,15 @@ describe('shared status presentation components', () => {
     expect(screen.getByText('Sẵn sàng').closest('.ipc-context-badge')).toHaveClass('is-success')
     expect(screen.getByText('Sẵn sàng').closest('.ipc-context-badge')).not.toHaveClass('is-quiet')
   })
+
+  it('aligns icon and text horizontally on one line', () => {
+    const { container } = render(
+      <StatusBadge variant="success">
+        <svg data-testid="test-icon" width="14" height="14" />
+        <span>Đang dùng</span>
+      </StatusBadge>
+    )
+    const labelSpan = container.querySelector('.ipc-status-badge-label')
+    expect(labelSpan).toHaveClass('inline-flex', 'items-center', 'whitespace-nowrap')
+  })
 })
