@@ -156,6 +156,7 @@ public class DishBomImportServiceTests
         var preview = await importer.PreviewAsync(new MemoryStream(bytes), request);
         preview.CanCommit.Should().BeTrue(string.Join("; ", preview.Rows.SelectMany(row => row.Errors)));
         await importer.CommitAsync(new MemoryStream(bytes), request, GuidHelper.ToGuidString(actorId));
+        Assert.Equal(2, await context.Bomadjustments.CountAsync());
         context.Auditlogs.AddRange(
             new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-3), ChangedBy = actorId, BusinessArea = "BOM", EntityName = nameof(DishBom), EntityId = linkedBomId, FieldName = "QuantityAndWaste", OldValue = "0.1 / hao hụt 1%", NewValue = "0.2 / hao hụt 2%", Reason = "Điều chỉnh BOM liên quan" },
             new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-2), ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(ReconciliationBatch), EntityId = batchId, FieldName = "Status", NewValue = "IN_PROGRESS" },
