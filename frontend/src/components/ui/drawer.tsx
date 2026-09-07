@@ -28,6 +28,7 @@ export function Drawer({ open, onOpenChange, children }: DrawerProps) {
   const titleId = React.useId()
   const portalId = React.useId()
   const openerRef = React.useRef<HTMLElement | null>(null)
+  const shouldReturnFocusRef = React.useRef(false)
   const onOpenChangeRef = React.useRef(onOpenChange)
 
   React.useEffect(() => {
@@ -35,6 +36,8 @@ export function Drawer({ open, onOpenChange, children }: DrawerProps) {
   }, [onOpenChange])
 
   const requestClose = React.useCallback((reason: DrawerCloseReason) => {
+    shouldReturnFocusRef.current = document.activeElement instanceof HTMLElement
+      && Boolean(document.activeElement.closest('[data-ipc-drawer-content]'))
     onOpenChangeRef.current(false, reason)
   }, [])
 
@@ -43,22 +46,30 @@ export function Drawer({ open, onOpenChange, children }: DrawerProps) {
     if (!open || !portalRoot) return undefined
 
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    shouldReturnFocusRef.current = false
     const drawer = portalRoot.querySelector<HTMLElement>('[data-ipc-drawer-content]')
     if (!drawer) return undefined
 
     ;(getFocusableElements(drawer)[0] ?? drawer).focus()
+    shouldReturnFocusRef.current = true
+    const handleFocusIn = (event: FocusEvent) => {
+      shouldReturnFocusRef.current = event.target instanceof Node && drawer.contains(event.target)
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
         requestClose('escape')
       }
     }
+    document.addEventListener('focusin', handleFocusIn)
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
+      document.removeEventListener('focusin', handleFocusIn)
       window.removeEventListener('keydown', handleKeyDown)
-      openerRef.current?.focus()
+      if (shouldReturnFocusRef.current) openerRef.current?.focus()
       openerRef.current = null
+      shouldReturnFocusRef.current = false
     }
   }, [open, portalId, requestClose])
 
@@ -67,11 +78,6 @@ export function Drawer({ open, onOpenChange, children }: DrawerProps) {
   return createPortal(
     <div id={portalId} data-ipc-drawer-portal="true" className="fixed inset-0 z-[1000] pointer-events-none">
       <DrawerContext.Provider value={{ titleId, requestClose }}>
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-auto bg-slate-900/20"
-          onClick={() => requestClose('backdrop')}
-        />
         {children}
       </DrawerContext.Provider>
     </div>,
@@ -79,27 +85,8 @@ export function Drawer({ open, onOpenChange, children }: DrawerProps) {
   )
 }
 
-export function DrawerContent({ className, children, onKeyDown, ...props }: React.HTMLAttributes<HTMLElement>) {
+export function DrawerContent({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
   const context = React.useContext(DrawerContext)
-
-  const handleKeyDown: React.KeyboardEventHandler<HTMLElement> = (event) => {
-    if (event.key === 'Tab') {
-      const focusable = getFocusableElements(event.currentTarget)
-      const first = focusable[0]
-      const last = focusable.at(-1)
-      if (!first || !last) {
-        event.preventDefault()
-        event.currentTarget.focus()
-      } else if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    onKeyDown?.(event)
-  }
 
   return <aside
     {...props}
@@ -110,7 +97,6 @@ export function DrawerContent({ className, children, onKeyDown, ...props }: Reac
     aria-labelledby={props['aria-label'] ? undefined : props['aria-labelledby'] ?? context?.titleId}
     tabIndex={props.tabIndex ?? -1}
     className={cn('pointer-events-auto absolute inset-y-0 right-0 flex w-full max-w-3xl flex-col border-l border-slate-200 bg-white shadow-xl outline-none', className)}
-    onKeyDown={handleKeyDown}
   >{children}</aside>
 }
 

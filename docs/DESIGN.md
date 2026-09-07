@@ -103,7 +103,7 @@ Một page composition hợp lệ phải giữ các invariant sau:
 | Empty/prerequisite | `EmptyState` hoặc shared prerequisite primitive | Một state surface, title/reason/action |
 | Repeated work section | `SectionPanel` | Heading/content adjacency; không tạo khoảng trắng vô nghĩa |
 | Data comparison | table primitives | Chỉ mount khi có selected work object hoặc purposeful empty state |
-| Dialog/detail | canonical Dialog/Drawer | Focus, portal, bounded dimensions |
+| Dialog/detail | canonical Dialog/Drawer | Dialog chặn luồng và trap focus; drawer master–detail chỉ đọc dùng portal/side geometry nhưng không backdrop chặn, không trap focus hoặc khóa nền |
 
 Nếu một screenshot cho thấy lỗi bố cục, phải xác định primitive/owner trong bảng này trước khi sửa class ở page.
 

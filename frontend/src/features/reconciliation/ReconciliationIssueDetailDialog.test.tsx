@@ -48,9 +48,9 @@ vi.mock('@/api/reconciliationApi', () => ({
 
 import { ReconciliationIssueDetailDialog } from './ReconciliationIssueDetailDialog'
 
-function FocusFixture() {
+function FocusFixture({ onBackgroundClick = vi.fn() }: { onBackgroundClick?: () => void }) {
   const [open, setOpen] = useState(false)
-  return <><button type="button" onClick={() => setOpen(true)}>Mở giao dịch</button><ReconciliationIssueDetailDialog issueId={open ? 'issue-1' : null} open={open} expectedBatchId="batch-1" onClose={() => setOpen(false)} /></>
+  return <><button type="button" onClick={() => setOpen(true)}>Mở giao dịch</button><button type="button" onClick={onBackgroundClick}>Thao tác danh sách nền</button><ReconciliationIssueDetailDialog issueId={open ? 'issue-1' : null} open={open} expectedBatchId="batch-1" onClose={() => setOpen(false)} /></>
 }
 
 describe('ReconciliationIssueDetailDialog behavior', () => {
@@ -114,6 +114,26 @@ describe('ReconciliationIssueDetailDialog behavior', () => {
     view.rerender(<ReconciliationIssueDetailDialog issueId="issue-1" open expectedBatchId="batch-1" onClose={vi.fn()} onOpenBatch={onOpenBatch} />)
     await user.click(screen.getByRole('button', { name: /Mở lô đối chiếu/ }))
     expect(onOpenBatch).toHaveBeenCalledWith('batch-1', 'issue-1')
+  })
+
+  it('keeps the master list clickable and keyboard reachable without trapping Tab', async () => {
+    const user = userEvent.setup()
+    const onBackgroundClick = vi.fn()
+    render(<FocusFixture onBackgroundClick={onBackgroundClick} />)
+    await user.click(screen.getByRole('button', { name: 'Mở giao dịch' }))
+
+    const portal = document.querySelector<HTMLElement>('[data-ipc-drawer-portal="true"]')!
+    expect(portal.querySelector(':scope > [aria-hidden="true"]')).not.toBeInTheDocument()
+    const backgroundControl = screen.getByRole('button', { name: 'Thao tác danh sách nền' })
+    await user.click(backgroundControl)
+    expect(onBackgroundClick).toHaveBeenCalledTimes(1)
+    expect(backgroundControl).toHaveFocus()
+
+    const closeControl = screen.getByRole('button', { name: 'Đóng' })
+    closeControl.focus()
+    await user.tab()
+    expect(closeControl).not.toHaveFocus()
+    expect(screen.getByRole('dialog')).not.toContainElement(document.activeElement as HTMLElement)
   })
 
   it('uses only exact reconciliation batch-line lineage when issue display fields are absent', () => {
