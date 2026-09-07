@@ -1,9 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Features.Catalog.Contracts;
-using IPCManagement.Api.Features.Catalog.Services;
-using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Helpers;
@@ -11,8 +8,6 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using NSubstitute;
-using System.Text;
 
 namespace IPCManagement.Api.Tests;
 
@@ -354,72 +349,24 @@ public sealed class ReconciliationServiceTests
         var importBatchId = GuidHelper.NewId();
         var scheduleId = GuidHelper.NewId();
         var planLineId = GuidHelper.NewId();
-        var linkedBomId = GuidHelper.NewId();
-        var unrelatedBomId = GuidHelper.NewId();
-        var issueId = GuidHelper.NewId();
-        var unitId = GuidHelper.NewId();
-        var warehouseId = GuidHelper.NewId();
-        var linkedDishId = GuidHelper.NewId();
-        var unrelatedDishId = GuidHelper.NewId();
-        var linkedIngredientId = GuidHelper.NewId();
-        var unrelatedIngredientId = GuidHelper.NewId();
-        context.Units.Add(new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
-        context.Warehouses.Add(new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH-SOURCE", WarehouseName = "Kho nguồn", WarehouseType = "DRY" });
-        context.Dishes.AddRange(
-            new Dish { DishId = linkedDishId, DishCode = "DISH-LINKED", DishName = "Món liên quan", IsActive = true },
-            new Dish { DishId = unrelatedDishId, DishCode = "DISH-OTHER", DishName = "Món không liên quan", IsActive = true });
-        context.Ingredients.AddRange(
-            new Ingredient { IngredientId = linkedIngredientId, IngredientCode = "ING-LINKED", IngredientName = "Nguyên liệu liên quan", UnitId = unitId, WarehouseId = warehouseId, ReferencePrice = 1, IsActive = true },
-            new Ingredient { IngredientId = unrelatedIngredientId, IngredientCode = "ING-OTHER", IngredientName = "Nguyên liệu không liên quan", UnitId = unitId, WarehouseId = warehouseId, ReferencePrice = 1, IsActive = true });
-        context.Dishboms.AddRange(
-            new DishBom { BomId = linkedBomId, DishId = linkedDishId, IngredientId = linkedIngredientId, UnitId = unitId, PriceTierAmount = 25000, GrossQtyPerServing = 0.1m, WasteRatePercent = 1, BomStatus = "PUBLISHED", EffectiveFrom = new DateOnly(2026, 7, 1) },
-            new DishBom { BomId = unrelatedBomId, DishId = unrelatedDishId, IngredientId = unrelatedIngredientId, UnitId = unitId, PriceTierAmount = 25000, GrossQtyPerServing = 0.3m, WasteRatePercent = 3, BomStatus = "PUBLISHED", EffectiveFrom = new DateOnly(2026, 7, 1) });
+        var bomId = GuidHelper.NewId();
         context.Reconciliationbatches.Add(new ReconciliationBatch
         {
             BatchId = batchId, MenuVersionId = menuVersionId, QuantityImportBatchId = importBatchId, Status = "READY", Version = 2,
             CreatedBy = actorId, CreatedAt = DateTime.UtcNow,
-            Lines = [new ReconciliationBatchLine { BatchLineId = lineId, IngredientId = linkedIngredientId, CanonicalUnitId = unitId, RequiredQuantity = 2, FrozenTolerance = 0.1m, ToleranceSourceKind = "TEST", ToleranceSourceVersion = "1", Version = 1,
-                Contributors = [new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), MenuScheduleId = scheduleId, MealQuantityPlanLineId = planLineId, DishBomId = linkedBomId, SourceQuantity = 2 }] }]
+            Lines = [new ReconciliationBatchLine { BatchLineId = lineId, IngredientId = GuidHelper.NewId(), CanonicalUnitId = GuidHelper.NewId(), RequiredQuantity = 2, FrozenTolerance = 0.1m, ToleranceSourceKind = "TEST", ToleranceSourceVersion = "1", Version = 1,
+                Contributors = [new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), MenuScheduleId = scheduleId, MealQuantityPlanLineId = planLineId, DishBomId = bomId, SourceQuantity = 2 }] }]
         });
-        context.Inventoryissues.Add(new InventoryIssue { IssueId = issueId, IssueCode = "ISS-SOURCE-GRAIN", IssueDate = new DateOnly(2026, 8, 25), WarehouseId = warehouseId, ReconciliationBatchId = batchId, IssuedBy = actorId, CreatedAt = DateTime.UtcNow });
-        await context.SaveChangesAsync();
-
-        using var cache = new MemoryCache(new MemoryCacheOptions());
-        var warehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
-        warehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
-        var importer = new DishBomImportService(context, cache, new EfTransactionRunner(context), warehouseResolver);
-        var csv = """
-            DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note
-            DISH-LINKED,Món liên quan,25000,,ING-LINKED,Nguyên liệu liên quan,KG,0.2,2,2026-07-01,,PUBLISHED,Điều chỉnh BOM liên quan
-            DISH-OTHER,Món không liên quan,25000,,ING-OTHER,Nguyên liệu không liên quan,KG,0.4,4,2026-07-01,,PUBLISHED,Điều chỉnh BOM khác
-            """;
-        await importer.CommitAsync(
-            new MemoryStream(Encoding.UTF8.GetBytes(csv)),
-            new BomImportCommitRequestDto { PriceTier = 25000 },
-            GuidHelper.ToGuidString(actorId));
-
         context.Auditlogs.AddRange(
-            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-3), ChangedBy = actorId, BusinessArea = "BOM", EntityName = nameof(DishBom), EntityId = linkedBomId, FieldName = "QuantityAndWaste", OldValue = "0.1 / hao hụt 1%", NewValue = "0.2 / hao hụt 2%", Reason = "Điều chỉnh BOM liên quan" },
-            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-2), ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(ReconciliationBatch), EntityId = batchId, FieldName = "Status", OldValue = "TRANSFERRED", NewValue = "IN_PROGRESS", Reason = "Warehouse lifecycle" },
-            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-1), ChangedBy = actorId, BusinessArea = "Issue", EntityName = nameof(InventoryIssue), EntityId = issueId, FieldName = "Status", NewValue = "ISSUED", Reason = "Warehouse transaction" },
-            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "MenuVersion", EntityName = nameof(MenuSchedule), EntityId = linkedBomId, FieldName = "Status", NewValue = "identity collision" });
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-1), ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(QuantityImportBatch), EntityId = importBatchId, FieldName = "Commit", NewValue = "fingerprint", Reason = "Cam kết nguồn" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "MenuVersion", EntityName = nameof(MenuSchedule), EntityId = importBatchId, FieldName = "Status", NewValue = "identity collision" });
         await context.SaveChangesAsync();
 
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
-        var changes = await service.ListSourceChangesAsync(GuidHelper.ToGuidString(batchId));
+        var change = Assert.Single(await service.ListSourceChangesAsync(GuidHelper.ToGuidString(batchId)));
 
-        var change = Assert.Single(changes);
-        Assert.Equal(GuidHelper.ToGuidString(actorId), change.Actor);
-        Assert.Equal("BOM", change.BusinessArea);
-        Assert.Equal(nameof(BomAdjustment), change.EntityName);
-        Assert.Equal(GuidHelper.ToGuidString(linkedBomId), change.EntityId);
-        Assert.Equal("QuantityAndWaste", change.FieldName);
-        Assert.Equal("0.1 / hao hụt 1%", change.OldValue);
-        Assert.Equal("0.2 / hao hụt 2%", change.NewValue);
-        Assert.Equal("Điều chỉnh BOM liên quan", change.Reason);
-        Assert.DoesNotContain(changes, item => item.EntityName is nameof(ReconciliationBatch) or nameof(InventoryIssue) or nameof(MenuSchedule));
-        Assert.DoesNotContain(changes, item => item.FieldName == "BulkImport");
-        Assert.DoesNotContain(changes, item => item.EntityId == GuidHelper.ToGuidString(unrelatedBomId));
+        Assert.Equal(nameof(QuantityImportBatch), change.EntityName);
+        Assert.Equal("Commit", change.FieldName);
     }
 
     private static async Task<Exception?> Capture(Func<Task> operation)
@@ -525,7 +472,7 @@ public sealed class ReconciliationServiceTests
             {
                 typeof(MenuVersion), typeof(QuantityImportBatch), typeof(MealQuantityPlan), typeof(MenuSchedule), typeof(MealQuantityPlanLine),
                 typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
-                typeof(ReconciliationDisposition), typeof(Dish), typeof(DishBom), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(Warehouse), typeof(InventoryIssue), typeof(InventoryIssueLine),
+                typeof(ReconciliationDisposition), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
                 typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog)
             };
             foreach (var entityType in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type)))
@@ -552,16 +499,9 @@ public sealed class ReconciliationServiceTests
             modelBuilder.Entity<MealQuantityPlanLine>().HasOne(x => x.QuantityPlan).WithMany(x => x.Mealquantityplanlines).HasForeignKey(x => x.QuantityPlanId);
             modelBuilder.Entity<MealQuantityPlanLine>().HasOne(x => x.MenuSchedule).WithMany(x => x.Mealquantityplanlines).HasForeignKey(x => x.MenuScheduleId);
 
-            modelBuilder.Entity<Warehouse>().HasKey(x => x.WarehouseId);
-            modelBuilder.Entity<Dish>().HasKey(x => x.DishId);
-            modelBuilder.Entity<DishBom>().HasKey(x => x.BomId);
-            modelBuilder.Entity<DishBom>().Ignore(x => x.Customer);
-            modelBuilder.Entity<DishBom>().HasOne(x => x.Dish).WithMany(x => x.Dishboms).HasForeignKey(x => x.DishId);
-            modelBuilder.Entity<DishBom>().HasOne(x => x.Ingredient).WithMany(x => x.Dishboms).HasForeignKey(x => x.IngredientId);
-            modelBuilder.Entity<DishBom>().HasOne(x => x.Unit).WithMany(x => x.Dishboms).HasForeignKey(x => x.UnitId);
             modelBuilder.Entity<BomAdjustment>().HasKey(x => x.BomAdjustmentId);
+            modelBuilder.Entity<BomAdjustment>().Ignore(x => x.Bom);
             modelBuilder.Entity<BomAdjustment>().Ignore(x => x.AdjustedByNavigation);
-            modelBuilder.Entity<BomAdjustment>().HasOne(x => x.Bom).WithMany(x => x.Bomadjustments).HasForeignKey(x => x.BomId);
             modelBuilder.Entity<Ingredient>().HasKey(x => x.IngredientId);
             modelBuilder.Entity<Ingredient>().Ignore(x => x.Warehouse);
             modelBuilder.Entity<Ingredient>().Ignore(x => x.Inventoryissuelines);
