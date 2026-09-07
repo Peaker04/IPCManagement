@@ -6,6 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDateOnly, formatDateTime, formatQuantity } from '@/lib/formatters'
 import { ROUTES } from '@/lib/routeConfig'
+import { typography } from '@/lib/typography'
 import {
   collectIssueRelatedNotes,
   dispositionCategoryLabel,
@@ -50,8 +51,8 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
       {issue && !linkageMismatch && <div className="mt-5 space-y-5">
         <dl className="grid grid-cols-[minmax(9rem,auto)_1fr] gap-x-5 gap-y-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
           <dt className="text-slate-600">Mã phiếu</dt><dd className="font-medium text-slate-950">{issue.issueCode}</dd>
-          <dt className="text-slate-600">ID phiếu</dt><dd className="break-all font-mono text-xs text-slate-950">{issue.issueId}</dd>
-          <dt className="text-slate-600">ID lô đối chiếu</dt><dd className="break-all font-mono text-xs text-slate-950">{issue.reconciliationBatchId || 'Không có trong dữ liệu đã lưu'}</dd>
+          <dt className="text-slate-600">ID phiếu</dt><dd className={`${typography.code} break-all text-slate-950`}>{issue.issueId}</dd>
+          <dt className="text-slate-600">ID lô đối chiếu</dt><dd className={`${typography.code} break-all text-slate-950`}>{issue.reconciliationBatchId || 'Không có trong dữ liệu đã lưu'}</dd>
           <dt className="text-slate-600">Vai trò</dt><dd className="font-medium text-slate-950">{issueRoleLabel()}</dd>
           <dt className="text-slate-600">Trạng thái</dt><dd className="font-medium text-slate-950">{issueStatusLabel(issue)}</dd>
           <dt className="text-slate-600">Người tạo</dt><dd className="font-medium text-slate-950">{issueActorLabel(issue)}</dd>
@@ -67,7 +68,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
           <div className="mt-2 space-y-2">{issue.lines.map((line) => <article key={line.issueLineId} className="rounded-md border border-slate-200 p-3 text-sm">
             <p className="font-medium text-slate-950">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</p>
             <p className="mt-1 text-slate-700">{formatQuantity(line.issuedQty)} {line.unitName || line.unitId}</p>
-            <dl className="mt-2 grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-1 text-xs"><dt className="text-slate-500">ID dòng phiếu</dt><dd className="break-all font-mono">{line.issueLineId}</dd><dt className="text-slate-500">ID dòng lô</dt><dd className="break-all font-mono">{line.reconciliationBatchLineId || 'Không có trong dữ liệu đã lưu'}</dd></dl>
+            <dl className="mt-2 grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-1 text-xs"><dt className="text-slate-500">ID dòng phiếu</dt><dd className={`${typography.code} break-all`}>{line.issueLineId}</dd><dt className="text-slate-500">ID dòng lô</dt><dd className={`${typography.code} break-all`}>{line.reconciliationBatchLineId || 'Không có trong dữ liệu đã lưu'}</dd></dl>
           </article>)}</div>
         </section>
 

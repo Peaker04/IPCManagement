@@ -120,7 +120,7 @@ export function SearchableDishPicker({
       </span>
       {open && !disabled && (
         <div id={listId} role="listbox" aria-label={`Kết quả ${label}`} style={popupStyle} className="fixed z-[1102] max-h-56 overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-xl">
-          <p className="px-2 py-1 text-[11px] font-medium text-slate-500">Chọn món ăn</p>
+          <p className="px-2 py-1 text-caption font-medium text-slate-500">Chọn món ăn</p>
           {filtered.length === 0 ? <p className="px-2 py-3 text-center text-xs text-slate-600">Không tìm thấy món phù hợp</p> : filtered.map((dish, index) => (
             <button
               id={`${listId}-${dish.id}`}

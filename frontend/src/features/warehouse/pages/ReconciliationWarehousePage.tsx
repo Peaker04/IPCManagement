@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi'
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext'
-import { formatQuantityWithUnit } from '@/lib/formatters'
+import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters'
 import { compareIssueQuantity, issueQuantityDifference } from './reconciliationIssueQuantity'
 import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
 import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
@@ -155,7 +155,7 @@ export default function ReconciliationWarehousePage() {
       </div>
       {feedback && <p role="status" className="rounded-md border border-slate-200 bg-white p-3 text-sm">{feedback}</p>}
       {warehouseError && <p role="alert" className="text-sm text-red-700">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</p>}
-      {(batchesQuery.data?.length ?? 0) > 1 && <label className="grid max-w-md gap-1 text-sm font-medium">Chọn lô của khách hàng<Select value={batchId || null} onValueChange={(value) => value && updateRoute({ batchId: value, view: 'demand' })}><SelectTrigger aria-label="Chọn lô cần xuất"><SelectValue placeholder="Chọn lô" /></SelectTrigger><SelectContent>{batchesQuery.data?.filter((item) => ['READY', 'TRANSFERRED', 'IN_PROGRESS'].includes(item.status)).map((item) => <SelectItem key={item.batchId} value={item.batchId}>{new Date(item.createdAt).toLocaleString('vi-VN')} · {item.status === 'READY' ? 'Chờ chuyển Kho' : item.status === 'TRANSFERRED' ? 'Chờ xuất' : 'Đang đối chiếu'}</SelectItem>)}</SelectContent></Select></label>}
+      {(batchesQuery.data?.length ?? 0) > 1 && <label className="grid max-w-md gap-1 text-sm font-medium">Chọn lô của khách hàng<Select value={batchId || null} onValueChange={(value) => value && updateRoute({ batchId: value, view: 'demand' })}><SelectTrigger aria-label="Chọn lô cần xuất"><SelectValue placeholder="Chọn lô" /></SelectTrigger><SelectContent>{batchesQuery.data?.filter((item) => ['READY', 'TRANSFERRED', 'IN_PROGRESS'].includes(item.status)).map((item) => <SelectItem key={item.batchId} value={item.batchId}>{formatDateTime(item.createdAt)} · {item.status === 'READY' ? 'Chờ chuyển Kho' : item.status === 'TRANSFERRED' ? 'Chờ xuất' : 'Đang đối chiếu'}</SelectItem>)}</SelectContent></Select></label>}
       {!batchId && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Chưa chọn lô cần xuất</h2><p className="mt-2 text-sm text-slate-600">Mở Định lượng xuất kho từ Thực đơn tuần để giữ đúng phạm vi khách hàng và tuần.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
       {batchId && activeView && <>
         <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => updateRoute({ view: id.replace('warehouse-', '') as ReconciliationWarehouseView })} />

@@ -1,5 +1,5 @@
 import { AUDIT_PASSWORD_CHANGED_VALUE, AUDIT_REDACTED_VALUE, containsSensitiveAuditMaterial, isPasswordAuditTuple } from '@/api/auditPrivacy'
-import { formatDateOnly, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
+import { formatDateOnly, formatDateTime, formatQuantityWithUnit, formatUnit, getNumberFormat } from '@/lib/formatters'
 import { formatShiftName } from '@/lib/workflowConfig'
 
 const labels: Record<string, string> = {
@@ -65,7 +65,7 @@ const fallback = (raw: string, label = 'Dữ liệu chưa được chuẩn hóa'
 const formatted = (text: string, raw?: string): ValueResult => ({ text, disposition: 'formatted', title: raw })
 
 const getTrimmed = (value?: string | null) => value?.trim() ?? ''
-const formatNumber = (value: string | number) => Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 6 })
+const formatNumber = (value: string | number) => getNumberFormat('vi-VN', { maximumFractionDigits: 6 }).format(Number(value))
 const parseFinite = (value: string) => {
   if (!/^-?\d+(?:\.\d+)?$/.test(value.trim())) return undefined
   const parsed = Number(value)
@@ -176,7 +176,7 @@ const formatReceiptValue = (value?: string | null): ValueResult => {
   const raw = getTrimmed(value)
   if (!raw) return emptyValue()
   const receivedAt = /^receivedAt=(.+)$/.exec(raw)
-  if (receivedAt) return isIsoDateTime(receivedAt[1]) ? formatted(`Đã ghi nhận lúc ${new Date(receivedAt[1]).toLocaleString('vi-VN')}`, raw) : fallback(raw, 'Thời điểm ghi nhận không hợp lệ')
+  if (receivedAt) return isIsoDateTime(receivedAt[1]) ? formatted(`Đã ghi nhận lúc ${formatDateTime(receivedAt[1])}`, raw) : fallback(raw, 'Thời điểm ghi nhận không hợp lệ')
   return formatStatusValue(raw)
 }
 

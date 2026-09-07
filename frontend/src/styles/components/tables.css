@@ -533,32 +533,32 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
+  border: 1px solid var(--ipc-color-border-strong);
+  background-color: var(--ipc-color-surface);
 }
 
 .ipc-matrix-grid-table thead {
-  background-color: #f1f5f9;
+  background-color: var(--ipc-color-surface-subtle);
 }
 
 .ipc-matrix-grid-table th {
-  background-color: #f1f5f9;
-  border-right: 1px solid #cbd5e1;
-  border-bottom: 1px solid #94a3b8;
+  background-color: var(--ipc-color-surface-subtle);
+  border-right: 1px solid var(--ipc-color-border-strong);
+  border-bottom: 1px solid var(--ipc-color-border-table-header);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.025em;
   text-transform: uppercase;
-  color: #334155;
+  color: var(--ipc-color-text);
   padding: 0.5rem 0.75rem;
   white-space: nowrap;
 }
 
 .ipc-matrix-grid-table td {
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid var(--ipc-color-border-subtle);
+  border-bottom: 1px solid var(--ipc-color-border-subtle);
   padding: 0.5rem 0.75rem;
-  color: #1e293b;
+  color: var(--ipc-color-text);
 }
 
 /* KHÔNG áp dụng cơ chế sticky hay đông băng cột 1 cho bảng ma trận để tránh vạch cắt */
@@ -586,14 +586,14 @@
 .ipc-matrix-grid-table td.ipc-menu-section-header,
 .ipc-weekly-menu-shell tr:hover td.ipc-menu-section-header,
 .ipc-matrix-grid-table tr:hover td.ipc-menu-section-header {
-  background-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  background-color: var(--ipc-color-surface-subtle) !important;
+  color: var(--ipc-color-text-strong) !important;
   position: static !important;
   left: auto !important;
   text-align: center !important;
   box-shadow: none !important;
-  border-bottom: 1px solid #cbd5e1 !important;
-  border-right: 1px solid #cbd5e1 !important;
+  border-bottom: 1px solid var(--ipc-color-border-strong) !important;
+  border-right: 1px solid var(--ipc-color-border-strong) !important;
 }
 
 /* Khóa cố định màu sắc cho cột danh mục dòng (Món mặn 1, Món mặn 2, Rau, Canh, Tráng miệng...) */
@@ -601,7 +601,7 @@
 .ipc-matrix-grid-table td.ipc-matrix-slot-cell,
 .ipc-weekly-menu-shell tr:hover td.ipc-matrix-slot-cell,
 .ipc-matrix-grid-table tr:hover td.ipc-matrix-slot-cell {
-  background-color: #f8fafc !important;
+  background-color: var(--ipc-color-surface-accent) !important;
   position: static !important;
   left: auto !important;
   box-shadow: none !important;

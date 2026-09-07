@@ -139,7 +139,7 @@ export function WeeklyScheduleEditorDialog({ workflow, servingRows = [] }: { wor
                         <div key={day.key} className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-white p-2 shadow-xs">
                           <div className="flex flex-col">
                             <span className="text-xs font-semibold text-slate-800">{day.label}</span>
-                            <span className="text-[11px] text-slate-500">{day.date}</span>
+                            <span className="text-caption text-slate-500">{day.date}</span>
                           </div>
                           <SearchableDishPicker
                             value={selectedDishId === EMPTY_DISH_VALUE ? '' : selectedDishId}
@@ -148,7 +148,7 @@ export function WeeklyScheduleEditorDialog({ workflow, servingRows = [] }: { wor
                             disabled={section.dishes.length === 0}
                             onChange={(value) => actions.changeDish(day.key, section.slotType, value)}
                           />
-                          {locked && <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700"><Lock size={10} />Gửi duyệt thay đổi</span>}
+                          {locked && <span className="flex items-center gap-1 text-caption font-medium text-amber-700"><Lock size={10} />Gửi duyệt thay đổi</span>}
                         </div>
                       )
                     })}

@@ -189,9 +189,9 @@ describe('WarehouseExceptionsWorkbench', () => {
   })
 
   it('keeps small partial quantities visible instead of rounding them to zero or full', () => {
-    expect(warehouseSource).toContain('formatQuantityWithUnit(item.fulfilledQty, item.unitName, { maximumFractionDigits: 6 })')
-    expect(warehouseSource).toContain('formatQuantityWithUnit(selectedSupplemental.remainingQty, selectedSupplemental.unitName, { maximumFractionDigits: 6 })')
-    expect(warehouseSource).toContain('Còn thiếu {formatQuantityWithUnit(item.remainingQty, item.unitName, { maximumFractionDigits: 6 })}')
+    expect(warehouseSource).toContain('formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })')
+    expect(warehouseSource).toContain('<CompactQuantity value={item.fulfilledQty} unit={item.unitName} />')
+    expect(warehouseSource).toContain('<CompactQuantity value={selectedSupplemental.remainingQty} unit={selectedSupplemental.unitName} />')
   })
 
   it('routes only the remaining supplemental quantity with lifecycle identity', async () => {

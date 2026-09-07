@@ -56,7 +56,7 @@ const mutationError = (error: unknown, fallback: string) => {
 };
 
 function CompactQuantity({ value, unit }: { value: number; unit: string }) {
-  return <span title={`Giá trị chính xác: ${formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })}`}>{formatQuantityWithUnit(value, unit)}</span>
+  return <span>{formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })}</span>
 }
 
 export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false }: { canManage: boolean; canDisposition?: boolean }) {

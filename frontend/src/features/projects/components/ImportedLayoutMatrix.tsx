@@ -79,7 +79,7 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
       ariaLabel="Bảng bố cục thực đơn theo file khách hàng"
       frozenFirstIdentifier={false}
     >
-      <table className="ipc-matrix-grid-table table-fixed w-full border-collapse">
+      <table className="ipc-data-table ipc-matrix-grid-table table-fixed w-full border-collapse">
         <thead>
           <tr>
             <th className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
