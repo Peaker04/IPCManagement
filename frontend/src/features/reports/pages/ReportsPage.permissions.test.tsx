@@ -23,7 +23,7 @@ const uninitializedResult = () => ({
   refetch: vi.fn(),
 });
 
-const failedResult = (status: number, refetch = vi.fn()) => ({
+const failedResult = (status: number | 'FETCH_ERROR', refetch = vi.fn()) => ({
   ...uninitializedResult(),
   isUninitialized: false,
   isError: true,
@@ -292,6 +292,18 @@ describe('ReportsPage query state boundary', () => {
     expect(refetch).toHaveBeenCalledOnce();
   });
 
+  it('renders an offline request failure as recoverable without a false empty result', () => {
+    const refetch = vi.fn();
+    mocks.purchasePlanPage.mockReturnValue(failedResult('FETCH_ERROR', refetch));
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Không tải được dữ liệu báo cáo');
+    expect(screen.queryByText('Chưa có bản ghi báo cáo.')).toBeNull();
+    screen.getByRole('button', { name: 'Thử tải lại' }).click();
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
   it('renders an empty table only after the active report is ready', () => {
     mocks.purchasePlanPage.mockReturnValue(readyResult({
       items: [],
@@ -307,7 +319,7 @@ describe('ReportsPage query state boundary', () => {
 
     renderReportsPage('thumua', '/reports?view=purchase');
 
-    expect(screen.getByText('Chưa có dữ liệu để hiển thị')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có bản ghi báo cáo.')).toBeInTheDocument();
   });
 
   it('renders source-line reconciliation without grouping legacy lineage into a demand row', async () => {
@@ -358,6 +370,8 @@ describe('ReportsPage query state boundary', () => {
         timestamp: '2026-07-30T01:11:07Z',
         actor: 'Admin User',
         businessArea: 'StorekeeperReturnReceipt',
+        entityName: 'InventoryReturn',
+        fieldName: 'StorekeeperReceived',
         fieldAffected: 'InventoryReturn / StorekeeperReceived',
         oldValue: 'receivedAt=2026-07-29T18:11:07Z',
         newValue: 'receivedAt=2026-07-30T01:11:07Z',
