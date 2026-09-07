@@ -24,10 +24,10 @@ workbook:
 
 # Memory hiện hành
 
-## Active task — MRX independent-review remediation implemented; reviewer gate pending
+## Active task — MRX BOM source-history remediation implemented; final reviewer gate pending
 
-- Closure authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX review remediation`; immutable follow-up `.artifacts/audits/mrx-cross-phase-uiux-review-remediation-2026-09-07T17-10-01Z/REPORT.md`.
-- Three review findings are fixed in bounded commits `c2cbab36`, `06ae4b29`, `94dae5c6`: source history now excludes batch/issue lifecycle, MRX lifecycle labels/actions/Audit use central `workflowConfig.ts`, and the read-only detail drawer is genuinely non-modal without weakening Dialog. Focused/full frontend, lint/build/ten budgets and relevant backend aggregate pass. Aligned headed browser remains `NEEDS_EVIDENCE`; independent review is still required before final PASS. Resume from `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`.
+- Closure authority: `.planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md`, section `Active extension: MRX cross-phase UI/UX review remediation`; immutable BOM follow-up `.artifacts/audits/mrx-cross-phase-uiux-bom-history-remediation-2026-09-07T17-49-01Z/REPORT.md`.
+- Commit `4382a9d1` replaces the impossible BOM-keyed `BulkImport` fixture with the real `DishBomImportService` persisted authority: exact contributor-linked `BomAdjustment` rows are projected into source history, unrelated BOM adjustments and cross-family ID collisions are excluded, and an exact compatibility audit duplicate is suppressed by persisted content identity rather than timestamp. The typed presenter owns `BOM|BomAdjustment|QuantityAndWaste`. Aligned headed browser remains `NEEDS_EVIDENCE`; final independent review is required. Resume from `.artifacts/subagents/mrx-cross-phase-uiux-HANDOVER.md`.
 
 ## Prior checkpoint — MRX MXE-18 closed with declared field residual
 
