@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { issueState, listState } = vi.hoisted(() => ({
@@ -28,16 +28,18 @@ vi.mock('@/api/reconciliationApi', () => ({
   useSetReconciliationDispositionMutation: () => [vi.fn(), { isLoading: false }],
 }))
 vi.mock('../ReconciliationSourceChangeLog', () => ({ ReconciliationSourceChangeLog: ({ batchId }: { batchId: string }) => <div>Nhật ký nguồn lô {batchId}</div> }))
+vi.mock('../ReconciliationIssueDetailDialog', () => ({ ReconciliationIssueDetailDialog: ({ issueId, open, onClose }: { issueId: string | null; open: boolean; onClose: () => void }) => open ? <aside role="dialog" aria-label="Chi tiết giao dịch xuất kho đối chiếu"><span>{issueId}</span><button type="button" onClick={onClose}>Đóng</button></aside> : null }))
 vi.mock('@/lib/navigationPreferences', () => ({ readReconciliationSelection: () => ({}), writeReconciliationSelection: vi.fn() }))
 
 import ReconciliationPage from './ReconciliationPage'
 
 function LocationProbe() {
   const location = useLocation()
-  return <output data-testid="location">{location.pathname}{location.search}</output>
+  const navigate = useNavigate()
+  return <><output data-testid="location">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser Back</button></>
 }
 
-const renderPage = (url = '/reconciliation?batchId=batch-1&issueId=issue-1') => render(<MemoryRouter initialEntries={[url]}><Routes><Route path="/reconciliation" element={<><ReconciliationPage /><LocationProbe /></>} /></Routes></MemoryRouter>)
+const renderPage = (url = '/reconciliation?batchId=batch-1&issueId=issue-1', initialEntries = [url]) => render(<MemoryRouter initialEntries={initialEntries}><Routes><Route path="/reconciliation" element={<><ReconciliationPage /><LocationProbe /></>} /></Routes></MemoryRouter>)
 
 describe('MXE-09 reconciliation issue deep link', () => {
   beforeEach(() => {
@@ -45,23 +47,33 @@ describe('MXE-09 reconciliation issue deep link', () => {
     listState.phase = 'ready'
   })
 
-  it('restores exact issue context, keeps batch-scoped source history and returns to the batch', () => {
+  it('restores issue detail in the canonical drawer without replacing the all-lot composition', () => {
     renderPage()
-    expect(screen.getByRole('heading', { name: 'Giao dịch ISS-001' })).toBeInTheDocument()
-    expect(screen.getByText('issue-1')).toBeInTheDocument()
-    expect(screen.getByTitle('issue-1')).toHaveClass('ipc-identifier-text')
-    expect(screen.getByTitle('batch-1')).toHaveClass('ipc-identifier-text')
-    expect(screen.getByText('Thủ kho')).toBeInTheDocument()
-    expect(screen.getByText('Vai trò chưa được lưu')).toBeInTheDocument()
-    expect(screen.getByText('Đã tạo phiếu')).toBeInTheDocument()
-    expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
-    expect(screen.getByText('Gạo')).toBeInTheDocument()
-    expect(screen.queryByText('Sữa')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Quay lại toàn bộ lô' }))
-    expect(screen.getByTestId('location')).toHaveTextContent('/reconciliation?batchId=batch-1')
-    fireEvent.click(screen.getByRole('button', { name: 'Hiện tất cả (2)' }))
+    expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toHaveTextContent('issue-1')
+    expect(screen.getByRole('heading', { name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
+    expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
+    expect(screen.getByText('Tất cả nguyên liệu đã khớp')).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Kết quả đối chiếu nguyên liệu' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Xem toàn bộ' }))
+    expect(screen.getByRole('table', { name: 'Kết quả đối chiếu nguyên liệu' })).toBeInTheDocument()
+    expect(screen.getByText('Gạo')).toBeInTheDocument()
     expect(screen.getByText('Sữa')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/reconciliation?batchId=batch-1')
+    expect(screen.getByRole('heading', { name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
+  })
+
+  it('lets browser Back close the issue drawer while preserving the batch page', () => {
+    renderPage('/reconciliation?batchId=batch-1&issueId=issue-1', ['/reconciliation?batchId=batch-1', '/reconciliation?batchId=batch-1&issueId=issue-1'])
+
+    expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }))
+    expect(screen.queryByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/reconciliation?batchId=batch-1')
+    expect(screen.getByRole('heading', { name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
   })
 
   it('uses one visible state surface while the batch list is loading', () => {
@@ -76,7 +88,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
   it('keeps the show-all toggle focused across short and full table states', () => {
     renderPage('/reconciliation?batchId=batch-1')
 
-    const showAll = screen.getByRole('button', { name: 'Hiện tất cả (2)' })
+    const showAll = screen.getAllByRole('button', { name: 'Xem toàn bộ' })[0]
     showAll.focus()
     fireEvent.click(showAll)
     expect(screen.getByText('Gạo')).toBeInTheDocument()
@@ -86,16 +98,18 @@ describe('MXE-09 reconciliation issue deep link', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Chỉ hiện chênh lệch' }))
     expect(screen.queryByText('Gạo')).not.toBeInTheDocument()
     expect(screen.queryByText('Sữa')).not.toBeInTheDocument()
-    expect(screen.getByText('Không có dòng cần xử lý. Chọn “Hiện tất cả” để xem các dòng đã khớp.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Hiện tất cả (2)' })).toHaveFocus()
+    expect(screen.getByText('Tất cả nguyên liệu đã khớp')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Xem toàn bộ' })[0]).toHaveFocus()
   })
 
-  it('fails closed instead of showing issue lines when the persisted batch linkage differs', () => {
+  it('leaves exact issue linkage validation to the canonical drawer and never filters the ledger by issue lines', () => {
     issueState.batchId = 'batch-other'
     renderPage()
-    expect(screen.getByText('Liên kết giao dịch không khớp')).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Giao dịch ISS-001' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Gạo')).not.toBeInTheDocument()
+
+    expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Xem toàn bộ' })[0])
+    expect(screen.getByText('Gạo')).toBeInTheDocument()
+    expect(screen.getByText('Sữa')).toBeInTheDocument()
     expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
   })
 })

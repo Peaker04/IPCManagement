@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { EmptyState, IdentifierText, InlineAlert, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
+import { CheckCircle2 } from 'lucide-react'
+import { EmptyState, IdentifierText, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -8,13 +9,14 @@ import { formatDateTime, formatUnit } from '@/lib/formatters'
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
-import { useGetReconciliationBatchQuery, useGetReconciliationIssueQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
+import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 import { ReconciliationSourceChangeLog } from '../ReconciliationSourceChangeLog'
-import { dispositionCategoryLabel, issueActorLabel, issueRoleLabel, issueStatusLabel } from '../reconciliationIssueCorrelation'
+import { dispositionCategoryLabel } from '../reconciliationIssueCorrelation'
 import { ReconciliationLifecycleStrip } from '../ReconciliationLifecycleStrip'
-import { getReconciliationLifecyclePresentation } from '../reconciliationLifecyclePresentation'
+import { ReconciliationIssueDetailDialog } from '../ReconciliationIssueDetailDialog'
+import { getReconciliationLifecyclePresentation, getReconciliationResultPresentation } from '../reconciliationLifecyclePresentation'
 
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -30,8 +32,6 @@ export default function ReconciliationPage() {
   const batchesView = toLabeledQueryView(batchesQuery, 'danh sách lô đối chiếu', { instruction: 'Tải lại danh sách lô để chọn đúng phạm vi cần đối chiếu.' })
   const batchQuery = useGetReconciliationBatchQuery(selectedId, { skip: !selectedId, refetchOnMountOrArgChange: true })
   const batchView = toLabeledQueryView(batchQuery, 'lô đối chiếu đã chọn', { instruction: 'Chọn một lô để xem số cần xuất và số kho đã xuất.' })
-  const issueQuery = useGetReconciliationIssueQuery(selectedIssueId, { skip: !selectedIssueId })
-  const selectedIssue = issueQuery.currentData ?? issueQuery.data
 
   useEffect(() => {
     if (!batchesQuery.isSuccess || !selectedId || searchParams.get('batchId') === selectedId) return
@@ -51,14 +51,8 @@ export default function ReconciliationPage() {
   const [detailLine, setDetailLine] = useState<ReconciliationLine>()
   const [disposingLine, setDisposingLine] = useState<ReconciliationLine>()
   const batch = batchQuery.currentData ?? batchQuery.data
-  const issueLinkageValid = Boolean(selectedIssue && selectedIssue.issueId === selectedIssueId && selectedIssue.reconciliationBatchId === selectedId)
-  const visibleBatchLines = useMemo(() => {
-    if (!batch || !selectedIssueId) return batch?.lines ?? []
-    if (!selectedIssue || !issueLinkageValid) return []
-    const issueLineIds = new Set(selectedIssue.lines.map((line) => line.reconciliationBatchLineId).filter(Boolean))
-    return batch.lines.filter((line) => issueLineIds.has(line.batchLineId))
-  }, [batch, issueLinkageValid, selectedIssue, selectedIssueId])
-  const actionableCount = useMemo(() => visibleBatchLines.filter((line) => line.status !== 'MATCHED').length, [visibleBatchLines])
+  const actionableCount = useMemo(() => batch?.lines.filter((line) => line.status !== 'MATCHED').length ?? 0, [batch?.lines])
+  const resultPresentation = getReconciliationResultPresentation({ total: batch?.lines.length ?? 0, actionable: actionableCount, issueId: selectedIssueId, showAll })
   const batchLabel = (item: typeof batches[number]) => `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
 
   return <OperationalFrame>
@@ -87,29 +81,15 @@ export default function ReconciliationPage() {
       /> : batchesView.phase === 'ready' && selectedId ? <QueryViewBoundary geometry="table" queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
         {batch && <div className="space-y-4">
           <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />
-          {selectedIssueId && issueQuery.isFetching && !selectedIssue && <p className="rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600" role="status">Đang tải giao dịch xuất kho...</p>}
-          {selectedIssueId && issueQuery.isError && <InlineAlert title="Không tải được giao dịch xuất kho" variant="danger">Liên kết trên URL được giữ nguyên để thử lại; dữ liệu lô không được ghép thay thế.</InlineAlert>}
-          {selectedIssue && !issueLinkageValid && <InlineAlert title="Liên kết giao dịch không khớp" variant="danger">Phiếu xuất không thuộc lô đối chiếu đang mở. Hệ thống không hiển thị các dòng có liên kết không chắc chắn.</InlineAlert>}
-          {selectedIssue && issueLinkageValid && <SectionPanel title={`Giao dịch ${selectedIssue.issueCode}`} description="Thông tin được đọc từ đúng phiếu xuất kho có ID trên đường dẫn; không suy đoán loại phiếu.">
-            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <div><dt className="text-slate-500">ID phiếu</dt><dd className="mt-1"><IdentifierText value={selectedIssue.issueId} /></dd></div>
-              <div><dt className="text-slate-500">Vai trò</dt><dd className="mt-1 font-medium text-slate-950">{issueRoleLabel()}</dd></div>
-              <div><dt className="text-slate-500">Người tạo</dt><dd className="mt-1 font-medium text-slate-950">{issueActorLabel(selectedIssue)}</dd></div>
-              <div><dt className="text-slate-500">Thời điểm tạo</dt><dd className="mt-1 font-medium text-slate-950">{formatDateTime(selectedIssue.createdAt)}</dd></div>
-              <div><dt className="text-slate-500">Trạng thái</dt><dd className="mt-1 font-medium text-slate-950">{issueStatusLabel(selectedIssue)}</dd></div>
-              <div><dt className="text-slate-500">Số dòng phiếu</dt><dd className="mt-1 font-medium text-slate-950">{selectedIssue.lines.length}</dd></div>
-              <div><dt className="text-slate-500">ID lô</dt><dd className="mt-1"><IdentifierText value={selectedIssue.reconciliationBatchId} /></dd></div>
-            </dl>
-          </SectionPanel>}
-          {(!selectedIssueId || issueLinkageValid) && <SectionPanel title={selectedIssue ? `Chi tiết phiếu ${selectedIssue.issueCode}` : 'Đối chiếu theo nguyên liệu'} description={selectedIssue ? `${visibleBatchLines.length} nguyên liệu trong phiếu · kết quả đối chiếu theo tổng đã xuất của lô` : `${actionableCount} dòng cần xử lý · số liệu kho chỉ đọc`}>
-            <div className="mb-3 flex justify-end">{selectedIssue ? <Button type="button" variant="outline" size="sm" onClick={() => setSearchParams({ batchId: selectedId })}>Quay lại toàn bộ lô</Button> : <Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : `Hiện tất cả (${batch.lines.length})`}</Button>}</div>
-            <ReconciliationComparisonTable lines={visibleBatchLines} showAll={selectedIssue ? true : showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} />
-          </SectionPanel>}
+          <SectionPanel title={resultPresentation.title} description={resultPresentation.description} actions={<Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>}>
+            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title="Tất cả nguyên liệu đã khớp" description={`${batch.lines.length}/${batch.lines.length} nguyên liệu khớp giữa định lượng đã khóa và tổng phiếu xuất kho liên kết.`} />}
+          </SectionPanel>
           <ReconciliationSourceChangeLog batchId={batch.batchId} />
         </div>}
       </QueryViewBoundary> : null}
     </section>
 
+    <ReconciliationIssueDetailDialog issueId={selectedIssueId || null} open={Boolean(selectedIssueId)} expectedBatchId={selectedId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('issueId'); setSearchParams(next, { replace: true }) }} />
     <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
       <DialogContent aria-label="Chi tiết nguyên liệu" size="md">
         <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>
