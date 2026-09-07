@@ -47,7 +47,7 @@ internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<Inv
 
         entity.HasIndex(e => e.MaterialRequestId, "materialRequestId");
 
-        entity.HasIndex(e => e.ReconciliationBatchId, "uxInventoryIssuesReconciliationBatch").IsUnique();
+        entity.HasIndex(e => e.ReconciliationBatchId, "ixInventoryIssuesReconciliationBatch");
 
         entity.HasIndex(e => e.ReceivedBy, "receivedBy");
 
@@ -135,7 +135,7 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
 
         entity.HasIndex(e => e.MaterialRequestLineId, "ixInventoryIssueLinesMaterialRequestLine");
 
-        entity.HasIndex(e => e.ReconciliationBatchLineId, "uxInventoryIssueLinesReconciliationBatchLine").IsUnique();
+        entity.HasIndex(e => e.ReconciliationBatchLineId, "ixInventoryIssueLinesReconciliationBatchLine");
 
         entity.HasIndex(e => e.UnitId, "unitId")
             .HasDatabaseName("unitId2");

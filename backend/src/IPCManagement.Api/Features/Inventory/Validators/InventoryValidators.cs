@@ -121,9 +121,10 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
             .GreaterThan(0).WithMessage("Số lượng yêu cầu phải lớn hơn 0.");
 
         RuleFor(x => x.IssuedQty)
-            .GreaterThan(0).WithMessage("Số lượng xuất phải lớn hơn 0.")
-            .LessThanOrEqualTo(x => x.RequestedQty)
-            .WithMessage("Số lượng xuất không được vượt quá số lượng yêu cầu.");
+            .GreaterThan(0).WithMessage("Số lượng xuất phải lớn hơn 0.");
+        RuleFor(x => x.VarianceReason)
+            .NotEmpty().WithMessage("Cần nhập lý do khi số lượng thực xuất vượt số lượng cần xuất.")
+            .When(x => x.IssuedQty > x.RequestedQty);
 
         RuleFor(x => x.UnitId)
             .NotEmpty().WithMessage("Đơn vị tính không được để trống.")

@@ -88,10 +88,8 @@ public sealed class ReconciliationActualService(
             {
                 var line = await context.Reconciliationbatchlines.Include(x => x.Batch).SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken) ?? throw new KeyNotFoundException();
                 if (line.Batch.Status is not ("READY" or "IN_PROGRESS")) throw new InvalidOperationException("Chỉ lô đang đối chiếu mới được cập nhật hướng xử lý.");
-                var actuals = await context.Reconciliationactuals.Where(x => x.BatchLineId == lineBytes).ToListAsync(operationToken);
-                var purchased = actuals.SingleOrDefault(x => x.Side == "PURCHASED");
-                var issued = actuals.SingleOrDefault(x => x.Side == "ISSUED");
-                if (purchased is null || issued is null) throw new InvalidOperationException("Cần nhập đủ số lượng mua và xuất trước khi xử lý chênh lệch.");
+                var hasLinkedIssue = await context.Inventoryissuelines.AnyAsync(x => x.ReconciliationBatchLineId == lineBytes, operationToken);
+                if (!hasLinkedIssue) throw new InvalidOperationException("Cần có phiếu xuất kho liên kết trước khi xử lý chênh lệch.");
                 var current = await context.Reconciliationdispositions.SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken);
                 if (current is null)
                 {

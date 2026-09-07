@@ -199,6 +199,218 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
+    public async Task Reconciliation_issue_persists_manual_under_issue_and_projects_required_variance()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        fixture.Request.Lines[0].IssuedQty = 1.5m;
+
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        var stored = Assert.Single(context.Inventoryissuelines.Local);
+        Assert.Equal(2m, stored.RequestedQty);
+        Assert.Equal(1.5m, stored.IssuedQty);
+        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
+            Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 1.5m, "ISSUE", "inventoryissues",
+            Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
+        var source = Assert.Single(context.Reconciliationbatchlines.Local);
+        var comparison = ReconciliationComparisonService.Map(source, [], null, stored.IssuedQty);
+        Assert.Equal(-0.5m, comparison.IssuedRequiredDifference);
+        Assert.Contains("ISSUED_REQUIRED", comparison.Triggers);
+        Assert.Equal("NEEDS_REVIEW", comparison.Status);
+    }
+
+    [Fact]
+    public async Task Supplemental_issue_adds_a_new_transaction_for_an_existing_frozen_line()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        fixture.Request.CommandId = "supplemental-" + Guid.NewGuid();
+        fixture.Request.ExpectedVersion = 4;
+        fixture.Request.IsSupplemental = true;
+        fixture.Request.Lines[0].RequestedQty = 0.4m;
+        fixture.Request.Lines[0].IssuedQty = 0.4m;
+        fixture.Request.Lines[0].VarianceReason = "Bếp đề nghị bổ sung cho ca trưa";
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        Assert.Equal(2, context.Inventoryissues.Local.Count);
+        Assert.Equal(2, context.Inventoryissuelines.Local.Count);
+        var frozenLineId = GuidHelper.ParseGuidString(fixture.Request.Lines[0].ReconciliationBatchLineId!)!;
+        Assert.All(context.Inventoryissuelines.Local, line => Assert.True(line.ReconciliationBatchLineId!.SequenceEqual(frozenLineId)));
+        Assert.Equal(2.4m, context.Inventoryissuelines.Local.Sum(line => line.IssuedQty));
+        Assert.Contains(context.Auditlogs.Local, audit => audit.Reason == "Bếp đề nghị bổ sung cho ca trưa");
+        Assert.Equal(5, Assert.Single(context.Reconciliationbatches.Local).Version);
+    }
+
+    [Fact]
+    public async Task Supplemental_issue_requires_a_reason()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+        fixture.Request.CommandId = "supplemental-" + Guid.NewGuid();
+        fixture.Request.ExpectedVersion = 4;
+        fixture.Request.IsSupplemental = true;
+        fixture.Request.Lines[0].RequestedQty = 0.4m;
+        fixture.Request.Lines[0].IssuedQty = 0.4m;
+        fixture.Request.Lines[0].VarianceReason = null;
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+        Assert.Contains("lý do xuất thêm", error.Message);
+    }
+
+    [Fact]
+    public async Task Reconciliation_issue_rejects_manual_quantity_above_required_without_reason()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        fixture.Request.Lines[0].IssuedQty = 2.1m;
+        var before = CaptureEffects(context);
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+
+        Assert.Contains("lý do", error.Message);
+        Assert.Equal(before, CaptureEffects(context));
+        Assert.Equal("TRANSFERRED", Assert.Single(context.Reconciliationbatches.Local).Status);
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
+    public async Task Reconciliation_issue_accepts_manual_quantity_above_required_with_audited_reason()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        fixture.Request.Lines[0].IssuedQty = 2.1m;
+        fixture.Request.Lines[0].VarianceReason = "Bao bì thực tế cần thêm nguyên liệu";
+
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        var stored = Assert.Single(context.Inventoryissuelines.Local);
+        Assert.Equal(2m, stored.RequestedQty);
+        Assert.Equal(2.1m, stored.IssuedQty);
+        var audit = Assert.Single(context.Auditlogs.Local.Where(item => item.FieldName == nameof(InventoryIssueLine.IssuedQty)));
+        Assert.Equal("Bao bì thực tế cần thêm nguyên liệu", audit.Reason);
+        Assert.Equal("2", audit.OldValue);
+        Assert.Equal("2.1", audit.NewValue);
+        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
+            Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 2.1m, "ISSUE", "inventoryissues",
+            Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Reconciliation_issue_rejects_tampered_requested_quantity_with_atomic_zero_effects()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        fixture.Request.Lines[0].RequestedQty = 1.9m;
+        fixture.Request.Lines[0].IssuedQty = 1.5m;
+        var before = CaptureEffects(context);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+
+        Assert.Equal(before, CaptureEffects(context));
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
+    public async Task Reconciliation_issue_provisions_declared_shortage_then_creates_the_real_issue()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        Assert.Single(context.Currentstocks.Local).CurrentQty = 1m;
+        await context.SaveChangesAsync();
+        var batch = Assert.Single(context.Reconciliationbatches.Local);
+
+        var result = await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        Assert.NotNull(result);
+        Assert.Single(context.Inventoryissues.Local);
+        Assert.Single(context.Inventoryissuelines.Local);
+        Assert.Equal("IN_PROGRESS", batch.Status);
+        Assert.Equal(4, batch.Version);
+        await fixture.Ledger.Received(1).AddStockAsync(
+            Arg.Any<byte[]>(),
+            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.IngredientId)),
+            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.UnitId)),
+            Arg.Is<decimal>(value => value > 0),
+            "ADJUSTMENT", nameof(ReconciliationBatch),
+            Arg.Is<byte[]>(value => value.SequenceEqual(batch.BatchId)),
+            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.Actor)),
+            "Bảo đảm đủ tồn kho cho chế độ đối chiếu nguyên liệu", Arg.Any<string>());
+        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
+            Arg.Any<byte[]>(),
+            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.IngredientId)),
+            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.UnitId)),
+            Arg.Any<decimal>(), "ISSUE", "inventoryissues", Arg.Any<byte[]>(),
+            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.Actor)),
+            "Xuất kho đối chiếu", Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Reconciliation_issue_requires_every_frozen_line_exactly_once()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        var batch = Assert.Single(context.Reconciliationbatches.Local);
+        batch.Lines.Add(new ReconciliationBatchLine
+        {
+            BatchLineId = GuidHelper.NewId(), BatchId = batch.BatchId, IngredientId = fixture.IngredientId,
+            CanonicalUnitId = fixture.UnitId, RequiredQuantity = 1m, FrozenTolerance = 0.1m,
+            ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1
+        });
+        await context.SaveChangesAsync();
+        var before = CaptureEffects(context);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+
+        Assert.Equal(before, CaptureEffects(context));
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
+    public async Task Two_distinct_customer_batches_accept_independent_manual_issues()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        fixture.Request.Lines[0].IssuedQty = 1.5m;
+        var secondBatchId = GuidHelper.NewId();
+        var secondLineId = GuidHelper.NewId();
+        context.Reconciliationbatches.Add(new ReconciliationBatch
+        {
+            BatchId = secondBatchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "TRANSFERRED", Version = 3, CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow,
+            Lines =
+            [
+                new ReconciliationBatchLine
+                {
+                    BatchLineId = secondLineId, IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+                    RequiredQuantity = 2m, FrozenTolerance = 0.1m, ToleranceSourceKind = "SYSTEM_DEFAULT",
+                    ToleranceSourceVersion = "1", Version = 1
+                }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+        var secondRequest = CloneRequest(fixture.Request);
+        secondRequest.CommandId = $"phase30-second-{Guid.NewGuid():N}";
+        secondRequest.ReconciliationBatchId = GuidHelper.ToGuidString(secondBatchId);
+        secondRequest.Lines[0].ReconciliationBatchLineId = GuidHelper.ToGuidString(secondLineId);
+        secondRequest.Lines[0].IssuedQty = 1.25m;
+        await fixture.Service.CreateAsync(secondRequest, fixture.ActorId);
+
+        Assert.Equal(2, context.Inventoryissues.Local.Count);
+        Assert.Equal(2, context.Inventoryissuelines.Local.Count);
+        Assert.Contains(context.Inventoryissuelines.Local, line => line.ReconciliationBatchLineId!.SequenceEqual(GuidHelper.ParseGuidString(fixture.Request.Lines[0].ReconciliationBatchLineId!)!) && line.IssuedQty == 1.5m);
+        Assert.Contains(context.Inventoryissuelines.Local, line => line.ReconciliationBatchLineId!.SequenceEqual(secondLineId) && line.IssuedQty == 1.25m);
+        Assert.All(context.Reconciliationbatches.Local, item => Assert.Equal("IN_PROGRESS", item.Status));
+        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 1.5m, "ISSUE", "inventoryissues", Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
+        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 1.25m, "ISSUE", "inventoryissues", Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
+    }
+
+    [Fact]
     public async Task Multiple_partial_issues_sum_exact_linked_lines_and_subtract_only_received_source_linked_returns()
     {
         await using var context = CreateContext();
@@ -353,7 +565,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.Contains("materialRequestLineId` IS NOT NULL", lineCheck.Sql, StringComparison.Ordinal);
         Assert.Contains("reconciliationBatchLineId` IS NOT NULL", lineCheck.Sql, StringComparison.Ordinal);
         Assert.Contains("materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL", lineCheck.Sql, StringComparison.Ordinal);
-        Assert.True(line.GetIndexes().Single(index => index.Name == "uxInventoryIssueLinesReconciliationBatchLine").IsUnique);
+        Assert.False(line.GetIndexes().Single(index => index.Name == "ixInventoryIssueLinesReconciliationBatchLine").IsUnique);
+        Assert.False(issue.GetIndexes().Single(index => index.Name == "ixInventoryIssuesReconciliationBatch").IsUnique);
         Assert.Contains(line.GetForeignKeys(), key => key.Properties.Single().Name == nameof(InventoryIssueLine.MaterialRequestLineId));
         Assert.Contains(line.GetForeignKeys(), key => key.Properties.Single().Name == nameof(InventoryIssueLine.ReconciliationBatchLineId));
     }
@@ -407,12 +620,13 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
-    public async Task Reconciliation_issue_response_loss_replay_and_true_relational_duplicate_are_exactly_once()
+    public async Task Reconciliation_manual_issue_response_loss_replay_and_true_relational_duplicate_are_exactly_once()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-phase30-duplicate-{Guid.NewGuid():N}.db");
         try
         {
             var source = await SeedRelationalIssueDatabaseAsync(databasePath, "phase30-relational-duplicate");
+            source.Request.Lines[0].IssuedQty = 1.5m;
             using var barrier = new Barrier(2);
             await using var first = await CreateRelationalIssueServiceAsync(databasePath, source, new BarrierPreWriteGate(barrier));
             await using var second = await CreateRelationalIssueServiceAsync(databasePath, source, new BarrierPreWriteGate(barrier));
@@ -433,7 +647,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             Assert.Equal(GuidHelper.ToGuidString(winner.IssueId), response.IssueId);
             Assert.Single(await verify.Inventoryissuelines.AsNoTracking().ToListAsync());
             Assert.Single(await verify.Stockmovements.AsNoTracking().ToListAsync());
-            Assert.Equal(18m, await verify.Currentstocks.AsNoTracking().Select(stock => stock.CurrentQty).SingleAsync());
+            Assert.Equal(18.5m, await verify.Currentstocks.AsNoTracking().Select(stock => stock.CurrentQty).SingleAsync());
             Assert.Single(await verify.Lifecycletransitions.AsNoTracking().ToListAsync());
             Assert.Single(await verify.Lifecyclecommandreceipts.AsNoTracking().ToListAsync());
 
@@ -442,7 +656,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             Assert.Equal(response.IssueId, replay!.IssueId);
             Assert.Equal(1, await verify.Inventoryissues.CountAsync());
             Assert.Equal(1, await verify.Stockmovements.CountAsync());
-            Assert.Equal(18m, await verify.Currentstocks.Select(stock => stock.CurrentQty).SingleAsync());
+            Assert.Equal(18.5m, await verify.Currentstocks.Select(stock => stock.CurrentQty).SingleAsync());
         }
         finally
         {

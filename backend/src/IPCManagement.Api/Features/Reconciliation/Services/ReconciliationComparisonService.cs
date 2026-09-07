@@ -6,12 +6,11 @@ namespace IPCManagement.Api.Features.Reconciliation.Services;
 
 public static class ReconciliationComparisonService
 {
-    public static ReconciliationLineDto Map(ReconciliationBatchLine line, IReadOnlyList<ReconciliationActual> actuals, ReconciliationDisposition? disposition, decimal? linkedIssuedQuantity = null)
+    public static ReconciliationLineDto Map(ReconciliationBatchLine line, IReadOnlyList<ReconciliationActual> actuals, ReconciliationDisposition? disposition, decimal? linkedIssuedQuantity = null, IReadOnlyList<string>? issueNotes = null)
     {
         var purchasedActual = actuals.FirstOrDefault(x => x.Side == "PURCHASED");
-        var issuedActual = actuals.FirstOrDefault(x => x.Side == "ISSUED");
         var purchased = purchasedActual?.Quantity;
-        var issued = linkedIssuedQuantity ?? issuedActual?.Quantity;
+        var issued = linkedIssuedQuantity;
         var pr = purchased - line.RequiredQuantity;
         var ir = issued - line.RequiredQuantity;
         var pi = purchased - issued;
@@ -23,7 +22,7 @@ public static class ReconciliationComparisonService
         var matched = linkedProjection
             ? triggers.All(trigger => trigger != "ISSUED_REQUIRED")
             : triggers.Count == 0 && purchased.HasValue && issued.HasValue;
-        return new(GuidHelper.ToGuidString(line.BatchLineId), GuidHelper.ToGuidString(line.IngredientId), line.Ingredient?.IngredientCode, line.Ingredient?.IngredientName, GuidHelper.ToGuidString(line.CanonicalUnitId), line.CanonicalUnit?.UnitName, line.RequiredQuantity, line.FrozenTolerance, purchased, purchasedActual?.Version, issued, linkedProjection ? null : issuedActual?.Version, pr, ir, pi, triggers, matched ? "MATCHED" : triggers.Count > 0 ? "NEEDS_REVIEW" : "INCOMPLETE", line.Version,
-            disposition is null ? null : new(disposition.Category, disposition.Reason, disposition.Version, disposition.DisposedAt));
+        return new(GuidHelper.ToGuidString(line.BatchLineId), GuidHelper.ToGuidString(line.IngredientId), line.Ingredient?.IngredientCode, line.Ingredient?.IngredientName, GuidHelper.ToGuidString(line.CanonicalUnitId), line.CanonicalUnit?.UnitName, line.RequiredQuantity, line.FrozenTolerance, purchased, purchasedActual?.Version, issued, null, pr, ir, pi, triggers, matched ? "MATCHED" : triggers.Count > 0 ? "NEEDS_REVIEW" : "INCOMPLETE", line.Version,
+            disposition is null ? null : new(disposition.Category, disposition.Reason, disposition.Version, disposition.DisposedAt), issueNotes);
     }
 }

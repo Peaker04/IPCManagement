@@ -12138,6 +12138,7 @@ export interface components {
             /** Format: double */
             readonly requestedQty: number;
             readonly unitId: string;
+            readonly varianceReason?: string | null;
         };
         readonly CreateInventoryIssueRequest: {
             readonly causationId?: string | null;
@@ -12147,6 +12148,7 @@ export interface components {
             readonly expectedVersion: number;
             /** Format: date */
             readonly issueDate: string;
+            readonly isSupplemental?: boolean | null;
             readonly lines: readonly components["schemas"]["CreateInventoryIssueLineRequest"][];
             readonly materialRequestId?: string | null;
             readonly receivedBy?: string | null;
@@ -15644,6 +15646,7 @@ export interface components {
             readonly issuedRequiredDifference?: number | null;
             /** Format: int64 */
             readonly issuedVersion?: number | null;
+            readonly issueNotes?: readonly string[] | null;
             /** Format: double */
             readonly purchasedIssuedDifference?: number | null;
             /** Format: double */

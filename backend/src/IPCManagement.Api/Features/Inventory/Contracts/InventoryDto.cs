@@ -209,6 +209,8 @@ public class CreateInventoryIssueRequest
 
     public string? ReconciliationBatchId { get; set; }
 
+    public bool? IsSupplemental { get; set; }
+
     public string? ReceivedBy { get; set; }
 
     public List<CreateInventoryIssueLineRequest> Lines { get; set; } = new();
@@ -228,6 +230,9 @@ public class CreateInventoryIssueLineRequest
 
     [Required, Range(0.000001, double.MaxValue)]
     public decimal IssuedQty { get; set; }
+
+    [MaxLength(1000)]
+    public string? VarianceReason { get; set; }
 
     [Required]
     public string UnitId { get; set; } = string.Empty;

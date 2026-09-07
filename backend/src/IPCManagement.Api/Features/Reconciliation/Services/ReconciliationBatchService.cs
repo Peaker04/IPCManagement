@@ -68,8 +68,16 @@ public sealed class ReconciliationBatchService(
                 .Where(line => line.BatchId == bytes).ToListAsync(token);
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
         var dispositions = await context.Reconciliationdispositions.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
-        var issued = await LoadLinkedIssuedQuantitiesAsync(batchLines.Select(line => line.BatchLineId).ToList(), token);
-        return Map(batch, actuals, dispositions, issued, batchLines);
+        var lineIds = batchLines.Select(line => line.BatchLineId).ToList();
+        var issued = await LoadLinkedIssuedQuantitiesAsync(lineIds, token);
+        var issueNotes = (await context.Auditlogs.AsNoTracking()
+                .Where(audit => audit.EntityName == nameof(InventoryIssueLine) && audit.FieldName == nameof(InventoryIssueLine.IssuedQty)
+                    && audit.EntityId != null && lineIds.Contains(audit.EntityId) && audit.Reason != null)
+                .OrderBy(audit => audit.ChangedAt)
+                .Select(audit => new { audit.EntityId, audit.Reason }).ToListAsync(token))
+            .GroupBy(audit => Convert.ToHexString(audit.EntityId!))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(audit => audit.Reason!).ToList(), StringComparer.Ordinal);
+        return Map(batch, actuals, dispositions, issued, batchLines, issueNotes);
     }
 
     public async Task<IReadOnlyList<ReconciliationSourceChangeDto>> ListSourceChangesAsync(string id, CancellationToken token = default)
@@ -409,13 +417,18 @@ public sealed class ReconciliationBatchService(
         IReadOnlyList<ReconciliationActual> actuals,
         IReadOnlyList<ReconciliationDisposition> dispositions,
         IReadOnlyDictionary<string, decimal>? linkedIssued = null,
-        IReadOnlyList<ReconciliationBatchLine>? explicitLines = null) =>
+        IReadOnlyList<ReconciliationBatchLine>? explicitLines = null,
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? issueNotes = null) =>
         new(GuidHelper.ToGuidString(batch.BatchId), GuidHelper.ToGuidString(batch.MenuVersionId), GuidHelper.ToGuidString(batch.QuantityImportBatchId), batch.Status, batch.Version, batch.CreatedAt, batch.ReadyAt, batch.CompletedAt,
             (explicitLines ?? batch.Lines.ToList()).Select(line => ReconciliationComparisonService.Map(
                 line,
                 actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
                 dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
-                linkedIssued?.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)))).ToList());
+                LinkedQuantity(linkedIssued, line.BatchLineId),
+                issueNotes?.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)))).ToList());
+
+    internal static decimal? LinkedQuantity(IReadOnlyDictionary<string, decimal>? linkedIssued, byte[] batchLineId) =>
+        linkedIssued is not null && linkedIssued.TryGetValue(Convert.ToHexString(batchLineId), out var quantity) ? quantity : null;
 
     internal static byte[] RequiredId(string id) => GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("ID không hợp lệ.");
 }
