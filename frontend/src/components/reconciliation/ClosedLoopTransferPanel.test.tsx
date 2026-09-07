@@ -6,6 +6,8 @@ import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopT
 const batches = [
   { batchId: 'batch-other', menuVersionId: 'menu-other', status: 'TRANSFERRED', version: 1 },
   { batchId: 'batch-exact', menuVersionId: 'menu-exact', status: 'READY', version: 2 },
+  { batchId: 'batch-progress', menuVersionId: 'menu-progress', status: 'IN_PROGRESS', version: 3 },
+  { batchId: 'batch-completed', menuVersionId: 'menu-completed', status: 'COMPLETED', version: 4 },
 ]
 const transfer = vi.fn()
 const preview = vi.fn()
@@ -86,4 +88,14 @@ it('offers the stock workflow action only for the exact menu source', () => {
 
   expect(screen.getByRole('button', { name: 'Chuyển sang Kho' })).toBeEnabled()
   expect(screen.queryByRole('link', { name: /mở danh sách cần xuất/i })).not.toBeInTheDocument()
+})
+
+it.each([
+  ['menu-progress', 'Mở đối chiếu', '/reconciliation?batchId=batch-progress'],
+  ['menu-completed', 'Mở kết quả', '/reconciliation?batchId=batch-completed'],
+])('keeps lifecycle status and next action aligned for %s', (menuVersionId, action, href) => {
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId={menuVersionId} scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  expect(screen.getByRole('link', { name: action })).toHaveAttribute('href', href)
+  expect(screen.queryByRole('link', { name: 'Mở danh sách cần xuất' })).not.toBeInTheDocument()
 })

@@ -1,10 +1,9 @@
 import { Fragment, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronDown, Snowflake, TriangleAlert } from 'lucide-react'
+import { ChevronDown, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { InlineAlert, StatusBadge, TableViewport } from '@/components/common'
+import { InlineAlert, TableViewport } from '@/components/common'
 import { formatDateOnly, formatNumber, formatQuantity } from '@/lib/formatters'
-import { ROUTES } from '@/lib/routeConfig'
+import { ReconciliationLifecycleStrip } from '@/features/reconciliation/ReconciliationLifecycleStrip'
 import {
   useCommitReconciliationQuantityImportMutation,
   useInitializeReconciliationToleranceMutation,
@@ -48,7 +47,6 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
   const [ready, { isLoading: isFreezing }] = useReadyReconciliationBatchMutation()
   const [transfer, { isLoading: isTransferring }] = useTransferReconciliationBatchMutation()
   const batch = menuVersionId ? data.find((candidate) => candidate.menuVersionId === menuVersionId) : undefined
-  const warehouseHref = batch ? `${ROUTES.WAREHOUSE}?batchId=${encodeURIComponent(batch.batchId)}` : ROUTES.WAREHOUSE
   const previewSummary = useMemo(() => {
     const plans = preview?.plans ?? []
     const ingredientTotals = new Map<string, { name: string; code: string; unit: string; quantity: number }>()
@@ -136,7 +134,6 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
         {!batch && preview && <Button type="button" disabled={busy || !previewSummary.complete} onClick={() => void commitPreview()}>{isCommitting ? 'Đang tạo lô...' : 'Tạo lô định lượng'}</Button>}
         {batch?.status === 'DRAFT' && <Button type="button" disabled={busy || (batch.lines?.length ?? 0) === 0} onClick={() => void freezeBatch()}>{isFreezing ? 'Đang khóa...' : 'Xác nhận và khóa'}</Button>}
         {batch?.status === 'READY' && <Button type="button" disabled={busy} onClick={() => void transferBatch()}>{isTransferring ? 'Đang chuyển...' : 'Chuyển sang Kho'}</Button>}
-        {batch && ['TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'].includes(batch.status) && <Link className="ipc-button ipc-button-primary" to={warehouseHref}>Mở danh sách cần xuất</Link>}
       </div>
     </div>
 
@@ -162,7 +159,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
       </TableViewport>
       {previewSummary.ingredientTotals.length > 0 && <details className="border-t border-slate-200"><summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">Xem tổng nguyên liệu</summary><div className="max-h-80 overflow-auto border-t border-slate-200"><table className="ipc-data-table w-full table-fixed text-sm"><thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-600"><tr><th scope="col" className="px-4 py-2">Nguyên liệu</th><th scope="col" className="px-4 py-2 text-right">Tổng lượng cần</th></tr></thead><tbody className="divide-y divide-slate-200">{previewSummary.ingredientTotals.map((material) => <tr key={`${material.code}:${material.unit}`}><td className="px-4 py-2">{material.name}</td><td className="px-4 py-2 text-right font-medium tabular-nums">{formatQuantity(material.quantity, { maximumFractionDigits: 6 })} {material.unit}</td></tr>)}</tbody></table></div></details>}
     </div>}
-    {batch && <div className="mt-3 flex flex-wrap items-center gap-2 text-sm"><StatusBadge variant={batch.status === 'COMPLETED' ? 'success' : batch.status === 'DRAFT' ? 'warning' : 'info'}>{batch.status === 'DRAFT' ? 'Chờ xác nhận' : batch.status === 'READY' ? 'Đã khóa' : batch.status === 'TRANSFERRED' ? 'Đã chuyển Kho' : batch.status === 'IN_PROGRESS' ? 'Đang đối chiếu' : 'Hoàn tất'}</StatusBadge><span>{batch.lines?.length ?? 0} nguyên liệu</span>{batch.status !== 'DRAFT' && <span className="inline-flex items-center gap-1 text-slate-600"><Snowflake size={14} aria-hidden="true" />Định lượng đã khóa; thay đổi sau đó sẽ áp dụng cho lô mới.</span>}</div>}
+    {batch && <div className="mt-3 space-y-2"><ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={['TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'].includes(batch.status)} /><p className="text-sm text-slate-600">{batch.lines?.length ?? 0} nguyên liệu{batch.status !== 'DRAFT' ? ' · Định lượng đã khóa; thay đổi sau đó sẽ áp dụng cho lô mới.' : ''}</p></div>}
     {isLoading && <p className="mt-3 text-sm text-slate-600">Đang tải định lượng đã chốt...</p>}
     {isError && <p className="mt-3 text-sm text-red-700" role="alert">Không tải được định lượng xuất kho. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Thử lại</Button></p>}
     {!isLoading && !isError && !menuVersionId && <p className="mt-3 text-sm text-slate-600">Chọn đúng khách hàng và tuần có kế hoạch đã nhập để mở định lượng xuất kho.</p>}

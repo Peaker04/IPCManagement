@@ -13,6 +13,8 @@ import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 import { ReconciliationSourceChangeLog } from '../ReconciliationSourceChangeLog'
 import { dispositionCategoryLabel, issueActorLabel, issueRoleLabel, issueStatusLabel } from '../reconciliationIssueCorrelation'
+import { ReconciliationLifecycleStrip } from '../ReconciliationLifecycleStrip'
+import { getReconciliationLifecyclePresentation } from '../reconciliationLifecyclePresentation'
 
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -57,14 +59,7 @@ export default function ReconciliationPage() {
     return batch.lines.filter((line) => issueLineIds.has(line.batchLineId))
   }, [batch, issueLinkageValid, selectedIssue, selectedIssueId])
   const actionableCount = useMemo(() => visibleBatchLines.filter((line) => line.status !== 'MATCHED').length, [visibleBatchLines])
-  const batchLabel = (item: typeof batches[number]) => {
-    const statusLabel = item.status === 'DRAFT' ? 'Đang chuẩn bị'
-      : item.status === 'READY' ? 'Sẵn sàng chuyển Kho'
-        : item.status === 'TRANSFERRED' ? 'Chờ Kho xác nhận xuất'
-          : item.status === 'IN_PROGRESS' ? 'Đang đối chiếu'
-            : 'Hoàn tất'
-    return `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${statusLabel}`
-  }
+  const batchLabel = (item: typeof batches[number]) => `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
 
   return <OperationalFrame>
     <section className="space-y-4" aria-label="Đối chiếu nguyên liệu">
@@ -91,6 +86,7 @@ export default function ReconciliationPage() {
         action={<Link className={buttonVariants()} to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở định lượng xuất kho</Link>}
       /> : batchesView.phase === 'ready' && selectedId ? <QueryViewBoundary geometry="table" queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
         {batch && <div className="space-y-4">
+          <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />
           {selectedIssueId && issueQuery.isFetching && !selectedIssue && <p className="rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600" role="status">Đang tải giao dịch xuất kho...</p>}
           {selectedIssueId && issueQuery.isError && <InlineAlert title="Không tải được giao dịch xuất kho" variant="danger">Liên kết trên URL được giữ nguyên để thử lại; dữ liệu lô không được ghép thay thế.</InlineAlert>}
           {selectedIssue && !issueLinkageValid && <InlineAlert title="Liên kết giao dịch không khớp" variant="danger">Phiếu xuất không thuộc lô đối chiếu đang mở. Hệ thống không hiển thị các dòng có liên kết không chắc chắn.</InlineAlert>}

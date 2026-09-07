@@ -13,7 +13,8 @@ import routePreloaders from '@/routes/routeDataPreloaders.ts?raw'
 describe('operation-mode page composition boundaries', () => {
   it('retains source authoring and completed serving owners in reconciliation Weekly Menu', () => {
     expect(weeklyRouter).toContain("isMaterialReconciliationMode")
-    expect(weeklyRouter).toContain("label: isMaterialReconciliationMode ? 'Tổng hợp mua' : 'Nhu cầu'")
+    expect(weeklyRouter).toContain("label: isMaterialReconciliationMode ? MRX_QUANTITY_TAB_LABEL : 'Nhu cầu'")
+    expect(weeklyRouter).not.toContain("label: isMaterialReconciliationMode ? 'Tổng hợp mua'")
     expect(weeklyRouter).toContain("enabled: !isMaterialReconciliationMode && activeView === 'demand'")
     expect(weeklyRouter).toContain("isMaterialReconciliationMode && activeView === 'demand' ? <ClosedLoopTransferPanel")
     expect(weeklyRouter).toContain('useWeeklyMenuImport')
