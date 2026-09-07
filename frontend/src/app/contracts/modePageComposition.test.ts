@@ -35,7 +35,9 @@ describe('operation-mode page composition boundaries', () => {
   })
 
   it('routes Dashboard before legacy reports owners mount and disables reconciliation preloading', () => {
-    expect(dashboardRouter).toContain('<ReconciliationDashboardPage />')
+    expect(dashboardRouter).toContain("lazy(() => import('./ReconciliationDashboardPage')")
+    expect(dashboardRouter).toContain("lazy(() => import('./DefaultDashboardPage'))")
+    expect(dashboardRouter).toContain("operation?.mode === 'MATERIAL_RECONCILIATION'")
     expect(reconciliationDashboard).not.toMatch(/useWorkflowOverview|useGetOperationalKpisQuery|workflowApi|reportsApi/)
     expect(reconciliationDashboard).not.toMatch(/purchasing|reports/i)
     expect(reconciliationDashboard).toContain('md:grid-cols-2 xl:grid-cols-4')

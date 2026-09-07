@@ -42,7 +42,7 @@ describe('InfoNote', () => {
     expect(screen.getByText('Đơn mua chờ nhập kho')).toBeInTheDocument();
 
     // Trigger button should be rendered next to title
-    const infoButton = screen.getByRole('button', { name: 'Xem hướng dẫn' });
+    const infoButton = await screen.findByRole('button', { name: 'Xem hướng dẫn' });
     expect(infoButton).toBeInTheDocument();
 
     // Click trigger and verify popover note displays

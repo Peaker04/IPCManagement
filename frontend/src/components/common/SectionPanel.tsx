@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { typography } from '@/lib/typography';
-import { InfoNote } from './InfoNote';
+
+const InfoNote = lazy(() => import('./InfoNote').then(({ InfoNote: component }) => ({ default: component })));
 
 interface SectionPanelProps {
   title?: ReactNode;
@@ -60,10 +61,12 @@ export function SectionPanel({
                 <span>{title}</span>
               </HeadingTag>
               {showPopoverDescription && (
-                <InfoNote
-                  title={typeof title === 'string' ? title : 'Hướng dẫn'}
-                  content={description}
-                />
+                <Suspense fallback={<span aria-hidden="true" className="inline-flex size-5 shrink-0" />}>
+                  <InfoNote
+                    title={typeof title === 'string' ? title : 'Hướng dẫn'}
+                    content={description}
+                  />
+                </Suspense>
               )}
             </div>
           )}

@@ -1,14 +1,10 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from 'react';
-import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
+import { ClipboardCheck, FileCheck2, RotateCcw } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CommandBar } from '@/components/common/CommandBar';
 import { ContextStrip } from '@/components/common/ContextStrip';
-import { EmptyState } from '@/components/common/EmptyState';
-import { InlineAlert } from '@/components/common/InlineAlert';
-import { RefreshStatus } from '@/components/common/RefreshStatus';
 import { KeepAliveTabPanel } from '@/components/common/KeepAliveTabPanel';
 import { OperationalFrame } from '@/components/common/OperationalFrame';
-import { QueryErrorAlert } from '@/components/common/QueryErrorAlert';
 import { SectionPanel } from '@/components/common/SectionPanel';
 import { useToast } from '@/components/common/useToast';
 import { ViewSwitcher } from '@/components/common/ViewSwitcher';
@@ -21,19 +17,16 @@ import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi';
 import type { ApprovalRecord } from '@/types/workflow';
 import { Button } from '@/components/ui/button';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
-import { formatDateOnly, formatDateTime } from '@/lib/formatters';
-import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
+import { formatDateOnly } from '@/lib/formatters';
+import { getApprovalDecisionCopy } from './approvalCopy';
 import { resolveApprovalAvailability } from '@/lib/actionEligibility';
-import {
-  ApprovalQueueState,
-  PurchaseRequestHistoryState,
-  WorkflowDocumentsState,
-} from './ApprovalQueryPanels';
 import { visibleTabIds } from '@/lib/navigationPreferences';
-import { ApprovalSearchField } from './ApprovalSearchField';
-import { ApprovalDecisionDialog } from './ApprovalDecisionDialog';
 
+const ApprovalDecisionDialog = lazy(() => import('./ApprovalDecisionDialog').then(({ ApprovalDecisionDialog: component }) => ({ default: component })))
+const ApprovalSearchField = lazy(() => import('./ApprovalSearchField').then(({ ApprovalSearchField: component }) => ({ default: component })))
+const ApprovalQueueState = lazy(() => import('./ApprovalQueryPanels').then(({ ApprovalQueueState: component }) => ({ default: component })))
+const WorkflowDocumentsState = lazy(() => import('./ApprovalQueryPanels').then(({ WorkflowDocumentsState: component }) => ({ default: component })))
+const ApprovalHistoryTab = lazy(() => import('./ApprovalHistoryTab'))
 const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
 
 export default function ApprovalPage() {
@@ -330,7 +323,11 @@ export default function ApprovalPage() {
           <SplitWorkbench
             detailLabel="Chứng từ"
             detailClassName="min-h-[16rem] border-0 bg-transparent p-0"
-            detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
+            detail={
+              <Suspense fallback={<div aria-hidden="true" className="min-h-[11.5rem] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+                <WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />
+              </Suspense>
+            }
           >
             <SectionPanel
               title="Danh sách cần duyệt"
@@ -353,7 +350,8 @@ export default function ApprovalPage() {
                 </div>
               }
             >
-              <ApprovalQueueState
+              <Suspense fallback={<TabContentSkeleton variant="table" geometry="table" message="Đang tải hàng chờ duyệt..." />}>
+                <ApprovalQueueState
                 view={approvalView}
                 records={approvalRecords}
                 disabledReason={approvalAvailability.disabledReason}
@@ -367,7 +365,8 @@ export default function ApprovalPage() {
                 onPrevious={goToPreviousApprovalPage}
                 onNext={goToNextApprovalPage}
                 paginationLabel="Phân trang hàng đợi duyệt"
-              />
+                />
+              </Suspense>
             </SectionPanel>
           </SplitWorkbench>
         </KeepAliveTabPanel>
@@ -377,103 +376,17 @@ export default function ApprovalPage() {
           active={activeView === 'history'}
           fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải lịch sử duyệt..." />}
         >
-          <SplitWorkbench
-            detailLabel="Tiến trình phê duyệt"
-            detailClassName="border-0 bg-transparent p-0"
-            detail={
-              selectedPrId ? (
-                <div className="p-5 space-y-5 relative">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <h3 className="font-semibold text-slate-800">Lịch sử phê duyệt</h3>
-                    <Button
-                      onClick={() => setSelectedPrId(null)}
-                      variant="outline"
-                      size="xs"
-                    >
-                      Đóng
-                    </Button>
-                  </div>
-                  {historyView.phase === 'forbidden' ? (
-                    <InlineAlert title="Không có quyền xem lịch sử phê duyệt" variant="danger">
-                      <span role="alert">{historyView.message}</span>
-                    </InlineAlert>
-                  ) : historyView.phase === 'error' ? (
-                    <QueryErrorAlert
-                      title="Không tải được lịch sử phê duyệt"
-                      isRetrying={historyView.isRetrying}
-                      onRetry={historyView.retry}
-                    >
-                      Kiểm tra kết nối rồi thử lại để xem các bước đã ghi nhận.
-                    </QueryErrorAlert>
-                  ) : historyView.phase === 'loading' ? (
-                    <p role="status" className="text-sm text-slate-500 italic text-center py-4">
-                      Đang tải lịch sử phê duyệt...
-                    </p>
-                  ) : historyView.phase === 'uninitialized' ? (
-                    <p className="text-sm text-slate-500 italic text-center py-4">{historyView.instruction}</p>
-                  ) : (
-                    <>
-                      {historyView.isRefreshing && (
-                        <RefreshStatus>Đang cập nhật...</RefreshStatus>
-                      )}
-                      {historyItems.length === 0 ? (
-                        <EmptyState
-                          title="Không tìm thấy bước duyệt nào."
-                          className="!min-h-0 !p-4"
-                        />
-                      ) : (
-                        <div className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                          {historyItems.map((item) => (
-                            <div key={item.historyId} className="flex gap-4 relative pl-6">
-                              <div className="absolute left-[-2px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-white flex items-center justify-center">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center justify-between text-xs text-slate-500">
-                                  <span>{formatDateTime(item.actionAt)}</span>
-                                  <span className="font-semibold text-slate-700">{item.actionByName}</span>
-                                </div>
-                                <div className="text-sm">
-                                  <span className="font-semibold text-blue-700">{formatApprovalDecision(item.decision)}</span>
-                                  {item.oldStatus && item.newStatus && (
-                                    <span className="ml-2 text-xs text-slate-600">
-                                      ({formatWorkflowStatus(item.oldStatus)} <ArrowRight className="inline size-3 mx-0.5" /> {formatWorkflowStatus(item.newStatus)})
-                                    </span>
-                                  )}
-                                </div>
-                                {item.reason && (
-                                  <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded p-2 italic mt-1">
-                                    "{item.reason}"
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center p-8 text-center text-slate-600">
-                  <div>
-                    <Clock className="mx-auto size-8 text-slate-300 mb-2" />
-                    <p className="text-sm">Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt</p>
-                  </div>
-                </div>
-              )
-            }
-          >
-            <SectionPanel title="Danh sách đề xuất mua hàng" icon={<ClipboardCheck size={18} />}>
-              <PurchaseRequestHistoryState
-                view={purchaseRequestView}
-                selectedId={selectedPrId}
-                currentPage={purchaseRequestPage}
-                onSelect={setSelectedPrId}
-                onPageChange={setPurchaseRequestPage}
-              />
-            </SectionPanel>
-          </SplitWorkbench>
+          <Suspense fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải lịch sử duyệt..." />}>
+            <ApprovalHistoryTab
+              selectedPrId={selectedPrId}
+              setSelectedPrId={setSelectedPrId}
+              purchaseRequestView={purchaseRequestView}
+              purchaseRequestPage={purchaseRequestPage}
+              setPurchaseRequestPage={setPurchaseRequestPage}
+              historyView={historyView}
+              historyItems={historyItems}
+            />
+          </Suspense>
         </KeepAliveTabPanel>
       </div>
 

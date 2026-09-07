@@ -1,5 +1,6 @@
 import { Edit, Send, Upload } from 'lucide-react'
 import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
+import { Input } from '@/components/ui/input'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
 
@@ -71,12 +72,13 @@ export const WeeklyMenuCommandBar = ({
       </select>
     </FieldRow>
     <FieldRow label="Tuần bắt đầu">
-      <input
+      <Input
         aria-label="Tuần bắt đầu"
         type="date"
+        weekStartOnly
         value={weekStartDate}
         onChange={(event) => onWeekChange(event.target.value)}
-        className="ipc-native-control min-h-9 rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+        className="h-9 min-h-9 w-40 bg-white text-sm"
       />
     </FieldRow>
   </CommandBar>

@@ -72,7 +72,7 @@ it('keeps the active week independent from customer selection', async () => {
 
   expect(onCustomerChange).toHaveBeenCalledWith('customer-1')
   expect(onWeekChange).not.toHaveBeenCalled()
-  expect(screen.getByLabelText('Tuần bắt đầu')).toHaveValue('2026-08-10')
+  expect(screen.getByLabelText('Tuần bắt đầu')).toHaveValue('10/08/2026')
 })
 
 it('offers a guarded publish action for a draft weekly menu', async () => {

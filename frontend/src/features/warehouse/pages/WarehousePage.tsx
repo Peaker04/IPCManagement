@@ -1,7 +1,7 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
-import { InlineAlert, KeepAliveTabPanel, OperationalFrame, PaginationBar, QueryErrorAlert, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, ViewSwitcher, RefreshStatus } from '@/components/common';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
@@ -23,12 +23,10 @@ import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
-import { buildWarehouseIssueAllocation, formatIssueCandidateLabel } from '../warehouseIssueAllocation';
+import { buildWarehouseIssueAllocation } from '../warehouseIssueAllocation';
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { addIsoDays } from '../warehouseDateRange';
 import { typography } from '@/lib/typography';
 import { buildWarehousePageHeader } from './WarehousePageHeader';
@@ -37,6 +35,7 @@ import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
 import { WarehouseMovementPanel } from './WarehouseMovementPanel';
 import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
 const ReconciliationWarehousePage = lazy(() => import('./ReconciliationWarehousePage'))
+const WarehouseIssueDialog = lazy(() => import('./WarehouseIssueDialog'))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
@@ -336,108 +335,36 @@ function DefaultWarehousePage() {
       )}
 
       {isIssueDialogOpen && (
-        <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
-          <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
-            <DialogHeader>
-              <DialogTitle id="warehouse-issue-title">Tạo phiếu xuất kho</DialogTitle>
-              <DialogDescription id="warehouse-issue-description">Chọn nhu cầu nguyên liệu và kho xuất tương ứng để lập phiếu.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-2">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-material-request">
-                  Nhu cầu nguyên liệu{' '}
-                  <span aria-hidden="true" className="text-red-600">
-                    *
-                  </span>
-                </label>
-                <Select
-                  value={selectedMaterialRequestId}
-                  onValueChange={(value) => {
-                    setSelectedMaterialRequestId(value ?? '');
-                                    setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
-                  }}
-                >
-                  <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">
-                    <SelectValue placeholder="Chọn chứng từ cần xuất">{selectedIssueCandidate ? formatIssueCandidateLabel(selectedIssueCandidate) : 'Chọn chứng từ cần xuất'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {issueCandidates.map((candidate) => (
-                      <SelectItem key={candidate.materialRequestId} value={candidate.materialRequestId}>
-                        {formatIssueCandidateLabel(candidate)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <PaginationBar
-                  page={issueCandidatePageNumber}
-                  pageSize={issueCandidatePage?.pageSize ?? 8}
-                  totalItems={issueCandidatePage?.totalCount ?? 0}
-                  onPageChange={(page) => {
-                    setSelectedMaterialRequestId('');
-                    setIssueCandidatePageNumber(page);
-                  }}
-                />
-                {issueCandidates.length === 0 && (
-                  <p
-                    className={isIssueCandidateError && !isFetchingIssueCandidates ? 'text-xs font-semibold text-red-700' : 'text-xs text-amber-700'}
-                    role={isIssueCandidateError && !isFetchingIssueCandidates ? 'alert' : undefined}
-                  >
-                    {isFetchingIssueCandidates
-                      ? 'Đang tải nhu cầu nguyên liệu...'
-                      : isIssueCandidateError
-                        ? 'Không tải được nhu cầu nguyên liệu. Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì hết nhu cầu cần xuất.'
-                        : 'Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.'}
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <p className="text-sm font-medium text-slate-800">Kho vận hành</p>
-                <p className="rounded-sm border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
-                  {operationalWarehouseContext.warehouse?.warehouseName ?? 'Chưa xác định'}
-                </p>
-                {(isWarehouseSelectorError || operationalWarehouseContext.state === 'blocked') && (
-                  <p className="text-xs font-semibold text-red-700" role="alert">
-                    {isWarehouseSelectorError ? 'Không tải được kho vận hành.' : operationalWarehouseContext.blocker}
-                  </p>
-                )}
-                {selectedWarehouseId && (
-                  <div
-                    className={`rounded-sm border px-3 py-2 text-xs ${
-                      isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock
-                        ? 'border-red-200 bg-red-50 font-semibold text-red-800'
-                        : selectedWarehouseAllocation.lines.length > 0
-                          ? 'border-sky-200 bg-sky-50 text-slate-700'
-                          : 'border-amber-200 bg-amber-50 text-amber-800'
-                    }`}
-                    role={isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock ? 'alert' : 'status'}
-                  >
-                    {isIssueAllocationRefreshing
-                      ? 'Đang đối chiếu nhu cầu còn lại với tồn kho đã chọn...'
-                      : isAllocationSourceError
-                        ? 'Không đối chiếu được nhu cầu với tồn kho vì lỗi tải dữ liệu. Chưa thể kết luận kho này thiếu hàng; hãy tải lại trang trước khi xuất.'
-                        : selectedWarehouseAllocation.lines.length > 0
-                          ? `Kho có thể xuất ${selectedWarehouseAllocation.lines.length}/${selectedWarehouseAllocation.remainingLineCount} nhóm nguyên liệu còn lại; ${selectedWarehouseAllocation.fullyCoveredLineCount} nhóm đủ toàn bộ số lượng.`
-                          : 'Kho này không có tồn phù hợp với nhu cầu còn lại. Chọn kho khác để tiếp tục.'}
-                  </div>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsIssueDialogOpen(false)}>
-                Hủy
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void handleCreateInventoryIssue()}
-                disabled={
-                  !selectedMaterialRequestId || !selectedWarehouseId || isIssueAllocationRefreshing || isAllocationSourceError || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue
-                }
-              >
-                {isCreatingIssue || isIssueAllocationRefreshing ? 'Đang đồng bộ số lượng...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={<div aria-hidden="true" className="fixed inset-0 z-50 bg-black/20" />}>
+          <WarehouseIssueDialog
+            open
+            onOpenChange={setIsIssueDialogOpen}
+            selectedMaterialRequestId={selectedMaterialRequestId}
+            onMaterialRequestChange={(value) => {
+              setSelectedMaterialRequestId(value)
+              setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`)
+            }}
+            selectedIssueCandidate={selectedIssueCandidate}
+            issueCandidates={issueCandidates}
+            issueCandidatePageNumber={issueCandidatePageNumber}
+            issueCandidatePageSize={issueCandidatePage?.pageSize ?? 8}
+            issueCandidateTotalItems={issueCandidatePage?.totalCount ?? 0}
+            onIssueCandidatePageChange={(page) => {
+              setSelectedMaterialRequestId('')
+              setIssueCandidatePageNumber(page)
+            }}
+            isFetchingIssueCandidates={isFetchingIssueCandidates}
+            isIssueCandidateError={isIssueCandidateError}
+            warehouseName={operationalWarehouseContext.warehouse?.warehouseName}
+            selectedWarehouseId={selectedWarehouseId}
+            warehouseErrorMessage={isWarehouseSelectorError ? 'Không tải được kho vận hành.' : operationalWarehouseContext.state === 'blocked' ? operationalWarehouseContext.blocker : undefined}
+            allocation={selectedWarehouseAllocation}
+            isAllocationSourceError={isAllocationSourceError}
+            isIssueAllocationRefreshing={isIssueAllocationRefreshing}
+            isCreatingIssue={isCreatingIssue}
+            onConfirm={() => void handleCreateInventoryIssue()}
+          />
+        </Suspense>
       )}
 
       {selectedPurchaseOrder && selectedReceiptLine && canReceivePurchases && (

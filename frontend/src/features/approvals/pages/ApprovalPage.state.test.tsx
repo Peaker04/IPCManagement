@@ -152,32 +152,32 @@ describe('ApprovalPage query state boundary', () => {
       : readyQuery({ success: true, message: 'OK', data: [] }));
   });
 
-  it('renders approval-inbox forbidden without a retry or false empty state', () => {
+  it('renders approval-inbox forbidden without a retry or false empty state', async () => {
     mocks.getApprovals.mockReturnValue(failedQuery(403));
 
     renderPage();
 
-    expect(screen.getAllByText('Bạn không có quyền xem hàng đợi phê duyệt.')[0]).toBeInTheDocument();
+    expect((await screen.findAllByText('Bạn không có quyền xem hàng đợi phê duyệt.', {}, { timeout: 3_000 }))[0]).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
     expect(screen.queryByText('Không có chứng từ chờ duyệt')).toBeNull();
   });
 
-  it('keeps a non-forbidden approval-inbox failure retryable', () => {
+  it('keeps a non-forbidden approval-inbox failure retryable', async () => {
     const refetch = vi.fn();
     mocks.getApprovals.mockReturnValue(failedQuery(500, refetch));
 
     renderPage();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Thử tải lại' })[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Thử tải lại' }))[0]);
 
     expect(refetch).toHaveBeenCalledOnce();
   });
 
-  it('keeps approval records visible while the inbox refreshes', () => {
+  it('keeps approval records visible while the inbox refreshes', async () => {
     mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([approvalRecord]), { isFetching: true }));
 
     renderPage();
 
-    expect(screen.getAllByText('Duyệt đề xuất mua PR-001')[0]).toBeInTheDocument();
+    expect((await screen.findAllByText('Duyệt đề xuất mua PR-001'))[0]).toBeInTheDocument();
     expect(screen.getAllByText('Đang cập nhật hàng đợi')[0]).toBeInTheDocument();
   });
 
@@ -191,7 +191,7 @@ describe('ApprovalPage query state boundary', () => {
 
     renderPage();
 
-    const row = screen.getByRole('row', { name: /Duyệt đề xuất mua PR-20260810-FULLDAY/i });
+    const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-20260810-FULLDAY/i });
     fireEvent.click(within(row).getByRole('button', { name: /Duyệt chứng từ:/i }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Duyệt đề xuất mua?' });
@@ -233,57 +233,57 @@ describe('ApprovalPage query state boundary', () => {
     })));
   });
 
-  it('renders workflow-document forbidden without pretending the rail is empty', () => {
+  it('renders workflow-document forbidden without pretending the rail is empty', async () => {
     mocks.getDocuments.mockReturnValue(failedQuery(403));
 
     renderPage();
 
-    expect(screen.getByText('Bạn không có quyền xem chứng từ workflow.')).toBeInTheDocument();
+    expect(await screen.findByText('Bạn không có quyền xem chứng từ workflow.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
   });
 
-  it('renders purchase-request forbidden on the history tab without a false empty list', () => {
+  it('renders purchase-request forbidden on the history tab without a false empty list', async () => {
     mocks.getPurchaseRequests.mockReturnValue(failedQuery(403));
 
     renderPage();
     openHistory();
 
-    expect(screen.getByText('Bạn không có quyền xem danh sách đề xuất mua hàng.')).toBeInTheDocument();
+    expect(await screen.findByText('Bạn không có quyền xem danh sách đề xuất mua hàng.')).toBeInTheDocument();
     expect(screen.queryByText('Không có đề xuất mua hàng nào.')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
   });
 
-  it('keeps approval history uninitialized until a purchase request is selected', () => {
+  it('keeps approval history uninitialized until a purchase request is selected', async () => {
     renderPage();
     openHistory();
 
-    expect(screen.getByText('Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt')).toBeInTheDocument();
+    expect(await screen.findByText('Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt')).toBeInTheDocument();
     expect(screen.queryByText('Không tìm thấy bước duyệt nào.')).toBeNull();
   });
 
-  it('renders approval-history forbidden without a retry', () => {
+  it('renders approval-history forbidden without a retry', async () => {
     mocks.getHistory.mockImplementation((_args, options) => options.skip
       ? uninitializedQuery()
       : failedQuery(403));
 
     renderPage();
     openHistory();
-    fireEvent.click(screen.getByRole('button', { name: /PR-001/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /PR-001/ }));
 
-    expect(screen.getByText('Bạn không có quyền xem lịch sử phê duyệt.')).toBeInTheDocument();
+    expect(await screen.findByText('Bạn không có quyền xem lịch sử phê duyệt.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
   });
 
-  it('keeps history entries visible while refreshing', () => {
+  it('keeps history entries visible while refreshing', async () => {
     mocks.getHistory.mockImplementation((_args, options) => options.skip
       ? uninitializedQuery()
       : readyQuery(historyResponse, { isFetching: true }));
 
     renderPage();
     openHistory();
-    fireEvent.click(screen.getByRole('button', { name: /PR-001/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /PR-001/ }));
 
-    expect(screen.getByText('Quản lý vận hành')).toBeInTheDocument();
+    expect(await screen.findByText('Quản lý vận hành')).toBeInTheDocument();
     expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument();
   });
 });

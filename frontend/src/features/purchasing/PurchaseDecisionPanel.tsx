@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { ROUTES } from '@/lib/routeConfig';
@@ -392,7 +393,7 @@ export function PurchaseDecisionPanel({
                       </label>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Ngày giao</span>
-                        <input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} className="min-h-9 w-full bg-white" />
                       </label>
                       <div className="space-y-2 text-body text-slate-900">
                         <span className="font-semibold">Kho vận hành</span>

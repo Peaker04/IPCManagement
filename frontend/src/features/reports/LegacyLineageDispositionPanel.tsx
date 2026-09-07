@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Check, ClipboardCheck, Link2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { InfoNote, QueryErrorAlert, StatusBadge } from '@/components/common';
+import { QueryErrorAlert, StatusBadge } from '@/components/common';
+import { InfoNote } from '@/components/common/InfoNote';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHasRole } from '@/lib/useHasRole';
 import {

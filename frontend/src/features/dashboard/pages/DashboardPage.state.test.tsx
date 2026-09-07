@@ -90,35 +90,35 @@ describe('DashboardPage query state boundary', () => {
     mocks.getOperationalKpis.mockReturnValue(readyQuery(kpis))
   })
 
-  it('blocks false zero and empty content when the workflow overview fails', () => {
+  it('blocks false zero and empty content when the workflow overview fails', async () => {
     mocks.workflowOverview.mockReturnValue(failedOverview())
 
     renderPage()
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Không tải được tổng quan workflow')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được tổng quan workflow')
     expect(screen.queryByText('Tổng quan ca hôm nay')).toBeNull()
     expect(screen.queryByText('Không có việc cần xử lý trong ca này.')).toBeNull()
   })
 
-  it('retries only the failed workflow overview owner', () => {
+  it('retries only the failed workflow overview owner', async () => {
     const refetchWorkflow = vi.fn()
     const refetchKpis = vi.fn()
     mocks.workflowOverview.mockReturnValue(failedOverview(refetchWorkflow))
     mocks.getOperationalKpis.mockReturnValue(readyQuery(kpis, { refetch: refetchKpis }))
 
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Thử tải lại' }))
 
     expect(refetchWorkflow).toHaveBeenCalledOnce()
     expect(refetchKpis).not.toHaveBeenCalled()
   })
 
-  it('keeps stale operational content visible while the owners refresh', () => {
+  it('keeps stale operational content visible while the owners refresh', async () => {
     mocks.workflowOverview.mockReturnValue(readyOverview({ isFetching: true }))
 
     renderPage()
 
-    expect(screen.getByText('Chọn nhà cung cấp cho PR-001')).toBeInTheDocument()
+    expect(await screen.findByText('Chọn nhà cung cấp cho PR-001')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Đang cập nhật tổng quan vận hành')
   })
 })
