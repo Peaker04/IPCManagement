@@ -35,9 +35,9 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
           <TableCell className="text-right tabular-nums"><CompactQuantity quantity={line.issuedQuantity} unit={unit} /></TableCell>
           <TableCell className="text-right tabular-nums"><CompactQuantity quantity={difference} unit={unit} /></TableCell>
           <TableCell>{line.status === 'MATCHED' ? 'Khớp' : line.status === 'NEEDS_REVIEW' ? 'Cần kiểm tra' : 'Chưa xuất đủ'}</TableCell>
-          <TableCell><div className="flex flex-col items-start gap-1">
-            {onDetail && <Button type="button" variant="link" className="h-auto p-0" onClick={() => onDetail(line)}>Xem chi tiết</Button>}
-            {onDisposition && line.status === 'NEEDS_REVIEW' && <Button type="button" variant="link" className="h-auto p-0" onClick={() => onDisposition(line)}>{line.disposition ? 'Sửa xử lý' : 'Xử lý chênh lệch'}</Button>}
+          <TableCell><div className="flex flex-wrap items-center gap-2">
+            {onDetail && <Button type="button" variant="ghost" size="sm" onClick={() => onDetail(line)}>Chi tiết</Button>}
+            {onDisposition && line.status === 'NEEDS_REVIEW' && <Button type="button" variant="secondary" size="sm" onClick={() => onDisposition(line)}>{line.disposition ? 'Cập nhật xử lý' : 'Xử lý chênh lệch'}</Button>}
           </div></TableCell>
         </TableRow>
       })}</TableBody>

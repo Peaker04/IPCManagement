@@ -67,7 +67,7 @@ public class InventoryIssueService : IInventoryIssueService
         var (items, totalCount) = await _issueRepository.GetPagedAsync(request);
 
         return PagedResponseDto<InventoryIssueDto>.Create(
-            items.Select(issue => InventoryMapper.MapIssue(issue)),
+            items.Select(issue => InventoryMapper.MapIssue(issue, includeLines: true)),
             totalCount,
             request.PageNumber,
             request.PageSize);

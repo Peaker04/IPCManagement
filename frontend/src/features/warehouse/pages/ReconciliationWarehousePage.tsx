@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { OperationalFrame, SectionPanel, StatusBadge, TableViewport, ViewSwitcher } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,10 +12,10 @@ import { formatQuantityWithUnit } from '@/lib/formatters'
 import { compareIssueQuantity, issueQuantityDifference } from './reconciliationIssueQuantity'
 import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
 import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
-import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { eligiblePageTabs } from '@/lib/systemOperationEligibility'
 import { useSystemOperation } from '@/lib/systemOperationContext'
 import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, useListReconciliationIssueHistoryQuery } from '@/api/reconciliationApi'
+import { ReconciliationIssueHistoryTable } from '@/features/reconciliation/ReconciliationIssueHistoryTable'
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 
@@ -29,6 +29,7 @@ const errorMessage = (error: unknown) => {
 
 export default function ReconciliationWarehousePage() {
   const operation = useSystemOperation()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const persistedSelection = readReconciliationSelection()
   const batchId = searchParams.get('batchId') ?? persistedSelection.batchId ?? ''
@@ -38,8 +39,8 @@ export default function ReconciliationWarehousePage() {
     ? requestedView
     : (tabs[0] as ReconciliationWarehouseView | undefined)
   const batchesQuery = useListReconciliationBatchesQuery()
-  const batchQuery = useGetReconciliationBatchQuery(batchId, { skip: !batchId })
-  const historyQuery = useListReconciliationIssueHistoryQuery(batchId, { skip: !batchId || activeView !== 'movement' })
+  const batchQuery = useGetReconciliationBatchQuery(batchId, { skip: !batchId, refetchOnMountOrArgChange: true })
+  const historyQuery = useListReconciliationIssueHistoryQuery(batchId, { skip: !batchId || activeView !== 'movement', refetchOnMountOrArgChange: true })
   const { data: warehouses = [], isError: warehouseError } = useGetWarehouseSelectorQuery()
   const warehouse = resolveOperationalWarehouseContext(warehouses)
   const [createIssue, { isLoading: isCreating }] = useCreateReconciliationIssueMutation()
@@ -194,8 +195,8 @@ export default function ReconciliationWarehousePage() {
           </TableViewport>
         </SectionPanel></div>}
         {activeView === 'movement' && <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"><SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
-          {historyQuery.isLoading ? <p>Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ul className="divide-y divide-slate-200">{historyQuery.data?.items.map((issue) => { const status = getWorkflowStatusPresentation(issue.status); return <li key={issue.issueId} className="flex items-center justify-between gap-3 py-3"><span className="font-medium">{issue.issueCode}</span><StatusBadge variant={status.tone}>{status.label}</StatusBadge></li> })}</ul>}
-          <div className="mt-4 flex justify-end"><Link className="ipc-button ipc-button-primary" to={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}`}>Mở đối chiếu</Link></div>
+          {historyQuery.isLoading ? <p role="status">Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ReconciliationIssueHistoryTable issues={historyQuery.data?.items ?? []} onOpenIssue={(issueId) => navigate(`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}&issueId=${encodeURIComponent(issueId)}`)} />}
+          <div className="mt-4 flex justify-end"><Link className="ipc-button ipc-button-primary" to={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}`}>Mở đối chiếu nguyên liệu</Link></div>
         </SectionPanel></div>}
       </>}
     </div>

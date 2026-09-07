@@ -29,7 +29,7 @@ it('preserves a disposition correction and offers refetch on stale version', asy
   render(<ReconciliationDispositionDrawer line={line} onClose={onClose} onRefetch={onRefetch} />)
 
   fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Lý do điều chỉnh' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Lưu điều chỉnh' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Kết luận đã thay đổi.'))
   expect(onClose).not.toHaveBeenCalled()
   expect(screen.getByLabelText('Lý do')).toHaveValue('Lý do điều chỉnh')
@@ -47,13 +47,25 @@ it('uses the canonical dialog focus contract and identifies the ingredient in us
   render(<ReconciliationDispositionDrawer line={line} onClose={onClose} onRefetch={vi.fn()} />)
 
   expect(await screen.findByRole('dialog', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
-  expect(screen.getByText('Ghi nhận hoặc sửa kết luận cho Gạo thơm · mã GAO-01.')).toBeInTheDocument()
+  expect(screen.getByText('Ghi nhận kết luận xử lý cho Gạo thơm.')).toBeInTheDocument()
+  expect(screen.queryByText(/GAO-01/)).not.toBeInTheDocument()
   expect(document.body.style.overflow).toBe('hidden')
+  expect(screen.getByRole('combobox', { name: 'Nhóm xử lý' })).toHaveTextContent('Chấp nhận chênh lệch')
+  expect(screen.getByRole('combobox', { name: 'Nhóm xử lý' })).not.toHaveTextContent('ACCEPTED_VARIANCE')
   expect(screen.getByRole('combobox', { name: 'Nhóm xử lý' })).toHaveFocus()
   fireEvent.keyDown(window, { key: 'Escape' })
   expect(onClose).toHaveBeenCalledOnce()
 
   opener.remove()
+})
+
+it('does not show validation errors before the user interacts with the form', () => {
+  render(<ReconciliationDispositionDrawer line={{ ...line, disposition: null }} onClose={vi.fn()} onRefetch={vi.fn()} />)
+
+  expect(screen.getByRole('combobox', { name: 'Nhóm xử lý' })).not.toHaveAttribute('aria-invalid', 'true')
+  expect(screen.getByLabelText('Lý do')).toHaveAttribute('aria-invalid', 'false')
+  fireEvent.blur(screen.getByLabelText('Lý do'))
+  expect(screen.getByLabelText('Lý do')).toHaveAttribute('aria-invalid', 'true')
 })
 
 it('renders only server-owned disposition category options', () => {

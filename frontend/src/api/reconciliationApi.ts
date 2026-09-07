@@ -9,7 +9,8 @@ export interface ReconciliationBatch { batchId: string; menuVersionId: string; q
 export type ReconciliationWarehouseTransfer = components['schemas']['ReconciliationWarehouseTransferDto']
 export type CreateReconciliationIssueRequest = components['schemas']['CreateInventoryIssueRequest']
 export type ReconciliationIssueCreated = components['schemas']['InventoryIssueCreatedDto']
-export interface ReconciliationIssueHistoryItem { issueId: string; issueCode: string; status: string; issueDate: string; lines?: readonly unknown[] }
+export type ReconciliationIssueHistoryLine = components['schemas']['InventoryIssueLineDto']
+export interface ReconciliationIssueHistoryItem { issueId: string; issueCode: string; sourceFamily: string; reconciliationBatchId?: string | null; issueDate: string; createdAt: string; receivedAt?: string | null; receivedBy?: string | null; receivedByName?: string | null; issuedBy: string; issuedByName?: string | null; warehouseId: string; warehouseName?: string | null; lines: readonly ReconciliationIssueHistoryLine[] }
 export interface ReconciliationIssueHistoryPage { items: ReconciliationIssueHistoryItem[]; totalCount: number }
 export interface ReconciliationDraftSource { menuVersionId: string; menuLabel: string; quantityImportBatchId: string; importBatchLabel: string }
 export interface ReconciliationSourceChange { changeId: string; changedAt: string; actor: string; businessArea: string; entityName: string; entityId?: string | null; fieldName?: string | null; oldValue?: string | null; newValue?: string | null; reason?: string | null }
@@ -26,6 +27,7 @@ export const reconciliationOwnedQueryEndpointNames = new Set([
   'listReconciliationDispositionCategories',
   'getReconciliationBatch',
   'listReconciliationIssueHistory',
+  'getReconciliationIssue',
   'listReconciliationSourceChanges',
 ])
 
@@ -105,6 +107,7 @@ export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder =
   readyReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/ready`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
   transferReconciliationBatch: builder.mutation<ReconciliationWarehouseTransfer,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/transfer-to-warehouse`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationWarehouseTransfer>) => r.data!, invalidatesTags: (_result, _error, { id }) => ['ReconciliationBatches', { type: 'ReconciliationBatches', id }] }),
   listReconciliationIssueHistory: builder.query<ReconciliationIssueHistoryPage, string>({ query: batchId => ({ url: '/inventory-issues', params: { sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: batchId, pageNumber: 1, pageSize: 20 } }), transformResponse: (r: ApiResponse<ReconciliationIssueHistoryPage>) => r.data ?? { items: [], totalCount: 0 }, providesTags: (_result, _error, batchId) => [{ type: 'ReconciliationIssueHistory', id: batchId }] }),
+  getReconciliationIssue: builder.query<ReconciliationIssueHistoryItem, string>({ query: issueId => ({ url: `/inventory-issues/${issueId}`, params: { sourceFamily: 'MATERIAL_RECONCILIATION' } }), transformResponse: (r: ApiResponse<ReconciliationIssueHistoryItem>) => r.data!, providesTags: (_result, _error, issueId) => [{ type: 'ReconciliationIssueHistory', id: issueId }] }),
   listReconciliationSourceChanges: builder.query<ReconciliationSourceChange[], string>({ query: batchId => `/reconciliation/batches/${batchId}/source-changes`, transformResponse: (r: ApiResponse<ReconciliationSourceChange[]>) => r.data ?? [], providesTags: (_result, _error, batchId) => [{ type: 'ReconciliationBatches', id: batchId }] }),
   createReconciliationIssue: builder.mutation<ReconciliationIssueCreated, CreateReconciliationIssueRequest>({ query: body => ({ url: '/inventory-issues', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationIssueCreated>) => r.data!, invalidatesTags: (_result, _error, body) => [{ type: 'ReconciliationBatches', id: body.reconciliationBatchId! }, { type: 'ReconciliationIssueHistory', id: body.reconciliationBatchId! }] }),
   completeReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/complete`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
@@ -123,6 +126,7 @@ export const {
   useReadyReconciliationBatchMutation,
   useTransferReconciliationBatchMutation,
   useListReconciliationIssueHistoryQuery,
+  useGetReconciliationIssueQuery,
   useListReconciliationSourceChangesQuery,
   useCreateReconciliationIssueMutation,
   useCompleteReconciliationBatchMutation,

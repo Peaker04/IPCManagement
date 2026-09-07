@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import weeklyMenuSource from '@/features/projects/pages/ReconciliationWeeklyMenuPage.tsx?raw'
 import warehouseSource from '@/features/warehouse/pages/ReconciliationWarehousePage.tsx?raw'
 import reconciliationSource from '@/features/reconciliation/pages/ReconciliationPage.tsx?raw'
+import issueHistorySource from '@/features/reconciliation/ReconciliationIssueHistoryTable.tsx?raw'
 import adminBomSource from '@/app/pages/admin-data/AdminBomPanel.tsx?raw'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 
@@ -36,14 +37,21 @@ describe('material reconciliation UI contracts', () => {
     expect(warehouseSource).toContain('Xác nhận xuất thêm')
     expect(warehouseSource).toContain("searchParams.get('batchId') ?? persistedSelection.batchId ?? ''")
     expect(warehouseSource).toContain('Nhập số thực tế xuất cho từng nguyên liệu.')
+    expect(issueHistorySource).toContain('Lịch sử phiếu xuất của lô đối chiếu')
+    expect(warehouseSource).toContain('Mở đối chiếu nguyên liệu')
     expect(warehouseSource).toContain('aria-label={`Thực xuất ${line.ingredientName}`}')
     expect(warehouseSource).toContain('aria-label={`Lý do xuất vượt ${line.ingredientName}`}')
     expect(warehouseSource).toContain('varianceReason: varianceReasons[line.batchLineId]?.trim() || undefined')
   })
 
+  it('keeps one batch-scoped source-change owner on the reconciliation workspace', () => {
+    expect(reconciliationSource).toContain('<ReconciliationSourceChangeLog batchId={batch.batchId} />')
+    expect(warehouseSource).not.toContain('ReconciliationSourceChangeLog')
+  })
+
   it('keeps reconciliation scope controls compact and makes the no-batch prerequisite actionable', () => {
     expect(reconciliationSource).toContain('<QueryViewBoundary geometry="compact"')
-    expect(reconciliationSource).toContain("geometry={selectedId ? 'table' : 'compact'}")
+    expect(reconciliationSource).toContain("batchesView.phase === 'ready' && selectedId ? <QueryViewBoundary geometry=\"table\"")
     expect(reconciliationSource).toContain('data-ui-work-surface="reconciliation-scope"')
     expect(reconciliationSource).toContain("batchesView.phase === 'ready' && batches.length === 0")
     expect(reconciliationSource).toContain('title="Chưa có lô đối chiếu"')
@@ -52,8 +60,10 @@ describe('material reconciliation UI contracts', () => {
 
   it('uses canonical dialogs and shared user-language presentation seams', () => {
     expect(reconciliationSource).toContain('<Dialog open={Boolean(detailLine)}')
-    expect(reconciliationSource).toContain('getWorkflowStatusPresentation(item.status)')
-    expect(warehouseSource).toContain('getWorkflowStatusPresentation(issue.status)')
+    expect(reconciliationSource).toContain("item.status === 'TRANSFERRED' ? 'Chờ Kho xác nhận xuất'")
+    expect(reconciliationSource).not.toContain("TRANSFERRED: { label: 'Hoàn tất'")
+    expect(issueHistorySource).toContain('issueStatusLabel(issue)')
+    expect(issueHistorySource).toContain('issueRoleLabel()')
     expect(adminBomSource).toContain('formatUnit(line.unit)')
     expect(adminBomSource).not.toContain('line.bomStatusLabel || line.bomStatus')
   })
