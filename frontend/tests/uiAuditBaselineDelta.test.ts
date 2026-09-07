@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { canonicalPotentialPath } from './canonicalPotentialPath';
 
 type RemediationDelta = {
   identity: string;
@@ -97,7 +98,7 @@ export function validateRecoveryAttemptRoot(input: {
 }) {
   if (!/^attempt-[1-9]\d*$/.test(input.attemptName)) throw new Error('attempt name must be attempt-N');
   const repository = realpathSync(input.repositoryRoot);
-  const output = realpathSync(resolve(repository, input.configuredOutput));
+  const output = canonicalPotentialPath(resolve(repository, input.configuredOutput));
   const parent = resolve(repository, input.recoveryParent);
   if (!existsSync(parent)) throw new Error('recovery parent must exist before canonicalization');
   if (lstatSync(parent).isSymbolicLink()) throw new Error('recovery parent cannot be a symlink');

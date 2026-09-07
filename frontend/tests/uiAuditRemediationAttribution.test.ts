@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { canonicalPotentialPath } from './canonicalPotentialPath';
 
 type Verdict = 'PASS' | 'FAIL' | 'NOT_APPLICABLE' | 'NEEDS_EVIDENCE' | 'UNRESOLVED';
 
@@ -90,7 +91,7 @@ const loadPinnedRecovery = () => {
   expect(selected.status).toBe('IMMUTABLE_COMPLETE');
   expect(selected.attempt).toMatch(/^attempt-[1-9]\d*$/);
   const root = resolve(repositoryRoot, selected.root);
-  const configuredOutput = realpathSync(resolve(repositoryRoot, authority.recoveryContract.configuredPlaywrightOutput));
+  const configuredOutput = canonicalPotentialPath(resolve(repositoryRoot, authority.recoveryContract.configuredPlaywrightOutput));
   expect(existsSync(root)).toBe(true);
   expect(lstatSync(root).isSymbolicLink()).toBe(false);
   expect(isWithin(configuredOutput, root)).toBe(false);
