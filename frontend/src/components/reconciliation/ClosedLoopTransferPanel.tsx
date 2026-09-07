@@ -60,7 +60,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
       planCount: plans.length,
       lineCount: plans.reduce((sum, plan) => sum + plan.lines.length, 0),
       servingCount: plans.reduce((sum, plan) => sum + plan.lines.reduce((lineSum, line) => lineSum + line.finalServings, 0), 0),
-      complete: plans.length > 0 && plans.every((plan) => plan.status.toUpperCase() === 'COMPLETED' && plan.lines.length > 0 && plan.lines.every((line) => line.finalServings > 0)),
+      complete: plans.length > 0 && (preview?.diagnostics?.length ?? 0) === 0 && plans.every((plan) => plan.status.toUpperCase() === 'COMPLETED' && plan.lines.length > 0 && plan.lines.every((line) => line.finalServings > 0)),
       ingredientTotals: [...ingredientTotals.values()].sort((left, right) => left.name.localeCompare(right.name, 'vi')),
     }
   }, [preview])
@@ -147,6 +147,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
         <div><strong className="text-sm text-slate-950">Kế hoạch theo ngày và ca</strong><p className="mt-0.5 text-xs text-slate-600">{previewSummary.lineCount} ca · {previewSummary.servingCount.toLocaleString('vi-VN')} suất · {previewSummary.ingredientTotals.length} nguyên liệu</p></div>
         {onEditServings && <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setPreview(undefined); setExpandedLineId(undefined); setFeedback({ title: 'Kế hoạch cần được kiểm tra lại', message: 'Sau khi chỉnh thực đơn hoặc số suất, hãy kiểm tra lại trước khi tạo lô.', variant: 'warning' }); onEditServings() }}>Chỉnh thực đơn và số suất</Button>}
       </div>
+      {(preview.diagnostics?.length ?? 0) > 0 && <div className="border-b border-amber-200 bg-amber-50 px-4 py-3"><strong className="text-sm text-amber-900">Cần bổ sung định mức nguyên liệu</strong><ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800">{preview.diagnostics.map((diagnostic) => <li key={diagnostic}>{diagnostic}</li>)}</ul></div>}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead className="bg-white text-left text-xs font-semibold uppercase tracking-wide text-slate-600"><tr><th scope="col" className="px-4 py-2.5">Ngày</th><th scope="col" className="px-4 py-2.5">Ca</th><th scope="col" className="px-4 py-2.5 text-right">Số suất</th><th scope="col" className="px-4 py-2.5 text-right">Số món</th><th scope="col" className="w-28 px-4 py-2.5"><span className="sr-only">Chi tiết</span></th></tr></thead>

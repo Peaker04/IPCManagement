@@ -52,6 +52,25 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     }
 
     [Fact]
+    public async Task Preview_returns_all_missing_BOM_diagnostics_and_blocks_commit()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Context.Dishboms.RemoveRange(fixture.Context.Dishboms);
+        await fixture.Context.SaveChangesAsync();
+
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn thiếu định mức"), default));
+
+        Assert.NotEmpty(preview.Diagnostics);
+        Assert.All(preview.Diagnostics, diagnostic => Assert.Contains("chưa có định mức nguyên liệu phù hợp", diagnostic));
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Controller.CommitQuantityImport(
+            new(preview.Token, preview.ContentFingerprint, "Nguồn thiếu định mức"), default));
+        Assert.Contains("hoàn tất định mức", error.Message);
+        Assert.Empty(fixture.Context.Quantityimportbatches);
+        Assert.Empty(fixture.Context.Reconciliationbatches);
+    }
+
+    [Fact]
     public async Task Preview_then_commit_creates_one_confirmed_import_and_one_draft_batch_idempotently()
     {
         await using var fixture = await Fixture.CreateAsync();

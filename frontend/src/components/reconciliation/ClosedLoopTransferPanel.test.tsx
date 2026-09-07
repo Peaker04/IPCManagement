@@ -70,6 +70,17 @@ it('previews and exposes commit authority for a complete serving source', async 
   expect(preview).toHaveBeenCalledWith({ menuVersionId: 'menu-missing', sourceLabel: 'ANV · tuần 24/8/2026' })
 })
 
+it('shows missing material definitions and blocks batch creation', async () => {
+  preview.mockReturnValue({ unwrap: () => Promise.resolve({ token: 'token-bom', contentFingerprint: 'fingerprint-bom', diagnostics: ["31/08/2026 · Ca sáng · món 'Cá kho' chưa có định mức nguyên liệu phù hợp."], plans: [{ status: 'COMPLETED', serviceDate: '2026-08-31', lines: [{ quantityPlanLineId: 'line-bom', shift: 'MORNING', finalServings: 100, dishes: [] }] }] }) })
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-missing" scopeLabel="ANV · tuần 31/8/2026" /></MemoryRouter>)
+
+  fireEvent.click(screen.getByRole('button', { name: /kiểm tra nguồn định lượng/i }))
+
+  expect(await screen.findByText('Cần bổ sung định mức nguyên liệu')).toBeInTheDocument()
+  expect(screen.getByText(/món 'Cá kho'/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /tạo lô định lượng/i })).toBeDisabled()
+})
+
 it('offers the stock workflow action only for the exact menu source', () => {
   render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-exact" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
 

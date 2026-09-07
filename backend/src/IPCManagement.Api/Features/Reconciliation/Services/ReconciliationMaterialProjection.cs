@@ -8,15 +8,25 @@ internal static class ReconciliationMaterialProjection
 {
     internal static IReadOnlyList<ProjectedSourceLine> Project(IReadOnlyList<MealQuantityPlanLine> sourceLines)
     {
-        return sourceLines
+        var result = Inspect(sourceLines);
+        if (result.Diagnostics.Count > 0)
+            throw new BusinessRuleException(string.Join(" ", result.Diagnostics));
+        return result.Lines;
+    }
+
+    internal static ReconciliationMaterialProjectionResult Inspect(IReadOnlyList<MealQuantityPlanLine> sourceLines)
+    {
+        var diagnostics = new List<string>();
+        var lines = sourceLines
             .OrderBy(source => source.QuantityPlan.ServiceDate)
             .ThenBy(source => source.ShiftName, StringComparer.Ordinal)
             .ThenBy(source => Convert.ToHexString(source.QuantityPlanLineId), StringComparer.Ordinal)
-            .Select(ProjectLine)
+            .Select(source => ProjectLine(source, diagnostics))
             .ToList();
+        return new(lines, diagnostics.Distinct(StringComparer.Ordinal).ToList());
     }
 
-    private static ProjectedSourceLine ProjectLine(MealQuantityPlanLine source)
+    private static ProjectedSourceLine ProjectLine(MealQuantityPlanLine source, ICollection<string> diagnostics)
     {
         var dishes = new List<ProjectedDish>();
         foreach (var menuItem in source.Menu.Menuitems
@@ -30,7 +40,11 @@ internal static class ReconciliationMaterialProjection
                 source.MenuSchedule.MenuPrice,
                 source.MenuSchedule.ServiceDate);
             if (boms.Count == 0)
-                throw new BusinessRuleException($"Món '{menuItem.Dish.DishName}' chưa có BOM đã phát hành hợp lệ.");
+            {
+                diagnostics.Add($"{source.QuantityPlan.ServiceDate:dd/MM/yyyy} · {ShiftLabel(source.ShiftName)} · món '{menuItem.Dish.DishName}' chưa có định mức nguyên liệu phù hợp.");
+                dishes.Add(new ProjectedDish(menuItem, []));
+                continue;
+            }
 
             var materials = new List<ProjectedMaterial>();
             foreach (var bom in boms.OrderBy(item => Convert.ToHexString(item.BomId), StringComparer.Ordinal))
@@ -41,7 +55,10 @@ internal static class ReconciliationMaterialProjection
                     bom.Ingredient.Unit);
                 var persistedQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
                 if (converted > 0 && persistedQuantity <= 0)
-                    throw new BusinessRuleException($"Món '{menuItem.Dish.DishName}' có lượng nguyên liệu dương nhỏ hơn độ chính xác lưu trữ.");
+                {
+                    diagnostics.Add($"{source.QuantityPlan.ServiceDate:dd/MM/yyyy} · {ShiftLabel(source.ShiftName)} · món '{menuItem.Dish.DishName}' có lượng nguyên liệu quá nhỏ để ghi nhận.");
+                    continue;
+                }
                 if (persistedQuantity <= 0) continue;
                 materials.Add(new ProjectedMaterial(bom, persistedQuantity));
             }
@@ -49,8 +66,11 @@ internal static class ReconciliationMaterialProjection
         }
         return new ProjectedSourceLine(source, dishes);
     }
+
+    private static string ShiftLabel(string shift) => shift.Equals("MORNING", StringComparison.OrdinalIgnoreCase) ? "Ca sáng" : shift.Equals("AFTERNOON", StringComparison.OrdinalIgnoreCase) ? "Ca chiều" : shift;
 }
 
+internal sealed record ReconciliationMaterialProjectionResult(IReadOnlyList<ProjectedSourceLine> Lines, IReadOnlyList<string> Diagnostics);
 internal sealed record ProjectedSourceLine(MealQuantityPlanLine Source, IReadOnlyList<ProjectedDish> Dishes);
 internal sealed record ProjectedDish(MenuItem MenuItem, IReadOnlyList<ProjectedMaterial> Materials);
 internal sealed record ProjectedMaterial(DishBom Bom, decimal RequiredQuantity);

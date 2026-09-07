@@ -33,7 +33,7 @@ public sealed class ReconciliationQuantityImportService(
         var previewToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var expiresAt = DateTimeOffset.UtcNow.Add(PreviewLifetime);
         cache.Set(TicketPrefix + previewToken, new PreviewTicket(menuVersionId, fingerprint, expiresAt), expiresAt);
-        return new(previewToken, expiresAt, fingerprint, CurrentFingerprintFormatVersion, snapshot.Plans.Select(Map).ToList(), []);
+        return new(previewToken, expiresAt, fingerprint, CurrentFingerprintFormatVersion, snapshot.Plans.Select(Map).ToList(), snapshot.Diagnostics);
     }
 
     public async Task<QuantityImportCommitDto> CommitAsync(CommitQuantityImportRequest request, string actorId, CancellationToken token = default)
@@ -58,6 +58,8 @@ public sealed class ReconciliationQuantityImportService(
 
                     var snapshot = await LoadSnapshotAsync(ticket.MenuVersionId, operationToken);
                     var currentFingerprint = Fingerprint(snapshot);
+                    if (snapshot.Diagnostics.Count > 0)
+                        throw new BusinessRuleException("Cần hoàn tất định mức nguyên liệu cho mọi món trước khi tạo lô.");
                     if (!string.Equals(currentFingerprint, ticket.Fingerprint, StringComparison.Ordinal))
                         throw new DbUpdateConcurrencyException("Nguồn số suất đã thay đổi sau khi xem trước.");
                     if (snapshot.Plans.Any(plan => plan.Entity.ImportBatchId is not null))
@@ -131,10 +133,10 @@ public sealed class ReconciliationQuantityImportService(
             .ToListAsync(token);
         if (sourceLines.Count == 0 || sourceLines.Any(line => line.MenuSchedule.MenuVersionId is null || !line.MenuSchedule.MenuVersionId.AsSpan().SequenceEqual(menuVersionId)))
             throw new BusinessRuleException("Nguồn số suất chứa nhiều phiên bản thực đơn hoặc dòng không hợp lệ.");
-        var projected = ReconciliationMaterialProjection.Project(sourceLines);
+        var projection = ReconciliationMaterialProjection.Inspect(sourceLines);
         return new(menuVersionId, plans.Select(plan => new CanonicalPlan(
             plan,
-            projected.Where(line => line.Source.QuantityPlanId.AsSpan().SequenceEqual(plan.QuantityPlanId)).ToList())).ToList());
+            projection.Lines.Where(line => line.Source.QuantityPlanId.AsSpan().SequenceEqual(plan.QuantityPlanId)).ToList())).ToList(), projection.Diagnostics);
     }
 
     private async Task<QuantityImportCommitDto?> ExistingAsync(string fingerprint, CancellationToken token)
@@ -187,6 +189,7 @@ public sealed class ReconciliationQuantityImportService(
                 }
             }
         }
+        foreach (var diagnostic in snapshot.Diagnostics.Order(StringComparer.Ordinal)) builder.Append("|x:").Append(diagnostic);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
     }
 
@@ -225,6 +228,6 @@ public sealed class ReconciliationQuantityImportService(
     }
 
     private sealed record PreviewTicket(byte[] MenuVersionId, string Fingerprint, DateTimeOffset ExpiresAt);
-    private sealed record CanonicalSnapshot(byte[] MenuVersionId, IReadOnlyList<CanonicalPlan> Plans);
+    private sealed record CanonicalSnapshot(byte[] MenuVersionId, IReadOnlyList<CanonicalPlan> Plans, IReadOnlyList<string> Diagnostics);
     private sealed record CanonicalPlan(MealQuantityPlan Entity, IReadOnlyList<ProjectedSourceLine> Lines);
 }
