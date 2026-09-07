@@ -1,11 +1,10 @@
 import { AUDIT_PASSWORD_CHANGED_VALUE, AUDIT_REDACTED_VALUE, containsSensitiveAuditMaterial, isPasswordAuditTuple } from '@/api/auditPrivacy'
 import { formatDateOnly, formatDateTime, formatQuantityWithUnit, formatUnit, getNumberFormat } from '@/lib/formatters'
-import { formatShiftName } from '@/lib/workflowConfig'
+import { MRX_LIFECYCLE_STATUSES, getMrxLifecyclePresentation, formatShiftName, type MrxLifecycleStatus } from '@/lib/workflowConfig'
 
 const labels: Record<string, string> = {
   DEFAULT: 'Vận hành thông thường', MATERIAL_RECONCILIATION: 'Đối chiếu nguyên liệu',
-  DRAFT: 'Đang chuẩn bị', READY: 'Sẵn sàng chuyển Kho', TRANSFERRED: 'Chờ Kho xác nhận xuất',
-  ISSUED: 'Đã tạo phiếu xuất', IN_PROGRESS: 'Đang đối chiếu', COMPLETED: 'Hoàn tất',
+  ISSUED: 'Đã tạo phiếu xuất', COMPLETED: 'Hoàn tất',
   CANCELLED: 'Đã hủy', PENDING: 'Chờ xử lý', APPROVED: 'Đã duyệt', REJECTED: 'Đã từ chối',
   ACTIVE: 'Đang áp dụng', FORECASTED: 'Dự kiến', REVIEWING: 'Đang kiểm tra',
   ROLLED_BACK: 'Đã hoàn tác', INVALIDATED: 'Đã mất hiệu lực', RESOLVED: 'Đã xử lý',
@@ -99,6 +98,15 @@ const formatStatusValue = (value?: string | null): ValueResult => {
   if (technicalId.test(raw) || fingerprint.test(raw)) return disclosure(raw)
   if (technicalToken.test(raw)) return fallback(raw, 'Trạng thái chưa được chuẩn hóa')
   return formatted(raw, raw)
+}
+
+const formatMrxLifecycleValue = (value?: string | null): ValueResult => {
+  const raw = getTrimmed(value)
+  if (!raw) return emptyValue()
+  const normalized = raw.toUpperCase() as MrxLifecycleStatus
+  return MRX_LIFECYCLE_STATUSES.includes(normalized)
+    ? formatted(getMrxLifecyclePresentation(normalized).label, raw)
+    : fallback(raw, 'Trạng thái lô chưa được chuẩn hóa')
 }
 
 const formatGenericValue = (value?: string | null): ValueResult => {
@@ -320,6 +328,9 @@ register({ family: 'kitchen-service', action: 'Xác nhận phục vụ', format:
 register({ family: 'kitchen-service', action: 'Ghi nhận hoàn trả hoặc hao hụt', format: formatReceiptValue }, [
   ['ProductionWaste', 'InventoryReturnLine', 'WasteQuantity'], ['StorekeeperReturnReceipt', 'InventoryReturnLine', 'Quantity'],
   ['StorekeeperReturnReceipt', 'InventoryReturn', 'StorekeeperReceiptDiscrepancy'], ['StorekeeperReturnReceipt', 'InventoryReturn', 'StorekeeperReceived'],
+])
+register({ family: 'reconciliation', action: 'Cập nhật vòng đời lô đối chiếu', format: formatMrxLifecycleValue }, [
+  ['Reconciliation', 'ReconciliationBatch', 'Status'],
 ])
 register({ family: 'reconciliation', action: 'Cập nhật hiệu lực xử lý chênh lệch', format: formatReconciliationValidity }, [
   ['RECONCILIATION', 'ReconciliationDisposition', 'Validity'],

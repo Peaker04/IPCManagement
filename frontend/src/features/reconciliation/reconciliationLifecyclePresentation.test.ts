@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { presentAudit } from '@/app/pages/admin-data/auditPresentation'
+import { getMrxLifecyclePresentation } from '@/lib/workflowConfig'
 import {
   MRX_QUANTITY_TAB_LABEL,
   getReconciliationLifecyclePresentation,
@@ -24,6 +26,12 @@ describe('MRX reconciliation lifecycle presentation contract', () => {
       phaseCount: 5,
       action: { label: actionLabel, route },
     })
+  })
+
+  it.each(['DRAFT', 'READY', 'TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'] as const)('uses the same visible %s label in lifecycle and Audit surfaces', (status) => {
+    const label = getMrxLifecyclePresentation(status).label
+    expect(getReconciliationLifecyclePresentation(status).label).toBe(label)
+    expect(presentAudit({ businessArea: 'Reconciliation', entityName: 'ReconciliationBatch', fieldName: 'Status', newValue: status }).after).toBe(label)
   })
 
   it('keeps the all-lot comparison identity stable when an issue drawer is selected', () => {

@@ -39,6 +39,7 @@ Nếu một thuật ngữ chưa có ở đây, đối chiếu [`DOMAIN.md`](DOMA
 | **Suất ăn điều phối** (`MealOrderCoordination`) | `COORDINATION_LIFECYCLE` | `Bản nháp`, `Đã xác nhận`, `Hoàn tất` | `Bản nháp`: `neutral`<br>`Đã xác nhận`: `neutral`<br>`Hoàn tất`: `neutral` | Biến động số suất (`Variance`) hiển thị qua chip cảnh báo inline |
 | **Báo giá NCC** (`SupplierQuotation`) | `APPROVAL_LIFECYCLE` | `Chờ duyệt`, `Đã duyệt`, `Bị từ chối` | `Chờ duyệt`: `warning`<br>`Đã duyệt`: `neutral`<br>`Bị từ chối`: `danger` | Hiệu lực báo giá hiển thị qua cột ngày hết hạn |
 | **Bút toán tồn kho** (`InventoryMovement`) | `FULFILLMENT_LIFECYCLE` | `Hoàn tất` | `Hoàn tất`: `neutral` | Phân loại bút toán (`Nhập`/`Xuất`) hiển thị ở cột loại giao dịch |
+| **Lô đối chiếu nguyên liệu** (`ReconciliationBatch`) | `MRX_LIFECYCLE` | `Đang chuẩn bị`, `Đã khóa`, `Chờ Kho xuất`, `Đang đối chiếu`, `Hoàn tất` | `Đang chuẩn bị`/`Chờ Kho xuất`: `warning`<br>`Đã khóa`/`Đang đối chiếu`: `info`<br>`Hoàn tất`: `success` | Cùng một nhãn phải được dùng ở dải vòng đời, hành động theo trạng thái và Nhật ký Audit |
 
 ## 3. Trạng thái tải & Rỗng (Rule E2, E8)
 | Nhãn hiển thị | Loại trạng thái | Ý nghĩa |

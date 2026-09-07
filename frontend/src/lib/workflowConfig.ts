@@ -4,6 +4,27 @@ import type { WorkflowLane, WorkflowLaneId, WorkflowTone } from '@/types/workflo
 
 type WorkflowStatusPresentation = Omit<StatusPresentation, 'tone'> & { tone: WorkflowTone };
 
+export const MRX_LIFECYCLE_STATUSES = ['DRAFT', 'READY', 'TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'] as const;
+export type MrxLifecycleStatus = typeof MRX_LIFECYCLE_STATUSES[number];
+
+export interface MrxLifecyclePresentation {
+  label: string;
+  phase: number;
+  phaseCount: 5;
+  owner: string;
+  action: { label: string; route: string };
+}
+
+const mrxLifecyclePresentations: Readonly<Record<MrxLifecycleStatus, MrxLifecyclePresentation>> = {
+  DRAFT: { label: 'Đang chuẩn bị', phase: 1, phaseCount: 5, owner: 'Điều phối', action: { label: 'Xác nhận và khóa', route: `${ROUTES.WEEKLY_MENU}?view=demand` } },
+  READY: { label: 'Đã khóa', phase: 2, phaseCount: 5, owner: 'Điều phối', action: { label: 'Chuyển sang Kho', route: `${ROUTES.WEEKLY_MENU}?view=demand` } },
+  TRANSFERRED: { label: 'Chờ Kho xuất', phase: 3, phaseCount: 5, owner: 'Kho nguyên liệu', action: { label: 'Mở danh sách cần xuất', route: `${ROUTES.WAREHOUSE}?view=demand` } },
+  IN_PROGRESS: { label: 'Đang đối chiếu', phase: 4, phaseCount: 5, owner: 'Đối chiếu nguyên liệu', action: { label: 'Mở đối chiếu', route: ROUTES.RECONCILIATION } },
+  COMPLETED: { label: 'Hoàn tất', phase: 5, phaseCount: 5, owner: 'Đối chiếu nguyên liệu', action: { label: 'Mở kết quả', route: ROUTES.RECONCILIATION } },
+};
+
+export const getMrxLifecyclePresentation = (status: MrxLifecycleStatus) => mrxLifecyclePresentations[status];
+
 const laneBase: Array<Pick<WorkflowLane, 'id' | 'label' | 'owner' | 'stage' | 'route' | 'nextAction'>> = [
   {
     id: 'coordination',

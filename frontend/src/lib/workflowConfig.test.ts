@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ROUTES } from '@/lib/routeConfig';
-import { formatDataQualityCopy, formatLegacyDispositionStatus, formatLegacyLineType, formatReconciliationDisposition, formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
+import { MRX_LIFECYCLE_STATUSES, formatDataQualityCopy, formatLegacyDispositionStatus, formatLegacyLineType, formatReconciliationDisposition, formatWorkflowStatus, getMrxLifecyclePresentation, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
 
 describe('workflowConfig', () => {
   it('maps Vietnamese operational status text to alert tones', () => {
@@ -22,6 +22,17 @@ describe('workflowConfig', () => {
     expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ duyệt');
     expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
     expect(formatWorkflowStatus('RAW_BACKEND_STATUS')).toBe('Chưa cập nhật');
+  });
+
+  it('owns the canonical MRX lifecycle vocabulary and actions', () => {
+    expect(MRX_LIFECYCLE_STATUSES.map((status) => [status, getMrxLifecyclePresentation(status).label])).toEqual([
+      ['DRAFT', 'Đang chuẩn bị'],
+      ['READY', 'Đã khóa'],
+      ['TRANSFERRED', 'Chờ Kho xuất'],
+      ['IN_PROGRESS', 'Đang đối chiếu'],
+      ['COMPLETED', 'Hoàn tất'],
+    ]);
+    expect(getMrxLifecyclePresentation('TRANSFERRED').action.route).toBe('/warehouse?view=demand');
   });
 
   it('keeps lineage reconciliation codes out of user-facing reports', () => {
