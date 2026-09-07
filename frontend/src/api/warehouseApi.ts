@@ -174,6 +174,8 @@ export const warehouseApi = apiSlice.injectEndpoints({
         workflowCacheTags.kitchenIssues,
         workflowCacheTags.materialRequestCandidates,
         workflowCacheTags.operationalKpis,
+        'ReconciliationBatches',
+        'ReconciliationIssueHistory',
       ],
     }),
     createSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, CreateSupplementalMaterialRequest>({

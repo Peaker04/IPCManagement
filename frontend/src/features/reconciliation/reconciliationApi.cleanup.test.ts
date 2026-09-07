@@ -103,6 +103,42 @@ describe('reconciliation API residue cleanup', () => {
     ])
   })
 
+  it('refreshes the selected reconciliation batch after Warehouse creates its linked issue', async () => {
+    const store = createTestStore()
+    let batchReads = 0
+
+    vi.stubGlobal('fetch', vi.fn((request: Request) => {
+      const url = new URL(request.url)
+      if (url.pathname === '/api/reconciliation/batches/batch-1' && request.method === 'GET') {
+        batchReads += 1
+        return Promise.resolve(jsonResponse({
+          batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'TRANSFERRED', version: 3,
+          createdAt: '2026-09-04T00:00:00Z',
+          lines: [{ batchLineId: 'line-1', ingredientId: 'ingredient-1', canonicalUnitId: 'unit-1', requiredQuantity: 10, issuedQuantity: batchReads > 1 ? 8 : null, frozenTolerance: 0.5, triggers: [], status: batchReads > 1 ? 'NEEDS_REVIEW' : 'INCOMPLETE', version: 1 }],
+        }))
+      }
+      if (url.pathname === '/api/inventory-issues' && request.method === 'POST') {
+        return Promise.resolve(jsonResponse({ issueId: 'issue-1', issueCode: 'PX-001' }))
+      }
+      throw new Error(`Unexpected request: ${request.method} ${url.pathname}`)
+    }))
+
+    const batchSubscription = store.dispatch(reconciliationApi.endpoints.getReconciliationBatch.initiate('batch-1'))
+    await batchSubscription
+    expect(batchReads).toBe(1)
+
+    await store.dispatch(warehouseApi.endpoints.createInventoryIssue.initiate({
+      commandId: 'command-1', issueDate: '2026-09-04', shiftName: 'LUNCH', warehouseId: 'warehouse-1', reconciliationBatchId: 'batch-1', lines: [],
+    } as never))
+
+    await vi.waitFor(() => {
+      expect(batchReads).toBe(2)
+      const refreshed = reconciliationApi.endpoints.getReconciliationBatch.select('batch-1')(store.getState())
+      expect(refreshed.data?.lines[0]?.issuedQuantity).toBe(8)
+    })
+    batchSubscription.unsubscribe()
+  })
+
   it('prevents deferred reconciliation responses from repopulating removed cache or mutation residue', async () => {
     const store = createTestStore()
     const held = new Map<string, { aborted: boolean; release: () => void }>()

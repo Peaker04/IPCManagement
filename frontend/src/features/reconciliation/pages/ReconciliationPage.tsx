@@ -71,7 +71,7 @@ export default function ReconciliationPage() {
       /> : <QueryViewBoundary geometry={selectedId ? 'table' : 'compact'} queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
         {batch && <div className="space-y-4"><SectionPanel title="Đối chiếu theo nguyên liệu" description={`${actionableCount} dòng cần xử lý · số liệu kho chỉ đọc`}>
           <div className="mb-2 flex justify-end"><Button type="button" variant="link" className="h-auto p-0" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện dòng cần xử lý' : 'Hiện tất cả'}</Button></div>
-          <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={setDisposingLine} />
+          <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} />
         </SectionPanel><ReconciliationSourceChangeLog batchId={batch.batchId} /></div>}
       </QueryViewBoundary>}
     </section>
@@ -79,7 +79,7 @@ export default function ReconciliationPage() {
     <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
       <DialogContent aria-label="Chi tiết nguyên liệu" className="ml-auto mr-0 min-h-[60vh] max-w-md rounded-none">
         <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>
-        {detailLine && <><dl className="mt-5 grid grid-cols-2 gap-3 text-sm"><dt>Mã nguyên liệu</dt><dd>{detailLine.ingredientCode || 'Chưa có mã'}</dd><dt>Đơn vị</dt><dd>{formatUnit(detailLine.canonicalUnitName || '') || 'Chưa có tên đơn vị'}</dd><dt>Nguồn số đã xuất</dt><dd>Phiếu xuất kho liên kết</dd><dt>Ngưỡng sai lệch</dt><dd>{detailLine.frozenTolerance}</dd></dl><div className="mt-5 flex justify-end"><Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button></div></>}
+        {detailLine && <><dl className="mt-5 grid grid-cols-2 gap-3 text-sm"><dt>Mã nguyên liệu</dt><dd>{detailLine.ingredientCode || 'Chưa có mã'}</dd><dt>Đơn vị</dt><dd>{formatUnit(detailLine.canonicalUnitName || '') || 'Chưa có tên đơn vị'}</dd><dt>Nguồn số đã xuất</dt><dd>Phiếu xuất kho liên kết</dd><dt>Ngưỡng sai lệch</dt><dd>{detailLine.frozenTolerance}</dd>{detailLine.issueNotes?.length ? <><dt>Lý do xuất thêm / xuất vượt</dt><dd><ul>{detailLine.issueNotes.map((note, index) => <li key={`${note}-${index}`}>{note}</li>)}</ul></dd></> : null}</dl><div className="mt-5 flex justify-end"><Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button></div></>}
       </DialogContent>
     </Dialog>
     {disposingLine && <ReconciliationDispositionDrawer line={disposingLine} onClose={() => setDisposingLine(undefined)} onRefetch={() => batchQuery.refetch()} />}
