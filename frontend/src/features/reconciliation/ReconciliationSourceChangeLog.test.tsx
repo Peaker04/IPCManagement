@@ -4,7 +4,7 @@ import { ReconciliationSourceChangeLog } from './ReconciliationSourceChangeLog'
 
 const changes = [
   { changeId: 'change-1', changedAt: '2026-09-03T08:00:00Z', actor: 'Điều phối', businessArea: 'Coordination', entityName: 'MealQuantityPlan', entityId: '5f9abf55-b523-44f7-bef9-837565e7b3a1', fieldName: 'QuickCompleteServings', oldValue: '120', newValue: '140', reason: 'Cập nhật số suất ca sáng' },
-  { changeId: 'change-2', changedAt: '2026-09-03T09:00:00Z', actor: 'Điều phối', businessArea: 'Reconciliation', entityName: 'ReconciliationBatch', entityId: 'batch-1', fieldName: 'Status', oldValue: 'TRANSFERRED', newValue: 'IN_PROGRESS', reason: '{"issueId":"5f9abf55-b523-44f7-bef9-837565e7b3a1"}' },
+  { changeId: 'change-2', changedAt: '2026-09-03T09:00:00Z', actor: 'Quản trị viên', businessArea: 'BOM', entityName: 'DishBom', entityId: 'bom-1', fieldName: 'BulkImport', oldValue: null, newValue: 'BOM-SEP; created=1; updated=0; archived=0; rows=1; tier=30000; scope=DEFAULT', reason: 'Cập nhật định lượng món ăn' },
 ]
 
 vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
@@ -21,19 +21,16 @@ it('keeps source history secondary and presents business language before technic
 
   expect(screen.getByRole('columnheader', { name: 'Hoạt động' })).toBeInTheDocument()
   expect(screen.getByText('Hoàn tất số suất')).toBeInTheDocument()
-  expect(screen.getByText('Chờ Kho xác nhận xuất')).toBeInTheDocument()
-  expect(screen.getByText('Đang đối chiếu')).toBeInTheDocument()
+  expect(screen.getByText('Nhập định lượng món ăn')).toBeInTheDocument()
   expect(screen.getAllByText('Cập nhật số suất ca sáng')).not.toHaveLength(0)
   expect(screen.getByText('Chỉ gồm thay đổi của nguồn dùng để tạo đúng lô này. Giao dịch Kho và chẩn đoán sẵn sàng thuộc các khu vực riêng.')).toBeInTheDocument()
-  const statusRow = screen.getAllByRole('row')[2]
-  const primaryCells = Array.from(statusRow.querySelectorAll(':scope > td')).slice(0, 5).map((cell) => cell.textContent).join(' ')
-  expect(primaryCells).not.toContain('TRANSFERRED')
-  expect(primaryCells).not.toContain('IN_PROGRESS')
-  expect(primaryCells).not.toContain('5f9abf55-b523-44f7-bef9-837565e7b3a1')
+  expect(screen.queryByText('Chờ Kho xuất')).not.toBeInTheDocument()
+  expect(screen.queryByText('Đang đối chiếu')).not.toBeInTheDocument()
+  expect(screen.queryByText('Reconciliation|ReconciliationBatch|Status')).not.toBeInTheDocument()
+  expect(screen.queryByText('Issue|InventoryIssue|FULLDAY')).not.toBeInTheDocument()
 
-  const technical = within(statusRow).getByText('Xem thông tin kỹ thuật')
+  const bomRow = screen.getAllByRole('row')[2]
+  const technical = within(bomRow).getByText('Xem thông tin kỹ thuật')
   fireEvent.click(technical)
-  const row = technical.closest('tr')!
-  expect(within(row).getByText('Reconciliation|ReconciliationBatch|Status')).toBeInTheDocument()
-  expect(within(row).getByText('{"issueId":"5f9abf55-b523-44f7-bef9-837565e7b3a1"}')).toBeInTheDocument()
+  expect(within(bomRow).getByText('BOM|DishBom|BulkImport')).toBeInTheDocument()
 })

@@ -56,6 +56,7 @@ workbook:
 ### 2. Authority và grain nguồn
 
 - Weekly Menu read/import, bulk dish edit, menu schedule publication và meal quantity-plan read/quick servings là source-authoring owner dùng chung có chủ đích; vẫn chỉ có một source authority.
+- Endpoint lịch sử thay đổi nguồn theo lô chỉ trả audit của các định danh nguồn tạo lô (phiên bản/thực đơn/lịch, kế hoạch và dòng số suất, BOM, đợt nhập). Trạng thái vòng đời `ReconciliationBatch` và audit `InventoryIssue` thuộc lịch sử lô/giao dịch Kho, không thuộc lịch sử tác giả nguồn.
 - Phạm vi nguồn là **customer × week**; nhiều khách hàng tạo các lô độc lập, không trộn dòng hoặc lineage giữa khách hàng.
 - Số suất thuộc grain **customer × service date/day × shift**. Mọi món trong cùng ngày/ca dùng cùng số suất; không lưu số suất độc lập cho từng món.
 - Người dùng được tăng hoặc giảm số suất, sửa món và sửa BOM trước khi đóng băng. Trạng thái “Hoàn tất” của số suất chưa đồng nghĩa source bất biến; source chỉ bất biến sau `READY`.

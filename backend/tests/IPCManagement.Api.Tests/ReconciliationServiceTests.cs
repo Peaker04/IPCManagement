@@ -345,31 +345,40 @@ public sealed class ReconciliationServiceTests
         var actorId = GuidHelper.NewId();
         var batchId = GuidHelper.NewId();
         var lineId = GuidHelper.NewId();
+        var menuVersionId = GuidHelper.NewId();
+        var importBatchId = GuidHelper.NewId();
         var scheduleId = GuidHelper.NewId();
         var planId = GuidHelper.NewId();
         var planLineId = GuidHelper.NewId();
         var bomId = GuidHelper.NewId();
+        var issueId = GuidHelper.NewId();
         context.Reconciliationbatches.Add(new ReconciliationBatch
         {
-            BatchId = batchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 2,
+            BatchId = batchId, MenuVersionId = menuVersionId, QuantityImportBatchId = importBatchId, Status = "READY", Version = 2,
             CreatedBy = actorId, CreatedAt = DateTime.UtcNow,
             Lines = [new ReconciliationBatchLine { BatchLineId = lineId, IngredientId = GuidHelper.NewId(), CanonicalUnitId = GuidHelper.NewId(), RequiredQuantity = 2, FrozenTolerance = 0.1m, ToleranceSourceKind = "TEST", ToleranceSourceVersion = "1", Version = 1,
                 Contributors = [new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), MenuScheduleId = scheduleId, MealQuantityPlanLineId = planLineId, DishBomId = bomId, SourceQuantity = 2 }] }]
         });
         context.Mealquantityplanlines.Add(new MealQuantityPlanLine { QuantityPlanLineId = planLineId, QuantityPlanId = planId, MenuScheduleId = scheduleId, CustomerId = GuidHelper.NewId(), MenuId = GuidHelper.NewId(), ShiftName = "MORNING", FinalServings = 20, UpdatedAt = DateTime.UtcNow });
+        context.Inventoryissues.Add(new InventoryIssue { IssueId = issueId, IssueCode = "ISS-SOURCE-GRAIN", IssueDate = new DateOnly(2026, 8, 25), WarehouseId = GuidHelper.NewId(), ReconciliationBatchId = batchId, IssuedBy = actorId, CreatedAt = DateTime.UtcNow });
         context.Auditlogs.AddRange(
-            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MealQuantityPlan), EntityId = planId, FieldName = "QuickCompleteServings", OldValue = "10", NewValue = "20", Reason = "Sửa số suất" },
-            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Other", EntityName = "Unrelated", EntityId = GuidHelper.NewId(), FieldName = "Value", NewValue = "ignored" });
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-6), ChangedBy = actorId, BusinessArea = "MenuVersion", EntityName = nameof(MenuItem), EntityId = scheduleId, FieldName = nameof(MenuItem.DishId), NewValue = "dish-2", Reason = "Đổi món" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-5), ChangedBy = actorId, BusinessArea = "BOM", EntityName = nameof(DishBom), EntityId = bomId, FieldName = "BulkImport", NewValue = "BOM-2", Reason = "Sửa BOM" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-4), ChangedBy = actorId, BusinessArea = "Coordination", EntityName = nameof(MealQuantityPlan), EntityId = planId, FieldName = "QuickCompleteServings", OldValue = "10", NewValue = "20", Reason = "Sửa số suất" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-3), ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(QuantityImportBatch), EntityId = importBatchId, FieldName = "Commit", NewValue = "fingerprint", Reason = "Cam kết nguồn" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-2), ChangedBy = actorId, BusinessArea = "Reconciliation", EntityName = nameof(ReconciliationBatch), EntityId = batchId, FieldName = "Status", OldValue = "TRANSFERRED", NewValue = "IN_PROGRESS", Reason = "Warehouse lifecycle" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-1), ChangedBy = actorId, BusinessArea = "Issue", EntityName = nameof(InventoryIssue), EntityId = issueId, FieldName = "Status", NewValue = "ISSUED", Reason = "Warehouse transaction" },
+            new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId, BusinessArea = "Other", EntityName = "Unrelated", EntityId = scheduleId, FieldName = "Value", NewValue = "identity collision" });
         await context.SaveChangesAsync();
 
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
         var changes = await service.ListSourceChangesAsync(GuidHelper.ToGuidString(batchId));
 
-        var change = Assert.Single(changes);
-        Assert.Equal("QuickCompleteServings", change.FieldName);
-        Assert.Equal("10", change.OldValue);
-        Assert.Equal("20", change.NewValue);
-        Assert.Equal(GuidHelper.ToGuidString(actorId), change.Actor);
+        Assert.Equal(4, changes.Count);
+        Assert.Equal(["Commit", "QuickCompleteServings", "BulkImport", nameof(MenuItem.DishId)], changes.Select(change => change.FieldName));
+        Assert.DoesNotContain(changes, change => change.EntityName is nameof(ReconciliationBatch) or nameof(InventoryIssue));
+        Assert.DoesNotContain(changes, change => change.BusinessArea == "Other");
+        Assert.All(changes, change => Assert.Equal(GuidHelper.ToGuidString(actorId), change.Actor));
     }
 
     private static async Task<Exception?> Capture(Func<Task> operation)

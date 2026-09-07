@@ -92,9 +92,8 @@ public sealed class ReconciliationBatchService(
             .Where(contributor => batchLineIds.Contains(contributor.BatchLineId)).ToListAsync(token);
         var sourceIds = new HashSet<string>(StringComparer.Ordinal)
         {
-            Convert.ToHexString(batch.BatchId), Convert.ToHexString(batch.MenuVersionId), Convert.ToHexString(batch.QuantityImportBatchId)
+            Convert.ToHexString(batch.MenuVersionId), Convert.ToHexString(batch.QuantityImportBatchId)
         };
-        foreach (var line in batch.Lines) sourceIds.Add(Convert.ToHexString(line.BatchLineId));
         foreach (var contributor in contributors)
         {
             sourceIds.Add(Convert.ToHexString(contributor.MenuScheduleId));
@@ -102,19 +101,23 @@ public sealed class ReconciliationBatchService(
             sourceIds.Add(Convert.ToHexString(contributor.DishBomId));
         }
         var quantityPlanLineIds = contributors.Select(contributor => contributor.MealQuantityPlanLineId).ToList();
-        var quantityPlanIds = await context.Mealquantityplanlines.AsNoTracking()
+        var quantitySources = await context.Mealquantityplanlines.AsNoTracking()
             .Where(line => quantityPlanLineIds.Contains(line.QuantityPlanLineId))
-            .Select(line => line.QuantityPlanId).Distinct().ToListAsync(token);
-        foreach (var quantityPlanId in quantityPlanIds) sourceIds.Add(Convert.ToHexString(quantityPlanId));
-
-        var issueIds = await context.Inventoryissues.AsNoTracking()
-            .Where(issue => issue.ReconciliationBatchId == batchId)
-            .Select(issue => issue.IssueId).ToListAsync(token);
-        foreach (var issueId in issueIds) sourceIds.Add(Convert.ToHexString(issueId));
+            .Select(line => new { line.QuantityPlanId, line.MenuId }).Distinct().ToListAsync(token);
+        foreach (var source in quantitySources)
+        {
+            sourceIds.Add(Convert.ToHexString(source.QuantityPlanId));
+            sourceIds.Add(Convert.ToHexString(source.MenuId));
+        }
 
         var sourceEntityIds = sourceIds.Select(Convert.FromHexString).ToList();
+        var sourceEntityNames = new[]
+        {
+            nameof(MenuVersion), nameof(Menu), nameof(MenuItem), nameof(MenuSchedule),
+            nameof(MealQuantityPlan), nameof(MealQuantityPlanLine), nameof(DishBom), nameof(QuantityImportBatch)
+        };
         var audits = await context.Auditlogs.AsNoTracking()
-            .Where(audit => audit.EntityId != null && sourceEntityIds.Contains(audit.EntityId))
+            .Where(audit => audit.EntityId != null && sourceEntityIds.Contains(audit.EntityId) && sourceEntityNames.Contains(audit.EntityName))
             .OrderByDescending(audit => audit.ChangedAt).ToListAsync(token);
         return audits.Select(audit => new ReconciliationSourceChangeDto(
                 GuidHelper.ToGuidString(audit.AuditId), audit.ChangedAt,
