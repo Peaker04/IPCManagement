@@ -3,13 +3,13 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import { EmptyState, IdentifierText, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateTime, formatUnit } from '@/lib/formatters'
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
-import { useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
+import { useCompleteReconciliationBatchMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 import { ReconciliationSourceChangeLog } from '../ReconciliationSourceChangeLog'
@@ -17,6 +17,7 @@ import { dispositionCategoryLabel } from '../reconciliationIssueCorrelation'
 import { ReconciliationLifecycleStrip } from '../ReconciliationLifecycleStrip'
 import { ReconciliationIssueDetailDialog } from '../ReconciliationIssueDetailDialog'
 import { getReconciliationLifecyclePresentation, getReconciliationResultPresentation } from '../reconciliationLifecyclePresentation'
+import { useHasRole } from '@/lib/useHasRole'
 
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -50,13 +51,32 @@ export default function ReconciliationPage() {
   const [showAll, setShowAll] = useState(false)
   const [detailLine, setDetailLine] = useState<ReconciliationLine>()
   const [disposingLine, setDisposingLine] = useState<ReconciliationLine>()
+  const [completionOpen, setCompletionOpen] = useState(false)
+  const [completionError, setCompletionError] = useState('')
+  const [completeBatch, { isLoading: isCompleting }] = useCompleteReconciliationBatchMutation()
+  const canComplete = useHasRole(['quanly'])
   const batch = batchQuery.currentData ?? batchQuery.data
   const actionableCount = useMemo(() => batch?.lines.filter((line) => line.status !== 'MATCHED').length ?? 0, [batch?.lines])
   const resultPresentation = getReconciliationResultPresentation({ total: batch?.lines.length ?? 0, actionable: actionableCount, issueId: selectedIssueId, showAll })
+  const completionReady = Boolean(batch && batch.status === 'IN_PROGRESS' && batch.lines.length > 0 && batch.lines.every((line) => line.issuedQuantity != null && (line.triggers.length === 0 || Boolean(line.disposition?.reason.trim()))))
   const batchLabel = (item: typeof batches[number]) => `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
+  const complete = async () => {
+    if (!batch || !completionReady || !canComplete) return
+    setCompletionError('')
+    try {
+      await completeBatch({ id: batch.batchId, expectedVersion: batch.version }).unwrap()
+      setCompletionOpen(false)
+      await batchQuery.refetch()
+    } catch (error) {
+      const message = typeof error === 'object' && error && 'data' in error && typeof (error as { data?: { message?: unknown } }).data?.message === 'string'
+        ? (error as { data: { message: string } }).data.message
+        : 'Không thể hoàn tất lô. Hãy tải lại dữ liệu và kiểm tra các dòng cần xử lý.'
+      setCompletionError(message)
+    }
+  }
 
   return <OperationalFrame>
-    <section className="ipc-drawer-master space-y-4" data-drawer-open={Boolean(selectedIssueId)} aria-label="Đối chiếu nguyên liệu">
+    <section className="space-y-4" aria-label="Đối chiếu nguyên liệu">
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4" data-ui-work-surface="reconciliation-scope">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Cần xuất và đã xuất kho</h2>
@@ -81,8 +101,10 @@ export default function ReconciliationPage() {
       /> : batchesView.phase === 'ready' && selectedId ? <QueryViewBoundary geometry="table" queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
         {batch && <div className="space-y-4">
           <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />
-          <SectionPanel title={resultPresentation.title} description={resultPresentation.description} actions={<Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>}>
-            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title="Tất cả nguyên liệu đã khớp" description={`${batch.lines.length}/${batch.lines.length} nguyên liệu khớp giữa định lượng đã khóa và tổng phiếu xuất kho liên kết.`} />}
+          <SectionPanel title={resultPresentation.title} description={resultPresentation.description} actions={<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{completionReady && canComplete && <Button type="button" size="sm" onClick={() => setCompletionOpen(true)}>Hoàn tất đối chiếu</Button>}</div>}>
+            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title="Sẵn sàng hoàn tất" description={`${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
+            {completionReady && !canComplete && <p role="status" className="mt-3 text-sm text-slate-600">Lô đã đủ điều kiện; Quản trị hoặc Quản lý cần xác nhận hoàn tất đối chiếu.</p>}
+            {completionError && <p role="alert" className="mt-3 text-sm text-red-700">{completionError}</p>}
           </SectionPanel>
           <ReconciliationSourceChangeLog batchId={batch.batchId} />
         </div>}
@@ -90,6 +112,12 @@ export default function ReconciliationPage() {
     </section>
 
     <ReconciliationIssueDetailDialog issueId={selectedIssueId || null} open={Boolean(selectedIssueId)} expectedBatchId={selectedId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('issueId'); setSearchParams(next, { replace: true }) }} />
+    <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
+      <DialogContent size="sm" aria-label="Xác nhận hoàn tất đối chiếu">
+        <DialogHeader><DialogTitle>Hoàn tất đối chiếu?</DialogTitle><DialogDescription>Thao tác này chuyển lô từ bước 4/5 sang Hoàn tất. Hệ thống sẽ kiểm tra lại phiên bản lô và mọi dòng trước khi ghi nhận.</DialogDescription></DialogHeader>
+        <DialogFooter><Button type="button" variant="outline" onClick={() => setCompletionOpen(false)}>Hủy</Button><Button type="button" disabled={isCompleting} onClick={() => void complete()}>{isCompleting ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
     <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
       <DialogContent aria-label="Chi tiết nguyên liệu" size="md">
         <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>

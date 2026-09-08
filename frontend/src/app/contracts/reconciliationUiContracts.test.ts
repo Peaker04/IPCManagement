@@ -3,6 +3,7 @@ import weeklyMenuSource from '@/features/projects/pages/ReconciliationWeeklyMenu
 import warehouseSource from '@/features/warehouse/pages/ReconciliationWarehousePage.tsx?raw'
 import reconciliationSource from '@/features/reconciliation/pages/ReconciliationPage.tsx?raw'
 import issueHistorySource from '@/features/reconciliation/ReconciliationIssueHistoryTable.tsx?raw'
+import drawerSource from '@/components/ui/drawer.tsx?raw'
 import adminBomSource from '@/app/pages/admin-data/AdminBomPanel.tsx?raw'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 
@@ -43,6 +44,16 @@ describe('material reconciliation UI contracts', () => {
     expect(warehouseSource).toContain('aria-label={`Thực xuất ${line.ingredientName}`}')
     expect(warehouseSource).toContain('aria-label={`Lý do xuất vượt ${line.ingredientName}`}')
     expect(warehouseSource).toContain('varianceReason: varianceReasons[line.batchLineId]?.trim() || undefined')
+  })
+
+  it('keeps the issue drawer as a portal overlay without reflowing either master route', () => {
+    expect(drawerSource).toContain('pointer-events-none')
+    expect(drawerSource).toContain('absolute inset-y-0 right-0')
+    expect(drawerSource).toContain('xl:w-2/5 xl:max-w-2xl')
+    expect(warehouseSource).not.toContain('ipc-drawer-master')
+    expect(reconciliationSource).not.toContain('ipc-drawer-master')
+    expect(warehouseSource).not.toContain('data-drawer-open')
+    expect(reconciliationSource).not.toContain('data-drawer-open')
   })
 
   it('keeps one batch-scoped source-change owner on the reconciliation workspace', () => {

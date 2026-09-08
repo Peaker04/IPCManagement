@@ -171,7 +171,7 @@ export default function ReconciliationWarehousePage() {
   if (tabs.length === 0) return <OperationalFrame><section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không còn khu vực Kho đang hiển thị</h2><p className="mt-2 text-sm text-slate-600">Mở Thiết lập nâng cao để khôi phục một tab được chế độ hiện tại cho phép.</p><Link className="ipc-button ipc-button-primary mt-4" to={ROUTES.ADVANCED_SETTINGS}>Mở thiết lập hiển thị</Link></section></OperationalFrame>
 
   return <OperationalFrame>
-    <div className="ipc-drawer-master space-y-4" data-drawer-open={Boolean(selectedIssueId)}>
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
         <div><h2 className="text-lg font-semibold">Xuất kho theo định lượng đã chốt</h2><p className="mt-1 text-sm text-slate-600">Kho vận hành: {warehouse.warehouse?.warehouseName ?? 'Chưa xác định'}.</p></div>
         {activeView === 'demand' && batch?.status === 'IN_PROGRESS' && hasLinkedIssue && <div className="max-w-sm text-right"><Button type="button" variant="outline" onClick={() => setSupplementalOpen(true)}>Tạo phiếu xuất bổ sung</Button><p className="mt-1 text-xs text-slate-600">Cộng thêm vào số đã xuất và có thể tạo chênh lệch cần xử lý.</p></div>}
@@ -204,7 +204,7 @@ export default function ReconciliationWarehousePage() {
                   <td className="text-right tabular-nums">{formatQuantityWithUnit(line.requiredQuantity, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</td>
                   <td className="text-right tabular-nums">
                     {hasLinkedIssue
-                      ? <span title={Number(line.issuedQuantity ?? 0).toFixed(6)}>{formatQuantityWithUnit(line.issuedQuantity ?? 0, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</span>
+                      ? <span title={String(line.issuedQuantity ?? 0)}>{formatQuantityWithUnit(line.issuedQuantity ?? 0, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</span>
                       : <><label className="sr-only" htmlFor={`issued-${line.batchLineId}`}>Thực xuất {line.ingredientName}</label><div className="flex items-center justify-end gap-2"><Input id={`issued-${line.batchLineId}`} aria-label={`Thực xuất ${line.ingredientName}`} type="number" min="0.000001" step="0.000001" inputMode="decimal" value={issuedQuantities[line.batchLineId] ?? String(remaining)} onChange={(event) => setIssuedQuantities((current) => ({ ...current, [line.batchLineId]: event.target.value }))} className="w-36 text-right tabular-nums" /><span className="w-16 text-xs text-slate-600">{formatUnit(line.canonicalUnitName ?? '')}</span></div></>}
                   </td>
                   <td>{overIssued ? <Textarea aria-label={`Lý do xuất vượt ${line.ingredientName}`} value={varianceReasons[line.batchLineId] ?? ''} onChange={(event) => setVarianceReasons((current) => ({ ...current, [line.batchLineId]: event.target.value }))} placeholder="Nhập lý do" className="min-h-16 min-w-48" /> : <span className="text-sm text-slate-600">Không cần</span>}</td>

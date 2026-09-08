@@ -74,11 +74,12 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(dialogProps.at(-1)).toMatchObject({ issueId: 'issue-1', open: true, expectedBatchId: 'batch-1', initialIssue: expect.objectContaining({ issueCode: 'ISS-001', lines: expect.arrayContaining([expect.objectContaining({ issueLineId: 'issue-line-67' })]) }) })
   })
 
-  it('restores the drawer from the URL after refresh and preserves master context', () => {
+  it('restores the overlay drawer from the URL without participating in master layout', () => {
     renderPage('/warehouse?view=movement&batchId=batch-1&issueId=issue-1')
 
     expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toBeInTheDocument()
-    expect(document.querySelector('.ipc-drawer-master')).toHaveAttribute('data-drawer-open', 'true')
+    expect(document.querySelector('.ipc-drawer-master')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-ipc-drawer-portal="true"]')).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Vòng đời lô đối chiếu' })).toContainElement(screen.getByRole('link', { name: 'Mở đối chiếu' }))
     expect(dialogProps.at(-1)).toMatchObject({ issueId: 'issue-1', initialIssue: expect.objectContaining({ issueCode: 'ISS-001' }) })
   })

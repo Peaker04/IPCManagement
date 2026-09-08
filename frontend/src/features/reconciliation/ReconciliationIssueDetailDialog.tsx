@@ -5,6 +5,7 @@ import { useGetReconciliationBatchQuery, useGetReconciliationIssueQuery } from '
 import { IdentifierText, InlineAlert, SkeletonTableRow, TableViewport } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Drawer, DrawerBody, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateOnly, formatDateTime, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import { ROUTES } from '@/lib/routeConfig'
 import {
@@ -40,6 +41,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
   const relatedNotes = useMemo(() => collectIssueRelatedNotes(fetchedIssue ?? { lines: [] }, batch), [batch, fetchedIssue])
   const [selectedLineId, setSelectedLineId] = useState('')
   const selectedLine = issue?.lines.find((line) => line.issueLineId === selectedLineId) ?? issue?.lines[0]
+  const selectedLineIndex = selectedLine ? issue?.lines.indexOf(selectedLine) ?? 0 : 0
 
   return <Drawer open={open} onOpenChange={(nextOpen, reason) => { if (!nextOpen) onClose(reason) }}>
     <DrawerContent aria-label={ariaLabel}>
@@ -99,9 +101,10 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
             {selectedLine && <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
               <label className="grid gap-1 text-sm font-medium text-slate-800">
                 Chi tiết kỹ thuật
-                <select aria-label="Chọn dòng để xem chi tiết kỹ thuật" className="h-9 rounded-sm border border-slate-300 bg-white px-3" value={selectedLine.issueLineId} onChange={(event) => setSelectedLineId(event.target.value)}>
-                  {issue.lines.map((line) => <option key={line.issueLineId} value={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</option>)}
-                </select>
+                <Select value={selectedLine.issueLineId} onValueChange={(value) => value && setSelectedLineId(value)}>
+                  <SelectTrigger aria-label="Chọn dòng để xem chi tiết kỹ thuật"><SelectValue>Dòng {selectedLineIndex + 1}</SelectValue></SelectTrigger>
+                  <SelectContent>{issue.lines.map((line) => <SelectItem key={line.issueLineId} value={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</SelectItem>)}</SelectContent>
+                </Select>
               </label>
               <dl className="mt-3 grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-2 text-xs" role="region" aria-label="Chi tiết kỹ thuật dòng đã chọn">
                 <dt className="text-slate-500">ID dòng phiếu</dt><dd className="min-w-0"><IdentifierText value={selectedLine.issueLineId} /></dd>

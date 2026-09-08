@@ -209,11 +209,6 @@
   background: var(--ipc-slate-50);
 }
 
-@media (min-width: 1280px) {
-  .ipc-drawer-master[data-drawer-open="true"] {
-    padding-right: min(50vw, 42rem);
-  }
-}
 
 @media (max-width: 767px) {
   .ipc-table-viewport {
