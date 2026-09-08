@@ -53,6 +53,8 @@ export default function ReconciliationPage() {
   const [disposingLine, setDisposingLine] = useState<ReconciliationLine>()
   const [completionOpen, setCompletionOpen] = useState(false)
   const [completionError, setCompletionError] = useState('')
+  const [completionVersion, setCompletionVersion] = useState<number>()
+  const [isRefreshingCompletion, setIsRefreshingCompletion] = useState(false)
   const [completeBatch, { isLoading: isCompleting }] = useCompleteReconciliationBatchMutation()
   const canComplete = useHasRole(['quanly'])
   const batch = batchQuery.currentData ?? batchQuery.data
@@ -60,12 +62,40 @@ export default function ReconciliationPage() {
   const resultPresentation = getReconciliationResultPresentation({ total: batch?.lines.length ?? 0, actionable: actionableCount, issueId: selectedIssueId, showAll })
   const completionReady = Boolean(batch && batch.status === 'IN_PROGRESS' && batch.lines.length > 0 && batch.lines.every((line) => line.issuedQuantity != null && (line.triggers.length === 0 || Boolean(line.disposition?.reason.trim()))))
   const batchLabel = (item: typeof batches[number]) => `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
+  const closeCompletion = () => {
+    setCompletionOpen(false)
+    setCompletionError('')
+    setCompletionVersion(undefined)
+  }
+  const openCompletion = () => {
+    setCompletionError('')
+    setCompletionVersion(batch?.version)
+    setCompletionOpen(true)
+  }
+  const refreshCompletion = async () => {
+    if (!batch) return
+    setCompletionError('')
+    setCompletionVersion(undefined)
+    setIsRefreshingCompletion(true)
+    try {
+      const refreshed = await batchQuery.refetch()
+      if ('data' in refreshed && refreshed.data?.batchId === batch.batchId) {
+        setCompletionVersion(refreshed.data.version)
+      } else {
+        setCompletionError('Không thể tải lại lô đã chọn. Hãy thử lại trước khi hoàn tất.')
+      }
+    } catch {
+      setCompletionError('Không thể tải lại lô đã chọn. Hãy thử lại trước khi hoàn tất.')
+    } finally {
+      setIsRefreshingCompletion(false)
+    }
+  }
   const complete = async () => {
-    if (!batch || !completionReady || !canComplete) return
+    if (!batch || completionVersion == null || !completionReady || !canComplete) return
     setCompletionError('')
     try {
-      await completeBatch({ id: batch.batchId, expectedVersion: batch.version }).unwrap()
-      setCompletionOpen(false)
+      await completeBatch({ id: batch.batchId, expectedVersion: completionVersion }).unwrap()
+      closeCompletion()
       await batchQuery.refetch()
     } catch (error) {
       const message = typeof error === 'object' && error && 'data' in error && typeof (error as { data?: { message?: unknown } }).data?.message === 'string'
@@ -101,10 +131,9 @@ export default function ReconciliationPage() {
       /> : batchesView.phase === 'ready' && selectedId ? <QueryViewBoundary geometry="table" queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
         {batch && <div className="space-y-4">
           <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />
-          <SectionPanel title={resultPresentation.title} description={resultPresentation.description} actions={<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{completionReady && canComplete && <Button type="button" size="sm" onClick={() => setCompletionOpen(true)}>Hoàn tất đối chiếu</Button>}</div>}>
+          <SectionPanel title={resultPresentation.title} description={resultPresentation.description} actions={<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{completionReady && canComplete && <Button type="button" size="sm" onClick={openCompletion}>Hoàn tất đối chiếu</Button>}</div>}>
             {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title="Sẵn sàng hoàn tất" description={`${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
             {completionReady && !canComplete && <p role="status" className="mt-3 text-sm text-slate-600">Lô đã đủ điều kiện; Quản trị hoặc Quản lý cần xác nhận hoàn tất đối chiếu.</p>}
-            {completionError && <p role="alert" className="mt-3 text-sm text-red-700">{completionError}</p>}
           </SectionPanel>
           <ReconciliationSourceChangeLog batchId={batch.batchId} />
         </div>}
@@ -112,10 +141,11 @@ export default function ReconciliationPage() {
     </section>
 
     <ReconciliationIssueDetailDialog issueId={selectedIssueId || null} open={Boolean(selectedIssueId)} expectedBatchId={selectedId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('issueId'); setSearchParams(next, { replace: true }) }} />
-    <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
+    <Dialog open={completionOpen} onOpenChange={(open) => { if (!open) closeCompletion() }}>
       <DialogContent size="sm" aria-label="Xác nhận hoàn tất đối chiếu">
         <DialogHeader><DialogTitle>Hoàn tất đối chiếu?</DialogTitle><DialogDescription>Thao tác này chuyển lô từ bước 4/5 sang Hoàn tất. Hệ thống sẽ kiểm tra lại phiên bản lô và mọi dòng trước khi ghi nhận.</DialogDescription></DialogHeader>
-        <DialogFooter><Button type="button" variant="outline" onClick={() => setCompletionOpen(false)}>Hủy</Button><Button type="button" disabled={isCompleting} onClick={() => void complete()}>{isCompleting ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
+        {completionError && <p role="alert" className="text-sm text-red-700">{completionError}</p>}
+        <DialogFooter><Button type="button" variant="outline" disabled={isCompleting || isRefreshingCompletion} onClick={() => void refreshCompletion()}>{isRefreshingCompletion ? 'Đang tải lại...' : 'Tải lại dữ liệu'}</Button><Button type="button" variant="outline" onClick={closeCompletion}>Hủy</Button><Button type="button" disabled={isCompleting || isRefreshingCompletion || completionVersion == null} onClick={() => void complete()}>{isCompleting ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>

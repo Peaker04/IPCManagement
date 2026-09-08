@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { issueState, listState, completionState } = vi.hoisted(() => ({
   issueState: { batchId: 'batch-1' },
   listState: { phase: 'ready' as 'ready' | 'loading' },
-  completionState: { allowed: true, shouldFail: false, mutate: vi.fn(), refetch: vi.fn() },
+  completionState: { allowed: true, shouldFail: false, refreshedVersion: 2, mutate: vi.fn(), refetch: vi.fn() },
 }))
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
@@ -50,8 +50,10 @@ describe('MXE-09 reconciliation issue deep link', () => {
     listState.phase = 'ready'
     completionState.allowed = true
     completionState.shouldFail = false
+    completionState.refreshedVersion = 2
     completionState.mutate.mockReset()
     completionState.refetch.mockReset()
+    completionState.refetch.mockResolvedValue({ data: { ...batch, version: completionState.refreshedVersion } })
   })
 
   it('restores issue detail in the canonical drawer without replacing the all-lot composition', () => {
@@ -129,13 +131,36 @@ describe('MXE-09 reconciliation issue deep link', () => {
     expect(screen.getByText(/Quản trị hoặc Quản lý cần xác nhận/)).toBeInTheDocument()
   })
 
-  it('keeps an explicit completion failure visible for recovery', async () => {
+  it('keeps completion failure and stale-version recovery inside the active dialog', async () => {
+    completionState.shouldFail = true
+    renderPage('/reconciliation?batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+    const dialog = screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Lô đã thay đổi.')
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+
+    completionState.shouldFail = false
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tải lại dữ liệu' }))
+    await waitFor(() => expect(completionState.refetch).toHaveBeenCalledTimes(1))
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
+
+    await waitFor(() => expect(completionState.mutate).toHaveBeenLastCalledWith({ id: 'batch-1', expectedVersion: 2 }))
+  })
+
+  it('clears completion failures on close and fresh reopen', async () => {
     completionState.shouldFail = true
     renderPage('/reconciliation?batchId=batch-1')
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tất' }))
-
     expect(await screen.findByRole('alert')).toHaveTextContent('Lô đã thay đổi.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+
+    expect(within(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('leaves exact issue linkage validation to the canonical drawer and never filters the ledger by issue lines', () => {

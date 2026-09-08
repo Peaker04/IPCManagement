@@ -15,7 +15,10 @@ const { dialogProps } = vi.hoisted(() => ({
 
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
-  lines: [{ batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 13.3344, issuedQuantity: 13.3344, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 }],
+  lines: [
+    { batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 13.3344, issuedQuantity: 13.3344, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 },
+    { batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Đậu xanh', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 2.1234567, issuedQuantity: null, frozenTolerance: 0, triggers: [], status: 'PENDING', version: 1 },
+  ],
 }
 const issue = {
   issueId: 'issue-1', issueCode: 'ISS-001', sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: 'batch-1',
@@ -101,13 +104,17 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1')
   })
 
-  it('renders committed quantities as locale-formatted read-only facts with canonical units', () => {
+  it('renders mixed committed quantities honestly with canonical units and six-decimal formatting', () => {
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
     expect(screen.queryByRole('spinbutton', { name: 'Thực xuất Gạo' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton', { name: 'Thực xuất Đậu xanh' })).not.toBeInTheDocument()
     expect(screen.getAllByText('13,3344 kg')).toHaveLength(2)
+    expect(screen.getByText('2,123457 kg')).toBeInTheDocument()
+    expect(screen.getByText('Chưa xuất')).toBeInTheDocument()
+    expect(screen.queryByText('0 kg')).not.toBeInTheDocument()
     expect(screen.queryByText('Kilogram')).not.toBeInTheDocument()
-    expect(screen.getByText('Không cần')).toHaveClass('text-slate-600')
+    expect(screen.getAllByText('Không cần')).toHaveLength(2)
     screen.getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
   })
 
