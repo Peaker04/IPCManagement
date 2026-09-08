@@ -20,7 +20,10 @@ const issue = () => ({
   issueId: 'issue-1', issueCode: 'ISS-001', sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: queryState.issueBatchId,
   issueDate: '2026-09-05', createdAt: '2026-09-05T09:00:00Z', receivedAt: null, receivedBy: null, receivedByName: null,
   issuedBy: 'actor-1', issuedByName: 'Thủ kho', warehouseId: 'warehouse-1', warehouseName: 'Kho chính',
-  lines: [{ issueLineId: 'issue-line-1', reconciliationBatchLineId: queryState.missingBatchLineLinkage ? null : 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: queryState.missingBatchLineLinkage ? null : 'Gạo', unitId: 'unit-1', unitName: queryState.missingBatchLineLinkage ? null : 'kg', requestedQty: 5, issuedQty: 5 }],
+  lines: [
+    { issueLineId: 'issue-line-1', reconciliationBatchLineId: queryState.missingBatchLineLinkage ? null : 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: queryState.missingBatchLineLinkage ? null : 'Gạo', unitId: 'unit-1', unitName: queryState.missingBatchLineLinkage ? null : 'Kilogram', requestedQty: 5, issuedQty: 5 },
+    { issueLineId: 'issue-line-2', reconciliationBatchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Muối', unitId: 'unit-1', unitName: 'kg', requestedQty: 1, issuedQty: 1 },
+  ],
 })
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
@@ -140,7 +143,7 @@ describe('ReconciliationIssueDetailDialog behavior', () => {
     queryState.missingBatchLineLinkage = true
     render(<ReconciliationIssueDetailDialog issueId="issue-1" open expectedBatchId="batch-1" onClose={vi.fn()} />)
 
-    expect(screen.getByText('Nguyên liệu chưa đặt tên')).toBeInTheDocument()
+    expect(screen.getAllByText('Nguyên liệu chưa đặt tên')).not.toHaveLength(0)
     expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.getByText('unit-1')).toBeInTheDocument()
     expect(screen.queryByText('Gạo đông lạnh')).not.toBeInTheDocument()
@@ -154,12 +157,17 @@ describe('ReconciliationIssueDetailDialog behavior', () => {
     const drawer = screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })
     expect(drawer).toHaveAttribute('data-surface', 'drawer')
     expect(drawer).toHaveAttribute('aria-modal', 'false')
-    expect(drawer).toHaveClass('inset-y-0', 'max-w-3xl')
+    expect(drawer).toHaveClass('inset-y-0', 'xl:w-1/2', 'xl:max-w-2xl')
     expect(screen.getAllByText('ISS-001')).toHaveLength(2)
     expect(screen.getByRole('status')).toHaveTextContent('Đang cập nhật dữ liệu chi tiết...')
     expect(screen.getByRole('region', { name: 'Các dòng giao dịch xuất kho' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument()
-    expect(screen.getByText('Xem mã dòng')).toBeInTheDocument()
+    expect(screen.queryByText('Xem mã dòng')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chọn dòng để xem chi tiết kỹ thuật' })).toHaveValue('issue-line-1')
+    expect(screen.getByRole('region', { name: 'Chi tiết kỹ thuật dòng đã chọn' })).toHaveTextContent('issue-line-1')
+    expect(screen.getByRole('region', { name: 'Chi tiết kỹ thuật dòng đã chọn' })).toHaveTextContent('batch-line-1')
+    expect(screen.getAllByText('kg')).not.toHaveLength(0)
+    expect(document.querySelectorAll('.break-all')).toHaveLength(0)
     expect(batchQueryArgs.at(-1)).toEqual({ id: '', skip: true })
   })
 })

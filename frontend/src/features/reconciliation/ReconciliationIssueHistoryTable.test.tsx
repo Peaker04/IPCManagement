@@ -37,7 +37,7 @@ it('keeps exact issues as separate rows and presents mixed units per line withou
   expect(rows[0]).toHaveTextContent('Gạo: 1,25 kg')
   expect(rows[0]).toHaveTextContent('Sữa: 900 ml')
   expect(screen.queryByText(/901[,.]25/)).not.toBeInTheDocument()
-  expect(screen.getAllByText('Vai trò chưa được lưu')).toHaveLength(2)
+  expect(screen.queryByText('Vai trò chưa được lưu')).not.toBeInTheDocument()
   expect(screen.getAllByText('Thủ kho')).toHaveLength(2)
 
   fireEvent.click(within(rows[1]).getByRole('button', { name: 'Xem giao dịch' }))
@@ -77,7 +77,7 @@ it('resolves ingredient name and unit name from batchLines when issue lines lack
   expect(rows[0]).not.toHaveTextContent('unit-guid-1')
 })
 
-it('applies progressive disclosure by showing first 3 items and summary for remaining items', () => {
+it('keeps one detail trigger and a compact two-line preview per issue', () => {
   const onOpenIssue = vi.fn()
   render(<ReconciliationIssueHistoryTable
     issues={[
@@ -95,14 +95,15 @@ it('applies progressive disclosure by showing first 3 items and summary for rema
   const row = screen.getAllByRole('row')[1]
   expect(within(row).getByText('Gạo')).toBeInTheDocument()
   expect(within(row).getByText('Thịt bò')).toBeInTheDocument()
-  expect(within(row).getByText('Cà rốt')).toBeInTheDocument()
+  expect(within(row).queryByText('Cà rốt')).not.toBeInTheDocument()
   expect(within(row).getByText('5')).toBeInTheDocument()
   expect(within(row).getByText('loại')).toBeInTheDocument()
   expect(row).toHaveTextContent('Gạo: 1 kg')
-  expect(row).not.toHaveTextContent('Hành tây')
+  expect(row).toHaveTextContent('+3 mặt hàng khác')
+  expect(within(row).queryByRole('button', { name: /mặt hàng khác/ })).not.toBeInTheDocument()
 
-  const moreButton = within(row).getByRole('button', { name: /\+2 mặt hàng khác/ })
-  expect(moreButton).toBeInTheDocument()
-  fireEvent.click(moreButton)
+  const action = within(row).getByRole('button', { name: 'Xem giao dịch' })
+  expect(within(row).getAllByRole('button')).toEqual([action])
+  fireEvent.click(action)
   expect(onOpenIssue).toHaveBeenCalledWith(expect.objectContaining({ issueId: 'issue-1' }))
 })

@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import type { ReconciliationIssueHistoryItem, ReconciliationLine } from '@/api/reconciliationApi'
 import { StatusBadge, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
-import { formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters'
-import { issueActorLabel, issueRoleLabel, issueStatusLabel } from './reconciliationIssueCorrelation'
+import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters'
+import { issueActorLabel, issueStatusLabel } from './reconciliationIssueCorrelation'
 
 export function ReconciliationIssueHistoryTable({
   issues,
@@ -48,13 +48,12 @@ export function ReconciliationIssueHistoryTable({
         </thead>
         <tbody>
           {issues.map((issue) => {
-            const previewLines = issue.lines.slice(0, 3)
-            const remainingLines = issue.lines.slice(3)
+            const previewLines = issue.lines.slice(0, 2)
+            const remainingLines = issue.lines.slice(2)
             return (
               <tr key={issue.issueId}>
                 <td style={{ verticalAlign: 'top' }}>
                   <strong className="block text-slate-950">{issue.issueCode}</strong>
-                  <span className="block text-xs text-slate-500">Tạo lúc {formatDateTime(issue.createdAt)}</span>
                 </td>
                 <td style={{ verticalAlign: 'top' }}>{formatDateOnly(issue.issueDate)}</td>
                 <td style={{ verticalAlign: 'top' }} className="text-right tabular-nums">
@@ -75,18 +74,13 @@ export function ReconciliationIssueHistoryTable({
                       )
                     })}
                   </ul>
-                  {remainingLines.length > 0 && (
-                    <Button type="button" variant="link" size="sm" onClick={() => onOpenIssue(issue)} className="mt-1 h-auto p-0 text-xs">
-                      +{remainingLines.length} mặt hàng khác &rarr;
-                    </Button>
-                  )}
+                  {remainingLines.length > 0 && <p className="mt-1 text-xs text-slate-500">+{remainingLines.length} mặt hàng khác</p>}
                 </td>
                 <td style={{ verticalAlign: 'top' }}>{issueActorLabel(issue)}</td>
                 <td style={{ verticalAlign: 'top' }}>
                   <StatusBadge variant={issue.receivedAt ? 'success' : 'info'} size="sm">
                     {issueStatusLabel(issue)}
                   </StatusBadge>
-                  <span className="mt-1 block text-xs text-slate-500">{issueRoleLabel()}</span>
                 </td>
                 <td style={{ verticalAlign: 'top' }}>
                   <Button type="button" variant="outline" size="sm" onClick={() => onOpenIssue(issue)}>

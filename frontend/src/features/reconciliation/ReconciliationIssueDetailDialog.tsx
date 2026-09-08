@@ -1,13 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ExternalLink, RefreshCw } from 'lucide-react'
 import type { ReconciliationIssueHistoryItem } from '@/api/reconciliationApi'
 import { useGetReconciliationBatchQuery, useGetReconciliationIssueQuery } from '@/api/reconciliationApi'
-import { InlineAlert, SkeletonTableRow, TableViewport } from '@/components/common'
+import { IdentifierText, InlineAlert, SkeletonTableRow, TableViewport } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Drawer, DrawerBody, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters'
+import { formatDateOnly, formatDateTime, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import { ROUTES } from '@/lib/routeConfig'
-import { typography } from '@/lib/typography'
 import {
   collectIssueRelatedNotes,
   dispositionCategoryLabel,
@@ -39,6 +38,8 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
   const batch = batchQuery.currentData ?? batchQuery.data
   const linkageMismatch = Boolean(expectedBatchId && issue && issue.reconciliationBatchId !== expectedBatchId)
   const relatedNotes = useMemo(() => collectIssueRelatedNotes(fetchedIssue ?? { lines: [] }, batch), [batch, fetchedIssue])
+  const [selectedLineId, setSelectedLineId] = useState('')
+  const selectedLine = issue?.lines.find((line) => line.issueLineId === selectedLineId) ?? issue?.lines[0]
 
   return <Drawer open={open} onOpenChange={(nextOpen, reason) => { if (!nextOpen) onClose(reason) }}>
     <DrawerContent aria-label={ariaLabel}>
@@ -64,8 +65,8 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
         {issue && !linkageMismatch && <div className="space-y-5">
           <dl className="grid grid-cols-[minmax(9rem,auto)_1fr] gap-x-5 gap-y-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
             <dt className="text-slate-600">Mã phiếu</dt><dd className="font-medium text-slate-950">{issue.issueCode}</dd>
-            <dt className="text-slate-600">ID phiếu</dt><dd className={`${typography.code} break-all text-slate-950`}>{issue.issueId}</dd>
-            <dt className="text-slate-600">ID lô đối chiếu</dt><dd className={`${typography.code} break-all text-slate-950`}>{issue.reconciliationBatchId || 'Không có trong dữ liệu đã lưu'}</dd>
+            <dt className="text-slate-600">ID phiếu</dt><dd className="min-w-0 text-slate-950"><IdentifierText value={issue.issueId} /></dd>
+            <dt className="text-slate-600">ID lô đối chiếu</dt><dd className="min-w-0 text-slate-950"><IdentifierText value={issue.reconciliationBatchId} fallback="Không có trong dữ liệu đã lưu" /></dd>
             <dt className="text-slate-600">Vai trò</dt><dd className="font-medium text-slate-950">{issueRoleLabel()}</dd>
             <dt className="text-slate-600">Trạng thái</dt><dd className="font-medium text-slate-950">{issueStatusLabel(issue)}</dd>
             <dt className="text-slate-600">Người tạo</dt><dd className="font-medium text-slate-950">{issueActorLabel(issue)}</dd>
@@ -80,7 +81,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
             <h3 id="issue-lines-heading" className="font-semibold text-slate-950">Dòng giao dịch</h3>
             <TableViewport ariaLabel="Các dòng giao dịch xuất kho" caption="Nguyên liệu, số đã xuất và đơn vị của phiếu">
               <table className="ipc-data-table">
-                <thead><tr><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Số đã xuất</th><th scope="col">Đơn vị</th><th scope="col">Chi tiết</th></tr></thead>
+                <thead><tr><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Số đã xuất</th><th scope="col">Đơn vị</th></tr></thead>
                 <tbody>{issue.lines.map((line) => {
                   const batchLine = line.reconciliationBatchLineId
                     ? batch?.lines.find((candidate) => candidate.batchLineId === line.reconciliationBatchLineId)
@@ -90,20 +91,23 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
                   return <tr key={line.issueLineId}>
                     <td className="font-medium text-slate-950">{ingredientName}</td>
                     <td className="text-right tabular-nums">{formatQuantityWithUnit(line.issuedQty, '', { maximumFractionDigits: 6 })}</td>
-                    <td>{unitLabel}</td>
-                    <td>
-                      <details className="text-xs">
-                        <summary className="cursor-pointer font-medium text-slate-700">Xem mã dòng</summary>
-                        <dl className="mt-2 grid gap-1">
-                          <dt className="text-slate-500">ID dòng phiếu</dt><dd className={`${typography.code} break-all`}>{line.issueLineId}</dd>
-                          <dt className="text-slate-500">ID dòng lô</dt><dd className={`${typography.code} break-all`}>{line.reconciliationBatchLineId || 'Không có trong dữ liệu đã lưu'}</dd>
-                        </dl>
-                      </details>
-                    </td>
+                    <td>{formatUnit(unitLabel)}</td>
                   </tr>
                 })}</tbody>
               </table>
             </TableViewport>
+            {selectedLine && <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <label className="grid gap-1 text-sm font-medium text-slate-800">
+                Chi tiết kỹ thuật
+                <select aria-label="Chọn dòng để xem chi tiết kỹ thuật" className="h-9 rounded-sm border border-slate-300 bg-white px-3" value={selectedLine.issueLineId} onChange={(event) => setSelectedLineId(event.target.value)}>
+                  {issue.lines.map((line) => <option key={line.issueLineId} value={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</option>)}
+                </select>
+              </label>
+              <dl className="mt-3 grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-2 text-xs" role="region" aria-label="Chi tiết kỹ thuật dòng đã chọn">
+                <dt className="text-slate-500">ID dòng phiếu</dt><dd className="min-w-0"><IdentifierText value={selectedLine.issueLineId} /></dd>
+                <dt className="text-slate-500">ID dòng lô</dt><dd className="min-w-0"><IdentifierText value={selectedLine.reconciliationBatchLineId} fallback="Không có trong dữ liệu đã lưu" /></dd>
+              </dl>
+            </div>}
           </section>
 
           {fetchedIssue && <section aria-labelledby="issue-notes-heading">
