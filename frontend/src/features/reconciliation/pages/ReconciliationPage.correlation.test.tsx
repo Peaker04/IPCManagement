@@ -17,18 +17,34 @@ const batch = {
 const ready = <T,>(data: T) => ({ data, currentData: data, isLoading: false, isFetching: false, isError: false, isSuccess: true, isUninitialized: false, refetch: completionState.refetch })
 const loading = () => ({ data: undefined, currentData: undefined, isLoading: true, isFetching: true, isError: false, isSuccess: false, isUninitialized: false, refetch: vi.fn() })
 const uninitialized = () => ({ data: undefined, currentData: undefined, isLoading: false, isFetching: false, isError: false, isSuccess: false, isUninitialized: true, refetch: vi.fn() })
-vi.mock('@/api/reconciliationApi', () => ({
-  useListReconciliationBatchesQuery: () => listState.phase === 'loading' ? loading() : ready([batch]),
-  useGetReconciliationBatchQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready(batch),
-  useGetReconciliationIssueQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready({
-    issueId: 'issue-1', issueCode: 'ISS-001', sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: issueState.batchId,
-    issueDate: '2026-09-05', createdAt: '2026-09-05T09:00:00Z', receivedAt: null, issuedBy: 'actor-1', issuedByName: 'Thủ kho', warehouseId: 'warehouse-1',
-    lines: [{ issueLineId: 'issue-line-1', reconciliationBatchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', unitId: 'kg', unitName: 'kg', requestedQty: 1.25, issuedQty: 1.25 }],
-  }),
-  useListReconciliationDispositionCategoriesQuery: () => ready([]),
-  useSetReconciliationDispositionMutation: () => [vi.fn(), { isLoading: false }],
-  useCompleteReconciliationBatchMutation: () => [(args: unknown) => { completionState.mutate(args); return { unwrap: completionState.unwrap } }, { isLoading: false }],
-}))
+vi.mock('@/api/reconciliationApi', async () => {
+  const { useState } = await import('react')
+  return {
+    useListReconciliationBatchesQuery: () => listState.phase === 'loading' ? loading() : ready([batch]),
+    useGetReconciliationBatchQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready(batch),
+    useGetReconciliationIssueQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready({
+      issueId: 'issue-1', issueCode: 'ISS-001', sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: issueState.batchId,
+      issueDate: '2026-09-05', createdAt: '2026-09-05T09:00:00Z', receivedAt: null, issuedBy: 'actor-1', issuedByName: 'Thủ kho', warehouseId: 'warehouse-1',
+      lines: [{ issueLineId: 'issue-line-1', reconciliationBatchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', unitId: 'kg', unitName: 'kg', requestedQty: 1.25, issuedQty: 1.25 }],
+    }),
+    useListReconciliationDispositionCategoriesQuery: () => ready([]),
+    useSetReconciliationDispositionMutation: () => [vi.fn(), { isLoading: false }],
+    useCompleteReconciliationBatchMutation: () => {
+      const [isLoading, setIsLoading] = useState(false)
+      return [(args: unknown) => {
+        completionState.mutate(args)
+        setIsLoading(true)
+        return { unwrap: async () => {
+          try {
+            return await completionState.unwrap()
+          } finally {
+            setIsLoading(false)
+          }
+        } }
+      }, { isLoading }]
+    },
+  }
+})
 vi.mock('../ReconciliationSourceChangeLog', () => ({ ReconciliationSourceChangeLog: ({ batchId }: { batchId: string }) => <div>Nhật ký nguồn lô {batchId}</div> }))
 vi.mock('../ReconciliationIssueDetailDialog', () => ({ ReconciliationIssueDetailDialog: ({ issueId, open, onClose }: { issueId: string | null; open: boolean; onClose: () => void }) => open ? <aside role="dialog" aria-label="Chi tiết giao dịch xuất kho đối chiếu"><span>{issueId}</span><button type="button" onClick={onClose}>Đóng</button></aside> : null }))
 vi.mock('@/lib/navigationPreferences', () => ({ readReconciliationSelection: () => ({}), writeReconciliationSelection: vi.fn() }))
@@ -175,25 +191,38 @@ describe('MXE-09 reconciliation issue deep link', () => {
     expect(within(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('ignores a completed mutation from a closed completion dialog session', async () => {
+  it('owns completion pending state by dialog session', async () => {
     const oldCompletion = deferred<typeof batch>()
-    completionState.unwrap.mockReturnValueOnce(oldCompletion.promise).mockResolvedValue(batch)
+    const newCompletion = deferred<typeof batch>()
+    completionState.unwrap.mockReturnValueOnce(oldCompletion.promise).mockReturnValueOnce(newCompletion.promise)
     renderPage('/reconciliation?batchId=batch-1')
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tất' }))
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
 
+    const dialog = screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    expect(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' })).toBeEnabled()
+    expect(within(dialog).queryByText('Đang hoàn tất...')).not.toBeInTheDocument()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tải lại dữ liệu' }))
+    await waitFor(() => expect(completionState.refetch).toHaveBeenCalledTimes(1))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
+    await waitFor(() => expect(completionState.mutate).toHaveBeenLastCalledWith({ id: 'batch-1', expectedVersion: 2 }))
+
     await act(async () => {
       oldCompletion.resolve(batch)
       await oldCompletion.promise
     })
 
-    const dialog = await screen.findByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
-    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' })).toBeEnabled())
+    expect(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).toBe(dialog)
+    expect(within(dialog).getByRole('button', { name: 'Đang hoàn tất...' })).toBeDisabled()
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
-    await waitFor(() => expect(completionState.mutate).toHaveBeenLastCalledWith({ id: 'batch-1', expectedVersion: 1 }))
+
+    await act(async () => {
+      newCompletion.resolve(batch)
+      await newCompletion.promise
+    })
   })
 
   it('ignores a rejected refresh from a closed completion dialog session', async () => {

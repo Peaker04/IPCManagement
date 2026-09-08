@@ -55,8 +55,9 @@ export default function ReconciliationPage() {
   const [completionError, setCompletionError] = useState('')
   const [completionVersion, setCompletionVersion] = useState<number>()
   const [isRefreshingCompletion, setIsRefreshingCompletion] = useState(false)
+  const [isCompletionPending, setIsCompletionPending] = useState(false)
   const completionSessionRef = useRef(0)
-  const [completeBatch, { isLoading: isCompleting }] = useCompleteReconciliationBatchMutation()
+  const [completeBatch] = useCompleteReconciliationBatchMutation()
   const canComplete = useHasRole(['quanly'])
   const batch = batchQuery.currentData ?? batchQuery.data
   const actionableCount = useMemo(() => batch?.lines.filter((line) => line.status !== 'MATCHED').length ?? 0, [batch?.lines])
@@ -69,12 +70,14 @@ export default function ReconciliationPage() {
     setCompletionError('')
     setCompletionVersion(undefined)
     setIsRefreshingCompletion(false)
+    setIsCompletionPending(false)
   }
   const openCompletion = () => {
     completionSessionRef.current += 1
     setCompletionError('')
     setCompletionVersion(batch?.version)
     setIsRefreshingCompletion(false)
+    setIsCompletionPending(false)
     setCompletionOpen(true)
   }
   const refreshCompletion = async () => {
@@ -101,6 +104,7 @@ export default function ReconciliationPage() {
     if (!batch || completionVersion == null || !completionReady || !canComplete) return
     const session = completionSessionRef.current
     setCompletionError('')
+    setIsCompletionPending(true)
     try {
       await completeBatch({ id: batch.batchId, expectedVersion: completionVersion }).unwrap()
       if (completionSessionRef.current !== session) return
@@ -112,6 +116,8 @@ export default function ReconciliationPage() {
         ? (error as { data: { message: string } }).data.message
         : 'Không thể hoàn tất lô. Hãy tải lại dữ liệu và kiểm tra các dòng cần xử lý.'
       setCompletionError(message)
+    } finally {
+      if (completionSessionRef.current === session) setIsCompletionPending(false)
     }
   }
 
@@ -155,7 +161,7 @@ export default function ReconciliationPage() {
       <DialogContent size="sm" aria-label="Xác nhận hoàn tất đối chiếu">
         <DialogHeader><DialogTitle>Hoàn tất đối chiếu?</DialogTitle><DialogDescription>Thao tác này chuyển lô từ bước 4/5 sang Hoàn tất. Hệ thống sẽ kiểm tra lại phiên bản lô và mọi dòng trước khi ghi nhận.</DialogDescription></DialogHeader>
         {completionError && <p role="alert" className="text-sm text-red-700">{completionError}</p>}
-        <DialogFooter><Button type="button" variant="outline" disabled={isCompleting || isRefreshingCompletion} onClick={() => void refreshCompletion()}>{isRefreshingCompletion ? 'Đang tải lại...' : 'Tải lại dữ liệu'}</Button><Button type="button" variant="outline" onClick={closeCompletion}>Hủy</Button><Button type="button" disabled={isCompleting || isRefreshingCompletion || completionVersion == null} onClick={() => void complete()}>{isCompleting ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
+        <DialogFooter><Button type="button" variant="outline" disabled={isCompletionPending || isRefreshingCompletion} onClick={() => void refreshCompletion()}>{isRefreshingCompletion ? 'Đang tải lại...' : 'Tải lại dữ liệu'}</Button><Button type="button" variant="outline" onClick={closeCompletion}>Hủy</Button><Button type="button" disabled={isCompletionPending || isRefreshingCompletion || completionVersion == null} onClick={() => void complete()}>{isCompletionPending ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
