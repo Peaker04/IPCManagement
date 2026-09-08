@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi'
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext'
-import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters'
+import { formatDateTime, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import { compareIssueQuantity, issueQuantityDifference } from './reconciliationIssueQuantity'
 import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
 import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
@@ -64,6 +64,11 @@ export default function ReconciliationWarehousePage() {
     const relation = compareIssueQuantity(quantity, line.requiredQuantity)
     return relation === 'invalid' || (relation === 'over' && !varianceReasons[line.batchLineId]?.trim())
   })
+  const supplementalLine = batch?.lines.find((line) => line.batchLineId === supplementalLineId)
+  const supplementalAmount = Number(supplementalQuantity)
+  const supplementalTotal = supplementalLine && Number.isFinite(supplementalAmount) && supplementalAmount > 0
+    ? (supplementalLine.issuedQuantity ?? 0) + supplementalAmount
+    : null
 
   const fillExactRequiredQuantities = () => {
     setIssuedQuantities(Object.fromEntries(remainingLines.map((line) => [line.batchLineId, String(line.requiredQuantity)])))
@@ -166,13 +171,13 @@ export default function ReconciliationWarehousePage() {
   if (tabs.length === 0) return <OperationalFrame><section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không còn khu vực Kho đang hiển thị</h2><p className="mt-2 text-sm text-slate-600">Mở Thiết lập nâng cao để khôi phục một tab được chế độ hiện tại cho phép.</p><Link className="ipc-button ipc-button-primary mt-4" to={ROUTES.ADVANCED_SETTINGS}>Mở thiết lập hiển thị</Link></section></OperationalFrame>
 
   return <OperationalFrame>
-    <div className="space-y-4">
+    <div className="ipc-drawer-master space-y-4" data-drawer-open={Boolean(selectedIssueId)}>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4">
         <div><h2 className="text-lg font-semibold">Xuất kho theo định lượng đã chốt</h2><p className="mt-1 text-sm text-slate-600">Kho vận hành: {warehouse.warehouse?.warehouseName ?? 'Chưa xác định'}.</p></div>
-        {activeView === 'demand' && batch?.status === 'IN_PROGRESS' && hasLinkedIssue && <Button type="button" onClick={() => setSupplementalOpen(true)}>Xuất thêm nguyên liệu</Button>}
+        {activeView === 'demand' && batch?.status === 'IN_PROGRESS' && hasLinkedIssue && <div className="max-w-sm text-right"><Button type="button" variant="outline" onClick={() => setSupplementalOpen(true)}>Tạo phiếu xuất bổ sung</Button><p className="mt-1 text-xs text-slate-600">Cộng thêm vào số đã xuất và có thể tạo chênh lệch cần xử lý.</p></div>}
         {activeView === 'demand' && batch?.status === 'TRANSFERRED' && !hasLinkedIssue && <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={remainingLines.length === 0 || isCreating} onClick={fillExactRequiredQuantities}>Điền đủ toàn bộ</Button><Button type="button" disabled={remainingLines.length === 0 || warehouse.state !== 'ready' || isCreating || issueInputInvalid} onClick={() => void create()}>{isCreating ? 'Đang xác nhận xuất...' : `Xác nhận và tạo phiếu xuất (${remainingLines.length})`}</Button></div>}
       </div>
-      {batch && <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />}
+      {batch && <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={activeView === 'movement'} />}
       {feedback && <p role="status" className="rounded-md border border-slate-200 bg-white p-3 text-sm">{feedback}</p>}
       {warehouseError && <p role="alert" className="text-sm text-red-700">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</p>}
       {(batchesQuery.data?.length ?? 0) > 1 && <label className="grid max-w-md gap-1 text-sm font-medium">Chọn lô của khách hàng<Select value={batchId || null} onValueChange={(value) => value && updateRoute({ batchId: value, view: 'demand' })}><SelectTrigger aria-label="Chọn lô cần xuất"><SelectValue placeholder="Chọn lô" /></SelectTrigger><SelectContent>{batchesQuery.data?.filter((item) => ['READY', 'TRANSFERRED', 'IN_PROGRESS'].includes(item.status)).map((item) => <SelectItem key={item.batchId} value={item.batchId}>{formatDateTime(item.createdAt)} · {getReconciliationLifecyclePresentation(item.status).label}</SelectItem>)}</SelectContent></Select></label>}
@@ -197,12 +202,10 @@ export default function ReconciliationWarehousePage() {
                 return <tr key={line.batchLineId}>
                   <td><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span></td>
                   <td className="text-right tabular-nums">{formatQuantityWithUnit(line.requiredQuantity, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</td>
-                  <td>
-                    <label className="sr-only" htmlFor={`issued-${line.batchLineId}`}>Thực xuất {line.ingredientName}</label>
-                    <div className="flex items-center justify-end gap-2">
-                      <Input id={`issued-${line.batchLineId}`} aria-label={`Thực xuất ${line.ingredientName}`} type="number" min="0.000001" step="0.000001" inputMode="decimal" disabled={hasLinkedIssue} value={hasLinkedIssue ? String(line.issuedQuantity ?? 0) : issuedQuantities[line.batchLineId] ?? String(remaining)} onChange={(event) => setIssuedQuantities((current) => ({ ...current, [line.batchLineId]: event.target.value }))} className="w-36 text-right tabular-nums" />
-                      <span className="w-16 text-xs text-slate-600">{line.canonicalUnitName}</span>
-                    </div>
+                  <td className="text-right tabular-nums">
+                    {hasLinkedIssue
+                      ? <span title={Number(line.issuedQuantity ?? 0).toFixed(6)}>{formatQuantityWithUnit(line.issuedQuantity ?? 0, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</span>
+                      : <><label className="sr-only" htmlFor={`issued-${line.batchLineId}`}>Thực xuất {line.ingredientName}</label><div className="flex items-center justify-end gap-2"><Input id={`issued-${line.batchLineId}`} aria-label={`Thực xuất ${line.ingredientName}`} type="number" min="0.000001" step="0.000001" inputMode="decimal" value={issuedQuantities[line.batchLineId] ?? String(remaining)} onChange={(event) => setIssuedQuantities((current) => ({ ...current, [line.batchLineId]: event.target.value }))} className="w-36 text-right tabular-nums" /><span className="w-16 text-xs text-slate-600">{formatUnit(line.canonicalUnitName ?? '')}</span></div></>}
                   </td>
                   <td>{overIssued ? <Textarea aria-label={`Lý do xuất vượt ${line.ingredientName}`} value={varianceReasons[line.batchLineId] ?? ''} onChange={(event) => setVarianceReasons((current) => ({ ...current, [line.batchLineId]: event.target.value }))} placeholder="Nhập lý do" className="min-h-16 min-w-48" /> : <span className="text-sm text-slate-600">Không cần</span>}</td>
                   <td>
@@ -216,7 +219,6 @@ export default function ReconciliationWarehousePage() {
         </SectionPanel></div>}
         {activeView === 'movement' && <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"><SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
           {historyQuery.isLoading ? <p role="status">Đang tải lịch sử xuất kho...</p> : historyQuery.isError ? <p role="alert">Không tải được lịch sử xuất kho.</p> : (historyQuery.data?.items.length ?? 0) === 0 ? <p>Chưa có phiếu xuất kho liên kết.</p> : <ReconciliationIssueHistoryTable issues={historyQuery.data?.items ?? []} batchLines={batch?.lines} onOpenIssue={openIssue} />}
-          <div className="mt-4 flex justify-end"><Link className="ipc-button ipc-button-primary" to={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(batchId)}`}>Mở đối chiếu nguyên liệu</Link></div>
         </SectionPanel></div>}
       </>}
     </div>
@@ -230,9 +232,10 @@ export default function ReconciliationWarehousePage() {
     />
     <Dialog open={supplementalOpen} onOpenChange={setSupplementalOpen}>
       <DialogContent size="sm" aria-label="Xuất thêm nguyên liệu">
-        <DialogHeader><DialogTitle>Xuất thêm nguyên liệu</DialogTitle><DialogDescription>Chọn một nguyên liệu đã có trong lô. Số xuất thêm sẽ được cộng vào dòng đối chiếu hiện tại.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Xuất thêm nguyên liệu</DialogTitle><DialogDescription>Chọn một nguyên liệu đã có trong lô. Số xuất thêm sẽ được cộng vào tổng đã xuất và có thể tạo chênh lệch cần xử lý.</DialogDescription></DialogHeader>
         <label className="grid gap-1 text-sm font-medium">Nguyên liệu<Select value={supplementalLineId || null} onValueChange={(value) => setSupplementalLineId(value ?? '')}><SelectTrigger aria-label="Chọn nguyên liệu xuất thêm"><SelectValue placeholder="Chọn nguyên liệu">{batch?.lines.find((line) => line.batchLineId === supplementalLineId)?.ingredientName}</SelectValue></SelectTrigger><SelectContent>{batch?.lines.map((line) => <SelectItem key={line.batchLineId} value={line.batchLineId}>{line.ingredientName}</SelectItem>)}</SelectContent></Select></label>
         <label className="grid gap-1 text-sm font-medium">Số lượng xuất thêm<Input type="number" min="0.000001" step="0.000001" value={supplementalQuantity} onChange={(event) => setSupplementalQuantity(event.target.value)} /></label>
+        {supplementalLine && <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md bg-slate-50 p-3 text-sm"><dt className="text-slate-600">Nguyên liệu</dt><dd className="font-medium">{supplementalLine.ingredientName}</dd><dt className="text-slate-600">Đã xuất hiện tại</dt><dd className="text-right tabular-nums">{formatQuantityWithUnit(supplementalLine.issuedQuantity ?? 0, supplementalLine.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</dd>{supplementalTotal != null && <><dt className="text-slate-600">Sau khi bổ sung</dt><dd className="text-right tabular-nums">{formatQuantityWithUnit(supplementalTotal, supplementalLine.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</dd><dt className="text-slate-600">Chênh lệch mới</dt><dd className="text-right tabular-nums">{formatQuantityWithUnit(supplementalTotal - supplementalLine.requiredQuantity, supplementalLine.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</dd></>}</dl>}
         <label className="grid gap-1 text-sm font-medium">Lý do<Textarea value={supplementalReason} onChange={(event) => setSupplementalReason(event.target.value)} placeholder="Ví dụ: Bếp đề nghị bổ sung cho ca trưa" /></label>
         <DialogFooter><Button type="button" variant="outline" onClick={() => setSupplementalOpen(false)}>Hủy</Button><Button type="button" disabled={isCreating || !supplementalLineId || Number(supplementalQuantity) <= 0 || !supplementalReason.trim()} onClick={() => void createSupplemental()}>{isCreating ? 'Đang tạo phiếu...' : 'Xác nhận xuất thêm'}</Button></DialogFooter>
       </DialogContent>

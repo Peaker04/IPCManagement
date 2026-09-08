@@ -56,7 +56,7 @@ export default function ReconciliationPage() {
   const batchLabel = (item: typeof batches[number]) => `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
 
   return <OperationalFrame>
-    <section className="space-y-4" aria-label="Đối chiếu nguyên liệu">
+    <section className="ipc-drawer-master space-y-4" data-drawer-open={Boolean(selectedIssueId)} aria-label="Đối chiếu nguyên liệu">
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4" data-ui-work-surface="reconciliation-scope">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Cần xuất và đã xuất kho</h2>

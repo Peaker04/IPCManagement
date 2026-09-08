@@ -15,7 +15,7 @@ const { dialogProps } = vi.hoisted(() => ({
 
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
-  lines: [{ batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 5, issuedQuantity: 5, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 }],
+  lines: [{ batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 13.3344, issuedQuantity: 13.3344, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 }],
 }
 const issue = {
   issueId: 'issue-1', issueCode: 'ISS-001', sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: 'batch-1',
@@ -63,23 +63,23 @@ const renderPage = (entry = '/warehouse?view=movement&batchId=batch-1') => rende
 describe('Warehouse reconciliation issue detail preserve-context behavior', () => {
   beforeEach(() => { dialogProps.length = 0 })
 
-  it.each([
-    ['the progressive disclosure summary', /\+64 mặt hàng khác/],
-    ['the row action', 'Xem giao dịch'],
-  ])('opens one page-level issue dialog from %s without leaving the warehouse context', (_label, buttonName) => {
+  it('opens one page-level issue dialog from the single row action without leaving the warehouse context', () => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: buttonName }))
+    expect(screen.queryByRole('button', { name: /\+64 mặt hàng khác/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
 
     expect(screen.getAllByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toHaveLength(1)
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1&issueId=issue-1')
     expect(dialogProps.at(-1)).toMatchObject({ issueId: 'issue-1', open: true, expectedBatchId: 'batch-1', initialIssue: expect.objectContaining({ issueCode: 'ISS-001', lines: expect.arrayContaining([expect.objectContaining({ issueLineId: 'issue-line-67' })]) }) })
   })
 
-  it('restores the drawer from the URL after refresh', () => {
+  it('restores the drawer from the URL after refresh and preserves master context', () => {
     renderPage('/warehouse?view=movement&batchId=batch-1&issueId=issue-1')
 
     expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toBeInTheDocument()
+    expect(document.querySelector('.ipc-drawer-master')).toHaveAttribute('data-drawer-open', 'true')
+    expect(screen.getByRole('region', { name: 'Vòng đời lô đối chiếu' })).toContainElement(screen.getByRole('link', { name: 'Mở đối chiếu' }))
     expect(dialogProps.at(-1)).toMatchObject({ issueId: 'issue-1', initialIssue: expect.objectContaining({ issueCode: 'ISS-001' }) })
   })
 
@@ -100,11 +100,24 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1')
   })
 
-  it('uses contrast-safe copy for the non-applicable variance reason', () => {
+  it('renders committed quantities as locale-formatted read-only facts with canonical units', () => {
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
+    expect(screen.queryByRole('spinbutton', { name: 'Thực xuất Gạo' })).not.toBeInTheDocument()
+    expect(screen.getAllByText('13,3344 kg')).toHaveLength(2)
+    expect(screen.queryByText('Kilogram')).not.toBeInTheDocument()
     expect(screen.getByText('Không cần')).toHaveClass('text-slate-600')
     screen.getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
+  })
+
+  it('presents supplemental issue as a secondary consequence-aware action', () => {
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    const trigger = screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' })
+    expect(trigger).toHaveAttribute('data-variant', 'outline')
+    expect(screen.getByText(/có thể tạo chênh lệch/)).toBeInTheDocument()
+    fireEvent.click(trigger)
+    expect(screen.getByRole('dialog', { name: 'Xuất thêm nguyên liệu' })).toHaveTextContent('Số xuất thêm sẽ được cộng vào tổng đã xuất và có thể tạo chênh lệch cần xử lý.')
   })
 
   it('navigates only from the drawer explicit open-batch action with exact batch and issue context', () => {

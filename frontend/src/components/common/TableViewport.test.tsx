@@ -42,7 +42,7 @@ describe('TableViewport', () => {
     expect(region).toHaveAttribute('data-density', 'standard');
     expect(region).toHaveAttribute('data-sticky-header', 'true');
     expect(region).toHaveAttribute('data-frozen-identifier', 'true');
-    expect(region).toHaveClass('ipc-table-viewport', 'min-w-0', 'overflow-auto', 'overscroll-x-contain');
+    expect(region).toHaveClass('ipc-table-viewport', 'min-w-0', 'overflow-x-auto', 'overflow-y-visible', 'overscroll-x-contain');
     expect(region).toHaveAttribute('data-vertical-scroll', 'page');
   });
 
@@ -119,7 +119,7 @@ describe('TableViewport', () => {
     const trigger = await within(toolbar).findByRole('button', { name: 'Tùy chỉnh bảng' }, { timeout: 5000 });
     expect(region).not.toContainElement(trigger);
     expect(region).toContainElement(screen.getByRole('table'));
-    expect(region).toHaveClass('overflow-auto');
+    expect(region).toHaveClass('overflow-x-auto', 'overflow-y-visible');
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 
     await user.click(trigger);

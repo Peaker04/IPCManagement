@@ -22,8 +22,8 @@ export type { TableDensity } from './tablePreferences';
 import type { TableDensity } from './tablePreferences';
 
 const viewportSizeClasses = {
-  default: '',
-  weekly: 'h-[560px] max-h-[560px]',
+  default: 'overflow-x-auto overflow-y-visible',
+  weekly: 'h-[560px] max-h-[560px] overflow-auto',
 };
 
 /**
@@ -66,7 +66,7 @@ export function TableViewport({
 
   const viewport = (
     <div
-      className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain rounded-md border border-slate-200 bg-white shadow-xs', viewportSizeClasses[size], className)}
+      className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overscroll-x-contain rounded-md border border-slate-200 bg-white shadow-xs', viewportSizeClasses[size], className)}
       data-table-viewport="true"
       data-density={resolvedDensity}
       data-vertical-scroll={size === 'weekly' ? 'bounded' : 'page'}
