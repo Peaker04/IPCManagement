@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { issueState, listState, completionState } = vi.hoisted(() => ({
   issueState: { batchId: 'batch-1' },
   listState: { phase: 'ready' as 'ready' | 'loading' },
-  completionState: { allowed: true, shouldFail: false, refreshedVersion: 2, mutate: vi.fn(), refetch: vi.fn() },
+  completionState: { allowed: true, shouldFail: false, refreshedVersion: 2, mutate: vi.fn(), unwrap: vi.fn(), refetch: vi.fn() },
 }))
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
@@ -27,7 +27,7 @@ vi.mock('@/api/reconciliationApi', () => ({
   }),
   useListReconciliationDispositionCategoriesQuery: () => ready([]),
   useSetReconciliationDispositionMutation: () => [vi.fn(), { isLoading: false }],
-  useCompleteReconciliationBatchMutation: () => [(args: unknown) => { completionState.mutate(args); return { unwrap: () => completionState.shouldFail ? Promise.reject({ data: { message: 'Lô đã thay đổi.' } }) : Promise.resolve(batch) } }, { isLoading: false }],
+  useCompleteReconciliationBatchMutation: () => [(args: unknown) => { completionState.mutate(args); return { unwrap: completionState.unwrap } }, { isLoading: false }],
 }))
 vi.mock('../ReconciliationSourceChangeLog', () => ({ ReconciliationSourceChangeLog: ({ batchId }: { batchId: string }) => <div>Nhật ký nguồn lô {batchId}</div> }))
 vi.mock('../ReconciliationIssueDetailDialog', () => ({ ReconciliationIssueDetailDialog: ({ issueId, open, onClose }: { issueId: string | null; open: boolean; onClose: () => void }) => open ? <aside role="dialog" aria-label="Chi tiết giao dịch xuất kho đối chiếu"><span>{issueId}</span><button type="button" onClick={onClose}>Đóng</button></aside> : null }))
@@ -44,6 +44,16 @@ function LocationProbe() {
 
 const renderPage = (url = '/reconciliation?batchId=batch-1&issueId=issue-1', initialEntries = [url]) => render(<MemoryRouter initialEntries={initialEntries}><Routes><Route path="/reconciliation" element={<><ReconciliationPage /><LocationProbe /></>} /></Routes></MemoryRouter>)
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, resolve, reject }
+}
+
 describe('MXE-09 reconciliation issue deep link', () => {
   beforeEach(() => {
     issueState.batchId = 'batch-1'
@@ -52,6 +62,8 @@ describe('MXE-09 reconciliation issue deep link', () => {
     completionState.shouldFail = false
     completionState.refreshedVersion = 2
     completionState.mutate.mockReset()
+    completionState.unwrap.mockReset()
+    completionState.unwrap.mockImplementation(() => completionState.shouldFail ? Promise.reject({ data: { message: 'Lô đã thay đổi.' } }) : Promise.resolve(batch))
     completionState.refetch.mockReset()
     completionState.refetch.mockResolvedValue({ data: { ...batch, version: completionState.refreshedVersion } })
   })
@@ -161,6 +173,48 @@ describe('MXE-09 reconciliation issue deep link', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
 
     expect(within(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('ignores a completed mutation from a closed completion dialog session', async () => {
+    const oldCompletion = deferred<typeof batch>()
+    completionState.unwrap.mockReturnValueOnce(oldCompletion.promise).mockResolvedValue(batch)
+    renderPage('/reconciliation?batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tất' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+
+    await act(async () => {
+      oldCompletion.resolve(batch)
+      await oldCompletion.promise
+    })
+
+    const dialog = await screen.findByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' })).toBeEnabled())
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
+    await waitFor(() => expect(completionState.mutate).toHaveBeenLastCalledWith({ id: 'batch-1', expectedVersion: 1 }))
+  })
+
+  it('ignores a rejected refresh from a closed completion dialog session', async () => {
+    const oldRefresh = deferred<{ data: typeof batch }>()
+    completionState.refetch.mockReturnValueOnce(oldRefresh.promise)
+    renderPage('/reconciliation?batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại dữ liệu' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+
+    await act(async () => {
+      oldRefresh.reject(new Error('old refresh failed'))
+      await oldRefresh.promise.catch(() => undefined)
+    })
+
+    const dialog = await screen.findByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' })).toBeEnabled())
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
+    await waitFor(() => expect(completionState.mutate).toHaveBeenLastCalledWith({ id: 'batch-1', expectedVersion: 1 }))
   })
 
   it('leaves exact issue linkage validation to the canonical drawer and never filters the ledger by issue lines', () => {

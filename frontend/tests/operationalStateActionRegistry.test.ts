@@ -129,7 +129,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   MaterialReconciliation: {
-    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-140': [
+    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-160': [
       'export default function ReconciliationPage()',
       '<ReconciliationComparisonTable lines={batch.lines}'
     ],

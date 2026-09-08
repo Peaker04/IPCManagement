@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import { EmptyState, IdentifierText, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
@@ -55,6 +55,7 @@ export default function ReconciliationPage() {
   const [completionError, setCompletionError] = useState('')
   const [completionVersion, setCompletionVersion] = useState<number>()
   const [isRefreshingCompletion, setIsRefreshingCompletion] = useState(false)
+  const completionSessionRef = useRef(0)
   const [completeBatch, { isLoading: isCompleting }] = useCompleteReconciliationBatchMutation()
   const canComplete = useHasRole(['quanly'])
   const batch = batchQuery.currentData ?? batchQuery.data
@@ -63,41 +64,50 @@ export default function ReconciliationPage() {
   const completionReady = Boolean(batch && batch.status === 'IN_PROGRESS' && batch.lines.length > 0 && batch.lines.every((line) => line.issuedQuantity != null && (line.triggers.length === 0 || Boolean(line.disposition?.reason.trim()))))
   const batchLabel = (item: typeof batches[number]) => `${formatDateTime(item.createdAt)} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
   const closeCompletion = () => {
+    completionSessionRef.current += 1
     setCompletionOpen(false)
     setCompletionError('')
     setCompletionVersion(undefined)
+    setIsRefreshingCompletion(false)
   }
   const openCompletion = () => {
+    completionSessionRef.current += 1
     setCompletionError('')
     setCompletionVersion(batch?.version)
+    setIsRefreshingCompletion(false)
     setCompletionOpen(true)
   }
   const refreshCompletion = async () => {
     if (!batch) return
+    const session = completionSessionRef.current
     setCompletionError('')
     setCompletionVersion(undefined)
     setIsRefreshingCompletion(true)
     try {
       const refreshed = await batchQuery.refetch()
+      if (completionSessionRef.current !== session) return
       if ('data' in refreshed && refreshed.data?.batchId === batch.batchId) {
         setCompletionVersion(refreshed.data.version)
       } else {
         setCompletionError('Không thể tải lại lô đã chọn. Hãy thử lại trước khi hoàn tất.')
       }
     } catch {
-      setCompletionError('Không thể tải lại lô đã chọn. Hãy thử lại trước khi hoàn tất.')
+      if (completionSessionRef.current === session) setCompletionError('Không thể tải lại lô đã chọn. Hãy thử lại trước khi hoàn tất.')
     } finally {
-      setIsRefreshingCompletion(false)
+      if (completionSessionRef.current === session) setIsRefreshingCompletion(false)
     }
   }
   const complete = async () => {
     if (!batch || completionVersion == null || !completionReady || !canComplete) return
+    const session = completionSessionRef.current
     setCompletionError('')
     try {
       await completeBatch({ id: batch.batchId, expectedVersion: completionVersion }).unwrap()
+      if (completionSessionRef.current !== session) return
       closeCompletion()
       await batchQuery.refetch()
     } catch (error) {
+      if (completionSessionRef.current !== session) return
       const message = typeof error === 'object' && error && 'data' in error && typeof (error as { data?: { message?: unknown } }).data?.message === 'string'
         ? (error as { data: { message: string } }).data.message
         : 'Không thể hoàn tất lô. Hãy tải lại dữ liệu và kiểm tra các dòng cần xử lý.'
