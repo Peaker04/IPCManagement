@@ -33,6 +33,8 @@ describe('ImportedLayoutMatrix', () => {
 
     render(<ImportedLayoutMatrix rows={rows} displayDays={days} dishNamesById={new Map(slots.map(([slot, label]) => [`dish-${slot}`, `${label} chuẩn`]))} />)
 
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7)
+    screen.getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
     slots.forEach(([, label]) => expect(screen.getByText(label)).toBeInTheDocument())
     expect(screen.queryByText(/ngày 1 25k/i)).not.toBeInTheDocument()
     const dessertRow = screen.getByText('Tráng miệng').closest('tr')

@@ -82,9 +82,9 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
       <table className="ipc-data-table ipc-matrix-grid-table table-fixed w-full border-collapse">
         <thead>
           <tr>
-            <th className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
+            <th scope="col" className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
             {displayDays.map((day) => (
-              <th key={day.key} className={cn('text-center transition-colors', day.key === activeDayKey && 'bg-blue-100/70 text-blue-900')}>
+              <th key={day.key} scope="col" className={cn('text-center transition-colors', day.key === activeDayKey && 'bg-blue-100/70 text-blue-900')}>
                 <div className="flex flex-col items-center justify-center gap-0.5 py-1">
                   <span className="text-xs font-bold text-slate-800">{day.label}</span>
                   <span className="text-xs font-medium text-slate-500">{day.date}</span>

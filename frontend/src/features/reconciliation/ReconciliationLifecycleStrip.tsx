@@ -14,7 +14,7 @@ export function ReconciliationLifecycleStrip({ status, batchId, showAction = tru
     <ol className="mt-3 grid gap-2 text-xs sm:grid-cols-5">
       {MRX_LIFECYCLE_STATUSES.map((item) => {
         const step = getMrxLifecyclePresentation(item)
-        return <li key={item} aria-current={item === status ? 'step' : undefined} className={item === status ? 'font-semibold text-slate-950' : step.phase < current.phase ? 'text-slate-600' : 'text-slate-400'}>{step.phase}. {step.label}</li>
+        return <li key={item} aria-current={item === status ? 'step' : undefined} className={item === status ? 'font-semibold text-slate-950' : step.phase < current.phase ? 'text-slate-600' : 'text-slate-500'}>{step.phase}. {step.label}</li>
       })}
     </ol>
   </section>

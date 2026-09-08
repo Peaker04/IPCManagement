@@ -182,7 +182,7 @@ export default function ReconciliationWarehousePage() {
         {activeView === 'demand' && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><SectionPanel title="Danh sách cần xuất" description={hasLinkedIssue ? 'Phiếu xuất của lô đã được tạo. Số thực xuất bên dưới chỉ đọc và được dùng để đối chiếu.' : 'Nhập số thực tế xuất cho từng nguyên liệu. Nếu xuất vượt số cần, nhập lý do trước khi xác nhận phiếu.'}>
           <TableViewport ariaLabel="Danh sách nguyên liệu cần xuất" caption="Danh sách nguyên liệu của đúng lô đối chiếu">
             <table className="ipc-data-table">
-              <thead><tr><th>Nguyên liệu</th><th className="text-right">Cần xuất</th><th className="text-right">Thực xuất</th><th>Lý do xuất vượt</th><th>Trạng thái</th></tr></thead>
+              <thead><tr><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Cần xuất</th><th scope="col" className="text-right">Thực xuất</th><th scope="col">Lý do xuất vượt</th><th scope="col">Trạng thái</th></tr></thead>
               <tbody>{(batch?.lines ?? []).map((line) => {
                 const remaining = line.requiredQuantity - (line.issuedQuantity ?? 0)
                 const entered = Number(issuedQuantities[line.batchLineId] ?? remaining)
@@ -204,7 +204,7 @@ export default function ReconciliationWarehousePage() {
                       <span className="w-16 text-xs text-slate-600">{line.canonicalUnitName}</span>
                     </div>
                   </td>
-                  <td>{overIssued ? <Textarea aria-label={`Lý do xuất vượt ${line.ingredientName}`} value={varianceReasons[line.batchLineId] ?? ''} onChange={(event) => setVarianceReasons((current) => ({ ...current, [line.batchLineId]: event.target.value }))} placeholder="Nhập lý do" className="min-h-16 min-w-48" /> : <span className="text-sm text-slate-500">Không cần</span>}</td>
+                  <td>{overIssued ? <Textarea aria-label={`Lý do xuất vượt ${line.ingredientName}`} value={varianceReasons[line.batchLineId] ?? ''} onChange={(event) => setVarianceReasons((current) => ({ ...current, [line.batchLineId]: event.target.value }))} placeholder="Nhập lý do" className="min-h-16 min-w-48" /> : <span className="text-sm text-slate-600">Không cần</span>}</td>
                   <td>
                     <StatusBadge variant={statusRelation === 'over' ? 'warning' : statusRelation === 'under' || statusRelation === 'invalid' ? 'danger' : 'success'}>{statusLabel}</StatusBadge>
                     {!committedRelation && (relation === 'under' || relation === 'over') && <span className="mt-1 block text-xs text-slate-600">{relation === 'under' ? 'Thiếu' : 'Vượt'} {formatQuantityWithUnit(Math.abs(difference), line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</span>}

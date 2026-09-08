@@ -14,4 +14,10 @@ describe('ReconciliationLifecycleStrip', () => {
     expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
     expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent(status === 'TRANSFERRED' ? 'Chờ Kho xuất' : status === 'IN_PROGRESS' ? 'Đang đối chiếu' : 'Hoàn tất')
   })
+
+  it('uses a contrast-safe tone for future lifecycle steps', () => {
+    render(<MemoryRouter><ReconciliationLifecycleStrip status="TRANSFERRED" batchId="batch-1" /></MemoryRouter>)
+    expect(screen.getByText('4. Đang đối chiếu')).toHaveClass('text-slate-500')
+    expect(screen.getByText('5. Hoàn tất')).toHaveClass('text-slate-500')
+  })
 })

@@ -100,6 +100,13 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1')
   })
 
+  it('uses contrast-safe copy for the non-applicable variance reason', () => {
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    expect(screen.getByText('Không cần')).toHaveClass('text-slate-600')
+    screen.getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
+  })
+
   it('navigates only from the drawer explicit open-batch action with exact batch and issue context', () => {
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
