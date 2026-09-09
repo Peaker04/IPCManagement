@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Evidence-first UI Contract Migration
-status: blocked
-stopped_at: Completed 30-13-PLAN.md; MRX-06P BLOCKED
-last_updated: "2026-08-31T13:47:54Z"
+status: active
+stopped_at: Controlled cleanup E2 committed; E3 staged and awaiting explicit commit approval
+last_updated: "2026-09-08T05:00:00Z"
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 76
-  completed_plans: 73
-  percent: 96
-current_phase_name: closed-loop-menu-issue-reconciliation
-last_activity: 2026-08-31 — Phase 30 local closure verified at 6bfbd9f9; MRX-06P remains authorization-blocked
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 77
+  completed_plans: 75
+  percent: 97
+current_phase_name: controlled-worktree-cleanup
+last_activity: 2026-09-08 — cleanup A/B complete; boundary/null remediation and E1/E2 committed; E3 staged for review, no push
 ---
 
 # Project State
@@ -21,7 +21,7 @@ last_activity: 2026-08-31 — Phase 30 local closure verified at 6bfbd9f9; MRX-0
 
 See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-**Current focus:** Phase 30 local execution is complete through Plan 30-13; await fresh authorization for protected MRX-06P only.
+**Current focus:** Controlled worktree cleanup closeout at `.planning/notes/controlled-worktree-cleanup-PLAN.md`. E3 (`ROADMAP`, `STATE`, cleanup inventory) is staged and awaiting explicit commit approval. Phase 31 remains closed with declared residual; historical text below is not protected-data authorization.
 
 ## Current Status
 

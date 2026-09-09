@@ -7,6 +7,7 @@
 - [x] **Phase 28: Project-wide UI/UX contract rollout and single-warehouse presentation** — research, measure and remediate the complete web UI through shared seams and bounded route rollout.
 - [x] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
 - [ ] **Phase 30: Closed-loop menu issue reconciliation** — issue-state seam is proven, but the complete menu-source → calculation → freeze → issue → reconciliation → change-log E2E remains open.
+- [x] **Phase 32: Pi CLI Agent Harness architecture** — Pi-only v1 complete; Codex app/CLI removed from workflow by Kỳ.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
 
@@ -236,7 +237,7 @@ Plans:
 - [x] 30-05-PLAN.md — backend conceptual Wave 4 / executor wave 5 MRX-04 DEFAULT inventory owners, test-first retaining the existing `f4b47b40` issue fence unless executable evidence exposes a gap (depends on 30-04).
 - [x] 30-06-PLAN.md — backend conceptual Wave 4 / executor wave 6 MRX-04 DEFAULT lifecycle owners: supplemental create/fulfill/route/reject and pending legacy apply (depends on 30-05).
 - [x] 30-07-PLAN.md — backend conceptual Wave 4 / executor wave 7 MRX-04 approval owner through the actual MVC filter plus handler transaction fence (depends on 30-06).
-- [x] 30-08-PLAN.md — backend conceptual Wave 4 / executor wave 8 MRX-04 reconciliation owners and executable absent cleanup/background-owner proof (depends on 30-07).
+- [x] 30-08-PLAN.md — backend conceptual Wave 4 / executor wave 8 MRX-04 reconciliation owners and app workspace smoke pending cleanup/background-owner proof (depends on 30-07).
 - [x] 30-09-PLAN.md — backend conceptual Wave 4 / executor wave 9 discovered-owner bijection for data-quality, diagnostics, planning, service-run and menu/import persistence (depends on 30-08).
 - [x] 30-10-PLAN.md — backend conceptual Wave 4 / executor wave 10 exact-family approvals/documents/reports/KPI and labelled shared audit/export (depends on 30-09).
 - [x] 30-11-PLAN.md — backend conceptual Wave 4 / executor wave 11 frozen facts, stale transaction rollback and exactly-once family-specific stock projection (depends on 30-10).
@@ -247,7 +248,7 @@ Plans:
 
 ### Phase 31: Full-system UI/UX audit and remediation
 
-**Status:** GAPS_FOUND — presentation rows remain green, but Reconciliation row is reopened until the complete mode lifecycle and change-log surfaces are implemented and evidenced
+**Status:** COMPLETE_WITH_DECLARED_RESIDUAL — Kỳ accepted closure on 2026-09-08. Source/tests/final independent review PASS; protected completion, mixed linked-issue rendering and exact browser cells remain `NEEDS_EVIDENCE` / `WAITING_FOR_BUSINESS_EVENT`, not full lifecycle certification.
 
 **Goal:** Audit and remediate every frontend route, retained view, overlay, form, action, query state, permission/mode variant and declared viewport through measurable composition, geometry, accessibility, interaction, runtime and behavior-preservation gates.
 **Requirements:** UIX-01, UIX-02, UIX-03, UIX-04, UIX-05, UIX-06, UIX-07, UIX-08
@@ -256,4 +257,17 @@ Plans:
 
 Plans:
 
-- [ ] 31-01-PLAN.md — execute one sequential checklist across shared owners and every route; Reconciliation mode-level E2E gap reopened after acceptance re-grounding.
+- [x] 31-01-PLAN.md — completed sequential checklist and MRX remediation; closed with explicit protected-runtime residual rather than manufacturing business data.
+
+### Phase 32: Chuẩn hóa kiến trúc AI Agent Harness cho Pi CLI
+
+**Status:** COMPLETE — AH-00..AH-10 pass for Pi-only scope; Codex app/CLI is NOT_APPLICABLE by owner decision.
+
+**Goal:** Establish one repository knowledge layer, a Pi CLI adapter, bounded self-maintenance and deterministic retrieval/preservation gates without changing application behavior or creating a second process owner.
+**Requirements:** AH-01, AH-02, AH-03, AH-04, AH-05, AH-06, AH-07, AH-08, AH-09, AH-10
+**Depends on:** None — independent harness/docs lane; Phase 30/31 remain paused and unchanged.
+**Plans:** 1 plan
+
+Plans:
+
+- [x] 32-01-PLAN.md — executed AH-00..AH-10 migration, Pi root/nested verification, independent review remediation, Pi-only scope correction and durable handover.
