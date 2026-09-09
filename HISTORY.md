@@ -1793,3 +1793,10 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Source/tests/review are closed. Protected completion mutation, mixed linked-issue runtime rendering and exact protected browser cells remain `NEEDS_EVIDENCE` / `WAITING_FOR_BUSINESS_EVENT`; this is not complete protected MRX lifecycle certification.
 - No additional browser, database, operation-mode or business-data mutation was run to manufacture closure. Phase 31 may reopen only for an authorized natural business event or a new explicit goal.
 - Phase 32 Pi-only Agent Harness and its P32-A01..A07 acceptance audit also pass; no follow-on harness architecture plan is currently warranted.
+
+## Phase 33 backend architecture-growth closeout · 2026-09-09
+
+- Sequential commits `1fd019b9`, `f629fe5d`, and `245924c3` extracted internal non-DI owners from Supplemental purchasing routing, reconciliation inventory issue creation, and audit-change querying while preserving public interfaces, constructors, DI, controllers and routes.
+- Original/extracted line counts close at 475/164, 513/267 and 544/250. Strict architecture-growth passes without changing `scripts/architecture-growth-baseline.json`; only the two grandfathered plan-required services remain.
+- Aggregate focused backend 51/51, architecture unit 6/6 and isolated API build 0 warnings/errors pass. The normal Debug output was locked by existing API PID 2156; the process was not stopped and the gate was rerun to isolated output.
+- Final independent reviewer `f49c5b8e-e861-4f6f-a157-b7939776757e` found no issue. Residuals are one non-failing xUnit analyzer warning and no browser/MySQL execution, neither required for this source-architecture goal.

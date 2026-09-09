@@ -271,3 +271,16 @@ Plans:
 Plans:
 
 - [x] 32-01-PLAN.md — executed AH-00..AH-10 migration, Pi root/nested verification, independent review remediation, Pi-only scope correction and durable handover.
+
+### Phase 33: Refactor three unbaselined backend services to restore strict architecture growth without public contract changes
+
+**Status:** COMPLETE_WITH_RESIDUAL — S1/S2/S3 committed; strict architecture-growth PASS without baseline expansion. Residual is non-failing test analyzer/runtime-output-lock evidence, not architecture debt.
+
+**Goal:** Reduce the three unbaselined services below the strict 600-line threshold through internal distinct owners while preserving public API/constructor/DI/controller/routes and behavior; never expand the architecture baseline.
+**Requirements:** P33-S1, P33-S2, P33-S3, P33-CLOSE
+**Depends on:** Phase 32 and cleanup boundary/null remediation commit `2ca654d3`.
+**Plans:** 1 plan
+
+Plans:
+
+- [x] 33-01-PLAN.md — completed sequential S1/S2/S3 checkpoints and closeout; strict architecture-growth PASS with baseline byte-identical.
