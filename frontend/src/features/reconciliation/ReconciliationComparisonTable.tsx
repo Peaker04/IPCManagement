@@ -1,11 +1,15 @@
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatQuantity } from '@/lib/formatters'
+import { formatQuantity, formatUnit } from '@/lib/formatters'
+import { StatusBadge } from '@/components/common'
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
 import type { ReconciliationLine } from '@/api/reconciliationApi'
 
 function CompactQuantity({ quantity, unit }: { quantity: number | null | undefined; unit?: string | null }) {
   if (quantity == null) return <>Chưa xuất</>
-  const suffix = unit ? ` ${unit}` : ''
+  const formattedUnit = unit ? formatUnit(unit) : ''
+  const suffix = formattedUnit ? ` ${formattedUnit}` : ''
   return <span title={`Giá trị chính xác: ${formatQuantity(quantity, { maximumFractionDigits: 6 })}${suffix}`}>{formatQuantity(quantity)}{suffix}</span>
 }
 
@@ -30,13 +34,23 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
         const unit = line.canonicalUnitName ?? undefined
         const difference = line.issuedRequiredDifference ?? ((line.issuedQuantity ?? 0) - line.requiredQuantity)
         return <TableRow key={line.batchLineId}>
-          <TableCell><span className="block font-medium text-slate-900">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>{line.ingredientCode && <span className="block text-xs text-slate-600">{line.ingredientCode}</span>}</TableCell>
+          <TableCell>
+            <span className="block font-medium text-slate-900">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>
+            {line.ingredientCode && <span className={cn('block text-xs text-slate-500 tabular-nums', typography.code)}>{line.ingredientCode}</span>}
+          </TableCell>
           <TableCell className="text-right tabular-nums"><CompactQuantity quantity={line.requiredQuantity} unit={unit} /></TableCell>
           <TableCell className="text-right tabular-nums"><CompactQuantity quantity={line.issuedQuantity} unit={unit} /></TableCell>
           <TableCell className="text-right tabular-nums"><CompactQuantity quantity={difference} unit={unit} /></TableCell>
-          <TableCell>{line.status === 'MATCHED' ? 'Khớp' : line.status === 'NEEDS_REVIEW' ? 'Cần kiểm tra' : 'Chưa xuất đủ'}</TableCell>
+          <TableCell>
+            <StatusBadge
+              size="sm"
+              variant={line.status === 'MATCHED' ? 'success' : line.status === 'NEEDS_REVIEW' ? 'warning' : 'danger'}
+            >
+              {line.status === 'MATCHED' ? 'Khớp' : line.status === 'NEEDS_REVIEW' ? 'Cần kiểm tra' : 'Chưa xuất đủ'}
+            </StatusBadge>
+          </TableCell>
           <TableCell><div className="flex flex-wrap items-center gap-2">
-            {onDetail && <Button type="button" variant="ghost" size="sm" onClick={() => onDetail(line)}>Chi tiết</Button>}
+            {onDetail && <Button type="button" variant="outline" size="sm" onClick={() => onDetail(line)}>Chi tiết</Button>}
             {onDisposition && line.status === 'NEEDS_REVIEW' && <Button type="button" variant="secondary" size="sm" onClick={() => onDisposition(line)}>{line.disposition ? 'Cập nhật xử lý' : 'Xử lý chênh lệch'}</Button>}
           </div></TableCell>
         </TableRow>
