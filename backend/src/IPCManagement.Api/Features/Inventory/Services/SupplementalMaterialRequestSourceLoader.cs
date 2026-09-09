@@ -39,6 +39,53 @@ internal static class SupplementalMaterialRequestSourceLoader
         return source;
     }
 
+    internal static async Task<InventoryIssueLine> LoadAsync(
+        IpcManagementContext context,
+        SupplementalMaterialRequest entity)
+    {
+        var query = context.Inventoryissuelines
+            .AsNoTracking()
+            .Include(line => line.Issue)
+            .Include(line => line.Ingredient)
+            .Include(line => line.Unit)
+            .Include(line => line.MaterialRequestLine);
+        if (!IsInMemory(context))
+        {
+            var relationalSource = await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
+            EnsureDefaultSourceFamily(relationalSource);
+            return relationalSource;
+        }
+
+        var tracked = context.ChangeTracker.Entries<InventoryIssueLine>()
+            .Select(entry => entry.Entity)
+            .FirstOrDefault(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
+        if (tracked is not null)
+        {
+            EnsureDefaultSourceFamily(tracked);
+            return tracked;
+        }
+
+        var source = (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
+        EnsureDefaultSourceFamily(source);
+        return source;
+    }
+
+    internal static async Task<MaterialRequestLine> LoadMaterialRequestLineAsync(
+        IpcManagementContext context,
+        byte[] materialRequestLineId)
+    {
+        var materialLineQuery = context.Materialrequestlines
+            .Include(line => line.Ingredient)
+            .Include(line => line.Unit);
+        var materialLine = IsInMemory(context)
+            ? context.ChangeTracker.Entries<MaterialRequestLine>()
+                .Select(entry => entry.Entity)
+                .FirstOrDefault(line => line.RequestLineId.SequenceEqual(materialRequestLineId))
+            : await materialLineQuery.FirstOrDefaultAsync(line => line.RequestLineId == materialRequestLineId);
+        return materialLine
+            ?? throw new BusinessRuleException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
+    }
+
     internal static void EnsureDefaultSourceFamily(InventoryIssueLine source)
     {
         var exactDefaultHeader = source.Issue.MaterialRequestId is not null && source.Issue.ReconciliationBatchId is null;

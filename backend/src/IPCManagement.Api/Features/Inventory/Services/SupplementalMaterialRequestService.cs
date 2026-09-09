@@ -19,12 +19,10 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private const string AggregateType = nameof(SupplementalMaterialRequest);
     private const string PendingStatus = "PENDING_WAREHOUSE_REVIEW";
     private const string PartialStatus = "PARTIALLY_FULFILLED";
-    private const string NeedsPurchaseStatus = "NEEDS_PURCHASE";
     private const string IssuedStatus = "ISSUED";
     private const string FulfilledStatus = "FULFILLED";
     private const string RejectedStatus = "REJECTED";
     private const string MovementRefTable = "supplementalmaterialrequests";
-    private const string PurchaseRequestAuditField = "PurchaseRequestId";
     private const string OpenIssueLineUniqueIndex = "uxSupplementalMaterialRequestsOpenIssueLine";
     internal const string FulfillmentIssueAuditField = "FulfillmentIssueId";
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> InMemoryIssueLineLocks = new(StringComparer.Ordinal);
@@ -35,6 +33,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly SystemOperationRequestContext? _requestContext;
+    private readonly SupplementalMaterialRequestPurchasingRouter _purchasingRouter;
 
     public SupplementalMaterialRequestService(
         IpcManagementContext context,
@@ -50,6 +49,8 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         _transactionRunner = transactionRunner;
         _operationalWarehouseResolver = operationalWarehouseResolver;
         _requestContext = requestContext;
+        _purchasingRouter = new SupplementalMaterialRequestPurchasingRouter(
+            context, unitOfWork, transactionRunner, operationalWarehouseResolver, requestContext);
     }
 
     public async Task<PagedResponseDto<SupplementalMaterialRequestDto>> GetPagedAsync(
@@ -354,121 +355,12 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             IsolationLevel.Serializable);
     }
 
-    public async Task<SupplementalMaterialRequestDto> RouteToPurchasingAsync(
+    public Task<SupplementalMaterialRequestDto> RouteToPurchasingAsync(
         string id,
         RouteSupplementalMaterialRequestToPurchasing request,
         string actorUserId,
         string? scopedWarehouseId = null)
-    {
-        EnsureDefaultMode();
-        var commandId = RequireCommandId(request.CommandId);
-        var actorId = ParseActor(actorUserId);
-        var requestId = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
-        var recorder = new LifecycleTransitionRecorder(_context);
-        var replay = await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId);
-        if (replay is not null)
-        {
-            return DeserializeResponse(replay.ResponseJson);
-        }
-        var purchaseRequestId = GuidHelper.NewId();
-        var purchaseRequestCode = $"PR-SUP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
-        var (operationKey, expectedModeVersion) = RequiredModeProtection();
-        return await _transactionRunner.ExecuteProtectedAsync(
-            operationKey,
-            expectedModeVersion,
-            async _ =>
-            {
-                var entity = await LoadTrackedAsync(_context, id);
-                await SupplementalMaterialRequestQueryPolicy.EnsureCanonicalWarehouseAsync(_operationalWarehouseResolver, entity.WarehouseId, scopedWarehouseId);
-                EnsureActionable(entity);
-
-                var source = await LoadSourceLineAsync(entity);
-                var sourceShiftName = await SupplementalMaterialRequestSourceLoader.ResolveShiftNameAsync(_context, source);
-                var current = await MapAsync(entity, source);
-                if (request.ExpectedVersion != current.ConcurrencyVersion)
-                {
-                    throw new DbUpdateConcurrencyException("Yêu cầu bổ sung đã thay đổi; hãy tải lại trạng thái.");
-                }
-                var purchaseQty = DecimalPolicy.RoundQuantity(current.RemainingQty - current.AvailableQty);
-                if (purchaseQty <= 0)
-                {
-                    throw new BusinessRuleException("Kho đang đủ hàng cho phần còn thiếu; hãy tạo phiếu xuất bổ sung.");
-                }
-                if (current.PurchaseRequestId is not null)
-                {
-                    throw new BusinessRuleException($"Yêu cầu đã được chuyển sang thu mua bằng {current.PurchaseRequestCode}.");
-                }
-
-                if (source.MaterialRequestLineId is null)
-                {
-                    throw new BusinessRuleException("Dòng xuất gốc chưa có liên kết nhu cầu; không thể chuyển thiếu hụt sang thu mua một cách chính xác.");
-                }
-
-                var materialLineQuery = _context.Materialrequestlines
-                    .Include(line => line.Ingredient)
-                    .Include(line => line.Unit);
-                var materialLine = string.Equals(
-                        _context.Database.ProviderName,
-                        "Microsoft.EntityFrameworkCore.InMemory",
-                        StringComparison.Ordinal)
-                    ? _context.ChangeTracker.Entries<MaterialRequestLine>()
-                        .Select(entry => entry.Entity)
-                        .FirstOrDefault(line => line.RequestLineId.SequenceEqual(source.MaterialRequestLineId))
-                    : await materialLineQuery.FirstOrDefaultAsync(line => line.RequestLineId == source.MaterialRequestLineId);
-                if (materialLine is null)
-                {
-                    throw new BusinessRuleException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
-                }
-
-                var purchaseRequest = new PurchaseRequest
-                {
-                    PurchaseRequestId = purchaseRequestId,
-                    PurchaseRequestCode = purchaseRequestCode,
-                    RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                    PurchaseForDate = source.Issue.IssueDate,
-                    ShiftName = sourceShiftName,
-                    Status = "DRAFT",
-                    CreatedBy = actorId,
-                };
-                purchaseRequest.Purchaserequestlines.Add(new PurchaseRequestLine
-                {
-                    PurchaseRequestLineId = GuidHelper.NewId(),
-                    PurchaseRequestId = purchaseRequest.PurchaseRequestId,
-                    MaterialRequestLineId = materialLine.RequestLineId,
-                    IngredientId = entity.IngredientId,
-                    UnitId = entity.UnitId,
-                    RequiredQty = current.RemainingQty,
-                    CurrentStockQty = current.AvailableQty,
-                    PurchaseQty = purchaseQty,
-                    EstimatedUnitPrice = 0,
-                });
-                _context.Purchaserequests.Add(purchaseRequest);
-
-                var oldStatus = entity.Status;
-                entity.Status = NeedsPurchaseStatus;
-                AddAudit(_context,
-                    entity,
-                    actorId,
-                    PurchaseRequestAuditField,
-                    oldStatus,
-                    GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
-                    $"Kho chuyển {purchaseQty} {source.Unit.UnitName} còn thiếu sang đề xuất {purchaseRequest.PurchaseRequestCode}.");
-
-                await _unitOfWork.SaveChangesAsync();
-                var result = await MapAsync(entity, source);
-                result.ConcurrencyVersion = checked(request.ExpectedVersion + 1);
-                var response = JsonSerializer.Serialize(result);
-                recorder.Stage(new LifecycleTransitionRequest(
-                    AggregateType, entity.RequestId, commandId, checked((int)request.ExpectedVersion), oldStatus,
-                    entity.Status, actorId, request.ExpectedVersion,
-                    $"Kho chuyển {purchaseQty} {source.Unit.UnitName} còn thiếu sang đề xuất {purchaseRequest.PurchaseRequestCode}.",
-                    commandId, null, response, response));
-                await _unitOfWork.SaveChangesAsync();
-                return result;
-            },
-            async token => await recorder.FindExistingCommandAsync(commandId, AggregateType, requestId, token) is not null,
-            IsolationLevel.Serializable);
-    }
+        => _purchasingRouter.RouteAsync(id, request, actorUserId, scopedWarehouseId);
 
     public async Task<SupplementalMaterialRequestDto> RejectAsync(
         string id,
@@ -537,34 +429,8 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         return await SupplementalMaterialRequestMapper.MapAsync(_context, entity, source);
     }
 
-    private async Task<InventoryIssueLine> LoadSourceLineAsync(SupplementalMaterialRequest entity)
-    {
-        var query = _context.Inventoryissuelines
-            .AsNoTracking()
-            .Include(line => line.Issue)
-            .Include(line => line.Ingredient)
-            .Include(line => line.Unit)
-            .Include(line => line.MaterialRequestLine);
-        if (!string.Equals(_context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal))
-        {
-            var relationalSource = await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
-            SupplementalMaterialRequestSourceLoader.EnsureDefaultSourceFamily(relationalSource);
-            return relationalSource;
-        }
-
-        var tracked = _context.ChangeTracker.Entries<InventoryIssueLine>()
-            .Select(entry => entry.Entity)
-            .FirstOrDefault(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
-        if (tracked is not null)
-        {
-            SupplementalMaterialRequestSourceLoader.EnsureDefaultSourceFamily(tracked);
-            return tracked;
-        }
-
-        var source = (await query.ToListAsync()).First(line => line.IssueLineId.SequenceEqual(entity.IssueLineId));
-        SupplementalMaterialRequestSourceLoader.EnsureDefaultSourceFamily(source);
-        return source;
-    }
+    private Task<InventoryIssueLine> LoadSourceLineAsync(SupplementalMaterialRequest entity)
+        => SupplementalMaterialRequestSourceLoader.LoadAsync(_context, entity);
 
     private void EnsureDefaultMode()
     {

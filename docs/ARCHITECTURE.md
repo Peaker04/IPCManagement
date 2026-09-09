@@ -155,9 +155,11 @@ dưới `frontend/tests/support/route-smoke`; discovery cuối vẫn là 17/17 s
 baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action và buộc plan split trên 400 dòng hoặc
 20 action; service cảnh báo trên 600 dòng và buộc plan split trên 1.000 dòng; frontend viết tay cảnh báo
 trên 600 dòng; test file trên 1.500 dòng là lỗi. Strict gate còn fail khi có production debt mới/tăng,
-test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline production chỉ grandfather hai service plan-required hiện có. Ba finding mới
-`AuditReportService`, `InventoryIssueService` và `SupplementalMaterialRequestService` không được thêm vào
-baseline; proposal tách responsibility bị giới hạn trong cleanup ledger/plan và chưa phải authorization refactor.
+test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline production chỉ grandfather hai service plan-required hiện có. Phase 33 đã chuyển purchasing routing
+của `SupplementalMaterialRequestService` sang internal non-DI owner `SupplementalMaterialRequestPurchasingRouter`,
+giữ nguyên public service seam và transaction lifecycle; service gốc và owner mới đều dưới ngưỡng 600 dòng.
+Hai finding còn lại `AuditReportService` và `InventoryIssueService` không được thêm vào baseline; proposal tách
+responsibility bị giới hạn trong Phase 33 plan và chưa phải authorization refactor.
 
 Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
 trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng
