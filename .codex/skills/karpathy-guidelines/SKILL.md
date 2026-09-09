@@ -3,6 +3,7 @@ name: karpathy-guidelines
 description: Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.
 license: MIT
 source: https://github.com/multica-ai/andrej-karpathy-skills
+source_revision: 2c606141936f1eeef17fa3043a72095b4765b9c2
 ---
 
 # Karpathy Guidelines
@@ -17,7 +18,7 @@ Behavioral guidelines to reduce common LLM coding mistakes, derived from [Andrej
 
 Before implementing:
 - State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
+- If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
@@ -41,20 +42,28 @@ When editing existing code:
 - Don't "improve" adjacent code, comments, or formatting.
 - Don't refactor things that aren't broken.
 - Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
+- If you notice unrelated dead code, mention it - don't delete it.
 
-When your changes are done, verify: "Did I touch anything outside the task scope?" If yes, revert it.
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
 
 ## 4. Goal-Driven Execution
 
-**Define success before you start. Know when you're done.**
+**Define success criteria. Loop until verified.**
 
-Before coding:
-- State the goal explicitly: "This is done when X."
-- Write a test or check first if possible (TDD mindset).
-- Identify the simplest verifiable signal that the task is complete.
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
 
-After coding:
-- Run the check you defined.
-- If it passes, stop. Don't add more.
-- If it fails, debug the goal — not the code.
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
