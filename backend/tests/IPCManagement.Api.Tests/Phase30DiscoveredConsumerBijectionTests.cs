@@ -56,7 +56,7 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
     ["ApprovalInboxService.BuildInventoryIssueItemsAsync", "InventoryIssueApprovalHandler.HandleCoreAsync"];
     private static readonly string[] DefaultIssueOwners =
     ["InventoryIssueLineResolver.BuildIssuedBySourceLine", "InventoryIssueRepository.GetIssuedLinesForMaterialRequestAsync", "InventoryIssueService.ConfirmReceiptAsync", "InventoryIssueService.CreateAsync", "InventoryMapper.MapIssue", "InventoryMapper.MapIssueLine", "MaterialRequestCompletionTransitionService.Stage"];
-    private static readonly string[] ReconciliationIssueOwners = ["InventoryIssueService.CreateFromReconciliationAsync"];
+    private static readonly string[] ReconciliationIssueOwners = ["ReconciliationInventoryIssueCreator.CreateAsync"];
     private static readonly string[] InventoryReadOwners = ["InventoryIssueRepository.ApplyExactSourceFamily", "InventoryIssueRepository.GetPagedAsync"];
     private static readonly string[] SupplyReturnOwners =
     ["InventoryOperationsReportService.GetSupplyLineReconciliationAsync", "InventoryReturnService.EnsureExactSourceFamily", "InventoryReturnService.EnsureOwningFamilyActive", "InventoryReturnService.GetAllocationBalancesAsync", "InventoryReturnScopeLoader.LoadScopedAsync"];
@@ -82,7 +82,7 @@ public sealed class Phase30DiscoveredConsumerBijectionTests
         Row("InventoryIssueRepository.GetPagedAsync", "FAMILY_SCOPED_READ", typeof(Phase30BusinessReadConsumerMatrixTests), nameof(Phase30BusinessReadConsumerMatrixTests.InventoryListAndDetail_Should_RequireExactRequestedFamily_AndLabelLegacyDetail), InventoryReadOwners),
         Row("InventoryIssueService.ConfirmReceiptAsync", "FAMILY_PRESERVING_COMMAND", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
         Row("InventoryIssueService.CreateAsync", "DEFAULT_COMPATIBLE_EXACT_ONE", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
-        Row("InventoryIssueService.CreateFromReconciliationAsync", "RECONCILIATION_ONLY_COMMAND", typeof(ReconciliationWarehouseIssueApplicationPathTests), nameof(ReconciliationWarehouseIssueApplicationPathTests.Reconciliation_issue_rejects_line_from_another_batch_with_atomic_zero_effects), ReconciliationIssueOwners),
+        Row("ReconciliationInventoryIssueCreator.CreateAsync", "RECONCILIATION_ONLY_COMMAND", typeof(ReconciliationWarehouseIssueApplicationPathTests), nameof(ReconciliationWarehouseIssueApplicationPathTests.Reconciliation_issue_rejects_line_from_another_batch_with_atomic_zero_effects), ReconciliationIssueOwners),
         Row("InventoryMapper.MapIssue", "FAMILY_LABELLED_MAPPING", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
         Row("InventoryMapper.MapIssueLine", "FAMILY_LABELLED_MAPPING", typeof(Phase30DiscoveredConsumerBijectionTests), nameof(DefaultIssue_PublicCreateApprovalMappingAndReceipt_ExerciseCompleteOwnerSet), DefaultIssueOwners),
         Row("InventoryOperationsDocumentQueries.BuildIssueDocumentsAsync", "DEFAULT_ONLY_READ", typeof(Phase30BusinessReadConsumerMatrixTests), nameof(Phase30BusinessReadConsumerMatrixTests.WorkflowDocuments_Should_ExcludeReconciliationAndLegacyIssues), InventoryDocumentOwners),
