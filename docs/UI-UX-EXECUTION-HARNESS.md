@@ -15,7 +15,7 @@ ngữ cảnh project ở [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), kiến trúc fl
 và corpus kiểm tra bổ sung ở
 [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md). Authority map tài liệu nằm ở
 [`README.md`](README.md). Quy tắc chọn lane, feedback
-loop, skill và ngân sách nằm ở [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md).
+loop, skill và ngân sách nằm ở [`harness/DELIVERY.md`](harness/DELIVERY.md).
 Front-End Checklist mở rộng coverage nhưng không được ghi đè authority hoặc evidence contract của project.
 
 ## 1. Phân loại trước khi làm
@@ -35,7 +35,7 @@ thành selector/DOM geometry/source assertion trước production edit.
 
 ## 2. Vòng lặp thực thi — reproduce once, fix once, prove once
 
-1. Chọn `L0/L1/L2` theo [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md).
+1. Chọn `L0/L1/L2` theo [`harness/DELIVERY.md`](harness/DELIVERY.md).
    UI fix thông thường là L1 và làm inline; không tự gọi planner + executor + hai reviewer.
 2. Đọc `AGENTS.md`, `MEMORY.md`, `DESIGN.md`, sau đó chỉ mở contract cần thiết. Ghi contract ngắn:
    `symptom | route/mode/actor/state/grain | floorplan | geometry role | red loop | owner | success | out-of-scope`.

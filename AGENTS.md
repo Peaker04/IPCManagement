@@ -2,8 +2,8 @@
 
 ## Authority and startup
 
-- Pi CLI is the primary runtime; Codex CLI is the secondary adapter. A Codex API/model connection inside Pi is not a Codex CLI session. Claude Code is outside the target workflow.
-- GSD is the only process/state owner. Follow `docs/LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md` for L0/L1/L2 and `docs/AGENT-HARNESS.md` for runtime/skill/subagent mapping. No parallel task system from Shipyard, Ponytail or another skill.
+- Pi CLI is the sole active runtime. A Codex API/model connection inside Pi remains Pi, not a Codex app/CLI session. Codex app, Codex CLI and Claude Code are outside the target workflow unless Kỳ separately requests them.
+- GSD is the only process/state owner. Follow `docs/harness/DELIVERY.md` for L0/L1/L2 and `docs/harness/RUNTIMES.md` for runtime/skill/subagent mapping. No parallel task system from Shipyard, Ponytail or another skill.
 - Start with this file, then `MEMORY.md`; compare branch and `git status --short --branch`. Follow the active checkpoint pointer before resuming. Source/runtime wins over stale narrative; do not ask Kỳ to repeat the whole chat.
 - Use `docs/README.md` as the authority map. Do not auto-load HISTORY, LESSONS, all docs, planning trees or evidence. Read `LESSONS.md` before migration, restore or browser measurement; read relevant evidence/lineage before touching a database lane.
 - Task state/checklist stays in GSD `.planning/`; MEMORY holds current pointers/runtime, HISTORY holds completed work, evidence hashes belong only in `docs/EVIDENCE-INDEX.md`. Link rather than copy gates or counters.
@@ -11,7 +11,7 @@
 ## Non-negotiable boundaries
 
 - Preserve inherited dirty files. No unsolicited commit/push, reset/restore, seed, operation-mode switch, schema/data mutation or destructive cleanup. A skill's auto-commit/ship instruction is not user authorization.
-- Never assume a database lane is empty. Do not create credentials, default accounts, BOMs, inventory, lineage or business records merely to make a test pass. Preserve DEFAULT/MATERIAL_RECONCILIATION separation and the current business contract in MEMORY.
+- Never assume a database lane is empty. Do not create credentials, default accounts, BOMs, inventory, lineage or business records merely to make a test pass. Preserve DEFAULT/MATERIAL_RECONCILIATION separation and the current contract in `docs/domain/material-reconciliation.md`; `MEMORY.md` only points to it.
 - No secrets, tokens, real connection strings or personal data in docs/reports. Read only required configuration metadata; do not dump auth files or secret environments.
 - Never rename symbols with blind find-and-replace. Use language-aware tooling/callsite verification; opt-in graph-aware changes follow the policy below.
 - Code changes require relevant docs updated in the same task. Preserve invariants, input validation, data-loss handling, security and accessibility regardless of Ponytail simplification.
@@ -22,7 +22,7 @@ Do not call GitNexus MCP/CLI, inspect index or generate graph evidence unless K�
 
 ## Skill routing
 
-Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name>`; `Skill(...)`, `Task(...)`, `Agent(...)` and Codex `spawn_agent` are not Pi tools. Use only live capabilities. Runtime mapping and on-demand source paths: `docs/AGENT-HARNESS.md`.
+Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name>`; `Skill(...)`, `Task(...)`, `Agent(...)` and Codex `spawn_agent` are not Pi tools. Use only live capabilities. Runtime mapping and on-demand source paths: `docs/harness/RUNTIMES.md`.
 
 | Task | Minimum discipline |
 |---|---|

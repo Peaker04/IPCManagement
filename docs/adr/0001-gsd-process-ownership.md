@@ -30,7 +30,7 @@ GSD là process owner duy nhất, không ngoại lệ:
 
 Không còn đường thứ hai cho spec/ticket/implementation. Tuy nhiên, process ownership không được hiểu là
 “full GSD cho mọi task”. Execution phải chọn L0/L1/L2 theo
-[`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](../LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md):
+[`harness/DELIVERY.md`](../harness/DELIVERY.md):
 
 - L0/L1 ưu tiên inline, một red-capable loop, một owner, một regression và một gate; mặc định không fan-out.
 - L2 mới dùng phase/checkpoint/subagent đầy đủ cho protected data, migration, trust boundary hoặc nhiều
@@ -39,3 +39,13 @@ Không còn đường thứ hai cho spec/ticket/implementation. Tuy nhiên, proc
   trạng thái cạnh tranh.
 
 Handoff không phải nguồn trạng thái và không được override `MEMORY.md`.
+
+## Pi-first adapter clarification (2026-09-06)
+
+Pi CLI là runtime duy nhất; dùng API/model Codex trong Pi vẫn là Pi và không kích hoạt Codex app/CLI. Codex app, Codex CLI và Claude Code nằm ngoài execution path trừ khi Kỳ mở task riêng. Giữ nguyên junction/shared core/worktree cũ, không xóa chúng như một bước chuyển runtime. Mapping cụ thể: [`harness/RUNTIMES.md`](../harness/RUNTIMES.md).
+
+GSD giữ process/state ownership, không đòi port toàn bộ agent upstream. Bản agent mang Codex tool/auto-commit
+assumption chưa được kiểm chứng thì bị tắt ở project Pi; L0/L1 chạy inline theo Lean. Full workflow có yêu cầu
+typed agent/isolation chưa được hỗ trợ phải dừng ở capability boundary, không giả danh native GSD execution.
+Shipyard chỉ cung cấp tooling đã duyệt dưới task GSD; không chạy feature/plan/PR orchestration song song.
+Chỉ commit/ship khi Kỳ cho phép; upstream skill không cấp quyền đó.

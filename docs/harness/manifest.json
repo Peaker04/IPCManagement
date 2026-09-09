@@ -1,0 +1,76 @@
+{
+  "memoryMaxBytes": 12288,
+  "canonicalOwners": [
+    {
+      "id": "harness-index",
+      "path": "docs/harness/README.md",
+      "status": "canonical-index"
+    },
+    {
+      "id": "harness-governance",
+      "path": "docs/harness/GOVERNANCE.md",
+      "status": "canonical-governance"
+    },
+    {
+      "id": "harness-delivery",
+      "path": "docs/harness/DELIVERY.md",
+      "status": "canonical-process"
+    },
+    {
+      "id": "harness-runtimes",
+      "path": "docs/harness/RUNTIMES.md",
+      "status": "canonical-adapter"
+    },
+    {
+      "id": "harness-maintenance",
+      "path": "docs/harness/MAINTENANCE.md",
+      "status": "canonical-runbook"
+    },
+    {
+      "id": "mrx-contract",
+      "path": "docs/domain/material-reconciliation.md",
+      "status": "canonical-domain-contract"
+    }
+  ],
+  "activePointers": [
+    ".planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md",
+    ".artifacts/subagents/mrx-screenshot-uiux-remediation-HANDOVER.md"
+  ],
+  "requiredPointers": [
+    ".planning/phases/32-chu-n-h-a-ki-n-tr-c-ai-agent-harness-d-ng-chung-cho-pi-cli-v/32-CHECKLIST.md",
+    ".planning/phases/32-chu-n-h-a-ki-n-tr-c-ai-agent-harness-d-ng-chung-cho-pi-cli-v/32-HANDOVER.md",
+    ".planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-VERIFICATION.md"
+  ],
+  "candidateSkills": [
+    {
+      "name": "harness-maintenance",
+      "path": ".agents/skills/harness-maintenance/SKILL.md",
+      "piSetting": "../.agents/skills/harness-maintenance"
+    }
+  ],
+  "runtimeCapabilities": {
+    "pi": "live"
+  },
+  "resolvedSkillRegistrations": {
+    "pi": [
+      "harness-maintenance"
+    ]
+  },
+  "linkRoots": [
+    "AGENTS.md",
+    "MEMORY.md",
+    "docs/README.md",
+    "docs/AGENT-HARNESS.md",
+    "docs/LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md",
+    "docs/DOMAIN.md",
+    "docs/UI-UX-EXECUTION-HARNESS.md",
+    "docs/adr/0001-gsd-process-ownership.md",
+    "docs/adr/0004-shared-agent-knowledge-thin-runtime-adapters.md",
+    ".agents/skills/harness-maintenance/SKILL.md"
+  ],
+  "requiredText": [
+    "operational warehouse luôn được giả định là đủ nguyên liệu để xuất",
+    "`RequestedQty` luôn bằng frozen `RequiredQuantity`",
+    "Không hard-delete valid issue"
+  ]
+}

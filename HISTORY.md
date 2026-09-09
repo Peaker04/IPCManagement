@@ -1779,3 +1779,17 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Strengthened `docs/LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`: one sequential objective defaults to one plan/checklist/ledger; whole-page PASS cannot come from route load, API-only evidence, screenshots or generic issue counters; legitimate missing prerequisites remain BLOCKED and must not be manufactured.
 - Archived ten superseded UI checklist/research/wave documents under `docs/archive/ui-process-history/` with explicit no-authority banners rather than deleting decision history. Updated live references to their archived paths.
 - No production behavior, runtime, database, protected lane, Phase 31 verdict or MRX-06P blocker was changed by this documentation-only consolidation.
+
+## 2026-09-06 · Pi-first harness standardization
+
+- Standardized Pi CLI as the primary runtime, Codex CLI as a secondary adapter, and removed Claude Code/Shipyard orchestration from the active project workflow without deleting shared junctions, worktrees or dirty harness assets.
+- Added canonical runtime/skill/subagent and GitNexus opt-in adapters; reduced routine skill discovery, disabled unadapted imported/external-CLI agents and retained GSD as the sole process/state owner.
+- Installed native Pi GSD 1.12.0 and pinned pi-subagents 0.65.1. Reconciled selected skills: Ponytail and Front-End-Checklist were current; diagnosing-bugs/tdd canonical bytes were unchanged; Karpathy guidelines updated to upstream revision `2c606141936f1eeef17fa3043a72095b4765b9c2`.
+- Real loaders and a fresh Pi-process delegate smoke passed. The same-parent hot-update failure was retained as expected reload evidence rather than hidden. No application source, database, operation mode, commit or push was changed. MRX resumed at MXE-10 under goal mission `b1acea4c-b8ca-43b0-8572-d30f882c02b0`.
+
+## Phase 31 owner-accepted residual closure · 2026-09-08
+
+- Kỳ explicitly closed Phase 31 as `PASS_WITH_DECLARED_RESIDUAL` after the final independent source review found zero issues across commits `31c7d0a0`, `05b4acea`, and `8ff0dd15`.
+- Source/tests/review are closed. Protected completion mutation, mixed linked-issue runtime rendering and exact protected browser cells remain `NEEDS_EVIDENCE` / `WAITING_FOR_BUSINESS_EVENT`; this is not complete protected MRX lifecycle certification.
+- No additional browser, database, operation-mode or business-data mutation was run to manufacture closure. Phase 31 may reopen only for an authorized natural business event or a new explicit goal.
+- Phase 32 Pi-only Agent Harness and its P32-A01..A07 acceptance audit also pass; no follow-on harness architecture plan is currently warranted.

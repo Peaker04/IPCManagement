@@ -2,6 +2,8 @@
 
 IPC Management điều phối bữa ăn công nghiệp từ thực đơn và số suất đến nguyên liệu, mua hàng, kho và bếp. Mục tiêu không chỉ là lưu chứng từ: hệ thống phải cho thấy mỗi việc đang ở đâu, ai được hành động tiếp và tồn kho thay đổi từ nguồn nào.
 
+Contract riêng của operation mode `MATERIAL_RECONCILIATION` nằm tại [domain/material-reconciliation.md](domain/material-reconciliation.md); tài liệu này chỉ giữ vocabulary/luồng chung.
+
 ## Bốn vai trò vận hành
 
 | Vai trò | Trách nhiệm chính | Bàn giao cho |

@@ -15,7 +15,7 @@ last_reviewed: 2026-09-02
 
 1. Đọc `AGENTS.md`.
 2. Auto-load duy nhất `MEMORY.md`, rồi đối chiếu với code/runtime và `git status --short --branch`.
-3. Chọn lane tại [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md).
+3. Chọn lane tại [`harness/DELIVERY.md`](harness/DELIVERY.md).
 4. Chỉ mở tài liệu canonical đúng loại việc trong bảng dưới.
 5. Chỉ mở phase/evidence/history khi task hiện hành thật sự cần chúng.
 
@@ -26,7 +26,9 @@ Không auto-load `HISTORY.md`, `LESSONS.md`, toàn bộ `docs/`, `.planning/` ho
 | Nhu cầu | Nguồn canonical | Không dùng thay thế |
 |---|---|---|
 | Trạng thái, runtime, lane, blocker, bước tiếp theo | `MEMORY.md` | Summary/verification cũ, session transcript |
-| Quy trình delivery/debug và mức L0/L1/L2 | [`LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md`](LEAN-DELIVERY-AND-DEBUGGING-STANDARD.md) | Plan template hoặc agent fan-out tự phát |
+| AI Agent Harness, Pi runtime, skill discovery và subagent | [`harness/README.md`](harness/README.md), [`harness/RUNTIMES.md`](harness/RUNTIMES.md) | Tool/skill của runtime khác hoặc package chỉ nằm trên đĩa |
+| GitNexus khi được yêu cầu rõ ràng | [`GITNEXUS-POLICY.md`](GITNEXUS-POLICY.md) | Auto-index/hook hoặc policy graph áp cho mọi task |
+| Quy trình delivery/debug và mức L0/L1/L2 | [`harness/DELIVERY.md`](harness/DELIVERY.md) | Plan template hoặc agent fan-out tự phát |
 | Domain và grain dữ liệu | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md) | Tên UI, table name hoặc fixture |
 | Kiến trúc hệ thống | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Audit/redesign có ngày trong tên |
 | UI normative rules | [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) | Screenshot, wave audit, checklist lịch sử |
