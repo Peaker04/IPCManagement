@@ -157,10 +157,10 @@ baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action 
 trên 600 dòng; test file trên 1.500 dòng là lỗi. Strict gate còn fail khi có production debt mới/tăng,
 test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline production chỉ grandfather hai service plan-required hiện có. Phase 33 đã chuyển purchasing routing
 của `SupplementalMaterialRequestService` sang internal non-DI owner `SupplementalMaterialRequestPurchasingRouter`,
-và chuyển riêng reconciliation issue creation của `InventoryIssueService` sang internal non-DI owner
-`ReconciliationInventoryIssueCreator`. Hai public service seam, constructor/DI và transaction lifecycle giữ nguyên;
-các service gốc và owner mới đều dưới ngưỡng 600 dòng. Finding còn lại `AuditReportService` không được thêm vào
-baseline; proposal tách responsibility bị giới hạn trong Phase 33 plan và chưa phải authorization refactor.
+chuyển riêng reconciliation issue creation của `InventoryIssueService` sang `ReconciliationInventoryIssueCreator`,
+và chuyển stored-audit/quantity-import/menu-import reads của `AuditReportService` sang `AuditChangeQueryReader`.
+Các owner mới không đăng ký DI; public service constructor/interface/controller/routes và page/export orchestration giữ nguyên.
+Mọi service gốc và owner mới đều dưới ngưỡng 600 dòng, nên strict gate chỉ còn hai service plan-required đã baseline.
 
 Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
 trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng
