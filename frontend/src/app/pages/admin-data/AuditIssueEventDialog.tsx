@@ -1,4 +1,4 @@
-import { ReconciliationIssueDetailDialog } from '@/features/reconciliation/ReconciliationIssueDetailDialog'
+import { ReconciliationIssueDetailDialog } from '@/components/reconciliation/ReconciliationIssueDetailDialog'
 
 interface AuditIssueEventDialogProps {
   eventId?: string

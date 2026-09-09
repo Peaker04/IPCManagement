@@ -3,7 +3,7 @@ import { EmptyState, QueryViewBoundary, SectionPanel, TableViewport } from '@/co
 import { formatDateTime } from '@/lib/formatters'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { useListReconciliationSourceChangesQuery } from '@/api/reconciliationApi'
-import { presentAudit } from '@/app/pages/admin-data/auditPresentation'
+import { presentAudit } from '@/lib/auditPresentation'
 
 export function ReconciliationSourceChangeLog({ batchId }: { batchId: string }) {
   const query = useListReconciliationSourceChangesQuery(batchId)

@@ -85,6 +85,7 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
                 .CountAsync(issue =>
                     issue.CreatedAt <= approvalCutoff &&
                     issue.MaterialRequestId != null &&
+                    issue.MaterialRequest != null &&
                     issue.ReconciliationBatchId == null &&
                     issue.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
                     issue.Inventoryissuelines.All(line =>

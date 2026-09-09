@@ -491,7 +491,13 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
     }
 
     private static KitchenIssueReportDto MapKitchenIssue(InventoryIssueLine item)
-        => new()
+    {
+        if (item.Issue.MaterialRequestId is not { } materialRequestId)
+        {
+            throw new InvalidOperationException("Default kitchen issue report rows require a material request.");
+        }
+
+        return new()
         {
             IssueId = GuidHelper.ToGuidString(item.IssueId),
             IssueLineId = GuidHelper.ToGuidString(item.IssueLineId),
@@ -503,7 +509,7 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             SourcePriceTierAmount = item.MaterialRequestLine?.PriceTierAmount,
             WarehouseId = GuidHelper.ToGuidString(item.Issue.WarehouseId),
             WarehouseName = item.Issue.Warehouse.WarehouseName,
-            MaterialRequestId = GuidHelper.ToGuidString(item.Issue.MaterialRequestId),
+            MaterialRequestId = GuidHelper.ToGuidString(materialRequestId),
             IngredientId = GuidHelper.ToGuidString(item.IngredientId),
             IngredientName = item.Ingredient.IngredientName,
             UnitId = GuidHelper.ToGuidString(item.UnitId),
@@ -516,6 +522,7 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
             IsReceivedByKitchen = item.Issue.ReceivedAt is not null,
             ReceiptStatus = item.Issue.ReceivedAt is null ? "Chờ bếp nhận" : "Bếp đã nhận"
         };
+    }
 
     private static string BuildUsageKey(byte[] issueLineId)
         => Convert.ToBase64String(issueLineId);

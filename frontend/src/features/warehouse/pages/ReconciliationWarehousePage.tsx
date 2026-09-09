@@ -15,10 +15,10 @@ import { readReconciliationSelection, type ReconciliationWarehouseView, writeRec
 import { eligiblePageTabs } from '@/lib/systemOperationEligibility'
 import { useSystemOperation } from '@/lib/systemOperationContext'
 import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, useListReconciliationIssueHistoryQuery, type ReconciliationIssueHistoryItem } from '@/api/reconciliationApi'
-import { ReconciliationIssueDetailDialog } from '@/features/reconciliation/ReconciliationIssueDetailDialog'
-import { ReconciliationIssueHistoryTable } from '@/features/reconciliation/ReconciliationIssueHistoryTable'
-import { ReconciliationLifecycleStrip } from '@/features/reconciliation/ReconciliationLifecycleStrip'
-import { getReconciliationLifecyclePresentation } from '@/features/reconciliation/reconciliationLifecyclePresentation'
+import { ReconciliationIssueDetailDialog } from '@/components/reconciliation/ReconciliationIssueDetailDialog'
+import { ReconciliationIssueHistoryTable } from '@/components/reconciliation/ReconciliationIssueHistoryTable'
+import { ReconciliationLifecycleStrip } from '@/components/reconciliation/ReconciliationLifecycleStrip'
+import { getReconciliationLifecyclePresentation } from '@/lib/reconciliationLifecyclePresentation'
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 

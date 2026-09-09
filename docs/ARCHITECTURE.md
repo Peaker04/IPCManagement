@@ -136,9 +136,13 @@ Cache giữ một `workflowCacheTags` registry 22 tag. `AdminDataPage` ở tần
 dữ liệu của admin, auth và coordination thay vì thuộc riêng một feature. Cross-feature Projects chỉ dùng
 coordination transport/read projection và action contract ở tầng thấp hơn, không import ruột feature Coordination.
 
-Dependency-cruiser áp dụng R1–R6 trên 342 module. Baseline 54 violation đã giảm về file `[]`; strict run
-không dùng baseline cũng trả 0 violation. Ngoại lệ duy nhất là compatibility barrel chỉ được import chính xác
-các endpoint owner đã liệt kê và phải được review lại ở milestone v1.3.
+Dependency-cruiser áp dụng R1–R6 với baseline known-violation `[]`. Reusable reconciliation UI nằm ở
+`frontend/src/components/reconciliation`, còn pure lifecycle/correlation/audit presentation nằm ở
+`frontend/src/lib`; feature/app paths cũ chỉ là compatibility re-export và không được import ngược từ owner
+thấp hơn. Report mapping canonical nằm ở `frontend/src/api/reportsApiMappers.ts`; feature Reports chỉ giữ
+facade re-export thay vì implementation trùng lặp. Strict dependency-cruiser hiện trả 0 violation. Ngoại lệ
+duy nhất là compatibility barrel workflow chỉ được import chính xác các endpoint owner đã liệt kê và phải
+được review lại ở milestone v1.3.
 
 ## Guardrail kiến trúc và workflow closeout
 
@@ -151,8 +155,9 @@ dưới `frontend/tests/support/route-smoke`; discovery cuối vẫn là 17/17 s
 baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action và buộc plan split trên 400 dòng hoặc
 20 action; service cảnh báo trên 600 dòng và buộc plan split trên 1.000 dòng; frontend viết tay cảnh báo
 trên 600 dòng; test file trên 1.500 dòng là lỗi. Strict gate còn fail khi có production debt mới/tăng,
-test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline hiện có đúng
-10 finding production; `MaterialDemandService` đã giảm từ 1.470 xuống 1.446 dòng và ceiling cũng giảm theo.
+test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline production chỉ grandfather hai service plan-required hiện có. Ba finding mới
+`AuditReportService`, `InventoryIssueService` và `SupplementalMaterialRequestService` không được thêm vào
+baseline; proposal tách responsibility bị giới hạn trong cleanup ledger/plan và chưa phải authorization refactor.
 
 Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
 trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng

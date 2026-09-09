@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { mapAuditChange } from './reportsApiMappers'
-import { mapAuditChange as mapFeatureAuditChange } from '@/features/reports/reportsApiMappers'
 import type { AuditChangeReportDto } from './workflowApiTypes'
 
 const dto = (overrides: Partial<AuditChangeReportDto> = {}): AuditChangeReportDto => ({
@@ -33,8 +32,8 @@ describe('MXE-05 audit report mapper', () => {
     })
   })
 
-  it.each([mapAuditChange, mapFeatureAuditChange])('preserves additive event metadata for reconciliation audit summaries', (mapper) => {
-    expect(mapper(dto({
+  it('preserves additive event metadata for reconciliation audit summaries', () => {
+    expect(mapAuditChange(dto({
       sourceFamily: 'MATERIAL_RECONCILIATION',
       reconciliationBatchId: 'batch-mxe08',
       eventId: 'issue-mxe08',
@@ -55,16 +54,16 @@ describe('MXE-05 audit report mapper', () => {
     })
   })
 
-  it.each([mapAuditChange, mapFeatureAuditChange])('removes all values and reason from PasswordHash rows before they reach either report surface', (mapper) => {
+  it('removes all values and reason from PasswordHash rows before they reach the report surface', () => {
     const canary = ['AUDIT_SECRET', 'CANARY_MAPPER_PASSWORD'].join('_')
-    const row = mapper(dto({ businessArea: ' admin ', entityName: ' USER ', fieldName: ' passwordhash ', oldValue: canary, newValue: canary, reason: canary }))
+    const row = mapAuditChange(dto({ businessArea: ' admin ', entityName: ' USER ', fieldName: ' passwordhash ', oldValue: canary, newValue: canary, reason: canary }))
     expect(row).toMatchObject({ oldValue: '', newValue: 'Đã đổi mật khẩu', reason: '' })
     expect(JSON.stringify(row)).not.toContain(canary)
   })
 
-  it.each([mapAuditChange, mapFeatureAuditChange])('redacts nested secret material for unknown tuples in either report mapper', (mapper) => {
+  it('redacts nested secret material for unknown tuples in the report mapper', () => {
     const credential = ['fixture', 'credential', '1234567890abcdef'].join('-')
-    const row = mapper(dto({ businessArea: 'Unknown', entityName: 'Unknown', fieldName: 'Unknown', oldValue: JSON.stringify({ accessToken: credential }), newValue: `passwordHash=${credential}`, reason: `Bearer ${credential}` }))
+    const row = mapAuditChange(dto({ businessArea: 'Unknown', entityName: 'Unknown', fieldName: 'Unknown', oldValue: JSON.stringify({ accessToken: credential }), newValue: `passwordHash=${credential}`, reason: `Bearer ${credential}` }))
     expect(JSON.stringify(row)).not.toContain(credential)
     expect(row).toMatchObject({ oldValue: 'Thông tin nhạy cảm đã được ẩn', newValue: 'Thông tin nhạy cảm đã được ẩn', reason: 'Thông tin nhạy cảm đã được ẩn' })
   })

@@ -53,7 +53,7 @@ import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
-import { MRX_QUANTITY_TAB_LABEL } from '@/features/reconciliation/reconciliationLifecyclePresentation';
+import { MRX_QUANTITY_TAB_LABEL } from '@/lib/reconciliationLifecyclePresentation';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))

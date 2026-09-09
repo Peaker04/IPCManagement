@@ -45,7 +45,7 @@ vi.mock('@/api/reconciliationApi', () => ({
   useListReconciliationIssueHistoryQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready({ items: [issue], totalCount: 1 }),
   useCreateReconciliationIssueMutation: () => [vi.fn(), { isLoading: false }],
 }))
-vi.mock('@/features/reconciliation/ReconciliationIssueDetailDialog', () => ({
+vi.mock('@/components/reconciliation/ReconciliationIssueDetailDialog', () => ({
   ReconciliationIssueDetailDialog: (props: typeof dialogProps[number]) => {
     dialogProps.push(props)
     if (!props.open || !props.issueId) return null

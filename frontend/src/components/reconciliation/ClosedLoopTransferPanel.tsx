@@ -3,7 +3,7 @@ import { ChevronDown, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert, TableViewport } from '@/components/common'
 import { formatDateOnly, formatNumber, formatQuantity } from '@/lib/formatters'
-import { ReconciliationLifecycleStrip } from '@/features/reconciliation/ReconciliationLifecycleStrip'
+import { ReconciliationLifecycleStrip } from '@/components/reconciliation/ReconciliationLifecycleStrip'
 import {
   useCommitReconciliationQuantityImportMutation,
   useInitializeReconciliationToleranceMutation,

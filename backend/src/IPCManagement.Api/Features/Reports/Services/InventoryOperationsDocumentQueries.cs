@@ -111,6 +111,7 @@ internal static class InventoryOperationsDocumentQueries
                 item.Issue.ReconciliationBatchId == null &&
                 item.Inventoryreturnlines.All(line =>
                     line.SourceIssueLineId != null &&
+                    line.SourceIssueLine != null &&
                     line.SourceIssueLine.MaterialRequestLineId != null &&
                     line.SourceIssueLine.ReconciliationBatchLineId == null));
 

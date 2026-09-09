@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { presentAudit } from '@/app/pages/admin-data/auditPresentation'
+import { presentAudit } from '@/lib/auditPresentation'
 import { getMrxLifecyclePresentation } from '@/lib/workflowConfig'
 import {
   MRX_QUANTITY_TAB_LABEL,

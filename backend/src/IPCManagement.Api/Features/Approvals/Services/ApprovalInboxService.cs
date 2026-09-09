@@ -467,6 +467,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 .ThenInclude(line => line.Unit)
             .Where(item =>
                 item.MaterialRequestId != null &&
+                item.MaterialRequest != null &&
                 item.ReconciliationBatchId == null &&
                 item.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
                 item.Inventoryissuelines.All(line =>
@@ -493,6 +494,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         var slaTargets = new List<ApprovalInboxSlaTarget>();
         foreach (var item in issues)
         {
+            if (item.MaterialRequest is not { } materialRequest) continue;
+
             var itemDto = new ApprovalInboxItemDto
             {
                 InboxItemId = "issue-" + GuidHelper.ToGuidString(item.IssueId),
@@ -501,7 +504,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 TargetCode = item.IssueCode,
                 ItemType = "issue",
                 Title = "Duyệt phiếu xuất kho",
-                Source = item.MaterialRequest.RequestCode,
+                Source = materialRequest.RequestCode,
                 OwnerRole = "Kho / Quản lý",
                 SubmittedBy = item.IssuedByNavigation.FullName,
                 DueDate = item.IssueDate,
