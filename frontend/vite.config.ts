@@ -45,6 +45,7 @@ export default defineConfig({
       'tests/uiAuditBlindReviewValidator.test.ts',
       'tests/uiAuditRemediationAttribution.test.ts',
       'tests/uiAuditRemediationReconciliation.test.ts',
+      'tests/uiAuditRemediationReconciliation.emit.test.ts',
       'tests/uiAuditRouteOwnerRegression.test.tsx',
       'tests/validatePhase271PlanResult.test.ts',
       'tests/validatePhase271Reseal.test.ts',
